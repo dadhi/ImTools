@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImTools", "ImTools\ImTools.csproj", "{48263EEE-3453-4B5C-8630-BBA26B4A4FB3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImTools.UnitTests", "ImTools.UnitTests\ImTools.UnitTests.csproj", "{34918C54-B523-4C10-8CE6-625328B0AF10}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{48263EEE-3453-4B5C-8630-BBA26B4A4FB3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{48263EEE-3453-4B5C-8630-BBA26B4A4FB3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{48263EEE-3453-4B5C-8630-BBA26B4A4FB3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{48263EEE-3453-4B5C-8630-BBA26B4A4FB3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{34918C54-B523-4C10-8CE6-625328B0AF10}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{34918C54-B523-4C10-8CE6-625328B0AF10}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{34918C54-B523-4C10-8CE6-625328B0AF10}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{34918C54-B523-4C10-8CE6-625328B0AF10}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
