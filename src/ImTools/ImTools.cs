@@ -333,7 +333,7 @@ namespace ImTools
         /// <summary>Creates the key value pair.</summary>
         /// <typeparam name="K">Key type</typeparam> <typeparam name="V">Value type</typeparam>
         /// <param name="key">Key</param> <param name="value">Value</param> <returns>New pair.</returns>
-        [MethodImpl((MethodImplOptions)256)] // AggressiveInlining
+        [MethodImpl(MethodImplHints.AggressingInlining)]
         public static KV<K, V> Of<K, V>(K key, V value)
         {
             return new KV<K, V>(key, value);
@@ -342,7 +342,7 @@ namespace ImTools
         /// <summary>Creates the new pair with new key and old value.</summary>
         /// <typeparam name="K">Key type</typeparam> <typeparam name="V">Value type</typeparam>
         /// <param name="source">Source value</param> <param name="key">New key</param> <returns>New pair</returns>
-        [MethodImpl((MethodImplOptions)256)] // AggressiveInlining
+        [MethodImpl(MethodImplHints.AggressingInlining)]
         public static KV<K, V> WithKey<K, V>(this KV<K, V> source, K key)
         {
             return new KV<K, V>(key, source.Value);
@@ -351,7 +351,7 @@ namespace ImTools
         /// <summary>Creates the new pair with old key and new value.</summary>
         /// <typeparam name="K">Key type</typeparam> <typeparam name="V">Value type</typeparam>
         /// <param name="source">Source value</param> <param name="value">New value.</param> <returns>New pair</returns>
-        [MethodImpl((MethodImplOptions)256)] // AggressiveInlining
+        [MethodImpl(MethodImplHints.AggressingInlining)]
         public static KV<K, V> WithValue<K, V>(this KV<K, V> source, V value)
         {
             return new KV<K, V>(source.Key, value);
@@ -484,7 +484,6 @@ namespace ImTools
                         : With(Left, Right.AddOrUpdate(key, value, updateOnly, update))).KeepBalanced());
         }
 
-        [MethodImpl(MethodImplHints.AggressingInlining)]
         private ImTree KeepBalanced()
         {
             var delta = Left.Height - Right.Height;
@@ -493,19 +492,16 @@ namespace ImTools
                     : this);
         }
 
-        [MethodImpl(MethodImplHints.AggressingInlining)]
         private ImTree RotateRight()
         {
             return Left.With(Left.Left, With(Left.Right, Right));
         }
 
-        [MethodImpl(MethodImplHints.AggressingInlining)]
         private ImTree RotateLeft()
         {
             return Right.With(With(Left, Right.Left), Right.Right);
         }
 
-        [MethodImpl(MethodImplHints.AggressingInlining)]
         private ImTree With(ImTree left, ImTree right)
         {
             return left == Left && right == Right ? this : new ImTree(Key, Value, left, right);
@@ -728,7 +724,6 @@ namespace ImTools
             return false;
         }
 
-        [MethodImpl(MethodImplHints.AggressingInlining)]
         private ImHashTree<K, V> KeepBalanced()
         {
             var delta = Left.Height - Right.Height;
@@ -737,19 +732,16 @@ namespace ImTools
                     : this);
         }
 
-        [MethodImpl(MethodImplHints.AggressingInlining)]
         private ImHashTree<K, V> RotateRight()
         {
             return Left.With(Left.Left, With(Left.Right, Right));
         }
 
-        [MethodImpl(MethodImplHints.AggressingInlining)]
         private ImHashTree<K, V> RotateLeft()
         {
             return Right.With(With(Left, Right.Left), Right.Right);
         }
 
-        [MethodImpl(MethodImplHints.AggressingInlining)]
         private ImHashTree<K, V> With(ImHashTree<K, V> left, ImHashTree<K, V> right)
         {
             return left == Left && right == Right ? this : new ImHashTree<K, V>(Hash, Key, Value, Conflicts, left, right);

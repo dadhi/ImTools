@@ -23,6 +23,21 @@ namespace ImTools.UnitTests
         }
 
         [Test]
+        public void Tree_should_support_arbitrary_keys_by_using_their_hash_code_TryFind()
+        {
+            var tree = ImHashTree<Type, string>.Empty;
+
+            var key = typeof(ImHashTreeTests);
+            var value = "test";
+
+            tree = tree.AddOrUpdate(key, value);
+
+            string result;
+            Assert.IsTrue(tree.TryFind(key, out result));
+            Assert.That(result, Is.EqualTo("test"));
+        }
+
+        [Test]
         public void When_adding_value_with_hash_conflicted_key_Then_I_should_be_able_to_get_it_back()
         {
             var key1 = new HashConflictingKey<string>("a", 1);
@@ -35,6 +50,22 @@ namespace ImTools.UnitTests
 
             var value = tree.GetValueOrDefault(key3);
 
+            Assert.That(value, Is.EqualTo(3));
+        }
+
+        [Test]
+        public void When_adding_value_with_hash_conflicted_key_Then_I_should_be_able_to_get_it_back_TryFind()
+        {
+            var key1 = new HashConflictingKey<string>("a", 1);
+            var key2 = new HashConflictingKey<string>("b", 1);
+            var key3 = new HashConflictingKey<string>("c", 1);
+            var tree = ImHashTree<HashConflictingKey<string>, int>.Empty
+                .AddOrUpdate(key1, 1)
+                .AddOrUpdate(key2, 2)
+                .AddOrUpdate(key3, 3);
+
+            int value;
+            Assert.IsTrue(tree.TryFind(key3, out value));
             Assert.That(value, Is.EqualTo(3));
         }
 
@@ -168,6 +199,16 @@ namespace ImTools.UnitTests
         }
 
         [Test]
+        public void Search_in_empty_tree_should_NOT_throw_TryFind()
+        {
+            var tree = ImHashTree<int, int>.Empty;
+
+            int result;
+            Assert.DoesNotThrow(
+                () => tree.TryFind(0, out result));
+        }
+
+        [Test]
         public void Search_for_non_existent_key_should_NOT_throw()
         {
             var tree = ImHashTree<int, int>.Empty
@@ -176,6 +217,18 @@ namespace ImTools.UnitTests
 
             Assert.DoesNotThrow(
                 () => tree.GetValueOrDefault(2));
+        }
+
+        [Test]
+        public void Search_for_non_existent_key_should_NOT_throw_TryFind()
+        {
+            var tree = ImHashTree<int, int>.Empty
+                .AddOrUpdate(1, 1)
+                .AddOrUpdate(3, 2);
+
+            int result;
+            Assert.DoesNotThrow(
+                () => tree.TryFind(2, out result));
         }
 
         [Test]
