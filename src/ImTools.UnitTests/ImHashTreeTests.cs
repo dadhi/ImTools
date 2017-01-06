@@ -340,7 +340,7 @@ namespace ImTools.UnitTests
         {
             var tree = ImHashTree<int, string>.Empty.AddOrUpdate(0, "a");
 
-            tree = tree.RemoveOrUpdate(0);
+            tree = tree.Remove(0);
 
             Assert.That(tree.IsEmpty, Is.True);
         }
@@ -348,7 +348,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Remove_from_Empty_tree_should_not_throw()
         {
-            var tree = ImHashTree<int, string>.Empty.RemoveOrUpdate(0);
+            var tree = ImHashTree<int, string>.Empty.Remove(0);
             Assert.That(tree.IsEmpty, Is.True);
         }
 
@@ -358,7 +358,7 @@ namespace ImTools.UnitTests
             var tree = ImHashTree<int, string>.Empty
                 .AddOrUpdate(1, "a").AddOrUpdate(0, "b");
 
-            tree = tree.RemoveOrUpdate(1);
+            tree = tree.Remove(1);
 
             Assert.That(tree.Height, Is.EqualTo(1));
             Assert.That(tree.Value, Is.EqualTo("b"));
@@ -370,7 +370,7 @@ namespace ImTools.UnitTests
             var tree = ImHashTree<int, string>.Empty
                 .AddOrUpdate(1, "a").AddOrUpdate(0, "b");
 
-            tree = tree.RemoveOrUpdate(3);
+            tree = tree.Remove(3);
 
             Assert.That(tree.Value, Is.EqualTo("a"));
             Assert.That(tree.Left.Value, Is.EqualTo("b"));
@@ -382,7 +382,7 @@ namespace ImTools.UnitTests
             var tree = ImHashTree<int, string>.Empty
                 .AddOrUpdate(0, "a").AddOrUpdate(1, "b");
 
-            tree = tree.RemoveOrUpdate(0);
+            tree = tree.Remove(0);
 
             Assert.That(tree.Height, Is.EqualTo(1));
             Assert.That(tree.Value, Is.EqualTo("b"));
@@ -396,7 +396,7 @@ namespace ImTools.UnitTests
                 .AddOrUpdate(3, "c").AddOrUpdate(2, "d").AddOrUpdate(4, "e");
             Assert.That(tree.Value, Is.EqualTo("a"));
 
-            tree = tree.RemoveOrUpdate(1);
+            tree = tree.Remove(1);
 
             Assert.That(tree.Value, Is.EqualTo("d"));
             Assert.That(tree.Left.Value, Is.EqualTo("b"));
@@ -412,7 +412,7 @@ namespace ImTools.UnitTests
                 .AddOrUpdate(3, "c").AddOrUpdate(2, "d").AddOrUpdate(4, "e");
             Assert.That(tree.Value, Is.EqualTo("a"));
 
-            tree = tree.RemoveOrUpdate(2);
+            tree = tree.Remove(2);
 
             Assert.That(tree.Value, Is.EqualTo("a"));
             Assert.That(tree.Left.Value, Is.EqualTo("b"));
@@ -429,7 +429,7 @@ namespace ImTools.UnitTests
                 .AddOrUpdate(new HashConflictingKey<int>(2, 2), "c")
                 .AddOrUpdate(new HashConflictingKey<int>(3, 2), "d");
 
-            tree = tree.RemoveOrUpdate(new HashConflictingKey<int>(2, 2));
+            tree = tree.Remove(new HashConflictingKey<int>(2, 2));
 
             Assert.That(tree.Value, Is.EqualTo("a"));
             Assert.That(tree.Left.Value, Is.EqualTo("b"));
@@ -447,7 +447,7 @@ namespace ImTools.UnitTests
                 .AddOrUpdate(new HashConflictingKey<int>(3, 2), "d")
                 .AddOrUpdate(new HashConflictingKey<int>(4, 2), "e");
 
-            tree = tree.RemoveOrUpdate(new HashConflictingKey<int>(2, 2));
+            tree = tree.Remove(new HashConflictingKey<int>(2, 2));
 
             Assert.That(tree.Value, Is.EqualTo("a"));
             Assert.That(tree.Left.Value, Is.EqualTo("b"));
@@ -464,7 +464,7 @@ namespace ImTools.UnitTests
                 .AddOrUpdate(new HashConflictingKey<int>(2, 2), "c")
                 .AddOrUpdate(new HashConflictingKey<int>(3, 2), "d");
 
-            tree = tree.RemoveOrUpdate(new HashConflictingKey<int>(3, 2));
+            tree = tree.Remove(new HashConflictingKey<int>(3, 2));
 
             Assert.That(tree.Value, Is.EqualTo("a"));
             Assert.That(tree.Left.Value, Is.EqualTo("b"));
@@ -482,7 +482,7 @@ namespace ImTools.UnitTests
                 .AddOrUpdate(new HashConflictingKey<int>(3, 2), "d")
                 .AddOrUpdate(new HashConflictingKey<int>(4, 2), "e");
 
-            tree = tree.RemoveOrUpdate(new HashConflictingKey<int>(3, 2));
+            tree = tree.Remove(new HashConflictingKey<int>(3, 2));
 
             Assert.That(tree.Value, Is.EqualTo("a"));
             Assert.That(tree.Left.Value, Is.EqualTo("b"));
@@ -498,7 +498,7 @@ namespace ImTools.UnitTests
                 .AddOrUpdate(new HashConflictingKey<int>(0, 0), "b");
 
 
-            tree = tree.RemoveOrUpdate(new HashConflictingKey<int>(2, 1));
+            tree = tree.Remove(new HashConflictingKey<int>(2, 1));
 
             Assert.That(tree.Value, Is.EqualTo("a"));
             Assert.That(tree.Left.Value, Is.EqualTo("b"));
@@ -513,7 +513,7 @@ namespace ImTools.UnitTests
                 .AddOrUpdate(new HashConflictingKey<int>(2, 2), "c")
                 .AddOrUpdate(new HashConflictingKey<int>(3, 2), "d");
 
-            tree = tree.RemoveOrUpdate(new HashConflictingKey<int>(4, 2));
+            tree = tree.Remove(new HashConflictingKey<int>(4, 2));
 
             Assert.That(tree.Value, Is.EqualTo("a"));
             Assert.That(tree.Left.Value, Is.EqualTo("b"));
