@@ -481,10 +481,11 @@ namespace ImTools
                     new ImTree(key, update == null ? value : update(Value, value), Left, Right)
                     : (key < Key    // try update on left or right sub-tree
                         ? With(Left.AddOrUpdate(key, value, updateOnly, update), Right)
-                        : With(Left, Right.AddOrUpdate(key, value, updateOnly, update))).KeepBalanced());
+                        : With(Left, Right.AddOrUpdate(key, value, updateOnly, update)))
+                        .KeepBalance());
         }
 
-        private ImTree KeepBalanced()
+        private ImTree KeepBalance()
         {
             var delta = Left.Height - Right.Height;
             return delta >= 2 ? With(Left.Right.Height - Left.Left.Height == 1 ? Left.RotateLeft() : Left, Right).RotateRight()
@@ -600,30 +601,18 @@ namespace ImTools
         [MethodImpl(MethodImplHints.AggressingInlining)]
         public bool TryFind(K key, out V value)
         {
+            var t = this;
             var hash = key.GetHashCode();
+            while (t.Height != 0 && t.Hash != hash)
+                t = hash < t.Hash ? t.Left : t.Right;
 
-            // if height is 0 then the node is empty - immediately return
-            var node = this;
-            while (node.Height != 0)
+            if (t.Height != 0 && (ReferenceEquals(key, t.Key) || key.Equals(t.Key)))
             {
-                var nodeHash = node.Hash;
-                if (nodeHash == hash)
-                {
-                    var nodeKey = node.Key;
-                    if (ReferenceEquals(key, nodeKey) || key.Equals(nodeKey))
-                    {
-                        value = node.Value;
-                        return true;
-                    }
-
-                    return node.TryFindConflictedValue(key, out value);
-                }
-
-                node = hash < nodeHash ? node.Left : node.Right;
+                value = t.Value;
+                return true;
             }
 
-            value = default(V);
-            return false;
+            return t.TryFindConflictedValue(key, out value);
         }
 
         /// <summary>Depth-first in-order traversal as described in http://en.wikipedia.org/wiki/Tree_traversal
@@ -706,7 +695,7 @@ namespace ImTools
                     : (hash < Hash  // search for node
                         ? new ImHashTree<K, V>(Hash, Key, Value, Conflicts, Left.AddOrUpdate(hash, key, value), Right)
                         : new ImHashTree<K, V>(Hash, Key, Value, Conflicts, Left, Right.AddOrUpdate(hash, key, value)))
-                    .KeepBalanced());
+                    .KeepBalance());
         }
 
         private ImHashTree<K, V> AddOrUpdate(int hash, K key, V value, Update<V> update)
@@ -720,7 +709,7 @@ namespace ImTools
                 : (hash < Hash
                     ? With(Left.AddOrUpdate(hash, key, value, update), Right)
                     : With(Left, Right.AddOrUpdate(hash, key, value, update)))
-                    .KeepBalanced());
+                    .KeepBalance());
         }
 
         private ImHashTree<K, V> Update(int hash, K key, V value, Update<V> update)
@@ -733,7 +722,7 @@ namespace ImTools
                     : (hash < Hash
                         ? With(Left.Update(hash, key, value, update), Right)
                         : With(Left, Right.Update(hash, key, value, update)))
-                    .KeepBalanced());
+                    .KeepBalance());
         }
 
         private ImHashTree<K, V> UpdateValueAndResolveConflicts(K key, V value, Update<V> update, bool updateOnly)
@@ -770,7 +759,7 @@ namespace ImTools
 
         private bool TryFindConflictedValue(K key, out V value)
         {
-            if (Conflicts != null)
+            if (Height != 0 && Conflicts != null)
                 for (var i = Conflicts.Length - 1; i >= 0; --i)
                     if (Equals(Conflicts[i].Key, key))
                     {
@@ -782,33 +771,61 @@ namespace ImTools
             return false;
         }
 
-        private ImHashTree<K, V> KeepBalanced()
+        private ImHashTree<K, V> KeepBalance()
         {
             var delta = Left.Height - Right.Height;
-            return delta >= 2
-                ? (Left.Right.Height - Left.Left.Height == 1
-                    ? new ImHashTree<K, V>(Hash, Key, Value, Conflicts, Left.RotateLeft(), Right).RotateRight()
-                    : RotateRight())
-                : (delta <= -2
-                ? (Right.Left.Height - Right.Right.Height == 1
-                    ? new ImHashTree<K, V>(Hash, Key, Value, Conflicts, Left, Right.RotateRight()).RotateLeft()
-                    : RotateLeft())
-                : this);
+            if (delta >= 2) // left is longer by 2, rotate left
+            {
+                var left = Left;
+                var leftLeft = left.Left;
+                var leftRight = left.Right;
+                if (leftRight.Height - leftLeft.Height == 1)
+                {
+                    // double rotation:
+                    //      5     =>     5     =>     4
+                    //   2     6      4     6      2     5
+                    // 1   4        2   3        1   3     6
+                    //    3        1
+                    return new ImHashTree<K, V>(leftRight.Hash, leftRight.Key, leftRight.Value, leftRight.Conflicts,
+                        left: new ImHashTree<K, V>(left.Hash, left.Key, left.Value, left.Conflicts,
+                    left: leftLeft, right: leftRight.Left),          right: new ImHashTree<K, V>(Hash, Key, Value, Conflicts,
+                                                         left: leftRight.Right, right: Right));
+                }
+
+                // todo: do we need this?
+                // one rotation:
+                //      5     =>     2
+                //   2     6      1     5
+                // 1   4              4   6
+                return new ImHashTree<K, V>(left.Hash, left.Key, left.Value, left.Conflicts,
+                    left: leftLeft,      right: new ImHashTree<K, V>(Hash, Key, Value, Conflicts, 
+                               left: leftRight, right: Right));
+            }
+
+            if (delta <= -2)
+            {
+                var right = Right;
+                var rightLeft = right.Left;
+                var rightRight = right.Right;
+                if (rightLeft.Height - rightRight.Height == 1)
+                {
+                    return new ImHashTree<K, V>(rightLeft.Hash, rightLeft.Key, rightLeft.Value, rightLeft.Conflicts,
+                        left: new ImHashTree<K, V>(Hash, Key, Value, Conflicts, 
+                            left: Left, right: rightLeft.Left), right: new ImHashTree<K, V>(right.Hash, right.Key, right.Value, right.Conflicts,
+                                                    left: rightLeft.Right, right: rightRight));
+                }
+
+                return new ImHashTree<K, V>(right.Hash, right.Key, right.Value, right.Conflicts,
+                    left: new ImHashTree<K, V>(Hash, Key, Value, Conflicts, 
+                        left: Left, right: right.Left),        right: right.Right);
+            }
+
+            return this;
         }
 
-        private ImHashTree<K, V> RotateRight()
-        {
-            return new ImHashTree<K, V>(Left.Hash, Left.Key, Left.Value, Left.Conflicts,
-                Left.Left,
-                new ImHashTree<K, V>(Hash, Key, Value, Conflicts, Left.Right, Right));
-        }
-
-        private ImHashTree<K, V> RotateLeft()
-        {
-            return new ImHashTree<K, V>(Right.Hash, Right.Key, Right.Value, Right.Conflicts,
-                new ImHashTree<K, V>(Hash, Key, Value, Conflicts, Left, Right.Left),
-                Right.Right);
-        }
+        // 3              5
+        //    5    =>   3   6
+        //   4 6         4
 
         private ImHashTree<K, V> With(ImHashTree<K, V> left, ImHashTree<K, V> right)
         {
@@ -840,7 +857,8 @@ namespace ImTools
                         // we have two children, so remove the next highest node and replace this node with it.
                         var successor = Right;
                         while (!successor.Left.IsEmpty) successor = successor.Left;
-                        result = successor.With(Left, Right.Remove(successor.Hash, default(K), ignoreKey: true));
+                        result = new ImHashTree<K, V>(successor.Hash, successor.Key, successor.Value, successor.Conflicts, 
+                            Left, Right.Remove(successor.Hash, default(K), ignoreKey: true));
                     }
                 }
                 else if (Conflicts != null)
@@ -849,11 +867,13 @@ namespace ImTools
                     return this; // if key is not matching and no conflicts to lookup - just return
             }
             else if (hash < Hash)
-                result = With(Left.Remove(hash, key, ignoreKey), Right);
+                result = new ImHashTree<K, V>(Hash, Key, Value, Conflicts, 
+                    Left.Remove(hash, key, ignoreKey), Right);
             else
-                result = With(Left, Right.Remove(hash, key, ignoreKey));
+                result = new ImHashTree<K, V>(Hash, Key, Value, Conflicts, 
+                    Left, Right.Remove(hash, key, ignoreKey));
 
-            return result.KeepBalanced();
+            return result.KeepBalance();
         }
 
         private ImHashTree<K, V> TryRemoveConflicted(K key)
@@ -911,9 +931,10 @@ namespace ImTools
                     else
                     {
                         // we have two children, so remove the next highest node and replace this node with it.
-                        var successor = Right;
-                        while (!successor.Left.IsEmpty) successor = successor.Left;
-                        result = successor.With(Left, Right.Remove(successor.Hash, default(K), ignoreKey: true));
+                        var next = Right;
+                        while (!next.Left.IsEmpty) next = next.Left;
+                        result = new ImHashTree<K, V>(next.Hash, next.Key, next.Value, next.Conflicts, Left, 
+                            Right.Remove(next.Hash, default(K), ignoreKey: true));
                     }
                 }
                 else if (Conflicts != null)
@@ -943,10 +964,13 @@ namespace ImTools
                 else return this; // if key is not matching and no conflicts to lookup - just return
             }
             else if (hash < Hash)
-                result = With(Left.RemoveOrUpdate(hash, key, shouldUpdate, ignoreKey), Right);
+                result = new ImHashTree<K, V>(Hash, Key, Value, Conflicts, 
+                    Left.RemoveOrUpdate(hash, key, shouldUpdate, ignoreKey), Right);
             else
-                result = With(Left, Right.RemoveOrUpdate(hash, key, shouldUpdate, ignoreKey));
-            return result.KeepBalanced();
+                result = new ImHashTree<K, V>(Hash, Key, Value, Conflicts,
+                    Left, Right.RemoveOrUpdate(hash, key, shouldUpdate, ignoreKey));
+
+            return result.KeepBalance();
         }
 
         #endregion
