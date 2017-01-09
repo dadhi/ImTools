@@ -673,6 +673,17 @@ namespace ImTools
 
         private ImHashTree() { }
 
+        private ImHashTree(int hash, K key, V value)
+        {
+            Hash = hash;
+            Key = key;
+            Value = value;
+            Conflicts = null;
+            Left = Empty;
+            Right = Empty;
+            Height = 1;
+        }
+
         private ImHashTree(int hash, K key, V value, KV<K, V>[] conficts, ImHashTree<K, V> left, ImHashTree<K, V> right)
         {
             Hash = hash;
@@ -684,24 +695,42 @@ namespace ImTools
             Height = 1 + (left.Height > right.Height ? left.Height : right.Height);
         }
 
+        private ImHashTree(int hash, K key, V value, KV<K, V>[] conficts, ImHashTree<K, V> left, ImHashTree<K, V> right, int height)
+        {
+            Hash = hash;
+            Key = key;
+            Value = value;
+            Conflicts = conficts;
+            Left = left;
+            Right = right;
+            Height = height;
+        }
+
         private ImHashTree<K, V> AddOrUpdate(int hash, K key, V value)
         {
             return Height == 0  // add new node
-                ? new ImHashTree<K, V>(hash, key, value, null, Empty, Empty)
+                ? new ImHashTree<K, V>(hash, key, value)
                 : (hash == Hash // update found node
                     ? (ReferenceEquals(Key, key) || Key.Equals(key)
                         ? new ImHashTree<K, V>(Hash, key, value, Conflicts, Left, Right)
                         : UpdateValueAndResolveConflicts(key, value, null, false))
                     : (hash < Hash  // search for node
-                        ? new ImHashTree<K, V>(Hash, Key, Value, Conflicts, Left.AddOrUpdate(hash, key, value), Right)
-                        : new ImHashTree<K, V>(Hash, Key, Value, Conflicts, Left, Right.AddOrUpdate(hash, key, value)))
-                    .KeepBalance());
+                        ? (Height == 1
+                            ? new ImHashTree<K, V>(Hash, Key, Value, Conflicts,
+                                new ImHashTree<K, V>(hash, key, value), Right, height: 2)
+                            : new ImHashTree<K, V>(Hash, Key, Value, Conflicts, 
+                                Left.AddOrUpdate(hash, key, value), Right).KeepBalance())
+                        : (Height == 1
+                            ? new ImHashTree<K, V>(Hash, Key, Value, Conflicts,
+                                Left, new ImHashTree<K, V>(hash, key, value), height: 2)
+                            : new ImHashTree<K, V>(Hash, Key, Value, Conflicts, 
+                                Left, Right.AddOrUpdate(hash, key, value)).KeepBalance())));
         }
 
         private ImHashTree<K, V> AddOrUpdate(int hash, K key, V value, Update<V> update)
         {
             return Height == 0
-                    ? new ImHashTree<K, V>(hash, key, value, null, Empty, Empty)
+                    ? new ImHashTree<K, V>(hash, key, value)
                 : (hash == Hash // update
                     ? (ReferenceEquals(Key, key) || Key.Equals(key)
                         ? new ImHashTree<K, V>(Hash, key, update(Value, value), Conflicts, Left, Right)
