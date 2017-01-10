@@ -536,45 +536,6 @@ namespace ImTools.UnitTests
             Assert.That(tree.Right.Value, Is.EqualTo("c"));
         }
 
-        [Test]
-        public void I_can_update_value_instead_of_remove()
-        {
-            var tree = ImHashTree<string, string>.Empty
-                .AddOrUpdate("a", "123")
-                .AddOrUpdate("b", "321");
-
-            tree = tree.RemoveOrUpdate("b", (string value, out string updatedValue) =>
-            {
-                updatedValue = value.Replace('1', '3');
-                return true;
-            });
-
-            Assert.That(tree.GetValueOrDefault("a"), Is.EqualTo("123"));
-            Assert.That(tree.GetValueOrDefault("b"), Is.EqualTo("323"));
-        }
-
-        [Test]
-        public void I_can_update_conflicted_value_instead_of_remove()
-        {
-            var tree = ImHashTree<HashConflictingKey<int>, string>.Empty
-                .AddOrUpdate(new HashConflictingKey<int>(1, 1), "a")
-                .AddOrUpdate(new HashConflictingKey<int>(0, 0), "b")
-                .AddOrUpdate(new HashConflictingKey<int>(2, 2), "c")
-                .AddOrUpdate(new HashConflictingKey<int>(3, 2), "d");
-
-            tree = tree.RemoveOrUpdate(new HashConflictingKey<int>(3, 2),
-                (string value, out string updatedValue) =>
-                {
-                    updatedValue = value + "!";
-                    return true;
-                });
-
-            Assert.That(tree.Value, Is.EqualTo("a"));
-            Assert.That(tree.Left.Value, Is.EqualTo("b"));
-            Assert.That(tree.Right.Value, Is.EqualTo("c"));
-            Assert.That(tree.Right.Conflicts[0].Value, Is.EqualTo("d!"));
-        }
-
         internal class HashConflictingKey<T>
         {
             public readonly T Key;

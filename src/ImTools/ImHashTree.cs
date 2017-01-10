@@ -34,6 +34,43 @@ namespace ImTools.Experimental
         [MethodImpl(MethodImplHints.AggressingInlining)]
         public bool TryFind(K key, out V value)
         {
+            var hash = key.GetHashCode();
+            var t = this;
+
+            var p = t._payload;
+            if (!t.IsEmpty && hash != p.Hash)
+                t = hash < p.Hash ? t.Left : t.Right;
+
+            p = t._payload;
+            if (!t.IsEmpty && hash != p.Hash)
+                t = hash < p.Hash ? t.Left : t.Right;
+
+            p = t._payload;
+            if (!t.IsEmpty && hash != p.Hash)
+                t = hash < p.Hash ? t.Left : t.Right;
+
+            p = t._payload;
+            while (t.Height != 0 && hash != p.Hash)
+            {
+                t = hash < p.Hash ? t.Left : t.Right;
+                p = t._payload;
+            }
+
+            if (t.Height != 0 && (ReferenceEquals(key, p.Key) || key.Equals(p.Key)))
+            {
+                value = p.Value;
+                return true;
+            }
+
+            return t.TryFindConflictedValue(key, out value);
+        }
+
+        /// <summary>Returns true if key is found and sets the value.</summary>
+        /// <param name="key">Key to look for.</param> <param name="value">Result value</param>
+        /// <returns>True if key found, false otherwise.</returns>
+        [MethodImpl(MethodImplHints.AggressingInlining)]
+        public bool TryFind2(K key, out V value)
+        {
             var t = this;
             var hash = key.GetHashCode();
             while (t.Height != 0 && t.Hash != hash)

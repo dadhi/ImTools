@@ -658,17 +658,6 @@ namespace ImTools
             return Remove(key.GetHashCode(), key);
         }
 
-        /// <summary>Removes or updates value for specified key, or does nothing if key is not found.
-        /// Based on Eric Lippert http://blogs.msdn.com/b/ericlippert/archive/2008/01/21/immutability-in-c-part-nine-academic-plus-my-avl-tree-implementation.aspx </summary>
-        /// <param name="key">Key to look for.</param> 
-        /// <param name="shouldUpdate">(optional) Delegate to update value, return true from delegate if value is updated.</param>
-        /// <returns>New tree with removed or updated value.</returns>
-        [MethodImpl(MethodImplHints.AggressingInlining)]
-        public ImHashTree<K, V> RemoveOrUpdate(K key, ShouldUpdate<V> shouldUpdate)
-        {
-            return RemoveOrUpdate(key.GetHashCode(), key, shouldUpdate);
-        }
-
         #region Implementation
 
         private ImHashTree() { }
@@ -846,7 +835,7 @@ namespace ImTools
 
                 return new ImHashTree<K, V>(right.Hash, right.Key, right.Value, right.Conflicts,
                     left: new ImHashTree<K, V>(Hash, Key, Value, Conflicts, 
-                        left: Left, right: right.Left),        right: right.Right);
+                        left: Left, right: rightLeft),        right: rightRight);
             }
 
             return this;
@@ -928,78 +917,6 @@ namespace ImTools
             var shrinkedConflicts = new KV<K, V>[Conflicts.Length - 1];
             Array.Copy(Conflicts, 1, shrinkedConflicts, 0, shrinkedConflicts.Length);
             return new ImHashTree<K, V>(Hash, Conflicts[0].Key, Conflicts[0].Value, shrinkedConflicts, Left, Right);
-        }
-
-        private ImHashTree<K, V> RemoveOrUpdate(int hash, K key, ShouldUpdate<V> shouldUpdate, bool ignoreKey = false)
-        {
-            if (Height == 0)
-                return this;
-
-            ImHashTree<K, V> result;
-            if (hash == Hash) // found matched Node
-            {
-                if (ignoreKey || Equals(Key, key))
-                {
-                    if (!ignoreKey)
-                    {
-                        V updatedValue;
-                        if (shouldUpdate(Value, out updatedValue))
-                            return new ImHashTree<K, V>(Hash, Key, updatedValue, Conflicts, Left, Right);
-
-                        if (Conflicts != null)
-                            return ReplaceRemovedWithConflicted();
-                    }
-
-                    if (Height == 1) // remove node
-                        return Empty;
-
-                    if (Right.IsEmpty)
-                        result = Left;
-                    else if (Left.IsEmpty)
-                        result = Right;
-                    else
-                    {
-                        // we have two children, so remove the next highest node and replace this node with it.
-                        var next = Right;
-                        while (!next.Left.IsEmpty) next = next.Left;
-                        result = new ImHashTree<K, V>(next.Hash, next.Key, next.Value, next.Conflicts, Left, 
-                            Right.Remove(next.Hash, default(K), ignoreKey: true));
-                    }
-                }
-                else if (Conflicts != null)
-                {
-                    var index = Conflicts.Length - 1;
-                    while (index >= 0 && !Equals(Conflicts[index].Key, key)) --index;
-                    if (index == -1)        // key is not found in conflicts - just return
-                        return this;
-
-                    V updatedValue;
-                    if (shouldUpdate(Conflicts[index].Value, out updatedValue))
-                    {
-                        var updatedConflicts = new KV<K, V>[Conflicts.Length];
-                        Array.Copy(Conflicts, 0, updatedConflicts, 0, updatedConflicts.Length);
-                        updatedConflicts[index] = new KV<K, V>(Conflicts[index].Key, updatedValue);
-                        return new ImHashTree<K, V>(Hash, Key, Value, updatedConflicts, Left, Right);
-                    }
-
-                    if (Conflicts.Length == 1)
-                        return new ImHashTree<K, V>(Hash, Key, Value, null, Left, Right);
-                    var shrinkedConflicts = new KV<K, V>[Conflicts.Length - 1];
-                    var newIndex = 0;
-                    for (var i = 0; i < Conflicts.Length; ++i)
-                        if (i != index) shrinkedConflicts[newIndex++] = Conflicts[i];
-                    return new ImHashTree<K, V>(Hash, Key, Value, shrinkedConflicts, Left, Right);
-                }
-                else return this; // if key is not matching and no conflicts to lookup - just return
-            }
-            else if (hash < Hash)
-                result = new ImHashTree<K, V>(Hash, Key, Value, Conflicts, 
-                    Left.RemoveOrUpdate(hash, key, shouldUpdate, ignoreKey), Right);
-            else
-                result = new ImHashTree<K, V>(Hash, Key, Value, Conflicts,
-                    Left, Right.RemoveOrUpdate(hash, key, shouldUpdate, ignoreKey));
-
-            return result.KeepBalance();
         }
 
         #endregion
