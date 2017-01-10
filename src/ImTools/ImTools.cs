@@ -556,6 +556,87 @@ namespace ImTools
             return AddOrUpdate(key.GetHashCode(), key, value);
         }
 
+        public ImHashTree<K, V> AddOrUpdateNonRecursive(K key, V value)
+        {
+            var hash = key.GetHashCode();
+            if (Height == 0)
+                return new ImHashTree<K, V>(hash, key, value);
+
+            // Go down to find node where to insert new key, collecting parents on the path
+            var t = this;
+            Path path = null;
+            while (t.Height != 0 && t.Hash != hash)
+            {
+                path = new Path(t, path);
+                t = hash < t.Hash ? t.Left : t.Right;
+            }
+
+            // Update: unwind the parents on the path adding updated node without re-balance!
+            if (t.Height != 0)
+            {
+                t = ReferenceEquals(key, t.Key) || key.Equals(t.Key)
+                    ? new ImHashTree<K, V>(hash, key, value, t.Conflicts, t.Left, t.Right)
+                    : t.UpdateValueAndResolveConflicts(key, value, null, false);
+
+                if (path == null) // updated node is the root
+                    return t;
+
+                while (path != null)
+                {
+                    var p = path.Node;
+                    t = t.Hash < p.Hash
+                        ? new ImHashTree<K, V>(p.Hash, p.Key, p.Value, p.Conflicts, t, p.Right)
+                        : new ImHashTree<K, V>(p.Hash, p.Key, p.Value, p.Conflicts, p.Left, t);
+
+                    path = path.Parent;
+                }
+
+                return t;
+            }
+
+            // Add new node: unwind the parents on the path and re-balance
+            {
+                // No need to rebalance immediate parent - so just add up the child
+                // ReSharper disable once PossibleNullReferenceException
+                var p = path.Node;
+                t = hash < p.Hash
+                    ? new ImHashTree<K, V>(p.Hash, p.Key, p.Value, p.Conflicts, new ImHashTree<K, V>(hash, key, value), p.Right)
+                    : new ImHashTree<K, V>(p.Hash, p.Key, p.Value, p.Conflicts, p.Left, new ImHashTree<K, V>(hash, key, value));
+
+                path = path.Parent;
+                if (path == null)
+                    return t;
+
+                while (path != null)
+                {
+                    p = path.Node; // next parent
+
+                    t = t.Hash < p.Hash
+                        ? new ImHashTree<K, V>(p.Hash, p.Key, p.Value, p.Conflicts, t, p.Right)
+                        : new ImHashTree<K, V>(p.Hash, p.Key, p.Value, p.Conflicts, p.Left, t);
+
+                    t = t.KeepBalance();
+                    path = path.Parent;
+                }
+
+                return t;
+            }
+        }
+
+        private sealed class Path
+        {
+            public readonly ImHashTree<K, V> Node;
+            public readonly Path Parent;
+
+            public Path(ImHashTree<K, V> node, Path parent)
+            {
+                Node = node;
+                Parent = parent;
+            }
+
+            private Path() { }
+        }
+
         /// <summary>Returns new tree with added key-value. If value with the same key is exist, then
         /// if <paramref name="update"/> is not specified: then existing value will be replaced by <paramref name="value"/>;
         /// if <paramref name="update"/> is specified: then update delegate will decide what value to keep.</summary>
@@ -703,17 +784,17 @@ namespace ImTools
                     ? (ReferenceEquals(Key, key) || Key.Equals(key)
                         ? new ImHashTree<K, V>(Hash, key, value, Conflicts, Left, Right)
                         : UpdateValueAndResolveConflicts(key, value, null, false))
-                    : (hash < Hash  // search for node
-                        ? (Height == 1
-                            ? new ImHashTree<K, V>(Hash, Key, Value, Conflicts,
-                                new ImHashTree<K, V>(hash, key, value), Right, height: 2)
-                            : new ImHashTree<K, V>(Hash, Key, Value, Conflicts, 
-                                Left.AddOrUpdate(hash, key, value), Right).KeepBalance())
-                        : (Height == 1
-                            ? new ImHashTree<K, V>(Hash, Key, Value, Conflicts,
-                                Left, new ImHashTree<K, V>(hash, key, value), height: 2)
-                            : new ImHashTree<K, V>(Hash, Key, Value, Conflicts, 
-                                Left, Right.AddOrUpdate(hash, key, value)).KeepBalance())));
+                : (hash < Hash  // search for node
+                    ? (Height == 1
+                        ? new ImHashTree<K, V>(Hash, Key, Value, Conflicts,
+                            new ImHashTree<K, V>(hash, key, value), Right, height: 2)
+                        : new ImHashTree<K, V>(Hash, Key, Value, Conflicts, 
+                            Left.AddOrUpdate(hash, key, value), Right).KeepBalance())
+                    : (Height == 1
+                        ? new ImHashTree<K, V>(Hash, Key, Value, Conflicts,
+                            Left, new ImHashTree<K, V>(hash, key, value), height: 2)
+                        : new ImHashTree<K, V>(Hash, Key, Value, Conflicts, 
+                            Left, Right.AddOrUpdate(hash, key, value)).KeepBalance())));
         }
 
         private ImHashTree<K, V> AddOrUpdate(int hash, K key, V value, Update<V> update)
