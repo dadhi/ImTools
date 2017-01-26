@@ -43,7 +43,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ExperimentalImHashTreeTests.cs" />
-    <Compile Include="ImMapTests3.cs" />
+    <Compile Include="ImMapForest.cs" />
     <Compile Include="ImMapTests2.cs" />
     <Compile Include="ImHashTreeTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

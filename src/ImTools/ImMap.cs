@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-namespace ImTools.Experimental2
+namespace ImTools.Experimental
 {
     /// <summary>More simple, compact and performant than <see cref="ImHashTree{K,V}"/> 
     /// immutable http://en.wikipedia.org/wiki/AVL_tree  with integer keys and object values.</summary>
@@ -389,13 +389,33 @@ namespace ImTools.Experimental2
             var hash = key.GetHashCode();
 
             var t = this;
-            while (t.Height != 0 && t.Hash != hash)
-                t = hash < t.Hash ? t.Left : t.Right;
+            while (t.Height != 0 && t._data.Hash != hash)
+                t = hash < t._data.Hash ? t.Left : t.Right;
 
-            if (t.Height != 0 && (ReferenceEquals(key, t.Key) || key.Equals(t.Key)))
+            if (t.Height != 0 && (ReferenceEquals(key, t._data.Key) || key.Equals(t._data.Key)))
             {
-                value = t.Value;
+                value = t._data.Value;
                 return true;
+            }
+
+            return t.TryFindConflictedValue(key, out value);
+        }
+
+        [MethodImpl(MethodImplHints.AggressingInlining)]
+        internal bool TryFind(int hash, K key, out V value)
+        {
+            var t = this;
+            while (t.Height != 0 && t._data.Hash != hash)
+                t = hash < t._data.Hash ? t.Left : t.Right;
+
+            if (t.Height != 0)
+            {
+                var tData = t._data;
+                if (ReferenceEquals(key, tData.Key) || key.Equals(tData.Key))
+                {
+                    value = tData.Value;
+                    return true;
+                }
             }
 
             return t.TryFindConflictedValue(key, out value);
@@ -493,7 +513,8 @@ namespace ImTools.Experimental2
             Height = height;
         }
 
-        private ImHashTree<K, V> AddOrUpdate(int hash, K key, V value)
+        [MethodImpl(MethodImplHints.AggressingInlining)]
+        internal ImHashTree<K, V> AddOrUpdate(int hash, K key, V value)
         {
             return Height == 0  // add new node
                 ? new ImHashTree<K, V>(new Data(hash, key, value))
@@ -639,16 +660,12 @@ namespace ImTools.Experimental2
             return this;
         }
 
-        // 3              5
-        //    5    =>   3   6
-        //   4 6         4
-
         private ImHashTree<K, V> With(ImHashTree<K, V> left, ImHashTree<K, V> right)
         {
             return left == Left && right == Right ? this : new ImHashTree<K, V>(_data, left, right);
         }
 
-        private ImHashTree<K, V> Remove(int hash, K key, bool ignoreKey = false)
+        internal ImHashTree<K, V> Remove(int hash, K key, bool ignoreKey = false)
         {
             if (Height == 0)
                 return this;
@@ -721,4 +738,92 @@ namespace ImTools.Experimental2
         #endregion
     }
 
+    public sealed class ImMap<K, V>
+    {
+        private const int NumberOfTrees = 8;
+        private const int HashBitsToTree = NumberOfTrees - 1;  // get last 4 bits, fast (hash % NumberOfTrees)
+
+        public static readonly ImMap<K, V> Empty = new ImMap<K, V>(new ImHashTree<K, V>[8], 0);
+
+        public readonly int Count;
+
+        public bool IsEmpty { get { return Count == 0; } }
+
+        /// <summary>Returns true if key is found and sets the value.</summary>
+        /// <param name="key">Key to look for.</param> <param name="value">Result value</param>
+        /// <returns>True if key found, false otherwise.</returns>
+        [MethodImpl(MethodImplHints.AggressingInlining)]
+        public bool TryFind(K key, out V value)
+        {
+            var hash = key.GetHashCode();
+            var treeIndex = hash & HashBitsToTree;
+
+            var tree = _trees[treeIndex];
+            if (tree != null)
+                return tree.TryFind(hash, key, out value);
+
+            value = default(V);
+            return false;
+        }
+
+        /// <summary>Returns new tree with added key-value. 
+        /// If value with the same key is exist then the value is replaced.</summary>
+        /// <param name="key">Key to add.</param><param name="value">Value to add.</param>
+        /// <returns>New tree with added or updated key-value.</returns>
+        [MethodImpl(MethodImplHints.AggressingInlining)]
+        public ImMap<K, V> AddOrUpdate(K key, V value)
+        {
+            var hash = key.GetHashCode();
+
+            var treeIndex = hash & HashBitsToTree;
+
+            var trees = _trees;
+            var tree = trees[treeIndex];
+            if (tree == null)
+                tree = ImHashTree<K, V>.Empty;
+
+            tree = tree.AddOrUpdate(hash, key, value);
+
+            var newTrees = new ImHashTree<K, V>[NumberOfTrees];
+            Array.Copy(trees, 0, newTrees, 0, NumberOfTrees);
+            newTrees[treeIndex] = tree;
+
+            return new ImMap<K, V>(newTrees, Count + 1);
+        }
+
+        /// <summary>Removes or updates value for specified key, or does nothing if key is not found.
+        /// Based on Eric Lippert http://blogs.msdn.com/b/ericlippert/archive/2008/01/21/immutability-in-c-part-nine-academic-plus-my-avl-tree-implementation.aspx </summary>
+        /// <param name="key">Key to look for.</param> 
+        /// <returns>New tree with removed or updated value.</returns>
+        [MethodImpl(MethodImplHints.AggressingInlining)]
+        public ImMap<K, V> Remove(K key)
+        {
+            var hash = key.GetHashCode();
+
+            var treeIndex = hash & HashBitsToTree;
+
+            var trees = _trees;
+            var tree = trees[treeIndex];
+            if (tree == null)
+                return this; // nothing to delete
+
+            var newTree = tree.Remove(hash, key);
+            if (newTree == tree)
+                return this;
+
+            var newTrees = new ImHashTree<K, V>[NumberOfTrees];
+            Array.Copy(trees, 0, newTrees, 0, NumberOfTrees);
+            newTrees[treeIndex] = newTree;
+
+            return new ImMap<K, V>(newTrees, Count - 1);
+        }
+
+        private readonly ImHashTree<K, V>[] _trees;
+
+        private ImMap(ImHashTree<K, V>[] newTrees, int count)
+        {
+            _trees = newTrees;
+            Count = count;
+        }
+    }
 }
