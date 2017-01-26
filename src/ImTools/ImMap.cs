@@ -408,14 +408,10 @@ namespace ImTools.Experimental
             while (t.Height != 0 && t._data.Hash != hash)
                 t = hash < t._data.Hash ? t.Left : t.Right;
 
-            if (t.Height != 0)
+            if (t.Height != 0 && (ReferenceEquals(key, t._data.Key) || key.Equals(t._data.Key)))
             {
-                var tData = t._data;
-                if (ReferenceEquals(key, tData.Key) || key.Equals(tData.Key))
-                {
-                    value = tData.Value;
-                    return true;
-                }
+                value = t._data.Value;
+                return true;
             }
 
             return t.TryFindConflictedValue(key, out value);
@@ -743,7 +739,7 @@ namespace ImTools.Experimental
         private const int NumberOfTrees = 8;
         private const int HashBitsToTree = NumberOfTrees - 1;  // get last 4 bits, fast (hash % NumberOfTrees)
 
-        public static readonly ImMap<K, V> Empty = new ImMap<K, V>(new ImHashTree<K, V>[8], 0);
+        public static readonly ImMap<K, V> Empty = new ImMap<K, V>(new ImHashTree<K, V>[NumberOfTrees], 0);
 
         public readonly int Count;
 
@@ -756,6 +752,7 @@ namespace ImTools.Experimental
         public bool TryFind(K key, out V value)
         {
             var hash = key.GetHashCode();
+
             var treeIndex = hash & HashBitsToTree;
 
             var tree = _trees[treeIndex];
@@ -800,7 +797,7 @@ namespace ImTools.Experimental
         {
             var hash = key.GetHashCode();
 
-            var treeIndex = hash & HashBitsToTree;
+            var treeIndex = hash & NumberOfTrees;
 
             var trees = _trees;
             var tree = trees[treeIndex];
