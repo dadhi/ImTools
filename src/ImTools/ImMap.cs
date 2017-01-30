@@ -545,7 +545,7 @@ namespace ImTools.Experimental
                     .KeepBalance());
         }
 
-        private ImHashTree<K, V> Update(int hash, K key, V value, Update<V> update)
+        internal ImHashTree<K, V> Update(int hash, K key, V value, Update<V> update)
         {
             return Height == 0 ? this
                 : (hash == Hash
@@ -581,7 +581,7 @@ namespace ImTools.Experimental
             return new ImHashTree<K, V>(new Data(Hash, Key, Value, conflicts), Left, Right);
         }
 
-        private V GetConflictedValueOrDefault(K key, V defaultValue)
+        internal V GetConflictedValueOrDefault(K key, V defaultValue)
         {
             if (Conflicts != null)
                 for (var i = Conflicts.Length - 1; i >= 0; --i)
@@ -763,6 +763,26 @@ namespace ImTools.Experimental
             return false;
         }
 
+        /// <summary>Looks for key in a tree and returns the key value if found, or <paramref name="defaultValue"/> otherwise.</summary>
+        /// <param name="key">Key to look for.</param> <param name="defaultValue">(optional) Value to return if key is not found.</param>
+        /// <returns>Found value or <paramref name="defaultValue"/>.</returns>
+        [MethodImpl(MethodImplHints.AggressingInlining)]
+        public V GetValueOrDefault(K key, V defaultValue = default(V))
+        {
+            var hash = key.GetHashCode();
+
+            var treeIndex = hash & HashBitsToTree;
+
+            var t = _trees[treeIndex];
+            if (t == null)
+                return defaultValue;
+
+            while (t.Height != 0 && t.Hash != hash)
+                t = hash < t.Hash ? t.Left : t.Right;
+            return t.Height != 0 && (ReferenceEquals(key, t.Key) || key.Equals(t.Key))
+                ? t.Value : t.GetConflictedValueOrDefault(key, defaultValue);
+        }
+
         /// <summary>Returns new tree with added key-value. 
         /// If value with the same key is exist then the value is replaced.</summary>
         /// <param name="key">Key to add.</param><param name="value">Value to add.</param>
@@ -788,6 +808,33 @@ namespace ImTools.Experimental
             return new ImMap<K, V>(newTrees, Count + 1);
         }
 
+        /// <summary>Looks for <paramref name="key"/> and replaces its value with new <paramref name="value"/></summary>
+        /// <param name="key">Key to look for.</param>
+        /// <param name="value">New value to replace key value with.</param>
+        /// <returns>New tree with updated value or the SAME tree if no key found.</returns>
+        [MethodImpl(MethodImplHints.AggressingInlining)]
+        public ImMap<K, V> Update(K key, V value)
+        {
+            var hash = key.GetHashCode();
+
+            var treeIndex = hash & HashBitsToTree;
+
+            var trees = _trees;
+            var tree = trees[treeIndex];
+            if (tree == null)
+                return this;
+
+            var newTree = tree.Update(hash, key, value, null);
+            if (newTree == tree)
+                return this;
+
+            var newTrees = new ImHashTree<K, V>[NumberOfTrees];
+            Array.Copy(trees, 0, newTrees, 0, NumberOfTrees);
+            newTrees[treeIndex] = newTree;
+
+            return new ImMap<K, V>(newTrees, Count);
+        }
+
         /// <summary>Removes or updates value for specified key, or does nothing if key is not found.
         /// Based on Eric Lippert http://blogs.msdn.com/b/ericlippert/archive/2008/01/21/immutability-in-c-part-nine-academic-plus-my-avl-tree-implementation.aspx </summary>
         /// <param name="key">Key to look for.</param> 
@@ -797,7 +844,7 @@ namespace ImTools.Experimental
         {
             var hash = key.GetHashCode();
 
-            var treeIndex = hash & NumberOfTrees;
+            var treeIndex = hash & HashBitsToTree;
 
             var trees = _trees;
             var tree = trees[treeIndex];
