@@ -736,7 +736,7 @@ namespace ImTools.Experimental
 
     public sealed class ImMap<K, V>
     {
-        private const int NumberOfTrees = 8;
+        private const int NumberOfTrees = 16; // todo: may be make it customizable to adapt perf for the case
         private const int HashBitsToTree = NumberOfTrees - 1;  // get last 4 bits, fast (hash % NumberOfTrees)
 
         public static readonly ImMap<K, V> Empty = new ImMap<K, V>(new ImHashTree<K, V>[NumberOfTrees], 0);
