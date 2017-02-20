@@ -42,10 +42,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ExperimentalImHashTreeTests.cs" />
-    <Compile Include="ImMapTests3.cs" />
-    <Compile Include="ImMapTests2.cs" />
-    <Compile Include="ImHashTreeTests.cs" />
+    <Compile Include="ImHashMapForestTests.cs" />
+    <Compile Include="ImHashMapTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RefTests.cs" />
   </ItemGroup>

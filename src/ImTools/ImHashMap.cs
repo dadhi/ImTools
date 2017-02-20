@@ -2,10 +2,9 @@
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-namespace ImTools.Experimental
+namespace ImTools
 {
-    /// <summary>More simple, compact and performant than <see cref="ImHashTree{K,V}"/> 
-    /// immutable http://en.wikipedia.org/wiki/AVL_tree  with integer keys and object values.</summary>
+    /// <summary>Immutable http://en.wikipedia.org/wiki/AVL_tree with integer keys and <typeparamref name="V"/> values.</summary>
     public sealed class ImMap<V>
     {
         /// <summary>Empty tree to start with.</summary>
@@ -129,7 +128,7 @@ namespace ImTools.Experimental
         [MethodImpl(MethodImplHints.AggressingInlining)]
         public ImMap<V> Remove(int key)
         {
-            return RemoveImpl(key, false);
+            return RemoveImpl(key);
         }
 
         #region Implementation
@@ -269,23 +268,22 @@ namespace ImTools.Experimental
                 }
             }
             else if (key < Key)
-                result = new ImMap<V>(Key, Value, Left.RemoveImpl(key, ignoreKey), Right);
+                result = new ImMap<V>(Key, Value, Left.RemoveImpl(key), Right);
             else
-                result = new ImMap<V>(Key, Value, Left, Right.RemoveImpl(key, ignoreKey));
+                result = new ImMap<V>(Key, Value, Left, Right.RemoveImpl(key));
 
             return result.KeepBalance();
         }
-
 
         #endregion
     }
 
     /// <summary>Immutable http://en.wikipedia.org/wiki/AVL_tree 
     /// where node key is the hash code of <typeparamref name="K"/>.</summary>
-    public sealed class ImHashTree<K, V>
+    public sealed class ImHashMap<K, V>
     {
         /// <summary>Empty tree to start with.</summary>
-        public static readonly ImHashTree<K, V> Empty = new ImHashTree<K, V>();
+        public static readonly ImHashMap<K, V> Empty = new ImHashMap<K, V>();
 
         /// <summary>Calculated key hash.</summary>
         public int Hash
@@ -316,10 +314,10 @@ namespace ImTools.Experimental
         }
 
         /// <summary>Left sub-tree/branch, or empty.</summary>
-        public readonly ImHashTree<K, V> Left;
+        public readonly ImHashMap<K, V> Left;
 
         /// <summary>Right sub-tree/branch, or empty.</summary>
-        public readonly ImHashTree<K, V> Right;
+        public readonly ImHashMap<K, V> Right;
 
         /// <summary>Height of longest sub-tree/branch plus 1. It is 0 for empty tree, and 1 for single node tree.</summary>
         public readonly int Height;
@@ -336,7 +334,7 @@ namespace ImTools.Experimental
         /// <param name="key">Key to add.</param><param name="value">Value to add.</param>
         /// <returns>New tree with added or updated key-value.</returns>
         [MethodImpl(MethodImplHints.AggressingInlining)]
-        public ImHashTree<K, V> AddOrUpdate(K key, V value)
+        public ImHashMap<K, V> AddOrUpdate(K key, V value)
         {
             return AddOrUpdate(key.GetHashCode(), key, value);
         }
@@ -348,9 +346,89 @@ namespace ImTools.Experimental
         /// <param name="update">Update handler.</param>
         /// <returns>New tree with added or updated key-value.</returns>
         [MethodImpl(MethodImplHints.AggressingInlining)]
-        public ImHashTree<K, V> AddOrUpdate(K key, V value, Update<V> update)
+        public ImHashMap<K, V> AddOrUpdate(K key, V value, Update<V> update)
         {
             return AddOrUpdate(key.GetHashCode(), key, value, update);
+        }
+
+        // todo: Non recursive version. Evaluate perf and if greaterm then replace the recursive version.
+        private ImHashMap<K, V> AddOrUpdateNonRecursive(K key, V value)
+        {
+            var hash = key.GetHashCode();
+            if (Height == 0)
+                return new ImHashMap<K, V>(new Data(hash, key, value));
+
+            // Go down to find node where to insert new key, collecting parents on the path
+            var t = this;
+            Path path = null;
+            while (t.Height != 0 && t.Hash != hash)
+            {
+                path = new Path(t, path);
+                t = hash < t.Hash ? t.Left : t.Right;
+            }
+
+            // Update: unwind the parents on the path adding updated node without re-balance!
+            if (t.Height != 0)
+            {
+                t = ReferenceEquals(key, t.Key) || key.Equals(t.Key)
+                    ? new ImHashMap<K, V>(new Data(hash, key, value, t.Conflicts), t.Left, t.Right)
+                    : t.UpdateValueAndResolveConflicts(key, value, null, false);
+
+                if (path == null) // updated node is the root
+                    return t;
+
+                while (path != null)
+                {
+                    var p = path.Node;
+                    t = t.Hash < p.Hash
+                        ? new ImHashMap<K, V>(p._data, t, p.Right)
+                        : new ImHashMap<K, V>(p._data, p.Left, t);
+
+                    path = path.Parent;
+                }
+
+                return t;
+            }
+
+            // Add new node: unwind the parents on the path and re-balance
+            {
+                // No need to rebalance immediate parent - so just add up the child
+                // ReSharper disable once PossibleNullReferenceException
+                var p = path.Node;
+                t = hash < p.Hash
+                    ? new ImHashMap<K, V>(p._data, new ImHashMap<K, V>(new Data(hash, key, value)), p.Right)
+                    : new ImHashMap<K, V>(p._data, p.Left, new ImHashMap<K, V>(new Data(hash, key, value)));
+
+                path = path.Parent;
+                if (path == null)
+                    return t;
+
+                while (path != null)
+                {
+                    p = path.Node; // next parent
+
+                    t = t.Hash < p.Hash
+                        ? new ImHashMap<K, V>(p._data, t, p.Right)
+                        : new ImHashMap<K, V>(p._data, p.Left, t);
+
+                    t = t.KeepBalance();
+                    path = path.Parent;
+                }
+
+                return t;
+            }
+        }
+
+        private sealed class Path
+        {
+            public readonly ImHashMap<K, V> Node;
+            public readonly Path Parent;
+
+            public Path(ImHashMap<K, V> node, Path parent)
+            {
+                Node = node;
+                Parent = parent;
+            }
         }
 
         /// <summary>Looks for <paramref name="key"/> and replaces its value with new <paramref name="value"/>, or 
@@ -361,7 +439,7 @@ namespace ImTools.Experimental
         /// as inputs and should return updated value as output.</param>
         /// <returns>New tree with updated value or the SAME tree if no key found.</returns>
         [MethodImpl(MethodImplHints.AggressingInlining)]
-        public ImHashTree<K, V> Update(K key, V value, Update<V> update = null)
+        public ImHashMap<K, V> Update(K key, V value, Update<V> update = null)
         {
             return Update(key.GetHashCode(), key, value, update);
         }
@@ -425,7 +503,7 @@ namespace ImTools.Experimental
             if (Height == 0)
                 yield break;
 
-            var parents = new ImHashTree<K, V>[Height];
+            var parents = new ImHashMap<K, V>[Height];
 
             var node = this;
             var parentCount = -1;
@@ -455,7 +533,7 @@ namespace ImTools.Experimental
         /// <param name="key">Key to look for.</param> 
         /// <returns>New tree with removed or updated value.</returns>
         [MethodImpl(MethodImplHints.AggressingInlining)]
-        public ImHashTree<K, V> Remove(K key)
+        public ImHashMap<K, V> Remove(K key)
         {
             return Remove(key.GetHashCode(), key);
         }
@@ -483,9 +561,9 @@ namespace ImTools.Experimental
 
         private readonly Data _data;
 
-        private ImHashTree() { _data = new Data(); }
+        private ImHashMap() { _data = new Data(); }
 
-        private ImHashTree(Data data)
+        private ImHashMap(Data data)
         {
             _data = data;
             Left = Empty;
@@ -493,7 +571,7 @@ namespace ImTools.Experimental
             Height = 1;
         }
 
-        private ImHashTree(Data data, ImHashTree<K, V> left, ImHashTree<K, V> right)
+        private ImHashMap(Data data, ImHashMap<K, V> left, ImHashMap<K, V> right)
         {
             _data = data;
             Left = left;
@@ -501,7 +579,7 @@ namespace ImTools.Experimental
             Height = 1 + (left.Height > right.Height ? left.Height : right.Height);
         }
 
-        private ImHashTree(Data data, ImHashTree<K, V> left, ImHashTree<K, V> right, int height)
+        private ImHashMap(Data data, ImHashMap<K, V> left, ImHashMap<K, V> right, int height)
         {
             _data = data;
             Left = left;
@@ -510,34 +588,34 @@ namespace ImTools.Experimental
         }
 
         [MethodImpl(MethodImplHints.AggressingInlining)]
-        internal ImHashTree<K, V> AddOrUpdate(int hash, K key, V value)
+        internal ImHashMap<K, V> AddOrUpdate(int hash, K key, V value)
         {
             return Height == 0  // add new node
-                ? new ImHashTree<K, V>(new Data(hash, key, value))
+                ? new ImHashMap<K, V>(new Data(hash, key, value))
                 : (hash == Hash // update found node
                     ? (ReferenceEquals(Key, key) || Key.Equals(key)
-                        ? new ImHashTree<K, V>(new Data(hash, key, value, Conflicts), Left, Right)
+                        ? new ImHashMap<K, V>(new Data(hash, key, value, Conflicts), Left, Right)
                         : UpdateValueAndResolveConflicts(key, value, null, false))
                 : (hash < Hash  // search for node
                     ? (Height == 1
-                        ? new ImHashTree<K, V>(_data,
-                            new ImHashTree<K, V>(new Data(hash, key, value)), Right, height: 2)
-                        : new ImHashTree<K, V>(_data,
+                        ? new ImHashMap<K, V>(_data,
+                            new ImHashMap<K, V>(new Data(hash, key, value)), Right, height: 2)
+                        : new ImHashMap<K, V>(_data,
                             Left.AddOrUpdate(hash, key, value), Right).KeepBalance())
                     : (Height == 1
-                        ? new ImHashTree<K, V>(_data,
-                            Left, new ImHashTree<K, V>(new Data(hash, key, value)), height: 2)
-                        : new ImHashTree<K, V>(_data,
+                        ? new ImHashMap<K, V>(_data,
+                            Left, new ImHashMap<K, V>(new Data(hash, key, value)), height: 2)
+                        : new ImHashMap<K, V>(_data,
                             Left, Right.AddOrUpdate(hash, key, value)).KeepBalance())));
         }
 
-        private ImHashTree<K, V> AddOrUpdate(int hash, K key, V value, Update<V> update)
+        private ImHashMap<K, V> AddOrUpdate(int hash, K key, V value, Update<V> update)
         {
             return Height == 0
-                    ? new ImHashTree<K, V>(new Data(hash, key, value))
+                    ? new ImHashMap<K, V>(new Data(hash, key, value))
                 : (hash == Hash // update
                     ? (ReferenceEquals(Key, key) || Key.Equals(key)
-                        ? new ImHashTree<K, V>(new Data(hash, key, update(Value, value), Conflicts), Left, Right)
+                        ? new ImHashMap<K, V>(new Data(hash, key, update(Value, value), Conflicts), Left, Right)
                         : UpdateValueAndResolveConflicts(key, value, update, false))
                 : (hash < Hash
                     ? With(Left.AddOrUpdate(hash, key, value, update), Right)
@@ -545,12 +623,12 @@ namespace ImTools.Experimental
                     .KeepBalance());
         }
 
-        internal ImHashTree<K, V> Update(int hash, K key, V value, Update<V> update)
+        internal ImHashMap<K, V> Update(int hash, K key, V value, Update<V> update)
         {
             return Height == 0 ? this
                 : (hash == Hash
                     ? (ReferenceEquals(Key, key) || Key.Equals(key)
-                        ? new ImHashTree<K, V>(new Data(hash, key, update == null ? value : update(Value, value), Conflicts), Left, Right)
+                        ? new ImHashMap<K, V>(new Data(hash, key, update == null ? value : update(Value, value), Conflicts), Left, Right)
                         : UpdateValueAndResolveConflicts(key, value, update, true))
                     : (hash < Hash
                         ? With(Left.Update(hash, key, value, update), Right)
@@ -558,11 +636,11 @@ namespace ImTools.Experimental
                     .KeepBalance());
         }
 
-        private ImHashTree<K, V> UpdateValueAndResolveConflicts(K key, V value, Update<V> update, bool updateOnly)
+        private ImHashMap<K, V> UpdateValueAndResolveConflicts(K key, V value, Update<V> update, bool updateOnly)
         {
             if (Conflicts == null) // add only if updateOnly is false.
                 return updateOnly ? this
-                    : new ImHashTree<K, V>(new Data(Hash, Key, Value, new[] { new KV<K, V>(key, value) }), Left, Right);
+                    : new ImHashMap<K, V>(new Data(Hash, Key, Value, new[] { new KV<K, V>(key, value) }), Left, Right);
 
             var found = Conflicts.Length - 1;
             while (found >= 0 && !Equals(Conflicts[found].Key, Key)) --found;
@@ -572,13 +650,13 @@ namespace ImTools.Experimental
                 var newConflicts = new KV<K, V>[Conflicts.Length + 1];
                 Array.Copy(Conflicts, 0, newConflicts, 0, Conflicts.Length);
                 newConflicts[Conflicts.Length] = new KV<K, V>(key, value);
-                return new ImHashTree<K, V>(new Data(Hash, Key, Value, newConflicts), Left, Right);
+                return new ImHashMap<K, V>(new Data(Hash, Key, Value, newConflicts), Left, Right);
             }
 
             var conflicts = new KV<K, V>[Conflicts.Length];
             Array.Copy(Conflicts, 0, conflicts, 0, Conflicts.Length);
             conflicts[found] = new KV<K, V>(key, update == null ? value : update(Conflicts[found].Value, value));
-            return new ImHashTree<K, V>(new Data(Hash, Key, Value, conflicts), Left, Right);
+            return new ImHashMap<K, V>(new Data(Hash, Key, Value, conflicts), Left, Right);
         }
 
         internal V GetConflictedValueOrDefault(K key, V defaultValue)
@@ -604,7 +682,7 @@ namespace ImTools.Experimental
             return false;
         }
 
-        private ImHashTree<K, V> KeepBalance()
+        private ImHashMap<K, V> KeepBalance()
         {
             var delta = Left.Height - Right.Height;
             if (delta >= 2) // left is longer by 2, rotate left
@@ -619,9 +697,9 @@ namespace ImTools.Experimental
                     //   2     6      4     6      2     5
                     // 1   4        2   3        1   3     6
                     //    3        1
-                    return new ImHashTree<K, V>(leftRight._data,
-                        left: new ImHashTree<K, V>(left._data,
-                    left: leftLeft, right: leftRight.Left), right: new ImHashTree<K, V>(_data,
+                    return new ImHashMap<K, V>(leftRight._data,
+                        left: new ImHashMap<K, V>(left._data,
+                    left: leftLeft, right: leftRight.Left), right: new ImHashMap<K, V>(_data,
                                                          left: leftRight.Right, right: Right));
                 }
 
@@ -630,8 +708,8 @@ namespace ImTools.Experimental
                 //      5     =>     2
                 //   2     6      1     5
                 // 1   4              4   6
-                return new ImHashTree<K, V>(left._data,
-                    left: leftLeft, right: new ImHashTree<K, V>(_data,
+                return new ImHashMap<K, V>(left._data,
+                    left: leftLeft, right: new ImHashMap<K, V>(_data,
                                left: leftRight, right: Right));
             }
 
@@ -642,31 +720,31 @@ namespace ImTools.Experimental
                 var rightRight = right.Right;
                 if (rightLeft.Height - rightRight.Height == 1)
                 {
-                    return new ImHashTree<K, V>(rightLeft._data,
-                        left: new ImHashTree<K, V>(_data,
-                            left: Left, right: rightLeft.Left), right: new ImHashTree<K, V>(right._data,
+                    return new ImHashMap<K, V>(rightLeft._data,
+                        left: new ImHashMap<K, V>(_data,
+                            left: Left, right: rightLeft.Left), right: new ImHashMap<K, V>(right._data,
                                                     left: rightLeft.Right, right: rightRight));
                 }
 
-                return new ImHashTree<K, V>(right._data,
-                    left: new ImHashTree<K, V>(_data,
+                return new ImHashMap<K, V>(right._data,
+                    left: new ImHashMap<K, V>(_data,
                         left: Left, right: rightLeft), right: rightRight);
             }
 
             return this;
         }
 
-        private ImHashTree<K, V> With(ImHashTree<K, V> left, ImHashTree<K, V> right)
+        private ImHashMap<K, V> With(ImHashMap<K, V> left, ImHashMap<K, V> right)
         {
-            return left == Left && right == Right ? this : new ImHashTree<K, V>(_data, left, right);
+            return left == Left && right == Right ? this : new ImHashMap<K, V>(_data, left, right);
         }
 
-        internal ImHashTree<K, V> Remove(int hash, K key, bool ignoreKey = false)
+        internal ImHashMap<K, V> Remove(int hash, K key, bool ignoreKey = false)
         {
             if (Height == 0)
                 return this;
 
-            ImHashTree<K, V> result;
+            ImHashMap<K, V> result;
             if (hash == Hash) // found node
             {
                 if (ignoreKey || Equals(Key, key))
@@ -686,7 +764,7 @@ namespace ImTools.Experimental
                         // we have two children, so remove the next highest node and replace this node with it.
                         var successor = Right;
                         while (!successor.Left.IsEmpty) successor = successor.Left;
-                        result = new ImHashTree<K, V>(successor._data,
+                        result = new ImHashMap<K, V>(successor._data,
                             Left, Right.Remove(successor.Hash, default(K), ignoreKey: true));
                     }
                 }
@@ -696,9 +774,9 @@ namespace ImTools.Experimental
                     return this; // if key is not matching and no conflicts to lookup - just return
             }
             else if (hash < Hash)
-                result = new ImHashTree<K, V>(_data, Left.Remove(hash, key, ignoreKey), Right);
+                result = new ImHashMap<K, V>(_data, Left.Remove(hash, key, ignoreKey), Right);
             else
-                result = new ImHashTree<K, V>(_data, Left, Right.Remove(hash, key, ignoreKey));
+                result = new ImHashMap<K, V>(_data, Left, Right.Remove(hash, key, ignoreKey));
 
             if (result.Height == 1)
                 return result;
@@ -706,7 +784,7 @@ namespace ImTools.Experimental
             return result.KeepBalance();
         }
 
-        private ImHashTree<K, V> TryRemoveConflicted(K key)
+        private ImHashMap<K, V> TryRemoveConflicted(K key)
         {
             var index = Conflicts.Length - 1;
             while (index >= 0 && !Equals(Conflicts[index].Key, key)) --index;
@@ -714,36 +792,47 @@ namespace ImTools.Experimental
                 return this;
 
             if (Conflicts.Length == 1)
-                return new ImHashTree<K, V>(new Data(Hash, Key, Value, null), Left, Right);
+                return new ImHashMap<K, V>(new Data(Hash, Key, Value), Left, Right);
             var shrinkedConflicts = new KV<K, V>[Conflicts.Length - 1];
             var newIndex = 0;
             for (var i = 0; i < Conflicts.Length; ++i)
                 if (i != index) shrinkedConflicts[newIndex++] = Conflicts[i];
-            return new ImHashTree<K, V>(new Data(Hash, Key, Value, shrinkedConflicts), Left, Right);
+            return new ImHashMap<K, V>(new Data(Hash, Key, Value, shrinkedConflicts), Left, Right);
         }
 
-        private ImHashTree<K, V> ReplaceRemovedWithConflicted()
+        private ImHashMap<K, V> ReplaceRemovedWithConflicted()
         {
             if (Conflicts.Length == 1)
-                return new ImHashTree<K, V>(new Data(Hash, Conflicts[0].Key, Conflicts[0].Value, null), Left, Right);
+                return new ImHashMap<K, V>(new Data(Hash, Conflicts[0].Key, Conflicts[0].Value), Left, Right);
             var shrinkedConflicts = new KV<K, V>[Conflicts.Length - 1];
             Array.Copy(Conflicts, 1, shrinkedConflicts, 0, shrinkedConflicts.Length);
-            return new ImHashTree<K, V>(new Data(Hash, Conflicts[0].Key, Conflicts[0].Value, shrinkedConflicts), Left, Right);
+            return new ImHashMap<K, V>(new Data(Hash, Conflicts[0].Key, Conflicts[0].Value, shrinkedConflicts), Left, Right);
         }
 
         #endregion
     }
 
-    public sealed class ImMap<K, V>
+    /// <summary>Forest of N <see cref="ImHashMap{K,V}"/> for faster* lookup, insert, delete performance. 
+    /// But without enumeration! Suitable for Cache structures. Maps are located via hash % N-of-maps.</summary>
+    /// <typeparam name="K">Type of key, should support GetHashCode.</typeparam> <typeparam name="V">Type of value.</typeparam>
+    public sealed class ImHashMapForest<K, V>
     {
-        private const int NumberOfTrees = 16; // todo: may be make it customizable to adapt perf for the case
-        private const int HashBitsToTree = NumberOfTrees - 1;  // get last 4 bits, fast (hash % NumberOfTrees)
+        // defined as constants for fast (hash % NumberOfMaps)
+        private const int NumberOfMaps = 16;
+        private const int HashBitsToTree = NumberOfMaps - 1;  
 
-        public static readonly ImMap<K, V> Empty = new ImMap<K, V>(new ImHashTree<K, V>[NumberOfTrees], 0);
+        /// <summary>Empty forest to start with.</summary>
+        public static readonly ImHashMapForest<K, V> Empty = new ImHashMapForest<K, V>(new ImHashMap<K, V>[NumberOfMaps], 0);
 
+        /// <summary>Number of stored items in da forest.</summary>
         public readonly int Count;
 
-        public bool IsEmpty { get { return Count == 0; } }
+        /// <summary>Returns true is empty.</summary>
+        public bool IsEmpty
+        {
+            [MethodImpl(MethodImplHints.AggressingInlining)]
+            get { return Count == 0; }
+        }
 
         /// <summary>Returns true if key is found and sets the value.</summary>
         /// <param name="key">Key to look for.</param> <param name="value">Result value</param>
@@ -788,7 +877,7 @@ namespace ImTools.Experimental
         /// <param name="key">Key to add.</param><param name="value">Value to add.</param>
         /// <returns>New tree with added or updated key-value.</returns>
         [MethodImpl(MethodImplHints.AggressingInlining)]
-        public ImMap<K, V> AddOrUpdate(K key, V value)
+        public ImHashMapForest<K, V> AddOrUpdate(K key, V value)
         {
             var hash = key.GetHashCode();
 
@@ -797,15 +886,15 @@ namespace ImTools.Experimental
             var trees = _trees;
             var tree = trees[treeIndex];
             if (tree == null)
-                tree = ImHashTree<K, V>.Empty;
+                tree = ImHashMap<K, V>.Empty;
 
             tree = tree.AddOrUpdate(hash, key, value);
 
-            var newTrees = new ImHashTree<K, V>[NumberOfTrees];
-            Array.Copy(trees, 0, newTrees, 0, NumberOfTrees);
+            var newTrees = new ImHashMap<K, V>[NumberOfMaps];
+            Array.Copy(trees, 0, newTrees, 0, NumberOfMaps);
             newTrees[treeIndex] = tree;
 
-            return new ImMap<K, V>(newTrees, Count + 1);
+            return new ImHashMapForest<K, V>(newTrees, Count + 1);
         }
 
         /// <summary>Looks for <paramref name="key"/> and replaces its value with new <paramref name="value"/></summary>
@@ -813,7 +902,7 @@ namespace ImTools.Experimental
         /// <param name="value">New value to replace key value with.</param>
         /// <returns>New tree with updated value or the SAME tree if no key found.</returns>
         [MethodImpl(MethodImplHints.AggressingInlining)]
-        public ImMap<K, V> Update(K key, V value)
+        public ImHashMapForest<K, V> Update(K key, V value)
         {
             var hash = key.GetHashCode();
 
@@ -828,11 +917,11 @@ namespace ImTools.Experimental
             if (newTree == tree)
                 return this;
 
-            var newTrees = new ImHashTree<K, V>[NumberOfTrees];
-            Array.Copy(trees, 0, newTrees, 0, NumberOfTrees);
+            var newTrees = new ImHashMap<K, V>[NumberOfMaps];
+            Array.Copy(trees, 0, newTrees, 0, NumberOfMaps);
             newTrees[treeIndex] = newTree;
 
-            return new ImMap<K, V>(newTrees, Count);
+            return new ImHashMapForest<K, V>(newTrees, Count);
         }
 
         /// <summary>Removes or updates value for specified key, or does nothing if key is not found.
@@ -840,7 +929,7 @@ namespace ImTools.Experimental
         /// <param name="key">Key to look for.</param> 
         /// <returns>New tree with removed or updated value.</returns>
         [MethodImpl(MethodImplHints.AggressingInlining)]
-        public ImMap<K, V> Remove(K key)
+        public ImHashMapForest<K, V> Remove(K key)
         {
             var hash = key.GetHashCode();
 
@@ -855,19 +944,23 @@ namespace ImTools.Experimental
             if (newTree == tree)
                 return this;
 
-            var newTrees = new ImHashTree<K, V>[NumberOfTrees];
-            Array.Copy(trees, 0, newTrees, 0, NumberOfTrees);
+            var newTrees = new ImHashMap<K, V>[NumberOfMaps];
+            Array.Copy(trees, 0, newTrees, 0, NumberOfMaps);
             newTrees[treeIndex] = newTree;
 
-            return new ImMap<K, V>(newTrees, Count - 1);
+            return new ImHashMapForest<K, V>(newTrees, Count - 1);
         }
 
-        private readonly ImHashTree<K, V>[] _trees;
+        #region Implementation
 
-        private ImMap(ImHashTree<K, V>[] newTrees, int count)
+        private readonly ImHashMap<K, V>[] _trees;
+
+        private ImHashMapForest(ImHashMap<K, V>[] newTrees, int count)
         {
             _trees = newTrees;
             Count = count;
         }
+
+        #endregion
     }
 }
