@@ -358,6 +358,46 @@ namespace ImTools
         }
     }
 
+    /// <summary>Immutable stack - simplest linked list with Head and Rest.</summary>
+    /// <typeparam name="T">Type of the item.</typeparam>
+    public sealed class ImStack<T>
+    {
+        /// <summary>Empty stack to Push to.</summary>
+        public static readonly ImStack<T> Empty = new ImStack<T>();
+
+        /// <summary>Value on top of stack.</summary>
+        public readonly T Top;
+
+        /// <summary>The rest of values or Empty if stack has a single value.</summary>
+        public readonly ImStack<T> Rest;
+
+        /// <summary>True for empty stack.</summary>
+        public bool IsEmpty
+        {
+            get { return Rest == null; }
+        }
+
+        /// <summary>Add new top value and return new stack.</summary>
+        /// <param name="head">New top value.</param>
+        /// <returns>Stack with the new top value.</returns>
+        public ImStack<T> Push(T head)
+        {
+            return new ImStack<T>(head, this);
+        }
+
+        #region Implementation
+
+        private ImStack() { }
+
+        private ImStack(T top, ImStack<T> rest)
+        {
+            Top = top;
+            Rest = rest;
+        }
+
+        #endregion
+    }
+
     /// <summary>Given the old value should and the new value should return result updated value.</summary>
     public delegate V Update<V>(V oldValue, V newValue);
 
