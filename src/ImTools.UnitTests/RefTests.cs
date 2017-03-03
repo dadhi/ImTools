@@ -7,7 +7,7 @@ namespace ImTools.UnitTests
     [TestFixture]
     public class RefTests
     {
-        [Explicit("Multi-threaded non deterministic test")]
+        [Test]
         public void Consistently_updated_by_multiple_threads()
         {
             const int itemCount = 10;
