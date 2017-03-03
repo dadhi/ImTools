@@ -18,26 +18,29 @@
         <contentFiles>
             <files include="cs/any/*.*" buildAction="Compile" />
         </contentFiles>
+        <dependencies>
+            <group targetFramework="netstandard1.0"></group>
+        </dependencies>
     </metadata>
     <files>
         <file src="..\LICENSE.txt" />
 
         <!--net35-->
-        <file src="..\src\ImTools\ImTools.cs"   target="content\net35\ImTools" />
+        <file src="..\src\ImTools\ImTools.cs" target="content\net35\ImTools" />
 
         <!--net40-->
-        <file src="..\src\ImTools\ImTools.cs"   target="content\net40\ImTools" />
+        <file src="..\src\ImTools\ImTools.cs" target="content\net40\ImTools" />
 
         <!--net45-->
-        <file src="..\src\ImTools\ImTools.cs"   target="content\net45\ImTools" />
+        <file src="..\src\ImTools\ImTools.cs" target="content\net45\ImTools" />
 
         <!-- PCL Profile328: .NET Portable Subset (.NET Framework 4, Silverlight 5, Windows 8, Windows Phone 8.1, Windows Phone Silverlight 8) -->
-        <file src="..\src\ImTools\ImTools.cs"   target="content\portable-net4+sl5+netcore45+wpa81+wp8+MonoAndroid1+MonoTouch1\ImTools" />
+        <file src="..\src\ImTools\ImTools.cs" target="content\portable-net4+sl5+netcore45+wpa81+wp8+MonoAndroid1+MonoTouch1\ImTools" />
 
         <!-- PCL Profile259: .NET Portable Subset (.NET Framework 4.5, Windows 8, Windows Phone 8.1, Windows Phone Silverlight 8) -->
-        <file src="..\src\ImTools\ImTools.cs"   target="content\portable-net45+netcore45+wpa81+wp8+MonoAndroid1+MonoTouch1\ImTools" />
+        <file src="..\src\ImTools\ImTools.cs" target="content\portable-net45+netcore45+wpa81+wp8+MonoAndroid1+MonoTouch1\ImTools" />
 
         <!--uap10.0: Universal Windows Platform-->
-        <file src="..\src\ImTools\ImTools.cs"   target="contentFiles\cs\any" />
+        <file src="..\src\ImTools\ImTools.cs" target="contentFiles\cs\any" />
     </files>
 </package>

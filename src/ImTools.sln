@@ -29,6 +29,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		..\README.md = ..\README.md
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImTools.Pcl259", "ImTools.Pcl259\ImTools.Pcl259.csproj", "{B3C0562F-DF0D-4BA1-859E-02B22CB66488}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -43,6 +45,10 @@ Global
 		{34918C54-B523-4C10-8CE6-625328B0AF10}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{34918C54-B523-4C10-8CE6-625328B0AF10}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{34918C54-B523-4C10-8CE6-625328B0AF10}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B3C0562F-DF0D-4BA1-859E-02B22CB66488}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B3C0562F-DF0D-4BA1-859E-02B22CB66488}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B3C0562F-DF0D-4BA1-859E-02B22CB66488}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B3C0562F-DF0D-4BA1-859E-02B22CB66488}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
