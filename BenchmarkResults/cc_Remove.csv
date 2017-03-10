@@ -1,0 +1,9 @@
+Name,'10,'100,'1000,'10000,'100000
+Persistent Hash Map (C#),9,25,41,57,25
+Persistent Hash Map (F#),9,27,45,63,29
+FSharpx.Collections,22,58,92,93,34
+Prime.HMap,34,61,80,59,32
+Imms.ImmMap,28,63,95,79,46
+ImTools.ImHashMap (C#),11,30,49,69,28
+System.Collections.Immutable,17,43,68,79,36
+Map (F#),13,39,61,86,37

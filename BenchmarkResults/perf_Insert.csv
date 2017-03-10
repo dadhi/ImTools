@@ -1,0 +1,9 @@
+Name/Collection Size,'10,'100,'1000,'10000,'100000
+Persistent Hash Map (C#),53,90,136,231,510
+Persistent Hash Map (F#),58,98,141,227,451
+FSharpx.Collections,159,262,385,456,764
+Prime.HMap,79,128,172,267,558
+Imms.ImmMap,79,151,260,502,1346
+ImTools.ImHashMap (C#),31,62,131,258,757
+System.Collections.Immutable,199,389,612,881,1430
+Map (F#),183,542,898,1347,2028
