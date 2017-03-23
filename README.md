@@ -18,7 +18,7 @@ Based on [this great benchmark](https://gist.github.com/mrange/d6e7415113ebfa52c
 
 #### Memory
 
-No collection for all participants
+No GC count
 
 
 ### Insert
@@ -27,7 +27,7 @@ No collection for all participants
 
 ![Insert Speed](BenchmarkResults/perf_Insert.png)
 
-#### GC counts
+#### GC count
 
 ![GC Counts](BenchmarkResults/cc_Insert.png)
 
@@ -38,7 +38,7 @@ No collection for all participants
 
 ![Insert Speed](BenchmarkResults/perf_Remove.png)
 
-#### GC counts
+#### GC count
 
 ![GC Counts](BenchmarkResults/cc_Remove.png)
 

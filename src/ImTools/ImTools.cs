@@ -347,41 +347,82 @@ namespace ImTools
         }
     }
 
-    /// <summary>Immutable stack - simplest linked list with Head and Rest.</summary>
+    /// <summary>Immutable list - simplest linked list with Head and Rest.</summary>
     /// <typeparam name="T">Type of the item.</typeparam>
-    public sealed class ImStack<T>
+    public sealed class ImList<T>
     {
-        /// <summary>Empty stack to Push to.</summary>
-        public static readonly ImStack<T> Empty = new ImStack<T>();
+        /// <summary>Empty list to Push to.</summary>
+        public static readonly ImList<T> Empty = new ImList<T>();
 
-        /// <summary>True for empty stack.</summary>
+        /// <summary>True for empty list.</summary>
         public bool IsEmpty
         {
-            get { return Rest == null; }
+            get { return Tail == null; }
         }
 
-        /// <summary>Value on top of stack.</summary>
-        public readonly T Top;
+        /// <summary>First value in a list.</summary>
+        public readonly T Head;
 
-        /// <summary>The rest of values or Empty if stack has a single value.</summary>
-        public readonly ImStack<T> Rest;
+        /// <summary>The rest of values or Empty if list has a single value.</summary>
+        public readonly ImList<T> Tail;
 
-        /// <summary>Add new top value and return new stack.</summary>
-        /// <param name="head">New top value.</param>
-        /// <returns>Stack with the new top value.</returns>
-        public ImStack<T> Push(T head)
+        /// <summary>Prepends new value and returns new list.</summary>
+        /// <param name="head">New first value.</param>
+        /// <returns>List with the new head.</returns>
+        public ImList<T> Push(T head)
         {
-            return new ImStack<T>(head, this);
+            return new ImList<T>(head, this);
+        }
+
+        /// <summary>This a basically a Fold function, to address needs in Map, Filter, Reduce.</summary>
+        /// <typeparam name="R">Type of result.</typeparam>
+        /// <param name="initialValue">From were to start.</param>
+        /// <param name="reduce">Adds to result</param>
+        /// <returns>Return result or <paramref name="initialValue"/> for empty list.</returns>
+        public R To<R>(R initialValue, Func<T, R, R> reduce)
+        {
+            if (IsEmpty)
+                return initialValue;
+            var value = initialValue;
+            for (var list = this; !list.IsEmpty; list = list.Tail)
+                value = reduce(list.Head, value);
+            return value;
+        }
+
+        /// <summary>Form of fold function with element index for convenience.</summary>
+        /// <typeparam name="R">Type of result.</typeparam>
+        /// <param name="initialValue">From were to start.</param>
+        /// <param name="reduce">Adds to result</param>
+        /// <returns>Return result or <paramref name="initialValue"/> for empty list.</returns>
+        public R To<R>(R initialValue, Func<T, int, R, R> reduce)
+        {
+            if (IsEmpty)
+                return initialValue;
+            var value = initialValue;
+            var i = 0;
+            for (var list = this; !list.IsEmpty; list = list.Tail)
+                value = reduce(list.Head, i++, value);
+            return value;
+        }
+
+        /// <summary>Enumerates the list.</summary>
+        /// <returns>Each item in turn.</returns>
+        public IEnumerable<T> Enumerate()
+        {
+            if (IsEmpty)
+                yield break;
+            for (var list = this; !list.IsEmpty; list = list.Tail)
+                yield return list.Head;
         }
 
         #region Implementation
 
-        private ImStack() { }
+        private ImList() { }
 
-        private ImStack(T top, ImStack<T> rest)
+        private ImList(T head, ImList<T> tail)
         {
-            Top = top;
-            Rest = rest;
+            Head = head;
+            Tail = tail;
         }
 
         #endregion
@@ -721,7 +762,7 @@ namespace ImTools
             return AddOrUpdate(key.GetHashCode(), key, value, update);
         }
 
-        // todo: Non recursive version. Evaluate perf and if greaterm then replace the recursive version.
+        // todo: Non recursive version. Evaluate perf and if greater, then replace the recursive version.
         internal ImHashMap<K, V> AddOrUpdateNonRecursive(K key, V value)
         {
             var hash = key.GetHashCode();
@@ -1220,7 +1261,6 @@ namespace ImTools
         public V GetValueOrDefault(K key, V defaultValue = default(V))
         {
             var hash = key.GetHashCode();
-
             var treeIndex = hash & HashBitsToTree;
 
             var t = _trees[treeIndex];
