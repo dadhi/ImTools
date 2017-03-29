@@ -1,9 +1,9 @@
 # ImTools
 
-[![NuGet Pre Release](https://img.shields.io/nuget/vpre/ImTools.svg)](https://www.nuget.org/packages/ImTools/1.0.0-preview-01)
+[![NuGet Pre Release](https://img.shields.io/nuget/vpre/ImTools.svg)](https://www.nuget.org/packages/ImTools/1.0.0-preview-02)
 [![license](https://img.shields.io/github/license/dadhi/ImTools.svg)](http://opensource.org/licenses/MIT)
 
-Immutable persistent collections and helper structures designed for performance and simplicity for .NET
+Immutable persistent collections and helpers designed for performance and easy of use.
 
 Split from [DryIoc](https://bitbucket.org/dadhi/dryioc). 
 
