@@ -398,7 +398,7 @@ namespace ImTools
     }
 
     /// <summary>Extension methods providing basic operations on a list.</summary>
-    public static class ImListTools
+    public static class ImList
     {
         /// <summary>This a basically a Fold function, to address needs in Map, Filter, Reduce.</summary>
         /// <typeparam name="T">Type of list item.</typeparam>
@@ -452,6 +452,16 @@ namespace ImTools
         public static ImList<R> Map<T, R>(this ImList<T> source, Func<T, R> map)
         {
             return source.To(ImList<R>.Empty, (it, _) => _.Prep(map(it))).Reverse();
+        }
+
+        /// <summary>Maps the items from the first list to the result list with item index.</summary>
+        /// <typeparam name="T">source item type.</typeparam> 
+        /// <typeparam name="R">result item type.</typeparam>
+        /// <param name="source">input list.</param> <param name="map">converter func.</param>
+        /// <returns>result list.</returns>
+        public static ImList<R> Map<T, R>(this ImList<T> source, Func<T, int, R> map)
+        {
+            return source.To(ImList<R>.Empty, (it, i, _) => _.Prep(map(it, i))).Reverse();
         }
     }
 
