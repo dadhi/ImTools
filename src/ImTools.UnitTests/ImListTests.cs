@@ -44,5 +44,13 @@ namespace ImTools.UnitTests
             var result = list.Map((n, i) => n + 42);
             CollectionAssert.AreEqual(new[] { 43, 44, 45 }, result.Enumerate());
         }
+
+
+        [Test]
+        public void Can_convert_list_to_array()
+        {
+            var list = ImList<int>.Empty.Prep(3).Prep(2).Prep(1);
+            CollectionAssert.AreEqual(new[] { 1, 2, 3 }, (int[])list);
+        }
     }
 }

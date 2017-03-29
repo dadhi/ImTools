@@ -354,6 +354,16 @@ namespace ImTools
         /// <summary>Empty list to Push to.</summary>
         public static readonly ImList<T> Empty = new ImList<T>();
 
+        /// <summary>Copies list to array.</summary> <param name="source">list to convert.</param> <returns>Array with list items.</returns>
+        public static implicit operator T[](ImList<T> source)
+        {
+            if (source.IsEmpty)
+                return ArrayTools.Empty<T>();
+            if (source.Tail.IsEmpty)
+                return new[] { source.Head };
+            return source.Enumerate().ToArray();
+        }
+
         /// <summary>True for empty list.</summary>
         public bool IsEmpty
         {
@@ -439,7 +449,7 @@ namespace ImTools
         /// <returns>New list. If list consist on single element, then the same list.</returns>
         public static ImList<T> Reverse<T>(this ImList<T> source)
         {
-            if (source.Tail.IsEmpty)
+            if (source.IsEmpty || source.Tail.IsEmpty)
                 return source;
             return source.To(ImList<T>.Empty, (it, _) => _.Prep(it));
         }
