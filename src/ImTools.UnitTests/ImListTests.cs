@@ -50,7 +50,7 @@ namespace ImTools.UnitTests
         public void Can_convert_list_to_array()
         {
             var list = ImList<int>.Empty.Prep(3).Prep(2).Prep(1);
-            CollectionAssert.AreEqual(new[] { 1, 2, 3 }, (int[])list);
+            CollectionAssert.AreEqual(new[] { 1, 2, 3 }, list.ToArray());
         }
     }
 }
