@@ -354,16 +354,6 @@ namespace ImTools
         /// <summary>Empty list to Push to.</summary>
         public static readonly ImList<T> Empty = new ImList<T>();
 
-        /// <summary>Copies list to array.</summary> <param name="source">list to convert.</param> <returns>Array with list items.</returns>
-        public static implicit operator T[](ImList<T> source)
-        {
-            if (source.IsEmpty)
-                return ArrayTools.Empty<T>();
-            if (source.Tail.IsEmpty)
-                return new[] { source.Head };
-            return source.Enumerate().ToArray();
-        }
-
         /// <summary>True for empty list.</summary>
         public bool IsEmpty
         {
@@ -472,6 +462,18 @@ namespace ImTools
         public static ImList<R> Map<T, R>(this ImList<T> source, Func<T, int, R> map)
         {
             return source.To(ImList<R>.Empty, (it, i, _) => _.Prep(map(it, i))).Reverse();
+        }
+
+        /// <summary>Copies list to array.</summary> 
+        /// <param name="source">list to convert.</param> 
+        /// <returns>Array with list items.</returns>
+        public static T[] ToArray<T>(this ImList<T> source)
+        {
+            if (source.IsEmpty)
+                return ArrayTools.Empty<T>();
+            if (source.Tail.IsEmpty)
+                return new[] { source.Head };
+            return source.Enumerate().ToArray();
         }
     }
 
