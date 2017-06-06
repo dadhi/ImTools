@@ -1310,14 +1310,14 @@ namespace ImTools
         public V GetValueOrDefault(K key, V defaultValue = default(V))
         {
             var hash = key.GetHashCode();
-            var treeIndex = hash & HashBitsToTree;
 
-            var t = _trees[treeIndex];
+            var t = _trees[hash & HashBitsToTree];
             if (t == null)
                 return defaultValue;
 
             while (t.Height != 0 && t.Hash != hash)
                 t = hash < t.Hash ? t.Left : t.Right;
+            
             return t.Height != 0 && (ReferenceEquals(key, t.Key) || key.Equals(t.Key))
                 ? t.Value : t.GetConflictedValueOrDefault(key, defaultValue);
         }
@@ -1409,5 +1409,228 @@ namespace ImTools
         }
 
         #endregion
+    }
+
+    /// <summary>The concurrent HashTable.</summary>
+    /// <typeparam name="K">Type of the key</typeparam> <typeparam name="V">Type of the value</typeparam>
+    public class HashMap<K, V>
+    {
+        internal struct Slot
+        {
+            public int Flags;
+            public int Hash;
+            public K Key;
+            public V Value;
+        }
+
+        private Slot[] _slots;
+        private int _count;
+
+        /// <summary>Initial size of underlying storage, prevents the unnecessary storage re-sizing and items migrations.</summary>
+        public const int InitialSizeBitCount = 5; // aka 32
+
+        /// <summary>Amount of store items. 0 for empty map.</summary>
+        public int Count { get { return _count; } }
+
+        /// <summary>Constructor. Allows to set the <see cref="InitialSizeBitCount"/>.</summary>
+        /// <param name="initialSizeBitCount"></param>
+        public HashMap(int initialSizeBitCount = InitialSizeBitCount)
+        {
+            _slots = new Slot[1 << initialSizeBitCount];
+        }
+
+        /// <summary>Looks for key in a tree and returns the value if found.</summary>
+        /// <param name="key">Key to look for.</param> <param name="value">The found value</param>
+        /// <returns>True if contains key.</returns>
+        public bool TryFind(K key, out V value)
+        {
+            var hash = key.GetHashCode();
+
+            var slots = _slots;
+            var mask = slots.Length - 1;
+
+            // search until the empty slot
+            for (var i = 0; i < slots.Length; ++i)
+            {
+                var slot = slots[(hash + i) & mask];
+
+                if (slot.Hash == hash && (ReferenceEquals(key, slot.Key) || key.Equals(slot.Key)))
+                {
+                    value = slot.Value;
+                    return true;
+                }
+
+                if (slot.Flags == 0)
+                    break;
+            }
+
+            value = default(V);
+            return false;
+        }
+
+        /// <summary>Looks for key in a tree and returns the key value if found, or <paramref name="defaultValue"/> otherwise.</summary>
+        /// <param name="key">Key to look for.</param> <param name="defaultValue">(optional) Value to return if key is not found.</param>
+        /// <returns>Found value or <paramref name="defaultValue"/>.</returns>
+        public V GetValueOrDefault(K key, V defaultValue = default(V))
+        {
+            var hash = key.GetHashCode();
+
+            var slots = _slots;
+            var mask = slots.Length - 1;
+            var slot = slots[hash & mask];
+
+            // if hash and key is equal then value is found
+            if (slot.Hash == hash && (ReferenceEquals(key, slot.Key) || key.Equals(slot.Key)))
+                return slot.Value;
+
+            // search until the empty slot
+            for (var i = 1; i < slots.Length; ++i)
+            {
+                slot = slots[(hash + i) & mask];
+
+                if (slot.Hash == hash && (ReferenceEquals(key, slot.Key) || key.Equals(slot.Key)))
+                    return slot.Value;
+
+                if (slot.Flags == 0)
+                    break;
+            }
+
+            return defaultValue;
+        }
+
+        /// <summary>Returns new tree with added key-value. 
+        /// If value with the same key is exist then the value is replaced.</summary>
+        /// <param name="key">Key to add.</param><param name="value">Value to add.</param>
+        public void AddOrUpdate(K key, V value)
+        {
+            var hash = key.GetHashCode();
+            while (true)
+            {
+                var slots = _slots;
+                var mask = slots.Length - 1;
+                var index = hash & mask;
+
+                if (Interlocked.CompareExchange(ref slots[index].Flags, 1, 0) == 0)
+                {
+                    slots[index].Hash = hash;
+                    slots[index].Key = key;
+                    slots[index].Value = value;
+                    Interlocked.Increment(ref _count);
+                    return;
+                }
+
+                // update:
+                if (slots[index].Hash == hash && key.Equals(slots[index].Key))
+                {
+                    slots[index].Value = value;
+                    return;
+                }
+
+                // search for the next empty item slot
+                for (var i = 1; i < slots.Length; ++i)
+                {
+                    index = (hash + i) & mask;
+                    if (Interlocked.CompareExchange(ref slots[index].Flags, 1, 0) == 0)
+                    {
+                        slots[index].Hash = hash;
+                        slots[index].Key = key;
+                        slots[index].Value = value;
+                        Interlocked.Increment(ref _count);
+                        return;
+                    }
+
+                    // update:
+                    if (slots[index].Hash == hash && key.Equals(slots[index].Key))
+                    {
+                        slots[index].Value = value;
+                        return;
+                    }
+                }
+                // Re-try whole operation if other thread re-populated slots in between and changed the reference
+                // Otherwise (if we are on the same slots) re-populate.
+                var newSlots = Repopulate(slots, hash, key, value);
+                if (Interlocked.CompareExchange(ref _slots, newSlots, slots) != slots)
+                    continue;
+
+                // added for sure
+                Interlocked.Increment(ref _count);
+                return;
+            }
+        }
+
+        /// <summary>Removes the value with passed key. 
+        /// Actually it is a SOFT REMOVE which marks slot with found key as removed, without compacting the underlying array.</summary>
+        /// <param name="key"></param><returns>The true if key was found, false otherwise.</returns>
+        public bool Remove(K key)
+        {
+            var hash = key.GetHashCode();
+
+            var slots = _slots;
+            var mask = slots.Length - 1;
+
+            // search until the empty slot
+            for (var i = 0; i < slots.Length; ++i)
+            {
+                var index = (hash + i) & mask;
+                var slot = slots[index];
+
+                if (slot.Hash == hash && key.Equals(slot.Key))
+                {
+                    // mark as removed
+                    if (Interlocked.CompareExchange(ref slots[index].Flags, 0, 1) == 1)
+                        Interlocked.Decrement(ref _count);
+                    return true;
+                }
+
+                if (slot.Hash == 0)
+                    return false; // finish search at empty slot
+            }
+
+            return false;
+        }
+
+        private static void Add(Slot[] slots, int hash, K key, V value)
+        {
+            var mask = slots.Length - 1;
+            var index = hash & mask;
+
+            // indicates that item slot is empty
+            if (Interlocked.CompareExchange(ref slots[index].Flags, 1, 0) == 0)
+            {
+                slots[index].Hash = hash;
+                slots[index].Key = key;
+                slots[index].Value = value;
+                return;
+            }
+
+            // search for the next empty item slot
+            for (var i = 1; i < slots.Length; ++i)
+            {
+                index = (hash + i) & mask;
+                if (Interlocked.CompareExchange(ref slots[index].Flags, 1, 0) == 0)
+                {
+                    slots[index].Hash = hash;
+                    slots[index].Key = key;
+                    slots[index].Value = value;
+                    return;
+                }
+            }
+        }
+
+        private static Slot[] Repopulate(Slot[] slots, int hash, K key, V value)
+        {
+            var doubleLength = slots.Length << 1;
+            var newSlots = new Slot[doubleLength];
+
+            Add(newSlots, hash, key, value);
+
+            for (var i = 0; i < slots.Length; i++)
+            {
+                var slot = slots[i];
+                Add(newSlots, slot.Hash, slot.Key, slot.Value);
+            }
+
+            return newSlots;
+        }
     }
 }
