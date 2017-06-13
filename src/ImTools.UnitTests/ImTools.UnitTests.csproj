@@ -42,6 +42,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="HashMapLeapfrogTests.cs" />
     <Compile Include="HashMapTests.cs" />
     <Compile Include="ImHashMapForestTests.cs" />
     <Compile Include="ImHashMapTests.cs" />

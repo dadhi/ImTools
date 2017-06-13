@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Threading;
-using NUnit.Framework;
+﻿using NUnit.Framework;
 
 namespace ImTools.UnitTests
 {
@@ -19,6 +17,8 @@ namespace ImTools.UnitTests
             Assert.AreEqual("1", map.GetValueOrDefault(42));
             Assert.AreEqual("2", map.GetValueOrDefault(42 + 32));
             Assert.AreEqual("3", map.GetValueOrDefault(42 + 32 + 32));
+
+            Assert.IsNull(map.GetValueOrDefault(43));
         }
 
         [Test]
@@ -71,6 +71,26 @@ namespace ImTools.UnitTests
             Assert.IsTrue(map.TryFind(0, out value));
 
             Assert.AreEqual("aaa", value);
+        }
+
+        [Test]
+        public void Can_quickly_find_the_scattered_items_with_the_same_cache()
+        {
+            var map = new HashMap<int, string>();
+
+            map.AddOrUpdate(42, "1");
+            map.AddOrUpdate(43, "a");
+            map.AddOrUpdate(42 + 32, "2");
+            map.AddOrUpdate(45, "b");
+            map.AddOrUpdate(46, "c");
+            map.AddOrUpdate(42 + 32 + 32, "3");
+
+            string value;
+            Assert.IsTrue(map.TryFind(42 + 32, out value));
+            Assert.AreEqual("2", value);
+
+            Assert.IsTrue(map.TryFind(42 + 32 + 32, out value));
+            Assert.AreEqual("3", value);
         }
     }
 }
