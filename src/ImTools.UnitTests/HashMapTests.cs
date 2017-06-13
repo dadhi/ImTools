@@ -56,6 +56,26 @@ namespace ImTools.UnitTests
             map.Remove(42 + 32);
 
             Assert.AreEqual(2, map.Count);
+            Assert.AreEqual("3", map.GetValueOrDefault(42 + 32 + 32));
+        }
+
+        [Test]
+        public void Can_remove_the_stored_item_twice()
+        {
+            var map = new HashMap<int, string>(2);
+
+            map.AddOrUpdate(42, "1");
+            map.AddOrUpdate(41, "41");
+            map.AddOrUpdate(42 + 32, "2");
+            map.AddOrUpdate(43, "43");
+            map.AddOrUpdate(42 + 32 + 32, "3");
+
+            // removing twice
+            map.Remove(42 + 32);
+            map.Remove(42 + 32);
+
+            Assert.AreEqual(4, map.Count);
+            Assert.AreEqual("3", map.GetValueOrDefault(42 + 32 + 32));
         }
 
         [Test]
