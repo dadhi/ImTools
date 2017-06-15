@@ -1449,19 +1449,22 @@ namespace ImTools
 
             var slots = _slots;
             var bits = slots.Length - 1;
-
-            for (var step = 0; step < bits; ++step)
+            var slot = slots[hash & bits];
+            if (slot.Hash == hash && ReferenceEquals(key, slot.Key) || key.Equals(slot.Key))
             {
-                var slot = slots[(hash + step) & bits];
-                if (slot.Hash == hash &&
-                    (ReferenceEquals(key, slot.Key) || key.Equals(slot.Key)))
+                value = slot.Value;
+                return true;
+            }
+
+            var step = 1;
+            while (slot.Hash != 0 && step < bits)
+            {
+                slot = slots[(hash + step++) & bits];
+                if (slot.Hash == hash && (ReferenceEquals(key, slot.Key) || key.Equals(slot.Key)))
                 {
                     value = slot.Value;
                     return true;
                 }
-
-                if (slot.Hash == 0) // breaks on not occupied slot, But not on removed which is `~1`
-                    break;
             }
 
             value = default(V);
