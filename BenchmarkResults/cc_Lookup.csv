@@ -5,5 +5,7 @@ FSharpx.Collections,0,0,0,0,0
 Prime.HMap,0,0,0,0,0
 Imms.ImmMap,0,0,0,0,0
 ImTools.ImHashMap (C#),0,0,0,0,0
+ImTools.HashMap (C#),0,0,0,0,0
+ConcurrentDictionary (C#),0,0,0,0,0
 System.Collections.Immutable,0,0,0,0,0
 Map (F#),0,0,0,0,0

@@ -1,9 +1,11 @@
-Name/Collection Size,'10,'100,'1000,'10000,'100000
-Persistent Hash Map (C#),39,78,113,206,375
-Persistent Hash Map (F#),56,108,147,239,437
-FSharpx.Collections,156,260,369,473,779
-Prime.HMap,97,164,210,354,676
-Imms.ImmMap,44,101,178,371,871
-ImTools.ImHashMap (C#),19,45,117,230,537
-System.Collections.Immutable,134,291,464,742,1177
-Map (F#),160,471,796,1218,1861
+Name,'10,'100,'1000,'10000,'100000
+Persistent Hash Map (C#),46,85,124,323,429
+Persistent Hash Map (F#),74,124,166,285,498
+FSharpx.Collections,168,290,416,537,890
+Prime.HMap,102,181,226,405,763
+Imms.ImmMap,50,110,203,431,988
+ImTools.ImHashMap (C#),20,48,149,260,614
+ImTools.HashMap (C#),3,9,26,19,63
+ConcurrentDictionary (C#),22,20,30,26,47
+System.Collections.Immutable,144,325,556,827,1324
+Map (F#),176,518,868,1366,2143
