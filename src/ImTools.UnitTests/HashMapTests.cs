@@ -8,7 +8,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Can_store_and_retrieve_value_from_map()
         {
-            var map = new HashMap<int, string>();
+            var map = new IntHashMap<string>();
 
             map.AddOrUpdate(42, "1");
             map.AddOrUpdate(42 + 32, "2");
@@ -24,7 +24,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Can_store_and_get_stored_item_count()
         {
-            var map = new HashMap<int, string>();
+            var map = new IntHashMap<string>();
 
             map.AddOrUpdate(42, "1");
             map.AddOrUpdate(42 + 32 + 32, "3");
@@ -35,7 +35,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Can_update_a_stored_item_with_new_value()
         {
-            var map = new HashMap<int, string>();
+            var map = new IntHashMap<string>();
 
             map.AddOrUpdate(42, "1");
             map.AddOrUpdate(42, "3");
@@ -47,7 +47,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Can_remove_the_stored_item()
         {
-            var map = new HashMap<int, string>();
+            var map = new IntHashMap<string>();
 
             map.AddOrUpdate(42, "1");
             map.AddOrUpdate(42 + 32, "2");
@@ -62,7 +62,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Can_remove_the_stored_item_twice()
         {
-            var map = new HashMap<int, string>(2);
+            var map = new IntHashMap<string>(2);
 
             map.AddOrUpdate(42, "1");
             map.AddOrUpdate(41, "41");
@@ -81,7 +81,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Can_add_key_with_0_hash_code()
         {
-            var map = new HashMap<int, string>();
+            var map = new IntHashMap<string>();
 
             map.AddOrUpdate(0, "aaa");
             map.AddOrUpdate(0 + 32, "2");
@@ -96,7 +96,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Can_quickly_find_the_scattered_items_with_the_same_cache()
         {
-            var map = new HashMap<int, string>();
+            var map = new IntHashMap<string>();
 
             map.AddOrUpdate(42, "1");
             map.AddOrUpdate(43, "a");

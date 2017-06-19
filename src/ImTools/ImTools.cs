@@ -1413,7 +1413,8 @@ namespace ImTools
 
     /// <summary>The concurrent HashTable.</summary>
     /// <typeparam name="K">Type of the key</typeparam> <typeparam name="V">Type of the value</typeparam>
-    public sealed class HashMap<K, V>
+    /// <typeparam name="TEqualityComparer">Better be a struct to enable `Equals` and `GetHashCode` inlining.</typeparam>
+    public class HashMap<K, V, TEqualityComparer> where TEqualityComparer : IEqualityComparer<K>, new()
     {
         internal struct Slot
         {
@@ -1421,6 +1422,10 @@ namespace ImTools
             public K Key;
             public V Value;
         }
+
+        // ReSharper disable once FieldCanBeMadeReadOnly.Local
+        // No readonly because otherwise the struct will be copied on every call.
+        private TEqualityComparer _equalityComparer;
 
         private const int HashOfRemoved = ~1;
 
@@ -1431,16 +1436,17 @@ namespace ImTools
         private int _count;
 
         /// <summary>Initial size of underlying storage, prevents the unnecessary storage re-sizing and items migrations.</summary>
-        public const int CapacityBitCount = 5; // aka 32
+        public const int InitialCapacityBitCount = 5; // aka 32
 
         /// <summary>Amount of store items. 0 for empty map.</summary>
         public int Count { get { return _count; } }
 
-        /// <summary>Constructor. Allows to set the <see cref="CapacityBitCount"/>.</summary>
-        /// <param name="capacityBitCount"></param>
-        public HashMap(int capacityBitCount = CapacityBitCount)
+        /// <summary>Constructor. Allows to set the <see cref="InitialCapacityBitCount"/>.</summary>
+        /// <param name="initialCapacityBitCount">Initial underlying buckets size.</param>
+        public HashMap(int initialCapacityBitCount = InitialCapacityBitCount)
         {
-            _slots = new Slot[1 << capacityBitCount];
+            _slots = new Slot[1 << initialCapacityBitCount];
+            _equalityComparer = new TEqualityComparer();
         }
 
         /// <summary>Looks for key in a tree and returns the value if found.</summary>
@@ -1448,12 +1454,12 @@ namespace ImTools
         /// <returns>True if contains key.</returns>
         public bool TryFind(K key, out V value)
         {
-            var hash = key.GetHashCode() | 1; // | 1 is to distinguish from 0 - which plays role of empty slot marker
+            var hash = _equalityComparer.GetHashCode(key) | 1; // | 1 is to distinguish from 0 - which plays role of empty slot marker
 
             var slots = _slots;
             var bits = slots.Length - 1;
             var slot = slots[hash & bits];
-            if (slot.Hash == hash && ReferenceEquals(key, slot.Key) || key.Equals(slot.Key))
+            if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
             {
                 value = slot.Value;
                 return true;
@@ -1463,7 +1469,7 @@ namespace ImTools
             while (slot.Hash != 0 && step < bits)
             {
                 slot = slots[(hash + step++) & bits];
-                if (slot.Hash == hash && (ReferenceEquals(key, slot.Key) || key.Equals(slot.Key)))
+                if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
                 {
                     value = slot.Value;
                     return true;
@@ -1488,7 +1494,7 @@ namespace ImTools
         /// <param name="key">Key to add.</param><param name="value">Value to add.</param>
         public void AddOrUpdate(K key, V value)
         {
-            var hash = key.GetHashCode() | 1; // | 1 is to distinguish from 0 - which plays role of empty slot marker
+            var hash = _equalityComparer.GetHashCode(key) | 1; // | 1 is to distinguish from 0 - which plays role of empty slot marker
 
             while (true)
             {
@@ -1516,7 +1522,7 @@ namespace ImTools
                     }
 
                     // update:
-                    if (slots[index].Hash == hash && key.Equals(slots[index].Key))
+                    if (slots[index].Hash == hash && _equalityComparer.Equals(slots[index].Key, key))
                     {
                         slots[index].Value = value;
 
@@ -1551,7 +1557,7 @@ namespace ImTools
         /// <param name="key"></param><returns>The true if key was found, false otherwise.</returns>
         public bool Remove(K key)
         {
-            var hash = key.GetHashCode() | 1; // | 1 is to distinguish from 0 - which plays role of empty slot marker
+            var hash = _equalityComparer.GetHashCode(key) | 1; // | 1 is to distinguish from 0 - which plays role of empty slot marker
 
             var slots = _slots;
             var bits = slots.Length - 1;
@@ -1561,6 +1567,9 @@ namespace ImTools
             {
                 var index = (hash + i) & bits;
                 var slot = slots[index];
+                if (slot.Hash == HashOfRemoved)
+                    continue; // prune the table
+
                 if (slot.Hash == hash && key.Equals(slot.Key))
                 {
                     // mark as removed
@@ -1593,6 +1602,9 @@ namespace ImTools
             for (var i = 0; i < slots.Length; i++)
             {
                 var slot = slots[i];
+                if (slot.Hash == HashOfRemoved)
+                    continue; // prune the slots from the removed items
+
                 for (var step = 0; step < newBits; ++step)
                 {
                     hash = slot.Hash;
@@ -1606,5 +1618,55 @@ namespace ImTools
                 }
             }
         }
+    }
+
+    /// <summary>Custom comparer for int values for max performance. 
+    /// Defined as `struct` so the methods can be in-lined.</summary>
+    public struct IntEqualityComparer : IEqualityComparer<int>
+    {
+        /// <inheritdoc />
+        public bool Equals(int x, int y)
+        {
+            return x == y;
+        }
+
+        /// <inheritdoc />
+        public int GetHashCode(int obj)
+        {
+            return obj;
+        }
+    }
+
+    /// <summary>Sugar for easy defining of map with int Key. Uses <see cref="IntEqualityComparer"/>.</summary>
+    /// <typeparam name="V">Type of value.</typeparam>
+    public class IntHashMap<V> : HashMap<int, V, IntEqualityComparer>
+    {
+        /// <inheritdoc />
+        public IntHashMap(int initialCapacityBitCount = InitialCapacityBitCount) : base(initialCapacityBitCount) { }
+    }
+
+    /// <summary>Custom comparer for Type values for max performance. 
+    /// Defined as `struct` so the methods can be in-lined.</summary>
+    public struct TypeEqualityComparer : IEqualityComparer<Type>
+    {
+        /// <inheritdoc />
+        public bool Equals(Type x, Type y)
+        {
+            return ReferenceEquals(x, y);
+        }
+
+        /// <inheritdoc />
+        public int GetHashCode(Type obj)
+        {
+            return obj.GetHashCode();
+        }
+    }
+
+    /// <summary>Sugar for easy defining of map with int Key. Uses <see cref="IntEqualityComparer"/>.</summary>
+    /// <typeparam name="V">Type of value.</typeparam>
+    public class TypeHashMap<V> : HashMap<Type, V, TypeEqualityComparer>
+    {
+        /// <inheritdoc />
+        public TypeHashMap(int initialCapacityBitCount = InitialCapacityBitCount) : base(initialCapacityBitCount) { }
     }
 }
