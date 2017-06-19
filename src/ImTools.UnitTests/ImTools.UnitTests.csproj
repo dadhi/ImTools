@@ -45,7 +45,6 @@
   <ItemGroup>
     <Compile Include="HashMapLeapfrogTests.cs" />
     <Compile Include="HashMapTests.cs" />
-    <Compile Include="ImHashMapForestTests.cs" />
     <Compile Include="ImHashMapTests.cs" />
     <Compile Include="ImListTests.cs" />
     <Compile Include="RefTests.cs" />
