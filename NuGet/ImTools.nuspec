@@ -15,6 +15,10 @@
     </description>
     <tags>Immutability Persistent HashMap Avl Balanced Tree Map Dictionary Thread-safe Concurrency Functional Atomic</tags>
     <releaseNotes>
+      v1.0.0-preview-04:
+      - added: Concurrent lock-free HashMap implementation
+      - added: ArrayTools Match, Map, FindFirst methods as fast replacement for LINQ for Arrays
+      - removed: ImHashMapForest as very specialized case
       v1.0.0-preview-03:
       - added: ImList.ToArray conversion
       v1.0.0-preview-02:

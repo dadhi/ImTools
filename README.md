@@ -5,9 +5,7 @@
 
 Immutable persistent collections and helpers designed for performance and easy of use.
 
-Split from [DryIoc](https://bitbucket.org/dadhi/dryioc). 
-
-Originally `ImTools.ImHashMap` was used in DryIoc v1.0 (in 2014) for fast delegate cache, and starting from DryIoc v2.0 for both service registry and cache.
+Split from [DryIoc](https://bitbucket.org/dadhi/dryioc).
 
 
 ## Benchmarks
