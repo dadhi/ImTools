@@ -1425,6 +1425,9 @@ namespace ImTools
         private const int HashOfRemoved = ~1;
 
         private Slot[] _slots;
+
+        private Slot[] _newSlots; // the transition slots, that suppose to replace the slots
+
         private int _count;
 
         /// <summary>Initial size of underlying storage, prevents the unnecessary storage re-sizing and items migrations.</summary>
@@ -1489,8 +1492,9 @@ namespace ImTools
 
             while (true)
             {
-                var slots = _slots;
-                var bits = slots.Length - 1;
+                var slots = _newSlots ?? _slots;
+                var slotCount = slots.Length;
+                var bits = slotCount - 1;
 
                 // search for the next empty item slot
                 for (var step = 0; step < bits; ++step)
@@ -1502,6 +1506,11 @@ namespace ImTools
                     {
                         slots[index].Key = key;
                         slots[index].Value = value;
+
+                        // ensure that we operate on the same slots: either re-populating or the stable one
+                        if (slots != _newSlots && slots != _slots)
+                            continue;
+
                         Interlocked.Increment(ref _count);
                         return;
                     }
@@ -1510,15 +1519,27 @@ namespace ImTools
                     if (slots[index].Hash == hash && key.Equals(slots[index].Key))
                     {
                         slots[index].Value = value;
+
+                        // ensure that we operate on the same slots: either re-populating or the stable one
+                        if (slots != _newSlots && slots != _slots)
+                            continue;
+
+                        // no count incremental here
                         return;
                     }
                 }
 
                 // Re-try whole operation if other thread re-populated slots in between and changed the reference
                 // Otherwise (if we are on the same slots) re-populate.
-                var newSlots = Repopulate(slots, hash, key, value);
+                var newSlots = new Slot[slotCount << 1];
+                if (Interlocked.CompareExchange(ref _newSlots, newSlots, null) != null)
+                    continue;
+
+                Repopulate(newSlots, slots, hash, key, value);
+
                 if (Interlocked.CompareExchange(ref _slots, newSlots, slots) == slots)
                 {
+                    Interlocked.Exchange(ref _newSlots, null);
                     Interlocked.Increment(ref _count);
                     return;
                 }
@@ -1555,14 +1576,9 @@ namespace ImTools
             return false;
         }
 
-        private static Slot[] Repopulate(Slot[] slots, int hash, K key, V value)
+        private static void Repopulate(Slot[] newSlots, Slot[] slots, int hash, K key, V value)
         {
-            var count = slots.Length;
-            var doubleCount = count << 1;
-
-            var newSlots = new Slot[doubleCount];
-            var newBits = doubleCount - 1;
-
+            var newBits = newSlots.Length - 1;
             for (var step = 0; step < newBits; ++step)
             {
                 var index = (hash + step) & newBits;
@@ -1574,7 +1590,7 @@ namespace ImTools
                 }
             }
 
-            for (var i = 0; i < count; i++)
+            for (var i = 0; i < slots.Length; i++)
             {
                 var slot = slots[i];
                 for (var step = 0; step < newBits; ++step)
@@ -1589,8 +1605,6 @@ namespace ImTools
                     }
                 }
             }
-
-            return newSlots;
         }
     }
 }

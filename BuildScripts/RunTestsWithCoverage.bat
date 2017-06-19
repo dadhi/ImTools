@@ -3,9 +3,9 @@ pushd "..\src"
 
 setlocal EnableDelayedExpansion
 
-set NUNIT="packages\NUnit.ConsoleRunner.3.6.0\tools\nunit3-console.exe"
+set NUNIT="packages\NUnit.ConsoleRunner.3.6.1\tools\nunit3-console.exe"
 set OPENCOVER="packages\OpenCover.4.6.519\tools\OpenCover.Console.exe"
-set REPORTGEN="packages\ReportGenerator.2.5.5\tools\ReportGenerator.exe"
+set REPORTGEN="packages\ReportGenerator.2.5.8\tools\ReportGenerator.exe"
 set REPORTS=bin\Reports
 set COVERAGE="%REPORTS%\Coverage.xml"
 
