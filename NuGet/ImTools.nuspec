@@ -10,11 +10,13 @@
     <licenseUrl>http://opensource.org/licenses/MIT</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>
-      Collection of Immutable persistent data structures, Ref, and array manipulations.
+      Immutable persistent collections, concurrent HashMap, Ref, and Array helpers designed for performance.
       Split from DryIoc: https://bitbucket.org/dadhi/dryioc
     </description>
     <tags>Immutability Persistent HashMap Avl Balanced Tree Map Dictionary Thread-safe Concurrency Functional Atomic</tags>
     <releaseNotes>
+      v1.0.0-preview-05:
+      - fixed: Removed non-needed package dependencies on Full .NET platforms
       v1.0.0-preview-04:
       - added: Concurrent lock-free HashMap implementation
       - added: ArrayTools Match, Map, FindFirst methods as fast replacement for LINQ for Arrays
@@ -29,9 +31,6 @@
     <contentFiles>
       <files include="cs/any/*.*" buildAction="Compile" />
     </contentFiles>
-    <dependencies>
-      <group targetFramework="netstandard1.0"></group>
-    </dependencies>
   </metadata>
   <files>
     <file src="..\LICENSE.txt" />
@@ -50,6 +49,9 @@
 
     <!-- PCL Profile259: .NET Portable Subset (.NET Framework 4.5, Windows 8, Windows Phone 8.1, Windows Phone Silverlight 8) -->
     <file src="..\src\ImTools\ImTools.cs" target="content\portable-net45+netcore45+wpa81+wp8+MonoAndroid1+MonoTouch1\ImTools" />
+
+    <!-- xamarinmac20: Xamarin.Forms for MacOS support, based on PCL Profile259/netstandard1.0 -->
+    <file src="..\src\ImTools\ImTools.cs" target="content\xamarinmac20\ImTools" />
 
     <!--uap10.0: Universal Windows Platform-->
     <file src="..\src\ImTools\ImTools.cs" target="contentFiles\cs\any" />

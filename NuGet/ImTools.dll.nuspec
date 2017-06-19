@@ -10,11 +10,13 @@
     <licenseUrl>http://opensource.org/licenses/MIT</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>
-      Collection of Immutable persistent data structures, Ref, and array manipulations.
+      Immutable persistent collections, concurrent HashMap, Ref, and Array helpers designed for performance.
       Split from DryIoc: https://bitbucket.org/dadhi/dryioc
     </description>
     <tags>Immutability Persistent HashMap Avl Balanced Tree Map Dictionary Thread-safe Concurrency Functional Atomic</tags>
     <releaseNotes>
+      v1.0.0-preview-05:
+      - fixed: Removed non-needed package dependencies on Full .NET platforms
       v1.0.0-preview-04:
       - added: Concurrent lock-free HashMap implementation
       - added: ArrayTools Match, Map, FindFirst methods as fast replacement for LINQ for Arrays
@@ -27,6 +29,14 @@
       - Initial version.
     </releaseNotes>
     <dependencies>
+      <!--Explicitly specify no dependencies for full .NET -->
+      <group targetFramework="net35"></group>
+      <group targetFramework="net40"></group>
+      <group targetFramework="net45"></group>
+      <group targetFramework="portable-net4+sl5+netcore45+wpa81+wp8+MonoAndroid1+MonoTouch1"></group>
+      <group targetFramework="portable-net45+netcore45+wpa81+wp8+MonoAndroid1+MonoTouch1"></group>
+      <group targetFramework="xamarinmac20"></group>
+      
       <group targetFramework="netstandard1.0">
         <dependency id="System.Collections" version="4.0.11" />
         <dependency id="System.Runtime" version="4.1.0" />
@@ -57,15 +67,20 @@
     <file src="..\src\bin\Release\ImTools.pdb" target="lib\net45" />
     <file src="..\src\bin\Release\ImTools.xml" target="lib\net45" />
 
-    <!-- PCL Profile328	.NET Portable Subset (.NET Framework 4, Silverlight 5, Windows 8, Windows Phone 8.1, Windows Phone Silverlight 8) -->
+    <!-- PCL Profile328 .NET Portable Subset (.NET Framework 4, Silverlight 5, Windows 8, Windows Phone 8.1, Windows Phone Silverlight 8) -->
     <file src="..\src\bin\Release\ImTools.dll" target="lib\portable-net4+sl5+netcore45+wpa81+wp8+MonoAndroid1+MonoTouch1" />
     <file src="..\src\bin\Release\ImTools.pdb" target="lib\portable-net4+sl5+netcore45+wpa81+wp8+MonoAndroid1+MonoTouch1" />
     <file src="..\src\bin\Release\ImTools.xml" target="lib\portable-net4+sl5+netcore45+wpa81+wp8+MonoAndroid1+MonoTouch1" />
 
-    <!-- PCL Profile259	.NET Portable Subset (.NET Framework 4.5, Windows 8, Windows Phone 8.1, Windows Phone Silverlight 8) -->
+    <!-- PCL Profile259 .NET Portable Subset (.NET Framework 4.5, Windows 8, Windows Phone 8.1, Windows Phone Silverlight 8) -->
     <file src="..\src\bin\Release\ImTools.dll" target="lib\portable-net45+netcore45+wpa81+wp8+MonoAndroid1+MonoTouch1" />
     <file src="..\src\bin\Release\ImTools.pdb" target="lib\portable-net45+netcore45+wpa81+wp8+MonoAndroid1+MonoTouch1" />
     <file src="..\src\bin\Release\ImTools.xml" target="lib\portable-net45+netcore45+wpa81+wp8+MonoAndroid1+MonoTouch1" />
 
+    <!-- xamarinmac20: Xamarin.Forms for MacOS support, based on PCL Profile259/netstandard1.0 -->
+    <file src="..\src\bin\Release\ImTools.dll" target="lib\xamarinmac20" />
+    <file src="..\src\bin\Release\ImTools.pdb" target="lib\xamarinmac20" />
+    <file src="..\src\bin\Release\ImTools.xml" target="lib\xamarinmac20" />
+    
   </files>
 </package>
