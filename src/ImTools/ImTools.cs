@@ -1532,7 +1532,7 @@ namespace ImTools
     /// <summary>The concurrent HashTable.</summary>
     /// <typeparam name="K">Type of the key</typeparam> <typeparam name="V">Type of the value</typeparam>
     /// <typeparam name="TEqualityComparer">Better be a struct to enable `Equals` and `GetHashCode` inlining.</typeparam>
-    public class HashMap<K, V, TEqualityComparer> where TEqualityComparer : IEqualityComparer<K>, new()
+    public class HashMap<K, V, TEqualityComparer> where TEqualityComparer : struct, IEqualityComparer<K>
     {
         internal struct Slot
         {
@@ -1543,7 +1543,9 @@ namespace ImTools
 
         // ReSharper disable once FieldCanBeMadeReadOnly.Local
         // No readonly because otherwise the struct will be copied on every call.
+#pragma warning disable 649
         private TEqualityComparer _equalityComparer;
+#pragma warning restore 649
 
         private const int HashOfRemoved = ~1;
 
@@ -1563,7 +1565,6 @@ namespace ImTools
         public HashMap(int initialCapacityBitCount = InitialCapacityBitCount)
         {
             _slots = new Slot[1 << initialCapacityBitCount];
-            _equalityComparer = new TEqualityComparer();
         }
 
         /// <summary>Looks for key in a tree and returns the value if found.</summary>
