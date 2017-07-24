@@ -82,6 +82,7 @@ namespace ImTools
                 return source;
             if (source == null || source.Length == 0)
                 return added;
+
             var result = new T[source.Length + added.Length];
             Array.Copy(source, 0, result, 0, source.Length);
             if (added.Length == 1)
@@ -137,7 +138,7 @@ namespace ImTools
                 for (var i = 0; i < source.Length; ++i)
                 {
                     var item = source[i];
-                    if (ReferenceEquals(item, value) || Equals(item, value))
+                    if (Equals(item, value))
                         return i;
                 }
             return -1;
