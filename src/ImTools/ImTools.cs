@@ -1604,8 +1604,23 @@ namespace ImTools
         /// <returns>Found value or <paramref name="defaultValue"/>.</returns>
         public V GetValueOrDefault(K key, V defaultValue = default(V))
         {
-            V value;
-            return TryFind(key, out value) ? value : defaultValue;
+            var hash = _equalityComparer.GetHashCode(key) | 1; // | 1 is to distinguish from 0 - which plays role of empty slot marker
+
+            var slots = _slots;
+            var bits = slots.Length - 1;
+            var slot = slots[hash & bits];
+            if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
+                return slot.Value;
+
+            var step = 1;
+            while (slot.Hash != 0 && step < bits)
+            {
+                slot = slots[(hash + step++) & bits];
+                if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
+                    return slot.Value;
+            }
+
+            return defaultValue;
         }
 
         /// <summary>Returns new tree with added key-value. 

@@ -164,7 +164,7 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="CustomEqualityComparerBenchmarks.cs" />
-    <Compile Include="TreeBenchmarks.cs" />
+    <Compile Include="HashVsImHashMap.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />
