@@ -1542,21 +1542,20 @@ namespace ImTools
             public V Value;
         }
 
+        /// <summary>Initial size of underlying storage, prevents the unnecessary storage re-sizing and items migrations.</summary>
+        public const int InitialCapacityBitCount = 5; // aka 32'
+
+        private const int HashOfRemoved = ~1, AddToHashToDistinguishFromZero = 1;
+
         // ReSharper disable once FieldCanBeMadeReadOnly.Local
         // No readonly because otherwise the struct will be copied on every call.
 #pragma warning disable 649
         private TEqualityComparer _equalityComparer;
 #pragma warning restore 649
 
-        private const int HashOfRemoved = ~1, AddToHashToDistinguishFromZero = 1;
-
         private Slot[] _slots;
-        private Slot[] _newSlots; // the transition slots, that suppose to replace the slots
-
+        private Slot[] _newSlots; // The expanded transition slots. After being re-populated, they will become a regular @slots
         private int _count;
-
-        /// <summary>Initial size of underlying storage, prevents the unnecessary storage re-sizing and items migrations.</summary>
-        public const int InitialCapacityBitCount = 5; // aka 32
 
         /// <summary>Amount of store items. 0 for empty map.</summary>
         public int Count { get { return _count; } }
@@ -1573,7 +1572,7 @@ namespace ImTools
         /// <returns>True if contains key.</returns>
         public bool TryFind(K key, out V value)
         {
-            var hash = _equalityComparer.GetHashCode(key) | 1; // | 1 is to distinguish from 0 - which plays role of empty slot marker
+            var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromZero;
 
             var slots = _slots;
             var bits = slots.Length - 1;
@@ -1584,10 +1583,9 @@ namespace ImTools
                 return true;
             }
 
-            var step = 1;
-            while (slot.Hash != 0 && step < bits)
+            for (var step = 1; slot.Hash != 0 && step < bits; ++step)
             {
-                slot = slots[(hash + step++) & bits];
+                slot = slots[(hash + step) & bits];
                 if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
                 {
                     value = slot.Value;
@@ -1618,13 +1616,11 @@ namespace ImTools
             // which will indicate an absence of key
             // Important, to proceed the search further if found a removed item, 
             // cause HashOfRemoved is different from Zero Hash slot.
-            var step = 1;
-            while (slot.Hash != 0 && step < bits)
+            for (var step = 1; slot.Hash != 0 && step < bits; ++step)
             {
                 slot = slots[(hash + step) & bits];
                 if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
                     return slot.Value;
-                ++step;
             }
 
             return defaultValue;
@@ -1687,16 +1683,16 @@ namespace ImTools
             for (var i = 0; i < slots.Length; i++)
             {
                 var slot = slots[i];
-                var slotHash = slot.Hash;
-                if (slotHash == HashOfRemoved)
+                var hash = slot.Hash;
+                if (hash == HashOfRemoved)
                     continue; // skip the removed items
 
                 // Get the new index in expanded collection and fill with the existing key-value pairs,
                 // and ignore the slots marked as removed
                 for (var step = 0; step < newBits; ++step)
                 {
-                    var index = (slotHash + step) & newBits;
-                    if (Interlocked.CompareExchange(ref newSlots[index].Hash, slotHash, 0) == 0)
+                    var index = (hash + step) & newBits;
+                    if (Interlocked.CompareExchange(ref newSlots[index].Hash, hash, 0) == 0)
                     {
                         newSlots[index].Key = slot.Key;
                         newSlots[index].Value = slot.Value;
@@ -1778,24 +1774,25 @@ namespace ImTools
         {
             var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromZero;
 
-            var slots = _slots;
+            // @newSlots (if not empty) will become a new @slots, so the removed marker should be kept at the end
+            var slots = _newSlots ?? _slots; 
             var bits = slots.Length - 1;
 
-            // Search starting from 
+            // Search starting from ideal slot
             for (var step = 0; step < bits; ++step)
             {
                 var index = (hash + step) & bits;
                 var slot = slots[index];
-                if (slot.Hash == HashOfRemoved)
-                    continue; // prune the table
-
                 if (slot.Hash == hash && key.Equals(slot.Key))
                 {
-                    // mark as removed
+                    // Mark as removed
                     if (Interlocked.CompareExchange(ref slots[index].Hash, HashOfRemoved, hash) == hash)
                         Interlocked.Decrement(ref _count);
                     return true;
                 }
+
+                if (slot.Hash == HashOfRemoved)
+                    continue; // skip the removed slots
 
                 if (slot.Hash == 0)
                     break; // finish search on empty slot But not on removed slot
