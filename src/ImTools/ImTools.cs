@@ -1548,7 +1548,7 @@ namespace ImTools
         private TEqualityComparer _equalityComparer;
 #pragma warning restore 649
 
-        private const int HashOfRemoved = ~1;
+        private const int HashOfRemoved = ~1, AddToHashToDistinguishFromZero = 1;
 
         private Slot[] _slots;
         private Slot[] _newSlots; // the transition slots, that suppose to replace the slots
@@ -1604,23 +1604,108 @@ namespace ImTools
         /// <returns>Found value or <paramref name="defaultValue"/>.</returns>
         public V GetValueOrDefault(K key, V defaultValue = default(V))
         {
-            var hash = _equalityComparer.GetHashCode(key) | 1; // | 1 is to distinguish from 0 - which plays role of empty slot marker
+            var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromZero;
 
             var slots = _slots;
             var bits = slots.Length - 1;
+
+            // First search the key in its ideal slot
             var slot = slots[hash & bits];
             if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
                 return slot.Value;
 
+            // Then probe the next-to-ideal slot until the Zero Hash (empty) slot,
+            // which will indicate an absence of key
+            // Important, to proceed the search further if found a removed item, 
+            // cause HashOfRemoved is different from Zero Hash slot.
             var step = 1;
             while (slot.Hash != 0 && step < bits)
             {
-                slot = slots[(hash + step++) & bits];
+                slot = slots[(hash + step) & bits];
                 if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
                     return slot.Value;
+                ++step;
             }
 
             return defaultValue;
+        }
+
+        // todo: sync version of putting key and value into hash map, and explanding if needed. no locks or anything alike.
+        internal void Put(K key, V value)
+        {
+            var count = _count;
+            var slots = _slots;
+
+            // If more than 75% of slots are filled then expand the slots - double the size
+            var oneAndHalfOfCount = count + (count >> 1);
+            if (oneAndHalfOfCount > slots.Length)
+                slots = Expand(slots);
+
+            var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromZero;
+            var bits = slots.Length - 1;
+
+            // Search for en empty or removed slot, or slot with the same key (for update) 
+            // starting from the ideal index position.
+            // It is Ok to search for the @bits length, which is -1 of total slots length, 
+            // because wasting one slot is not big of a deal considering it provides less calculations.
+            for (var step = 0; step < bits; ++step)
+            {
+                var index = (hash + step) & bits;
+
+                // First try to put item into an empty slot
+                if (Interlocked.CompareExchange(ref slots[index].Hash, hash, 0) == 0)
+                {
+                    slots[index].Key = key;
+                    slots[index].Value = value;
+                    Interlocked.Increment(ref _count); // increment cause we are adding new item
+                    return;
+                }
+
+                // Then try to put into removed slot
+                if (Interlocked.CompareExchange(ref slots[index].Hash, hash, HashOfRemoved) == HashOfRemoved)
+                {
+                    slots[index].Key = key;
+                    slots[index].Value = value;
+                    Interlocked.Increment(ref _count); // increment cause we are adding new item
+                    return;
+                }
+
+                // At last check for uptating the slot
+                if (slots[index].Hash == hash && _equalityComparer.Equals(slots[index].Key, key))
+                {
+                    slots[index].Value = value;
+                    return;
+                }
+            }
+        }
+
+        private static Slot[] Expand(Slot[] slots)
+        {
+            var newSlots = new Slot[slots.Length << 1];
+            var newBits = newSlots.Length - 1;
+
+            for (var i = 0; i < slots.Length; i++)
+            {
+                var slot = slots[i];
+                var slotHash = slot.Hash;
+                if (slotHash == HashOfRemoved)
+                    continue; // skip the removed items
+
+                // Get the new index in expanded collection and fill with the existing key-value pairs,
+                // and ignore the slots marked as removed
+                for (var step = 0; step < newBits; ++step)
+                {
+                    var index = (slotHash + step) & newBits;
+                    if (Interlocked.CompareExchange(ref newSlots[index].Hash, slotHash, 0) == 0)
+                    {
+                        newSlots[index].Key = slot.Key;
+                        newSlots[index].Value = slot.Value;
+                        break;
+                    }
+                }
+            }
+
+            return newSlots;
         }
 
         /// <summary>Returns new tree with added key-value. 
@@ -1691,15 +1776,15 @@ namespace ImTools
         /// <param name="key"></param><returns>The true if key was found, false otherwise.</returns>
         public bool Remove(K key)
         {
-            var hash = _equalityComparer.GetHashCode(key) | 1; // | 1 is to distinguish from 0 - which plays role of empty slot marker
+            var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromZero;
 
             var slots = _slots;
             var bits = slots.Length - 1;
 
-            // search until the empty slot
-            for (var i = 0; i < bits; ++i)
+            // Search starting from 
+            for (var step = 0; step < bits; ++step)
             {
-                var index = (hash + i) & bits;
+                var index = (hash + step) & bits;
                 var slot = slots[index];
                 if (slot.Hash == HashOfRemoved)
                     continue; // prune the table
