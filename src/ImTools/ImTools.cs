@@ -1626,60 +1626,75 @@ namespace ImTools
             return defaultValue;
         }
 
-        // todo: sync version of putting key and value into hash map, and explanding if needed. no locks or anything alike.
-        internal void Put(K key, V value)
+        /// <summary>Adds the key-value into the map or updates the values if the key is already added.</summary>
+        /// <param name="key">Key to put</param><param name="value">Value to put</param>
+        public void AddOrUpdate(K key, V value)
         {
-            var count = _count;
-            var slots = _slots;
-
-            // If more than 75% of slots are filled then expand the slots - double the size
-            var oneAndHalfOfCount = count + (count >> 1);
-            if (oneAndHalfOfCount > slots.Length)
-                slots = Expand(slots);
-
             var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromZero;
-            var bits = slots.Length - 1;
 
-            // Search for en empty or removed slot, or slot with the same key (for update) 
-            // starting from the ideal index position.
-            // It is Ok to search for the @bits length, which is -1 of total slots length, 
-            // because wasting one slot is not big of a deal considering it provides less calculations.
-            for (var step = 0; step < bits; ++step)
+            while (true) // retry until succeeding
             {
-                var index = (hash + step) & bits;
+                var slots = _newSlots ?? _slots; // always operate either on new or current slots
 
-                // First try to put item into an empty slot
-                if (Interlocked.CompareExchange(ref slots[index].Hash, hash, 0) == 0)
+                // If more than 75% of slots are filled then expand the slots, double the size.
+                // Ignore (proceed and try to put an item) if we are already on new slots
+                if (slots != _newSlots)
                 {
-                    slots[index].Key = key;
-                    slots[index].Value = value;
-                    Interlocked.Increment(ref _count); // increment cause we are adding new item
-                    return;
+                    var count = _count;
+                    count += count >> 1; // count + half-count
+                    if (count >= slots.Length)
+                    {
+                        Expand(slots);
+                        continue;
+                    }
                 }
 
-                // Then try to put into removed slot
-                if (Interlocked.CompareExchange(ref slots[index].Hash, hash, HashOfRemoved) == HashOfRemoved)
+                // Search for an empty or removed slot, or slot with the same key (for update) 
+                // starting from the ideal index position.
+                // It is Ok to search for the @bits length, which is -1 of total slots length, 
+                // because wasting one slot is not big of a deal considering it provides less calculations.
+                var bits = slots.Length - 1;
+                for (var step = 0; step < bits; ++step)
                 {
-                    slots[index].Key = key;
-                    slots[index].Value = value;
-                    Interlocked.Increment(ref _count); // increment cause we are adding new item
-                    return;
-                }
+                    var index = (hash + step) & bits;
 
-                // At last check for uptating the slot
-                if (slots[index].Hash == hash && _equalityComparer.Equals(slots[index].Key, key))
-                {
-                    slots[index].Value = value;
-                    return;
+                    // First try to put item into an empty slot or try to put it into a removed slot
+                    if (Interlocked.CompareExchange(ref slots[index].Hash, hash, 0) == 0 ||
+                        Interlocked.CompareExchange(ref slots[index].Hash, hash, HashOfRemoved) == HashOfRemoved)
+                    {
+                        slots[index].Key = key;
+                        slots[index].Value = value;
+
+                        // ensure that we operate on the same slots: either re-populating or the stable one
+                        if (slots != _newSlots && slots != _slots)
+                            continue;
+
+                        Interlocked.Increment(ref _count); // increment cause we are adding new item
+                        return; // Successfully added!
+                    }
+
+                    // Then check for updating the slot
+                    if (slots[index].Hash == hash && _equalityComparer.Equals(slots[index].Key, key))
+                    {
+                        slots[index].Value = value;
+                        
+                        // ensure that we operate on the same slots: either re-populating or the stable one
+                        if (slots != _newSlots && slots != _slots)
+                            continue;
+
+                        return; // Successfully updated!
+                    }
                 }
             }
         }
 
-        private static Slot[] Expand(Slot[] slots)
+        private void Expand(Slot[] slots)
         {
             var newSlots = new Slot[slots.Length << 1];
-            var newBits = newSlots.Length - 1;
+            if (Interlocked.CompareExchange(ref _newSlots, newSlots, null) != null)
+                return;
 
+            var newBits = newSlots.Length - 1;
             for (var i = 0; i < slots.Length; i++)
             {
                 var slot = slots[i];
@@ -1701,70 +1716,9 @@ namespace ImTools
                 }
             }
 
-            return newSlots;
-        }
-
-        /// <summary>Returns new tree with added key-value. 
-        /// If value with the same key is exist then the value is replaced.</summary>
-        /// <param name="key">Key to add.</param><param name="value">Value to add.</param>
-        public void AddOrUpdate(K key, V value)
-        {
-            var hash = _equalityComparer.GetHashCode(key) | 1; // | 1 is to distinguish from 0 - which plays role of empty slot marker
-
-            while (true)
-            {
-                var slots = _newSlots ?? _slots;
-                var slotCount = slots.Length;
-                var bits = slotCount - 1;
-
-                // search for the next empty item slot
-                for (var step = 0; step < bits; ++step)
-                {
-                    var index = (hash + step) & bits;
-
-                    // fills only an empty slot, not the removed slot
-                    if (Interlocked.CompareExchange(ref slots[index].Hash, hash, 0) == 0)
-                    {
-                        slots[index].Key = key;
-                        slots[index].Value = value;
-
-                        // ensure that we operate on the same slots: either re-populating or the stable one
-                        if (slots != _newSlots && slots != _slots)
-                            continue;
-
-                        Interlocked.Increment(ref _count);
-                        return;
-                    }
-
-                    // update:
-                    if (slots[index].Hash == hash && _equalityComparer.Equals(slots[index].Key, key))
-                    {
-                        slots[index].Value = value;
-
-                        // ensure that we operate on the same slots: either re-populating or the stable one
-                        if (slots != _newSlots && slots != _slots)
-                            continue;
-
-                        // no count incremental here
-                        return;
-                    }
-                }
-
-                // Re-try whole operation if other thread re-populated slots in between and changed the reference
-                // Otherwise (if we are on the same slots) re-populate.
-                var newSlots = new Slot[slotCount << 1];
-                if (Interlocked.CompareExchange(ref _newSlots, newSlots, null) != null)
-                    continue;
-
-                Repopulate(newSlots, slots, hash, key, value);
-
-                if (Interlocked.CompareExchange(ref _slots, newSlots, slots) == slots)
-                {
-                    Interlocked.Exchange(ref _newSlots, null);
-                    Interlocked.Increment(ref _count);
-                    return;
-                }
-            }
+            // If the underlying slots are not changed, replace them with the new slots, and retry
+            if (Interlocked.CompareExchange(ref _slots, newSlots, slots) == slots)
+                Interlocked.Exchange(ref _newSlots, null);
         }
 
         /// <summary>Removes the value with passed key. 
@@ -1775,7 +1729,7 @@ namespace ImTools
             var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromZero;
 
             // @newSlots (if not empty) will become a new @slots, so the removed marker should be kept at the end
-            var slots = _newSlots ?? _slots; 
+            var slots = _newSlots ?? _slots;
             var bits = slots.Length - 1;
 
             // Search starting from ideal slot
@@ -1799,40 +1753,6 @@ namespace ImTools
             }
 
             return false;
-        }
-
-        private static void Repopulate(Slot[] newSlots, Slot[] slots, int hash, K key, V value)
-        {
-            var newBits = newSlots.Length - 1;
-            for (var step = 0; step < newBits; ++step)
-            {
-                var index = (hash + step) & newBits;
-                if (Interlocked.CompareExchange(ref newSlots[index].Hash, hash, 0) == 0)
-                {
-                    newSlots[index].Key = key;
-                    newSlots[index].Value = value;
-                    break;
-                }
-            }
-
-            for (var i = 0; i < slots.Length; i++)
-            {
-                var slot = slots[i];
-                if (slot.Hash == HashOfRemoved)
-                    continue; // prune the slots from the removed items
-
-                for (var step = 0; step < newBits; ++step)
-                {
-                    hash = slot.Hash;
-                    var index = (hash + step) & newBits;
-                    if (Interlocked.CompareExchange(ref newSlots[index].Hash, hash, 0) == 0)
-                    {
-                        newSlots[index].Key = slot.Key;
-                        newSlots[index].Value = slot.Value;
-                        break;
-                    }
-                }
-            }
         }
     }
 

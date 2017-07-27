@@ -34,7 +34,7 @@ namespace Playground
                 Interlocked.Exchange(ref _imMap, _imMap.AddOrUpdate(_key, _value));
             }
 
-            [Benchmark]
+            [Benchmark(Baseline = true)]
             public void PopulateHashMap()
             {
                 var keys = _keys;
@@ -50,7 +50,8 @@ namespace Playground
             private ImHashMap<Type, string> _imMap = ImHashMap<Type, string>.Empty;
             private readonly TypeHashMap<string> _map = new TypeHashMap<string>();
 
-            [Params(10, 50, 1000, MaxTypeCount)]
+            [Params(10, 50)]//, 1000, MaxTypeCount)]
+            //[Params(10, 50, 1000, MaxTypeCount)]
             public int ItemCount;
 
             [GlobalSetup]
