@@ -1546,7 +1546,7 @@ namespace ImTools
         /// <summary>Initial size of underlying storage, prevents the unnecessary storage re-sizing and items migrations.</summary>
         public const int InitialCapacityBitCount = 5; // aka 32'
 
-        private const int HashOfRemoved = ~1, AddToHashToDistinguishFromEmptyAndRemoved = 1;
+        private const int HashOfRemoved = ~1, AddToHashToDistinguishFromEmptyOrRemoved = 1;
 
         // ReSharper disable once FieldCanBeMadeReadOnly.Local
         // No readonly because otherwise the struct will be copied on every call.
@@ -1558,7 +1558,7 @@ namespace ImTools
         private Slot[] _newSlots; // The expanded transition slots. After being re-populated, they will become a regular @slots
         private int _count;
 
-        /// <summary>Amount of store items. 0 for empty map.</summary>
+        /// <summary>Amount of stored items, 0 in an empty map.</summary>
         public int Count { get { return _count; } }
 
         /// <summary>Constructor. Allows to set the <see cref="InitialCapacityBitCount"/>.</summary>
@@ -1571,43 +1571,17 @@ namespace ImTools
         /// <summary>Looks for key in a map and returns the value if found.</summary>
         /// <param name="key">Key to look for.</param> <param name="value">The found value</param>
         /// <returns>True if contains key.</returns>
+        [MethodImpl((MethodImplOptions)256)]
         public bool TryFind(K key, out V value)
         {
-            var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromEmptyAndRemoved;
+            var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromEmptyOrRemoved;
 
             var slots = _slots;
             var bits = slots.Length - 1;
-            var slot = slots[hash & bits];
-            if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
-            {
-                value = slot.Value;
-                return true;
-            }
 
-            for (var step = 1; slot.Hash != 0 && step < bits; ++step)
-            {
-                slot = slots[(hash + step) & bits];
-                if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
-                {
-                    value = slot.Value;
-                    return true;
-                }
-            }
-
-            value = default(V);
-            return false;
-        }
-
-        /// <summary>Looks for key in a map and returns the value if found.</summary>
-        /// <param name="key">Key to look for.</param> <param name="value">The found value</param>
-        /// <returns>True if contains key.</returns>
-        [MethodImpl((MethodImplOptions)256)]
-        public bool TryFind_Inlined(K key, out V value)
-        {
-            var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromEmptyAndRemoved;
-
-            var slots = _slots;
-            var bits = slots.Length - 1;
+            // Step 0: Search the key in its ideal slot.
+            // Step 1+: Probe the next-to-ideal slot until the Empty Hash slot, which will indicate an absence of the key.
+            // Important to proceed the search further over the removed slot, cause HashOfRemoved is different from Empty Hash slot.
             for (var step = 0; step < bits; ++step)
             {
                 var slot = slots[(hash + step) & bits];
@@ -1625,49 +1599,20 @@ namespace ImTools
             return false;
         }
 
-        /// <summary>Looks for key in a map and returns the key value if found, or <paramref name="defaultValue"/> otherwise.</summary>
-        /// <param name="key">Key to look for.</param> <param name="defaultValue">(optional) Value to return if key is not found.</param>
-        /// <returns>Found value or <paramref name="defaultValue"/>.</returns>
-        public V GetValueOrDefault(K key, V defaultValue = default(V))
-        {
-            var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromEmptyAndRemoved;
-
-            var slots = _slots;
-            var bits = slots.Length - 1;
-
-            // First search the key in its ideal slot
-            var slot = slots[hash & bits];
-            if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
-                return slot.Value;
-
-            // Then probe the next-to-ideal slot until the Empty Hash (empty) slot,
-            // which will indicate an absence of key
-            // Important, to proceed the search further if found a removed item, 
-            // cause HashOfRemoved is different from Zero Hash slot.
-            for (var step = 1; slot.Hash != 0 && step < bits; ++step)
-            {
-                slot = slots[(hash + step) & bits];
-                if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
-                    return slot.Value;
-            }
-
-            return defaultValue;
-        }
-
-        /// <summary>Looks for key in a map and returns the key value if found, or <paramref name="defaultValue"/> otherwise.</summary>
+        /// <summary>Looks for key in a map and returns the value if key found, or <paramref name="defaultValue"/> otherwise.</summary>
         /// <param name="key">Key to look for.</param> <param name="defaultValue">(optional) Value to return if key is not found.</param>
         /// <returns>Found value or <paramref name="defaultValue"/>.</returns>
         [MethodImpl((MethodImplOptions)256)]
-        public V GetValueOrDefault_Inlined(K key, V defaultValue = default(V))
+        public V GetValueOrDefault(K key, V defaultValue = default(V))
         {
-            var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromEmptyAndRemoved;
+            var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromEmptyOrRemoved;
 
             var slots = _slots;
             var bits = slots.Length - 1;
 
             // Step 0: Search the key in its ideal slot.
-            // Step 1+: Probe the next-to-ideal slot until the Empty Hash slot, which will indicate an absence of key.
-            // Important to proceed the search further over the removed item, cause HashOfRemoved is different from Empty Hash slot.
+            // Step 1+: Probe the next-to-ideal slot until the Empty Hash slot, which will indicate an absence of the key.
+            // Important to proceed the search further over the removed slot, cause HashOfRemoved is different from Empty Hash slot.
             for (var step = 0; step < bits; ++step)
             {
                 var slot = slots[(hash + step) & bits];
@@ -1684,7 +1629,7 @@ namespace ImTools
         /// <param name="key">Key to put</param><param name="value">Value to put</param>
         public void AddOrUpdate(K key, V value)
         {
-            var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromEmptyAndRemoved;
+            var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromEmptyOrRemoved;
 
             while (true) // retry until succeeding
             {
@@ -1731,7 +1676,7 @@ namespace ImTools
                     if (slots[index].Hash == hash && _equalityComparer.Equals(slots[index].Key, key))
                     {
                         slots[index].Value = value;
-                        
+
                         // ensure that we operate on the same slots: either re-populating or the stable one
                         if (slots != _newSlots && slots != _slots)
                             continue;
@@ -1780,7 +1725,7 @@ namespace ImTools
         /// <param name="key"></param><returns>The true if key was found, false otherwise.</returns>
         public bool Remove(K key)
         {
-            var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromEmptyAndRemoved;
+            var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromEmptyOrRemoved;
 
             // @newSlots (if not empty) will become a new @slots, so the removed marker should be kept at the end
             var slots = _newSlots ?? _slots;

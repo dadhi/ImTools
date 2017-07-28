@@ -74,15 +74,9 @@ namespace Playground
             }
 
             [Benchmark(Baseline = true)]
-            public object GetFromHashMap()
+            public object GetFromHashMap_GetOrDefault()
             {
                 return _map.GetValueOrDefault(_key);
-            }
-
-            [Benchmark]
-            public object GetFromHashMap_Inlined()
-            {
-                return _map.GetValueOrDefault_Inlined(_key);
             }
 
             [Benchmark]
@@ -90,14 +84,6 @@ namespace Playground
             {
                 string value;
                 _map.TryFind(_key, out value);
-                return value;
-            }
-
-            [Benchmark]
-            public object GetFromHashMap_TryFind_Inlined()
-            {
-                string value;
-                _map.TryFind_Inlined(_key, out value);
                 return value;
             }
         }
