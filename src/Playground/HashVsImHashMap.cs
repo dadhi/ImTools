@@ -50,8 +50,7 @@ namespace Playground
             private ImHashMap<Type, string> _imMap = ImHashMap<Type, string>.Empty;
             private readonly TypeHashMap<string> _map = new TypeHashMap<string>();
 
-            [Params(10, 50)]//, 1000, MaxTypeCount)]
-            //[Params(10, 50, 1000, MaxTypeCount)]
+            [Params(10, 100, 1000)]
             public int ItemCount;
 
             [GlobalSetup]
@@ -81,10 +80,24 @@ namespace Playground
             }
 
             [Benchmark]
+            public object GetFromHashMap_Inlined()
+            {
+                return _map.GetValueOrDefault_Inlined(_key);
+            }
+
+            [Benchmark]
             public object GetFromHashMap_TryFind()
             {
                 string value;
                 _map.TryFind(_key, out value);
+                return value;
+            }
+
+            [Benchmark]
+            public object GetFromHashMap_TryFind_Inlined()
+            {
+                string value;
+                _map.TryFind_Inlined(_key, out value);
                 return value;
             }
         }

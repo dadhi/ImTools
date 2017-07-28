@@ -29,6 +29,7 @@ namespace ImTools
     using System.Linq;
     using System.Text;
     using System.Threading;
+    using System.Runtime.CompilerServices; // For [MethodImpl(AggressiveInlining)]
 
     /// <summary>Methods to work with immutable arrays, and general array sugar.</summary>
     public static class ArrayTools
@@ -1545,7 +1546,7 @@ namespace ImTools
         /// <summary>Initial size of underlying storage, prevents the unnecessary storage re-sizing and items migrations.</summary>
         public const int InitialCapacityBitCount = 5; // aka 32'
 
-        private const int HashOfRemoved = ~1, AddToHashToDistinguishFromZero = 1;
+        private const int HashOfRemoved = ~1, AddToHashToDistinguishFromEmptyAndRemoved = 1;
 
         // ReSharper disable once FieldCanBeMadeReadOnly.Local
         // No readonly because otherwise the struct will be copied on every call.
@@ -1567,12 +1568,12 @@ namespace ImTools
             _slots = new Slot[1 << initialCapacityBitCount];
         }
 
-        /// <summary>Looks for key in a tree and returns the value if found.</summary>
+        /// <summary>Looks for key in a map and returns the value if found.</summary>
         /// <param name="key">Key to look for.</param> <param name="value">The found value</param>
         /// <returns>True if contains key.</returns>
         public bool TryFind(K key, out V value)
         {
-            var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromZero;
+            var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromEmptyAndRemoved;
 
             var slots = _slots;
             var bits = slots.Length - 1;
@@ -1597,12 +1598,39 @@ namespace ImTools
             return false;
         }
 
-        /// <summary>Looks for key in a tree and returns the key value if found, or <paramref name="defaultValue"/> otherwise.</summary>
+        /// <summary>Looks for key in a map and returns the value if found.</summary>
+        /// <param name="key">Key to look for.</param> <param name="value">The found value</param>
+        /// <returns>True if contains key.</returns>
+        [MethodImpl((MethodImplOptions)256)]
+        public bool TryFind_Inlined(K key, out V value)
+        {
+            var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromEmptyAndRemoved;
+
+            var slots = _slots;
+            var bits = slots.Length - 1;
+            for (var step = 0; step < bits; ++step)
+            {
+                var slot = slots[(hash + step) & bits];
+                if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
+                {
+                    value = slot.Value;
+                    return true;
+                }
+
+                if (slot.Hash == 0)
+                    break;
+            }
+
+            value = default(V);
+            return false;
+        }
+
+        /// <summary>Looks for key in a map and returns the key value if found, or <paramref name="defaultValue"/> otherwise.</summary>
         /// <param name="key">Key to look for.</param> <param name="defaultValue">(optional) Value to return if key is not found.</param>
         /// <returns>Found value or <paramref name="defaultValue"/>.</returns>
         public V GetValueOrDefault(K key, V defaultValue = default(V))
         {
-            var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromZero;
+            var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromEmptyAndRemoved;
 
             var slots = _slots;
             var bits = slots.Length - 1;
@@ -1612,7 +1640,7 @@ namespace ImTools
             if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
                 return slot.Value;
 
-            // Then probe the next-to-ideal slot until the Zero Hash (empty) slot,
+            // Then probe the next-to-ideal slot until the Empty Hash (empty) slot,
             // which will indicate an absence of key
             // Important, to proceed the search further if found a removed item, 
             // cause HashOfRemoved is different from Zero Hash slot.
@@ -1626,11 +1654,37 @@ namespace ImTools
             return defaultValue;
         }
 
+        /// <summary>Looks for key in a map and returns the key value if found, or <paramref name="defaultValue"/> otherwise.</summary>
+        /// <param name="key">Key to look for.</param> <param name="defaultValue">(optional) Value to return if key is not found.</param>
+        /// <returns>Found value or <paramref name="defaultValue"/>.</returns>
+        [MethodImpl((MethodImplOptions)256)]
+        public V GetValueOrDefault_Inlined(K key, V defaultValue = default(V))
+        {
+            var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromEmptyAndRemoved;
+
+            var slots = _slots;
+            var bits = slots.Length - 1;
+
+            // Step 0: Search the key in its ideal slot.
+            // Step 1+: Probe the next-to-ideal slot until the Empty Hash slot, which will indicate an absence of key.
+            // Important to proceed the search further over the removed item, cause HashOfRemoved is different from Empty Hash slot.
+            for (var step = 0; step < bits; ++step)
+            {
+                var slot = slots[(hash + step) & bits];
+                if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
+                    return slot.Value;
+                if (slot.Hash == 0)
+                    break;
+            }
+
+            return defaultValue;
+        }
+
         /// <summary>Adds the key-value into the map or updates the values if the key is already added.</summary>
         /// <param name="key">Key to put</param><param name="value">Value to put</param>
         public void AddOrUpdate(K key, V value)
         {
-            var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromZero;
+            var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromEmptyAndRemoved;
 
             while (true) // retry until succeeding
             {
@@ -1726,7 +1780,7 @@ namespace ImTools
         /// <param name="key"></param><returns>The true if key was found, false otherwise.</returns>
         public bool Remove(K key)
         {
-            var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromZero;
+            var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromEmptyAndRemoved;
 
             // @newSlots (if not empty) will become a new @slots, so the removed marker should be kept at the end
             var slots = _newSlots ?? _slots;
@@ -1775,7 +1829,7 @@ namespace ImTools
 
     /// <summary>Sugar for easy defining of map with int Key. Uses <see cref="IntEqualityComparer"/>.</summary>
     /// <typeparam name="V">Type of value.</typeparam>
-    public class IntHashMap<V> : HashMap<int, V, IntEqualityComparer>
+    public sealed class IntHashMap<V> : HashMap<int, V, IntEqualityComparer>
     {
         /// <inheritdoc />
         public IntHashMap(int initialCapacityBitCount = InitialCapacityBitCount) : base(initialCapacityBitCount) { }
@@ -1800,7 +1854,7 @@ namespace ImTools
 
     /// <summary>Sugar for easy defining of map with int Key. Uses <see cref="IntEqualityComparer"/>.</summary>
     /// <typeparam name="V">Type of value.</typeparam>
-    public class TypeHashMap<V> : HashMap<Type, V, TypeEqualityComparer>
+    public sealed class TypeHashMap<V> : HashMap<Type, V, TypeEqualityComparer>
     {
         /// <inheritdoc />
         public TypeHashMap(int initialCapacityBitCount = InitialCapacityBitCount) : base(initialCapacityBitCount) { }
