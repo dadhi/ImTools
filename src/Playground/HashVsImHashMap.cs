@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -20,7 +21,7 @@ namespace Playground
         [MemoryDiagnoser]
         public class Populate
         {
-            [Params(10, 50, 1000, MaxTypeCount)] public int ItemCount;
+            [Params(10, 100, 1000, MaxTypeCount)] public int ItemCount;
 
             private ImHashMap<Type, string> _imMap = ImHashMap<Type, string>.Empty;
             private readonly TypeHashMap<string> _map = new TypeHashMap<string>();
@@ -47,8 +48,10 @@ namespace Playground
         [MemoryDiagnoser]
         public class GetOrDefault
         {
+            private readonly ConcurrentDictionary<Type, string> _concurrentDict = new ConcurrentDictionary<Type, string>();
             private ImHashMap<Type, string> _imMap = ImHashMap<Type, string>.Empty;
             private readonly TypeHashMap<string> _map = new TypeHashMap<string>();
+            private readonly HashMapLF<Type, string, TypeEqualityComparer> _mapLF = new HashMapLF<Type, string, TypeEqualityComparer>();
 
             [Params(10, 100, 1000)]
             public int ItemCount;
@@ -59,32 +62,45 @@ namespace Playground
                 var keys = _keys;
 
                 for (var i = 0; i < ItemCount; i++)
+                {
+                    _concurrentDict.TryAdd(keys[i], "a");
                     Interlocked.Exchange(ref _imMap, _imMap.AddOrUpdate(keys[i], "a"));
-                Interlocked.Exchange(ref _imMap, _imMap.AddOrUpdate(_key, _value));
-
-                for (var i = 0; i < ItemCount; i++)
                     _map.AddOrUpdate(keys[i], "a");
+                    _mapLF.AddOrUpdate(keys[i], "a");
+                }
+
+                _concurrentDict.TryAdd(_key, _value);
+                Interlocked.Exchange(ref _imMap, _imMap.AddOrUpdate(_key, _value));
                 _map.AddOrUpdate(_key, _value);
+                _mapLF.AddOrUpdate(_key, _value);
             }
 
             [Benchmark]
-            public object GetFromImHashMap()
+            public bool GetFromConcurrentDictionary()
             {
-                return _imMap.GetValueOrDefault(_key);
+                string value;
+                return _concurrentDict.TryGetValue(_key, out value);
+            }
+
+            [Benchmark]
+            public bool GetFromImHashMap()
+            {
+                string value;
+                return _imMap.TryFind(_key, out value);
             }
 
             [Benchmark(Baseline = true)]
-            public object GetFromHashMap_GetOrDefault()
+            public bool GetFromHashMap()
             {
-                return _map.GetValueOrDefault(_key);
+                string value;
+                return _map.TryFind(_key, out value);
             }
 
             [Benchmark]
-            public object GetFromHashMap_TryFind()
+            public bool GetFromHashMapLF()
             {
                 string value;
-                _map.TryFind(_key, out value);
-                return value;
+                return _mapLF.TryFind(_key, out value);
             }
         }
     }
