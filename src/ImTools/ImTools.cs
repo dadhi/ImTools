@@ -1076,86 +1076,6 @@ namespace ImTools
             return AddOrUpdate(key.GetHashCode(), key, value, update);
         }
 
-        // todo: Non recursive version. Evaluate perf and if greater, then replace the recursive version.
-        internal ImHashMap<K, V> AddOrUpdateNonRecursive(K key, V value)
-        {
-            var hash = key.GetHashCode();
-            if (Height == 0)
-                return new ImHashMap<K, V>(new Data(hash, key, value));
-
-            // Go down to find node where to insert new key, collecting parents on the path
-            var t = this;
-            Path path = null;
-            while (t.Height != 0 && t.Hash != hash)
-            {
-                path = new Path(t, path);
-                t = hash < t.Hash ? t.Left : t.Right;
-            }
-
-            // Update: unwind the parents on the path adding updated node without re-balance!
-            if (t.Height != 0)
-            {
-                t = ReferenceEquals(key, t.Key) || key.Equals(t.Key)
-                    ? new ImHashMap<K, V>(new Data(hash, key, value, t.Conflicts), t.Left, t.Right)
-                    : t.UpdateValueAndResolveConflicts(key, value, null, false);
-
-                if (path == null) // updated node is the root
-                    return t;
-
-                while (path != null)
-                {
-                    var p = path.Node;
-                    t = t.Hash < p.Hash
-                        ? new ImHashMap<K, V>(p._data, t, p.Right)
-                        : new ImHashMap<K, V>(p._data, p.Left, t);
-
-                    path = path.Parent;
-                }
-
-                return t;
-            }
-
-            // Add new node: unwind the parents on the path and re-balance
-            {
-                // No need to rebalance immediate parent - so just add up the child
-                // ReSharper disable once PossibleNullReferenceException
-                var p = path.Node;
-                t = hash < p.Hash
-                    ? new ImHashMap<K, V>(p._data, new ImHashMap<K, V>(new Data(hash, key, value)), p.Right)
-                    : new ImHashMap<K, V>(p._data, p.Left, new ImHashMap<K, V>(new Data(hash, key, value)));
-
-                path = path.Parent;
-                if (path == null)
-                    return t;
-
-                while (path != null)
-                {
-                    p = path.Node; // next parent
-
-                    t = t.Hash < p.Hash
-                        ? new ImHashMap<K, V>(p._data, t, p.Right)
-                        : new ImHashMap<K, V>(p._data, p.Left, t);
-
-                    t = t.KeepBalance();
-                    path = path.Parent;
-                }
-
-                return t;
-            }
-        }
-
-        private sealed class Path
-        {
-            public readonly ImHashMap<K, V> Node;
-            public readonly Path Parent;
-
-            public Path(ImHashMap<K, V> node, Path parent)
-            {
-                Node = node;
-                Parent = parent;
-            }
-        }
-
         /// <summary>Looks for <paramref name="key"/> and replaces its value with new <paramref name="value"/>, or 
         /// runs custom update handler (<paramref name="update"/>) with old and new value to get the updated result.</summary>
         /// <param name="key">Key to look for.</param>
@@ -1171,6 +1091,7 @@ namespace ImTools
         /// <summary>Looks for key in a tree and returns the key value if found, or <paramref name="defaultValue"/> otherwise.</summary>
         /// <param name="key">Key to look for.</param> <param name="defaultValue">(optional) Value to return if key is not found.</param>
         /// <returns>Found value or <paramref name="defaultValue"/>.</returns>
+        [MethodImpl((MethodImplOptions)256)]
         public V GetValueOrDefault(K key, V defaultValue = default(V))
         {
             var t = this;
@@ -1724,6 +1645,7 @@ namespace ImTools
         /// <summary>Removes the value with passed key. 
         /// Actually it is a SOFT REMOVE which marks slot with found key as removed, without compacting the underlying array.</summary>
         /// <param name="key"></param><returns>The true if key was found, false otherwise.</returns>
+        [MethodImpl((MethodImplOptions)256)]
         public bool Remove(K key)
         {
             var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromEmptyOrRemoved;
@@ -1744,9 +1666,6 @@ namespace ImTools
                         Interlocked.Decrement(ref _count);
                     return true;
                 }
-
-                if (slot.Hash == HashOfRemoved)
-                    continue; // skip the removed slots
 
                 if (slot.Hash == 0)
                     break; // finish search on empty slot But not on removed slot
@@ -1813,7 +1732,7 @@ namespace ImTools
     {
         internal struct Slot
         {
-            public int FirstAndNextJump;
+            public int FirstAndNextJump; // Leap from jumps: first - from ideal index, next for keys sharing the same ideal index
             public int Hash; // 0 - means slot is not occupied, ~1 means soft-removed item 
             public K Key;
             public V Value;
@@ -1861,23 +1780,26 @@ namespace ImTools
             var bits = slots.Length - 1;
 
             // Step 0: Search the key in its ideal slot.
+            var slot = slots[hash & bits];
+            if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
+            {
+                value = slot.Value;
+                return true;
+            }
+
             // Step 1+: Probe the next-to-ideal slot until the Empty Hash slot, which will indicate an absence of the key.
             // Important to proceed the search further over the removed slot, cause HashOfRemoved is different from Empty Hash slot.
-            for (var step = 0; step < bits;)
+            var jump = slot.FirstAndNextJump & FirstJumpBits;
+            for (var distance = jump; jump != 0; distance += jump)
             {
-                var slot = slots[(hash + step) & bits];
+                slot = slots[(hash + distance) & bits];
                 if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
                 {
                     value = slot.Value;
                     return true;
                 }
 
-                var jump = step == 0
-                    ? slot.FirstAndNextJump & FirstJumpBits
-                    : slot.FirstAndNextJump >> ShiftToNextJumpBits;
-                if (jump == 0)
-                    break;
-                step += jump;
+                jump = slot.FirstAndNextJump >> ShiftToNextJumpBits;
             }
 
             value = default(V);
@@ -1896,20 +1818,19 @@ namespace ImTools
             var bits = slots.Length - 1;
 
             // Step 0: Search the key in its ideal slot.
+            var slot = slots[hash & bits];
+            if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
+                return slot.Value;
+
             // Step 1+: Probe the next-to-ideal slot until the Empty Hash slot, which will indicate an absence of the key.
             // Important to proceed the search further over the removed slot, cause HashOfRemoved is different from Empty Hash slot.
-            for (var step = 0; step < bits;)
+            var jump = slot.FirstAndNextJump & FirstJumpBits;
+            for (var distance = jump; jump != 0; distance += jump)
             {
-                var slot = slots[(hash + step) & bits];
+                slot = slots[(hash + distance) & bits];
                 if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
                     return slot.Value;
-
-                var jump = step == 0
-                    ? slot.FirstAndNextJump & FirstJumpBits
-                    : slot.FirstAndNextJump >> ShiftToNextJumpBits;
-                if (jump == 0)
-                    break;
-                step += jump;
+                jump = slot.FirstAndNextJump >> ShiftToNextJumpBits;
             }
 
             return defaultValue;
@@ -2054,28 +1975,28 @@ namespace ImTools
             var slots = _newSlots ?? _slots;
             var bits = slots.Length - 1;
 
-            // Search starting from ideal slot
-            for (var step = 0; step < bits;)
+            var index = hash & bits; // ideal index
+            var slot = slots[index];
+            if (slot.Hash == hash && key.Equals(slot.Key))
+            {   // Mark as removed with the special HashOfRemoved value
+                if (Interlocked.CompareExchange(ref slots[index].Hash, HashOfRemoved, hash) == hash)
+                    Interlocked.Decrement(ref _count);
+                return true;
+            }
+
+            var jump = slot.FirstAndNextJump & FirstJumpBits;
+            for (var distance = jump; jump != 0; distance += jump)
             {
-                var index = (hash + step) & bits;
-                var slot = slots[index];
+                index = (hash + distance) & bits; // wrap around to the slots start
+                slot = slots[index];
                 if (slot.Hash == hash && key.Equals(slot.Key))
-                {
-                    // Mark as removed
+                {   // Mark as removed with the special HashOfRemoved value
                     if (Interlocked.CompareExchange(ref slots[index].Hash, HashOfRemoved, hash) == hash)
                         Interlocked.Decrement(ref _count);
                     return true;
                 }
 
-                if (slot.Hash == HashOfRemoved)
-                    continue; // skip the removed slots
-
-                var jump = step == 0
-                    ? slot.FirstAndNextJump & FirstJumpBits
-                    : slot.FirstAndNextJump >> ShiftToNextJumpBits;
-                if (jump == 0)
-                    break;
-                step += jump;
+                jump = slot.FirstAndNextJump >> ShiftToNextJumpBits;
             }
 
             return false;

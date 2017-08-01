@@ -75,14 +75,14 @@ namespace Playground
                 _mapLF.AddOrUpdate(_key, _value);
             }
 
-            [Benchmark]
+            //[Benchmark]
             public bool GetFromConcurrentDictionary()
             {
                 string value;
                 return _concurrentDict.TryGetValue(_key, out value);
             }
 
-            [Benchmark]
+            //[Benchmark]
             public bool GetFromImHashMap()
             {
                 string value;
@@ -97,10 +97,16 @@ namespace Playground
             }
 
             [Benchmark]
-            public bool GetFromHashMapLF()
+            public bool GetFromHashMapLF_TryFind()
             {
                 string value;
                 return _mapLF.TryFind(_key, out value);
+            }
+
+            [Benchmark]
+            public object GetFromHashMapLF_GetOrDefault()
+            {
+                return _mapLF.GetValueOrDefault(_key);
             }
         }
     }
