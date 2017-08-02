@@ -12,13 +12,19 @@ namespace ImTools.UnitTests
 
             map.AddOrUpdate(42, "1");
             map.AddOrUpdate(42 + 32, "2");
+
+            // interrupt the keys with ne key
+            map.AddOrUpdate(43, "a");
+            map.AddOrUpdate(43 + 32, "b");
+
             map.AddOrUpdate(42 + 32 + 32, "3");
 
             Assert.AreEqual("1", map.GetValueOrDefault(42));
             Assert.AreEqual("2", map.GetValueOrDefault(42 + 32));
             Assert.AreEqual("3", map.GetValueOrDefault(42 + 32 + 32));
+            Assert.AreEqual(null, map.GetValueOrDefault(42 + 32 + 32 + 32));
 
-            Assert.IsNull(map.GetValueOrDefault(43));
+            Assert.AreEqual("a", map.GetValueOrDefault(43));
         }
 
         [Test]

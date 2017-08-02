@@ -21,10 +21,11 @@ namespace Playground
         [MemoryDiagnoser]
         public class Populate
         {
-            [Params(10, 100, 1000, MaxTypeCount)] public int ItemCount;
+            [Params(10, 100, 1000)] public int ItemCount;
 
             private ImHashMap<Type, string> _imMap = ImHashMap<Type, string>.Empty;
-            private readonly TypeHashMap<string> _map = new TypeHashMap<string>();
+            private readonly HashMap<Type, string, TypeEqualityComparer> _mapLinearDistanceBuffer = new HashMap<Type, string, TypeEqualityComparer>();
+            private readonly HashMapLeapfrog<Type, string, TypeEqualityComparer> _mapLeapfrogWithDistanceBuffer = new HashMapLeapfrog<Type, string, TypeEqualityComparer>();
 
             [Benchmark]
             public void PopulateImHashMap()
@@ -36,12 +37,21 @@ namespace Playground
             }
 
             [Benchmark(Baseline = true)]
-            public void PopulateHashMap()
+            public void PopulateHashMap_LinearWithDistanceBuffer()
             {
                 var keys = _keys;
                 for (var i = 0; i < ItemCount; i++)
-                    _map.AddOrUpdate(keys[i], "a");
-                _map.AddOrUpdate(_key, _value);
+                    _mapLinearDistanceBuffer.AddOrUpdate(keys[i], "a");
+                _mapLinearDistanceBuffer.AddOrUpdate(_key, _value);
+            }
+
+            [Benchmark]
+            public void PopulateHashMap_LeapfrogWithDistanceBuffer()
+            {
+                var keys = _keys;
+                for (var i = 0; i < ItemCount; i++)
+                    _mapLeapfrogWithDistanceBuffer.AddOrUpdate(keys[i], "a");
+                _mapLeapfrogWithDistanceBuffer.AddOrUpdate(_key, _value);
             }
         }
 
@@ -50,8 +60,9 @@ namespace Playground
         {
             private readonly ConcurrentDictionary<Type, string> _concurrentDict = new ConcurrentDictionary<Type, string>();
             private ImHashMap<Type, string> _imMap = ImHashMap<Type, string>.Empty;
-            private readonly TypeHashMap<string> _map = new TypeHashMap<string>();
-            private readonly HashMapLF<Type, string, TypeEqualityComparer> _mapLF = new HashMapLF<Type, string, TypeEqualityComparer>();
+            private readonly HashMap_SimpleLinear<Type, string, TypeEqualityComparer> _mapLinear = new HashMap_SimpleLinear<Type, string, TypeEqualityComparer>();
+            private readonly TypeHashMap<string> _mapLinearWithDistanceBuffer = new TypeHashMap<string>();
+            private readonly HashMapLeapfrog<Type, string, TypeEqualityComparer> _mapLeapfrogWithDistanceBuffer = new HashMapLeapfrog<Type, string, TypeEqualityComparer>();
 
             [Params(10, 100, 1000)]
             public int ItemCount;
@@ -65,24 +76,26 @@ namespace Playground
                 {
                     _concurrentDict.TryAdd(keys[i], "a");
                     Interlocked.Exchange(ref _imMap, _imMap.AddOrUpdate(keys[i], "a"));
-                    _map.AddOrUpdate(keys[i], "a");
-                    _mapLF.AddOrUpdate(keys[i], "a");
+                    _mapLinearWithDistanceBuffer.AddOrUpdate(keys[i], "a");
+                    _mapLeapfrogWithDistanceBuffer.AddOrUpdate(keys[i], "a");
+                    _mapLinear.AddOrUpdate(keys[i], "a");
                 }
 
                 _concurrentDict.TryAdd(_key, _value);
                 Interlocked.Exchange(ref _imMap, _imMap.AddOrUpdate(_key, _value));
-                _map.AddOrUpdate(_key, _value);
-                _mapLF.AddOrUpdate(_key, _value);
+                _mapLinearWithDistanceBuffer.AddOrUpdate(_key, _value);
+                _mapLeapfrogWithDistanceBuffer.AddOrUpdate(_key, _value);
+                _mapLinear.AddOrUpdate(_key, _value);
             }
 
-            //[Benchmark]
+            [Benchmark]
             public bool GetFromConcurrentDictionary()
             {
                 string value;
                 return _concurrentDict.TryGetValue(_key, out value);
             }
 
-            //[Benchmark]
+            [Benchmark]
             public bool GetFromImHashMap()
             {
                 string value;
@@ -90,23 +103,24 @@ namespace Playground
             }
 
             [Benchmark(Baseline = true)]
-            public bool GetFromHashMap()
+            public bool GetFromHashMap_Linear_TryFind()
             {
                 string value;
-                return _map.TryFind(_key, out value);
+                return _mapLinear.TryFind(_key, out value);
             }
 
             [Benchmark]
-            public bool GetFromHashMapLF_TryFind()
+            public bool GetFromHashMap_LinearWithDistanceBuffer_TryFind()
             {
                 string value;
-                return _mapLF.TryFind(_key, out value);
+                return _mapLinearWithDistanceBuffer.TryFind(_key, out value);
             }
 
             [Benchmark]
-            public object GetFromHashMapLF_GetOrDefault()
+            public bool GetFromHashMap_LeapfrogWithDistanceBuffer_TryFind()
             {
-                return _mapLF.GetValueOrDefault(_key);
+                string value;
+                return _mapLeapfrogWithDistanceBuffer.TryFind(_key, out value);
             }
         }
     }
