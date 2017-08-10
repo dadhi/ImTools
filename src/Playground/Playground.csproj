@@ -34,16 +34,16 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="BenchmarkDotNet, Version=0.10.8.0, Culture=neutral, PublicKeyToken=aa0ca2f9092cefc4, processorArchitecture=MSIL">
-      <HintPath>..\packages\BenchmarkDotNet.0.10.8\lib\net46\BenchmarkDotNet.dll</HintPath>
+    <Reference Include="BenchmarkDotNet, Version=0.10.9.0, Culture=neutral, PublicKeyToken=aa0ca2f9092cefc4, processorArchitecture=MSIL">
+      <HintPath>..\packages\BenchmarkDotNet.0.10.9\lib\net46\BenchmarkDotNet.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="BenchmarkDotNet.Core, Version=0.10.8.0, Culture=neutral, PublicKeyToken=aa0ca2f9092cefc4, processorArchitecture=MSIL">
-      <HintPath>..\packages\BenchmarkDotNet.Core.0.10.8\lib\net46\BenchmarkDotNet.Core.dll</HintPath>
+    <Reference Include="BenchmarkDotNet.Core, Version=0.10.9.0, Culture=neutral, PublicKeyToken=aa0ca2f9092cefc4, processorArchitecture=MSIL">
+      <HintPath>..\packages\BenchmarkDotNet.Core.0.10.9\lib\net46\BenchmarkDotNet.Core.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="BenchmarkDotNet.Toolchains.Roslyn, Version=0.10.8.0, Culture=neutral, PublicKeyToken=aa0ca2f9092cefc4, processorArchitecture=MSIL">
-      <HintPath>..\packages\BenchmarkDotNet.Toolchains.Roslyn.0.10.8\lib\net46\BenchmarkDotNet.Toolchains.Roslyn.dll</HintPath>
+    <Reference Include="BenchmarkDotNet.Toolchains.Roslyn, Version=0.10.9.0, Culture=neutral, PublicKeyToken=aa0ca2f9092cefc4, processorArchitecture=MSIL">
+      <HintPath>..\packages\BenchmarkDotNet.Toolchains.Roslyn.0.10.9\lib\net46\BenchmarkDotNet.Toolchains.Roslyn.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.CodeAnalysis, Version=2.2.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
@@ -162,6 +162,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DelegateVsInterfaceStruct.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="CustomEqualityComparerBenchmarks.cs" />
     <Compile Include="HashVsImHashMap.cs" />
@@ -170,6 +171,7 @@
     <Folder Include="Properties\" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

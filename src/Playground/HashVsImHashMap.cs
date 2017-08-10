@@ -21,7 +21,7 @@ namespace Playground
         [MemoryDiagnoser]
         public class Populate
         {
-            [Params(10, 100, 1000)] public int ItemCount;
+            [Params(10, 50, 500)] public int ItemCount;
 
             private ImHashMap<Type, string> _imMap = ImHashMap<Type, string>.Empty;
             private readonly HashMap<Type, string, TypeEqualityComparer> _mapLinearDistanceBuffer = new HashMap<Type, string, TypeEqualityComparer>();

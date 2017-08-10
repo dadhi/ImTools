@@ -6,8 +6,9 @@ namespace Playground
     {
         static void Main()
         {
+            BenchmarkRunner.Run<DelegateVsInterfaceStruct>();
             //BenchmarkRunner.Run<HashVsImHashMap.Populate>();
-            BenchmarkRunner.Run<HashVsImHashMap.GetOrDefault>();
+            //BenchmarkRunner.Run<HashVsImHashMap.GetOrDefault>();
 
             //BenchmarkRunner.Run<CustomEqualityComparerBenchmarks>();
         }

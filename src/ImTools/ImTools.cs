@@ -1714,13 +1714,13 @@ namespace ImTools
             var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromEmptyOrRemoved;
 
             var slots = _slots;
-            var capacityMinusOne = slots[0].Hash;
+            var capacityBits = slots[0].Hash;
 
             // find ideal index,
             // then find max distant index we can search from the ideal one
             // the max distance can be a quarter of capacity
-            var index = hash & capacityMinusOne;
-            var maxIndex = index + (capacityMinusOne >> 2);
+            var index = hash & capacityBits;
+            var maxIndex = index + (capacityBits >> 2);
             for (; index <= maxIndex; ++index)
             {
                 var slot = slots[index];
@@ -1747,14 +1747,14 @@ namespace ImTools
             var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromEmptyOrRemoved;
 
             var slots = _slots;
-            var capacityMinusOne = slots[0].Hash;
+            var capacityBits = slots[0].Hash;
 
             // find ideal index
-            var index = hash & capacityMinusOne;
+            var index = hash & capacityBits;
 
             // find max distant index we can search from the ideal one
-            // the max distance can be a quarter of slot count
-            var maxIndex = index + (capacityMinusOne >> 2);
+            // the max distance can be a quarter of capacity
+            var maxIndex = index + (capacityBits >> 2);
             for (; index <= maxIndex; ++index)
             {
                 var slot = slots[index];
@@ -1789,9 +1789,11 @@ namespace ImTools
                     {
                         slots[index].Key = key;
                         slots[index].Value = value;
+
                         // ensure that we operate on the same slots: either re-populating or the stable one
                         if (slots != _newSlots && slots != _slots)
                             continue;
+
                         Interlocked.Increment(ref _count); // increment cause we are adding new item
                         return; // Successfully added!
                     }
