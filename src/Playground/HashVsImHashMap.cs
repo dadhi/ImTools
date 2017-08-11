@@ -8,7 +8,7 @@ using ImTools;
 
 namespace Playground
 {
-    public static class HashVsImHashMap
+    public class HashVsImHashMap
     {
         private static readonly Type _key = typeof(HashVsImHashMap);
         private static readonly string _value = "hey";
@@ -64,6 +64,8 @@ namespace Playground
             private readonly TypeHashMap<string> _mapLinearWithDistanceBuffer = new TypeHashMap<string>();
             private readonly HashMapLeapfrog<Type, string, TypeEqualityComparer> _mapLeapfrogWithDistanceBuffer = new HashMapLeapfrog<Type, string, TypeEqualityComparer>();
 
+            private TypedValue<string>[] _typeHashCache = TypeHashCache.Empty<string>();
+
             [Params(10, 100, 1000)]
             public int ItemCount;
 
@@ -74,11 +76,15 @@ namespace Playground
 
                 for (var i = 0; i < ItemCount; i++)
                 {
-                    _concurrentDict.TryAdd(keys[i], "a");
-                    Interlocked.Exchange(ref _imMap, _imMap.AddOrUpdate(keys[i], "a"));
-                    _mapLinearWithDistanceBuffer.AddOrUpdate(keys[i], "a");
-                    _mapLeapfrogWithDistanceBuffer.AddOrUpdate(keys[i], "a");
-                    _mapLinear.AddOrUpdate(keys[i], "a");
+                    var key = keys[i];
+
+                    _concurrentDict.TryAdd(key, "a");
+                    Interlocked.Exchange(ref _imMap, _imMap.AddOrUpdate(key, "a"));
+                    _mapLinearWithDistanceBuffer.AddOrUpdate(key, "a");
+                    _mapLeapfrogWithDistanceBuffer.AddOrUpdate(key, "a");
+                    _mapLinear.AddOrUpdate(key, "a");
+
+                    Interlocked.Exchange(ref _typeHashCache, _typeHashCache.AddOrUpdate(key, "x"));
                 }
 
                 _concurrentDict.TryAdd(_key, _value);
@@ -86,6 +92,14 @@ namespace Playground
                 _mapLinearWithDistanceBuffer.AddOrUpdate(_key, _value);
                 _mapLeapfrogWithDistanceBuffer.AddOrUpdate(_key, _value);
                 _mapLinear.AddOrUpdate(_key, _value);
+
+                Interlocked.Exchange(ref _typeHashCache, _typeHashCache.AddOrUpdate(_key, _value));
+            }
+
+            //[Benchmark]
+            public object GetFromTypeHashCache()
+            {
+                return _typeHashCache.GetValueOrDefault(_key);
             }
 
             [Benchmark]

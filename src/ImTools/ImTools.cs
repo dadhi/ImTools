@@ -1714,13 +1714,13 @@ namespace ImTools
             var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromEmptyOrRemoved;
 
             var slots = _slots;
-            var capacityBits = slots[0].Hash;
+            var capacityMask = slots[0].Hash;
 
             // find ideal index,
             // then find max distant index we can search from the ideal one
             // the max distance can be a quarter of capacity
-            var index = hash & capacityBits;
-            var maxIndex = index + (capacityBits >> 2);
+            var index = hash & capacityMask;
+            var maxIndex = index + (capacityMask >> 2);
             for (; index <= maxIndex; ++index)
             {
                 var slot = slots[index];
@@ -1747,14 +1747,14 @@ namespace ImTools
             var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromEmptyOrRemoved;
 
             var slots = _slots;
-            var capacityBits = slots[0].Hash;
+            var capacityMask = slots[0].Hash;
 
             // find ideal index
-            var index = hash & capacityBits;
+            var index = hash & capacityMask;
 
             // find max distant index we can search from the ideal one
             // the max distance can be a quarter of capacity
-            var maxIndex = index + (capacityBits >> 2);
+            var maxIndex = index + (capacityMask >> 2);
             for (; index <= maxIndex; ++index)
             {
                 var slot = slots[index];
