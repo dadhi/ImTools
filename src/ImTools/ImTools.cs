@@ -1939,7 +1939,7 @@ namespace ImTools
     {
         internal struct Slot
         {
-            public int FirstAndNextJump; // Leap from jumps: first - from ideal index, next for keys sharing the same ideal index
+            public int FirstAndNextJump; // first - from ideal index, next for keys sharing the same ideal index
             public int Hash; // 0 - means slot is not occupied, ~1 means soft-removed item 
             public K Key;
             public V Value;
@@ -1973,14 +1973,7 @@ namespace ImTools
         public HashMapLeapfrog(int initialCapacityBitCount = InitialCapacityBitCount)
         {
             var capacity = 1 << initialCapacityBitCount;
-            var capacityMinusOne = capacity - 1;
-            var slots = new Slot[capacity + (capacityMinusOne >> 2)];
-
-            // Store initial capacity in a first element, 
-            // cause it won't be used by any key hash, because hash is always adjusted with AddToHashToDistinguishFromEmptyOrRemoved
-            slots[0].Hash = capacityMinusOne;
-
-            _slots = slots;
+            _slots = new Slot[capacity + (capacity >> 2)];
         }
 
         /// <summary>Looks for the key in a map and returns the value if found.</summary>
@@ -1990,11 +1983,11 @@ namespace ImTools
         public bool TryFind(K key, out V value)
         {
             var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromEmptyOrRemoved;
-
             var slots = _slots;
 
-            // Step 0: Search the key in its ideal slot.
-            var index = hash & slots[0].Hash;
+            var slotCount = slots.Length;
+            var capacity = slotCount & (slotCount << 2);
+            var index = hash & (capacity - 1);
             var slot = slots[index];
             if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
             {
@@ -2002,12 +1995,11 @@ namespace ImTools
                 return true;
             }
 
-            // Step 1+: Probe the next-to-ideal slot until the Empty Hash slot, which will indicate an absence of the key.
-            // Important to proceed the search further over the removed slot, cause HashOfRemoved is different from Empty Hash slot.
             var jump = slot.FirstAndNextJump & FirstJumpBits;
             while (jump != 0)
             {
-                slot = slots[index += jump];
+                index += jump;
+                slot = slots[index];
                 if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
                 {
                     value = slot.Value;
@@ -2031,7 +2023,8 @@ namespace ImTools
             var slots = _slots;
 
             // Step 0: Search the key in its ideal slot.
-            var index = hash & slots[0].Hash;
+            var capacity = slots.Length & (slots.Length << 2);
+            var index = hash & (capacity - 1);
             var slot = slots[index];
             if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
                 return slot.Value;
@@ -2064,10 +2057,10 @@ namespace ImTools
                 // starting from the ideal index position.
                 // It is Ok to search for the @bits length, which is -1 of total slots length, 
                 // because wasting one slot is not big of a deal considering it provides less calculations.
-                var capacityMinusOne = slots[0].Hash;
 
-                var idealIndex = hash & capacityMinusOne;
-                var maxIndex = idealIndex + (capacityMinusOne >> 2);
+                var capacity = slots.Length & (slots.Length << 2);
+                var idealIndex = hash & (capacity - 1);
+                var maxIndex = idealIndex + (capacity >> 2);
 
                 var jump = 0;
                 var lastJumpIndex = -1;
@@ -2134,16 +2127,14 @@ namespace ImTools
                     }
                 }
 
-                Expand(slots, (capacityMinusOne + 1) << 1);
+                Expand(slots, capacity << 1);
             }
         }
 
         private void Expand(Slot[] slots, int newCapacity)
         {
-            var newCapacityMinusOne = newCapacity - 1;
-            var distanceBuffer = newCapacityMinusOne >> 2; // Quarter of capacity minus 1.
+            var distanceBuffer = newCapacity >> 2; // Quarter of capacity
             var newSlots = new Slot[newCapacity + distanceBuffer];
-            newSlots[0].Hash = newCapacityMinusOne;
 
             if (Interlocked.CompareExchange(ref _newSlots, newSlots, null) != null)
                 return;
@@ -2155,7 +2146,7 @@ namespace ImTools
                 if (hash == 0 || hash == HashOfRemoved)
                     continue; // skip the empty or removed items
 
-                var idealIndex = hash & newCapacityMinusOne;
+                var idealIndex = hash & (newCapacity - 1);
                 var maxIndex = idealIndex + distanceBuffer;
 
                 var jump = 0;
@@ -2212,7 +2203,8 @@ namespace ImTools
             // @newSlots (if not empty) will become a new @slots, so the removed marker should be kept at the end
             var slots = _newSlots ?? _slots; // todo: not sure how to work out the removal from the new slots
 
-            var index = hash & slots[0].Hash;
+            var capacity = slots.Length & (slots.Length << 2);
+            var index = hash & (capacity - 1);
             var slot = slots[index];
             if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
             {

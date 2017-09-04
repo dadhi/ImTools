@@ -66,7 +66,7 @@ namespace Playground
 
             private TypedValue<string>[] _typeHashCache = TypeHashCache.Empty<string>();
 
-            [Params(10, 100, 1000)]
+            [Params(10, 100)]//, 1000)]
             public int ItemCount;
 
             [GlobalSetup]
@@ -102,14 +102,14 @@ namespace Playground
                 return _typeHashCache.GetValueOrDefault(_key);
             }
 
-            [Benchmark]
+            //[Benchmark]
             public bool GetFromConcurrentDictionary()
             {
                 string value;
                 return _concurrentDict.TryGetValue(_key, out value);
             }
 
-            [Benchmark]
+            //[Benchmark]
             public bool GetFromImHashMap()
             {
                 string value;
@@ -123,7 +123,7 @@ namespace Playground
                 return _mapLinear.TryFind(_key, out value);
             }
 
-            [Benchmark]
+            //[Benchmark]
             public bool GetFromHashMap_LinearWithDistanceBuffer_TryFind()
             {
                 string value;

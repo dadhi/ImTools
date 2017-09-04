@@ -33,6 +33,13 @@ namespace Playground
             {
                 return Enumerable.Range(0, ItemCount).Map<int, int, Inc>(new Inc()).Sum();
             }
+
+            [Benchmark]
+            public int ApplyLocalFunction()
+            {
+                int Inc(int n) => n + 1;
+                return Enumerable.Range(0, ItemCount).Select(Inc).Sum();
+            }
         }
 
         [MemoryDiagnoser]
@@ -68,7 +75,7 @@ namespace Playground
                 return nums;
             }
 
-            //[Benchmark] // Artifical test cause it is impossible to pass local function to other method as delegate
+            [Benchmark] // Artifical test cause it is impossible to pass local function to other method as delegate
             public object ApplyLocalFunction()
             {
                 int Inc(int n) => n + 1;
