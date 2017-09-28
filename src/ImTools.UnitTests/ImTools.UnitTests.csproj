@@ -46,6 +46,7 @@
     <Compile Include="HashMapTests.cs" />
     <Compile Include="ImHashMapTests.cs" />
     <Compile Include="ImListTests.cs" />
+    <Compile Include="OptTests.cs" />
     <Compile Include="RefTests.cs" />
   </ItemGroup>
   <ItemGroup>

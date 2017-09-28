@@ -612,6 +612,29 @@ namespace ImTools
         }
     }
 
+    /// <summary>Helper structure which allows to distinguish null value from the default value for optional parameter.</summary>
+    public struct Opt<T>
+    {
+        /// <summary>Allows to transparently convert parameter argument to opt structure.</summary>
+        public static implicit operator Opt<T>(T value) => new Opt<T>(value);
+
+        /// <summary>Argument value.</summary>
+        public readonly T Value;
+
+        /// <summary>Indicates that value is provided.</summary>
+        public readonly bool HasValue;
+
+        /// <summary>Wraps passed value in structure. Sets the flag that value is present.</summary>
+        public Opt(T value)
+        {
+            HasValue = true;
+            Value = value;
+        }
+
+        /// <summary>Helper to get value or default value if value is not present.</summary>
+        public T OrDefault(T defaultValue = default(T)) => HasValue ? Value : defaultValue;
+    }
+
     /// <summary>Immutable list - simplest linked list with Head and Rest.</summary>
     /// <typeparam name="T">Type of the item.</typeparam>
     public sealed class ImList<T>
