@@ -24,8 +24,8 @@ namespace Playground
             [Params(10, 50, 500)] public int ItemCount;
 
             private ImHashMap<Type, string> _imMap = ImHashMap<Type, string>.Empty;
-            private readonly HashMap<Type, string, TypeEqualityComparer> _mapLinearDistanceBuffer = new HashMap<Type, string, TypeEqualityComparer>();
-            private readonly HashMapLeapfrog<Type, string, TypeEqualityComparer> _mapLeapfrogWithDistanceBuffer = new HashMapLeapfrog<Type, string, TypeEqualityComparer>();
+            private readonly HashMap<Type, string, CustomEqualityComparerBenchmarks.TypeEqualityComparer> _mapLinearDistanceBuffer = new HashMap<Type, string, CustomEqualityComparerBenchmarks.TypeEqualityComparer>();
+            private readonly HashMapLeapfrog<Type, string, CustomEqualityComparerBenchmarks.TypeEqualityComparer> _mapLeapfrogWithDistanceBuffer = new HashMapLeapfrog<Type, string, CustomEqualityComparerBenchmarks.TypeEqualityComparer>();
 
             [Benchmark]
             public void PopulateImHashMap()
@@ -60,9 +60,9 @@ namespace Playground
         {
             private readonly ConcurrentDictionary<Type, string> _concurrentDict = new ConcurrentDictionary<Type, string>();
             private ImHashMap<Type, string> _imMap = ImHashMap<Type, string>.Empty;
-            private readonly HashMap_SimpleLinear<Type, string, TypeEqualityComparer> _mapLinear = new HashMap_SimpleLinear<Type, string, TypeEqualityComparer>();
+            private readonly HashMap_SimpleLinear<Type, string, CustomEqualityComparerBenchmarks.TypeEqualityComparer> _mapLinear = new HashMap_SimpleLinear<Type, string, CustomEqualityComparerBenchmarks.TypeEqualityComparer>();
             private readonly TypeHashMap<string> _mapLinearWithDistanceBuffer = new TypeHashMap<string>();
-            private readonly HashMapLeapfrog<Type, string, TypeEqualityComparer> _mapLeapfrogWithDistanceBuffer = new HashMapLeapfrog<Type, string, TypeEqualityComparer>();
+            private readonly HashMapLeapfrog<Type, string, CustomEqualityComparerBenchmarks.TypeEqualityComparer> _mapLeapfrogWithDistanceBuffer = new HashMapLeapfrog<Type, string, CustomEqualityComparerBenchmarks.TypeEqualityComparer>();
 
             private TypedValue<string>[] _typeHashCache = TypeHashCache.Empty<string>();
 

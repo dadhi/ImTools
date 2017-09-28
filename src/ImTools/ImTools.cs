@@ -1,7 +1,7 @@
 /*
 The MIT License (MIT)
 
-Copyright (c) 2016 Maksim Volkau
+Copyright (c) 2016-2017 Maksim Volkau
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -91,6 +91,19 @@ namespace ImTools
             else
                 Array.Copy(added, 0, result, source.Length, added.Length);
             return result;
+        }
+
+        /// <summary>Performant concat of enumerables in case of arrays.
+        /// But performance will degrade if you use Concat().Where().</summary>
+        /// <typeparam name="T">Type of item.</typeparam>
+        /// <param name="source">goes first.</param>
+        /// <param name="other">appended to source.</param>
+        /// <returns>empty array or concat of source and other.</returns>
+        public static T[] Append<T>(this IEnumerable<T> source, IEnumerable<T> other)
+        {
+            var sourceArr = source.ToArrayOrSelf();
+            var otherArr = other.ToArrayOrSelf();
+            return sourceArr.Append(otherArr);
         }
 
         /// <summary>Returns new array with <paramref name="value"/> appended, 
@@ -188,6 +201,19 @@ namespace ImTools
                         return item;
                 }
             return default(T);
+        }
+
+        /// <summary>Returns first item matching the <paramref name="predicate"/>, or default item value.</summary>
+        /// <typeparam name="T">item type</typeparam>
+        /// <param name="source">items collection to search</param>
+        /// <param name="predicate">condition to evaluate for each item.</param>
+        /// <returns>First item matching condition or default value.</returns>
+        public static T FindFirst<T>(this IEnumerable<T> source, Func<T, bool> predicate)
+        {
+            var sourceArr = source as T[];
+            if (sourceArr != null)
+                return sourceArr.FindFirst(predicate);
+            return source.FirstOrDefault(predicate);
         }
 
         private static T[] AppendTo<T>(T[] source, int sourcePos, int count, T[] results = null)

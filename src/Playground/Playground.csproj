@@ -180,6 +180,10 @@
     <Analyzer Include="..\packages\Microsoft.CodeAnalysis.Analyzers.1.1.0\analyzers\dotnet\cs\Microsoft.CodeAnalysis.CSharp.Analyzers.dll" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\ImTools.UnitTests\ImTools.UnitTests.csproj">
+      <Project>{34918c54-b523-4c10-8ce6-625328b0af10}</Project>
+      <Name>ImTools.UnitTests</Name>
+    </ProjectReference>
     <ProjectReference Include="..\ImTools\ImTools.csproj">
       <Project>{48263EEE-3453-4B5C-8630-BBA26B4A4FB3}</Project>
       <Name>ImTools</Name>
