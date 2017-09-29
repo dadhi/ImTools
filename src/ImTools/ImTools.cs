@@ -258,7 +258,10 @@ namespace ImTools
             if (count == 1)
                 appendedResults[oldResultsCount] = map(source[sourcePos]);
             else
-                Array.Copy(source, sourcePos, appendedResults, oldResultsCount, count);
+            {
+                for (int i = oldResultsCount, j = sourcePos; i < appendedResults.Length; ++i, ++j)
+                    appendedResults[i] = map(source[j]);
+            }
 
             return appendedResults;
         }
