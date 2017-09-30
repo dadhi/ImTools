@@ -3,7 +3,9 @@
 [![NuGet Pre Release](https://img.shields.io/nuget/vpre/ImTools.svg)](https://www.nuget.org/packages/ImTools/1.0.0-preview-03)
 [![license](https://img.shields.io/github/license/dadhi/ImTools.svg)](http://opensource.org/licenses/MIT)
 
-Immutable persistent collections, concurrent HashMap, Ref, and Array helpers designed for performance.
+Immutable persistent collections, Ref, and Array helpers designed for performance.
+
+Note: concurrent HashMap from tests below is out until #1 is fixed.
 
 Split from [DryIoc](https://bitbucket.org/dadhi/dryioc).
 
