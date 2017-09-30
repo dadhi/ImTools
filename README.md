@@ -1,6 +1,6 @@
 # ImTools
 
-[![NuGet Pre Release](https://img.shields.io/nuget/vpre/ImTools.svg)](https://www.nuget.org/packages/ImTools/1.0.0-preview-03)
+[![NuGet Badge](https://buildstats.info/nuget/ImTools.dll)](https://www.nuget.org/packages/ImTools.dll)
 [![license](https://img.shields.io/github/license/dadhi/ImTools.svg)](http://opensource.org/licenses/MIT)
 
 Immutable persistent collections, Ref, and Array helpers designed for performance.
