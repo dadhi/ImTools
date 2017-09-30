@@ -10,6 +10,14 @@ namespace Playground
         TOut Apply(TIn value);
     }
 
+    public struct Inc : IApply<int, int>
+    {
+        public int Apply(int value)
+        {
+            return value + 1;
+        }
+    }
+
     public class DelegateVsInterfaceStruct
     {
         [MemoryDiagnoser]
@@ -23,23 +31,18 @@ namespace Playground
                 return Enumerable.Range(0, ItemCount).Select(n => n + 1).Sum();
             }
 
-            public struct Inc : IApply<int, int>
-            {
-                public int Apply(int value) => value + 1;
-            }
-
             [Benchmark(Baseline = true)]
             public int ApplyStruct()
             {
                 return Enumerable.Range(0, ItemCount).Map<int, int, Inc>(new Inc()).Sum();
             }
 
-            [Benchmark]
-            public int ApplyLocalFunction()
-            {
-                int Inc(int n) => n + 1;
-                return Enumerable.Range(0, ItemCount).Select(Inc).Sum();
-            }
+            //[Benchmark]
+            //public int ApplyLocalFunction()
+            //{
+            //    //int Inc(int n) => n + 1;
+            //    return Enumerable.Range(0, ItemCount).Select(Inc).Sum();
+            //}
         }
 
         [MemoryDiagnoser]
@@ -61,7 +64,10 @@ namespace Playground
 
             public struct Inc : IApply<int, int>
             {
-                public int Apply(int value) => value + 1;
+                public int Apply(int value)
+                {
+                    return value + 1;
+                }
             }
 
             [Benchmark(Baseline = true)]
@@ -75,16 +81,16 @@ namespace Playground
                 return nums;
             }
 
-            [Benchmark] // Artifical test cause it is impossible to pass local function to other method as delegate
-            public object ApplyLocalFunction()
-            {
-                int Inc(int n) => n + 1;
-                var nums = new int[ItemCount];
-                for (var i = 0; i < nums.Length; i++)
-                    nums[i] = Inc(i);
+            //[Benchmark] // Artificial test cause it is impossible to pass local function to other method as delegate
+            //public object ApplyLocalFunction()
+            //{
+            //    int Inc(int n) => n + 1;
+            //    var nums = new int[ItemCount];
+            //    for (var i = 0; i < nums.Length; i++)
+            //        nums[i] = Inc(i);
 
-                return nums;
-            }
+            //    return nums;
+            //}
         }
     }
 

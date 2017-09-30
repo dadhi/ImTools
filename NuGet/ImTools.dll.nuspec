@@ -5,7 +5,7 @@
     <version>0.0.0</version>
     <!-- overridden by "NuGet pack -Version" flag -->
     <authors>Maksim Volkau</authors>
-    <copyright>Copyright © 2016 Maksim Volkau</copyright>
+    <copyright>Copyright © 2016-2017 Maksim Volkau</copyright>
     <projectUrl>https://github.com/dadhi/ImTools</projectUrl>
     <licenseUrl>http://opensource.org/licenses/MIT</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
@@ -15,18 +15,14 @@
     </description>
     <tags>Immutability Persistent HashMap Avl Balanced Tree Map Dictionary Thread-safe Concurrency Functional Atomic</tags>
     <releaseNotes>
-      v1.0.0-preview-05:
+      v1.0.0:
       - fixed: Removed non-needed package dependencies on Full .NET platforms
-      v1.0.0-preview-04:
       - added: Concurrent lock-free HashMap implementation
       - added: ArrayTools Match, Map, FindFirst methods as fast replacement for LINQ for Arrays
-      - removed: ImHashMapForest as very specialized case
-      v1.0.0-preview-03:
       - added: ImList.ToArray conversion
-      v1.0.0-preview-02:
       - added: ImList{T}
-      v1.0.0-preview-01:
-      - Initial version.
+      - removed: ImHashMapForest as very specialized case
+      - removed: Concurrent HashMap until its fixed
     </releaseNotes>
     <dependencies>
       <!--Explicitly specify no dependencies for full .NET -->
