@@ -54,18 +54,21 @@ namespace ImTools.Benchmarks
             }
         }
 
-        [MemoryDiagnoser, DisassemblyDiagnoser(printIL: true)]
+        [MemoryDiagnoser]
         public class GetOrDefault
         {
             private readonly ConcurrentDictionary<Type, string> _concurrentDict = new ConcurrentDictionary<Type, string>();
             private ImHashMap<Type, string> _imMap = ImHashMap<Type, string>.Empty;
+            private ImTypeMap<string> _imTypeMap = ImTypeMap<string>.Empty;
+            private ImHashMap<Type, string>[] _imTypeCache = ImTypeCache.Empty<string>();
             private readonly HashMap_SimpleLinear<Type, string, TypeEqualityComparer> _mapLinear = new HashMap_SimpleLinear<Type, string, TypeEqualityComparer>();
             private readonly TypeHashMap<string> _mapLinearWithDistanceBuffer = new TypeHashMap<string>();
             private readonly HashMapLeapfrog<Type, string, TypeEqualityComparer> _mapLeapfrogWithDistanceBuffer = new HashMapLeapfrog<Type, string, TypeEqualityComparer>();
 
             private TypedValue<string>[] _typeHashCache = TypeHashCache.Empty<string>();
 
-            [Params(10, 100, 1000)]
+            //[Params(10, 100, 1000)]
+            [Params(100)]
             public int ItemCount;
 
             [GlobalSetup]
@@ -79,6 +82,8 @@ namespace ImTools.Benchmarks
 
                     _concurrentDict.TryAdd(key, "a");
                     Interlocked.Exchange(ref _imMap, _imMap.AddOrUpdate(key, "a"));
+                    Interlocked.Exchange(ref _imTypeMap, _imTypeMap.AddOrUpdate(key, "a"));
+                    Interlocked.Exchange(ref _imTypeCache, _imTypeCache.AddOrUpdate(key, "a"));
                     _mapLinearWithDistanceBuffer.AddOrUpdate(key, "a");
                     _mapLeapfrogWithDistanceBuffer.AddOrUpdate(key, "a");
                     _mapLinear.AddOrUpdate(key, "a");
@@ -88,6 +93,8 @@ namespace ImTools.Benchmarks
 
                 _concurrentDict.TryAdd(_key, _value);
                 Interlocked.Exchange(ref _imMap, _imMap.AddOrUpdate(_key, _value));
+                Interlocked.Exchange(ref _imTypeMap, _imTypeMap.AddOrUpdate(_key, _value));
+                Interlocked.Exchange(ref _imTypeCache, _imTypeCache.AddOrUpdate(_key, _value));
                 _mapLinearWithDistanceBuffer.AddOrUpdate(_key, _value);
                 _mapLeapfrogWithDistanceBuffer.AddOrUpdate(_key, _value);
                 _mapLinear.AddOrUpdate(_key, _value);
@@ -102,6 +109,18 @@ namespace ImTools.Benchmarks
             [Benchmark]
             public bool GetFromImHashMap() =>
                 _imMap.TryFind(_key, out var _);
+
+            [Benchmark]
+            public bool GetFromImTypeMap() =>
+                _imTypeMap.TryFind(_key, out var _);
+
+            [Benchmark]
+            public bool GetFromImTypeCache_TryFind() =>
+                _imTypeCache.TryFind(_key, out var _);
+
+            [Benchmark]
+            public object GetFromImTypeCache() =>
+                _imTypeCache.GetValueOrDefault(_key);
 
             [Benchmark]
             public object GetFromTypeHashCache() =>
@@ -119,21 +138,6 @@ namespace ImTools.Benchmarks
             public bool GetFromHashMap_LeapfrogWithDistanceBuffer_TryFind() =>
                 _mapLeapfrogWithDistanceBuffer.TryFind(_key, out var _);
 
-            [Benchmark]
-            public object GetFromTypeHashCache_RefLocal() =>
-                _typeHashCache.GetValueOrDefault_RefLocal(_key);
-
-            [Benchmark]
-            public bool GetFromHashMap_Linear_TryFind_RefLocal() =>
-                _mapLinear.TryFind_RefLocal(_key, out var _);
-
-            [Benchmark]
-            public bool GetFromHashMap_LinearWithDistanceBuffer_TryFind_RefLocal() =>
-                _mapLinearWithDistanceBuffer.TryFind_RefLocal(_key, out var _);
-
-            [Benchmark]
-            public bool GetFromHashMap_LeapfrogWithDistanceBuffer_TryFind_RefLocal() =>
-                _mapLeapfrogWithDistanceBuffer.TryFind_RefLocal(_key, out var _);
         }
     }
 }
