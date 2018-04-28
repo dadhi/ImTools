@@ -33,7 +33,7 @@ namespace ImTools
         private int _count;
 
         /// <summary>Amount of stored items, 0 in an empty map.</summary>
-        public int Count { get { return _count; } }
+        public int Count => _count;
 
         /// <summary>Constructor. Allows to set the <see cref="InitialCapacityBitCount"/>.</summary>
         /// <param name="initialCapacityBitCount">Initial underlying buckets size.</param>
@@ -59,6 +59,37 @@ namespace ImTools
             for (var step = 0; step < bits; ++step)
             {
                 var slot = slots[(hash + step) & bits];
+                if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
+                {
+                    value = slot.Value;
+                    return true;
+                }
+
+                if (slot.Hash == 0)
+                    break;
+            }
+
+            value = default(V);
+            return false;
+        }
+
+        /// <summary>Looks for the key in a map and returns the value if found.</summary>
+        /// <param name="key">Key to look for.</param> <param name="value">The found value</param>
+        /// <returns>True if contains key.</returns>
+        [MethodImpl((MethodImplOptions)256)]
+        public bool TryFind_RefLocal(K key, out V value)
+        {
+            var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromEmptyOrRemoved;
+
+            var slots = _slots;
+            var bits = slots.Length - 1;
+
+            // Step 0: Search the key in its ideal slot.
+            // Step 1+: Probe the next-to-ideal slot until the Empty Hash slot, which will indicate an absence of the key.
+            // Important to proceed the search further over the removed slot, cause HashOfRemoved is different from Empty Hash slot.
+            for (var step = 0; step < bits; ++step)
+            {
+                ref var slot = ref slots[(hash + step) & bits];
                 if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
                 {
                     value = slot.Value;
@@ -305,6 +336,39 @@ namespace ImTools
             return false;
         }
 
+        /// <summary>Looks for the key in a map and returns the value if found.</summary>
+        /// <param name="key">Key to look for.</param> <param name="value">The found value</param>
+        /// <returns>True if contains key.</returns>
+        [MethodImpl((MethodImplOptions)256)]
+        public bool TryFind_RefLocal(K key, out V value)
+        {
+            var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromEmptyOrRemoved;
+
+            var slots = _slots;
+            var capacityMask = slots[0].Hash;
+
+            // find ideal index,
+            // then find max distant index we can search from the ideal one
+            // the max distance can be a quarter of capacity
+            var index = hash & capacityMask;
+            var maxIndex = index + (capacityMask >> 2);
+            for (; index <= maxIndex; ++index)
+            {
+                ref var slot = ref slots[index];
+                if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
+                {
+                    value = slot.Value;
+                    return true;
+                }
+
+                if (slot.Hash == 0)
+                    break;
+            }
+
+            value = default(V);
+            return false;
+        }
+
         /// <summary>Looks for key in a map and returns the value if key found, or <paramref name="defaultValue"/> otherwise.</summary>
         /// <param name="key">Key to look for.</param> <param name="defaultValue">(optional) Value to return if key is not found.</param>
         /// <returns>Found value or <paramref name="defaultValue"/>.</returns>
@@ -479,16 +543,10 @@ namespace ImTools
     public struct TypeEqualityComparer : IEqualityComparer<Type>
     {
         /// <inheritdoc />
-        public bool Equals(Type x, Type y)
-        {
-            return ReferenceEquals(x, y);
-        }
+        public bool Equals(Type x, Type y) => ReferenceEquals(x, y);
 
         /// <inheritdoc />
-        public int GetHashCode(Type obj)
-        {
-            return obj.GetHashCode();
-        }
+        public int GetHashCode(Type obj) => obj.GetHashCode();
     }
 
     /// <summary>Sugar for easy defining of map with int Key. Uses <see cref="IntEqualityComparer"/>.</summary>
@@ -579,6 +637,41 @@ namespace ImTools
             value = default(V);
             return false;
         }
+
+        [MethodImpl((MethodImplOptions)256)]
+        public bool TryFind_RefLocal(K key, out V value)
+        {
+            var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromEmptyOrRemoved;
+            var slots = _slots;
+
+            var slotCount = slots.Length;
+            var capacity = slotCount & (slotCount << 2);
+            var index = hash & (capacity - 1);
+            ref var slot = ref slots[index];
+            if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
+            {
+                value = slot.Value;
+                return true;
+            }
+
+            var jump = slot.FirstAndNextJump & FirstJumpBits;
+            while (jump != 0)
+            {
+                index += jump;
+                slot = slots[index];
+                if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
+                {
+                    value = slot.Value;
+                    return true;
+                }
+
+                jump = slot.FirstAndNextJump >> ShiftToNextJumpBits;
+            }
+
+            value = default(V);
+            return false;
+        }
+
 
         /// <summary>Looks for key in a map and returns the value if key found, or <paramref name="defaultValue"/> otherwise.</summary>
         /// <param name="key">Key to look for.</param> <param name="defaultValue">(optional) Value to return if key is not found.</param>

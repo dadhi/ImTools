@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.27130.2036
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImTools", "ImTools\ImTools.csproj", "{48263EEE-3453-4B5C-8630-BBA26B4A4FB3}"
 EndProject
@@ -33,6 +33,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImTools.Pcl259", "ImTools.P
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Playground", "Playground\Playground.csproj", "{35ECF83A-DE9E-4897-981B-D0B81189935E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImTools.Benchmarks", "ImTools.Benchmarks\ImTools.Benchmarks.csproj", "{6B28526F-16CC-44A6-8155-FFACD1747C5E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -55,8 +57,15 @@ Global
 		{35ECF83A-DE9E-4897-981B-D0B81189935E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{35ECF83A-DE9E-4897-981B-D0B81189935E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{35ECF83A-DE9E-4897-981B-D0B81189935E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6B28526F-16CC-44A6-8155-FFACD1747C5E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6B28526F-16CC-44A6-8155-FFACD1747C5E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6B28526F-16CC-44A6-8155-FFACD1747C5E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6B28526F-16CC-44A6-8155-FFACD1747C5E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2C387B14-4A66-4CA9-9C3B-79A245AB159B}
 	EndGlobalSection
 EndGlobal

@@ -2,7 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace Playground
+namespace ImTools.Benchmarks
 {
     public struct TypedValue<T>
     {
@@ -27,10 +27,11 @@ namespace Playground
             var capacityMask = capacity - 1;
             var hash = key.GetHashCode();
 
-            capacity = capacity >> 2; // search only for quarter of capacity
+            capacity >>= 2; // search only for quarter of capacity
             for (var distance = 0; distance < capacity; ++distance)
             {
                 var slot = slots[(hash + distance) & capacityMask];
+
                 if (slot.Key == key)
                     return slot.Value;
 
@@ -41,7 +42,29 @@ namespace Playground
             return default(T);
         }
 
-        // may return new slots if old slot capacty is not enough to add a new item
+        [MethodImpl((MethodImplOptions)256)]
+        public static T GetValueOrDefault_RefLocal<T>(this TypedValue<T>[] slots, Type key)
+        {
+            var capacity = slots.Length;
+            var capacityMask = capacity - 1;
+            var hash = key.GetHashCode();
+
+            capacity >>= 2; // search only for quarter of capacity
+            for (var distance = 0; distance < capacity; ++distance)
+            {
+                ref var slot = ref slots[(hash + distance) & capacityMask];
+
+                if (slot.Key == key)
+                    return slot.Value;
+
+                if (slot.Key == null) // not found, stop on an empty key
+                    break;
+            }
+
+            return default(T);
+        }
+
+        // may return new slots if old slot capacity is not enough to add a new item
         public static TypedValue<T>[] AddOrUpdate<T>(this TypedValue<T>[] slots, Type key, T value)
         {
             var capacity = slots.Length;
