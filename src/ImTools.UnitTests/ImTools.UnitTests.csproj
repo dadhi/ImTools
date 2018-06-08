@@ -42,9 +42,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ConcurrentHashMap.cs" />
+    <Compile Include="HashMapDistanceBuffer.cs" />
+    <Compile Include="HashMapLeapfrog.cs" />
     <Compile Include="HashMapLeapfrogTests.cs" />
     <Compile Include="HashMapTests.cs" />
+    <Compile Include="HashMapSimpleLinear.cs" />
     <Compile Include="ImArray.cs" />
     <Compile Include="ImHashMapTests.cs" />
     <Compile Include="ImListTests.cs" />
