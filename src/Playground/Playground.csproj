@@ -159,6 +159,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DelegateVsInterfaceStruct.cs" />
+    <Compile Include="ObjectPoolComparison.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="CustomEqualityComparerBenchmarks.cs" />
   </ItemGroup>
