@@ -6,7 +6,8 @@ namespace Playground
     {
         static void Main()
         {
-            BenchmarkRunner.Run<ObjectPoolComparison_AccessPrefilledPools>();
+            BenchmarkRunner.Run<ObjectPoolComparison_RentReturnAndRentPrefilledPool>();
+            //BenchmarkRunner.Run<ObjectPoolComparison_RentPrefilledPool>();
 
             //BenchmarkRunner.Run<ObjectPoolComparison>();
             //BenchmarkRunner.Run<DelegateVsInterfaceStruct.MapArray>();

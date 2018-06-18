@@ -5,7 +5,7 @@ using BenchmarkDotNet.Attributes;
 namespace Playground
 {
     [MemoryDiagnoser, DisassemblyDiagnoser]
-    public class ObjectPoolComparison_AccessPrefilledPools
+    public class ObjectPoolComparison_RentReturnAndRentPrefilledPool
     {
         private ScanPool<X> _scanPool;
         private StackPool<X> _stackPool;
@@ -15,8 +15,91 @@ namespace Playground
         {
             _scanPool = new ScanPool<X>();
             _scanPool.Return(new X(false, 0, null));
+            _scanPool.ScanReturn(new X(false, 0, null));
+            _scanPool.ScanReturn(new X(false, 0, null));
+
+            _stackPool = new StackPool<X>();
+            _stackPool.Return(new X(false, 0, null));
+            _stackPool.Return(new X(false, 0, null));
+        }
+
+        [Benchmark(Baseline = true)]
+        public int New_4Times()
+        {
+            var x1 = new X(true, 1, "1");
+            var x2 = new X(true, 2, "2");
+
+            x1 = new X(false, 3, "3");
+            x2 = new X(false, 4, "4");
+
+            return x1.I + x2.I;
+        }
+
+        [Benchmark]
+        public int StackPool_2Rents2Returns2Rents()
+        {
+            var p = _stackPool;
+
+            var x1 = p.RentOrNew(true, 1, "1");
+            var x2 = p.RentOrNew(true, 2, "2");
+
+            p.Return(x1);
+            p.Return(x2);
+
+            x1 = p.RentOrNew(false, 3, "3");
+            x2 = p.RentOrNew(false, 4, "4");
+
+            return x1.I + x2.I;
+        }
+
+        [Benchmark]
+        public int ScanPool_2Rents2Returns2Rents()
+        {
+            var p = _scanPool;
+
+            var x1 = p.RentOrNew(true, 1, "1");
+            var x2 = p.RentOrNew(true, 2, "2");
+
+            p.Return(x1);
+            p.Return(x2);
+
+            x1 = p.RentOrNew(false, 3, "3");
+            x2 = p.RentOrNew(false, 4, "4");
+
+            return x1.I + x2.I;
+        }
+
+        [Benchmark]
+        public int ScanPool_ScanOnly_2Rents2Returns2Rents()
+        {
+            var p = _scanPool;
+
+            var x1 = p.ScanRentOrNew(true, 1, "1");
+            var x2 = p.ScanRentOrNew(true, 2, "2");
+
+            p.ScanReturn(x1);
+            p.ScanReturn(x2);
+
+            x1 = p.ScanRentOrNew(false, 3, "3");
+            x2 = p.ScanRentOrNew(false, 4, "4");
+
+            return x1.I + x2.I;
+        }
+    }
+
+    [MemoryDiagnoser, DisassemblyDiagnoser]
+    public class ObjectPoolComparison_RentPrefilledPool
+    {
+        private ScanPool<X> _scanPool;
+        private StackPool<X> _stackPool;
+
+        [IterationSetup]
+        public void CreateAndPopulatePools()
+        {
+            _scanPool = new ScanPool<X>();
             _scanPool.Return(new X(false, 0, null));
-            _scanPool.Return(new X(false, 0, null));
+            _scanPool.ScanReturn(new X(false, 0, null));
+            _scanPool.ScanReturn(new X(false, 0, null));
 
             _stackPool = new StackPool<X>();
             _stackPool.Return(new X(false, 0, null));
@@ -26,37 +109,43 @@ namespace Playground
         [Benchmark(Baseline = true)]
         public int New_2Times()
         {
-            var x3 = new X(true, 1, "1");
-            var x4 = new X(true, 2, "2");
+            var x1 = new X(true, 1, "1");
+            var x2 = new X(true, 2, "2");
 
-            return x3.I + x4.I;
+            return x1.I + x2.I;
         }
 
         [Benchmark]
         public int StackPool_2Rents()
         {
-            var x3 = _stackPool.RentOrNew(true, 1, "1");
-            var x4 = _stackPool.RentOrNew(true, 2, "2");
+            var p = _stackPool;
 
-            return x3.I + x4.I;
+            var x1 = p.RentOrNew(true, 1, "1");
+            var x2 = p.RentOrNew(true, 2, "2");
+
+            return x1.I + x2.I;
         }
 
         [Benchmark]
         public int ScanPool_2Rents()
         {
-            var x3 = _scanPool.RentOrNew(true, 1, "1");
-            var x4 = _scanPool.RentOrNew(true, 2, "2");
+            var p = _scanPool;
 
-            return x3.I + x4.I;
+            var x1 = p.RentOrNew(true, 1, "1");
+            var x2 = p.RentOrNew(true, 2, "2");
+
+            return x1.I + x2.I;
         }
 
         [Benchmark]
         public int ScanPool_ScanOnly_2Rents()
         {
-            var x3 = _scanPool.ScanRentOrNew(true, 1, "1");
-            var x4 = _scanPool.ScanRentOrNew(true, 2, "2");
+            var p = _scanPool;
 
-            return x3.I + x4.I;
+            var x1 = p.ScanRentOrNew(true, 1, "1");
+            var x2 = p.ScanRentOrNew(true, 2, "2");
+
+            return x1.I + x2.I;
         }
     }
 
@@ -215,11 +304,11 @@ namespace Playground
         public void Return(T x)
         {
             if (Interlocked.CompareExchange(ref _x, x, null) != null)
-                ScanSet(x);
+                ScanReturn(x);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ScanSet(T x)
+        public void ScanReturn(T x)
         {
             var xs = _xs;
             for (var i = 0; i < xs.Length &&
