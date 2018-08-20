@@ -65,34 +65,42 @@ __The requirements:__
 
 Let's design the basic container structure to support the requirements and __without locking__:
 
+```csharp
     public class Container
     {
-        readonly Ref<Registry> _registry = Ref.Of(new Registry());
+        private readonly Ref<Registry> _registry = Ref.Of(new Registry());
 
-        public void Register<TService, TImpl>() where TImpl : TService =>
-            _registry.Swap(reg => reg.With(typeof(TService), new Factory(typeof(TImpl))))
+        public void Register<TService, TImpl>() where TImpl : TService, new()
+        {
+            _registry.Swap(reg => reg.With(typeof(TService), new Factory(typeof(TImpl))));
+        }
 
-        public void Resolve<TService>() =>
-            _registry.Value.Resolve(typeof(TService)) ?? ThrowUnableToResolve(typeof(TService));
+        public object Resolve<TService>()
+        {
+            return (TService)(_registry.Value.Resolve(typeof(TService)) ?? ThrowUnableToResolve(typeof(TService)));
+        }
+        
+        public object ThrowUnableToResolve(Type t) { throw new InvalidOperationException("Unable to resolve: " + t); }
 
         class Registry 
         {
-            ImHashMap<Type, Factory> 
-                _registrations = ImHashMap<Type, Factory>.Empty;
+            ImHashMap<Type, Factory> _registrations = ImHashMap<Type, Factory>.Empty;
+            Ref<ImHashMap<Type, Func<object>>> _resolutionCache = Ref.Of(ImHashMap<Type, Func<object>>.Empty);
 
-            Ref<ImHashMap<Type, Func<object>>> 
-                _resolutionCache = Ref.Of(ImHashMap<Type, Func<object>>.Empty);
-
-            public Registry With(Type serviceType, Factory implFactory) =>
-                return new Registry {
+            // Creating a new registry with +1 registration and new refeence to cache value
+            public Registry With(Type serviceType, Factory implFactory)
+            {
+                return new Registry() 
+                {	
                     _registrations = _registrations.AddOrUpdate(serviceType, implFactory),
-                    
+                        
                     // Here is most interesting part:
                     // We are creating new independent reference pointing to cache value,
                     // isolating it from possible parallel resolutions, 
                     // which will swap older version/ref of cache and won't touch the new one.
-                    _resolutionCache = Ref.Of(_resolutionCache.Value);
+                    _resolutionCache = Ref.Of(_resolutionCache.Value)
                 };
+            }
 
             public object Resolve(Type serviceType)
             {
@@ -100,11 +108,21 @@ Let's design the basic container structure to support the requirements and __wit
                 if (func != null)
                     return func();
 
-                func = _registry.GetValueOrDefault(serviceType)?.CompileDelegate();
-                if (func != null) 
-                    _resolutionCache.Swap(cache => cache.AddOrUpdate(serviceType, func))
-
-                return func?.Invoke();
+                var reg = _registrations.GetValueOrDefault(serviceType);
+                if (reg == null)
+                    return null;
+                
+                func = reg.CompileDelegate();
+                _resolutionCache.Swap(cache => cache.AddOrUpdate(serviceType, func));
+                return func.Invoke();
             }
         }
+        
+        class Factory 
+        {
+            public readonly Type ImplType;
+            public Factory(Type implType) { ImplType = implType; }
+            public Func<object> CompileDelegate() { return () => Activator.CreateInstance(ImplType); }
+        } 
     }
+```
