@@ -34,14 +34,87 @@ namespace ImTools
     /// <summary>Helpers for functional composition</summary>
     public static class Fun
     {
+        /// <summary>Identity function returning passed argument as result.</summary>
+        public static T It<T>(T x) => x;
+
         /// <summary>Always a true condition.</summary>
         public static bool Always<T>(T _) => true;
 
         /// <summary>Always a false condition.</summary>
         public static bool Never<T>(T _) => false;
 
-        /// <summary>Identity function returning passed argument as result.</summary>
-        public static T Itself<T>(T x) => x;
+        /// <summary>Forward pipe operator to combine multiple actions.</summary>
+        public static R Do<T, R>(this T x, Func<T, R> map) => map(x);
+
+        /// <summary>Forward pipe operator to combine multiple actions.</summary>
+        public static T Do<T>(this T x, Action<T> effect)
+        {
+            effect(x);
+            return x;
+        }
+    }
+
+    /// Void replacement actually usable as type argument and value, e.g. singleton empty record type, () in Haskell https://en.wikipedia.org/wiki/Unit_type
+    public struct Unit
+    {
+        /// The only singleton value
+        public static readonly Unit unit = new Unit();
+
+        /// <inheritdoc />
+        public override string ToString() => "unit";
+    }
+
+    // Two-case un-named union
+    public sealed class U<T1, T2> : Union<Unit, T1, T2> { }
+
+    // Two-case named union
+    public abstract class Union<TName, T1, T2>
+    {
+        public static readonly Type Name = typeof(TName);
+
+        // Enum closes the union for fixed number of cases - same as Tag in F# sum-type implementation.
+        // Can be useful for `switch`ing prior to C# 7 where pattern matching on type is not available.
+        public enum Tag { Case1, Case2 };
+
+        public interface IUnion
+        {
+            Tag Tag { get; }
+            R Map<R>(Func<T1, R> map1, Func<T2, R> map2);
+        }
+
+        // Helper constructor methods. May conflict on Union<X, A, A>, then directly call Case1 or Case2 constructor
+        public static Case1 Of(T1 x) => new Case1(x);
+        public static Case2 Of(T2 x) => new Case2(x);
+
+        public struct Case1 : IUnion, IEquatable<Case1>
+        {
+            public Tag Tag => Tag.Case1;
+            public R Map<R>(Func<T1, R> map1, Func<T2, R> map2) => map1(Value);
+
+            public readonly T1 Value;
+            public Case1(T1 x) { Value = x; }
+
+            public bool Equals(Case1 other) => EqualityComparer<T1>.Default.Equals(Value, other.Value);
+            public override bool Equals(object obj) => obj is Case1 c1 && Equals(c1);
+            public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(Value);
+
+            public override string ToString() => "" + Value;
+        }
+
+        public struct Case2 : IUnion
+        {
+            public Tag Tag => Tag.Case1;
+            public R Map<R>(Func<T1, R> map1, Func<T2, R> map2) => map2(Value);
+
+            public readonly T2 Value;
+            public Case2(T2 x) { Value = x; }
+
+            public bool Equals(Case2 other) => EqualityComparer<T2>.Default.Equals(Value, other.Value);
+
+            public override bool Equals(object obj) => obj is Case2 c2 && Equals(c2);
+            public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(Value);
+            public override string ToString() => "" + Value;
+        }
     }
 
     /// <summary>Methods to work with immutable arrays, and general array sugar.</summary>
@@ -68,7 +141,8 @@ namespace ImTools
 
         /// <summary>Returns source enumerable if it is array, otherwise converts source to array.</summary>
         public static T[] ToArrayOrSelf<T>(this IEnumerable<T> source) =>
-            source == null ? Empty<T>() : (source as T[] ?? source.ToArray());
+            source == null ? Empty<T>() : 
+            (source as T[] ?? (((source as ICollection<T>)?.Count ?? 0) == 0 ? Empty<T>() : source.ToArray()));
 
         /// <summary>Returns new array consisting from all items from source array then all items from added array.
         /// If source is null or empty, then added array will be returned.
