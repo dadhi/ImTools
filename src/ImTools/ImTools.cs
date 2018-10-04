@@ -37,12 +37,6 @@ namespace ImTools
         /// <summary>Identity function returning passed argument as result.</summary>
         public static T It<T>(T x) => x;
 
-        /// <summary>Always a true condition.</summary>
-        public static bool Always<T>(T _) => true;
-
-        /// <summary>Always a false condition.</summary>
-        public static bool Never<T>(T _) => false;
-
         /// <summary>Forward pipe operator to combine multiple actions.</summary>
         public static R Do<T, R>(this T x, Func<T, R> map) => map(x);
 
