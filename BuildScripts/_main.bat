@@ -5,9 +5,8 @@ rem Parse arguments:
 for %%A in (%*) do (
 	if /i "%%A"=="-NOPAUSE" (set NOPAUSE=1) else (
 	if /i "%%A"=="-PUBLISH" (set PUBLISH=1) else (
-	if /i "%%A"=="-MSB15"   (set MSB15=1)   else (
 	set UNKNOWNARG=1 & echo:Unknown script argument: "%%A"
-	)))
+	))
 )
 if defined UNKNOWNARG (
 	echo:ERROR: Unknown script arguments, allowed arguments: "-nopause", "-publish" 
@@ -27,8 +26,8 @@ cd /d %SCRIPTDIR%
 call Clean -nopause
 call :Check
 
-if defined MSB15 (call Build15 -nopause) else (call Build -nopause)
-rem call :Check
+call Build -nopause
+call :Check
 
 call RunTestsWithCoverage -nopause
 call :Check
@@ -42,7 +41,7 @@ if defined PUBLISH (
 )
 
 echo:------------
-echo:All Success.
+echo: ALL DONE
 
 if not defined NOPAUSE pause 
 goto:eof

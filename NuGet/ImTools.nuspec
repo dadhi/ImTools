@@ -5,7 +5,7 @@
     <version>0.0.0</version>
     <!-- overridden by "NuGet pack -Version" flag -->
     <authors>Maksim Volkau</authors>
-    <copyright>Copyright © 2016-2017 Maksim Volkau</copyright>
+    <copyright>Copyright © 2016-2018 Maksim Volkau</copyright>
     <projectUrl>https://github.com/dadhi/ImTools</projectUrl>
     <licenseUrl>http://opensource.org/licenses/MIT</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>

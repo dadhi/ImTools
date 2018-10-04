@@ -4,30 +4,22 @@ setlocal EnableDelayedExpansion
 set SLN="..\src\ImTools.sln"
 set OUTDIR="..\bin\Release"
 
-set MSBUILDVER=%2
-if "%MSBUILDVER%"=="" set MSBUILDVER=14
-echo:MsBuild version: %MSBUILDVER%
+rem finding MSBuild.exe
+set MSB="C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\MSBuild\15.0\bin\MSBuild.exe"
+if not exist %MSB% set MSB="C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\bin\MSBuild.exe"
+if not exist %MSB% for /f "tokens=4 delims='" %%p IN ('.nuget\nuget.exe restore ^| find "MSBuild auto-detection"') do set MSB="%%p\MSBuild.exe"
 
 echo:
-echo:Building %SLN% into %OUTDIR% . . .
+echo:## USING MSBUILD: %MSB%
+echo:
 
-for /f "tokens=2*" %%S in ('reg query HKLM\SOFTWARE\Wow6432Node\Microsoft\MSBuild\ToolsVersions\%MSBUILDVER%.0 /v MSBuildToolsPath') do (
+%MSB% %SLN% /t:Rebuild /v:minimal /m /fl /flp:LogFile=MSBuild.log ^
+    /p:OutDir=%OUTDIR% ^
+    /p:GenerateProjectSpecificOutputFolder=false ^
+    /p:Configuration=Release ^
+    /p:RestorePackages=true
 
-    if exist "%%T" (
-
-        echo:
-        echo:Using MSBuild from "%%T"
-
-        "%%T\MSBuild.exe" %SLN% /t:Rebuild /v:minimal /m /fl /flp:LogFile=MSBuild.log ^
-            /p:OutDir=%OUTDIR% ^
-            /p:GenerateProjectSpecificOutputFolder=false ^
-            /p:Configuration=Release ^
-            /p:RestorePackages=false ^
-            /p:BuildInParallel=true 
-
-        find /C "Build succeeded." MSBuild.log
-    )
-)
+find /C "Build succeeded." MSBuild.log
 
 endlocal
 if not "%1"=="-nopause" pause

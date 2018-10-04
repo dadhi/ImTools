@@ -1,7 +1,7 @@
 /*
 The MIT License (MIT)
 
-Copyright (c) 2016 Maksim Volkau
+Copyright (c) 2016-2018 Maksim Volkau
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -10,7 +10,7 @@ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included AddOrUpdateServiceFactory
+The above copyright notice and this permission notice shall be included
 all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -51,69 +51,6 @@ namespace ImTools
         {
             effect(x);
             return x;
-        }
-    }
-
-    /// Void replacement actually usable as type argument and value, e.g. singleton empty record type, () in Haskell https://en.wikipedia.org/wiki/Unit_type
-    public struct Unit
-    {
-        /// The only singleton value
-        public static readonly Unit unit = new Unit();
-
-        /// <inheritdoc />
-        public override string ToString() => "unit";
-    }
-
-    // Two-case un-named union
-    public sealed class U<T1, T2> : Union<Unit, T1, T2> { }
-
-    // Two-case named union
-    public abstract class Union<TName, T1, T2>
-    {
-        public static readonly Type Name = typeof(TName);
-
-        // Enum closes the union for fixed number of cases - same as Tag in F# sum-type implementation.
-        // Can be useful for `switch`ing prior to C# 7 where pattern matching on type is not available.
-        public enum Tag { Case1, Case2 };
-
-        public interface IUnion
-        {
-            Tag Tag { get; }
-            R Map<R>(Func<T1, R> map1, Func<T2, R> map2);
-        }
-
-        // Helper constructor methods. May conflict on Union<X, A, A>, then directly call Case1 or Case2 constructor
-        public static Case1 Of(T1 x) => new Case1(x);
-        public static Case2 Of(T2 x) => new Case2(x);
-
-        public struct Case1 : IUnion, IEquatable<Case1>
-        {
-            public Tag Tag => Tag.Case1;
-            public R Map<R>(Func<T1, R> map1, Func<T2, R> map2) => map1(Value);
-
-            public readonly T1 Value;
-            public Case1(T1 x) { Value = x; }
-
-            public bool Equals(Case1 other) => EqualityComparer<T1>.Default.Equals(Value, other.Value);
-            public override bool Equals(object obj) => obj is Case1 c1 && Equals(c1);
-            public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(Value);
-
-            public override string ToString() => "" + Value;
-        }
-
-        public struct Case2 : IUnion
-        {
-            public Tag Tag => Tag.Case1;
-            public R Map<R>(Func<T1, R> map1, Func<T2, R> map2) => map2(Value);
-
-            public readonly T2 Value;
-            public Case2(T2 x) { Value = x; }
-
-            public bool Equals(Case2 other) => EqualityComparer<T2>.Default.Equals(Value, other.Value);
-
-            public override bool Equals(object obj) => obj is Case2 c2 && Equals(c2);
-            public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(Value);
-            public override string ToString() => "" + Value;
         }
     }
 
