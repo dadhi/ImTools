@@ -1,32 +1,21 @@
 @echo off
-pushd "..\src"
+setlocal EnableDelayedExpansion
 
-set NUGET=".nuget\NuGet.exe"
-set PACKAGEDIR="bin\NuGetPackages"
+set NUGET=.nuget\NuGet.exe
+set NUSPECS=nuspecs
+set PACKAGEDIR=.dist\packages
 
 echo:
 echo:Packing NuGet packages into %PACKAGEDIR% . . .
-
-if exist %PACKAGEDIR% rd /s /q %PACKAGEDIR%
-md %PACKAGEDIR% 
-
 echo:
-call :ParseVersion "ImTools\Properties\AssemblyInfo.cs"
-echo:ImTools v%VER%
-echo:================
-%NUGET% pack "..\NuGet\ImTools.dll.nuspec" -Version %VER% -OutputDirectory %PACKAGEDIR% -NonInteractive -Symbols
-%NUGET% pack "..\NuGet\ImTools.nuspec" -Version %VER% -OutputDirectory %PACKAGEDIR% -NonInteractive
+if not exist %PACKAGEDIR% md %PACKAGEDIR% 
 
-echo: 
-echo:Packaging succeeded.
-popd
+%NUGET% pack %NUSPECS%\ImTools.nuspec -OutputDirectory %PACKAGEDIR% -NonInteractive
 
-if not "%1"=="-nopause" pause 
-goto:eof
+REM if not "%1"=="-nopause" pause 
+REM goto:eof
 
-:ParseVersion
-set VERFILE=%~1
-for /f "usebackq tokens=2,3 delims=:() " %%A in ("%VERFILE%") do (
-    if "%%A"=="AssemblyInformationalVersion" set VER=%%~B
-)
-exit /b
+REM set VERFILE=%~1
+REM for /f "usebackq tokens=2,3 delims=:() " %%A in ("%VERFILE%") do (
+REM 	if "%%A"=="AssemblyInformationalVersion" set VER=%%~B
+REM exit /b

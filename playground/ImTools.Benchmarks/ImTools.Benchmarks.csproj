@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFrameworks>netcoreapp2.2</TargetFrameworks>
+        <Description>Benchmarks, sandbox for experiments.</Description>
+        <NoWarn>1701;1702;AD0001;NU1608</NoWarn>
+    </PropertyGroup>
+    <ItemGroup>
+      <Compile Remove="HashVsImHashMap.cs" />
+    </ItemGroup>
+    <ItemGroup>
+      <PackageReference Include="BenchmarkDotNet" Version="0.11.4" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\ImTools\ImTools.csproj" />
+    </ItemGroup>
+
+</Project>

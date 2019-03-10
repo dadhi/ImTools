@@ -1,15 +1,13 @@
 @echo off
-pushd "..\src"
 
-set NUGET=".nuget\NuGet.exe"
-set PACKAGEDIR="bin\NuGetPackages"
+set PACKAGES=..\.dist\packages
+set SOURCE=https://api.nuget.org/v3/index.json
 set /p APIKEY=<"..\ApiKey.txt"
 
-%NUGET% push "%PACKAGEDIR%\ImTools.dll.1.0.0.nupkg" -Source https://nuget.org -ApiKey %APIKEY%
-%NUGET% push "%PACKAGEDIR%\ImTools.1.0.0.nupkg" -Source https://nuget.org -ApiKey %APIKEY%
+rem dotnet nuget push "%PACKAGES%\ImTools.dll.2.0.0.nupkg" -k %APIKEY% -s %SOURCE%
+rem dotnet nuget push "%PACKAGES%\ImTools.2.0.0.nupkg" -k %APIKEY% -s %SOURCE%
 
-popd
+echo:
+echo:Publishing completed.
+
 pause
-
-echo: 
-echo:Packaging succeeded.
