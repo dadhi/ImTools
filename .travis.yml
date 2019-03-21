@@ -15,5 +15,7 @@ env:
 
 mono: latest
 dotnet: 2.1.502
+install:
+  - dotnet restore
 script:
-- ./build.sh --quiet verify
+  - dotnet test test/ImTools.UnitTests/ImTools.UnitTests.csproj -c:Release -f:netcoreapp2.1 -p:Sign=false;
