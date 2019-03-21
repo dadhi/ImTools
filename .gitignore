@@ -343,8 +343,5 @@ ASALocalRun/
 .hgignore
 .hgtags
 
-# DryIoc.Internal
-DryIoc.Internal/
-
 # NuGet
 ApiKey.txt

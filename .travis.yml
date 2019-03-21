@@ -1,24 +1,19 @@
 language: csharp
-mono: none
-dotnet: 2.0.0
 
-osx_image: xcode8.3
-dist: trusty
+matrix:
+  include:
+    - os: linux
+      dist: trusty
+      sudo: required
+    - os: osx
+      osx_image: xcode9.4
 
-os:
-  - linux
-  - osx
+env:
+  global:
+    - DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
+    - DOTNET_CLI_TELEMETRY_OPTOUT=1
 
-addons:
-  apt:
-    sources:
-    - sourceline: 'deb [arch=amd64] https://packages.microsoft.com/repos/microsoft-ubuntu-trusty-prod trusty main'
-      key_url: 'https://packages.microsoft.com/keys/microsoft.asc'
-    packages:
-    - dotnet-sharedframework-microsoft.netcore.app-1.1.2
-
-before_install:  
-  - if test "$TRAVIS_OS_NAME" == "osx"; then ulimit -n 2048; fi #nuget restore can cause too many open files error
-
+mono: latest
+dotnet: 2.1.502
 script:
-  - ./build.sh --quiet verify
+- ./build.sh --quiet verify

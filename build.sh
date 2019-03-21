@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -euxo pipefail #https://vaneyckt.io/posts/safer_bash_scripts_with_set_euxo_pipefail/
+#dotnet restore
 
-dotnet restore -p:SourceLink=false
-
-dotnet test test/ImTools.UnitTests/ImTools.UnitTests.csproj -c:Release -f:netcoreapp2.0 -p:Sign=false;SourceLink=false
+dotnet test test/ImTools.UnitTests/ImTools.UnitTests.csproj -c:Release -f:netcoreapp2.1 -p:Sign=false;
