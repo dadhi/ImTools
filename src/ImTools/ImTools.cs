@@ -53,13 +53,6 @@ namespace ImTools
         public static R ToFunc<T, R>(this R result, T ignoredArg) => result;
     }
 
-    /// <summary>Helpers for lazy instantiations</summary>
-    public static class Lazy
-    {
-        /// <summary>Provides result type inference for creation of lazy.</summary>
-        public static Lazy<T> Of<T>(Func<T> valueFactory) => new Lazy<T>(valueFactory);
-    }
-
     /// <summary>Methods to work with immutable arrays and some sugar.</summary>
     public static class ArrayTools
     {
