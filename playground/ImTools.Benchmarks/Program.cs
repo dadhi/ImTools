@@ -7,7 +7,9 @@ namespace ImTools.Benchmarks
     {
         static void Main()
         {
-            BenchmarkRunner.Run<CustomEqualityComparerBenchmarks>();
+            BenchmarkRunner.Run<ImMapBenchmarks.Populate>();
+
+            //BenchmarkRunner.Run<CustomEqualityComparerBenchmarks>();
         }
     }
 }
