@@ -16,6 +16,6 @@ env:
 mono: latest
 dotnet: 2.1.502
 install:
-  - dotnet restore
+  - dotnet restore -p:TravisCI=true;Sign=false
 script:
-  - dotnet test test/ImTools.UnitTests/ImTools.UnitTests.csproj -c:Release -f:netcoreapp2.1 -p:Sign=false;
+  - dotnet test test/ImTools.UnitTests/ImTools.UnitTests.csproj -c:Release -f:netcoreapp2.1 -p:TravisCI=true;Sign=false
