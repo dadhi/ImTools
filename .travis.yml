@@ -14,7 +14,8 @@ env:
     - DOTNET_CLI_TELEMETRY_OPTOUT=1
 
 mono: latest
-dotnet: 2.1.502
+#dotnet: 2.1.502
+dotnet: 2.2
 install:
   - dotnet restore
 script:
