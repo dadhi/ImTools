@@ -169,7 +169,7 @@ Let's design the basic container structure to support the requirements and __wit
             ImHashMap<Type, Factory> _registrations = ImHashMap<Type, Factory>.Empty;
             Ref<ImHashMap<Type, Func<object>>> _resolutionCache = Ref.Of(ImHashMap<Type, Func<object>>.Empty);
 
-            // Creating a new registry with +1 registration and new refeence to cache value
+            // Creating a new registry with +1 registration and new reference to cache value
             public Registry With(Type serviceType, Factory implFactory)
             {
                 return new Registry() 

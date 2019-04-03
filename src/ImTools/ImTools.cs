@@ -106,12 +106,12 @@ namespace ImTools
             return result;
         }
 
-        /// <summary>Performant concat of enumerables in case of arrays.
-        /// But performance will degrade if you use Concat().Where().</summary>
+        /// <summary>Performant concatenation of enumerables in case of arrays.
+        /// But performance will degrade if you use `Concat().Where()`.</summary>
         /// <typeparam name="T">Type of item.</typeparam>
         /// <param name="source">goes first.</param>
         /// <param name="other">appended to source.</param>
-        /// <returns>empty array or concat of source and other.</returns>
+        /// <returns>empty array or concatenation of source and other.</returns>
         public static T[] Append<T>(this IEnumerable<T> source, IEnumerable<T> other) =>
             source.ToArrayOrSelf().Append(other.ToArrayOrSelf());
 
@@ -599,7 +599,7 @@ namespace ImTools
             " times But there is always someone else intervened.";
     }
 
-    /// <summary>Printable thingy via provided printer </summary>
+    /// <summary>Printable thing via provided printer </summary>
     public interface IPrintable
     {
         /// <summary>Print to the provided string builder via the provided printer.</summary>
@@ -1158,9 +1158,18 @@ namespace ImTools
     /// ImMap methods
     public static class ImMap
     {
-        /// Get value for found key or default value otherwise.
+        /// Get value for found key or the default value otherwise.
         [MethodImpl((MethodImplOptions)256)]
-        public static V GetValueOrDefault<V>(this ImMap<V> map, int key, V defaultValue = default(V))
+        public static V GetValueOrDefault<V>(this ImMap<V> map, int key)
+        {
+            while (map.Height != 0 && map.Key != key)
+                map = key < map.Key ? map.Left : map.Right;
+            return map.Value; // that's fine to return the value without check, because for we have a default value in empty map
+        }
+
+        /// Get value for found key or the specified default value otherwise.
+        [MethodImpl((MethodImplOptions)256)]
+        public static V GetValueOrDefault<V>(this ImMap<V> map, int key, V defaultValue)
         {
             while (map.Height != 0 && map.Key != key)
                 map = key < map.Key ? map.Left : map.Right;
@@ -1186,6 +1195,45 @@ namespace ImTools
 
             value = default(V);
             return false;
+        }
+        
+        /// Returns true if key is found and sets the value.
+        [MethodImpl((MethodImplOptions)256)]
+        public static bool TryFindFaster<V>(this ImMap<V> map, int key, out V value)
+        {
+            while (map.Height != 0)
+            {
+                if (key < map.Key)
+                    map = map.Left;
+                else if (key > map.Key)
+                    map = map.Right;
+                else
+                {
+                    value = map.Value;
+                    return true;
+                }
+            }
+
+            value = default(V);
+            return false;
+        }
+
+        /// Returns true if key is found and sets the value.
+        [MethodImpl((MethodImplOptions)256)]
+        public static bool TryFindFaster2<V>(this ImMap<V> map, int key, out V value)
+        {
+            while (map.Height != 0)
+            {
+                if (key < map.Key)
+                    map = map.Left;
+                else if (key > map.Key)
+                    map = map.Right;
+                else
+                    break;
+            }
+
+            value = map.Value;
+            return map.Height != 0;
         }
     }
 
