@@ -331,52 +331,54 @@ Frequency=2156254 Hz, Resolution=463.7673 ns, Timer=TSC
 |  ImmutableDict_TryGetValue | 100000 | 92.043 ns | 0.3051 ns | 0.2854 ns |  5.99 |    0.02 |           - |           - |           - |                   - |
 
 ## Experiments with TryFind:
-### Run 1
-|               Method |  Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
-|--------------------- |------- |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
-|        ImMap_TryFind |     10 |  3.034 ns | 0.0265 ns | 0.0248 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-|  ImMap_TryFindFaster |     10 |  3.410 ns | 0.0452 ns | 0.0423 ns |  1.12 |    0.02 |     - |     - |     - |         - |
-| ImMap_TryFindFaster2 |     10 |  3.345 ns | 0.0520 ns | 0.0486 ns |  1.10 |    0.02 |     - |     - |     - |         - |
-|                      |        |           |           |           |       |         |       |       |       |           |
-|        ImMap_TryFind |    100 |  4.706 ns | 0.0124 ns | 0.0116 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-|  ImMap_TryFindFaster |    100 |  4.273 ns | 0.0487 ns | 0.0456 ns |  0.91 |    0.01 |     - |     - |     - |         - |
-| ImMap_TryFindFaster2 |    100 |  4.327 ns | 0.0263 ns | 0.0246 ns |  0.92 |    0.01 |     - |     - |     - |         - |
-|                      |        |           |           |           |       |         |       |       |       |           |
-|        ImMap_TryFind |   1000 |  6.518 ns | 0.0462 ns | 0.0432 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-|  ImMap_TryFindFaster |   1000 |  6.363 ns | 0.0185 ns | 0.0164 ns |  0.98 |    0.01 |     - |     - |     - |         - |
-| ImMap_TryFindFaster2 |   1000 |  6.353 ns | 0.0254 ns | 0.0212 ns |  0.97 |    0.01 |     - |     - |     - |         - |
-|                      |        |           |           |           |       |         |       |       |       |           |
-|        ImMap_TryFind |  10000 | 11.345 ns | 0.0090 ns | 0.0084 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-|  ImMap_TryFindFaster |  10000 | 10.594 ns | 0.0134 ns | 0.0105 ns |  0.93 |    0.00 |     - |     - |     - |         - |
-| ImMap_TryFindFaster2 |  10000 | 10.605 ns | 0.0158 ns | 0.0132 ns |  0.93 |    0.00 |     - |     - |     - |         - |
-|                      |        |           |           |           |       |         |       |       |       |           |
-|        ImMap_TryFind | 100000 | 19.016 ns | 0.1956 ns | 0.1734 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-|  ImMap_TryFindFaster | 100000 | 16.132 ns | 0.0274 ns | 0.0257 ns |  0.85 |    0.01 |     - |     - |     - |         - |
-| ImMap_TryFindFaster2 | 100000 | 14.677 ns | 0.0776 ns | 0.0726 ns |  0.77 |    0.01 |     - |     - |     - |         - |
 
-### Run 2
-|               Method |  Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
-|--------------------- |------- |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
-|        ImMap_TryFind |     10 |  3.034 ns | 0.0265 ns | 0.0248 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-|  ImMap_TryFindFaster |     10 |  3.410 ns | 0.0452 ns | 0.0423 ns |  1.12 |    0.02 |     - |     - |     - |         - |
-| ImMap_TryFindFaster2 |     10 |  3.345 ns | 0.0520 ns | 0.0486 ns |  1.10 |    0.02 |     - |     - |     - |         - |
-|                      |        |           |           |           |       |         |       |       |       |           |
-|        ImMap_TryFind |    100 |  4.706 ns | 0.0124 ns | 0.0116 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-|  ImMap_TryFindFaster |    100 |  4.273 ns | 0.0487 ns | 0.0456 ns |  0.91 |    0.01 |     - |     - |     - |         - |
-| ImMap_TryFindFaster2 |    100 |  4.327 ns | 0.0263 ns | 0.0246 ns |  0.92 |    0.01 |     - |     - |     - |         - |
-|                      |        |           |           |           |       |         |       |       |       |           |
-|        ImMap_TryFind |   1000 |  6.518 ns | 0.0462 ns | 0.0432 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-|  ImMap_TryFindFaster |   1000 |  6.363 ns | 0.0185 ns | 0.0164 ns |  0.98 |    0.01 |     - |     - |     - |         - |
-| ImMap_TryFindFaster2 |   1000 |  6.353 ns | 0.0254 ns | 0.0212 ns |  0.97 |    0.01 |     - |     - |     - |         - |
-|                      |        |           |           |           |       |         |       |       |       |           |
-|        ImMap_TryFind |  10000 | 11.345 ns | 0.0090 ns | 0.0084 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-|  ImMap_TryFindFaster |  10000 | 10.594 ns | 0.0134 ns | 0.0105 ns |  0.93 |    0.00 |     - |     - |     - |         - |
-| ImMap_TryFindFaster2 |  10000 | 10.605 ns | 0.0158 ns | 0.0132 ns |  0.93 |    0.00 |     - |     - |     - |         - |
-|                      |        |           |           |           |       |         |       |       |       |           |
-|        ImMap_TryFind | 100000 | 19.016 ns | 0.1956 ns | 0.1734 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-|  ImMap_TryFindFaster | 100000 | 16.132 ns | 0.0274 ns | 0.0257 ns |  0.85 |    0.01 |     - |     - |     - |         - |
-| ImMap_TryFindFaster2 | 100000 | 14.677 ns | 0.0776 ns | 0.0726 ns |  0.77 |    0.01 |     - |     - |     - |         - |
-*/
+|                     Method |  Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|--------------------------- |------- |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+|              ImMap_TryFind |     10 |  3.359 ns | 0.0188 ns | 0.0176 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|    ImMap_GetValueOrDefault |     10 |  3.113 ns | 0.0195 ns | 0.0173 ns |  0.93 |    0.01 |     - |     - |     - |         - |
+|           ImMap_V1_TryFind |     10 |  4.836 ns | 0.0547 ns | 0.0485 ns |  1.44 |    0.02 |     - |     - |     - |         - |
+| ImMap_V1_GetValueOrDefault |     10 |  4.392 ns | 0.0367 ns | 0.0343 ns |  1.31 |    0.01 |     - |     - |     - |         - |
+|       DictSlim_TryGetValue |     10 |  3.813 ns | 0.0310 ns | 0.0290 ns |  1.14 |    0.01 |     - |     - |     - |         - |
+|           Dict_TryGetValue |     10 |  6.990 ns | 0.0210 ns | 0.0196 ns |  2.08 |    0.01 |     - |     - |     - |         - |
+| ConcurrentDict_TryGetValue |     10 | 10.261 ns | 0.0230 ns | 0.0215 ns |  3.06 |    0.02 |     - |     - |     - |         - |
+|  ImmutableDict_TryGetValue |     10 | 60.228 ns | 0.2097 ns | 0.1962 ns | 17.93 |    0.11 |     - |     - |     - |         - |
+|                            |        |           |           |           |       |         |       |       |       |           |
+|              ImMap_TryFind |    100 |  4.388 ns | 0.0205 ns | 0.0182 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|    ImMap_GetValueOrDefault |    100 |  4.548 ns | 0.1364 ns | 0.1276 ns |  1.03 |    0.02 |     - |     - |     - |         - |
+|           ImMap_V1_TryFind |    100 |  6.826 ns | 0.0156 ns | 0.0146 ns |  1.56 |    0.01 |     - |     - |     - |         - |
+| ImMap_V1_GetValueOrDefault |    100 |  5.892 ns | 0.0391 ns | 0.0366 ns |  1.34 |    0.01 |     - |     - |     - |         - |
+|       DictSlim_TryGetValue |    100 |  3.209 ns | 0.0304 ns | 0.0284 ns |  0.73 |    0.01 |     - |     - |     - |         - |
+|           Dict_TryGetValue |    100 |  7.048 ns | 0.0281 ns | 0.0263 ns |  1.61 |    0.01 |     - |     - |     - |         - |
+| ConcurrentDict_TryGetValue |    100 | 10.505 ns | 0.0314 ns | 0.0294 ns |  2.39 |    0.01 |     - |     - |     - |         - |
+|  ImmutableDict_TryGetValue |    100 | 65.043 ns | 0.2988 ns | 0.2795 ns | 14.82 |    0.10 |     - |     - |     - |         - |
+|                            |        |           |           |           |       |         |       |       |       |           |
+|              ImMap_TryFind |   1000 |  6.392 ns | 0.0429 ns | 0.0401 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|    ImMap_GetValueOrDefault |   1000 |  8.089 ns | 0.0495 ns | 0.0463 ns |  1.27 |    0.01 |     - |     - |     - |         - |
+|           ImMap_V1_TryFind |   1000 |  8.274 ns | 0.0624 ns | 0.0553 ns |  1.29 |    0.01 |     - |     - |     - |         - |
+| ImMap_V1_GetValueOrDefault |   1000 |  8.310 ns | 0.1230 ns | 0.1150 ns |  1.30 |    0.02 |     - |     - |     - |         - |
+|       DictSlim_TryGetValue |   1000 |  3.221 ns | 0.0215 ns | 0.0201 ns |  0.50 |    0.00 |     - |     - |     - |         - |
+|           Dict_TryGetValue |   1000 |  7.052 ns | 0.0190 ns | 0.0178 ns |  1.10 |    0.01 |     - |     - |     - |         - |
+| ConcurrentDict_TryGetValue |   1000 | 10.514 ns | 0.0317 ns | 0.0296 ns |  1.64 |    0.01 |     - |     - |     - |         - |
+|  ImmutableDict_TryGetValue |   1000 | 71.175 ns | 0.4042 ns | 0.3781 ns | 11.14 |    0.08 |     - |     - |     - |         - |
+|                            |        |           |           |           |       |         |       |       |       |           |
+|              ImMap_TryFind |  10000 | 10.671 ns | 0.0534 ns | 0.0500 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|    ImMap_GetValueOrDefault |  10000 | 11.516 ns | 0.0353 ns | 0.0330 ns |  1.08 |    0.00 |     - |     - |     - |         - |
+|           ImMap_V1_TryFind |  10000 | 13.508 ns | 0.2455 ns | 0.2297 ns |  1.27 |    0.02 |     - |     - |     - |         - |
+| ImMap_V1_GetValueOrDefault |  10000 | 13.047 ns | 0.0462 ns | 0.0432 ns |  1.22 |    0.01 |     - |     - |     - |         - |
+|       DictSlim_TryGetValue |  10000 |  3.189 ns | 0.0281 ns | 0.0263 ns |  0.30 |    0.00 |     - |     - |     - |         - |
+|           Dict_TryGetValue |  10000 |  7.014 ns | 0.0508 ns | 0.0475 ns |  0.66 |    0.01 |     - |     - |     - |         - |
+| ConcurrentDict_TryGetValue |  10000 | 12.146 ns | 0.0296 ns | 0.0277 ns |  1.14 |    0.01 |     - |     - |     - |         - |
+|  ImmutableDict_TryGetValue |  10000 | 87.149 ns | 0.1908 ns | 0.1784 ns |  8.17 |    0.05 |     - |     - |     - |         - |
+|                            |        |           |           |           |       |         |       |       |       |           |
+|              ImMap_TryFind | 100000 | 16.492 ns | 0.4005 ns | 0.4768 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|    ImMap_GetValueOrDefault | 100000 | 16.869 ns | 0.0528 ns | 0.0468 ns |  1.03 |    0.03 |     - |     - |     - |         - |
+|           ImMap_V1_TryFind | 100000 | 21.360 ns | 0.0737 ns | 0.0690 ns |  1.30 |    0.04 |     - |     - |     - |         - |
+| ImMap_V1_GetValueOrDefault | 100000 | 16.934 ns | 0.4106 ns | 0.3841 ns |  1.03 |    0.04 |     - |     - |     - |         - |
+|       DictSlim_TryGetValue | 100000 |  3.212 ns | 0.0412 ns | 0.0386 ns |  0.20 |    0.01 |     - |     - |     - |         - |
+|           Dict_TryGetValue | 100000 |  7.061 ns | 0.0197 ns | 0.0184 ns |  0.43 |    0.01 |     - |     - |     - |         - |
+| ConcurrentDict_TryGetValue | 100000 | 10.479 ns | 0.0542 ns | 0.0507 ns |  0.64 |    0.02 |     - |     - |     - |         - |
+|  ImmutableDict_TryGetValue | 100000 | 93.308 ns | 0.2382 ns | 0.2228 ns |  5.67 |    0.17 |     - |     - |     - |         - |
+ */
             public ImMap<string> AddOrUpdate()
             {
                 var map = ImMap<string>.Empty;
@@ -475,60 +477,46 @@ Frequency=2156254 Hz, Resolution=463.7673 ns, Timer=TSC
             }
 
             [Benchmark]
-            public string ImMap_TryFindFaster()
-            {
-                _map.TryFindFaster(LookupMaxKey, out var result);
-                return result;
-            }
-
-            [Benchmark]
-            public string ImMap_TryFindFaster2()
-            {
-                _map.TryFindFaster2(LookupMaxKey, out var result);
-                return result;
-            }
-
-            //[Benchmark]
             public string ImMap_GetValueOrDefault()
             {
                 return _map.GetValueOrDefault(LookupMaxKey);
             }
 
-            //[Benchmark]
+            [Benchmark]
             public string ImMap_V1_TryFind()
             {
                 _mapV1.TryFind(LookupMaxKey, out var result);
                 return result;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public string ImMap_V1_GetValueOrDefault()
             {
                 return _mapV1.GetValueOrDefault(LookupMaxKey);
             }
 
-            //[Benchmark]
+            [Benchmark]
             public string DictSlim_TryGetValue()
             {
                 _dictSlim.TryGetValue(LookupMaxKey, out var result);
                 return result;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public string Dict_TryGetValue()
             {
                 _dict.TryGetValue(LookupMaxKey, out var result);
                 return result;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public string ConcurrentDict_TryGetValue()
             {
                 _concurDict.TryGetValue(LookupMaxKey, out var result);
                 return result;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public string ImmutableDict_TryGetValue()
             {
                 _immutableDict.TryGetValue(LookupMaxKey, out var result);

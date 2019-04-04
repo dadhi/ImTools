@@ -813,20 +813,16 @@ namespace ImTools
         /// <typeparam name="R">result item type.</typeparam>
         /// <param name="source">input list.</param> <param name="map">converter func.</param>
         /// <returns>result list.</returns>
-        public static ImList<R> Map<T, R>(this ImList<T> source, Func<T, R> map)
-        {
-            return source.To(ImList<R>.Empty, (it, _) => _.Prep(map(it))).Reverse();
-        }
+        public static ImList<R> Map<T, R>(this ImList<T> source, Func<T, R> map) => 
+            source.To(ImList<R>.Empty, (it, _) => _.Prep(map(it))).Reverse();
 
         /// <summary>Maps the items from the first list to the result list with item index.</summary>
         /// <typeparam name="T">source item type.</typeparam> 
         /// <typeparam name="R">result item type.</typeparam>
         /// <param name="source">input list.</param> <param name="map">converter func.</param>
         /// <returns>result list.</returns>
-        public static ImList<R> Map<T, R>(this ImList<T> source, Func<T, int, R> map)
-        {
-            return source.To(ImList<R>.Empty, (it, i, _) => _.Prep(map(it, i))).Reverse();
-        }
+        public static ImList<R> Map<T, R>(this ImList<T> source, Func<T, int, R> map) => 
+            source.To(ImList<R>.Empty, (it, i, _) => _.Prep(map(it, i))).Reverse();
 
         /// <summary>Copies list to array.</summary> 
         public static T[] ToArray<T>(this ImList<T> source) =>
@@ -1179,48 +1175,6 @@ namespace ImTools
         /// Returns true if key is found and sets the value.
         [MethodImpl((MethodImplOptions)256)]
         public static bool TryFind<V>(this ImMap<V> map, int key, out V value)
-        {
-            while (map.Height != 0)
-            {
-                if (map.Key != key) // this is a hot path, so checking it first instead of `map.Key == key` wins some marginal performance (3%)
-                {
-                    map = key < map.Key ? map.Left : map.Right;
-                }
-                else
-                {
-                    value = map.Value;
-                    return true;
-                }
-            }
-
-            value = default(V);
-            return false;
-        }
-        
-        /// Returns true if key is found and sets the value.
-        [MethodImpl((MethodImplOptions)256)]
-        public static bool TryFindFaster<V>(this ImMap<V> map, int key, out V value)
-        {
-            while (map.Height != 0)
-            {
-                if (key < map.Key)
-                    map = map.Left;
-                else if (key > map.Key)
-                    map = map.Right;
-                else
-                {
-                    value = map.Value;
-                    return true;
-                }
-            }
-
-            value = default(V);
-            return false;
-        }
-
-        /// Returns true if key is found and sets the value.
-        [MethodImpl((MethodImplOptions)256)]
-        public static bool TryFindFaster2<V>(this ImMap<V> map, int key, out V value)
         {
             while (map.Height != 0)
             {
