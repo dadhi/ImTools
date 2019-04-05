@@ -36,7 +36,7 @@ Frequency=2156254 Hz, Resolution=463.7673 ns, Timer=TSC
 
 ### ImMap with string values
 
-`ImMap<string>` stores the items with `int` keys.
+`ImMap<string>` stores the `int` keys and `string` values.
 
 #### ImMap Population
 
@@ -179,7 +179,7 @@ where the key is `i + "hubba-bubba" + i` and the value is `i + "hubba-bubba"`:
 
 ### ImHashMap Lookup
 
-[The benchmark](https://github.com/dadhi/ImTools/blob/master/playground/ImTools.Benchmarks/ImHashMapBenchmarks_StringString.cs) lookups for **the last index (key)** in the `ImHashMap<string, string>` of specified `Count` of elements.
+[The benchmark](https://github.com/dadhi/ImTools/blob/master/playground/ImTools.Benchmarks/ImHashMapBenchmarks_StringString.cs) lookups for **the last added key** in the `ImHashMap<string, string>` of specified `Count` of elements.
 
 ```md
 // TODO:
