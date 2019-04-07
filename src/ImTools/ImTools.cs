@@ -1829,8 +1829,14 @@ namespace ImTools
 
             var hash = key.GetHashCode();
 
-            while (hash != map.Hash && map.Height != 0)
-                map = hash < map.Hash ? map.Left : map.Right;
+            do
+            {
+                if (hash < map.Hash)
+                    map = map.Left;
+                else if (hash > map.Hash)
+                    map = map.Right;
+                else break;
+            } while (map.Height != 0);
 
             if (ReferenceEquals(key, map.Key))
             {

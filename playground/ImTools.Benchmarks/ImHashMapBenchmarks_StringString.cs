@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Order;
 using ImTools;
 using Microsoft.Collections.Extensions;
 
@@ -83,9 +82,9 @@ Frequency=2156251 Hz, Resolution=463.7679 ns, Timer=TSC
             }
 
             [Benchmark]
-            public V1.ImHashMap<string, string> AddOrUpdate_V1_AddOrUpdate()
+            public ImTools.OldVersions.V1.ImHashMap<string, string> AddOrUpdate_V1_AddOrUpdate()
             {
-                var map = V1.ImHashMap<string, string>.Empty;
+                var map = ImTools.OldVersions.V1.ImHashMap<string, string>.Empty;
 
                 for (var i = 0; i < Count; ++i)
                 {
@@ -421,7 +420,7 @@ Frequency=2156251 Hz, Resolution=463.7679 ns, Timer=TSC
             }
 
             private ImHashMap<string, string> _map;
-            private V1.ImHashMap<string, string> _mapV1;
+            private ImTools.OldVersions.V1.ImHashMap<string, string> _mapV1;
             private Dictionary<string, string> _dict;
             private DictionarySlim<string, string> _dictSlim;
             private ConcurrentDictionary<string, string> _concurrentDict;
@@ -443,9 +442,9 @@ Frequency=2156251 Hz, Resolution=463.7679 ns, Timer=TSC
                 return map;
             }
 
-            public V1.ImHashMap<string, string> AddOrUpdate_V1_AddOrUpdate()
+            public ImTools.OldVersions.V1.ImHashMap<string, string> AddOrUpdate_V1_AddOrUpdate()
             {
-                var map = V1.ImHashMap<string, string>.Empty;
+                var map = ImTools.OldVersions.V1.ImHashMap<string, string>.Empty;
 
                 for (var i = 0; i < Count; ++i)
                 {
