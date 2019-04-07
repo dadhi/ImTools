@@ -331,6 +331,34 @@ Frequency=2156251 Hz, Resolution=463.7679 ns, Timer=TSC
 |       ImHaspMap_V1_TryFind |  1000 | 25.82 ns | 0.0352 ns | 0.0330 ns | 25.83 ns |  0.93 |    0.06 |           - |           - |           - |                   - |
 | DictionarySlim_TryGetValue |  1000 | 20.87 ns | 0.1638 ns | 0.1532 ns | 20.85 ns |  0.75 |    0.05 |           - |           - |           - |                   - |
 
+## IEquatable does not count
+
+|                     Method | Count |     Mean |     Error |    StdDev |   Median | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+|--------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|------------:|------------:|------------:|--------------------:|
+|         ImHaspMap_TryFind2 |    10 | 14.39 ns | 0.0290 ns | 0.0257 ns | 14.39 ns |  0.80 |    0.00 |           - |           - |           - |                   - |
+|         ImHaspMap_TryFind3 |    10 | 15.72 ns | 0.0499 ns | 0.0417 ns | 15.71 ns |  0.88 |    0.00 |           - |           - |           - |                   - |
+|          ImHaspMap_TryFind |    10 | 17.89 ns | 0.0421 ns | 0.0393 ns | 17.89 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+|       ImHashMap_V1_TryFind |    10 | 17.70 ns | 0.0149 ns | 0.0132 ns | 17.70 ns |  0.99 |    0.00 |           - |           - |           - |                   - |
+| DictionarySlim_TryGetValue |    10 | 18.52 ns | 0.0268 ns | 0.0250 ns | 18.53 ns |  1.04 |    0.00 |           - |           - |           - |                   - |
+|                            |       |          |           |           |          |       |         |             |             |             |                     |
+|         ImHaspMap_TryFind2 |   100 | 17.97 ns | 0.0207 ns | 0.0194 ns | 17.97 ns |  0.82 |    0.00 |           - |           - |           - |                   - |
+|         ImHaspMap_TryFind3 |   100 | 20.73 ns | 0.0638 ns | 0.0532 ns | 20.75 ns |  0.95 |    0.00 |           - |           - |           - |                   - |
+|          ImHaspMap_TryFind |   100 | 21.93 ns | 0.0857 ns | 0.0802 ns | 21.92 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+|       ImHashMap_V1_TryFind |   100 | 23.31 ns | 0.0248 ns | 0.0232 ns | 23.31 ns |  1.06 |    0.00 |           - |           - |           - |                   - |
+| DictionarySlim_TryGetValue |   100 | 19.65 ns | 0.0850 ns | 0.0795 ns | 19.70 ns |  0.90 |    0.01 |           - |           - |           - |                   - |
+|                            |       |          |           |           |          |       |         |             |             |             |                     |
+|         ImHaspMap_TryFind2 |  1000 | 23.45 ns | 0.9424 ns | 1.9671 ns | 22.45 ns |  0.94 |    0.10 |           - |           - |           - |                   - |
+|         ImHaspMap_TryFind3 |  1000 | 26.44 ns | 0.3307 ns | 0.2932 ns | 26.38 ns |  1.02 |    0.02 |           - |           - |           - |                   - |
+|          ImHaspMap_TryFind |  1000 | 26.02 ns | 0.4822 ns | 0.4511 ns | 25.84 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+|       ImHashMap_V1_TryFind |  1000 | 25.25 ns | 0.5782 ns | 0.9975 ns | 24.61 ns |  1.01 |    0.03 |           - |           - |           - |                   - |
+| DictionarySlim_TryGetValue |  1000 | 20.63 ns | 0.2481 ns | 0.2320 ns | 20.63 ns |  0.79 |    0.02 |           - |           - |           - |                   - |
+|                            |       |          |           |           |          |       |         |             |             |             |                     |
+|         ImHaspMap_TryFind2 | 10000 | 25.43 ns | 0.1045 ns | 0.0872 ns | 25.40 ns |  0.82 |    0.00 |           - |           - |           - |                   - |
+|         ImHaspMap_TryFind3 | 10000 | 28.20 ns | 0.0230 ns | 0.0192 ns | 28.21 ns |  0.91 |    0.00 |           - |           - |           - |                   - |
+|          ImHaspMap_TryFind | 10000 | 31.03 ns | 0.0709 ns | 0.0628 ns | 31.02 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+|       ImHashMap_V1_TryFind | 10000 | 31.19 ns | 0.0458 ns | 0.0406 ns | 31.18 ns |  1.01 |    0.00 |           - |           - |           - |                   - |
+| DictionarySlim_TryGetValue | 10000 | 21.92 ns | 0.1717 ns | 0.1434 ns | 21.91 ns |  0.71 |    0.01 |           - |           - |           - |                   - |
+
             */
             private const string Seed = "hubba-bubba";
 
@@ -448,10 +476,10 @@ Frequency=2156251 Hz, Resolution=463.7679 ns, Timer=TSC
 
             #endregion
 
-            [Benchmark(Baseline = true)]
-            public string ImHaspMap_TryFind()
+            [Benchmark]
+            public string ImHaspMap_TryFind2()
             {
-                _map.TryFind(LookupKey, out var result);
+                _map.TryFind2(LookupKey, out var result);
                 return result;
             }
 
@@ -459,6 +487,13 @@ Frequency=2156251 Hz, Resolution=463.7679 ns, Timer=TSC
             public string ImHaspMap_TryFind3()
             {
                 _map.TryFind3(LookupKey, out var result);
+                return result;
+            }
+
+            [Benchmark(Baseline = true)]
+            public string ImHaspMap_TryFind()
+            {
+                _map.TryFind(LookupKey, out var result);
                 return result;
             }
 

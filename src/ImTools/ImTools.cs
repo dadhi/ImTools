@@ -1834,19 +1834,12 @@ namespace ImTools
                 return false;
             }
 
-            var foundHash = false;
             var hash = key.GetHashCode();
-            do
-            {
-                if (hash < map.Hash)
-                    map = map.Left;
-                else if (hash > map.Hash)
-                    map = map.Right;
-                else
-                    foundHash = true;
-            } while (!foundHash && map.Height != 0);
 
-            if (foundHash && ReferenceEquals(key, map.Key) || key.Equals(map.Key))
+            while (hash != map.Hash && map.Height != 0)
+                map = hash < map.Hash ? map.Left : map.Right;
+
+            if (map.Height != 0 && ReferenceEquals(key, map.Key) && key.Equals(map.Key))
             {
                 value = map.Value;
                 return true;
@@ -1857,7 +1850,7 @@ namespace ImTools
 
         /// Returns true if key is found and sets the value.
         [MethodImpl((MethodImplOptions)256)]
-        public static bool TryFind3<K, V>(this ImHashMap<K, V> map, K key, out V value)
+        public static bool TryFind3<K, V>(this ImHashMap<K, V> map, K key, out V value) where K : IEquatable<K>
         {
             if (map.Height == 0)
             {
@@ -1870,7 +1863,7 @@ namespace ImTools
             while (hash != map.Hash && map.Height != 0)
                 map = hash < map.Hash ? map.Left : map.Right;
 
-            if (map.Height != 0 && ReferenceEquals(key, map.Key) && key.Equals(map.Key))
+            if (map.Height != 0 && key.Equals(map.Key))
             {
                 value = map.Value;
                 return true;
