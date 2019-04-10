@@ -564,20 +564,6 @@ Frequency=2156251 Hz, Resolution=463.7679 ns, Timer=TSC
 
             #endregion
 
-            [Benchmark]
-            public string ImHaspMap_TryFind2()
-            {
-                _map.TryFind2(LookupKey, out var result);
-                return result;
-            }
-
-            [Benchmark]
-            public string ImHaspMap_TryFind3()
-            {
-                _map.TryFind3(LookupKey, out var result);
-                return result;
-            }
-
             [Benchmark(Baseline = true)]
             public string ImHaspMap_TryFind()
             {

@@ -726,7 +726,7 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
             [Benchmark(Baseline = true)]
             public string ImHashMap_TryFind()
             {
-                _map.TryFind3(LookupKey, out var result);
+                _map.TryFind(LookupKey, out var result);
                 return result;
             }
 
