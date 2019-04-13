@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 
 namespace ImTools.UnitTests
 {
@@ -29,7 +29,7 @@ namespace ImTools.UnitTests
 
             private DataObject() { }
 
-            public DataObject With(Opt<int> id = default(Opt<int>), Opt<string> value = default(Opt<string>), Opt<DataObject2> obj = default(Opt<DataObject2>))
+            public DataObject With(Opt<int> id = default, Opt<string> value = default, Opt<DataObject2> obj = default)
             {
                 return new DataObject
                 {
@@ -55,14 +55,12 @@ namespace ImTools.UnitTests
             {
             }
 
-            public DataObject2 With(Opt<decimal> price = default(Opt<decimal>), Opt<string> priceType = default(Opt<string>))
-            {
-                return new DataObject2
+            public DataObject2 With(Opt<decimal> price = default, Opt<string> priceType = default) =>
+                new DataObject2
                 {
                     Price = price.OrDefault(Price),
                     PriceType = priceType.OrDefault(PriceType)
                 };
-            }
         }
     }
 }

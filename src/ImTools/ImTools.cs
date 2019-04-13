@@ -209,7 +209,7 @@ namespace ImTools
                         return item;
                 }
 
-            return default(T);
+            return default;
         }
 
         /// <summary>Returns first item matching the <paramref name="predicate"/>, or default item value.</summary>
@@ -225,19 +225,19 @@ namespace ImTools
         public static T SingleOrDefaultIfMany<T>(this IEnumerable<T> source)
         {
             if (source is IList<T> list)
-                return list.Count == 1 ? list[0] : default(T);
+                return list.Count == 1 ? list[0] : default;
 
             if (source == null)
-                return default(T);
+                return default;
 
             using (var e = source.GetEnumerator())
             {
                 if (!e.MoveNext())
-                    return default(T);
+                    return default;
                 var it = e.Current;
                 if (!e.MoveNext())
                     return it;
-                return default(T);
+                return default;
             }
         }
 
@@ -490,7 +490,7 @@ namespace ImTools
 
         /// <summary>Creates ref to object, optionally with initial value provided.</summary>
         /// <param name="initialValue">(optional) Initial value.</param>
-        public Ref(T initialValue = default(T))
+        public Ref(T initialValue = default)
         {
             _value = initialValue;
         }
@@ -674,16 +674,6 @@ namespace ImTools
         /// <typeparam name="K">Key type</typeparam> <typeparam name="V">Value type</typeparam>
         /// <param name="key">Key</param> <param name="value">Value</param> <returns>New pair.</returns>
         public static KV<K, V> Of<K, V>(K key, V value) => new KV<K, V>(key, value);
-
-        /// <summary>Creates the new pair with new key and old value.</summary>
-        /// <typeparam name="K">Key type</typeparam> <typeparam name="V">Value type</typeparam>
-        /// <param name="source">Source value</param> <param name="key">New key</param> <returns>New pair</returns>
-        public static KV<K, V> WithKey<K, V>(this KV<K, V> source, K key) => new KV<K, V>(key, source.Value);
-
-        /// <summary>Creates the new pair with old key and new value.</summary>
-        /// <typeparam name="K">Key type</typeparam> <typeparam name="V">Value type</typeparam>
-        /// <param name="source">Source value</param> <param name="value">New value.</param> <returns>New pair</returns>
-        public static KV<K, V> WithValue<K, V>(this KV<K, V> source, V value) => new KV<K, V>(source.Key, value);
     }
 
     /// <summary>Simple helper for creation of the pair of two parts.</summary>
@@ -714,11 +704,10 @@ namespace ImTools
         }
 
         /// <summary>Helper to get value or default value if value is not present.</summary>
-        public T OrDefault(T defaultValue = default(T)) => HasValue ? Value : defaultValue;
+        public T OrDefault(T defaultValue = default) => HasValue ? Value : defaultValue;
     }
 
-    /// <summary>Immutable list - simplest linked list with Head and Rest.</summary>
-    /// <typeparam name="T">Type of the item.</typeparam>
+    /// <summary>Immutable list - simplest linked list with the Head and the Tail.</summary>
     public sealed class ImList<T>
     {
         /// <summary>Empty list to Push to.</summary>
@@ -734,12 +723,9 @@ namespace ImTools
         public readonly ImList<T> Tail;
 
         /// <summary>Prepends new value and returns new list.</summary>
-        /// <param name="head">New first value.</param>
-        /// <returns>List with the new head.</returns>
-        public ImList<T> Prep(T head) => new ImList<T>(head, this);
+        public ImList<T> Push(T head) => new ImList<T>(head, this);
 
         /// <summary>Enumerates the list.</summary>
-        /// <returns>Each item in turn.</returns>
         public IEnumerable<T> Enumerate()
         {
             if (IsEmpty)
@@ -748,7 +734,13 @@ namespace ImTools
                 yield return list.Head;
         }
 
-        #region Implementation
+        /// <summary>String representation for debugging purposes</summary>
+        public override string ToString() => IsEmpty
+            ? "[]" : Tail.IsEmpty
+            ? "[" + Head + "]" : Tail.Tail.IsEmpty
+            ? "[" + Head + "," + Tail.Head + "]" : Tail.Tail.Tail.IsEmpty
+            ? "[" + Head + "," + Tail.Head + "," + Tail.Tail.Head + "]"
+            : "[" + Head + "," + Tail.Head + "," + Tail.Tail.Head + ", ...]";
 
         private ImList() { }
 
@@ -757,78 +749,269 @@ namespace ImTools
             Head = head;
             Tail = tail;
         }
-
-        #endregion
     }
 
     /// <summary>Extension methods providing basic operations on a list.</summary>
     public static class ImList
     {
-        /// <summary>This a basically a Fold function, to address needs in Map, Filter, Reduce.</summary>
-        /// <typeparam name="T">Type of list item.</typeparam>
-        /// <typeparam name="R">Type of result.</typeparam>
-        /// <param name="source">List to fold.</param>
-        /// <param name="initialValue">From were to start.</param>
-        /// <param name="collect">Collects list item into result</param>
-        /// <returns>Return result or <paramref name="initialValue"/> for empty list.</returns>
-        public static R To<T, R>(this ImList<T> source, R initialValue, Func<T, R, R> collect)
+        /// Split list into (Head, Tail, IsEmpty) tuple
+        public static void Deconstruct<T>(this ImList<T> list, out T head, out ImList<T> tail, out bool isEmpty)
         {
-            if (source.IsEmpty)
-                return initialValue;
-            var value = initialValue;
-            for (; !source.IsEmpty; source = source.Tail)
-                value = collect(source.Head, value);
-            return value;
+            head = list.Head;
+            tail = list.Tail;
+            isEmpty = list.IsEmpty;
         }
 
-        /// <summary>Form of fold function with element index for convenience.</summary>
-        /// <typeparam name="T">Type of list item.</typeparam>
-        /// <typeparam name="R">Type of result.</typeparam>
-        /// <param name="source">List to fold.</param>
-        /// <param name="initialValue">From were to start.</param>
-        /// <param name="collect">Collects list item into result</param>
-        /// <returns>Return result or <paramref name="initialValue"/> for empty list.</returns>
-        public static R To<T, R>(this ImList<T> source, R initialValue, Func<T, int, R, R> collect)
+        /// Constructs from the parameter array of items
+        public static ImList<T> List<T>(params T[] items)
         {
-            if (source.IsEmpty)
-                return initialValue;
-            var value = initialValue;
-            for (var i = 0; !source.IsEmpty; source = source.Tail)
-                value = collect(source.Head, i++, value);
-            return value;
+            var l = ImList<T>.Empty;
+            if (!items.IsNullOrEmpty())
+                for (var i = items.Length - 1; i >= 0; --i)
+                    l = l.Push(items[i]);
+            return l;
+        }
+
+        /// <summary>Constructs list of one element</summary>
+        public static ImList<T> List<T>(T head) => ImList<T>.Empty.Push(head);
+
+        /// <summary>Constructs list from head and tail</summary>
+        public static ImList<T> List<T>(T head, ImList<T> tail) => tail.Push(head);
+
+        /// <summary>Apples some effect action to each element</summary>
+        public static void ForEach<T>(this ImList<T> list, Action<T> effect)
+        {
+            for (; !list.IsEmpty; list = list.Tail)
+                effect(list.Head);
+        }
+
+        /// <summary>Fold list to a single value. The respective name for it in LINQ is Aggregate</summary>
+        public static R Fold<T, R>(this ImList<T> list, R seed, Func<T, R, R> reduce)
+        {
+            if (list.IsEmpty)
+                return seed;
+            var result = seed;
+            for (; !list.IsEmpty; list = list.Tail)
+                result = reduce(list.Head, result);
+            return result;
+        }
+
+        /// <summary>Fold list to a single value with index of item. The respective name for it in LINQ is Aggregate.</summary>
+        public static R Fold<T, R>(this ImList<T> list, R seed, Func<T, int, R, R> reduce)
+        {
+            if (list.IsEmpty)
+                return seed;
+            var result = seed;
+            for (var i = 0; !list.IsEmpty; list = list.Tail, ++i)
+                result = reduce(list.Head, i, result);
+            return result;
         }
 
         /// <summary>Returns new list in reverse order.</summary>
-        /// <typeparam name="T">List item type</typeparam> <param name="source">List to reverse.</param>
-        /// <returns>New list. If list consist on single element, then the same list.</returns>
-        public static ImList<T> Reverse<T>(this ImList<T> source)
-        {
-            if (source.IsEmpty || source.Tail.IsEmpty)
-                return source;
-            return source.To(ImList<T>.Empty, (it, _) => _.Prep(it));
-        }
+        public static ImList<T> Reverse<T>(this ImList<T> list) =>
+            list.IsEmpty || list.Tail.IsEmpty ? list : list.Fold(ImList<T>.Empty, List);
 
         /// <summary>Maps the items from the first list to the result list.</summary>
-        /// <typeparam name="T">source item type.</typeparam> 
-        /// <typeparam name="R">result item type.</typeparam>
-        /// <param name="source">input list.</param> <param name="map">converter func.</param>
-        /// <returns>result list.</returns>
-        public static ImList<R> Map<T, R>(this ImList<T> source, Func<T, R> map) => 
-            source.To(ImList<R>.Empty, (it, _) => _.Prep(map(it))).Reverse();
+        public static ImList<R> Map<T, R>(this ImList<T> list, Func<T, R> map) =>
+            list.Fold(ImList<R>.Empty, (x, r) => List(map(x), r)).Reverse();
 
-        /// <summary>Maps the items from the first list to the result list with item index.</summary>
-        /// <typeparam name="T">source item type.</typeparam> 
-        /// <typeparam name="R">result item type.</typeparam>
-        /// <param name="source">input list.</param> <param name="map">converter func.</param>
-        /// <returns>result list.</returns>
-        public static ImList<R> Map<T, R>(this ImList<T> source, Func<T, int, R> map) => 
-            source.To(ImList<R>.Empty, (it, i, _) => _.Prep(map(it, i))).Reverse();
+        /// <summary>Maps with index</summary>
+        public static ImList<R> Map<T, R>(this ImList<T> list, Func<T, int, R> map) =>
+            list.Fold(ImList<R>.Empty, (x, i, r) => List(map(x, i), r)).Reverse();
 
-        /// <summary>Copies list to array.</summary> 
+        /// <summary>Copies list to array.</summary>
         public static T[] ToArray<T>(this ImList<T> source) =>
-            source.IsEmpty ? ArrayTools.Empty<T>() :
-            source.Tail.IsEmpty ? new[] { source.Head } :
-            source.Enumerate().ToArray();
+            source.IsEmpty ? ArrayTools.Empty<T>()
+            : source.Tail.IsEmpty ? new[] { source.Head } : source.Enumerate().ToArray();
+    }
+
+    /// Zipper is an immutable persistent data structure, to represent collection with single focused (selected, active) element.
+    /// Consist of REVERSED `Left` immutable list, `Focus` element, and `Right` immutable list. That's why a Zipper name,
+    /// where left and right part are joined in focus item.
+    public sealed class ImZipper<T>
+    {
+        /// Empty singleton instance to start building your zipper
+        public static readonly ImZipper<T> Empty = new ImZipper<T>();
+
+        /// True is zipper does not contain items
+        public bool IsEmpty => Count == 0;
+
+        /// Index of Focus item, from `0` to `Count-1`
+        public readonly int Index;
+
+        /// Number of items
+        public readonly int Count;
+
+        /// Left REVERSED list, so the Head of the list is just prior the Focus item 
+        public readonly ImList<T> Left;
+
+        /// Right list, where Head is just after the Focus item
+        public readonly ImList<T> Right;
+
+        /// Single focus item
+        public readonly T Focus;
+
+        /// <inheritdoc />
+        public override string ToString() =>
+            IsEmpty ? "[||]" : Count + ":" + Left.Reverse() + "|" + Index + ":" + Focus + "|" + Right;
+
+        /// Sets a new focus and pushes the old focus to the Left list. 
+        public ImZipper<T> Append(T focus) => PushLeft(focus);
+
+        /// Sets a new focus and pushes the old focus to the Left list.
+        public ImZipper<T> PushLeft(T focus) =>
+        IsEmpty ? new ImZipper<T>(ImList<T>.Empty, focus, 0, ImList<T>.Empty, 1)
+                : new ImZipper<T>(Left.Push(Focus), focus, Index + 1, Right, Count + 1);
+
+        /// Sets a new focus and pushes the old focus to the right list. 
+        public ImZipper<T> Insert(T focus) => PushRight(focus);
+
+        /// Sets a new focus and pushes the old focus to the right list. 
+        public ImZipper<T> PushRight(T focus) =>
+            IsEmpty ? new ImZipper<T>(ImList<T>.Empty, focus, 0, ImList<T>.Empty, 1)
+                : new ImZipper<T>(Left, focus, Index, Right.Push(Focus), Count + 1);
+
+        /// Removes a focus, filling the hole with the item from the left list, or from the right if the left is empty
+        public ImZipper<T> PopLeft() =>
+            IsEmpty ? this
+            : Left.IsEmpty && Right.IsEmpty ? Empty
+            : !Left.IsEmpty ? new ImZipper<T>(Left.Tail, Left.Head, Index - 1, Right, Count - 1)
+            : new ImZipper<T>(Left, Right.Head, Index, Right.Tail, Count - 1);
+
+        /// Removes a focus, filling the hole with the item from the right list, or from the left if the right is empty
+        public ImZipper<T> PopRight() =>
+            IsEmpty ? this
+            : Left.IsEmpty && Right.IsEmpty ? Empty
+            : !Right.IsEmpty ? new ImZipper<T>(Left, Right.Head, Index, Right.Tail, Count - 1)
+            : new ImZipper<T>(Left.Tail, Left.Head, Index - 1, Right, Count - 1);
+
+        /// Shifts focus one element to the left (decrementing its Index).
+        public ImZipper<T> ShiftLeft() =>
+            IsEmpty || Left.IsEmpty ? this
+            : new ImZipper<T>(Left.Tail, Left.Head, Index - 1, Right.Push(Focus), Count);
+
+        /// Shifts focus one element to the right (incrementing its Index).
+        public ImZipper<T> ShiftRight() =>
+            IsEmpty || Right.IsEmpty ? this
+            : new ImZipper<T>(Left.Push(Focus), Right.Head, Index + 1, Right.Tail, Count);
+
+        /// Sets a new focus and returns a new zipper with the left and right lists unchanged
+        public ImZipper<T> WithFocus(T focus) =>
+            IsEmpty ? this : new ImZipper<T>(Left, focus, Index, Right, Count);
+
+        /// Maps over the zipper items producing a new zipper
+        public ImZipper<R> Map<R>(Func<T, R> map) =>
+            IsEmpty ? ImZipper<R>.Empty
+                : new ImZipper<R>(Left.Reverse().Fold(ImList<R>.Empty, (x, r) => r.Push(map(x))),
+                    map(Focus), Index, Right.Map(map), Count);
+
+        /// Maps over the zipper items with item index, producing a new zipper
+        public ImZipper<R> Map<R>(Func<T, int, R> map) =>
+            IsEmpty ? ImZipper<R>.Empty
+                : new ImZipper<R>(
+                    Left.Reverse().Fold(ImList<R>.Empty, (x, i, r) => r.Push(map(x, i))),
+                    map(Focus, Index), Index, Right.Map((x, i) => map(x, Index + 1 + i)), Count);
+
+        private ImZipper() => Index = -1;
+
+        private ImZipper(ImList<T> left, T focus, int index, ImList<T> right, int count)
+        {
+            Left = left;
+            Focus = focus;
+            Index = index;
+            Right = right;
+            Count = count;
+        }
+    }
+
+    /// Other ImZipper methods
+    public static class ImZipper
+    {
+        /// Appends array items to zipper
+        public static ImZipper<T> Zip<T>(params T[] items)
+        {
+            if (items.IsNullOrEmpty())
+                return ImZipper<T>.Empty;
+            var z = ImZipper<T>.Empty;
+            for (var i = 0; i < items.Length; ++i)
+                z = z.PushLeft(items[i]);
+            return z;
+        }
+
+        /// Converts to array.
+        public static T[] ToArray<T>(this ImZipper<T> z)
+        {
+            if (z.IsEmpty)
+                return ArrayTools.Empty<T>();
+            var a = new T[z.Count];
+            z.Fold(a, (x, i, xs) =>
+            {
+                xs[i] = x;
+                return xs;
+            });
+            return a;
+        }
+
+        /// Shifts focus to a specified index, e.g. a random access
+        public static ImZipper<T> ShiftTo<T>(this ImZipper<T> z, int i)
+        {
+            if (i < 0 || i >= z.Count || i == z.Index)
+                return z;
+            while (i < z.Index)
+                z = z.ShiftLeft();
+            while (i > z.Index)
+                z = z.ShiftRight();
+            return z;
+        }
+
+        /// Updates a focus element if it is present, otherwise does nothing.
+        /// If the focus item is the equal one, then returns the same zipper back.
+        public static ImZipper<T> Update<T>(this ImZipper<T> z, Func<T, T> update)
+        {
+            if (z.IsEmpty)
+                return z;
+            var result = update(z.Focus);
+            if (ReferenceEquals(z.Focus, result) || result != null && result.Equals(z.Focus))
+                return z;
+            return z.WithFocus(result);
+        }
+
+        /// Update the item at random index, by shifting and updating it
+        public static ImZipper<T> UpdateAt<T>(this ImZipper<T> z, int i, Func<T, T> update) =>
+            i < 0 || i >= z.Count ? z : z.ShiftTo(i).Update(update);
+
+        /// Update the item at random index, by shifting and updating it
+        public static ImZipper<T> RemoveAt<T>(this ImZipper<T> z, int i) =>
+            i < 0 || i >= z.Count ? z : z.ShiftTo(i).PopLeft();
+
+        /// Folds zipper to a single value
+        public static R Fold<T, R>(this ImZipper<T> z, R seed, Func<T, R, R> reduce) =>
+            z.IsEmpty ? seed :
+            z.Right.Fold(reduce(z.Focus, z.Left.Reverse().Fold(seed, reduce)), reduce);
+
+        /// Folds zipper to a single value by using an item index
+        public static R Fold<T, R>(this ImZipper<T> z, R seed, Func<T, int, R, R> reduce)
+        {
+            if (z.IsEmpty)
+                return seed;
+            var focusIndex = z.Index;
+            var reducedLeft = z.Left.Reverse().Fold(seed, reduce);
+            return z.Right.Fold(reduce(z.Focus, focusIndex, reducedLeft),
+                (x, i, r) => reduce(x, focusIndex + i + 1, r));
+        }
+
+        /// <summary>Apply some effect action on each element</summary>
+        public static void ForEach<T>(this ImZipper<T> z, Action<T> effect)
+        {
+            if (!z.IsEmpty)
+            {
+                if (!z.Left.IsEmpty)
+                    z.Left.Reverse().ForEach(effect);
+                effect(z.Focus);
+                if (!z.Right.IsEmpty)
+                    z.Right.ForEach(effect);
+            }
+        }
     }
 
     /// Given the old value should and the new value should return result updated value.
@@ -1261,7 +1444,7 @@ namespace ImTools
         public ImHashMap<K, V> AddOrUpdate(K key, V value, out bool isUpdated, out V oldValue, Update<K, V> update = null)
         {
             isUpdated = false;
-            oldValue = default(V);
+            oldValue = default;
 
             var hash = key.GetHashCode();
 
@@ -1632,7 +1815,7 @@ namespace ImTools
                         return true;
                     }
 
-            value = default(V);
+            value = default;
             return false;
         }
 
@@ -1707,7 +1890,7 @@ namespace ImTools
                         var successor = Right;
                         while (!successor.Left.IsEmpty) successor = successor.Left;
                         result = new ImHashMap<K, V>(successor._data,
-                            Left, Right.Remove(successor.Hash, default(K), ignoreKey: true));
+                            Left, Right.Remove(successor.Hash, default, ignoreKey: true));
                     }
                 }
                 else if (Conflicts != null)
@@ -1756,7 +1939,7 @@ namespace ImTools
     {
         /// Looks for key in a tree and returns the key value if found, or <paramref name="defaultValue"/> otherwise.
         [MethodImpl((MethodImplOptions)256)]
-        public static V GetValueOrDefault<K, V>(this ImHashMap<K, V> map, K key, V defaultValue = default(V))
+        public static V GetValueOrDefault<K, V>(this ImHashMap<K, V> map, K key, V defaultValue = default)
         {
             if (map.Height == 0)
                 return defaultValue;
@@ -1776,7 +1959,7 @@ namespace ImTools
 
         /// Looks for key in a tree and returns the key value if found, or <paramref name="defaultValue"/> otherwise.
         [MethodImpl((MethodImplOptions)256)]
-        public static V GetValueOrDefault<V>(this ImHashMap<Type, V> map, Type key, V defaultValue = default(V))
+        public static V GetValueOrDefault<V>(this ImHashMap<Type, V> map, Type key, V defaultValue = default)
         {
             if (map.Height == 0)
                 return defaultValue;
@@ -1819,7 +2002,7 @@ namespace ImTools
                 while (map.Height != 0);
             }
 
-            value = default(V);
+            value = default;
             return false;
         }
 
@@ -1849,7 +2032,7 @@ namespace ImTools
                 while (map.Height != 0);
             }
 
-            value = default(V);
+            value = default;
             return false;
         }
 
@@ -1879,7 +2062,7 @@ namespace ImTools
                 while (map.Height != 0);
             }
 
-            value = default(V);
+            value = default;
             return false;
         }
     }
