@@ -45,7 +45,11 @@ namespace ImTools
         public static R To<T, R>(this T x, Func<T, R> map) => map(x);
 
         /// <summary>Piping</summary>
-        public static void Do<T>(this T x, Action<T> effect) => effect(x);
+        public static T Do<T>(this T x, Action<T> effect)
+        {
+            effect(x);
+            return x;
+        }
 
         /// Lifts argument to Func without allocations ignoring the first argument.
         /// For example if you have `Func{T, R} = _ => instance`,
@@ -64,6 +68,62 @@ namespace ImTools
         /// <inheritdoc />
         public override string ToString() => "(empty)";
     }
+
+    /*
+    ## The example of Union usage:
+    *
+    /// UI elements
+    sealed class UI : U<Text, Input, Button, Check, Panel> {}
+    sealed class Text   : Is<Text, string> {}
+    sealed class Input  : Is<Input, (string Content, MessageRef<string> Changed)> {}
+    sealed class Button : Is<Button, (string Label, MessageRef<Empty> Clicked)> {}
+    sealed class Check  : Is<Check, (string Label, bool IsChecked, MessageRef<bool> Changed)> {}
+    sealed class Panel  : Is<Panel, (Layout Layout, ImZipper<UI.ICase> Elements)> {}
+
+    // Somewhere else:
+    private static UIElement CreateElement(UI.ICase ui)
+    {
+        switch (ui)
+        {
+            case Is<Text> text:
+                return new Label { Content = text.Value() };
+
+            case Is<Input> input:
+                {
+                    var (content, changed) = input.Value();
+                    var tb = new TextBox { Text = content };
+                    tb.TextChanged += (sender, _) => changed.Send(((TextBox)sender).Text);
+                    return tb;
+                }
+            case Is<Button> button:
+                {
+                    var (label, clicked) = button.Value();
+                    var b = new Btn { Content = label };
+                    b.Click += (sender, _) => clicked.Send(Empty.Value);
+                    return b;
+                }
+            case Is<Panel> panel:
+                {
+                    var (layout, elems) = panel.Value();
+                    var orientation = layout == Layout.Vertical ? Orientation.Vertical : Orientation.Horizontal;
+                    var p = new StackPanel { Orientation = orientation };
+                    elems.Map(CreateElement).Map(e => p.Children.Add(e));
+                    return p;
+                }
+            case Is<Check> check:
+                {
+                    var (label, isChecked, changed) = check.Value();
+                    var c = new CheckBox { Content = label, IsChecked = isChecked };
+                    c.Checked += (s, _) => changed.Send(true);
+                    c.Unchecked += (s, _) => changed.Send(false);
+                    return c;
+                }
+            default:
+                throw new NotSupportedException("The type of UI is not supported: " + ui.GetType());
+        }
+    }
+*/
+
 
     /// Useful for type pattern matching via `case Is{T} x: ...`
     public interface Is<out T>
@@ -89,56 +149,27 @@ namespace ImTools
     }
 
     /// Wraps a single case value, it is like a Tuple with a single item
-    public abstract class Rec<TRec, T> : IEquatable<Rec<TRec, T>>, Is<T>
-        where TRec : Rec<TRec, T>, new()
+    public abstract class Is<TIs, T> : IEquatable<Is<TIs, T>>, Is<T>
+        where TIs : Is<TIs, T>, new()
     {
         /// Converts a value into Rec of the value
-        public static TRec Of(T v) => new TRec { Value = v };
+        public static TIs Of(T v) => new TIs { Value = v };
 
         /// The value
         public T Value { get; private set; }
 
         /// <inheritdoc />
-        public bool Equals(Rec<TRec, T> other) => other != null && EqualityComparer<T>.Default.Equals(Value, other.Value);
+        public bool Equals(Is<TIs, T> other) => other != null && EqualityComparer<T>.Default.Equals(Value, other.Value);
 
         /// <inheritdoc />
-        public override bool Equals(object obj) => obj is Rec<TRec, T> c && Equals(c);
+        public override bool Equals(object obj) => obj is Is<TIs, T> c && Equals(c);
 
         // ReSharper disable once NonReadonlyMemberInGetHashCode
         /// <inheritdoc />
         public override int GetHashCode() => EqualityComparer<T>.Default.GetHashCode(Value);
 
         /// <inheritdoc />
-        public override string ToString() => Union.ToString<TRec, T>(Value);
-    }
-
-    /// Enables one line struct sub-typing
-    public abstract class Case<TCase, T>
-    {
-        /// Constructs the internal struct
-        public static Struct Of(T x) => new Struct(x);
-
-        /// Internal struct
-        public struct Struct : IEquatable<Struct>, Is<T>
-        {
-            /// <inheritdoc />
-            public T Value { get; }
-
-            /// Constructs the struct with value
-            public Struct(T v) => Value = v;
-
-            /// <inheritdoc />
-            public bool Equals(Struct other) => EqualityComparer<T>.Default.Equals(Value, other.Value);
-
-            /// <inheritdoc />
-            public override bool Equals(object obj) => obj is Struct s && Equals(s);
-
-            /// <inheritdoc />
-            public override int GetHashCode() => EqualityComparer<T>.Default.GetHashCode(Value);
-
-            /// <inheritdoc />
-            public override string ToString() => Union.ToString<TCase, T>(Value);
-        }
+        public override string ToString() => Union.ToString<TIs, T>(Value);
     }
 
     /// Unnamed discriminated union (with Empty name), shorter name for simplified inline usage
@@ -1131,10 +1162,10 @@ namespace ImTools
         }
 
         /// <summary>Constructs list of one element</summary>
-        public static ImList<T> List<T>(T head) => ImList<T>.Empty.Push(head);
+        public static ImList<T> List<T>(this T head) => ImList<T>.Empty.Push(head);
 
         /// <summary>Constructs list from head and tail</summary>
-        public static ImList<T> List<T>(T head, ImList<T> tail) => tail.Push(head);
+        public static ImList<T> List<T>(this T head, ImList<T> tail) => tail.Push(head);
 
         /// <summary>Apples some effect action to each element</summary>
         public static void ForEach<T>(this ImList<T> list, Action<T> effect)
