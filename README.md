@@ -10,8 +10,6 @@
 
 Immutable persistent collections, Ref, and Array helpers designed for performance.
 
-Note: concurrent HashMap from tests below is out until #2 is fixed.
-
 Split from [DryIoc](https://github.com/dadhi/dryioc).
 
 
