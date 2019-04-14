@@ -141,10 +141,13 @@ namespace ImTools
         /// Pretty prints the Union using the type information
         internal static string ToString<TName, T>(T value)
         {
-            var type = typeof(TName);
-            var i = type.Name.IndexOf('`');
-            var name = i == -1 ? type.Name : type.Name.Substring(0, i);
-            return name + "(" + value + ")";
+            if (typeof(TName) == typeof(Empty))
+                return ".union(" + value + ")";
+
+            var typeName = typeof(TName).Name;
+            var i = typeName.IndexOf('`');
+            var name = i == -1 ? typeName : typeName.Substring(0, i);
+            return name + ".union(" + value + ")";
         }
     }
 

@@ -43,6 +43,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nuspecs", "nuspecs", "{29BC
 		nuspecs\ImTools.nuspec = nuspecs\ImTools.nuspec
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImTools.UnionPlayground", "playground\ImTools.UnionPlayground\ImTools.UnionPlayground.csproj", "{EFBD055A-3C8A-45C7-8718-D9C53A66521D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -61,6 +63,10 @@ Global
 		{113D7A58-BA48-4C82-9E3C-0862BE1186A5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{113D7A58-BA48-4C82-9E3C-0862BE1186A5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{113D7A58-BA48-4C82-9E3C-0862BE1186A5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EFBD055A-3C8A-45C7-8718-D9C53A66521D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EFBD055A-3C8A-45C7-8718-D9C53A66521D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EFBD055A-3C8A-45C7-8718-D9C53A66521D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EFBD055A-3C8A-45C7-8718-D9C53A66521D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -69,6 +75,7 @@ Global
 		{6B4B1E6B-6C7B-4FE4-8620-D4ABEE67C592} = {A6F5B847-FF68-4EA1-98D4-B7517296AC16}
 		{D95E6E09-2052-4F08-A4D4-C73244720920} = {F779D683-7F9C-4B65-95C5-ED8E75642362}
 		{113D7A58-BA48-4C82-9E3C-0862BE1186A5} = {D109DF34-CB08-42E5-8F8F-CD2D4D4A8DB3}
+		{EFBD055A-3C8A-45C7-8718-D9C53A66521D} = {D109DF34-CB08-42E5-8F8F-CD2D4D4A8DB3}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B8B8E41A-6F08-46C3-828D-C74B91428793}
