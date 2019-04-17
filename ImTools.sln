@@ -23,6 +23,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{F6D087C9-3B9A-413A-86DD-14BD1F6BF013}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
+		.travis.yml = .travis.yml
+		appveyor.yml = appveyor.yml
 		build.bat = build.bat
 		Directory.Build.props = Directory.Build.props
 		README.md = README.md
