@@ -29,15 +29,13 @@ namespace ImTools.UnitTests
 
             private DataObject() { }
 
-            public DataObject With(Opt<int> id = default, Opt<string> value = default, Opt<DataObject2> obj = default)
-            {
-                return new DataObject
+            public DataObject With(Opt<int> id = default, Opt<string> value = default, Opt<DataObject2> obj = default) =>
+                new DataObject
                 {
                     Id = id.OrDefault(Id),
                     Value = value.OrDefault(Value),
                     Object = obj.OrDefault(Object)
                 };
-            }
         }
 
         public class DataObject2

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
@@ -303,7 +303,7 @@ namespace ImTools.UnitTests
             var keyHash = key.GetHashCode();
             var value = "test";
 
-            Update<KeyValuePair<Type, string>[]> update = (oldValue, newValue) =>
+            KeyValuePair<Type, string>[] Update(KeyValuePair<Type, string>[] oldValue, KeyValuePair<Type, string>[] newValue)
             {
                 var newItem = newValue[0];
                 var oldItemCount = oldValue.Length;
@@ -322,10 +322,10 @@ namespace ImTools.UnitTests
                 Array.Copy(oldValue, addedItems, addedItems.Length);
                 addedItems[oldItemCount] = newItem;
                 return addedItems;
-            };
+            }
 
-            tree = tree.AddOrUpdate(keyHash, new[] {new KeyValuePair<Type, string>(key, value)}, update);
-            tree = tree.AddOrUpdate(keyHash, new[] {new KeyValuePair<Type, string>(key, value)}, update);
+            tree = tree.AddOrUpdate(keyHash, new[] {new KeyValuePair<Type, string>(key, value)}, Update);
+            tree = tree.AddOrUpdate(keyHash, new[] {new KeyValuePair<Type, string>(key, value)}, Update);
 
             string result = null;
 
@@ -547,10 +547,7 @@ namespace ImTools.UnitTests
                 _hash = hash;
             }
 
-            public override int GetHashCode()
-            {
-                return _hash;
-            }
+            public override int GetHashCode() => _hash;
 
             public override bool Equals(object obj)
             {

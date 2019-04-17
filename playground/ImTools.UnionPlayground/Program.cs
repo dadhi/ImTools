@@ -60,7 +60,7 @@ namespace ImTools.UnionPlayground
 
     public static class Usage
     {
-        // note: Using T with constraint instead of FlagOrName.I interface improves the performace by avoiding boxing.
+        // note: Using T with constraint instead of FlagOrName.I interface improves the performance by avoiding boxing.
         public static string PatternMatching<T>(T x) where T : FlagOrName.union
         {
             switch (x)
@@ -74,12 +74,12 @@ namespace ImTools.UnionPlayground
         public static string PatternMatchingWithTypedCases(FlagOrName2.union x)
         {
             // Refactoring friendly Named cases, with some performance price due the boxing - likely is not important for your case, 
-            // except you are designing a performance oriented data structure or being used in performance sensetive spot context.
+            // except you are designing a performance oriented data structure or being used in performance sensitive spot context.
             // The performance price may be gained back any time by switching to CaseN struct matching.
             switch (x)
             {
                 case Is<Flag> b: return "" + b; // b.Value.Value for the actual value
-                case Is<Name> s: return "" + s;
+                //case Is<Name> s: return "" + s;
                 default: throw new NotSupportedException();
             }
         }
