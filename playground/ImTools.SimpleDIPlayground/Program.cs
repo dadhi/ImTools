@@ -30,28 +30,27 @@ namespace ImTools.SimpleDIPlayground
 
         public object Resolve<TService>()
         {
-            return (TService)(_registry.Value.Resolve(typeof(TService)) ?? ThrowUnableToResolve(typeof(TService)));
+            return (TService)(_registry.Value.Resolve(typeof(TService)) 
+                ?? throw new InvalidOperationException("Unable to resolve: " + typeof(TService)));
         }
-
-        public object ThrowUnableToResolve(Type t) { throw new InvalidOperationException("Unable to resolve: " + t); }
 
         private class Registry
         {
-            ImHashMap<Type, Factory> _registrations = ImHashMap<Type, Factory>.Empty;
-            Ref<ImHashMap<Type, Func<object>>> _resolutionCache = Ref.Of(ImHashMap<Type, Func<object>>.Empty);
+            private ImHashMap<Type, Factory> _registrations = ImHashMap<Type, Factory>.Empty;
 
-            // Creating a new registry with +1 registration and new reference to cache value
+            private Ref<ImHashMap<Type, Func<object>>> _resolutionCache = Ref.Of(ImHashMap<Type, Func<object>>.Empty);
+
+            // Creating a new registry with +1 registration and the new reference to cache value
             public Registry With(Type serviceType, Factory implFactory)
             {
-                return new Registry()
+                return new Registry
                 {
                     _registrations = _registrations.AddOrUpdate(serviceType, implFactory),
 
                     // Here is the most interesting part:
                     //
-                    // We are creating new independent reference pointing to cache value,
-                    // isolating it from possible parallel resolutions, 
-                    // which will swap older version/ref of cache and won't touch the new one.
+                    // We are creating a new independent reference pointing to the cache value,
+                    // isolating it from any possible parallel resolutions, with will proceed to work with the old cache.
                     //
                     _resolutionCache = Ref.Of(_resolutionCache.Value)
                 };
@@ -59,21 +58,22 @@ namespace ImTools.SimpleDIPlayground
 
             public object Resolve(Type serviceType)
             {
-                var func = _resolutionCache.Value.GetValueOrDefault(serviceType);
-                if (func != null)
-                    return func();
+                var cachedDelegate = _resolutionCache.Value.GetValueOrDefault(serviceType);
+                if (cachedDelegate != null)
+                    return cachedDelegate.Invoke();
 
-                var reg = _registrations.GetValueOrDefault(serviceType);
-                if (reg == null)
+                var factory = _registrations.GetValueOrDefault(serviceType);
+                if (factory == null)
                     return null;
 
-                func = reg.CompileDelegate();
-                _resolutionCache.Swap(cache => cache.AddOrUpdate(serviceType, func));
-                return func.Invoke();
+                cachedDelegate = factory.CompileDelegate();
+                _resolutionCache.Swap(cache => cache.AddOrUpdate(serviceType, cachedDelegate));
+                return cachedDelegate.Invoke();
             }
         }
 
-        class Factory
+        // Simple factory class is just demonstration
+        internal class Factory
         {
             public readonly Type ImplType;
             public Factory(Type implType) { ImplType = implType; }
