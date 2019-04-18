@@ -2051,7 +2051,7 @@ namespace ImTools
         public ImHashMap<K, V> AddOrUpdate(K key, V value, Update<V> update) =>
             AddOrUpdate(key, value, out _, out _, (_, oldVal, newVal) => update(oldVal, newVal));
 
-        /// Allocation free for `update` using the key
+        /// Allocation free for `update` delegate with key
         [MethodImpl((MethodImplOptions)256)]
         public ImHashMap<K, V> AddOrUpdate(K key, V value, out bool isUpdated, out V oldValue, Update<K, V> update = null)
         {
@@ -2177,8 +2177,8 @@ namespace ImTools
             Height = height;
         }
 
-        private ImHashMap<K, V> AddOrUpdate(
-            int hash, K key, V value, ref bool isUpdated, ref V oldValue, Update<K, V> update = null)
+        private ImHashMap<K, V> AddOrUpdate(int hash, K key, V value, 
+            ref bool isUpdated, ref V oldValue, Update<K, V> update = null)
         {
             if (hash < Hash)
             {

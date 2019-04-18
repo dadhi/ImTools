@@ -59,6 +59,45 @@ Frequency=2156251 Hz, Resolution=463.7679 ns, Timer=TSC
 |      ConcurrentDict_TryAdd | 100000 | 100,291.074 us | 1,430.4632 us | 1,268.0684 us |  0.48 |    0.01 |  4600.0000 | 2000.0000 | 600.0000 |  27459.84 KB |
 |          ImmutableDict_Add | 100000 | 375,614.567 us | 1,515.8877 us | 1,343.7950 us |  1.79 |    0.02 | 20000.0000 | 5000.0000 |        - | 123738.77 KB |
 
+## Cleanup run:
+
+|                          Method |  Count |           Mean |         Error |        StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+|-------------------------------- |------- |---------------:|--------------:|--------------:|------:|--------:|------------:|------------:|------------:|--------------------:|
+|           ImHashMap_AddOrUpdate |     10 |       1.166 us |     0.0037 us |     0.0031 us |  1.00 |    0.00 |      0.7305 |           - |           - |             3.38 KB |
+|        ImHashMap_V1_AddOrUpdate |     10 |       1.288 us |     0.0035 us |     0.0033 us |  1.10 |    0.00 |      0.8125 |           - |           - |             3.75 KB |
+| DictionarySlim_GetOrAddValueRef |     10 |       1.219 us |     0.0062 us |     0.0055 us |  1.05 |    0.00 |      0.5322 |           - |           - |             2.45 KB |
+|               Dictionary_TryAdd |     10 |       1.060 us |     0.0208 us |     0.0232 us |  0.91 |    0.02 |      0.5150 |           - |           - |             2.38 KB |
+|     ConcurrentDictionary_TryAdd |     10 |       1.698 us |     0.0332 us |     0.0383 us |  1.45 |    0.04 |      0.5817 |           - |           - |             2.69 KB |
+|         ImmutableDictionary_Add |     10 |       6.308 us |     0.1391 us |     0.1428 us |  5.42 |    0.14 |      0.8163 |           - |           - |              3.8 KB |
+|                                 |        |                |               |               |       |         |             |             |             |                     |
+|           ImHashMap_AddOrUpdate |    100 |      21.886 us |     0.3847 us |     0.3598 us |  1.00 |    0.00 |     10.8948 |           - |           - |             50.3 KB |
+|        ImHashMap_V1_AddOrUpdate |    100 |      23.186 us |     0.3365 us |     0.3147 us |  1.06 |    0.03 |     11.8408 |      0.0610 |           - |            54.66 KB |
+| DictionarySlim_GetOrAddValueRef |    100 |      12.331 us |     0.1234 us |     0.1155 us |  0.56 |    0.01 |      4.6234 |           - |           - |            21.38 KB |
+|               Dictionary_TryAdd |    100 |      11.015 us |     0.1632 us |     0.1526 us |  0.50 |    0.01 |      5.2032 |      0.0153 |           - |            24.02 KB |
+|     ConcurrentDictionary_TryAdd |    100 |      22.886 us |     0.4533 us |     0.4655 us |  1.05 |    0.02 |      6.9580 |      0.0305 |           - |            32.13 KB |
+|         ImmutableDictionary_Add |    100 |     111.145 us |     2.2105 us |     2.0677 us |  5.08 |    0.15 |     12.4512 |      0.1221 |           - |            57.78 KB |
+|                                 |        |                |               |               |       |         |             |             |             |                     |
+|           ImHashMap_AddOrUpdate |   1000 |     425.340 us |     8.3217 us |     9.5832 us |  1.00 |    0.00 |    135.2539 |     50.2930 |           - |            663.8 KB |
+|        ImHashMap_V1_AddOrUpdate |   1000 |     464.418 us |     6.7333 us |     6.2983 us |  1.09 |    0.03 |    129.3945 |     57.6172 |           - |            708.8 KB |
+| DictionarySlim_GetOrAddValueRef |   1000 |     142.125 us |     1.9040 us |     1.7810 us |  0.34 |    0.01 |     39.0625 |     15.3809 |           - |           204.11 KB |
+|               Dictionary_TryAdd |   1000 |     125.348 us |     2.3461 us |     2.3042 us |  0.30 |    0.01 |     43.7012 |     18.5547 |           - |           247.48 KB |
+|     ConcurrentDictionary_TryAdd |   1000 |     257.591 us |     5.1379 us |     4.8060 us |  0.61 |    0.01 |     54.6875 |     25.3906 |           - |              298 KB |
+|         ImmutableDictionary_Add |   1000 |   1,706.924 us |    27.1727 us |    25.4174 us |  4.02 |    0.11 |    156.2500 |     62.5000 |           - |           794.91 KB |
+|                                 |        |                |               |               |       |         |             |             |             |                     |
+|           ImHashMap_AddOrUpdate |  10000 |  10,862.478 us |   147.4615 us |   137.9356 us |  1.00 |    0.00 |   1359.3750 |    375.0000 |    156.2500 |           8273.2 KB |
+|        ImHashMap_V1_AddOrUpdate |  10000 |  11,525.821 us |    96.1852 us |    89.9717 us |  1.06 |    0.02 |   1421.8750 |    421.8750 |    187.5000 |          8692.97 KB |
+| DictionarySlim_GetOrAddValueRef |  10000 |   2,811.003 us |    20.5512 us |    18.2181 us |  0.26 |    0.00 |    398.4375 |    199.2188 |    199.2188 |          2450.55 KB |
+|               Dictionary_TryAdd |  10000 |   2,592.468 us |    30.0563 us |    28.1147 us |  0.24 |    0.00 |    441.4063 |    218.7500 |    218.7500 |          2473.84 KB |
+|     ConcurrentDictionary_TryAdd |  10000 |   8,158.437 us |    61.7210 us |    54.7140 us |  0.75 |    0.01 |    578.1250 |    312.5000 |    125.0000 |          3420.05 KB |
+|         ImmutableDictionary_Add |  10000 |  26,318.881 us |   226.7584 us |   212.1099 us |  2.42 |    0.04 |   1687.5000 |    375.0000 |    125.0000 |         10142.22 KB |
+|                                 |        |                |               |               |       |         |             |             |             |                     |
+|           ImHashMap_AddOrUpdate | 100000 | 206,321.656 us | 1,693.5615 us | 1,584.1585 us |  1.00 |    0.00 |  17000.0000 |   4666.6667 |    666.6667 |        100204.42 KB |
+|        ImHashMap_V1_AddOrUpdate | 100000 | 221,562.601 us | 1,269.5998 us | 1,187.5844 us |  1.07 |    0.01 |  17666.6667 |   4666.6667 |    666.6667 |        104488.67 KB |
+| DictionarySlim_GetOrAddValueRef | 100000 |  55,222.073 us |   253.7647 us |   237.3717 us |  0.27 |    0.00 |   3300.0000 |   1400.0000 |    600.0000 |         24191.44 KB |
+|               Dictionary_TryAdd | 100000 |  51,301.961 us |   583.1110 us |   516.9127 us |  0.25 |    0.00 |   3363.6364 |   1545.4545 |    727.2727 |         25277.55 KB |
+|     ConcurrentDictionary_TryAdd | 100000 | 105,307.097 us |   826.3526 us |   732.5400 us |  0.51 |    0.00 |   4800.0000 |   2000.0000 |    600.0000 |         27606.14 KB |
+|         ImmutableDictionary_Add | 100000 | 389,202.241 us | 1,284.0234 us | 1,138.2533 us |  1.89 |    0.02 |  20000.0000 |   5000.0000 |           - |        123849.47 KB |
+
              */
 
             private const string KeySeed = "hubba-bubba";
@@ -67,7 +106,7 @@ Frequency=2156251 Hz, Resolution=463.7679 ns, Timer=TSC
             public int Count;
 
             [Benchmark(Baseline = true)]
-            public ImHashMap<string, string> ImMap_AddOrUpdate()
+            public ImHashMap<string, string> ImHashMap_AddOrUpdate()
             {
                 var map = ImHashMap<string, string>.Empty;
 
@@ -82,7 +121,7 @@ Frequency=2156251 Hz, Resolution=463.7679 ns, Timer=TSC
             }
 
             [Benchmark]
-            public ImTools.OldVersions.V1.ImHashMap<string, string> AddOrUpdate_V1_AddOrUpdate()
+            public ImTools.OldVersions.V1.ImHashMap<string, string> ImHashMap_V1_AddOrUpdate()
             {
                 var map = ImTools.OldVersions.V1.ImHashMap<string, string>.Empty;
 
@@ -97,7 +136,7 @@ Frequency=2156251 Hz, Resolution=463.7679 ns, Timer=TSC
             }
 
             [Benchmark]
-            public DictionarySlim<string, string> DictSlim_GetOrAddValueRef()
+            public DictionarySlim<string, string> DictionarySlim_GetOrAddValueRef()
             {
                 var map = new DictionarySlim<string, string>();
 
@@ -112,7 +151,7 @@ Frequency=2156251 Hz, Resolution=463.7679 ns, Timer=TSC
             }
 
             [Benchmark]
-            public Dictionary<string, string> Dict_TryAdd()
+            public Dictionary<string, string> Dictionary_TryAdd()
             {
                 var map = new Dictionary<string, string>();
 
@@ -127,7 +166,7 @@ Frequency=2156251 Hz, Resolution=463.7679 ns, Timer=TSC
             }
 
             [Benchmark]
-            public ConcurrentDictionary<string, string> ConcurrentDict_TryAdd()
+            public ConcurrentDictionary<string, string> ConcurrentDictionary_TryAdd()
             {
                 var map = new ConcurrentDictionary<string, string>();
 
@@ -142,7 +181,7 @@ Frequency=2156251 Hz, Resolution=463.7679 ns, Timer=TSC
             }
 
             [Benchmark]
-            public ImmutableDictionary<string, string> ImmutableDict_Add()
+            public ImmutableDictionary<string, string> ImmutableDictionary_Add()
             {
                 var map = ImmutableDictionary<string, string>.Empty;
 
