@@ -175,6 +175,39 @@ namespace ImTools
         public override string ToString() => Union.ToString<TIs, T>(Value);
     }
 
+    /// 
+    public abstract class I<TName, T>
+    {
+        ///
+        public static v Of(T x) => new v(x);
+        
+        ///
+        // ReSharper disable once InconsistentNaming
+        public readonly struct v : IEquatable<v>, Is<T>
+        {
+            /// <inheritdoc />
+            public T Value => X;
+
+            ///
+            public readonly T X;
+
+            ///
+            public v(T x) => X = x;
+
+            /// <inheritdoc />
+            public bool Equals(v other) => EqualityComparer<T>.Default.Equals(X, other.X);
+
+            /// <inheritdoc />
+            public override bool Equals(object obj) => obj is v c && Equals(c);
+
+            /// <inheritdoc />
+            public override int GetHashCode() => EqualityComparer<T>.Default.GetHashCode(X);
+
+            /// <inheritdoc />
+            public override string ToString() => Union.ToString<TName, T>(X);
+        }
+    }
+
     /// Unnamed discriminated union (with Empty name), shorter name for simplified inline usage
     public class U<T1, T2> : Union<Empty, T1, T2> { }
 
