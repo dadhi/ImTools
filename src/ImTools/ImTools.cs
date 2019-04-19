@@ -193,57 +193,64 @@ namespace ImTools
 
         /// Creates the respective case
         public static union Of(T1 x) => new Case1(x);
+
         /// Creates the respective case
         public static union Of(T2 x) => new Case2(x);
 
         /// Wraps the respective case
-        public struct Case1 : union, IEquatable<Case1>, Is<T1>
+        public readonly struct Case1 : union, IEquatable<Case1>, Is<T1>
         {
             /// <inheritdoc />
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2) => map1(Value);
 
             /// <inheritdoc />
-            public T1 Value { get; }
+            public T1 Value => X;
+
+            /// The X
+            public readonly T1 X;
 
             /// Wraps the value
-            public Case1(T1 v) => Value = v;
+            public Case1(T1 x) => X = x;
 
             /// <inheritdoc />
-            public bool Equals(Case1 other) => EqualityComparer<T1>.Default.Equals(Value, other.Value);
+            public bool Equals(Case1 other) => EqualityComparer<T1>.Default.Equals(X, other.X);
 
             /// <inheritdoc />
             public override bool Equals(object obj) => obj is Case1 x && Equals(x);
 
             /// <inheritdoc />
-            public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(Value);
+            public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(X);
 
             /// <inheritdoc />
-            public override string ToString() => Union.ToString<TName, T1>(Value);
+            public override string ToString() => Union.ToString<TName, T1>(X);
         }
 
         /// Wraps the respective case
-        public struct Case2 : union, IEquatable<Case2>, Is<T2>
+        public readonly struct Case2 : union, IEquatable<Case2>, Is<T2>
         {
             /// <inheritdoc />
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2) => map2(Value);
 
             /// <inheritdoc />
-            public T2 Value { get; }
+            public T2 Value => X;
+
+            /// The X
+            public readonly T2 X;
 
             /// Wraps the value
-            public Case2(T2 v) => Value = v;
+            public Case2(T2 x) => X = x;
 
             /// <inheritdoc />
-            public bool Equals(Case2 other) => EqualityComparer<T2>.Default.Equals(Value, other.Value);
+            public bool Equals(Case2 other) => EqualityComparer<T2>.Default.Equals(X, other.X);
 
             /// <inheritdoc />
             public override bool Equals(object obj) => obj is Case2 x && Equals(x);
 
             /// <inheritdoc />
-            public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(Value);
+            public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(X);
 
             /// <inheritdoc />
-            public override string ToString() => Union.ToString<TName, T2>(Value);
+            public override string ToString() => Union.ToString<TName, T2>(X);
         }
     }
 
