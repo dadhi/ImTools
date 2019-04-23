@@ -23,6 +23,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+// ReSharper disable once InconsistentNaming
+
 namespace ImTools
 {
     using System;
@@ -73,36 +75,36 @@ namespace ImTools
     ## The example of Union usage:
     *
     /// UI elements
-    sealed class UI : U<Text, Input, Button, Check, Panel> {}
-    sealed class Text   : Is<Text,   string> {}
-    sealed class Input  : Is<Input,  (string Content, MessageRef<string> Changed)> {}
-    sealed class Button : Is<Button, (string Label, MessageRef<Empty> Clicked)> {}
-    sealed class Check  : Is<Check,  (string Label, bool IsChecked, MessageRef<bool> Changed)> {}
-    sealed class Panel  : Is<Panel,  (Layout Layout, ImZipper<UI.union> Elements)> {}
+    sealed class UI : U<Text.it, Input.it, Button.it, Check.it, Panel.it> {}
+    sealed class Text   : I<Text,   string> {}
+    sealed class Input  : I<Input,  (string Content, MessageRef<string> Changed)> {}
+    sealed class Button : I<Button, (string Label, MessageRef<Empty> Clicked)> {}
+    sealed class Check  : I<Check,  (string Label, bool IsChecked, MessageRef<bool> Changed)> {}
+    sealed class Panel  : I<Panel,  (Layout Layout, ImZipper<UI.union> Elements)> {}
 
     // Somewhere else:
     private static UIElement CreateElement(UI.union ui)
     {
         switch (ui)
         {
-            case Is<Text> text:
+            case I<Text> text:
                 return new Label { Content = text.Value() };
 
-            case Is<Input> input:
+            case I<Input> input:
                 {
                     var (content, changed) = input.Value();
                     var tb = new TextBox { Text = content };
                     tb.TextChanged += (sender, _) => changed.Send(((TextBox)sender).Text);
                     return tb;
                 }
-            case Is<Button> button:
+            case I<Button> button:
                 {
                     var (label, clicked) = button.Value();
                     var b = new Btn { Content = label };
                     b.Click += (sender, _) => clicked.Send(Empty.Value);
                     return b;
                 }
-            case Is<Panel> panel:
+            case I<Panel> panel:
                 {
                     var (layout, elems) = panel.Value();
                     var orientation = layout == Layout.Vertical ? Orientation.Vertical : Orientation.Horizontal;
@@ -110,7 +112,7 @@ namespace ImTools
                     elems.Map(CreateElement).Map(e => p.Children.Add(e));
                     return p;
                 }
-            case Is<Check> check:
+            case I<Check> check:
                 {
                     var (label, isChecked, changed) = check.Value();
                     var c = new CheckBox { Content = label, IsChecked = isChecked };
@@ -126,7 +128,7 @@ namespace ImTools
 
 
     /// Useful for type pattern matching via `case Is{T} x: ...`
-    public interface Is<out T>
+    public interface I<out T>
     {
         /// The value in this case ;)
         T Value { get; }
@@ -135,8 +137,11 @@ namespace ImTools
     /// Helpers for `Is` and `Union`
     public static class Union
     {
-        /// Less strange name for `.V.V` access to the nested case value
-        public static T Value<T>(this Is<Is<T>> i) => i.Value.Value;
+        /// Shortcut to Value.Value
+        public static T Value<T>(this I<I<T>> i) => i.Value.Value;
+
+        /// Shortcut to Value.Value
+        public static T Val<T, A>(this I<A> i) where A : I<T> => i.Value.Value;
 
         /// Pretty prints the Union using the type information
         internal static string ToString<TName, T>(T value)
@@ -151,68 +156,69 @@ namespace ImTools
         }
     }
 
-    /// Wraps a single case value, it is like a Tuple with a single item
-    public abstract class Is<TIs, T> : IEquatable<Is<TIs, T>>, Is<T>
-        where TIs : Is<TIs, T>, new()
+    /// Wraps a single value in a nested struct
+    public abstract class Rec<TRef, T> : I<T>, IEquatable<Rec<TRef, T>> 
+        where TRef : Rec<TRef, T>, new()
     {
         /// Converts a value into Rec of the value
-        public static TIs Of(T v) => new TIs { Value = v };
+        public static TRef Of(T v) => new TRef { Value = v };
 
-        /// The value
+        /// <inheritdoc />
         public T Value { get; private set; }
 
         /// <inheritdoc />
-        public bool Equals(Is<TIs, T> other) => other != null && EqualityComparer<T>.Default.Equals(Value, other.Value);
+        public bool Equals(Rec<TRef, T> other) =>
+            other != null && EqualityComparer<T>.Default.Equals(Value, other.Value);
 
         /// <inheritdoc />
-        public override bool Equals(object obj) => obj is Is<TIs, T> c && Equals(c);
+        public override bool Equals(object obj) => obj is Rec<TRef, T> c && Equals(c);
 
         // ReSharper disable once NonReadonlyMemberInGetHashCode
         /// <inheritdoc />
         public override int GetHashCode() => EqualityComparer<T>.Default.GetHashCode(Value);
 
         /// <inheritdoc />
-        public override string ToString() => Union.ToString<TIs, T>(Value);
+        public override string ToString() => Union.ToString<TRef, T>(Value);
     }
 
-    /// 
-    public abstract class I<TName, T>
+    /// Wraps a single value in a nested struct
+    public abstract class Val<TSelf, T>
     {
-        ///
-        public static v Of(T x) => new v(x);
-        
-        ///
-        // ReSharper disable once InconsistentNaming
-        public readonly struct v : IEquatable<v>, Is<T>
+        /// Creation method for the consistency with other types
+        public static value Of(T x) => new value(x);
+
+        /// Nested structure that hosts a value.
+        /// All nested types by convention here are lowercase
+        public readonly struct value : IEquatable<value>, I<T>
         {
             /// <inheritdoc />
             public T Value => X;
 
-            ///
+            /// The value
             public readonly T X;
 
-            ///
-            public v(T x) => X = x;
+            /// Constructor
+            public value(T x) => X = x;
 
             /// <inheritdoc />
-            public bool Equals(v other) => EqualityComparer<T>.Default.Equals(X, other.X);
+            public bool Equals(value other) => EqualityComparer<T>.Default.Equals(X, other.X);
 
             /// <inheritdoc />
-            public override bool Equals(object obj) => obj is v c && Equals(c);
+            public override bool Equals(object obj) => obj is value c && Equals(c);
 
             /// <inheritdoc />
             public override int GetHashCode() => EqualityComparer<T>.Default.GetHashCode(X);
 
             /// <inheritdoc />
-            public override string ToString() => Union.ToString<TName, T>(X);
+            public override string ToString() => Union.ToString<TSelf, T>(X);
         }
     }
 
     /// Unnamed discriminated union (with Empty name), shorter name for simplified inline usage
-    public class U<T1, T2> : Union<Empty, T1, T2> { }
+    public class U2<T1, T2> : U<Empty, T1, T2> { }
 
     /// Named discriminated union
-    public abstract class Union<TName, T1, T2>
+    public abstract class U<TName, T1, T2>
     {
         /// The base interface to operate.
         /// The naming is selected to start from the lower letter, cause we need to use the nested type.
@@ -225,14 +231,17 @@ namespace ImTools
         }
 
         /// Creates the respective case
-        public static union Of(T1 x) => new Case1(x);
+        public static union Of(T1 x) => new case1(x);
 
         /// Creates the respective case
-        public static union Of(T2 x) => new Case2(x);
+        public static union Of(T2 x) => new case2(x);
 
         /// Wraps the respective case
-        public readonly struct Case1 : union, IEquatable<Case1>, Is<T1>
+        public readonly struct case1 : union, IEquatable<case1>, I<T1>
         {
+            /// Conversion
+            public static implicit operator case1(T1 x) => new case1(x);
+
             /// <inheritdoc />
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2) => map1(Value);
 
@@ -243,13 +252,13 @@ namespace ImTools
             public readonly T1 X;
 
             /// Wraps the value
-            public Case1(T1 x) => X = x;
+            public case1(T1 x) => X = x;
 
             /// <inheritdoc />
-            public bool Equals(Case1 other) => EqualityComparer<T1>.Default.Equals(X, other.X);
+            public bool Equals(case1 other) => EqualityComparer<T1>.Default.Equals(X, other.X);
 
             /// <inheritdoc />
-            public override bool Equals(object obj) => obj is Case1 x && Equals(x);
+            public override bool Equals(object obj) => obj is case1 x && Equals(x);
 
             /// <inheritdoc />
             public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(X);
@@ -259,10 +268,13 @@ namespace ImTools
         }
 
         /// Wraps the respective case
-        public readonly struct Case2 : union, IEquatable<Case2>, Is<T2>
+        public readonly struct case2 : union, IEquatable<case2>, I<T2>
         {
+            /// Conversion
+            public static implicit operator case2(T2 x) => new case2(x);
+
             /// <inheritdoc />
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2) => map2(Value);
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2) => map2(X);
 
             /// <inheritdoc />
             public T2 Value => X;
@@ -271,13 +283,13 @@ namespace ImTools
             public readonly T2 X;
 
             /// Wraps the value
-            public Case2(T2 x) => X = x;
+            public case2(T2 x) => X = x;
 
             /// <inheritdoc />
-            public bool Equals(Case2 other) => EqualityComparer<T2>.Default.Equals(X, other.X);
+            public bool Equals(case2 other) => EqualityComparer<T2>.Default.Equals(X, other.X);
 
             /// <inheritdoc />
-            public override bool Equals(object obj) => obj is Case2 x && Equals(x);
+            public override bool Equals(object obj) => obj is case2 x && Equals(x);
 
             /// <inheritdoc />
             public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(X);
@@ -288,60 +300,75 @@ namespace ImTools
     }
 
     #pragma warning disable 1591
-    public class U<T1, T2, T3> : Union<Empty, T1, T2, T3> { }
+    public class U3<T1, T2, T3> : U<Empty, T1, T2, T3> { }
 
-    public abstract class Union<TType, T1, T2, T3>
+    public abstract class U<TName, T1, T2, T3>
     {
         public interface union
         {
             R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3);
         }
 
-        public static union Of(T1 x) => new Case1(x);
-        public static union Of(T2 x) => new Case2(x);
-        public static union Of(T3 x) => new Case3(x);
+        public static union Of(T1 x) => new case1(x);
+        public static union Of(T2 x) => new case2(x);
+        public static union Of(T3 x) => new case3(x);
 
-        public struct Case1 : union, IEquatable<Case1>, Is<T1>
+        public struct case1 : union, IEquatable<case1>, I<T1>
         {
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3) => map1(Value);
+            public static implicit operator case1(T1 x) => new case1(x);
 
-            public T1 Value { get; }
-            public Case1(T1 v) { Value = v; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3) => map1(X);
 
-            public bool Equals(Case1 other) => EqualityComparer<T1>.Default.Equals(Value, other.Value);
-            public override bool Equals(object obj) => obj is Case1 c && Equals(c);
-            public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(Value);
-            public override string ToString() => Union.ToString<TType, T1>(Value);
+            public T1 Value => X;
+
+            public readonly T1 X;
+
+            public case1(T1 x) => X = x;
+
+            public bool Equals(case1 other) => EqualityComparer<T1>.Default.Equals(X, other.X);
+            public override bool Equals(object obj) => obj is case1 x && Equals(x);
+            public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(X);
+            public override string ToString() => Union.ToString<TName, T1>(X);
         }
 
-        public struct Case2 : union, IEquatable<Case2>, Is<T2>
+        public struct case2 : union, IEquatable<case2>, I<T2>
         {
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3) => map2(Value);
+            public static implicit operator case2(T2 x) => new case2(x);
 
-            public T2 Value { get; }
-            public Case2(T2 v) { Value = v; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3) => map2(X);
 
-            public bool Equals(Case2 other) => EqualityComparer<T2>.Default.Equals(Value, other.Value);
-            public override bool Equals(object obj) => obj is Case2 c && Equals(c);
-            public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(Value);
-            public override string ToString() => Union.ToString<TType, T2>(Value);
+            public T2 Value => X;
+
+            public readonly T2 X;
+
+            public case2(T2 x) => X = x;
+
+            public bool Equals(case2 other) => EqualityComparer<T2>.Default.Equals(X, other.X);
+            public override bool Equals(object obj) => obj is case2 x && Equals(x);
+            public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(X);
+            public override string ToString() => Union.ToString<TName, T2>(X);
         }
 
-        public struct Case3 : union, IEquatable<Case3>, Is<T3>
+        public struct case3 : union, IEquatable<case3>, I<T3>
         {
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3) => map3(Value);
+            public static implicit operator case3(T3 x) => new case3(x);
 
-            public T3 Value { get; }
-            public Case3(T3 v) { Value = v; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3) => map3(X);
 
-            public bool Equals(Case3 other) => EqualityComparer<T3>.Default.Equals(Value, other.Value);
-            public override bool Equals(object obj) => obj is Case3 c && Equals(c);
-            public override int GetHashCode() => EqualityComparer<T3>.Default.GetHashCode(Value);
-            public override string ToString() => Union.ToString<TType, T3>(Value);
+            public T3 Value => X;
+
+            public readonly T3 X;
+
+            public case3(T3 x) => X = x;
+
+            public bool Equals(case3 other) => EqualityComparer<T3>.Default.Equals(X, other.X);
+            public override bool Equals(object obj) => obj is case3 x && Equals(x);
+            public override int GetHashCode() => EqualityComparer<T3>.Default.GetHashCode(X);
+            public override string ToString() => Union.ToString<TName, T3>(X);
         }
     }
 
-    public class U<T1, T2, T3, T4> : Union<Empty, T1, T2, T3, T4> { }
+    public class U4<T1, T2, T3, T4> : Union<Empty, T1, T2, T3, T4> { }
     public abstract class Union<TType, T1, T2, T3, T4>
     {
         public interface union
@@ -354,7 +381,7 @@ namespace ImTools
         public static union Of(T3 x) => new Case3(x);
         public static union Of(T4 x) => new Case4(x);
 
-        public struct Case1 : union, IEquatable<Case1>, Is<T1>
+        public struct Case1 : union, IEquatable<Case1>, I<T1>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4) => map1(Value);
 
@@ -367,7 +394,7 @@ namespace ImTools
             public override string ToString() => Union.ToString<TType, T1>(Value);
         }
 
-        public struct Case2 : union, IEquatable<Case2>, Is<T2>
+        public struct Case2 : union, IEquatable<Case2>, I<T2>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4) => map2(Value);
 
@@ -380,7 +407,7 @@ namespace ImTools
             public override string ToString() => Union.ToString<TType, T2>(Value);
         }
 
-        public struct Case3 : union, IEquatable<Case3>, Is<T3>
+        public struct Case3 : union, IEquatable<Case3>, I<T3>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4) => map3(Value);
 
@@ -393,7 +420,7 @@ namespace ImTools
             public override string ToString() => Union.ToString<TType, T3>(Value);
         }
 
-        public struct Case4 : union, IEquatable<Case4>, Is<T4>
+        public struct Case4 : union, IEquatable<Case4>, I<T4>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4) => map4(Value);
 
@@ -421,7 +448,7 @@ namespace ImTools
         public static union Of(T4 x) => new Case4(x);
         public static union Of(T5 x) => new Case5(x);
 
-        public struct Case1 : union, IEquatable<Case1>, Is<T1>
+        public struct Case1 : union, IEquatable<Case1>, I<T1>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5) => map1(Value);
 
@@ -434,7 +461,7 @@ namespace ImTools
             public override string ToString() => Union.ToString<TType, T1>(Value);
         }
 
-        public struct Case2 : union, IEquatable<Case2>, Is<T2>
+        public struct Case2 : union, IEquatable<Case2>, I<T2>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5) => map2(Value);
 
@@ -447,7 +474,7 @@ namespace ImTools
             public override string ToString() => Union.ToString<TType, T2>(Value);
         }
 
-        public struct Case3 : union, IEquatable<Case3>, Is<T3>
+        public struct Case3 : union, IEquatable<Case3>, I<T3>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5) => map3(Value);
 
@@ -460,7 +487,7 @@ namespace ImTools
             public override string ToString() => Union.ToString<TType, T3>(Value);
         }
 
-        public struct Case4 : union, IEquatable<Case4>, Is<T4>
+        public struct Case4 : union, IEquatable<Case4>, I<T4>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5) => map4(Value);
 
@@ -473,7 +500,7 @@ namespace ImTools
             public override string ToString() => Union.ToString<TType, T4>(Value);
         }
 
-        public struct Case5 : union, IEquatable<Case5>, Is<T5>
+        public struct Case5 : union, IEquatable<Case5>, I<T5>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5) => map5(Value);
 
@@ -503,7 +530,7 @@ namespace ImTools
         public static union Of(T5 x) => new Case5(x);
         public static union Of(T6 x) => new Case6(x);
 
-        public struct Case1 : union, IEquatable<Case1>, Is<T1>
+        public struct Case1 : union, IEquatable<Case1>, I<T1>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
                 Func<T6, R> map6) => map1(Value);
@@ -517,7 +544,7 @@ namespace ImTools
             public override string ToString() => Union.ToString<TType, T1>(Value);
         }
 
-        public struct Case2 : union, IEquatable<Case2>, Is<T2>
+        public struct Case2 : union, IEquatable<Case2>, I<T2>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
                 Func<T6, R> map6) => map2(Value);
@@ -531,7 +558,7 @@ namespace ImTools
             public override string ToString() => Union.ToString<TType, T2>(Value);
         }
 
-        public struct Case3 : union, IEquatable<Case3>, Is<T3>
+        public struct Case3 : union, IEquatable<Case3>, I<T3>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
                 Func<T6, R> map6) => map3(Value);
@@ -545,7 +572,7 @@ namespace ImTools
             public override string ToString() => Union.ToString<TType, T3>(Value);
         }
 
-        public struct Case4 : union, IEquatable<Case4>, Is<T4>
+        public struct Case4 : union, IEquatable<Case4>, I<T4>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
                 Func<T6, R> map6) => map4(Value);
@@ -559,7 +586,7 @@ namespace ImTools
             public override string ToString() => Union.ToString<TType, T4>(Value);
         }
 
-        public struct Case5 : union, IEquatable<Case5>, Is<T5>
+        public struct Case5 : union, IEquatable<Case5>, I<T5>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
                 Func<T6, R> map6) => map5(Value);
@@ -573,7 +600,7 @@ namespace ImTools
             public override string ToString() => Union.ToString<TType, T5>(Value);
         }
 
-        public struct Case6 : union, IEquatable<Case6>, Is<T6>
+        public struct Case6 : union, IEquatable<Case6>, I<T6>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
                 Func<T6, R> map6) => map6(Value);
@@ -605,7 +632,7 @@ namespace ImTools
         public static union Of(T6 x) => new Case6(x);
         public static union Of(T7 x) => new Case7(x);
 
-        public struct Case1 : union, IEquatable<Case1>, Is<T1>
+        public struct Case1 : union, IEquatable<Case1>, I<T1>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
                 Func<T6, R> map6, Func<T7, R> map7) => map1(Value);
@@ -619,7 +646,7 @@ namespace ImTools
             public override string ToString() => Union.ToString<TType, T1>(Value);
         }
 
-        public struct Case2 : union, IEquatable<Case2>, Is<T2>
+        public struct Case2 : union, IEquatable<Case2>, I<T2>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
                 Func<T6, R> map6, Func<T7, R> map7) => map2(Value);
@@ -633,7 +660,7 @@ namespace ImTools
             public override string ToString() => Union.ToString<TType, T2>(Value);
         }
 
-        public struct Case3 : union, IEquatable<Case3>, Is<T3>
+        public struct Case3 : union, IEquatable<Case3>, I<T3>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
                 Func<T6, R> map6, Func<T7, R> map7) => map3(Value);
@@ -647,7 +674,7 @@ namespace ImTools
             public override string ToString() => Union.ToString<TType, T3>(Value);
         }
 
-        public struct Case4 : union, IEquatable<Case4>, Is<T4>
+        public struct Case4 : union, IEquatable<Case4>, I<T4>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
                 Func<T6, R> map6, Func<T7, R> map7) => map4(Value);
@@ -661,7 +688,7 @@ namespace ImTools
             public override string ToString() => Union.ToString<TType, T4>(Value);
         }
 
-        public struct Case5 : union, IEquatable<Case5>, Is<T5>
+        public struct Case5 : union, IEquatable<Case5>, I<T5>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
                 Func<T6, R> map6, Func<T7, R> map7) => map5(Value);
@@ -675,7 +702,7 @@ namespace ImTools
             public override string ToString() => Union.ToString<TType, T5>(Value);
         }
 
-        public struct Case6 : union, IEquatable<Case6>, Is<T6>
+        public struct Case6 : union, IEquatable<Case6>, I<T6>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
                 Func<T6, R> map6, Func<T7, R> map7) => map6(Value);
@@ -689,7 +716,7 @@ namespace ImTools
             public override string ToString() => Union.ToString<TType, T6>(Value);
         }
 
-        public struct Case7 : union, IEquatable<Case7>, Is<T7>
+        public struct Case7 : union, IEquatable<Case7>, I<T7>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
                 Func<T6, R> map6, Func<T7, R> map7) => map7(Value);

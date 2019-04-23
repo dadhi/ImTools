@@ -1,10 +1,10 @@
 (*
-|                              Method |       Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
-|------------------------------------ |-----------:|----------:|----------:|------:|--------:|------------:|------------:|------------:|--------------------:|
-|                              FSharp |   5.920 ns | 0.0323 ns | 0.0286 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
-|                   CSharp_named_case | 138.089 ns | 0.4042 ns | 0.3583 ns | 23.33 |    0.16 |           - |           - |           - |                   - |
-|                 CSharp_unnamed_case | 142.634 ns | 0.7154 ns | 0.6692 ns | 24.09 |    0.18 |           - |           - |           - |                   - |
-| CSharp_unnamed_case_as_CaseN_struct |   9.267 ns | 0.0291 ns | 0.0258 ns |  1.57 |    0.01 |           - |           - |           - |                   - |
+|                                     Method |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+|------------------------------------------- |----------:|----------:|----------:|------:|--------:|------------:|------------:|------------:|--------------------:|
+|                                     FSharp |  11.44 ns | 0.0769 ns | 0.0719 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+|                   CSharp_named_case_struct |  18.32 ns | 0.0505 ns | 0.0473 ns |  1.60 |    0.01 |           - |           - |           - |                   - |
+| CSharp_named_case_struct_match_I_interface | 304.78 ns | 5.8215 ns | 5.4454 ns | 26.64 |    0.48 |           - |           - |           - |                   - |
+|      CSharp_named_case_struct_Match_method | 134.24 ns | 0.4707 ns | 0.4403 ns | 11.74 |    0.09 |      0.1729 |           - |           - |               816 B |
 *)
 
 open BenchmarkDotNet.Attributes
@@ -14,25 +14,24 @@ open ImTools
 type FlagOrCount = 
     | Flag of bool
     | Count of int
+    | Message of string
 
-type Flag1()  = class inherit I<Flag1, bool>() end
-type Count1() = class inherit I<Count1, int>() end
-type FlagOrCount1 = class inherit Union<FlagOrCount1, I<Flag1, bool>.v, I<Count1, int>.v> end
+type Flag1()    = class inherit Val<Flag1, bool>() end
+type Count1()   = class inherit Val<Count1, int>() end
+type Message1() = class inherit Val<Message1, string>() end
 
-type Flag2()  = class inherit Is<Flag2, bool>() end
-type Count2() = class inherit Is<Count2, int>() end
-type FlagOrCount2 = class inherit Union<FlagOrCount2, Flag2, Count2> end
-
-type FlagOrCount3 = class inherit Union<FlagOrCount3, bool, int> end
-
+// NOTE: It happens that in F# is not possible to refer to nested type from the inheritor - commented below. 
+// It is much less verbose in C#. The same problem is with `match` clause later in the benchmarks.
+//
+// type FlagOrCount1 = class inherit U<FlagOrCount1, Flag1.value, Count1.value, Message1.value> end
+//
+type FlagOrCount1 = class inherit U<FlagOrCount1, Val<Flag1, bool>.value, Val<Count1, int>.value, Val<Message1, string>.value> end
 
 [<MemoryDiagnoser>]
 type Traverse_union_array_and_match_to_sum_something() =
     
-    let _fs  = [| Flag true; Count 1 |]
-    let _cs1 = [| FlagOrCount1.Of (Flag1.Of true); FlagOrCount1.Of (Count1.Of 1) |]
-    let _cs2 = [| FlagOrCount2.Of (Flag2.Of true); FlagOrCount2.Of (Count2.Of 1) |]
-    let _cs3 = [| FlagOrCount3.Of true; FlagOrCount3.Of 1 |]
+    let _fs  = [| Flag true; Count 1; Message "hey" |]
+    let _cs1 = [| FlagOrCount1.Of (Flag1.Of true); FlagOrCount1.Of (Count1.Of 1); FlagOrCount1.Of (Message1.Of "hey") |]
 
     [<Benchmark(Baseline = true)>]
     member this.FSharp() =
@@ -41,6 +40,7 @@ type Traverse_union_array_and_match_to_sum_something() =
             match x with 
             | Flag f  -> if f then sum <- sum + 1 else sum |> ignore 
             | Count n -> sum <- sum + n
+            | Message _ -> sum <- sum + 42
         sum
 
     [<Benchmark>]
@@ -48,40 +48,30 @@ type Traverse_union_array_and_match_to_sum_something() =
         let mutable sum = 0
         for x in _cs1 do
             match x with
-            | :? Union<FlagOrCount1, I<Flag1, bool>.v, I<Count1, int>.v>.Case1 as f -> if f.X.X then sum <- sum + 1 else sum |> ignore
-            | :? Union<FlagOrCount1, I<Flag1, bool>.v, I<Count1, int>.v>.Case2 as n -> sum <- sum + n.X.X
-            | _ -> ()
-        sum
-
-    //[<Benchmark>]
-    member this.CSharp_named_case() =
-        let mutable sum = 0
-        for x in _cs2 do
-            match x with
-            | :? Is<Flag2>  as f -> if f.Value.Value then sum <- sum + 1 else sum |> ignore
-            | :? Is<Count2> as n -> sum <- sum + n.Value.Value
-            | _ -> ()
-        sum
-
-    //[<Benchmark>]
-    member this.CSharp_unnamed_case() =
-        let mutable sum = 0
-        for x in _cs3 do
-            match x with
-            | :? Is<bool> as f -> if f.Value then sum <- sum + 1 else sum |> ignore
-            | :? Is<int> as n -> sum <- sum + n.Value
+            | :? U<FlagOrCount1, Val<Flag1, bool>.value, Val<Count1, int>.value, Val<Message1, string>.value>.case1 as f -> if f.X.X then sum <- sum + 1 else sum |> ignore
+            | :? U<FlagOrCount1, Val<Flag1, bool>.value, Val<Count1, int>.value, Val<Message1, string>.value>.case2 as n -> sum <- sum + n.X.X
+            | :? U<FlagOrCount1, Val<Flag1, bool>.value, Val<Count1, int>.value, Val<Message1, string>.value>.case3 -> sum <- sum + 42
             | _ -> ()
         sum
 
     [<Benchmark>]
-    member this.CSharp_unnamed_case_as_CaseN_struct() =
+    member this.CSharp_named_case_struct_match_I_interface() =
         let mutable sum = 0
-        for x in _cs3 do
+        for x in _cs1 do
             match x with
-            | :? Union<FlagOrCount3, bool, int>.Case1 as f -> if f.X then sum <- sum + 1 else sum |> ignore
-            | :? Union<FlagOrCount3, bool, int>.Case2 as n -> sum <- sum + n.X
+            | :? I<Val<Flag1, bool>.value> as f -> if f.Value.X then sum <- sum + 1 else sum |> ignore
+            | :? I<Val<Count1, int>.value> as n -> sum <- sum + n.Value.X
+            | :? I<Val<Message1, string>.value> -> sum <- sum + 42
             | _ -> ()
         sum
+
+    [<Benchmark>]
+    member this.CSharp_named_case_struct_Match_method() =
+        let mutable sum = 0
+        for x in _cs1 do 
+            x.Match((fun f -> if f.X then sum <- sum + 1 else sum |> ignore), (fun n -> sum <- sum + n.X), (fun m -> sum <- sum + 42)) |> ignore
+        sum
+
 
 [<EntryPoint>]
 let main argv =
