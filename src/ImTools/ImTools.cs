@@ -126,7 +126,6 @@ namespace ImTools
     }
 */
 
-
     /// Useful for type pattern matching via `case Is{T} x: ...`
     public interface I<out T>
     {
@@ -786,12 +785,12 @@ namespace ImTools
             return result;
         }
 
-        /// <summary>Performant concatenation of enumerables in case of arrays.
-        /// But performance will degrade if you use `Concat().Where()`.</summary>
+        /// <summary>Performant concat of enumerables in case of arrays.
+        /// But performance will degrade if you use Concat().Where().</summary>
         /// <typeparam name="T">Type of item.</typeparam>
         /// <param name="source">goes first.</param>
         /// <param name="other">appended to source.</param>
-        /// <returns>empty array or concatenation of source and other.</returns>
+        /// <returns>empty array or concat of source and other.</returns>
         public static T[] Append<T>(this IEnumerable<T> source, IEnumerable<T> other) =>
             source.ToArrayOrSelf().Append(other.ToArrayOrSelf());
 
@@ -826,6 +825,16 @@ namespace ImTools
             if (source != null && source.Length != 0)
                 for (var i = 0; i < source.Length; ++i)
                     if (predicate(source[i]))
+                        return i;
+            return -1;
+        }
+
+        /// Minimizes the allocations for closure in predicate lambda with the provided <paramref name="state"/>
+        public static int IndexOf<T, S>(this T[] source, S state, Func<S, T, bool> predicate)
+        {
+            if (source != null && source.Length != 0)
+                for (var i = 0; i < source.Length; ++i)
+                    if (predicate(state, source[i]))
                         return i;
             return -1;
         }
@@ -889,7 +898,21 @@ namespace ImTools
                         return item;
                 }
 
-            return default;
+            return default(T);
+        }
+
+        /// Version of FindFirst with the fixed state used by predicate to prevent allocations by predicate lambda closure
+        public static T FindFirst<T, S>(this T[] source, S state, Func<S, T, bool> predicate)
+        {
+            if (source != null && source.Length != 0)
+                for (var i = 0; i < source.Length; ++i)
+                {
+                    var item = source[i];
+                    if (predicate(state, item))
+                        return item;
+                }
+
+            return default(T);
         }
 
         /// <summary>Returns first item matching the <paramref name="predicate"/>, or default item value.</summary>
@@ -905,24 +928,22 @@ namespace ImTools
         public static T SingleOrDefaultIfMany<T>(this IEnumerable<T> source)
         {
             if (source is IList<T> list)
-                return list.Count == 1 ? list[0] : default;
+                return list.Count == 1 ? list[0] : default(T);
 
             if (source == null)
-                return default;
+                return default(T);
 
             using (var e = source.GetEnumerator())
             {
                 if (!e.MoveNext())
-                    return default;
+                    return default(T);
                 var it = e.Current;
-                if (!e.MoveNext())
-                    return it;
-                return default;
+                return !e.MoveNext() ? it : default(T);
             }
         }
 
         /// <summary>Does <paramref name="action"/> for each item</summary>
-        public static void DoPer<T>(this T[] source, Action<T> action)
+        public static void ForEach<T>(this T[] source, Action<T> action)
         {
             if (!source.IsNullOrEmpty())
                 for (var i = 0; i < source.Length; i++)
@@ -989,6 +1010,37 @@ namespace ImTools
             return appendedResults;
         }
 
+        private static R[] AppendTo<T, S, R>(T[] source, S state, int sourcePos, int count, Func<S, T, R> map, R[] results = null)
+        {
+            if (results == null || results.Length == 0)
+            {
+                var newResults = new R[count];
+                if (count == 1)
+                    newResults[0] = map(state, source[sourcePos]);
+                else
+                    for (int i = 0, j = sourcePos; i < count; ++i, ++j)
+                        newResults[i] = map(state, source[j]);
+                return newResults;
+            }
+
+            var oldResultsCount = results.Length;
+            var appendedResults = new R[oldResultsCount + count];
+            if (oldResultsCount == 1)
+                appendedResults[0] = results[0];
+            else
+                Array.Copy(results, 0, appendedResults, 0, oldResultsCount);
+
+            if (count == 1)
+                appendedResults[oldResultsCount] = map(state, source[sourcePos]);
+            else
+            {
+                for (int i = oldResultsCount, j = sourcePos; i < appendedResults.Length; ++i, ++j)
+                    appendedResults[i] = map(state, source[j]);
+            }
+
+            return appendedResults;
+        }
+
         /// <summary>Where method similar to Enumerable.Where but more performant and non necessary allocating.
         /// It returns source array and does Not create new one if all items match the condition.</summary>
         /// <typeparam name="T">Type of source items.</typeparam>
@@ -1016,12 +1068,9 @@ namespace ImTools
             var matchStart = 0;
             T[] matches = null;
             var matchFound = false;
-
             var i = 0;
-            while (i < source.Length)
-            {
-                matchFound = condition(source[i]);
-                if (!matchFound)
+            for (; i < source.Length; ++i)
+                if (!(matchFound = condition(source[i])))
                 {
                     // for accumulated matched items
                     if (i != 0 && i > matchStart)
@@ -1029,20 +1078,50 @@ namespace ImTools
                     matchStart = i + 1; // guess the next match start will be after the non-matched item
                 }
 
-                ++i;
+            // when last match was found but not all items are matched (hence matchStart != 0)
+            if (matchFound && matchStart != 0)
+                return AppendTo(source, matchStart, i - matchStart, matches);
+
+            return matches ?? (matchStart != 0 ? Empty<T>() : source);
+        }
+
+        /// Match with the additional state to use in <paramref name="condition"/> to minimize the allocations in <paramref name="condition"/> lambda closure 
+        public static T[] Match<T, S>(this T[] source, S state, Func<S, T, bool> condition)
+        {
+            if (source == null || source.Length == 0)
+                return source;
+
+            if (source.Length == 1)
+                return condition(state, source[0]) ? source : Empty<T>();
+
+            if (source.Length == 2)
+            {
+                var condition0 = condition(state, source[0]);
+                var condition1 = condition(state, source[1]);
+                return condition0 && condition1 ? new[] { source[0], source[1] }
+                    : condition0 ? new[] { source[0] }
+                    : condition1 ? new[] { source[1] }
+                    : Empty<T>();
             }
+
+            var matchStart = 0;
+            T[] matches = null;
+            var matchFound = false;
+            var i = 0;
+            for (; i < source.Length; ++i)
+                if (!(matchFound = condition(state, source[i])))
+                {
+                    // for accumulated matched items
+                    if (i != 0 && i > matchStart)
+                        matches = AppendTo(source, matchStart, i - matchStart, matches);
+                    matchStart = i + 1; // guess the next match start will be after the non-matched item
+                }
 
             // when last match was found but not all items are matched (hence matchStart != 0)
             if (matchFound && matchStart != 0)
                 return AppendTo(source, matchStart, i - matchStart, matches);
 
-            if (matches != null)
-                return matches;
-
-            if (matchStart != 0) // no matches
-                return Empty<T>();
-
-            return source;
+            return matches ?? (matchStart != 0 ? Empty<T>() : source);
         }
 
         /// <summary>Where method similar to Enumerable.Where but more performant and non necessary allocating.
@@ -1080,10 +1159,8 @@ namespace ImTools
             var matchFound = false;
 
             var i = 0;
-            while (i < source.Length)
-            {
-                matchFound = condition(source[i]);
-                if (!matchFound)
+            for (; i < source.Length; ++i)
+                if (!(matchFound = condition(source[i])))
                 {
                     // for accumulated matched items
                     if (i != 0 && i > matchStart)
@@ -1091,20 +1168,57 @@ namespace ImTools
                     matchStart = i + 1; // guess the next match start will be after the non-matched item
                 }
 
-                ++i;
-            }
-
             // when last match was found but not all items are matched (hence matchStart != 0)
             if (matchFound && matchStart != 0)
                 return AppendTo(source, matchStart, i - matchStart, map, matches);
 
-            if (matches != null)
-                return matches;
+            return matches ?? (matchStart == 0 ? AppendTo(source, 0, source.Length, map) : Empty<R>());
+        }
 
-            if (matchStart != 0) // no matches
+        /// Match with the additional state to use in <paramref name="condition"/> and <paramref name="map"/> to minimize the allocations in <paramref name="condition"/> lambda closure 
+        public static R[] Match<T, S, R>(this T[] source, S state, Func<S, T, bool> condition, Func<S, T, R> map)
+        {
+            if (source == null)
+                return null;
+
+            if (source.Length == 0)
                 return Empty<R>();
 
-            return AppendTo(source, 0, source.Length, map);
+            if (source.Length == 1)
+            {
+                var item = source[0];
+                return condition(state, item) ? new[] { map(state, item) } : Empty<R>();
+            }
+
+            if (source.Length == 2)
+            {
+                var condition0 = condition(state, source[0]);
+                var condition1 = condition(state, source[1]);
+                return condition0 && condition1 ? new[] { map(state, source[0]), map(state, source[1]) }
+                    : condition0 ? new[] { map(state, source[0]) }
+                    : condition1 ? new[] { map(state, source[1]) }
+                    : Empty<R>();
+            }
+
+            var matchStart = 0;
+            R[] matches = null;
+            var matchFound = false;
+
+            var i = 0;
+            for (; i < source.Length; ++i)
+                if (!(matchFound = condition(state, source[i])))
+                {
+                    // for accumulated matched items
+                    if (i != 0 && i > matchStart)
+                        matches = AppendTo(source, state, matchStart, i - matchStart, map, matches);
+                    matchStart = i + 1; // guess the next match start will be after the non-matched item
+                }
+
+            // when last match was found but not all items are matched (hence matchStart != 0)
+            if (matchFound && matchStart != 0)
+                return AppendTo(source, state, matchStart, i - matchStart, map, matches);
+
+            return matches ?? (matchStart == 0 ? AppendTo(source, state, 0, source.Length, map) : Empty<R>());
         }
 
         /// <summary>Maps all items from source to result array.</summary>
@@ -1126,12 +1240,31 @@ namespace ImTools
             if (sourceCount == 2)
                 return new[] { map(source[0]), map(source[1]) };
 
-            if (sourceCount == 3)
-                return new[] { map(source[0]), map(source[1]), map(source[2]) };
-
             var results = new R[sourceCount];
             for (var i = 0; i < source.Length; i++)
                 results[i] = map(source[i]);
+            return results;
+        }
+
+        /// Map with additional state to use in <paramref name="map"/> to minimize allocations in <paramref name="map"/> lambda closure 
+        public static R[] Map<T, S, R>(this T[] source, S state, Func<S, T, R> map)
+        {
+            if (source == null)
+                return null;
+
+            var sourceCount = source.Length;
+            if (sourceCount == 0)
+                return Empty<R>();
+
+            if (sourceCount == 1)
+                return new[] { map(state, source[0]) };
+
+            if (sourceCount == 2)
+                return new[] { map(state, source[0]), map(state, source[1]) };
+
+            var results = new R[sourceCount];
+            for (var i = 0; i < source.Length; i++)
+                results[i] = map(state, source[i]);
             return results;
         }
 
