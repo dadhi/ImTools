@@ -48,8 +48,8 @@ type Traverse_union_array_and_match_to_sum_something() =
         let mutable sum = 0
         for x in _cs1 do
             match x with
-            | :? U<FlagOrCount1, Val<Flag1, bool>.value, Val<Count1, int>.value, Val<Message1, string>.value>.case1 as f -> if f.Value.Value then sum <- sum + 1 else sum |> ignore
-            | :? U<FlagOrCount1, Val<Flag1, bool>.value, Val<Count1, int>.value, Val<Message1, string>.value>.case2 as n -> sum <- sum + n.Value.Value
+            | :? U<FlagOrCount1, Val<Flag1, bool>.value, Val<Count1, int>.value, Val<Message1, string>.value>.case1 as f -> if f.Case.Value then sum <- sum + 1 else sum |> ignore
+            | :? U<FlagOrCount1, Val<Flag1, bool>.value, Val<Count1, int>.value, Val<Message1, string>.value>.case2 as n -> sum <- sum + n.Case.Value
             | :? U<FlagOrCount1, Val<Flag1, bool>.value, Val<Count1, int>.value, Val<Message1, string>.value>.case3 -> sum <- sum + 42
             | _ -> ()
         sum
@@ -59,8 +59,8 @@ type Traverse_union_array_and_match_to_sum_something() =
         let mutable sum = 0
         for x in _cs1 do
             match x with
-            | :? I<Val<Flag1, bool>.value> as f -> if f.Value.Value then sum <- sum + 1 else sum |> ignore
-            | :? I<Val<Count1, int>.value> as n -> sum <- sum + n.Value.Value
+            | :? I<Val<Flag1, bool>.value> as f -> if f.Case.Value then sum <- sum + 1 else sum |> ignore
+            | :? I<Val<Count1, int>.value> as n -> sum <- sum + n.Case.Value
             | :? I<Val<Message1, string>.value> -> sum <- sum + 42
             | _ -> ()
         sum
@@ -69,7 +69,7 @@ type Traverse_union_array_and_match_to_sum_something() =
     member this.CSharp_named_case_struct_Match_method() =
         let mutable sum = 0
         for x in _cs1 do 
-            x.Match((fun f -> if f.Value then sum <- sum + 1 else sum |> ignore), (fun n -> sum <- sum + n.X), (fun m -> sum <- sum + 42)) |> ignore
+            x.Match((fun f -> if f.Value then sum <- sum + 1 else sum |> ignore), (fun n -> sum <- sum + n.Value), (fun m -> sum <- sum + 42)) |> ignore
         sum
 
 

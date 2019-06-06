@@ -34,7 +34,7 @@ namespace ImTools.UnionPlayground
 
             WriteLine(Usage.PatternMatchingWithTypedCases(name2));
             WriteLine(Usage.PatternMatchingWithTypedCases(flag2));
-            WriteLine(flag2.Match(f => "" + f.Value, n => n.Value));
+            WriteLine(flag2.Match(f => "" + f.Case, n => n.Case));
 
             // Option (MayBe) type defined as `sealed class Option<T> : Union<Option<T>, Empty, T> { ... }`.
             WriteLine(Some.Of(42));
@@ -65,8 +65,8 @@ namespace ImTools.UnionPlayground
         {
             switch (x)
             {
-                case FlagOrName.case1 b: return "" + b; // b.Value for the actual value
-                case FlagOrName.case2 s: return "" + s;
+                case FlagOrName.case1 b: return "" + b.Value; // b.Value for the actual value
+                case FlagOrName.case2 s: return "" + s.Value;
                 default: throw new NotSupportedException();
             }
         }
@@ -78,8 +78,8 @@ namespace ImTools.UnionPlayground
             // The performance price may be gained back any time by switching to CaseN struct matching.
             switch (x)
             {
-                case I<Flag.value> b: return "" + b.Value.Value;
-                case I<Name.value> s: return "" + s.Value.Value;
+                case I<Flag.value> b: return "" + b.Case.Value;
+                case I<Name.value> s: return "" + s.Case.Value;
                 default: throw new NotSupportedException();
             }
         }

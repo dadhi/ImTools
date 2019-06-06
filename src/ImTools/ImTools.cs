@@ -130,15 +130,12 @@ namespace ImTools
     public interface I<out T>
     {
         /// The value in this case ;)
-        T Value { get; }
+        T Case { get; }
     }
 
     /// Helpers for `Is` and `Union`
     public static class Union
     {
-        /// Shortcut to Value.Value
-        public static T Value<T>(this I<I<T>> i) => i.Value.Value;
-
         /// Pretty prints the Union using the type information
         internal static string ToString<TName, T>(T value)
         {
@@ -157,24 +154,24 @@ namespace ImTools
         where TRef : Rec<TRef, T>, new()
     {
         /// Converts a value into Rec of the value
-        public static TRef Of(T v) => new TRef { Value = v };
+        public static TRef Of(T v) => new TRef { Case = v };
 
         /// <inheritdoc />
-        public T Value { get; private set; }
+        public T Case { get; private set; }
 
         /// <inheritdoc />
         public bool Equals(Rec<TRef, T> other) =>
-            other != null && EqualityComparer<T>.Default.Equals(Value, other.Value);
+            other != null && EqualityComparer<T>.Default.Equals(Case, other.Case);
 
         /// <inheritdoc />
         public override bool Equals(object obj) => obj is Rec<TRef, T> c && Equals(c);
 
         // ReSharper disable once NonReadonlyMemberInGetHashCode
         /// <inheritdoc />
-        public override int GetHashCode() => EqualityComparer<T>.Default.GetHashCode(Value);
+        public override int GetHashCode() => EqualityComparer<T>.Default.GetHashCode(Case);
 
         /// <inheritdoc />
-        public override string ToString() => Union.ToString<TRef, T>(Value);
+        public override string ToString() => Union.ToString<TRef, T>(Case);
     }
 
     /// Wraps a single value in a nested struct
@@ -188,25 +185,25 @@ namespace ImTools
         public readonly struct value : IEquatable<value>, I<T>
         {
             /// <inheritdoc />
-            public T Value { [MethodImpl((MethodImplOptions)256)] get => X; }
+            public T Case { [MethodImpl((MethodImplOptions)256)] get => Value; }
 
             /// The value
-            public readonly T X;
+            public readonly T Value;
 
             /// Constructor
-            public value(T x) => X = x;
+            public value(T x) => Value = x;
 
             /// <inheritdoc />
-            public bool Equals(value other) => EqualityComparer<T>.Default.Equals(X, other.X);
+            public bool Equals(value other) => EqualityComparer<T>.Default.Equals(Value, other.Value);
 
             /// <inheritdoc />
             public override bool Equals(object obj) => obj is value c && Equals(c);
 
             /// <inheritdoc />
-            public override int GetHashCode() => EqualityComparer<T>.Default.GetHashCode(X);
+            public override int GetHashCode() => EqualityComparer<T>.Default.GetHashCode(Value);
 
             /// <inheritdoc />
-            public override string ToString() => Union.ToString<TVal, T>(X);
+            public override string ToString() => Union.ToString<TVal, T>(Value);
         }
     }
 
@@ -239,28 +236,28 @@ namespace ImTools
             public static implicit operator case1(T1 x) => new case1(x);
 
             /// <inheritdoc />
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2) => map1(Value);
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2) => map1(Case);
 
             /// <inheritdoc />
-            public T1 Value => X;
+            public T1 Case => Value;
 
             /// The X
-            public readonly T1 X;
+            public readonly T1 Value;
 
             /// Wraps the value
-            public case1(T1 x) => X = x;
+            public case1(T1 x) => Value = x;
 
             /// <inheritdoc />
-            public bool Equals(case1 other) => EqualityComparer<T1>.Default.Equals(X, other.X);
+            public bool Equals(case1 other) => EqualityComparer<T1>.Default.Equals(Value, other.Value);
 
             /// <inheritdoc />
             public override bool Equals(object obj) => obj is case1 x && Equals(x);
 
             /// <inheritdoc />
-            public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(X);
+            public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(Value);
 
             /// <inheritdoc />
-            public override string ToString() => Union.ToString<TName, T1>(X);
+            public override string ToString() => Union.ToString<TName, T1>(Value);
         }
 
         /// Wraps the respective case
@@ -270,28 +267,28 @@ namespace ImTools
             public static implicit operator case2(T2 x) => new case2(x);
 
             /// <inheritdoc />
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2) => map2(X);
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2) => map2(Value);
 
             /// <inheritdoc />
-            public T2 Value => X;
+            public T2 Case => Value;
 
             /// The X
-            public readonly T2 X;
+            public readonly T2 Value;
 
             /// Wraps the value
-            public case2(T2 x) => X = x;
+            public case2(T2 x) => Value = x;
 
             /// <inheritdoc />
-            public bool Equals(case2 other) => EqualityComparer<T2>.Default.Equals(X, other.X);
+            public bool Equals(case2 other) => EqualityComparer<T2>.Default.Equals(Value, other.Value);
 
             /// <inheritdoc />
             public override bool Equals(object obj) => obj is case2 x && Equals(x);
 
             /// <inheritdoc />
-            public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(X);
+            public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(Value);
 
             /// <inheritdoc />
-            public override string ToString() => Union.ToString<TName, T2>(X);
+            public override string ToString() => Union.ToString<TName, T2>(Value);
         }
     }
 
@@ -316,7 +313,7 @@ namespace ImTools
             [MethodImpl((MethodImplOptions)256)]
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3) => map1(X);
 
-            public T1 Value { [MethodImpl((MethodImplOptions)256)] get => X; }
+            public T1 Case { [MethodImpl((MethodImplOptions)256)] get => X; }
 
             public readonly T1 X;
 
@@ -334,7 +331,7 @@ namespace ImTools
 
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3) => map2(X);
 
-            public T2 Value { [MethodImpl((MethodImplOptions)256)] get => X; }
+            public T2 Case { [MethodImpl((MethodImplOptions)256)] get => X; }
 
             public readonly T2 X;
 
@@ -352,7 +349,7 @@ namespace ImTools
 
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3) => map3(X);
 
-            public T3 Value => X;
+            public T3 Case => X;
 
             public readonly T3 X;
 
@@ -380,54 +377,54 @@ namespace ImTools
 
         public struct Case1 : union, IEquatable<Case1>, I<T1>
         {
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4) => map1(Value);
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4) => map1(Case);
 
-            public T1 Value { get; }
-            public Case1(T1 v) => Value = v;
+            public T1 Case { get; }
+            public Case1(T1 v) => Case = v;
 
-            public bool Equals(Case1 other) => EqualityComparer<T1>.Default.Equals(Value, other.Value);
+            public bool Equals(Case1 other) => EqualityComparer<T1>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case1 x && Equals(x);
-            public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(Value);
-            public override string ToString() => Union.ToString<TType, T1>(Value);
+            public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(Case);
+            public override string ToString() => Union.ToString<TType, T1>(Case);
         }
 
         public struct Case2 : union, IEquatable<Case2>, I<T2>
         {
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4) => map2(Value);
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4) => map2(Case);
 
-            public T2 Value { get; }
-            public Case2(T2 v) { Value = v; }
+            public T2 Case { get; }
+            public Case2(T2 v) { Case = v; }
 
-            public bool Equals(Case2 other) => EqualityComparer<T2>.Default.Equals(Value, other.Value);
+            public bool Equals(Case2 other) => EqualityComparer<T2>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case2 x && Equals(x);
-            public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(Value);
-            public override string ToString() => Union.ToString<TType, T2>(Value);
+            public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(Case);
+            public override string ToString() => Union.ToString<TType, T2>(Case);
         }
 
         public struct Case3 : union, IEquatable<Case3>, I<T3>
         {
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4) => map3(Value);
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4) => map3(Case);
 
-            public T3 Value { get; }
-            public Case3(T3 v) { Value = v; }
+            public T3 Case { get; }
+            public Case3(T3 v) { Case = v; }
 
-            public bool Equals(Case3 other) => EqualityComparer<T3>.Default.Equals(Value, other.Value);
+            public bool Equals(Case3 other) => EqualityComparer<T3>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case3 x && Equals(x);
-            public override int GetHashCode() => EqualityComparer<T3>.Default.GetHashCode(Value);
-            public override string ToString() => Union.ToString<TType, T3>(Value);
+            public override int GetHashCode() => EqualityComparer<T3>.Default.GetHashCode(Case);
+            public override string ToString() => Union.ToString<TType, T3>(Case);
         }
 
         public struct Case4 : union, IEquatable<Case4>, I<T4>
         {
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4) => map4(Value);
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4) => map4(Case);
 
-            public T4 Value { get; }
-            public Case4(T4 v) { Value = v; }
+            public T4 Case { get; }
+            public Case4(T4 v) { Case = v; }
 
-            public bool Equals(Case4 other) => EqualityComparer<T4>.Default.Equals(Value, other.Value);
+            public bool Equals(Case4 other) => EqualityComparer<T4>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case4 x && Equals(x);
-            public override int GetHashCode() => EqualityComparer<T4>.Default.GetHashCode(Value);
-            public override string ToString() => Union.ToString<TType, T4>(Value);
+            public override int GetHashCode() => EqualityComparer<T4>.Default.GetHashCode(Case);
+            public override string ToString() => Union.ToString<TType, T4>(Case);
         }
     }
 
@@ -447,67 +444,67 @@ namespace ImTools
 
         public struct Case1 : union, IEquatable<Case1>, I<T1>
         {
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5) => map1(Value);
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5) => map1(Case);
 
-            public T1 Value { get; }
-            public Case1(T1 v) => Value = v;
+            public T1 Case { get; }
+            public Case1(T1 v) => Case = v;
 
-            public bool Equals(Case1 other) => EqualityComparer<T1>.Default.Equals(Value, other.Value);
+            public bool Equals(Case1 other) => EqualityComparer<T1>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case1 x && Equals(x);
-            public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(Value);
-            public override string ToString() => Union.ToString<TType, T1>(Value);
+            public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(Case);
+            public override string ToString() => Union.ToString<TType, T1>(Case);
         }
 
         public struct Case2 : union, IEquatable<Case2>, I<T2>
         {
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5) => map2(Value);
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5) => map2(Case);
 
-            public T2 Value { get; }
-            public Case2(T2 v) => Value = v;
+            public T2 Case { get; }
+            public Case2(T2 v) => Case = v;
 
-            public bool Equals(Case2 other) => EqualityComparer<T2>.Default.Equals(Value, other.Value);
+            public bool Equals(Case2 other) => EqualityComparer<T2>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case2 c && Equals(c);
-            public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(Value);
-            public override string ToString() => Union.ToString<TType, T2>(Value);
+            public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(Case);
+            public override string ToString() => Union.ToString<TType, T2>(Case);
         }
 
         public struct Case3 : union, IEquatable<Case3>, I<T3>
         {
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5) => map3(Value);
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5) => map3(Case);
 
-            public T3 Value { get; }
-            public Case3(T3 v) => Value = v;
+            public T3 Case { get; }
+            public Case3(T3 v) => Case = v;
 
-            public bool Equals(Case3 other) => EqualityComparer<T3>.Default.Equals(Value, other.Value);
+            public bool Equals(Case3 other) => EqualityComparer<T3>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case3 x && Equals(x);
-            public override int GetHashCode() => EqualityComparer<T3>.Default.GetHashCode(Value);
-            public override string ToString() => Union.ToString<TType, T3>(Value);
+            public override int GetHashCode() => EqualityComparer<T3>.Default.GetHashCode(Case);
+            public override string ToString() => Union.ToString<TType, T3>(Case);
         }
 
         public struct Case4 : union, IEquatable<Case4>, I<T4>
         {
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5) => map4(Value);
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5) => map4(Case);
 
-            public T4 Value { get; }
-            public Case4(T4 v) { Value = v; }
+            public T4 Case { get; }
+            public Case4(T4 v) { Case = v; }
 
-            public bool Equals(Case4 other) => EqualityComparer<T4>.Default.Equals(Value, other.Value);
+            public bool Equals(Case4 other) => EqualityComparer<T4>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case4 x && Equals(x);
-            public override int GetHashCode() => EqualityComparer<T4>.Default.GetHashCode(Value);
-            public override string ToString() => Union.ToString<TType, T4>(Value);
+            public override int GetHashCode() => EqualityComparer<T4>.Default.GetHashCode(Case);
+            public override string ToString() => Union.ToString<TType, T4>(Case);
         }
 
         public struct Case5 : union, IEquatable<Case5>, I<T5>
         {
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5) => map5(Value);
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5) => map5(Case);
 
-            public T5 Value { get; }
-            public Case5(T5 v) { Value = v; }
+            public T5 Case { get; }
+            public Case5(T5 v) { Case = v; }
 
-            public bool Equals(Case5 other) => EqualityComparer<T5>.Default.Equals(Value, other.Value);
+            public bool Equals(Case5 other) => EqualityComparer<T5>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case5 x && Equals(x);
-            public override int GetHashCode() => EqualityComparer<T5>.Default.GetHashCode(Value);
-            public override string ToString() => Union.ToString<TType, T5>(Value);
+            public override int GetHashCode() => EqualityComparer<T5>.Default.GetHashCode(Case);
+            public override string ToString() => Union.ToString<TType, T5>(Case);
         }
     }
 
@@ -530,85 +527,85 @@ namespace ImTools
         public struct Case1 : union, IEquatable<Case1>, I<T1>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
-                Func<T6, R> map6) => map1(Value);
+                Func<T6, R> map6) => map1(Case);
 
-            public T1 Value { get; }
-            public Case1(T1 v) => Value = v;
+            public T1 Case { get; }
+            public Case1(T1 v) => Case = v;
 
-            public bool Equals(Case1 other) => EqualityComparer<T1>.Default.Equals(Value, other.Value);
+            public bool Equals(Case1 other) => EqualityComparer<T1>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case1 x && Equals(x);
-            public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(Value);
-            public override string ToString() => Union.ToString<TType, T1>(Value);
+            public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(Case);
+            public override string ToString() => Union.ToString<TType, T1>(Case);
         }
 
         public struct Case2 : union, IEquatable<Case2>, I<T2>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
-                Func<T6, R> map6) => map2(Value);
+                Func<T6, R> map6) => map2(Case);
 
-            public T2 Value { get; }
-            public Case2(T2 v) => Value = v;
+            public T2 Case { get; }
+            public Case2(T2 v) => Case = v;
 
-            public bool Equals(Case2 other) => EqualityComparer<T2>.Default.Equals(Value, other.Value);
+            public bool Equals(Case2 other) => EqualityComparer<T2>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case2 c && Equals(c);
-            public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(Value);
-            public override string ToString() => Union.ToString<TType, T2>(Value);
+            public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(Case);
+            public override string ToString() => Union.ToString<TType, T2>(Case);
         }
 
         public struct Case3 : union, IEquatable<Case3>, I<T3>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
-                Func<T6, R> map6) => map3(Value);
+                Func<T6, R> map6) => map3(Case);
 
-            public T3 Value { get; }
-            public Case3(T3 v) => Value = v;
+            public T3 Case { get; }
+            public Case3(T3 v) => Case = v;
 
-            public bool Equals(Case3 other) => EqualityComparer<T3>.Default.Equals(Value, other.Value);
+            public bool Equals(Case3 other) => EqualityComparer<T3>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case3 x && Equals(x);
-            public override int GetHashCode() => EqualityComparer<T3>.Default.GetHashCode(Value);
-            public override string ToString() => Union.ToString<TType, T3>(Value);
+            public override int GetHashCode() => EqualityComparer<T3>.Default.GetHashCode(Case);
+            public override string ToString() => Union.ToString<TType, T3>(Case);
         }
 
         public struct Case4 : union, IEquatable<Case4>, I<T4>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
-                Func<T6, R> map6) => map4(Value);
+                Func<T6, R> map6) => map4(Case);
 
-            public T4 Value { get; }
-            public Case4(T4 v) { Value = v; }
+            public T4 Case { get; }
+            public Case4(T4 v) { Case = v; }
 
-            public bool Equals(Case4 other) => EqualityComparer<T4>.Default.Equals(Value, other.Value);
+            public bool Equals(Case4 other) => EqualityComparer<T4>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case4 x && Equals(x);
-            public override int GetHashCode() => EqualityComparer<T4>.Default.GetHashCode(Value);
-            public override string ToString() => Union.ToString<TType, T4>(Value);
+            public override int GetHashCode() => EqualityComparer<T4>.Default.GetHashCode(Case);
+            public override string ToString() => Union.ToString<TType, T4>(Case);
         }
 
         public struct Case5 : union, IEquatable<Case5>, I<T5>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
-                Func<T6, R> map6) => map5(Value);
+                Func<T6, R> map6) => map5(Case);
 
-            public T5 Value { get; }
-            public Case5(T5 v) { Value = v; }
+            public T5 Case { get; }
+            public Case5(T5 v) { Case = v; }
 
-            public bool Equals(Case5 other) => EqualityComparer<T5>.Default.Equals(Value, other.Value);
+            public bool Equals(Case5 other) => EqualityComparer<T5>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case5 x && Equals(x);
-            public override int GetHashCode() => EqualityComparer<T5>.Default.GetHashCode(Value);
-            public override string ToString() => Union.ToString<TType, T5>(Value);
+            public override int GetHashCode() => EqualityComparer<T5>.Default.GetHashCode(Case);
+            public override string ToString() => Union.ToString<TType, T5>(Case);
         }
 
         public struct Case6 : union, IEquatable<Case6>, I<T6>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
-                Func<T6, R> map6) => map6(Value);
+                Func<T6, R> map6) => map6(Case);
 
-            public T6 Value { get; }
-            public Case6(T6 v) { Value = v; }
+            public T6 Case { get; }
+            public Case6(T6 v) { Case = v; }
 
-            public bool Equals(Case6 other) => EqualityComparer<T6>.Default.Equals(Value, other.Value);
+            public bool Equals(Case6 other) => EqualityComparer<T6>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case5 x && Equals(x);
-            public override int GetHashCode() => EqualityComparer<T6>.Default.GetHashCode(Value);
-            public override string ToString() => Union.ToString<TType, T6>(Value);
+            public override int GetHashCode() => EqualityComparer<T6>.Default.GetHashCode(Case);
+            public override string ToString() => Union.ToString<TType, T6>(Case);
         }
     }
 
@@ -632,99 +629,99 @@ namespace ImTools
         public struct Case1 : union, IEquatable<Case1>, I<T1>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
-                Func<T6, R> map6, Func<T7, R> map7) => map1(Value);
+                Func<T6, R> map6, Func<T7, R> map7) => map1(Case);
 
-            public T1 Value { get; }
-            public Case1(T1 v) => Value = v;
+            public T1 Case { get; }
+            public Case1(T1 v) => Case = v;
 
-            public bool Equals(Case1 other) => EqualityComparer<T1>.Default.Equals(Value, other.Value);
+            public bool Equals(Case1 other) => EqualityComparer<T1>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case1 x && Equals(x);
-            public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(Value);
-            public override string ToString() => Union.ToString<TType, T1>(Value);
+            public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(Case);
+            public override string ToString() => Union.ToString<TType, T1>(Case);
         }
 
         public struct Case2 : union, IEquatable<Case2>, I<T2>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
-                Func<T6, R> map6, Func<T7, R> map7) => map2(Value);
+                Func<T6, R> map6, Func<T7, R> map7) => map2(Case);
 
-            public T2 Value { get; }
-            public Case2(T2 v) => Value = v;
+            public T2 Case { get; }
+            public Case2(T2 v) => Case = v;
 
-            public bool Equals(Case2 other) => EqualityComparer<T2>.Default.Equals(Value, other.Value);
+            public bool Equals(Case2 other) => EqualityComparer<T2>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case2 c && Equals(c);
-            public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(Value);
-            public override string ToString() => Union.ToString<TType, T2>(Value);
+            public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(Case);
+            public override string ToString() => Union.ToString<TType, T2>(Case);
         }
 
         public struct Case3 : union, IEquatable<Case3>, I<T3>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
-                Func<T6, R> map6, Func<T7, R> map7) => map3(Value);
+                Func<T6, R> map6, Func<T7, R> map7) => map3(Case);
 
-            public T3 Value { get; }
-            public Case3(T3 v) => Value = v;
+            public T3 Case { get; }
+            public Case3(T3 v) => Case = v;
 
-            public bool Equals(Case3 other) => EqualityComparer<T3>.Default.Equals(Value, other.Value);
+            public bool Equals(Case3 other) => EqualityComparer<T3>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case3 x && Equals(x);
-            public override int GetHashCode() => EqualityComparer<T3>.Default.GetHashCode(Value);
-            public override string ToString() => Union.ToString<TType, T3>(Value);
+            public override int GetHashCode() => EqualityComparer<T3>.Default.GetHashCode(Case);
+            public override string ToString() => Union.ToString<TType, T3>(Case);
         }
 
         public struct Case4 : union, IEquatable<Case4>, I<T4>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
-                Func<T6, R> map6, Func<T7, R> map7) => map4(Value);
+                Func<T6, R> map6, Func<T7, R> map7) => map4(Case);
 
-            public T4 Value { get; }
-            public Case4(T4 v) { Value = v; }
+            public T4 Case { get; }
+            public Case4(T4 v) { Case = v; }
 
-            public bool Equals(Case4 other) => EqualityComparer<T4>.Default.Equals(Value, other.Value);
+            public bool Equals(Case4 other) => EqualityComparer<T4>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case4 x && Equals(x);
-            public override int GetHashCode() => EqualityComparer<T4>.Default.GetHashCode(Value);
-            public override string ToString() => Union.ToString<TType, T4>(Value);
+            public override int GetHashCode() => EqualityComparer<T4>.Default.GetHashCode(Case);
+            public override string ToString() => Union.ToString<TType, T4>(Case);
         }
 
         public struct Case5 : union, IEquatable<Case5>, I<T5>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
-                Func<T6, R> map6, Func<T7, R> map7) => map5(Value);
+                Func<T6, R> map6, Func<T7, R> map7) => map5(Case);
 
-            public T5 Value { get; }
-            public Case5(T5 v) { Value = v; }
+            public T5 Case { get; }
+            public Case5(T5 v) { Case = v; }
 
-            public bool Equals(Case5 other) => EqualityComparer<T5>.Default.Equals(Value, other.Value);
+            public bool Equals(Case5 other) => EqualityComparer<T5>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case5 x && Equals(x);
-            public override int GetHashCode() => EqualityComparer<T5>.Default.GetHashCode(Value);
-            public override string ToString() => Union.ToString<TType, T5>(Value);
+            public override int GetHashCode() => EqualityComparer<T5>.Default.GetHashCode(Case);
+            public override string ToString() => Union.ToString<TType, T5>(Case);
         }
 
         public struct Case6 : union, IEquatable<Case6>, I<T6>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
-                Func<T6, R> map6, Func<T7, R> map7) => map6(Value);
+                Func<T6, R> map6, Func<T7, R> map7) => map6(Case);
 
-            public T6 Value { get; }
-            public Case6(T6 v) { Value = v; }
+            public T6 Case { get; }
+            public Case6(T6 v) { Case = v; }
 
-            public bool Equals(Case6 other) => EqualityComparer<T6>.Default.Equals(Value, other.Value);
+            public bool Equals(Case6 other) => EqualityComparer<T6>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case6 x && Equals(x);
-            public override int GetHashCode() => EqualityComparer<T6>.Default.GetHashCode(Value);
-            public override string ToString() => Union.ToString<TType, T6>(Value);
+            public override int GetHashCode() => EqualityComparer<T6>.Default.GetHashCode(Case);
+            public override string ToString() => Union.ToString<TType, T6>(Case);
         }
 
         public struct Case7 : union, IEquatable<Case7>, I<T7>
         {
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
-                Func<T6, R> map6, Func<T7, R> map7) => map7(Value);
+                Func<T6, R> map6, Func<T7, R> map7) => map7(Case);
 
-            public T7 Value { get; }
-            public Case7(T7 v) { Value = v; }
+            public T7 Case { get; }
+            public Case7(T7 v) { Case = v; }
 
-            public bool Equals(Case7 other) => EqualityComparer<T7>.Default.Equals(Value, other.Value);
+            public bool Equals(Case7 other) => EqualityComparer<T7>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case7 x && Equals(x);
-            public override int GetHashCode() => EqualityComparer<T7>.Default.GetHashCode(Value);
-            public override string ToString() => Union.ToString<TType, T7>(Value);
+            public override int GetHashCode() => EqualityComparer<T7>.Default.GetHashCode(Case);
+            public override string ToString() => Union.ToString<TType, T7>(Case);
         }
     }
 
