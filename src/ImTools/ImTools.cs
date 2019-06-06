@@ -126,7 +126,7 @@ namespace ImTools
     }
 */
 
-    /// Useful for type pattern matching via `case Is{T} x: ...`
+    /// Useful for type pattern matching via `case I{T} x: ...`
     public interface I<out T>
     {
         /// The value in this case ;)
@@ -138,9 +138,6 @@ namespace ImTools
     {
         /// Shortcut to Value.Value
         public static T Value<T>(this I<I<T>> i) => i.Value.Value;
-
-        /// Shortcut to Value.Value
-        public static T Val<T, A>(this I<A> i) where A : I<T> => i.Value.Value;
 
         /// Pretty prints the Union using the type information
         internal static string ToString<TName, T>(T value)
@@ -181,7 +178,7 @@ namespace ImTools
     }
 
     /// Wraps a single value in a nested struct
-    public abstract class Val<TSelf, T>
+    public abstract class Val<TVal, T>
     {
         /// Creation method for the consistency with other types
         public static value Of(T x) => new value(x);
@@ -191,7 +188,7 @@ namespace ImTools
         public readonly struct value : IEquatable<value>, I<T>
         {
             /// <inheritdoc />
-            public T Value => X;
+            public T Value { [MethodImpl((MethodImplOptions)256)] get => X; }
 
             /// The value
             public readonly T X;
@@ -209,7 +206,7 @@ namespace ImTools
             public override int GetHashCode() => EqualityComparer<T>.Default.GetHashCode(X);
 
             /// <inheritdoc />
-            public override string ToString() => Union.ToString<TSelf, T>(X);
+            public override string ToString() => Union.ToString<TVal, T>(X);
         }
     }
 
@@ -316,9 +313,10 @@ namespace ImTools
         {
             public static implicit operator case1(T1 x) => new case1(x);
 
+            [MethodImpl((MethodImplOptions)256)]
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3) => map1(X);
 
-            public T1 Value => X;
+            public T1 Value { [MethodImpl((MethodImplOptions)256)] get => X; }
 
             public readonly T1 X;
 
@@ -336,7 +334,7 @@ namespace ImTools
 
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3) => map2(X);
 
-            public T2 Value => X;
+            public T2 Value { [MethodImpl((MethodImplOptions)256)] get => X; }
 
             public readonly T2 X;
 

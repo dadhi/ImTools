@@ -78,8 +78,8 @@ namespace ImTools.UnionPlayground
             // The performance price may be gained back any time by switching to CaseN struct matching.
             switch (x)
             {
-                case I<Flag> b: return "" + b; // b.Value.Value for the actual value
-                //case Is<Name> s: return "" + s;
+                case I<Flag.value> b: return "" + b.Value.Value;
+                case I<Name.value> s: return "" + s.Value.Value;
                 default: throw new NotSupportedException();
             }
         }
