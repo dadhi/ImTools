@@ -48,8 +48,11 @@ type Traverse_union_array_and_match_to_sum_something() =
         let mutable sum = 0
         for x in _cs1 do
             match x with
+            // FlagOrCount1.case1 in C#
             | :? U<FlagOrCount1, Val<Flag1, bool>.value, Val<Count1, int>.value, Val<Message1, string>.value>.case1 as f -> if f.Case.Value then sum <- sum + 1 else sum |> ignore
+            // FlagOrCount1.case2 in C#
             | :? U<FlagOrCount1, Val<Flag1, bool>.value, Val<Count1, int>.value, Val<Message1, string>.value>.case2 as n -> sum <- sum + n.Case.Value
+            // FlagOrCount1.case3 in C#
             | :? U<FlagOrCount1, Val<Flag1, bool>.value, Val<Count1, int>.value, Val<Message1, string>.value>.case3 -> sum <- sum + 42
             | _ -> ()
         sum
