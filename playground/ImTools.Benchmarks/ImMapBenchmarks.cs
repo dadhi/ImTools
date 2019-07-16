@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using BenchmarkDotNet.Attributes;
 using ImTools;
+using ImTools.Benchmarks;
 using Microsoft.Collections.Extensions;
 
 namespace Playground
@@ -126,9 +127,31 @@ Frequency=2156254 Hz, Resolution=463.7673 ns, Timer=TSC
 |     ConcurrentDict_TryAdd | 100000 |  35,298,247.4 ns | 634,210.234 ns | 562,210.8529 ns |  35,136,630.4 ns |  0.55 |    0.01 |   2625.0000 |   1250.0000 |    500.0000 |         15486.84 KB |
 |         ImmutableDict_Add | 100000 | 247,218,695.0 ns | 755,870.150 ns | 707,041.4069 ns | 247,280,231.9 ns |  3.84 |    0.03 |  19000.0000 |   2666.6667 |    666.6667 |        112113.42 KB |
 
+
+            ## With ImMapArray
+
+|                    Method | Count |           Mean |          Error |         StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+|-------------------------- |------ |---------------:|---------------:|---------------:|------:|------------:|------------:|------------:|--------------------:|
+|         ImMap_AddOrUpdate |    10 |       661.9 ns |      4.5106 ns |      4.2192 ns |  1.00 |      0.4435 |           - |           - |              2096 B |
+|    ImMapArray_AddOrUpdate |    10 |       431.2 ns |      1.7250 ns |      1.6136 ns |  0.65 |      0.2065 |           - |           - |               976 B |
+| DictSlim_GetOrAddValueRef |    10 |       431.1 ns |      0.7869 ns |      0.7361 ns |  0.65 |      0.2437 |           - |           - |              1152 B |
+|                           |       |                |                |                |       |             |             |             |                     |
+|         ImMap_AddOrUpdate |   100 |    12,157.5 ns |     67.0010 ns |     62.6727 ns |  1.00 |      7.9651 |           - |           - |             37616 B |
+|    ImMapArray_AddOrUpdate |   100 |     6,640.2 ns |     23.8031 ns |     22.2655 ns |  0.55 |      3.8071 |           - |           - |             17968 B |
+| DictSlim_GetOrAddValueRef |   100 |     3,479.0 ns |      9.6752 ns |      9.0502 ns |  0.29 |      1.8311 |      0.0038 |           - |              8656 B |
+|                           |       |                |                |                |       |             |             |             |                     |
+|         ImMap_AddOrUpdate |  1000 |   193,743.4 ns |  1,639.8424 ns |  1,533.9096 ns |  1.00 |    113.0371 |      0.2441 |           - |            534464 B |
+|    ImMapArray_AddOrUpdate |  1000 |   141,413.0 ns |    613.5947 ns |    573.9568 ns |  0.73 |     71.7773 |      0.2441 |           - |            339760 B |
+| DictSlim_GetOrAddValueRef |  1000 |    33,085.6 ns |    163.7681 ns |    153.1887 ns |  0.17 |     15.5029 |      0.0610 |           - |             73440 B |
+|                           |       |                |                |                |       |             |             |             |                     |
+|         ImMap_AddOrUpdate | 10000 | 4,323,813.6 ns | 23,657.4117 ns | 20,971.6793 ns |  1.00 |   1117.1875 |    242.1875 |    109.3750 |           7044992 B |
+|    ImMapArray_AddOrUpdate | 10000 | 4,078,167.2 ns | 28,883.8925 ns | 25,604.8183 ns |  0.94 |    812.5000 |    304.6875 |    140.6250 |           5119216 B |
+| DictSlim_GetOrAddValueRef | 10000 |   471,399.3 ns |  1,478.9957 ns |  1,235.0284 ns |  0.11 |    125.0000 |    124.5117 |    124.5117 |           1048032 B |
+
             */
 
-            [Params(10, 100, 1_000, 10_000, 100_000)]
+            [Params(10, 100, 1_000, 10_000)]
+            //[Params(10, 100, 1_000, 10_000, 100_000)]
             public int Count;
 
             [Benchmark(Baseline = true)]
@@ -143,6 +166,17 @@ Frequency=2156254 Hz, Resolution=463.7673 ns, Timer=TSC
             }
 
             [Benchmark]
+            public ImMapArray<string> ImMapArray_AddOrUpdate()
+            {
+                var map = new ImMapArray<string>();
+
+                for (var i = 0; i < Count; i++)
+                    map.AddOrUpdate(i, i.ToString());
+
+                return map;
+            }
+
+            //[Benchmark]
             public ImTools.OldVersions.V1.ImMap<string> ImMap_V1_AddOrUpdate()
             {
                 var map = ImTools.OldVersions.V1.ImMap<string>.Empty;
@@ -164,7 +198,7 @@ Frequency=2156254 Hz, Resolution=463.7673 ns, Timer=TSC
                 return map;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public Dictionary<int, string> Dict_TryAdd()
             {
                 var map = new Dictionary<int, string>();
@@ -175,7 +209,7 @@ Frequency=2156254 Hz, Resolution=463.7673 ns, Timer=TSC
                 return map;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public ConcurrentDictionary<int, string> ConcurrentDict_TryAdd()
             {
                 var map = new ConcurrentDictionary<int, string>();
@@ -186,7 +220,7 @@ Frequency=2156254 Hz, Resolution=463.7673 ns, Timer=TSC
                 return map;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public ImmutableDictionary<int, string> ImmutableDict_Add()
             {
                 var map = ImmutableDictionary<int, string>.Empty;
@@ -378,6 +412,32 @@ Frequency=2156254 Hz, Resolution=463.7673 ns, Timer=TSC
 |           Dict_TryGetValue | 100000 |  7.061 ns | 0.0197 ns | 0.0184 ns |  0.43 |    0.01 |     - |     - |     - |         - |
 | ConcurrentDict_TryGetValue | 100000 | 10.479 ns | 0.0542 ns | 0.0507 ns |  0.64 |    0.02 |     - |     - |     - |         - |
 |  ImmutableDict_TryGetValue | 100000 | 93.308 ns | 0.2382 ns | 0.2228 ns |  5.67 |    0.17 |     - |     - |     - |         - |
+
+
+## With ImMapArray
+
+|               Method |  Count |       Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+|--------------------- |------- |-----------:|----------:|----------:|------:|--------:|------------:|------------:|------------:|--------------------:|
+|        ImMap_TryFind |     10 |  3.1969 ns | 0.1039 ns | 0.0972 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+|   ImMapArray_TryFind |     10 |  0.8488 ns | 0.0166 ns | 0.0155 ns |  0.27 |    0.01 |           - |           - |           - |                   - |
+| DictSlim_TryGetValue |     10 |  3.1690 ns | 0.0227 ns | 0.0212 ns |  0.99 |    0.03 |           - |           - |           - |                   - |
+|                      |        |            |           |           |       |         |             |             |             |                     |
+|        ImMap_TryFind |    100 |  4.3678 ns | 0.0811 ns | 0.0759 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+|   ImMapArray_TryFind |    100 |  3.2195 ns | 0.0230 ns | 0.0215 ns |  0.74 |    0.01 |           - |           - |           - |                   - |
+| DictSlim_TryGetValue |    100 |  3.1816 ns | 0.0135 ns | 0.0120 ns |  0.73 |    0.01 |           - |           - |           - |                   - |
+|                      |        |            |           |           |       |         |             |             |             |                     |
+|        ImMap_TryFind |   1000 |  6.6745 ns | 0.1090 ns | 0.1020 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+|   ImMapArray_TryFind |   1000 |  5.8017 ns | 0.0220 ns | 0.0206 ns |  0.87 |    0.01 |           - |           - |           - |                   - |
+| DictSlim_TryGetValue |   1000 |  3.1851 ns | 0.0227 ns | 0.0212 ns |  0.48 |    0.01 |           - |           - |           - |                   - |
+|                      |        |            |           |           |       |         |             |             |             |                     |
+|        ImMap_TryFind |  10000 | 11.4247 ns | 0.0444 ns | 0.0394 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+|   ImMapArray_TryFind |  10000 |  9.0654 ns | 0.0590 ns | 0.0552 ns |  0.79 |    0.01 |           - |           - |           - |                   - |
+| DictSlim_TryGetValue |  10000 |  3.1872 ns | 0.0162 ns | 0.0152 ns |  0.28 |    0.00 |           - |           - |           - |                   - |
+|                      |        |            |           |           |       |         |             |             |             |                     |
+|        ImMap_TryFind | 100000 | 16.0824 ns | 0.0310 ns | 0.0274 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+|   ImMapArray_TryFind | 100000 | 11.8640 ns | 0.1768 ns | 0.1653 ns |  0.74 |    0.01 |           - |           - |           - |                   - |
+| DictSlim_TryGetValue | 100000 |  3.1911 ns | 0.0235 ns | 0.0220 ns |  0.20 |    0.00 |           - |           - |           - |                   - |
+
  */
             public ImMap<string> AddOrUpdate()
             {
@@ -388,6 +448,20 @@ Frequency=2156254 Hz, Resolution=463.7673 ns, Timer=TSC
 
                 return map;
             }
+
+            private ImMap<string> _map;
+
+            public ImMapArray<string> AddOrUpdate_ImMapArray()
+            {
+                var map = new ImMapArray<string>();
+
+                for (var i = 0; i < Count; i++)
+                    map.AddOrUpdate(i, i.ToString());
+
+                return map;
+            }
+
+            private ImMapArray<string> _mapArray;
 
             public ImTools.OldVersions.V1.ImMap<string> AddOrUpdate_V1()
             {
@@ -400,8 +474,6 @@ Frequency=2156254 Hz, Resolution=463.7673 ns, Timer=TSC
             }
 
             private ImTools.OldVersions.V1.ImMap<string> _mapV1;
-
-            private ImMap<string> _map ;
 
             public DictionarySlim<int, string> DictSlim()
             {
@@ -462,6 +534,7 @@ Frequency=2156254 Hz, Resolution=463.7673 ns, Timer=TSC
                 LookupMaxKey = Count - 1;
 
                 _map = AddOrUpdate();
+                _mapArray = AddOrUpdate_ImMapArray();
                 _mapV1 = AddOrUpdate_V1();
                 _dictSlim = DictSlim();
                 _dict = Dict();
@@ -477,19 +550,26 @@ Frequency=2156254 Hz, Resolution=463.7673 ns, Timer=TSC
             }
 
             [Benchmark]
+            public string ImMapArray_TryFind()
+            {
+                _mapArray.TryFind(LookupMaxKey, out var result);
+                return result;
+            }
+
+            //[Benchmark]
             public string ImMap_GetValueOrDefault()
             {
                 return _map.GetValueOrDefault(LookupMaxKey);
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string ImMap_V1_TryFind()
             {
                 _mapV1.TryFind(LookupMaxKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string ImMap_V1_GetValueOrDefault()
             {
                 return _mapV1.GetValueOrDefault(LookupMaxKey);
@@ -502,21 +582,21 @@ Frequency=2156254 Hz, Resolution=463.7673 ns, Timer=TSC
                 return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string Dict_TryGetValue()
             {
                 _dict.TryGetValue(LookupMaxKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string ConcurrentDict_TryGetValue()
             {
                 _concurDict.TryGetValue(LookupMaxKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string ImmutableDict_TryGetValue()
             {
                 _immutableDict.TryGetValue(LookupMaxKey, out var result);
