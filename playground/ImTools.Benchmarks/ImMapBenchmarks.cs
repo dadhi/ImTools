@@ -152,9 +152,26 @@ Frequency=2156254 Hz, Resolution=463.7673 ns, Timer=TSC
 |    ImMapArray_AddOrUpdate | 100000 | 63,953,018.3 ns | 1,205,093.016 ns | 1,289,436.0257 ns |  1.04 |    0.03 |  11333.3333 |   2222.2222 |    666.6667 |          67292284 B |
 | DictSlim_GetOrAddValueRef | 100000 | 10,722,986.3 ns |    41,820.874 ns |    39,119.2715 ns |  0.17 |    0.00 |   1234.3750 |    968.7500 |    734.3750 |           9235921 B |
 
+            ## Struct nodes
+
+|                    Method | Count |         Mean |        Error |     StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+|-------------------------- |------ |-------------:|-------------:|-----------:|------:|------------:|------------:|------------:|--------------------:|
+|         ImMap_AddOrUpdate |    10 |     674.3 ns |     5.731 ns |   4.786 ns |  1.00 |      0.4435 |           - |           - |              2096 B |
+|    ImMapArray_AddOrUpdate |    10 |     519.3 ns |     1.853 ns |   1.733 ns |  0.77 |      0.1726 |           - |           - |               816 B |
+| DictSlim_GetOrAddValueRef |    10 |     430.4 ns |     1.111 ns |   1.039 ns |  0.64 |      0.2437 |           - |           - |              1152 B |
+|                           |       |              |              |            |       |             |             |             |                     |
+|         ImMap_AddOrUpdate |   100 |  11,971.8 ns |    28.127 ns |  24.934 ns |  1.00 |      7.9651 |           - |           - |             37616 B |
+|    ImMapArray_AddOrUpdate |   100 |  13,934.4 ns |    35.766 ns |  33.456 ns |  1.16 |      3.3417 |           - |           - |             15792 B |
+| DictSlim_GetOrAddValueRef |   100 |   3,486.1 ns |    14.529 ns |  13.590 ns |  0.29 |      1.8311 |      0.0038 |           - |              8656 B |
+|                           |       |              |              |            |       |             |             |             |                     |
+|         ImMap_AddOrUpdate |  1000 | 194,139.7 ns |   814.862 ns | 762.222 ns |  1.00 |    113.0371 |      0.2441 |           - |            534464 B |
+|    ImMapArray_AddOrUpdate |  1000 | 378,233.2 ns | 1,023.843 ns | 907.610 ns |  1.95 |     66.8945 |           - |           - |            315952 B |
+| DictSlim_GetOrAddValueRef |  1000 |  33,299.0 ns |   101.650 ns |  95.083 ns |  0.17 |     15.5029 |      0.0610 |           - |             73440 B |
+
+
             */
 
-            [Params(10, 100, 1_000, 10_000, 100_000)]
+            [Params(10, 100, 1_000)]//, 10_000, 100_000)]
             public int Count;
 
             [Benchmark(Baseline = true)]

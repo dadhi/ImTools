@@ -7,11 +7,11 @@ namespace ImTools.Benchmarks
     {
         static void Main()
         {
-            //var x = new ImMapBenchmarks.Populate { Count = 10 };
+            //var x = new ImMapBenchmarks.Populate { Count = 30 };
             //x.ImMapArray_AddOrUpdate();
 
-            //BenchmarkRunner.Run<ImMapBenchmarks.Populate>();
-            BenchmarkRunner.Run<ImMapBenchmarks.Lookup>();
+            BenchmarkRunner.Run<ImMapBenchmarks.Populate>();
+            //BenchmarkRunner.Run<ImMapBenchmarks.Lookup>();
 
             //BenchmarkRunner.Run<ImHashMapBenchmarks_StringString.Populate>();
             //BenchmarkRunner.Run<ImHashMapBenchmarks_StringString.Lookup>();

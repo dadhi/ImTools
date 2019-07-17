@@ -1,24 +1,129 @@
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace ImTools.Benchmarks
 {
-    public sealed class ImMapSlot<V>
+    public interface ImMapSlot<V>
     {
-        /// <summary>Empty tree to start with.</summary>
-        public static readonly ImMapSlot<V> Empty = new ImMapSlot<V>();
+        /// Height of longest sub-tree/branch plus 1. It is 0 for empty tree, and 1 for single node tree.
+        int Height { get; }
 
-        internal readonly int _heightThenKey;
+        /// The Key without last 4 bits
+        int Key { get; }
 
-        /// <summary>Value.</summary>
-        public readonly V Value;
+        /// The value
+        V Value { get; }
+
+        /// Left sub-tree/branch, or empty
+        ImMapSlot<V> Left { get; }
+
+        /// Right sub-tree/branch, or empty
+        ImMapSlot<V> Right { get; }
+
+        /// Returns a slot with the new value
+        ImMapSlot<V> NewWith(V value);
+    }
+
+    public struct ImMapEmpty<V> : ImMapSlot<V>
+    {
+        public static readonly ImMapSlot<V> Empty = new ImMapEmpty<V>();
+
+        public int Height => 0;
+        public int Key => 0;
+        public V Value => default;
+        public ImMapSlot<V> Left => Empty;
+        public ImMapSlot<V> Right => Empty;
+        public ImMapSlot<V> NewWith(V value) => this;
+
+        public override string ToString() => "Empty";
+    }
+
+    public struct ImMapLeaf<V> : ImMapSlot<V>
+    {
+        private readonly int _key;
+        private readonly V _value;
+
+        public ImMapLeaf(int key, V value)
+        {
+            _key = key;
+            _value = value;
+        }
+
+        /// Height of longest sub-tree/branch plus 1. It is 0 for empty tree, and 1 for single node tree.
+        public int Height
+        {
+            [MethodImpl((MethodImplOptions)256)]
+            get => 1;
+        }
+
+        /// The Key without last 4 bits
+        public int Key
+        {
+            [MethodImpl((MethodImplOptions)256)]
+            get => _key;
+        }
+
+        public V Value
+        {
+            [MethodImpl((MethodImplOptions)256)]
+            get => _value;
+        }
+
+        /// Left and Right branches are empty
+        public ImMapSlot<V> Left
+        {
+            [MethodImpl((MethodImplOptions)256)]
+            get => ImMapEmpty<V>.Empty;
+        }
+
+        /// Left and Right branches are empty
+        public ImMapSlot<V> Right
+        {
+            [MethodImpl((MethodImplOptions)256)]
+            get => ImMapEmpty<V>.Empty;
+        }
+
+        [MethodImpl((MethodImplOptions)256)]
+        public ImMapSlot<V> NewWith(V value) => new ImMapLeaf<V>(_key, value);
+
+        public override string ToString() => "Leaf:" + Key + "->" + Value;
+    }
+
+    public struct ImMapBranch<V> : ImMapSlot<V>
+    {
+        private readonly int _heightThenKey;
+        private readonly V _value;
+        private readonly ImMapSlot<V> _left;
+        private readonly ImMapSlot<V> _right;
+
+        internal ImMapBranch(int heightThenKey, V value, ImMapSlot<V> left, ImMapSlot<V> right)
+        {
+            _heightThenKey = heightThenKey;
+            _value = value;
+            _left = left;
+            _right = right;
+        }
+
+        /// The value
+        public V Value
+        {
+            [MethodImpl((MethodImplOptions)256)]
+            get => _value;
+        }
 
         /// <summary>Left sub-tree/branch, or empty.</summary>
-        public readonly ImMapSlot<V> Left;
+        public ImMapSlot<V> Left
+        {
+            [MethodImpl((MethodImplOptions)256)]
+            get => _left;
+        }
 
         /// <summary>Right sub-tree/branch, or empty.</summary>
-        public readonly ImMapSlot<V> Right;
+        public ImMapSlot<V> Right
+        {
+            [MethodImpl((MethodImplOptions)256)]
+            get => _right;
+        }
 
         /// The Key without last 4 bits
         public int Key
@@ -34,113 +139,13 @@ namespace ImTools.Benchmarks
             get => _heightThenKey & ImMapArray.SLOT_COUNT_MASK;
         }
 
-        /// <summary>Returns true is tree is empty.</summary>
-        public bool IsEmpty
-        {
-            [MethodImpl((MethodImplOptions)256)]
-            get => _heightThenKey == 0;
-        }
+        [MethodImpl((MethodImplOptions)256)]
+        public ImMapSlot<V> NewWith(V value) => new ImMapBranch<V>(_heightThenKey, value, _left, _right);
 
-        public ImMapSlot<V> AddOrUpdateImpl(int key, V value)
-        {
-            if (key < Key)
-            {
-                if (Left.Height == 0)
-                    return new ImMapSlot<V>(Key, Value, new ImMapSlot<V>(key, value), Right, 2);
+        /// <summary>Outputs key value pair</summary>
+        public override string ToString() => "Branch:" + Key + "->" + Value;
 
-                if (Left.Key == key)
-                    return new ImMapSlot<V>(Key, Value, new ImMapSlot<V>(key, value), Right, Height);
-
-                if (Right.Height == 0)
-                {
-                    // single rotation:
-                    //      5     =>     2
-                    //   2            1     5
-                    // 1              
-                    if (key < Left.Key)
-                        return new ImMapSlot<V>(Left.Key, Left.Value,
-                            new ImMapSlot<V>(key, value), new ImMapSlot<V>(Key, Value), 2);
-
-                    // double rotation:
-                    //      5     =>     5     =>     4
-                    //   2            4            2     5
-                    //     4        2               
-                    return new ImMapSlot<V>(key, value,
-                        new ImMapSlot<V>(Left.Key, Left.Value), new ImMapSlot<V>(Key, Value), 2);
-                }
-
-                var newLeft = Left.AddOrUpdateImpl(key, value);
-
-                if (newLeft.Height > Right.Height + 1) // left is longer by 2, rotate left
-                {
-                    var leftLeft = newLeft.Left;
-                    var leftRight = newLeft.Right;
-
-                    // single rotation:
-                    //      5     =>     2
-                    //   2     6      1     5
-                    // 1   4              4   6
-                    if (leftLeft.Height >= leftRight.Height)
-                        return new ImMapSlot<V>(newLeft.Key, newLeft.Value,
-                            leftLeft, new ImMapSlot<V>(Key, Value, leftRight, Right));
-
-                    // double rotation:
-                    //      5     =>     5     =>     4
-                    //   2     6      4     6      2     5
-                    // 1   4        2   3        1   3     6
-                    //    3        1
-                    return new ImMapSlot<V>(leftRight.Key, leftRight.Value,
-                        new ImMapSlot<V>(newLeft.Key, newLeft.Value, leftLeft, leftRight.Left),
-                        new ImMapSlot<V>(Key, Value, leftRight.Right, Right));
-                }
-
-                return new ImMapSlot<V>(Key, Value, newLeft, Right);
-            }
-            else
-            {
-                if (Right.Height == 0)
-                    return new ImMapSlot<V>(Key, Value, Left, new ImMapSlot<V>(key, value), 2);
-
-                if (Right.Key == key)
-                    return new ImMapSlot<V>(Key, Value, Left, new ImMapSlot<V>(key, value), Height);
-
-                if (Left.Height == 0)
-                {
-                    // single rotation:
-                    //      5     =>     8     
-                    //         8      5     9
-                    //           9
-                    if (key >= Right.Key)
-                        return new ImMapSlot<V>(Right.Key, Right.Value,
-                            new ImMapSlot<V>(Key, Value), new ImMapSlot<V>(key, value), 2);
-
-                    // double rotation:
-                    //      5     =>     5     =>     7
-                    //         8            7      5     8
-                    //        7              8
-                    return new ImMapSlot<V>(key, value,
-                        new ImMapSlot<V>(Key, Value), new ImMapSlot<V>(Right.Key, Right.Value), 2);
-                }
-
-                var newRight = Right.AddOrUpdateImpl(key, value);
-
-                if (newRight.Height > Left.Height + 1)
-                {
-                    var rightLeft = newRight.Left;
-                    var rightRight = newRight.Right;
-
-                    if (rightRight.Height >= rightLeft.Height)
-                        return new ImMapSlot<V>(newRight.Key, newRight.Value,
-                            new ImMapSlot<V>(Key, Value, Left, rightLeft), rightRight);
-
-                    return new ImMapSlot<V>(rightLeft.Key, rightLeft.Value,
-                        new ImMapSlot<V>(Key, Value, Left, rightLeft.Left),
-                        new ImMapSlot<V>(newRight.Key, newRight.Value, rightLeft.Right, rightRight));
-                }
-
-                return new ImMapSlot<V>(Key, Value, Left, newRight);
-            }
-        }
+        /* todo move to static methods in static ImMapArray class
 
         /// <summary>Returns new tree with added or updated value for specified key.</summary>
         /// <param name="key">Key</param> <param name="value">Value</param>
@@ -193,36 +198,9 @@ namespace ImTools.Benchmarks
         public ImMapSlot<V> Remove(int key) =>
             RemoveImpl(key);
 
-        /// <summary>Outputs key value pair</summary>
-        public override string ToString() => IsEmpty ? "empty" : (Key + ":" + Value);
+        */
 
-        #region Implementation
-
-        internal ImMapSlot() { }
-
-        internal ImMapSlot(int key, V value)
-        {
-            _heightThenKey = key | 1;
-            Value = value;
-            Left = Empty;
-            Right = Empty;
-        }
-
-        internal ImMapSlot(int key, V value, ImMapSlot<V> left, ImMapSlot<V> right, int height)
-        {
-            _heightThenKey = key | height;
-            Value = value;
-            Left = left;
-            Right = right;
-        }
-
-        internal ImMapSlot(int key, V value, ImMapSlot<V> left, ImMapSlot<V> right)
-        {
-            _heightThenKey = key | (left.Height > right.Height ? left.Height + 1 : right.Height + 1);
-            Value = value;
-            Left = left;
-            Right = right;
-        }
+        /*
 
         private ImMapSlot<V> AddOrUpdateImpl(int key, V value, bool updateOnly, Update<V> update)
         {
@@ -316,7 +294,7 @@ namespace ImTools.Benchmarks
             return result;
         }
 
-        #endregion
+    */
     }
 
     public sealed class ImMapArray<V>
@@ -327,7 +305,7 @@ namespace ImTools.Benchmarks
         {
             var slots = new ImMapSlot<V>[ImMapArray.SLOT_COUNT];
             for (var i = 0; i < ImMapArray.SLOT_COUNT; ++i)
-                slots[i] = ImMapSlot<V>.Empty;;
+                slots[i] = ImMapEmpty<V>.Empty;
             Slots = slots;
         }
 
@@ -339,8 +317,8 @@ namespace ImTools.Benchmarks
 
             ref var x = ref Slots[key & ImMapArray.SLOT_COUNT_MASK];
             var slot = x;
-            var newSlot = slot._heightThenKey == 0 ? new ImMapSlot<V>(k, value)
-                : k == slot.Key ? new ImMapSlot<V>(k, value, slot.Left, slot.Right, slot.Height)
+            var newSlot = slot.Height == 0 ? new ImMapLeaf<V>(k, value)
+                : k == slot.Key ? slot.NewWith(value)
                 : slot.AddOrUpdateImpl(k, value);
 
             if (Interlocked.CompareExchange(ref x, newSlot, slot) != slot)
@@ -359,6 +337,14 @@ namespace ImTools.Benchmarks
         public const int SLOT_COUNT_MASK = SLOT_COUNT - 1;
         public const int KEY_MASK = ~SLOT_COUNT_MASK;
 
+        [MethodImpl((MethodImplOptions)256)]
+        internal static ImMapBranch<V> NewBranch<V>(int key, V value, ImMapSlot<V> left, ImMapSlot<V> right, int height) => 
+            new ImMapBranch<V>(key | height, value, left, right);
+
+        [MethodImpl((MethodImplOptions)256)]
+        internal static ImMapBranch<V> NewBranch<V>(int key, V value, ImMapSlot<V> left, ImMapSlot<V> right) =>
+            new ImMapBranch<V>(key | (left.Height > right.Height ? left.Height + 1 : right.Height + 1), value, left, right);
+
         /// Get value for found key or the default value otherwise.
         [MethodImpl((MethodImplOptions)256)]
         public static V GetValueOrDefault<V>(this ImMapArray<V> map, int key)
@@ -366,7 +352,7 @@ namespace ImTools.Benchmarks
             var slot = map.Slots[key & SLOT_COUNT_MASK];
 
             var k = key & KEY_MASK;
-            while (slot._heightThenKey != 0 && k != slot.Key)
+            while (slot.Height != 0 && k != slot.Key)
                 slot = k < slot.Key ? slot.Left : slot.Right;
 
             return slot.Value;
@@ -379,10 +365,10 @@ namespace ImTools.Benchmarks
             var slot = map.Slots[key & SLOT_COUNT_MASK];
 
             var k = key & KEY_MASK;
-            while (slot._heightThenKey != 0 && k != slot.Key)
+            while (slot.Height != 0 && k != slot.Key)
                 slot = k < slot.Key ? slot.Left : slot.Right;
 
-            if (slot._heightThenKey == 0)
+            if (slot.Height == 0)
             {
                 value = default;
                 return false;
@@ -390,6 +376,113 @@ namespace ImTools.Benchmarks
 
             value = slot.Value;
             return true;
+        }
+
+        internal static ImMapSlot<V> AddOrUpdateImpl<V>(this ImMapSlot<V> map, int key, V value)
+        {
+            var mapLeft = map.Left;
+            var mapRight = map.Right;
+            var mapKey = map.Key;
+            if (key < mapKey)
+            {
+                // todo: right-leafy branch can be optimized by directly inlining leaf structure, 
+                // actually any direct branch constructor use may be optimized this way
+                if (mapLeft.Height == 0)
+                    return new ImMapBranch<V>(mapKey | 2, map.Value, new ImMapLeaf<V>(key, value), mapRight);
+
+                // todo: left-leafy branch can be optimized by directly inlining leaf structure
+                if (mapLeft.Key == key)
+                    return new ImMapBranch<V>(mapKey | map.Height, map.Value, new ImMapLeaf<V>(key, value), mapRight);
+
+                if (mapRight.Height == 0)
+                {
+                    // single rotation:
+                    //      5     =>     2
+                    //   2            1     5
+                    // 1              
+                    if (key < mapLeft.Key)
+                        return new ImMapBranch<V>(mapLeft.Key | 2, mapLeft.Value, 
+                            new ImMapLeaf<V>(key, value), new ImMapLeaf<V>(mapKey, map.Value));
+
+                    // double rotation:
+                    //      5     =>     5     =>     4
+                    //   2            4            2     5
+                    //     4        2               
+                    return new ImMapBranch<V>(key | 2, value,
+                        new ImMapLeaf<V>(mapLeft.Key, mapLeft.Value), new ImMapLeaf<V>(mapKey, map.Value));
+                }
+
+                var newLeft = mapLeft.AddOrUpdateImpl(key, value);
+
+                if (newLeft.Height > mapRight.Height + 1) // left is longer by 2, rotate left
+                {
+                    var leftLeft = newLeft.Left;
+                    var leftRight = newLeft.Right;
+
+                    // single rotation:
+                    //      5     =>     2
+                    //   2     6      1     5
+                    // 1   4              4   6
+                    if (leftLeft.Height >= leftRight.Height)
+                        return NewBranch(newLeft.Key, newLeft.Value,
+                            leftLeft, NewBranch(mapKey, map.Value, leftRight, mapRight)); // todo: check if it maybe a leaf instead of branch
+
+                    // double rotation:
+                    //      5     =>     5     =>     4
+                    //   2     6      4     6      2     5
+                    // 1   4        2   3        1   3     6
+                    //    3        1
+                    return NewBranch(leftRight.Key, leftRight.Value,
+                        NewBranch(newLeft.Key, newLeft.Value, leftLeft, leftRight.Left),
+                        NewBranch(mapKey, map.Value, leftRight.Right, mapRight));
+                }
+
+                return NewBranch(mapKey, map.Value, newLeft, mapRight);
+            }
+            else // if (key >= map.Key)
+            {
+                if (mapRight.Height == 0)
+                    return new ImMapBranch<V>(mapKey | 2, map.Value, mapLeft, new ImMapLeaf<V>(key, value));
+
+                if (mapRight.Key == key)
+                    return new ImMapBranch<V>(mapKey | map.Height, map.Value, mapLeft, new ImMapLeaf<V>(key, value));
+
+                if (mapLeft.Height == 0)
+                {
+                    // single rotation:
+                    //      5     =>     8     
+                    //         8      5     9
+                    //           9
+                    if (key >= mapRight.Key)
+                        return new ImMapBranch<V>(mapRight.Key | 2, mapRight.Value,
+                            new ImMapLeaf<V>(mapKey, map.Value), new ImMapLeaf<V>(key, value));
+
+                    // double rotation:
+                    //      5     =>     5     =>     7
+                    //         8            7      5     8
+                    //        7              8
+                    return new ImMapBranch<V>(key | 2, value,
+                        new ImMapLeaf<V>(mapKey, map.Value), new ImMapLeaf<V>(mapRight.Key, mapRight.Value));
+                }
+
+                var newRight = mapRight.AddOrUpdateImpl(key, value);
+
+                if (newRight.Height > mapLeft.Height + 1)
+                {
+                    var rightLeft = newRight.Left;
+                    var rightRight = newRight.Right;
+
+                    if (rightRight.Height >= rightLeft.Height)
+                        return NewBranch(newRight.Key, newRight.Value,
+                            NewBranch(mapKey, map.Value, mapLeft, rightLeft), rightRight);
+
+                    return NewBranch(rightLeft.Key, rightLeft.Value,
+                        NewBranch(mapKey, map.Value, mapLeft, rightLeft.Left),
+                        NewBranch(newRight.Key, newRight.Value, rightLeft.Right, rightRight));
+                }
+
+                return NewBranch(mapKey, map.Value, mapLeft, newRight);
+            }
         }
     }
 }
