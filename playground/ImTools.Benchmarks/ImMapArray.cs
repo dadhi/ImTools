@@ -9,7 +9,7 @@ namespace ImTools.Benchmarks
         /// <summary>Empty tree to start with.</summary>
         public static readonly ImMapSlot<V> Empty = new ImMapSlot<V>();
 
-        private readonly int _heightThenKey;
+        internal readonly int _heightThenKey;
 
         /// <summary>Value.</summary>
         public readonly V Value;
@@ -38,7 +38,7 @@ namespace ImTools.Benchmarks
         public bool IsEmpty
         {
             [MethodImpl((MethodImplOptions)256)]
-            get => Height == 0;
+            get => _heightThenKey == 0;
         }
 
         public ImMapSlot<V> AddOrUpdateImpl(int key, V value)
@@ -339,7 +339,7 @@ namespace ImTools.Benchmarks
 
             ref var x = ref Slots[key & ImMapArray.SLOT_COUNT_MASK];
             var slot = x;
-            var newSlot = slot.Height == 0 ? new ImMapSlot<V>(k, value)
+            var newSlot = slot._heightThenKey == 0 ? new ImMapSlot<V>(k, value)
                 : k == slot.Key ? new ImMapSlot<V>(k, value, slot.Left, slot.Right, slot.Height)
                 : slot.AddOrUpdateImpl(k, value);
 
@@ -366,7 +366,7 @@ namespace ImTools.Benchmarks
             var slot = map.Slots[key & SLOT_COUNT_MASK];
 
             var k = key & KEY_MASK;
-            while (k != slot.Key && slot.Height != 0)
+            while (slot._heightThenKey != 0 && k != slot.Key)
                 slot = k < slot.Key ? slot.Left : slot.Right;
 
             return slot.Value;
@@ -379,10 +379,10 @@ namespace ImTools.Benchmarks
             var slot = map.Slots[key & SLOT_COUNT_MASK];
 
             var k = key & KEY_MASK;
-            while (slot.Height != 0 && k != slot.Key)
+            while (slot._heightThenKey != 0 && k != slot.Key)
                 slot = k < slot.Key ? slot.Left : slot.Right;
 
-            if (slot.Height == 0)
+            if (slot._heightThenKey == 0)
             {
                 value = default;
                 return false;
