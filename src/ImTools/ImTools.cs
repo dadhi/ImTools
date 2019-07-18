@@ -1356,6 +1356,7 @@ namespace ImTools
         /// <param name="getNewValue">Delegate to get value from old one.</param>
         /// <returns>Old/original value. By analogy with <see cref="Interlocked.Exchange(ref int,int)"/>.</returns>
         /// <remarks>Important: <paramref name="getNewValue"/> May be called multiple times to retry update with value concurrently changed by other code.</remarks>
+        [MethodImpl((MethodImplOptions)256)]
         public static T Swap<T>(ref T value, Func<T, T> getNewValue) where T : class
         {
             var retryCount = 0;
@@ -1370,11 +1371,12 @@ namespace ImTools
 
                 // relinquishes the thread’s current time slice immediately, voluntarily handing over the CPU to other threads
                 // todo: use Thread.Sleep from .NET 4.0 to relinquish only to threads running on the same processor
-                Thread.Sleep(0);
+                //Thread.Sleep(0);
             }
         }
 
         /// Option without allocation for capturing `a` in closure of `getNewValue`
+        [MethodImpl((MethodImplOptions)256)]
         public static T Swap<T, A>(ref T value, A a, Func<T, A, T> getNewValue) where T : class
         {
             var retryCount = 0;
@@ -1389,12 +1391,12 @@ namespace ImTools
 
                 // relinquishes the thread’s current time slice immediately, voluntarily handing over the CPU to other threads
                 // todo: use Thread.Sleep from .NET 4.0 to relinquish only to threads running on the same processor
-                Thread.Sleep(0);
-
+                //Thread.Sleep(0);
             }
         }
 
         /// Option without allocation for capturing `a` and `b` in closure of `getNewValue`
+        [MethodImpl((MethodImplOptions)256)]
         public static T Swap<T, A, B>(ref T value, A a, B b, Func<T, A, B, T> getNewValue) where T : class
         {
             var retryCount = 0;
@@ -1409,11 +1411,12 @@ namespace ImTools
 
                 // relinquishes the thread’s current time slice immediately, voluntarily handing over the CPU to other threads
                 // todo: use Thread.Sleep from .NET 4.0 to relinquish only to threads running on the same processor
-                Thread.Sleep(0);
+                //Thread.Sleep(0);
             }
         }
 
         /// Option without allocation for capturing `a`, `b`, `c` in closure of `getNewValue`
+        [MethodImpl((MethodImplOptions)256)]
         public static T Swap<T, A, B, C>(ref T value, A a, B b, C c, Func<T, A, B, C, T> getNewValue) where T : class
         {
             var retryCount = 0;
@@ -1428,7 +1431,7 @@ namespace ImTools
 
                 // relinquishes the thread’s current time slice immediately, voluntarily handing over the CPU to other threads
                 // todo: use Thread.Sleep from .NET 4.0 to relinquish only to threads running on the same processor
-                Thread.Sleep(0);
+                //Thread.Sleep(0);
             }
         }
 
