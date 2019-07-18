@@ -206,7 +206,7 @@ namespace ImTools.Benchmarks
                     //   2     6      1     5
                     // 1   4              4   6
                     if (leftLeft.Height >= leftRight.Height)
-                        return Branch(newLeft.Key, newLeft.Value, leftLeft, new ImMapSlot<V>(Key, Value, leftRight, Right));
+                        return Branch(newLeft.Key, newLeft.Value, leftLeft, Branch(Key, Value, leftRight, Right));
 
                     // double rotation:
                     //      5     =>     5     =>     4
@@ -252,8 +252,7 @@ namespace ImTools.Benchmarks
                     var rightRight = newRight.Right;
 
                     if (rightRight.Height >= rightLeft.Height)
-                        return Branch(newRight.Key, newRight.Value,
-                            Branch(Key, Value, Left, rightLeft), rightRight);
+                        return Branch(newRight.Key, newRight.Value, Branch(Key, Value, Left, rightLeft), rightRight);
 
                     return Branch(rightLeft.Key, rightLeft.Value,
                         Branch(Key, Value, Left, rightLeft.Left),
