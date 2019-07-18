@@ -1,15 +1,123 @@
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace ImTools.Benchmarks
 {
-    public sealed class ImMapSlot<V>
+    public struct ImMapArray<V>
     {
-        /// <summary>Empty tree to start with.</summary>
-        public static readonly ImMapSlot<V> Empty = new ImMapSlot<V>();
+        public const int SLOT_COUNT = 16;
+        public const int HEIGHT_MASK = SLOT_COUNT - 1;
+        public const int KEY_MASK = ~HEIGHT_MASK;
 
-        internal readonly int _heightThenKey;
+        /// Create en empty array
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMapArray<V> Create()
+        {
+            var slots = new ImMapSlot<V>[SLOT_COUNT];
+            for (var i = 0; i < SLOT_COUNT; ++i)
+                slots[i] = ImMapSlot<V>.Empty;
+            return new ImMapArray<V>(slots);
+        }
+
+        internal readonly ImMapSlot<V>[] Slots;
+        private ImMapArray(ImMapSlot<V>[] slots) => Slots = slots;
+
+        /// Returns a new tree with added or updated value for specified key.
+        [MethodImpl((MethodImplOptions)256)]
+        public void AddOrUpdate(int key, V value)
+        {
+            ref var x = ref Slots[key & HEIGHT_MASK];
+            var slot = x; // fix a copy of x to operate on
+
+            var newSlot = slot.HeightThenKey == 0 ? ImMapSlot<V>.Leaf(key & KEY_MASK, value)
+                : (key & KEY_MASK) != slot.Key ? slot.AddOrUpdate(key & KEY_MASK, value)
+                : new ImMapSlot<V>(slot.HeightThenKey, value, slot.Left, slot.Right);
+
+            if (Interlocked.CompareExchange(ref x, newSlot, slot) != slot)
+                RefAddOrUpdateSlot(ref x, key, value);
+        }
+
+        private static void RefAddOrUpdateSlot(ref ImMapSlot<V> slot, int key, V value) =>
+            Ref.Swap(ref slot, key, value, (s, k, v) =>
+                s.HeightThenKey == 0 ? ImMapSlot<V>.Leaf(k, v)
+                : k != s.Key ? s.AddOrUpdate(k, v)
+                : new ImMapSlot<V>(s.HeightThenKey, v, s.Left, s.Right));
+
+        /// <summary>Returns new tree with added or updated value for specified key.</summary>
+        /// <param name="key">Key</param> <param name="value">Value</param>
+        /// <param name="updateValue">(optional) Delegate to calculate new value from and old and a new value.</param>
+        /// <returns>New tree.</returns>
+        [MethodImpl((MethodImplOptions)256)]
+        public void AddOrUpdate(int key, V value, Update<V> updateValue)
+        {
+            ref var x = ref Slots[key & HEIGHT_MASK];
+            var slot = x;
+
+            var newSlot = slot.AddOrUpdate(key & KEY_MASK, value, false, updateValue);
+            if (Interlocked.CompareExchange(ref x, newSlot, slot) != slot)
+                RefAddOrUpdateSlot(ref x, key & KEY_MASK, value, updateValue);
+        }
+
+        private static void RefAddOrUpdateSlot(ref ImMapSlot<V> slot, int key, V value, Update<V> updateValue) =>
+            Ref.Swap(ref slot, key, value, updateValue, (s, k, v, u) => s.AddOrUpdate(k, v, false, u));
+
+        /// <summary>Returns new tree with updated value for the key, Or the same tree if key was not found.</summary>
+        /// <param name="key"></param> <param name="value"></param>
+        /// <returns>New tree if key is found, or the same tree otherwise.</returns>
+        [MethodImpl((MethodImplOptions)256)]
+        public void Update(int key, V value)
+        {
+            ref var x = ref Slots[key & HEIGHT_MASK];
+            var s = x;
+            var newSlot = s.AddOrUpdate(key & KEY_MASK, value, true, null);
+            if (Interlocked.CompareExchange(ref x, newSlot, s) != s)
+                RefUpdateSlot(ref x, key & KEY_MASK, value);
+        }
+
+        private static void RefUpdateSlot(ref ImMapSlot<V> slot, int key, V value) =>
+            Ref.Swap(ref slot, key, value, (s, k, v) => s.AddOrUpdate(k, v, true, null));
+
+        /// Get value for found key or the default value otherwise.
+        [MethodImpl((MethodImplOptions)256)]
+        public V GetValueOrDefault(int key)
+        {
+            var slot = Slots[key & HEIGHT_MASK];
+
+            key &= KEY_MASK;
+            while (slot.HeightThenKey != 0 && key != slot.Key)
+                slot = key < slot.Key ? slot.Left : slot.Right;
+
+            return slot.Value;
+        }
+
+        /// Returns true if key is found and sets the value.
+        [MethodImpl((MethodImplOptions)256)]
+        public bool TryFind(int key, out V value)
+        {
+            var slot = Slots[key & HEIGHT_MASK];
+
+            key &= KEY_MASK;
+            while (slot.HeightThenKey != 0 && key != slot.Key)
+                slot = key < slot.Key ? slot.Left : slot.Right;
+
+            if (slot.HeightThenKey == 0)
+            {
+                value = default;
+                return false;
+            }
+
+            value = slot.Value;
+            return true;
+        }
+    }
+
+    internal sealed class ImMapSlot<V>
+    {
+        /// Empty tree to start with
+        public static readonly ImMapSlot<V> Empty = new ImMapSlot<V>(0, default, null, null);
+
+        /// Combines height in lower bits and the trimmed key in upper bits
+        public readonly int HeightThenKey;
 
         /// <summary>Value.</summary>
         public readonly V Value;
@@ -24,52 +132,69 @@ namespace ImTools.Benchmarks
         public int Key
         {
             [MethodImpl((MethodImplOptions)256)]
-            get => _heightThenKey & ImMapArray.KEY_MASK;
+            get => HeightThenKey & ImMapArray<V>.KEY_MASK;
         }
 
         /// Height of longest sub-tree/branch plus 1. It is 0 for empty tree, and 1 for single node tree.
         public int Height
         {
             [MethodImpl((MethodImplOptions)256)]
-            get => _heightThenKey & ImMapArray.SLOT_COUNT_MASK;
+            get => HeightThenKey & ImMapArray<V>.HEIGHT_MASK;
         }
 
         /// <summary>Returns true is tree is empty.</summary>
         public bool IsEmpty
         {
             [MethodImpl((MethodImplOptions)256)]
-            get => _heightThenKey == 0;
+            get => HeightThenKey == 0;
         }
 
-        public ImMapSlot<V> AddOrUpdateImpl(int key, V value)
+        /// Outputs the key value pair or empty if node is empty
+        public override string ToString() => IsEmpty ? "empty" : ("Node:" + Key + "->" + Value);
+
+        internal ImMapSlot(int heightThenKey, V value, ImMapSlot<V> left, ImMapSlot<V> right)
+        {
+            HeightThenKey = heightThenKey;
+            Value = value;
+            Left = left;
+            Right = right;
+        }
+
+        [MethodImpl((MethodImplOptions)256)]
+        internal static ImMapSlot<V> Leaf(int key, V value) =>
+            new ImMapSlot<V>(key | 1, value, Empty, Empty);
+
+        [MethodImpl((MethodImplOptions)256)]
+        internal static ImMapSlot<V> Branch(int key, V value, ImMapSlot<V> left, ImMapSlot<V> right) =>
+            new ImMapSlot<V>(key | (left.Height > right.Height ? left.Height + 1 : right.Height + 1), value, left, right);
+
+        internal ImMapSlot<V> AddOrUpdate(int key, V value)
         {
             if (key < Key)
             {
-                if (Left.Height == 0)
-                    return new ImMapSlot<V>(Key, Value, new ImMapSlot<V>(key, value), Right, 2);
+                if (Left.HeightThenKey == 0)
+                    return new ImMapSlot<V>(Key | 2, Value, Leaf(key, value), Right);
 
                 if (Left.Key == key)
-                    return new ImMapSlot<V>(Key, Value, new ImMapSlot<V>(key, value), Right, Height);
+                    return new ImMapSlot<V>(Key | Height, Value, Leaf(key, value), Right);
 
-                if (Right.Height == 0)
+                if (Right.HeightThenKey == 0)
                 {
                     // single rotation:
                     //      5     =>     2
                     //   2            1     5
                     // 1              
                     if (key < Left.Key)
-                        return new ImMapSlot<V>(Left.Key, Left.Value,
-                            new ImMapSlot<V>(key, value), new ImMapSlot<V>(Key, Value), 2);
+                        return new ImMapSlot<V>(Left.Key | 2, Left.Value, Leaf(key, value), Leaf(Key, Value));
 
                     // double rotation:
                     //      5     =>     5     =>     4
                     //   2            4            2     5
                     //     4        2               
-                    return new ImMapSlot<V>(key, value,
-                        new ImMapSlot<V>(Left.Key, Left.Value), new ImMapSlot<V>(Key, Value), 2);
+                    return new ImMapSlot<V>(key | 2, value, Leaf(Left.Key, Left.Value), Leaf(Key, Value));
                 }
 
-                var newLeft = Left.AddOrUpdateImpl(key, value);
+                var newLeft = Left.AddOrUpdate(key, value);
 
                 if (newLeft.Height > Right.Height + 1) // left is longer by 2, rotate left
                 {
@@ -81,48 +206,45 @@ namespace ImTools.Benchmarks
                     //   2     6      1     5
                     // 1   4              4   6
                     if (leftLeft.Height >= leftRight.Height)
-                        return new ImMapSlot<V>(newLeft.Key, newLeft.Value,
-                            leftLeft, new ImMapSlot<V>(Key, Value, leftRight, Right));
+                        return Branch(newLeft.Key, newLeft.Value, leftLeft, new ImMapSlot<V>(Key, Value, leftRight, Right));
 
                     // double rotation:
                     //      5     =>     5     =>     4
                     //   2     6      4     6      2     5
                     // 1   4        2   3        1   3     6
                     //    3        1
-                    return new ImMapSlot<V>(leftRight.Key, leftRight.Value,
-                        new ImMapSlot<V>(newLeft.Key, newLeft.Value, leftLeft, leftRight.Left),
-                        new ImMapSlot<V>(Key, Value, leftRight.Right, Right));
+                    return Branch(leftRight.Key, leftRight.Value,
+                        Branch(newLeft.Key, newLeft.Value, leftLeft, leftRight.Left),
+                        Branch(Key, Value, leftRight.Right, Right));
                 }
 
-                return new ImMapSlot<V>(Key, Value, newLeft, Right);
+                return Branch(Key, Value, newLeft, Right);
             }
             else
             {
-                if (Right.Height == 0)
-                    return new ImMapSlot<V>(Key, Value, Left, new ImMapSlot<V>(key, value), 2);
+                if (Right.HeightThenKey == 0)
+                    return Branch(Key | 2, Value, Left, Leaf(key, value));
 
                 if (Right.Key == key)
-                    return new ImMapSlot<V>(Key, Value, Left, new ImMapSlot<V>(key, value), Height);
+                    return Branch(Key | Height, Value, Left, Leaf(key, value));
 
-                if (Left.Height == 0)
+                if (Left.HeightThenKey == 0)
                 {
                     // single rotation:
                     //      5     =>     8     
                     //         8      5     9
                     //           9
                     if (key >= Right.Key)
-                        return new ImMapSlot<V>(Right.Key, Right.Value,
-                            new ImMapSlot<V>(Key, Value), new ImMapSlot<V>(key, value), 2);
+                        return new ImMapSlot<V>(Right.Key | 2, Right.Value, Leaf(Key, Value), Leaf(key, value));
 
                     // double rotation:
                     //      5     =>     5     =>     7
                     //         8            7      5     8
                     //        7              8
-                    return new ImMapSlot<V>(key, value,
-                        new ImMapSlot<V>(Key, Value), new ImMapSlot<V>(Right.Key, Right.Value), 2);
+                    return new ImMapSlot<V>(key | 2, value, Leaf(Key, Value), Leaf(Right.Key, Right.Value));
                 }
 
-                var newRight = Right.AddOrUpdateImpl(key, value);
+                var newRight = Right.AddOrUpdate(key, value);
 
                 if (newRight.Height > Left.Height + 1)
                 {
@@ -130,112 +252,27 @@ namespace ImTools.Benchmarks
                     var rightRight = newRight.Right;
 
                     if (rightRight.Height >= rightLeft.Height)
-                        return new ImMapSlot<V>(newRight.Key, newRight.Value,
-                            new ImMapSlot<V>(Key, Value, Left, rightLeft), rightRight);
+                        return Branch(newRight.Key, newRight.Value,
+                            Branch(Key, Value, Left, rightLeft), rightRight);
 
-                    return new ImMapSlot<V>(rightLeft.Key, rightLeft.Value,
-                        new ImMapSlot<V>(Key, Value, Left, rightLeft.Left),
-                        new ImMapSlot<V>(newRight.Key, newRight.Value, rightLeft.Right, rightRight));
+                    return Branch(rightLeft.Key, rightLeft.Value,
+                        Branch(Key, Value, Left, rightLeft.Left),
+                        Branch(newRight.Key, newRight.Value, rightLeft.Right, rightRight));
                 }
 
-                return new ImMapSlot<V>(Key, Value, Left, newRight);
+                return Branch(Key, Value, Left, newRight);
             }
         }
 
-        /// <summary>Returns new tree with added or updated value for specified key.</summary>
-        /// <param name="key">Key</param> <param name="value">Value</param>
-        /// <param name="updateValue">(optional) Delegate to calculate new value from and old and a new value.</param>
-        /// <returns>New tree.</returns>
-        [MethodImpl((MethodImplOptions)256)]
-        public ImMapSlot<V> AddOrUpdate(int key, V value, Update<V> updateValue) =>
-            AddOrUpdateImpl(key, value, false, updateValue);
-
-        /// <summary>Returns new tree with updated value for the key, Or the same tree if key was not found.</summary>
-        /// <param name="key"></param> <param name="value"></param>
-        /// <returns>New tree if key is found, or the same tree otherwise.</returns>
-        [MethodImpl((MethodImplOptions)256)]
-        public ImMapSlot<V> Update(int key, V value) =>
-            AddOrUpdateImpl(key, value, true, null);
-
-        // todo: Leak, cause returned ImMap references left and right sub-trees - replace with `KeyValuePair`
-        /// <summary>Returns all sub-trees enumerated from left to right.</summary> 
-        /// <returns>Enumerated sub-trees or empty if tree is empty.</returns>
-        public IEnumerable<ImMapSlot<V>> Enumerate()
-        {
-            if (Height == 0)
-                yield break;
-
-            var parents = new ImMapSlot<V>[Height];
-
-            var node = this;
-            var parentCount = -1;
-            while (node.Height != 0 || parentCount != -1)
-            {
-                if (node.Height != 0)
-                {
-                    parents[++parentCount] = node;
-                    node = node.Left;
-                }
-                else
-                {
-                    node = parents[parentCount--];
-                    yield return node;
-                    node = node.Right;
-                }
-            }
-        }
-
-        /// <summary>Removes or updates value for specified key, or does nothing if key is not found.
-        /// Based on Eric Lippert http://blogs.msdn.com/b/ericlippert/archive/2008/01/21/immutability-in-c-part-nine-academic-plus-my-avl-tree-implementation.aspx </summary>
-        /// <param name="key">Key to look for.</param> 
-        /// <returns>New tree with removed or updated value.</returns>
-        [MethodImpl((MethodImplOptions)256)]
-        public ImMapSlot<V> Remove(int key) =>
-            RemoveImpl(key);
-
-        /// <summary>Outputs key value pair</summary>
-        public override string ToString() => IsEmpty ? "empty" : (Key + ":" + Value);
-
-        #region Implementation
-
-        internal ImMapSlot() { }
-
-        internal ImMapSlot(int key, V value)
-        {
-            _heightThenKey = key | 1;
-            Value = value;
-            Left = Empty;
-            Right = Empty;
-        }
-
-        internal ImMapSlot(int key, V value, ImMapSlot<V> left, ImMapSlot<V> right, int height)
-        {
-            _heightThenKey = key | height;
-            Value = value;
-            Left = left;
-            Right = right;
-        }
-
-        internal ImMapSlot(int key, V value, ImMapSlot<V> left, ImMapSlot<V> right)
-        {
-            _heightThenKey = key | (left.Height > right.Height ? left.Height + 1 : right.Height + 1);
-            Value = value;
-            Left = left;
-            Right = right;
-        }
-
-        private ImMapSlot<V> AddOrUpdateImpl(int key, V value, bool updateOnly, Update<V> update)
-        {
-            return Height == 0
-                ? // tree is empty
-                (updateOnly ? this : new ImMapSlot<V>(key, value))
-                : (key == Key
-                    ? // actual update
-                    new ImMapSlot<V>(key, update == null ? value : update(Value, value), Left, Right)
-                    : (key < Key // try update on left or right sub-tree
-                        ? Balance(Key, Value, Left.AddOrUpdateImpl(key, value, updateOnly, update), Right)
-                        : Balance(Key, Value, Left, Right.AddOrUpdateImpl(key, value, updateOnly, update))));
-        }
+        // note: Not so much optimized (memory and performance wise) as a AddOrUpdateImpl without `update` delegate
+        internal ImMapSlot<V> AddOrUpdate(int key, V value, bool updateOnly, Update<V> update) =>
+            HeightThenKey == 0
+                ? (updateOnly ? this : Leaf(key, value))
+                : key == Key
+                    ? new ImMapSlot<V>(HeightThenKey, update == null ? value : update(Value, value), Left, Right)
+                    : key < Key // try update on left or right sub-tree
+                        ? Balance(Key, Value, Left.AddOrUpdate(key, value, updateOnly, update), Right)
+                        : Balance(Key, Value, Left, Right.AddOrUpdate(key, value, updateOnly, update));
 
         internal static ImMapSlot<V> Balance(int key, V value, ImMapSlot<V> left, ImMapSlot<V> right)
         {
@@ -251,18 +288,16 @@ namespace ImTools.Benchmarks
                     //   2     6      4     6      2     5
                     // 1   4        2   3        1   3     6
                     //    3        1
-                    return new ImMapSlot<V>(leftRight.Key, leftRight.Value,
-                        new ImMapSlot<V>(left.Key, left.Value, leftLeft, leftRight.Left),
-                        new ImMapSlot<V>(key, value, leftRight.Right, right));
+                    return Branch(leftRight.Key, leftRight.Value,
+                        Branch(left.Key, left.Value, leftLeft, leftRight.Left),
+                        Branch(key, value, leftRight.Right, right));
                 }
 
                 // single rotation:
                 //      5     =>     2
                 //   2     6      1     5
                 // 1   4              4   6
-                return new ImMapSlot<V>(left.Key, left.Value,
-                    leftLeft,
-                    new ImMapSlot<V>(key, value, leftRight, right));
+                return Branch(left.Key, left.Value, leftLeft, Branch(key, value, leftRight, right));
             }
 
             if (delta < -1)
@@ -270,126 +305,14 @@ namespace ImTools.Benchmarks
                 var rightLeft = right.Left;
                 var rightRight = right.Right;
                 if (rightLeft.Height > rightRight.Height)
-                {
-                    return new ImMapSlot<V>(rightLeft.Key, rightLeft.Value,
-                        new ImMapSlot<V>(key, value, left, rightLeft.Left),
-                        new ImMapSlot<V>(right.Key, right.Value, rightLeft.Right, rightRight));
-                }
+                    return Branch(rightLeft.Key, rightLeft.Value,
+                        Branch(key, value, left, rightLeft.Left),
+                        Branch(right.Key, right.Value, rightLeft.Right, rightRight));
 
-                return new ImMapSlot<V>(right.Key, right.Value,
-                    new ImMapSlot<V>(key, value, left, rightLeft),
-                    rightRight);
+                return Branch(right.Key, right.Value, Branch(key, value, left, rightLeft), rightRight);
             }
 
-            return new ImMapSlot<V>(key, value, left, right);
-        }
-
-        private ImMapSlot<V> RemoveImpl(int key, bool ignoreKey = false)
-        {
-            if (Height == 0)
-                return this;
-
-            ImMapSlot<V> result;
-            if (key == Key || ignoreKey) // found node
-            {
-                if (Height == 1) // remove node
-                    return Empty;
-
-                if (Right.IsEmpty)
-                    result = Left;
-                else if (Left.IsEmpty)
-                    result = Right;
-                else
-                {
-                    // we have two children, so remove the next highest node and replace this node with it.
-                    var successor = Right;
-                    while (!successor.Left.IsEmpty) successor = successor.Left;
-                    result = new ImMapSlot<V>(successor.Key, successor.Value,
-                        Left, Right.RemoveImpl(successor.Key, true));
-                }
-            }
-            else if (key < Key)
-                result = Balance(Key, Value, Left.RemoveImpl(key), Right);
-            else
-                result = Balance(Key, Value, Left, Right.RemoveImpl(key));
-
-            return result;
-        }
-
-        #endregion
-    }
-
-    public sealed class ImMapArray<V>
-    {
-        public readonly ImMapSlot<V>[] Slots;
-
-        public ImMapArray()
-        {
-            var slots = new ImMapSlot<V>[ImMapArray.SLOT_COUNT];
-            for (var i = 0; i < ImMapArray.SLOT_COUNT; ++i)
-                slots[i] = ImMapSlot<V>.Empty;;
-            Slots = slots;
-        }
-
-        /// Returns a new tree with added or updated value for specified key.
-        [MethodImpl((MethodImplOptions)256)]
-        public void AddOrUpdate(int key, V value)
-        {
-            var k = key & ImMapArray.KEY_MASK;
-
-            ref var x = ref Slots[key & ImMapArray.SLOT_COUNT_MASK];
-            var slot = x;
-            var newSlot = slot._heightThenKey == 0 ? new ImMapSlot<V>(k, value)
-                : k == slot.Key ? new ImMapSlot<V>(k, value, slot.Left, slot.Right, slot.Height)
-                : slot.AddOrUpdateImpl(k, value);
-
-            if (Interlocked.CompareExchange(ref x, newSlot, slot) != slot)
-                RefUpdateSlots();
-        }
-
-        private void RefUpdateSlots()
-        {
-        }
-    }
-
-    /// ImMap methods
-    public static class ImMapArray
-    {
-        public const int SLOT_COUNT = 16;
-        public const int SLOT_COUNT_MASK = SLOT_COUNT - 1;
-        public const int KEY_MASK = ~SLOT_COUNT_MASK;
-
-        /// Get value for found key or the default value otherwise.
-        [MethodImpl((MethodImplOptions)256)]
-        public static V GetValueOrDefault<V>(this ImMapArray<V> map, int key)
-        {
-            var slot = map.Slots[key & SLOT_COUNT_MASK];
-
-            var k = key & KEY_MASK;
-            while (slot._heightThenKey != 0 && k != slot.Key)
-                slot = k < slot.Key ? slot.Left : slot.Right;
-
-            return slot.Value;
-        }
-
-        /// Returns true if key is found and sets the value.
-        [MethodImpl((MethodImplOptions)256)]
-        public static bool TryFind<V>(this ImMapArray<V> map, int key, out V value)
-        {
-            var slot = map.Slots[key & SLOT_COUNT_MASK];
-
-            var k = key & KEY_MASK;
-            while (slot._heightThenKey != 0 && k != slot.Key)
-                slot = k < slot.Key ? slot.Left : slot.Right;
-
-            if (slot._heightThenKey == 0)
-            {
-                value = default;
-                return false;
-            }
-
-            value = slot.Value;
-            return true;
+            return Branch(key, value, left, right);
         }
     }
 }

@@ -10,7 +10,7 @@ namespace Playground
 {
     public class ImMapBenchmarks
     {
-        [MemoryDiagnoser]//, Orderer(SummaryOrderPolicy.FastestToSlowest)]
+        [MemoryDiagnoser]
         public class Populate
         {
             /*
@@ -130,27 +130,27 @@ Frequency=2156254 Hz, Resolution=463.7673 ns, Timer=TSC
 
             ## With ImMapArray
 
-|                    Method |  Count |            Mean |            Error |            StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
-|-------------------------- |------- |----------------:|-----------------:|------------------:|------:|--------:|------------:|------------:|------------:|--------------------:|
-|         ImMap_AddOrUpdate |     10 |        659.1 ns |         2.928 ns |         2.7388 ns |  1.00 |    0.00 |      0.4435 |           - |           - |              2096 B |
-|    ImMapArray_AddOrUpdate |     10 |        436.8 ns |         1.159 ns |         0.9676 ns |  0.66 |    0.00 |      0.2065 |           - |           - |               976 B |
-| DictSlim_GetOrAddValueRef |     10 |        429.7 ns |         1.127 ns |         0.9990 ns |  0.65 |    0.00 |      0.2437 |           - |           - |              1152 B |
-|                           |        |                 |                  |                   |       |         |             |             |             |                     |
-|         ImMap_AddOrUpdate |    100 |     11,941.1 ns |        64.945 ns |        60.7497 ns |  1.00 |    0.00 |      7.9651 |           - |           - |             37616 B |
-|    ImMapArray_AddOrUpdate |    100 |      6,635.8 ns |        18.537 ns |        16.4323 ns |  0.56 |    0.00 |      3.8071 |           - |           - |             17968 B |
-| DictSlim_GetOrAddValueRef |    100 |      3,467.5 ns |         2.746 ns |         2.4344 ns |  0.29 |    0.00 |      1.8311 |      0.0038 |           - |              8656 B |
-|                           |        |                 |                  |                   |       |         |             |             |             |                     |
-|         ImMap_AddOrUpdate |   1000 |    196,272.9 ns |       712.460 ns |       631.5771 ns |  1.00 |    0.00 |    113.0371 |      0.2441 |           - |            534464 B |
-|    ImMapArray_AddOrUpdate |   1000 |    141,076.9 ns |       190.095 ns |       158.7380 ns |  0.72 |    0.00 |     71.7773 |      0.2441 |           - |            339760 B |
-| DictSlim_GetOrAddValueRef |   1000 |     33,011.2 ns |        94.849 ns |        88.7223 ns |  0.17 |    0.00 |     15.5029 |      0.0610 |           - |             73440 B |
-|                           |        |                 |                  |                   |       |         |             |             |             |                     |
-|         ImMap_AddOrUpdate |  10000 |  4,312,150.9 ns |    34,716.981 ns |    32,474.2855 ns |  1.00 |    0.00 |   1117.1875 |    242.1875 |    109.3750 |           7044992 B |
-|    ImMapArray_AddOrUpdate |  10000 |  4,090,674.7 ns |    65,671.577 ns |    58,216.1427 ns |  0.95 |    0.01 |    812.5000 |    304.6875 |    140.6250 |           5119216 B |
-| DictSlim_GetOrAddValueRef |  10000 |    470,725.0 ns |     2,796.249 ns |     2,334.9944 ns |  0.11 |    0.00 |    125.0000 |    124.5117 |    124.5117 |           1048032 B |
-|                           |        |                 |                  |                   |       |         |             |             |             |                     |
-|         ImMap_AddOrUpdate | 100000 | 61,707,160.2 ns |   991,928.148 ns |   927,850.2049 ns |  1.00 |    0.00 |  14333.3333 |   2111.1111 |    555.5556 |          86499836 B |
-|    ImMapArray_AddOrUpdate | 100000 | 63,953,018.3 ns | 1,205,093.016 ns | 1,289,436.0257 ns |  1.04 |    0.03 |  11333.3333 |   2222.2222 |    666.6667 |          67292284 B |
-| DictSlim_GetOrAddValueRef | 100000 | 10,722,986.3 ns |    41,820.874 ns |    39,119.2715 ns |  0.17 |    0.00 |   1234.3750 |    968.7500 |    734.3750 |           9235921 B |
+|                    Method |  Count |            Mean |            Error |           StdDev |          Median | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+|-------------------------- |------- |----------------:|-----------------:|-----------------:|----------------:|------:|--------:|------------:|------------:|------------:|--------------------:|
+|         ImMap_AddOrUpdate |     10 |        681.1 ns |         4.343 ns |         4.062 ns |        680.6 ns |  1.00 |    0.00 |      0.4435 |           - |           - |              2096 B |
+|    ImMapArray_AddOrUpdate |     10 |        380.8 ns |         1.579 ns |         1.477 ns |        381.3 ns |  0.56 |    0.00 |      0.2017 |           - |           - |               952 B |
+| DictSlim_GetOrAddValueRef |     10 |        439.3 ns |         1.345 ns |         1.258 ns |        439.5 ns |  0.64 |    0.00 |      0.2437 |           - |           - |              1152 B |
+|                           |        |                 |                  |                  |                 |       |         |             |             |             |                     |
+|         ImMap_AddOrUpdate |    100 |     12,626.6 ns |       249.168 ns |       332.632 ns |     12,694.1 ns |  1.00 |    0.00 |      7.9651 |           - |           - |             37616 B |
+|    ImMapArray_AddOrUpdate |    100 |      6,764.0 ns |        87.021 ns |        81.399 ns |      6,783.0 ns |  0.54 |    0.02 |      3.7994 |           - |           - |             17944 B |
+| DictSlim_GetOrAddValueRef |    100 |      3,566.0 ns |        74.184 ns |        69.392 ns |      3,533.7 ns |  0.28 |    0.01 |      1.8311 |      0.0038 |           - |              8656 B |
+|                           |        |                 |                  |                  |                 |       |         |             |             |             |                     |
+|         ImMap_AddOrUpdate |   1000 |    194,370.3 ns |       929.531 ns |       869.484 ns |    194,503.4 ns |  1.00 |    0.00 |    113.0371 |      0.2441 |           - |            534464 B |
+|    ImMapArray_AddOrUpdate |   1000 |    133,177.5 ns |       600.933 ns |       562.113 ns |    133,234.1 ns |  0.69 |    0.00 |     71.7773 |      0.4883 |           - |            339736 B |
+| DictSlim_GetOrAddValueRef |   1000 |     33,358.3 ns |       151.865 ns |       142.054 ns |     33,300.0 ns |  0.17 |    0.00 |     15.5029 |      0.0610 |           - |             73440 B |
+|                           |        |                 |                  |                  |                 |       |         |             |             |             |                     |
+|         ImMap_AddOrUpdate |  10000 |  4,388,550.1 ns |    42,355.684 ns |    39,619.533 ns |  4,387,040.5 ns |  1.00 |    0.00 |   1117.1875 |    242.1875 |    109.3750 |           7044992 B |
+|    ImMapArray_AddOrUpdate |  10000 |  3,322,530.6 ns |    65,836.456 ns |   122,032.092 ns |  3,272,230.3 ns |  0.78 |    0.04 |    882.8125 |    402.3438 |           - |           5119192 B |
+| DictSlim_GetOrAddValueRef |  10000 |    484,138.0 ns |     9,928.912 ns |     9,287.510 ns |    480,086.0 ns |  0.11 |    0.00 |    125.0000 |    124.5117 |    124.5117 |           1048032 B |
+|                           |        |                 |                  |                  |                 |       |         |             |             |             |                     |
+|         ImMap_AddOrUpdate | 100000 | 85,604,815.1 ns | 1,989,598.982 ns | 4,880,520.208 ns | 83,468,970.2 ns |  1.00 |    0.00 |  14400.0000 |   2400.0000 |    600.0000 |          86499830 B |
+|    ImMapArray_AddOrUpdate | 100000 | 83,368,288.2 ns |   659,514.664 ns |   616,910.426 ns | 83,255,596.9 ns |  0.92 |    0.06 |  11285.7143 |   2000.0000 |    714.2857 |          67292254 B |
+| DictSlim_GetOrAddValueRef | 100000 | 13,312,309.7 ns |   121,732.892 ns |   113,869.023 ns | 13,292,853.6 ns |  0.15 |    0.01 |   1234.3750 |    968.7500 |    734.3750 |           9235912 B |
 
             */
 
@@ -171,7 +171,7 @@ Frequency=2156254 Hz, Resolution=463.7673 ns, Timer=TSC
             [Benchmark]
             public ImMapArray<string> ImMapArray_AddOrUpdate()
             {
-                var map = new ImMapArray<string>();
+                var map = ImMapArray<string>.Create();
 
                 for (var i = 0; i < Count; i++)
                     map.AddOrUpdate(i, i.ToString());
@@ -456,7 +456,7 @@ Frequency=2156254 Hz, Resolution=463.7673 ns, Timer=TSC
 
             public ImMapArray<string> AddOrUpdate_ImMapArray()
             {
-                var map = new ImMapArray<string>();
+                var map = ImMapArray<string>.Create();
 
                 for (var i = 0; i < Count; i++)
                     map.AddOrUpdate(i, i.ToString());
