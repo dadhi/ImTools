@@ -89,14 +89,16 @@ namespace ImTools.Benchmarks
         public override string ToString() => "Leaf:" + Key + "->" + Value;
     }
 
-    public struct ImMapBranch<V> : ImMapSlot<V>
+    public struct ImMapBranch<V, L, R> : ImMapSlot<V> 
+        where L : ImMapSlot<V> 
+        where R : ImMapSlot<V>
     {
         private readonly int _heightThenKey;
         private readonly V _value;
-        private readonly ImMapSlot<V> _left;
-        private readonly ImMapSlot<V> _right;
+        private readonly L _left;
+        private readonly R _right;
 
-        internal ImMapBranch(int heightThenKey, V value, ImMapSlot<V> left, ImMapSlot<V> right)
+        internal ImMapBranch(int heightThenKey, V value, L left, R right)
         {
             _heightThenKey = heightThenKey;
             _value = value;
@@ -140,7 +142,7 @@ namespace ImTools.Benchmarks
         }
 
         [MethodImpl((MethodImplOptions)256)]
-        public ImMapSlot<V> NewWith(V value) => new ImMapBranch<V>(_heightThenKey, value, _left, _right);
+        public ImMapSlot<V> NewWith(V value) => new ImMapBranch<V, L, R>(_heightThenKey, value, _left, _right);
 
         /// <summary>Outputs key value pair</summary>
         public override string ToString() => "Branch:" + Key + "->" + Value;
@@ -338,12 +340,10 @@ namespace ImTools.Benchmarks
         public const int KEY_MASK = ~SLOT_COUNT_MASK;
 
         [MethodImpl((MethodImplOptions)256)]
-        internal static ImMapBranch<V> NewBranch<V>(int key, V value, ImMapSlot<V> left, ImMapSlot<V> right, int height) => 
-            new ImMapBranch<V>(key | height, value, left, right);
-
-        [MethodImpl((MethodImplOptions)256)]
-        internal static ImMapBranch<V> NewBranch<V>(int key, V value, ImMapSlot<V> left, ImMapSlot<V> right) =>
-            new ImMapBranch<V>(key | (left.Height > right.Height ? left.Height + 1 : right.Height + 1), value, left, right);
+        internal static ImMapBranch<V, L, R> NewBranch<V, L, R>(int key, V value, L left, R right) 
+            where R : ImMapSlot<V> 
+            where L : ImMapSlot<V> =>
+            new ImMapBranch<V, L, R>(key | (left.Height > right.Height ? left.Height + 1 : right.Height + 1), value, left, right);
 
         /// Get value for found key or the default value otherwise.
         [MethodImpl((MethodImplOptions)256)]
@@ -388,11 +388,11 @@ namespace ImTools.Benchmarks
                 // todo: right-leafy branch can be optimized by directly inlining leaf structure, 
                 // actually any direct branch constructor use may be optimized this way
                 if (mapLeft.Height == 0)
-                    return new ImMapBranch<V>(mapKey | 2, map.Value, new ImMapLeaf<V>(key, value), mapRight);
+                    return new ImMapBranch<V, ImMapLeaf<V>, ImMapSlot<V>>(mapKey | 2, map.Value, new ImMapLeaf<V>(key, value), mapRight);
 
                 // todo: left-leafy branch can be optimized by directly inlining leaf structure
                 if (mapLeft.Key == key)
-                    return new ImMapBranch<V>(mapKey | map.Height, map.Value, new ImMapLeaf<V>(key, value), mapRight);
+                    return new ImMapBranch<V, ImMapLeaf<V>, ImMapSlot<V>>(mapKey | map.Height, map.Value, new ImMapLeaf<V>(key, value), mapRight);
 
                 if (mapRight.Height == 0)
                 {
@@ -401,14 +401,14 @@ namespace ImTools.Benchmarks
                     //   2            1     5
                     // 1              
                     if (key < mapLeft.Key)
-                        return new ImMapBranch<V>(mapLeft.Key | 2, mapLeft.Value, 
+                        return new ImMapBranch<V, ImMapLeaf<V>, ImMapLeaf<V>>(mapLeft.Key | 2, mapLeft.Value, 
                             new ImMapLeaf<V>(key, value), new ImMapLeaf<V>(mapKey, map.Value));
 
                     // double rotation:
                     //      5     =>     5     =>     4
                     //   2            4            2     5
                     //     4        2               
-                    return new ImMapBranch<V>(key | 2, value,
+                    return new ImMapBranch<V, ImMapLeaf<V>, ImMapLeaf<V>>(key | 2, value,
                         new ImMapLeaf<V>(mapLeft.Key, mapLeft.Value), new ImMapLeaf<V>(mapKey, map.Value));
                 }
 
@@ -424,8 +424,12 @@ namespace ImTools.Benchmarks
                     //   2     6      1     5
                     // 1   4              4   6
                     if (leftLeft.Height >= leftRight.Height)
+                    {
+
                         return NewBranch(newLeft.Key, newLeft.Value,
-                            leftLeft, NewBranch(mapKey, map.Value, leftRight, mapRight)); // todo: check if it maybe a leaf instead of branch
+                            leftLeft, NewBranch(mapKey, map.Value, leftRight, mapRight));
+
+                    }
 
                     // double rotation:
                     //      5     =>     5     =>     4
@@ -442,10 +446,10 @@ namespace ImTools.Benchmarks
             else // if (key >= map.Key)
             {
                 if (mapRight.Height == 0)
-                    return new ImMapBranch<V>(mapKey | 2, map.Value, mapLeft, new ImMapLeaf<V>(key, value));
+                    return new ImMapBranch<V, ImMapSlot<V>, ImMapLeaf<V>>(mapKey | 2, map.Value, mapLeft, new ImMapLeaf<V>(key, value));
 
                 if (mapRight.Key == key)
-                    return new ImMapBranch<V>(mapKey | map.Height, map.Value, mapLeft, new ImMapLeaf<V>(key, value));
+                    return new ImMapBranch<V, ImMapSlot<V>, ImMapLeaf<V>>(mapKey | map.Height, map.Value, mapLeft, new ImMapLeaf<V>(key, value));
 
                 if (mapLeft.Height == 0)
                 {
@@ -454,14 +458,14 @@ namespace ImTools.Benchmarks
                     //         8      5     9
                     //           9
                     if (key >= mapRight.Key)
-                        return new ImMapBranch<V>(mapRight.Key | 2, mapRight.Value,
+                        return new ImMapBranch<V, ImMapLeaf<V>, ImMapLeaf<V>>(mapRight.Key | 2, mapRight.Value,
                             new ImMapLeaf<V>(mapKey, map.Value), new ImMapLeaf<V>(key, value));
 
                     // double rotation:
                     //      5     =>     5     =>     7
                     //         8            7      5     8
                     //        7              8
-                    return new ImMapBranch<V>(key | 2, value,
+                    return new ImMapBranch<V, ImMapLeaf<V>, ImMapLeaf<V>>(key | 2, value,
                         new ImMapLeaf<V>(mapKey, map.Value), new ImMapLeaf<V>(mapRight.Key, mapRight.Value));
                 }
 
