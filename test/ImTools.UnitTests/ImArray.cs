@@ -180,7 +180,7 @@ namespace ImTools
             Assert.That(item, Is.EqualTo(nodeArrayLength));
         }
 
-        /// <remarks>Issue #17 Appendable Array stops to work over 64 elements. (dev. branch)</remarks>
+        /// <remarks>Issue #17 Append-able Array stops to work over 64 elements. (dev. branch)</remarks>
         [Test]
         public void Append_and_get_items_in_multiple_node_array()
         {

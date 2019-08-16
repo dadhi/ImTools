@@ -1880,7 +1880,7 @@ namespace ImTools
         /// <summary>Right sub-tree/branch, or empty.</summary>
         public readonly ImMap<V> Right;
 
-        /// <summary>Height of longest sub-tree/branch plus 1. It is 0 for empty tree, and 1 for single node tree.</summary>
+        /// <summary>Height of the longest sub-tree/branch. It is 0 for empty tree, and 1 for single node tree.</summary>
         public readonly int Height;
 
         /// <summary>Returns true is tree is empty.</summary>
@@ -1889,53 +1889,128 @@ namespace ImTools
         /// Returns a new tree with added or updated value for specified key.
         [MethodImpl((MethodImplOptions)256)]
         public ImMap<V> AddOrUpdate(int key, V value) =>
-            Height == 0
-                ? new ImMap<V>(key, value)
-                : key == Key
-                    ? new ImMap<V>(key, value, Left, Right, Height)
-                    : AddOrUpdateImpl(key, value);
+            AddOrUpdate(key, value, out _, out _);
 
-        private ImMap<V> AddOrUpdateImpl(int key, V value)
+        /* todo: wip
+        /// What it looks
+        public enum AddOrUpdateOptions
         {
+            /// What it looks
+            AddOrUpdate = 0,
+            /// What it looks
+            AddOnly,
+            /// What it looks
+            UpdateOnly
+        }
+        */
+
+        /// Returns a new tree with added or updated value for specified key.
+        [MethodImpl((MethodImplOptions)256)]
+        public ImMap<V> AddOrUpdate(int key, V value, 
+            out bool isUpdated, out V oldValue, Update<int, V> update = null)
+        {
+            isUpdated = false;
+            oldValue = default;
+
+            if (Height == 0)
+                return new ImMap<V>(key, value);
+
+            if (key == Key)
+                return UpdatedOrOld(key, value, ref isUpdated, ref oldValue, update);
+
+            return AddOrUpdateImpl(key, value, ref isUpdated, ref oldValue, update);
+        }
+
+        private ImMap<V> UpdatedOrOld(int key, V value, ref bool isUpdated, ref V oldValue, Update<int, V> update)
+        {
+            if (update != null)
+                value = update(key, Value, value);
+            if (ReferenceEquals(value, Value) || value?.Equals(Value) == true)
+                return this;
+
+            isUpdated = true;
+            oldValue = Value;
+            return new ImMap<V>(key, value, Left, Right, Height);
+        }
+
+        private ImMap<V> AddOrUpdateImpl(int key, V value, ref bool isUpdated, ref V oldValue, Update<int, V> update)
+        {
+            // todo: should be ordered by most frequent operation first, and then split by key to left or to right
+            // if (Height > 2) {}
+            // if (Height == 2) {}
+            // if (Height == 1) {}
+
             if (key < Key)
             {
+                // this is a leaf node - just adding then to the left, the new height will be 2, no balance needed
+                if (Height == 1)
+                    return new ImMap<V>(Key, Value, new ImMap<V>(key, value), Empty, 2);
+
+                // left is empty - in balanced tree it means that right is the leaf node, adding to the left, the height will remain 2, no balance needed
                 if (Left.Height == 0)
                     return new ImMap<V>(Key, Value, new ImMap<V>(key, value), Right, 2);
 
                 if (Left.Key == key)
-                    return new ImMap<V>(Key, Value, new ImMap<V>(key, value), Right, Height);
-
-                if (Right.Height == 0)
                 {
-                    // single rotation:
-                    //      5     =>     2
-                    //   2            1     5
-                    // 1              
-                    if (key < Left.Key)
-                        return new ImMap<V>(Left.Key, Left.Value,
-                            new ImMap<V>(key, value), new ImMap<V>(Key, Value), 2);
-
-                    // double rotation:
-                    //      5     =>     5     =>     4
-                    //   2            4            2     5
-                    //     4        2               
-                    return new ImMap<V>(key, value,
-                        new ImMap<V>(Left.Key, Left.Value), new ImMap<V>(Key, Value), 2);
+                    var updatedLeft = Left.UpdatedOrOld(key, value, ref isUpdated, ref oldValue, update);
+                    return updatedLeft == Left ? this : new ImMap<V>(Key, Value, updatedLeft, Right, Height);
                 }
 
-                var newLeft = Left.AddOrUpdateImpl(key, value);
-
-                if (newLeft.Height > Right.Height + 1) // left is longer by 2, rotate left
+                // we will add the node on the left:
+                //      5
+                //   2     ?
+                //       ?   ?
+                var left = Left;
+                if (left.Height == 1)
                 {
-                    var leftLeft = newLeft.Left;
-                    var leftRight = newLeft.Right;
+                    //     5
+                    //  2
+                    if (Right.Height == 0)
+                    {
+                        // single rotation:
+                        //           5     =>     2
+                        //        2        new:1     5
+                        // new:1                     
+                        if (key < left.Key)
+                            return new ImMap<V>(left.Key, left.Value,
+                                new ImMap<V>(key, value), new ImMap<V>(Key, Value), 2);
+
+                        // double rotation in a one swoop:
+                        //      5     =>     5     =>     4
+                        //   2            4            2     5
+                        //     4        2                     
+                        return new ImMap<V>(key, value,
+                            new ImMap<V>(left.Key, left.Value), new ImMap<V>(Key, Value), 2);
+                    }
+
+                    // no need to balance here, just to left-left or to left-right
+                    //       5
+                    //    2     8
+                    //        ?   ?
+                    left = key < left.Key 
+                        ? new ImMap<V>(left.Key, left.Value, new ImMap<V>(key, value), Empty, 2) 
+                        : new ImMap<V>(left.Key, left.Value, Empty, new ImMap<V>(key, value), 2);
+                }
+                else
+                {
+                    var oldLeft = left;
+                    left = left.AddOrUpdateImpl(key, value, ref isUpdated, ref oldValue, update);
+                    if (left == oldLeft)
+                        return this;
+                }
+
+                // left is longer by 2, rotate left
+                if (left.Height > Right.Height + 1) 
+                {
+                    var leftLeft = left.Left;
+                    var leftRight = left.Right;
 
                     // single rotation:
                     //      5     =>     2
                     //   2     6      1     5
                     // 1   4              4   6
                     if (leftLeft.Height >= leftRight.Height)
-                        return new ImMap<V>(newLeft.Key, newLeft.Value,
+                        return new ImMap<V>(left.Key, left.Value,
                             leftLeft, new ImMap<V>(Key, Value, leftRight, Right));
 
                     // double rotation:
@@ -1944,55 +2019,74 @@ namespace ImTools
                     // 1   4        2   3        1   3     6
                     //    3        1
                     return new ImMap<V>(leftRight.Key, leftRight.Value,
-                        new ImMap<V>(newLeft.Key, newLeft.Value, leftLeft, leftRight.Left),
+                        new ImMap<V>(left.Key, left.Value, leftLeft, leftRight.Left),
                         new ImMap<V>(Key, Value, leftRight.Right, Right));
                 }
 
-                return new ImMap<V>(Key, Value, newLeft, Right);
+                return new ImMap<V>(Key, Value, left, Right);
             }
             else
             {
+                if (Height == 1)
+                    return new ImMap<V>(Key, Value, Empty, new ImMap<V>(key, value), 2);
+
                 if (Right.Height == 0)
                     return new ImMap<V>(Key, Value, Left, new ImMap<V>(key, value), 2);
 
                 if (Right.Key == key)
-                    return new ImMap<V>(Key, Value, Left, new ImMap<V>(key, value), Height);
-
-                if (Left.Height == 0)
                 {
-                    // single rotation:
-                    //      5     =>     8     
-                    //         8      5     9
-                    //           9
-                    if (key >= Right.Key)
-                        return new ImMap<V>(Right.Key, Right.Value,
-                            new ImMap<V>(Key, Value), new ImMap<V>(key, value), 2);
-
-                    // double rotation:
-                    //      5     =>     5     =>     7
-                    //         8            7      5     8
-                    //        7              8
-                    return new ImMap<V>(key, value,
-                        new ImMap<V>(Key, Value), new ImMap<V>(Right.Key, Right.Value), 2);
+                    var updatedRight = Right.UpdatedOrOld(key, value, ref isUpdated, ref oldValue, update);
+                    return updatedRight == Right ? this : new ImMap<V>(Key, Value, Left, updatedRight, Height);
                 }
 
-                var newRight = Right.AddOrUpdateImpl(key, value);
-
-                if (newRight.Height > Left.Height + 1)
+                var right = Right;
+                if (right.Height == 1)
                 {
-                    var rightLeft = newRight.Left;
-                    var rightRight = newRight.Right;
+                    if (Left.Height == 0)
+                    {
+                        // double rotation:
+                        //    5     =>   5     =>     6
+                        //       8          6      5     8
+                        //      6            8
+                        if (key < right.Key)
+                            return new ImMap<V>(key, value,
+                                new ImMap<V>(Key, Value), new ImMap<V>(right.Key, right.Value), 2);
+
+                        // single rotation:
+                        //    5     =>    6
+                        //      6      5     8
+                        //       8
+                        return new ImMap<V>(right.Key, right.Value,
+                            new ImMap<V>(Key, Value), new ImMap<V>(key, value), 2);
+                    }
+
+                    right = key < right.Key 
+                        ? new ImMap<V>(right.Key, right.Value, new ImMap<V>(key, value), Empty, 2) 
+                        : new ImMap<V>(right.Key, right.Value, Empty, new ImMap<V>(key, value), 2);
+                }
+                else
+                {
+                    var oldRight = right;
+                    right = right.AddOrUpdateImpl(key, value, ref isUpdated, ref oldValue, update);
+                    if (oldRight == right)
+                        return this;
+                }
+
+                if (right.Height > Left.Height + 1)
+                {
+                    var rightLeft = right.Left;
+                    var rightRight = right.Right;
 
                     if (rightRight.Height >= rightLeft.Height)
-                        return new ImMap<V>(newRight.Key, newRight.Value,
+                        return new ImMap<V>(right.Key, right.Value,
                             new ImMap<V>(Key, Value, Left, rightLeft), rightRight);
 
                     return new ImMap<V>(rightLeft.Key, rightLeft.Value,
                         new ImMap<V>(Key, Value, Left, rightLeft.Left),
-                        new ImMap<V>(newRight.Key, newRight.Value, rightLeft.Right, rightRight));
+                        new ImMap<V>(right.Key, right.Value, rightLeft.Right, rightRight));
                 }
 
-                return new ImMap<V>(Key, Value, Left, newRight);
+                return new ImMap<V>(Key, Value, Left, right);
             }
         }
 
@@ -2010,6 +2104,19 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public ImMap<V> Update(int key, V value) =>
             AddOrUpdateImpl(key, value, true, null);
+
+        private ImMap<V> AddOrUpdateImpl(int key, V value, bool updateOnly, Update<V> update)
+        {
+            return Height == 0
+                ? // tree is empty
+                (updateOnly ? this : new ImMap<V>(key, value))
+                : (key == Key
+                    ? // actual update
+                    new ImMap<V>(key, update == null ? value : update(Value, value), Left, Right)
+                    : (key < Key // try update on left or right sub-tree
+                        ? Balance(Key, Value, Left.AddOrUpdateImpl(key, value, updateOnly, update), Right)
+                        : Balance(Key, Value, Left, Right.AddOrUpdateImpl(key, value, updateOnly, update))));
+        }
 
         // todo: Leak, cause returned ImMap references left and right sub-trees - replace with `KeyValuePair`
         /// <summary>Returns all sub-trees enumerated from left to right.</summary> 
@@ -2050,8 +2157,6 @@ namespace ImTools
         /// <summary>Outputs key value pair</summary>
         public override string ToString() => IsEmpty ? "empty" : (Key + ":" + Value);
 
-        #region Implementation
-
         internal ImMap() { }
 
         internal ImMap(int key, V value)
@@ -2079,19 +2184,6 @@ namespace ImTools
             Left = left;
             Right = right;
             Height = left.Height > right.Height ? left.Height + 1 : right.Height + 1;
-        }
-
-        private ImMap<V> AddOrUpdateImpl(int key, V value, bool updateOnly, Update<V> update)
-        {
-            return Height == 0
-                ? // tree is empty
-                (updateOnly ? this : new ImMap<V>(key, value))
-                : (key == Key
-                    ? // actual update
-                    new ImMap<V>(key, update == null ? value : update(Value, value), Left, Right)
-                    : (key < Key // try update on left or right sub-tree
-                        ? Balance(Key, Value, Left.AddOrUpdateImpl(key, value, updateOnly, update), Right)
-                        : Balance(Key, Value, Left, Right.AddOrUpdateImpl(key, value, updateOnly, update))));
         }
 
         internal static ImMap<V> Balance(int key, V value, ImMap<V> left, ImMap<V> right)
@@ -2172,8 +2264,6 @@ namespace ImTools
 
             return result;
         }
-
-        #endregion
     }
 
     /// ImMap methods
@@ -2298,7 +2388,7 @@ namespace ImTools
                     ? UpdatedOrOld(hash, key, value, ref isUpdated, ref oldValue, update)
                     : UpdateValueAndResolveConflicts(key, value, ref isUpdated, ref oldValue, update);
 
-            return AddOrUpdate(hash, key, value, ref isUpdated, ref oldValue, update);
+            return AddOrUpdateImpl(hash, key, value, ref isUpdated, ref oldValue, update);
         }
 
         /// <summary>Looks for <paramref name="key"/> and replaces its value with new <paramref name="value"/>, or 
@@ -2362,7 +2452,6 @@ namespace ImTools
             public readonly int Hash;
             public readonly K Key;
             public readonly V Value;
-
             public readonly KV<K, V>[] Conflicts;
 
             public Data() { }
@@ -2407,7 +2496,7 @@ namespace ImTools
             Height = height;
         }
 
-        private ImHashMap<K, V> AddOrUpdate(int hash, K key, V value, 
+        private ImHashMap<K, V> AddOrUpdateImpl(int hash, K key, V value, 
             ref bool isUpdated, ref V oldValue, Update<K, V> update = null)
         {
             if (hash < Hash)
@@ -2417,14 +2506,16 @@ namespace ImTools
 
                 var left = Left;
                 if (left.Height == 0)
-                    return new ImHashMap<K, V>(_data, new ImHashMap<K, V>(new Data(hash, key, value)), Right, Height);
+                    return new ImHashMap<K, V>(_data, new ImHashMap<K, V>(new Data(hash, key, value)), Right, 2);
 
                 if (left.Hash == hash)
                 {
                     var updatedLeft = ReferenceEquals(left.Key, key) || left.Key.Equals(key)
                         ? left.UpdatedOrOld(hash, key, value, ref isUpdated, ref oldValue, update)
                         : left.UpdateValueAndResolveConflicts(key, value, ref isUpdated, ref oldValue, update);
-                    return updatedLeft == left ? this : new ImHashMap<K, V>(_data, updatedLeft, Right);
+                    
+                    // if not updated - return this, otherwise add updated left and keep the height
+                    return updatedLeft == left ? this : new ImHashMap<K, V>(_data, updatedLeft, Right, Height);
                 }
 
                 if (left.Height == 1)
@@ -2457,7 +2548,7 @@ namespace ImTools
                 else
                 {
                     var oldLeft = left;
-                    left = left.AddOrUpdate(hash, key, value, ref isUpdated, ref oldValue, update);
+                    left = left.AddOrUpdateImpl(hash, key, value, ref isUpdated, ref oldValue, update);
                     if (oldLeft == left)
                         return this;
                 }
@@ -2494,14 +2585,16 @@ namespace ImTools
 
                 var right = Right;
                 if (right.Height == 0)
-                    return new ImHashMap<K, V>(_data, Left, new ImHashMap<K, V>(new Data(hash, key, value)), Height);
+                    return new ImHashMap<K, V>(_data, Left, new ImHashMap<K, V>(new Data(hash, key, value)), 2);
 
                 if (right.Hash == hash)
                 {
                     var updatedRight = ReferenceEquals(right.Key, key) || right.Key.Equals(key)
                         ? right.UpdatedOrOld(hash, key, value, ref isUpdated, ref oldValue, update)
                         : right.UpdateValueAndResolveConflicts(key, value, ref isUpdated, ref oldValue, update);
-                    return updatedRight == right ? this : new ImHashMap<K, V>(_data, Left, updatedRight);
+
+                    // if not updated - return this, otherwise add updated left and keep the height
+                    return updatedRight == right ? this : new ImHashMap<K, V>(_data, Left, updatedRight, Height);
                 }
 
                 if (right.Height == 1)
@@ -2534,7 +2627,7 @@ namespace ImTools
                 else
                 {
                     var oldRight = right;
-                    right = right.AddOrUpdate(hash, key, value, ref isUpdated, ref oldValue, update);
+                    right = right.AddOrUpdateImpl(hash, key, value, ref isUpdated, ref oldValue, update);
                     if (oldRight == right)
                         return this;
                 }
