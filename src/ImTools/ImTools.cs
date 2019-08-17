@@ -2277,15 +2277,19 @@ namespace ImTools
                 {
                     // we have two children, so remove the next highest node and replace this node with it.
                     var successor = Right;
-                    while (!successor.Left.IsEmpty) successor = successor.Left;
+                    while (!successor.Left.IsEmpty)
+                        successor = successor.Left;
                     result = new ImMap<V>(successor.Key, successor.Value,
                         Left, Right.RemoveImpl(successor.Key, true));
                 }
             }
-            else if (key < Key)
-                result = Balance(Key, Value, Left.RemoveImpl(key), Right);
             else
-                result = Balance(Key, Value, Left, Right.RemoveImpl(key));
+            {
+                if (key < Key)
+                    result = Balance(Key, Value, Left.RemoveImpl(key, ignoreKey), Right);
+                else
+                    result = Balance(Key, Value, Left, Right.RemoveImpl(key, ignoreKey));
+            }
 
             return result;
         }
