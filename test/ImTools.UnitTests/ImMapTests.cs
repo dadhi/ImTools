@@ -196,8 +196,8 @@ namespace ImTools.UnitTests
                 tree.Enumerate().Select(_ => _.Value));
         }
 
-        [Test, Ignore("todo: fix")]
-        public void Update_of_not_found_key_should_return_the_same_tree()
+        [Test]
+        public void Update_with_not_found_key_should_return_the_same_tree()
         {
             var tree = ImMap<string>.Empty
                 .AddOrUpdate(1, "a").AddOrUpdate(2, "b").AddOrUpdate(3, "c").AddOrUpdate(4, "d");

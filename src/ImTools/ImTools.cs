@@ -1891,7 +1891,6 @@ namespace ImTools
         public ImMap<V> AddOrUpdate(int key, V value) =>
             AddOrUpdate(key, value, out _, out _);
 
-        /* todo: wip
         /// What it looks
         public enum AddOrUpdateOptions
         {
@@ -1902,23 +1901,33 @@ namespace ImTools
             /// What it looks
             UpdateOnly
         }
-        */
 
         /// Returns a new tree with added or updated value for specified key.
         [MethodImpl((MethodImplOptions)256)]
         public ImMap<V> AddOrUpdate(int key, V value, 
-            out bool isUpdated, out V oldValue, Update<int, V> update = null)
+            out bool isUpdated, out V oldValue, Update<int, V> update = null,
+            AddOrUpdateOptions options = AddOrUpdateOptions.AddOrUpdate)
         {
             isUpdated = false;
             oldValue = default;
 
             if (Height == 0)
+            {
+                if (options == AddOrUpdateOptions.UpdateOnly)
+                    return this;
                 return new ImMap<V>(key, value);
+            }
 
             if (key == Key)
-                return UpdatedOrOld(key, value, ref isUpdated, ref oldValue, update);
+            {
+                oldValue = Value;
+                if (options == AddOrUpdateOptions.AddOnly)
+                    return this;
 
-            return AddOrUpdateImpl(key, value, ref isUpdated, ref oldValue, update);
+                return UpdatedOrOld(key, value, ref isUpdated, ref oldValue, update);
+            }
+
+            return AddOrUpdateImpl(key, value, ref isUpdated, ref oldValue, update, options);
         }
 
         private ImMap<V> UpdatedOrOld(int key, V value, ref bool isUpdated, ref V oldValue, Update<int, V> update)
@@ -1929,11 +1938,11 @@ namespace ImTools
                 return this;
 
             isUpdated = true;
-            oldValue = Value;
             return new ImMap<V>(key, value, Left, Right, Height);
         }
 
-        private ImMap<V> AddOrUpdateImpl(int key, V value, ref bool isUpdated, ref V oldValue, Update<int, V> update)
+        private ImMap<V> AddOrUpdateImpl(int key, V value, ref bool isUpdated, ref V oldValue, 
+            Update<int, V> update, AddOrUpdateOptions options)
         {
             // todo: should be ordered by most frequent operation first, and then split by key to left or to right
             // if (Height > 2) {}
@@ -1944,14 +1953,26 @@ namespace ImTools
             {
                 // this is a leaf node - just adding then to the left, the new height will be 2, no balance needed
                 if (Height == 1)
+                {
+                    if (options == AddOrUpdateOptions.UpdateOnly)
+                        return this;
                     return new ImMap<V>(Key, Value, new ImMap<V>(key, value), Empty, 2);
+                }
 
                 // left is empty - in balanced tree it means that right is the leaf node, adding to the left, the height will remain 2, no balance needed
                 if (Left.Height == 0)
+                {
+                    if (options == AddOrUpdateOptions.UpdateOnly)
+                        return this;
                     return new ImMap<V>(Key, Value, new ImMap<V>(key, value), Right, 2);
+                }
 
                 if (Left.Key == key)
                 {
+                    oldValue = Value;
+                    if (options == AddOrUpdateOptions.AddOnly)
+                        return this;
+
                     var updatedLeft = Left.UpdatedOrOld(key, value, ref isUpdated, ref oldValue, update);
                     return updatedLeft == Left ? this : new ImMap<V>(Key, Value, updatedLeft, Right, Height);
                 }
@@ -1963,6 +1984,9 @@ namespace ImTools
                 var left = Left;
                 if (left.Height == 1)
                 {
+                    if (options == AddOrUpdateOptions.UpdateOnly)
+                        return this;
+
                     //     5
                     //  2
                     if (Right.Height == 0)
@@ -1994,8 +2018,8 @@ namespace ImTools
                 else
                 {
                     var oldLeft = left;
-                    left = left.AddOrUpdateImpl(key, value, ref isUpdated, ref oldValue, update);
-                    if (left == oldLeft)
+                    left = left.AddOrUpdateImpl(key, value, ref isUpdated, ref oldValue, update, options);
+                    if (ReferenceEquals(left, oldLeft))
                         return this;
                 }
 
@@ -2028,13 +2052,24 @@ namespace ImTools
             else
             {
                 if (Height == 1)
+                {
+                    if (options == AddOrUpdateOptions.UpdateOnly)
+                        return this;
                     return new ImMap<V>(Key, Value, Empty, new ImMap<V>(key, value), 2);
+                }
 
                 if (Right.Height == 0)
+                {
+                    if (options == AddOrUpdateOptions.UpdateOnly)
+                        return this;
                     return new ImMap<V>(Key, Value, Left, new ImMap<V>(key, value), 2);
+                }
 
                 if (Right.Key == key)
                 {
+                    oldValue = Value;
+                    if (options == AddOrUpdateOptions.AddOnly)
+                        return this;
                     var updatedRight = Right.UpdatedOrOld(key, value, ref isUpdated, ref oldValue, update);
                     return updatedRight == Right ? this : new ImMap<V>(Key, Value, Left, updatedRight, Height);
                 }
@@ -2042,6 +2077,9 @@ namespace ImTools
                 var right = Right;
                 if (right.Height == 1)
                 {
+                    if (options == AddOrUpdateOptions.UpdateOnly)
+                        return this;
+
                     if (Left.Height == 0)
                     {
                         // double rotation:
@@ -2067,8 +2105,8 @@ namespace ImTools
                 else
                 {
                     var oldRight = right;
-                    right = right.AddOrUpdateImpl(key, value, ref isUpdated, ref oldValue, update);
-                    if (oldRight == right)
+                    right = right.AddOrUpdateImpl(key, value, ref isUpdated, ref oldValue, update, options);
+                    if (ReferenceEquals(oldRight, right))
                         return this;
                 }
 
@@ -2096,27 +2134,14 @@ namespace ImTools
         /// <returns>New tree.</returns>
         [MethodImpl((MethodImplOptions)256)]
         public ImMap<V> AddOrUpdate(int key, V value, Update<V> updateValue) =>
-            AddOrUpdateImpl(key, value, false, updateValue);
+            AddOrUpdate(key, value, out _, out _, updateValue.IgnoreKey);
 
         /// <summary>Returns new tree with updated value for the key, Or the same tree if key was not found.</summary>
         /// <param name="key"></param> <param name="value"></param>
         /// <returns>New tree if key is found, or the same tree otherwise.</returns>
         [MethodImpl((MethodImplOptions)256)]
         public ImMap<V> Update(int key, V value) =>
-            AddOrUpdateImpl(key, value, true, null);
-
-        private ImMap<V> AddOrUpdateImpl(int key, V value, bool updateOnly, Update<V> update)
-        {
-            return Height == 0
-                ? // tree is empty
-                (updateOnly ? this : new ImMap<V>(key, value))
-                : (key == Key
-                    ? // actual update
-                    new ImMap<V>(key, update == null ? value : update(Value, value), Left, Right)
-                    : (key < Key // try update on left or right sub-tree
-                        ? Balance(Key, Value, Left.AddOrUpdateImpl(key, value, updateOnly, update), Right)
-                        : Balance(Key, Value, Left, Right.AddOrUpdateImpl(key, value, updateOnly, update))));
-        }
+            AddOrUpdate(key, value, out _, out _, options: AddOrUpdateOptions.UpdateOnly);
 
         // todo: Leak, cause returned ImMap references left and right sub-trees - replace with `KeyValuePair`
         /// <summary>Returns all sub-trees enumerated from left to right.</summary> 
@@ -2269,6 +2294,8 @@ namespace ImTools
     /// ImMap methods
     public static class ImMap
     {
+        internal static V IgnoreKey<K, V>(this Update<V> u, K _, V ov, V nv) => u(ov, nv);
+
         /// Get value for found key or the default value otherwise.
         [MethodImpl((MethodImplOptions)256)]
         public static V GetValueOrDefault<V>(this ImMap<V> map, int key)
@@ -2369,7 +2396,7 @@ namespace ImTools
         /// <returns>New tree with added or updated key-value.</returns>
         [MethodImpl((MethodImplOptions)256)]
         public ImHashMap<K, V> AddOrUpdate(K key, V value, Update<V> update) =>
-            AddOrUpdate(key, value, out _, out _, (_, oldVal, newVal) => update(oldVal, newVal));
+            AddOrUpdate(key, value, out _, out _, update.IgnoreKey);
 
         /// Allocation free for `update` delegate with key
         [MethodImpl((MethodImplOptions)256)]
