@@ -2199,13 +2199,13 @@ namespace ImTools
                 while (successor.Left.Height != 0)
                     successor = successor.Left;
                 return new ImMap<V>(successor.Key, successor.Value,
-                    Left, Right.RemoveImpl(successor.Key));
+                    Left, Right.Remove(successor.Key));
             }
 
             // remove the node and balance the new tree
             return key < Key
-                ? Balance(Key, Value, Left.RemoveImpl(key), Right)
-                : Balance(Key, Value, Left, Right.RemoveImpl(key));
+                ? Balance(Key, Value, Left.Remove(key), Right)
+                : Balance(Key, Value, Left, Right.Remove(key));
         }
 
         /// <summary>Outputs key value pair</summary>
@@ -2285,42 +2285,6 @@ namespace ImTools
             }
 
             return new ImMap<V>(key, value, left, right);
-        }
-
-        private ImMap<V> RemoveImpl(int key)
-        {
-            if (Height == 0)
-                return this;
-
-            ImMap<V> result;
-            if (key == Key) // found node
-            {
-                if (Height == 1) // remove node
-                    return Empty;
-
-                if (Right.IsEmpty)
-                    result = Left;
-                else if (Left.IsEmpty)
-                    result = Right;
-                else
-                {
-                    // we have two children, so remove the next highest node and replace this node with it.
-                    var successor = Right;
-                    while (!successor.Left.IsEmpty)
-                        successor = successor.Left;
-                    result = new ImMap<V>(successor.Key, successor.Value,
-                        Left, Right.RemoveImpl(successor.Key));
-                }
-            }
-            else
-            {
-                if (key < Key)
-                    result = Balance(Key, Value, Left.RemoveImpl(key), Right);
-                else
-                    result = Balance(Key, Value, Left, Right.RemoveImpl(key));
-            }
-
-            return result;
         }
     }
 
