@@ -317,7 +317,7 @@ namespace ImTools.UnitTests
             Assert.That(tree.Value, Is.EqualTo("b"));
         }
 
-        [Test, Ignore("todo: results are different from ImHashMap")]
+        [Test]
         public void Remove_from_top_of_tree()
         {
             var tree = ImMap<string>.Empty
@@ -329,14 +329,14 @@ namespace ImTools.UnitTests
 
             //            1:a
             //       0:b       3:c
-            //              2:d  4:e
+            //              2:d   4:e
             Assert.AreEqual("a", tree.Value);
 
             tree = tree.Remove(1);
 
             //            2:d
-            //       0:b       4:e
-            //              3:c
+            //       0:b       3:c
+            //                    4:e
             Assert.That(tree.Value, Is.EqualTo("d"));
             Assert.That(tree.Left.Value, Is.EqualTo("b"));
             Assert.That(tree.Right.Value, Is.EqualTo("c"));

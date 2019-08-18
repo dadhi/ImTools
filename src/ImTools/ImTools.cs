@@ -2176,8 +2176,37 @@ namespace ImTools
         /// <param name="key">Key to look for.</param> 
         /// <returns>New tree with removed or updated value.</returns>
         [MethodImpl((MethodImplOptions)256)]
-        public ImMap<V> Remove(int key) =>
-            RemoveImpl(key);
+        public ImMap<V> Remove(int key)
+        {
+            if (Height == 0)
+                return this;
+
+            if (key == Key) // we've found the node to remove
+            {
+                if (Height == 1) // remove the leaf node
+                    return Empty;
+
+                // if we have the on child remaining then just return it
+                if (Right.Height == 0)
+                    return Left;
+
+                if (Left.Height == 0)
+                    return Right;
+
+                // we have two children,
+                // so remove the next highest node and replace this node with it.
+                var successor = Right;
+                while (successor.Left.Height != 0)
+                    successor = successor.Left;
+                return new ImMap<V>(successor.Key, successor.Value,
+                    Left, Right.RemoveImpl(successor.Key));
+            }
+
+            // remove the node and balance the new tree
+            return key < Key
+                ? Balance(Key, Value, Left.RemoveImpl(key), Right)
+                : Balance(Key, Value, Left, Right.RemoveImpl(key));
+        }
 
         /// <summary>Outputs key value pair</summary>
         public override string ToString() => IsEmpty ? "empty" : (Key + ":" + Value);
@@ -2258,13 +2287,13 @@ namespace ImTools
             return new ImMap<V>(key, value, left, right);
         }
 
-        private ImMap<V> RemoveImpl(int key, bool ignoreKey = false)
+        private ImMap<V> RemoveImpl(int key)
         {
             if (Height == 0)
                 return this;
 
             ImMap<V> result;
-            if (key == Key || ignoreKey) // found node
+            if (key == Key) // found node
             {
                 if (Height == 1) // remove node
                     return Empty;
@@ -2280,15 +2309,15 @@ namespace ImTools
                     while (!successor.Left.IsEmpty)
                         successor = successor.Left;
                     result = new ImMap<V>(successor.Key, successor.Value,
-                        Left, Right.RemoveImpl(successor.Key, true));
+                        Left, Right.RemoveImpl(successor.Key));
                 }
             }
             else
             {
                 if (key < Key)
-                    result = Balance(Key, Value, Left.RemoveImpl(key, ignoreKey), Right);
+                    result = Balance(Key, Value, Left.RemoveImpl(key), Right);
                 else
-                    result = Balance(Key, Value, Left, Right.RemoveImpl(key, ignoreKey));
+                    result = Balance(Key, Value, Left, Right.RemoveImpl(key));
             }
 
             return result;
