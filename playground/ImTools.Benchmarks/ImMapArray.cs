@@ -150,7 +150,7 @@ namespace ImTools.Benchmarks
         }
 
         /// Outputs the key value pair or empty if node is empty
-        public override string ToString() => IsEmpty ? "empty" : ("Node:" + Key + "->" + Value);
+        public override string ToString() => IsEmpty ? "empty" : "Node: " + Key + " -> " + Value;
 
         internal ImMapSlot(int heightThenKey, V value, ImMapSlot<V> left, ImMapSlot<V> right)
         {
@@ -194,19 +194,19 @@ namespace ImTools.Benchmarks
                     return new ImMapSlot<V>(key | 2, value, Leaf(Left.Key, Left.Value), Leaf(Key, Value));
                 }
 
-                var newLeft = Left.AddOrUpdate(key, value);
+                var left = Left.AddOrUpdate(key, value);
 
-                if (newLeft.Height > Right.Height + 1) // left is longer by 2, rotate left
+                if (left.Height > Right.Height + 1) // left is longer by 2, rotate left
                 {
-                    var leftLeft = newLeft.Left;
-                    var leftRight = newLeft.Right;
+                    var leftLeft = left.Left;
+                    var leftRight = left.Right;
 
                     // single rotation:
                     //      5     =>     2
                     //   2     6      1     5
                     // 1   4              4   6
                     if (leftLeft.Height >= leftRight.Height)
-                        return Branch(newLeft.Key, newLeft.Value, leftLeft, Branch(Key, Value, leftRight, Right));
+                        return Branch(left.Key, left.Value, leftLeft, Branch(Key, Value, leftRight, Right));
 
                     // double rotation:
                     //      5     =>     5     =>     4
@@ -214,11 +214,11 @@ namespace ImTools.Benchmarks
                     // 1   4        2   3        1   3     6
                     //    3        1
                     return Branch(leftRight.Key, leftRight.Value,
-                        Branch(newLeft.Key, newLeft.Value, leftLeft, leftRight.Left),
+                        Branch(left.Key, left.Value, leftLeft, leftRight.Left),
                         Branch(Key, Value, leftRight.Right, Right));
                 }
 
-                return Branch(Key, Value, newLeft, Right);
+                return Branch(Key, Value, left, Right);
             }
             else
             {
@@ -244,22 +244,21 @@ namespace ImTools.Benchmarks
                     return new ImMapSlot<V>(key | 2, value, Leaf(Key, Value), Leaf(Right.Key, Right.Value));
                 }
 
-                var newRight = Right.AddOrUpdate(key, value);
-
-                if (newRight.Height > Left.Height + 1)
+                var right = Right.AddOrUpdate(key, value);
+                if (right.Height > Left.Height + 1)
                 {
-                    var rightLeft = newRight.Left;
-                    var rightRight = newRight.Right;
+                    var rightLeft = right.Left;
+                    var rightRight = right.Right;
 
                     if (rightRight.Height >= rightLeft.Height)
-                        return Branch(newRight.Key, newRight.Value, Branch(Key, Value, Left, rightLeft), rightRight);
+                        return Branch(right.Key, right.Value, Branch(Key, Value, Left, rightLeft), rightRight);
 
                     return Branch(rightLeft.Key, rightLeft.Value,
                         Branch(Key, Value, Left, rightLeft.Left),
-                        Branch(newRight.Key, newRight.Value, rightLeft.Right, rightRight));
+                        Branch(right.Key, right.Value, rightLeft.Right, rightRight));
                 }
 
-                return Branch(Key, Value, Left, newRight);
+                return Branch(Key, Value, Left, right);
             }
         }
 
