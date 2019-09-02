@@ -183,17 +183,19 @@ namespace ImTools.UnitTests
         [Test]
         public void Update_to_null_and_then_to_value_should_remove_null()
         {
-            var tree = ImMap<string>.Empty
-                .AddOrUpdate(1, "a").AddOrUpdate(2, "b").AddOrUpdate(3, "c").AddOrUpdate(4, "d");
+            var map = ImMap<string>.Empty
+                .AddOrUpdate(1, "a")
+                .AddOrUpdate(2, "b")
+                .AddOrUpdate(3, "c")
+                .AddOrUpdate(4, "d");
 
-            Assert.That(tree.GetValueOrDefault(4), Is.EqualTo("d"));
+            Assert.AreEqual("d", map.GetValueOrDefault(4));
 
-            tree = tree.Update(4, null);
-            Assert.That(tree.GetValueOrDefault(4), Is.EqualTo(null));
+            map = map.Update(4, null);
+            Assert.IsNull(map.GetValueOrDefault(4));
 
-            tree = tree.Update(4, "X");
-            CollectionAssert.AreEqual(new[] {"a", "b", "c", "X"},
-                tree.Enumerate().Select(_ => _.Value));
+            map = map.Update(4, "X");
+            CollectionAssert.AreEqual(new[] {"a", "b", "c", "X"}, map.Enumerate().Select(_ => _.Value));
         }
 
         [Test]
