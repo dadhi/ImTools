@@ -162,7 +162,7 @@ namespace ImTools.UnitTests
         [Test]
         public void For_two_same_added_items_height_should_be_one()
         {
-            var tree = ImHashMap<int, string>.Empty
+            var tree = ImMap<string>.Empty
                 .AddOrUpdate(1, "x")
                 .AddOrUpdate(1, "y");
 
@@ -214,7 +214,7 @@ namespace ImTools.UnitTests
         {
             var tree = ImMap<KeyValuePair<Type, string>[]>.Empty;
 
-            var key = typeof(ImHashMapTests);
+            var key = typeof(ImMapTests);
             var keyHash = key.GetHashCode();
             var value = "test";
 
