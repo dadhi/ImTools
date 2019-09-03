@@ -5,7 +5,7 @@ namespace ImTools.Benchmarks
 {
     public struct ImMapArray<V>
     {
-        public const int SLOT_COUNT = 16;
+        public const int SLOT_COUNT = 32;
         public const int HEIGHT_MASK = SLOT_COUNT - 1;
         public const int KEY_MASK = ~HEIGHT_MASK;
 
