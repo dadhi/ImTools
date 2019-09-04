@@ -443,27 +443,27 @@ Frequency=2156254 Hz, Resolution=463.7673 ns, Timer=TSC
 
 ## With ImMapArray
 
-|               Method |  Count |       Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
-|--------------------- |------- |-----------:|----------:|----------:|------:|--------:|------------:|------------:|------------:|--------------------:|
-|        ImMap_TryFind |     10 |  3.1452 ns | 0.1312 ns | 0.1288 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
-|   ImMapArray_TryFind |     10 |  0.8245 ns | 0.0056 ns | 0.0046 ns |  0.26 |    0.01 |           - |           - |           - |                   - |
-| DictSlim_TryGetValue |     10 |  3.1672 ns | 0.0145 ns | 0.0136 ns |  1.01 |    0.04 |           - |           - |           - |                   - |
-|                      |        |            |           |           |       |         |             |             |             |                     |
-|        ImMap_TryFind |    100 |  4.3492 ns | 0.0613 ns | 0.0574 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
-|   ImMapArray_TryFind |    100 |  3.1975 ns | 0.0578 ns | 0.0513 ns |  0.73 |    0.02 |           - |           - |           - |                   - |
-| DictSlim_TryGetValue |    100 |  3.2707 ns | 0.0236 ns | 0.0210 ns |  0.75 |    0.01 |           - |           - |           - |                   - |
-|                      |        |            |           |           |       |         |             |             |             |                     |
-|        ImMap_TryFind |   1000 |  6.5882 ns | 0.0682 ns | 0.0638 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
-|   ImMapArray_TryFind |   1000 |  5.7663 ns | 0.0221 ns | 0.0196 ns |  0.88 |    0.01 |           - |           - |           - |                   - |
-| DictSlim_TryGetValue |   1000 |  3.7127 ns | 0.0309 ns | 0.0289 ns |  0.56 |    0.01 |           - |           - |           - |                   - |
-|                      |        |            |           |           |       |         |             |             |             |                     |
-|        ImMap_TryFind |  10000 | 11.3287 ns | 0.0152 ns | 0.0127 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
-|   ImMapArray_TryFind |  10000 |  8.7736 ns | 0.0397 ns | 0.0371 ns |  0.77 |    0.00 |           - |           - |           - |                   - |
-| DictSlim_TryGetValue |  10000 |  3.1769 ns | 0.0062 ns | 0.0052 ns |  0.28 |    0.00 |           - |           - |           - |                   - |
-|                      |        |            |           |           |       |         |             |             |             |                     |
-|        ImMap_TryFind | 100000 | 14.6885 ns | 0.0651 ns | 0.0577 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
-|   ImMapArray_TryFind | 100000 | 10.9926 ns | 0.0510 ns | 0.0477 ns |  0.75 |    0.01 |           - |           - |           - |                   - |
-| DictSlim_TryGetValue | 100000 |  4.1722 ns | 0.0155 ns | 0.0145 ns |  0.28 |    0.00 |           - |           - |           - |                   - |
+|               Method |  Count |       Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|--------------------- |------- |-----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+|        ImMap_TryFind |     10 |  3.4909 ns | 0.0326 ns | 0.0289 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|   ImMapArray_TryFind |     10 |  0.7931 ns | 0.0081 ns | 0.0076 ns |  0.23 |    0.00 |     - |     - |     - |         - |
+| DictSlim_TryGetValue |     10 |  3.3644 ns | 0.0177 ns | 0.0157 ns |  0.96 |    0.01 |     - |     - |     - |         - |
+|                      |        |            |           |           |       |         |       |       |       |           |
+|        ImMap_TryFind |    100 |  6.0164 ns | 0.1137 ns | 0.1008 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|   ImMapArray_TryFind |    100 |  2.5086 ns | 0.0155 ns | 0.0138 ns |  0.42 |    0.01 |     - |     - |     - |         - |
+| DictSlim_TryGetValue |    100 |  3.3828 ns | 0.0080 ns | 0.0063 ns |  0.56 |    0.01 |     - |     - |     - |         - |
+|                      |        |            |           |           |       |         |       |       |       |           |
+|        ImMap_TryFind |   1000 |  8.3910 ns | 0.2011 ns | 0.1881 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|   ImMapArray_TryFind |   1000 |  4.6079 ns | 0.0279 ns | 0.0261 ns |  0.55 |    0.01 |     - |     - |     - |         - |
+| DictSlim_TryGetValue |   1000 |  4.1306 ns | 0.1453 ns | 0.1288 ns |  0.49 |    0.02 |     - |     - |     - |         - |
+|                      |        |            |           |           |       |         |       |       |       |           |
+|        ImMap_TryFind |  10000 | 11.4614 ns | 0.1560 ns | 0.1459 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|   ImMapArray_TryFind |  10000 |  7.9681 ns | 0.0838 ns | 0.0784 ns |  0.70 |    0.01 |     - |     - |     - |         - |
+| DictSlim_TryGetValue |  10000 |  3.7304 ns | 0.0591 ns | 0.0524 ns |  0.33 |    0.01 |     - |     - |     - |         - |
+|                      |        |            |           |           |       |         |       |       |       |           |
+|        ImMap_TryFind | 100000 | 17.0515 ns | 0.3623 ns | 0.3025 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|   ImMapArray_TryFind | 100000 |  9.9809 ns | 0.1497 ns | 0.1169 ns |  0.58 |    0.01 |     - |     - |     - |         - |
+| DictSlim_TryGetValue | 100000 |  3.7463 ns | 0.0469 ns | 0.0439 ns |  0.22 |    0.01 |     - |     - |     - |         - |
 
  */
             public ImMap<string> AddOrUpdate()
