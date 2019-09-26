@@ -3083,7 +3083,7 @@ namespace ImTools
         public void AddOrUpdate(int key, V value)
         {
             ref var slot = ref Slots[key & HEIGHT_MASK];
-            var copy = slot; // fix a copy of x to operate on
+            var copy = slot;
 
             var newSlot = copy.KeyPlusHeight == 0 ? ImMapSlot<V>.Leaf(key & KEY_MASK, value)
                 : (key & KEY_MASK) != copy.KeyPart ? copy.AddOrUpdate(key & KEY_MASK, value)
@@ -3151,6 +3151,72 @@ namespace ImTools
         public bool TryFind(int key, out V value)
         {
             var slot = Slots[key & HEIGHT_MASK];
+
+            key &= KEY_MASK;
+            while (slot.KeyPlusHeight != 0 && key != slot.KeyPart)
+                slot = key < slot.KeyPart ? slot.Left : slot.Right;
+
+            if (slot.KeyPlusHeight == 0)
+            {
+                value = default;
+                return false;
+            }
+
+            value = slot.Value;
+            return true;
+        }
+
+        /*
+                    if (Height == 0)
+                    {
+                        foundValue = default;
+                        newMap = new ImMap<V>(key, value);
+                        return false;
+                    }
+
+                    var map = this;
+                    do
+                    {
+                        if (map.Key == key)
+                        {
+                            newMap = null;
+                            foundValue = map.Value;
+                            return true;
+                        }
+
+                        map = key < map.Key ? map.Left : map.Right;
+                    } while (map.Height != 0);
+
+
+                    foundValue = default;
+                    newMap = AddImpl(key, value);
+                    return false;
+
+            ---
+            ref var slot = ref Slots[key & HEIGHT_MASK];
+            var copy = slot;
+
+            var newSlot = copy.KeyPlusHeight == 0 ? ImMapSlot<V>.Leaf(key & KEY_MASK, value)
+                : (key & KEY_MASK) != copy.KeyPart ? copy.AddOrUpdate(key & KEY_MASK, value)
+                : new ImMapSlot<V>(copy.KeyPlusHeight, value, copy.Left, copy.Right);
+
+            if (Interlocked.CompareExchange(ref slot, newSlot, copy) != copy)
+                RefAddOrUpdateSlot(ref slot, key, value);
+
+         */
+
+        /// Combines TryFind and Add methods returning either found value by key or adding key-value to the new tree and returning it instead
+        [MethodImpl((MethodImplOptions)256)]
+        public bool GetOrAdd(int key, V value, out V existingValue)
+        {
+            ref var slot = ref Slots[key & HEIGHT_MASK];
+            key &= KEY_MASK;
+            if (slot.KeyPlusHeight == 0)
+            {
+                var copy = slot;
+                if (Interlocked.CompareExchange(ref slot, ImMapSlot<V>.Leaf(key, value), copy) != copy)
+                    RefAddOrUpdateSlot(ref slot, key, value);
+            }
 
             key &= KEY_MASK;
             while (slot.KeyPlusHeight != 0 && key != slot.KeyPart)
