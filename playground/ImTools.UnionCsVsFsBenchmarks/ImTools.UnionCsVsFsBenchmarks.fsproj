@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <LangVersion />
     <TargetFramework>netcoreapp2.2</TargetFramework>
   </PropertyGroup>
 
