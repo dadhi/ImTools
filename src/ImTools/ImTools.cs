@@ -3319,6 +3319,19 @@ namespace ImTools
             }
         }
 
+        [MethodImpl((MethodImplOptions)256)]
+        internal ImMapSlot<V> AddOrSelf(int key, V value)
+        {
+            var slot = this;
+            while (slot.KeyPlusHeight != 0 && key != slot.KeyPart)
+                slot = key < slot.KeyPart ? slot.Left : slot.Right;
+
+            if (slot.KeyPlusHeight != 0)
+                return this;
+
+            return AddOrUpdate(key, value);
+        }
+
         // note: Not so much optimized (memory and performance wise) as a AddOrUpdateImpl without `update` delegate
         internal ImMapSlot<V> AddOrUpdate(int key, V value, bool updateOnly, Update<V> update) =>
             KeyPlusHeight == 0
