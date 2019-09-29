@@ -3320,15 +3320,19 @@ namespace ImTools
         }
 
         [MethodImpl((MethodImplOptions)256)]
-        internal ImMapSlot<V> AddOrSelf(int key, V value)
+        internal ImMapSlot<V> GetOrAdd(int key, V newValue, out V value)
         {
             var slot = this;
             while (slot.KeyPlusHeight != 0 && key != slot.KeyPart)
                 slot = key < slot.KeyPart ? slot.Left : slot.Right;
 
             if (slot.KeyPlusHeight != 0)
+            {
+                value = slot.Value;
                 return this;
+            }
 
+            value = newValue;
             return AddOrUpdate(key, value);
         }
 
