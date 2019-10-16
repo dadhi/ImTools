@@ -1943,36 +1943,6 @@ namespace ImTools
             return AddImpl(key, value);
         }
 
-        /// Combines TryFind and Add methods returning either found value by key or adding key-value to the new tree and returning it instead
-        [MethodImpl((MethodImplOptions)256)]
-        public bool GetOrAdd(int key, V value, out V foundValue, out ImMap<V> newMap)
-        {
-            if (Height == 0)
-            {
-                foundValue = default;
-                newMap = new ImMap<V>(key, value);
-                return false;
-            }
-
-            var map = this;
-            do
-            {
-                if (map.Key == key)
-                {
-                    newMap = null;
-                    foundValue = map.Value;
-                    return true;
-                }
-
-                map = key < map.Key ? map.Left : map.Right;
-            } while (map.Height != 0);
-
-
-            foundValue = default;
-            newMap = AddImpl(key, value);
-            return false;
-        }
-
         /// <summary>Returns new tree with added or updated value for specified key.</summary>
         /// <param name="key">Key</param> <param name="value">Value</param>
         /// <param name="updateValue">(optional) Delegate to calculate new value from and old and a new value.</param>
@@ -2022,6 +1992,24 @@ namespace ImTools
             }
 
             return this;
+        }
+
+        /// Returns a new tree with added or updated value for specified key.
+        [MethodImpl((MethodImplOptions)256)]
+        public ImMap<V> AddOrKeep(int key, V value)
+        {
+            if (Height == 0)
+                return new ImMap<V>(key, value);
+
+            var map = this;
+            do
+            {
+                if (map.Key == key)
+                    return this;
+                map = key < map.Key ? map.Left : map.Right;
+            } while (map.Height != 0);
+
+            return AddImpl(key, value);
         }
 
         private ImMap<V> AddImpl(int key, V value)
