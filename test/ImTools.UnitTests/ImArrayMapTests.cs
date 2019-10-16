@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 
-namespace ImTools.UnitTests
+namespace ImTools.Experimental.UnitTests
 {
     [TestFixture]
     public class ImArrayMapTests

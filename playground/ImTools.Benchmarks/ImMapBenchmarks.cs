@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using BenchmarkDotNet.Attributes;
 using ImTools;
 using ImTools.Benchmarks;
+using ImTools.Experimental;
 using Microsoft.Collections.Extensions;
 
 namespace Playground

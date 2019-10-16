@@ -3044,6 +3044,12 @@ namespace ImTools
             return false;
         }
     }
+}
+
+namespace ImTools.Experimental
+{
+    using System.Runtime.CompilerServices;
+    using System.Threading;
 
     /// The array of ImMap of constant width wide, where the `Key` is partitioned using last bits and the rest of bits are combined with `Height` into a single `int32`
     public struct ImMapArray<V>
