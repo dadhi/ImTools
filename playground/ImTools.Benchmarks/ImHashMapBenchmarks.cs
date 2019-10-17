@@ -277,6 +277,20 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
 |    ConcurrentDict_TryAdd |  1000 |   223,008.7 ns |   640.296 ns |   567.606 ns |   222,865.0 ns |  0.79 |    0.00 |     49.3164 |     17.8223 |           - |           254.29 KB |
 |        ImmutableDict_Add |  1000 | 1,403,209.7 ns | 6,072.856 ns | 5,383.428 ns | 1,401,542.6 ns |  4.96 |    0.03 |    140.6250 |      1.9531 |           - |           648.84 KB |
 
+# Newest results 
+
+|                   Method | Count |         Mean |        Error |       StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
+|------------------------- |------ |-------------:|-------------:|-------------:|------:|--------:|---------:|--------:|------:|----------:|
+|    ImHashMap_AddOrUpdate |    10 |     856.3 ns |     1.680 ns |     1.572 ns |  1.00 |    0.00 |   0.4978 |       - |     - |    2.3 KB |
+| ImHashMap_V1_AddOrUpdate |    10 |     935.4 ns |     6.456 ns |     5.391 ns |  1.09 |    0.01 |   0.5484 |       - |     - |   2.53 KB |
+|                          |       |              |              |              |       |         |          |         |       |           |
+|    ImHashMap_AddOrUpdate |   100 |  14,012.0 ns |   129.775 ns |   121.391 ns |  1.00 |    0.00 |   7.7972 |       - |     - |  35.95 KB |
+| ImHashMap_V1_AddOrUpdate |   100 |  15,406.4 ns |   305.979 ns |   327.394 ns |  1.10 |    0.02 |   8.5449 |       - |     - |  39.47 KB |
+|                          |       |              |              |              |       |         |          |         |       |           |
+|    ImHashMap_AddOrUpdate |  1000 | 289,246.2 ns | 1,493.719 ns | 1,324.143 ns |  1.00 |    0.00 | 112.3047 |  7.8125 |     - | 517.83 KB |
+| ImHashMap_V1_AddOrUpdate |  1000 | 317,224.9 ns | 3,198.762 ns | 2,992.124 ns |  1.10 |    0.01 | 121.0938 | 31.7383 |     - | 558.89 KB |
+
+
  */
             [Params(10, 100, 1_000)]
             public int Count;
@@ -303,7 +317,7 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
                 return map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
             }
 
-            [Benchmark]
+            //[Benchmark]
             public DictionarySlim<TypeVal, string> DictSlim_TryAdd()
             {
                 var map = new DictionarySlim<TypeVal, string>();
@@ -315,7 +329,7 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
                 return map;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public Dictionary<Type, string> Dict_TryAdd()
             {
                 var map = new Dictionary<Type, string>();
@@ -327,7 +341,7 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
                 return map;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public ConcurrentDictionary<Type, string> ConcurrentDict_TryAdd()
             {
                 var map = new ConcurrentDictionary<Type, string>();
@@ -339,7 +353,7 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
                 return map;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public ImmutableDictionary<Type, string> ImmutableDict_Add()
             {
                 var map = ImmutableDictionary<Type, string>.Empty;

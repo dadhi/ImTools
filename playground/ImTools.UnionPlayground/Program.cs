@@ -55,8 +55,8 @@ namespace ImTools.UnionPlayground
 
     // Typed union with a typed cases! Now you can pattern match via `I<Flag>` and `I<Name>`
     public sealed class FlagOrName2 : U<FlagOrName2, Flag.value, Name.value> { }
-    public sealed class Flag : Val<Flag, bool> { }
-    public sealed class Name : Val<Name, string> { }
+    public sealed class Flag : Case<Flag, bool> { }
+    public sealed class Name : Case<Name, string> { }
 
     public static class Usage
     {
@@ -143,7 +143,7 @@ namespace ImTools.UnionPlayground
     // Less efficient, but less boilerplate recursive type - requires one heap reference per recursive type usage.
     public sealed class MyTree<T> : U<MyTree<T>, Empty, MyTree<T>.NonEmptyTree>
     {
-        public sealed class NonEmptyTree : Rec<NonEmptyTree, (union Left, T Leaf, union Right)> { }
+        public sealed class NonEmptyTree : CaseObj<NonEmptyTree, (union Left, T Leaf, union Right)> { }
         public static readonly case1 Empty = new case1(ImTools.Empty.Value);
     }
 
