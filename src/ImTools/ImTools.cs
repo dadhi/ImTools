@@ -3072,9 +3072,8 @@ namespace ImTools
     public static class ImMapSlots
     {
         // Slots count and mask to partition the Key across the slots 
-        internal const int SLOT_COUNT  = 32;
-        internal const int HEIGHT_MASK = SLOT_COUNT - 1;
-        internal const int KEY_MASK    = ~HEIGHT_MASK;
+        internal const int SLOT_COUNT = 32;
+        internal const int SLOT_MASK  = SLOT_COUNT - 1;
 
         /// Creates en empty array
         [MethodImpl((MethodImplOptions)256)]
@@ -3090,7 +3089,7 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public static void AddOrUpdate<V>(this ImMap<V>[] slots, int key, V value)
         {
-            ref var slot = ref slots[key & HEIGHT_MASK];
+            ref var slot = ref slots[key & SLOT_MASK];
             var s = slot;
 
             var newSlot = 
@@ -3155,25 +3154,25 @@ namespace ImTools
         //    return slot.Value;
         //}
 
-        ///// Returns true if key is found and sets the value.
-        //[MethodImpl((MethodImplOptions)256)]
-        //public bool TryFind(int key, out V value)
-        //{
-        //    var slot = Slots[key & HEIGHT_MASK];
+        /// Returns true if key is found and sets the value.
+        [MethodImpl((MethodImplOptions)256)]
+        public static bool TryFind<V>(this ImMap<V>[] slots, int key, out V value)
+        {
+            var map = slots[key & SLOT_MASK];
 
-        //    key &= KEY_MASK;
-        //    while (slot.KeyPlusHeight != 0 && key != slot.KeyPart)
-        //        slot = key < slot.KeyPart ? slot.Left : slot.Right;
+            while (map.Height != 0)
+            {
+                if (key < map.Key)
+                    map = map.Left;
+                else if (key > map.Key)
+                    map = map.Right;
+                else
+                    break;
+            }
 
-        //    if (slot.KeyPlusHeight == 0)
-        //    {
-        //        value = default;
-        //        return false;
-        //    }
-
-        //    value = slot.Value;
-        //    return true;
-        //}
+            value = map.Value;
+            return map.Height != 0;
+        }
     }
 }
 
