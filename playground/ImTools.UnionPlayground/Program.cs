@@ -143,7 +143,7 @@ namespace ImTools.UnionPlayground
     // Less efficient, but less boilerplate recursive type - requires one heap reference per recursive type usage.
     public sealed class MyTree<T> : U<MyTree<T>, Empty, MyTree<T>.NonEmptyTree>
     {
-        public sealed class NonEmptyTree : CaseObj<NonEmptyTree, (union Left, T Leaf, union Right)> { }
+        public sealed class NonEmptyTree : Data<NonEmptyTree, (union Left, T Leaf, union Right)> { }
         public static readonly case1 Empty = new case1(ImTools.Empty.Value);
     }
 

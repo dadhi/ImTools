@@ -138,47 +138,51 @@ namespace ImTools
     }
 
     /// Helpers for `Is` and `Union`
-    public static class Union
+    public static class UnionTools
     {
         /// Pretty prints the Union using the type information
-        internal static string ToString<TName, T>(T value)
+        internal static string ToString<TName, T>(T value, string prefix = "case(", string suffix = ")")
         {
             if (typeof(TName) == typeof(Empty))
-                return ".union(" + value + ")";
+                return prefix + value + suffix;
 
             var typeName = typeof(TName).Name;
             var i = typeName.IndexOf('`');
             var name = i == -1 ? typeName : typeName.Substring(0, i);
-            return name + ".union(" + value + ")";
+            return name + prefix + value + suffix;
         }
     }
 
-    /// Wraps a single value in a nested struct
-    public abstract class CaseObj<TCase, T> : I<T>, IEquatable<CaseObj<TCase, T>>
-        where TCase : CaseObj<TCase, T>, new()
+    /// Wraps the `T` in a typed `TData` class in a one-line declaration,
+    /// so the <c><![CDATA[class Name : Data<Name, string>]]></c>
+    /// is different from the <c><![CDATA[class Address : Data<Address, string>]]></c> 
+    public abstract class Data<TData, T> : I<T>, IEquatable<Data<TData, T>>
+        where TData : Data<TData, T>, new()
     {
-        /// Converts a value into Rec of the value
-        public static TCase Of(T x) => new TCase { Case = x };
+        /// Wraps the value
+        public static TData Of(T x) => new TData { Case = x };
 
         /// <inheritdoc />
         public T Case { get; private set; }
 
         /// <inheritdoc />
-        public bool Equals(CaseObj<TCase, T> other) =>
+        public bool Equals(Data<TData, T> other) =>
             other != null && EqualityComparer<T>.Default.Equals(Case, other.Case);
 
         /// <inheritdoc />
-        public override bool Equals(object obj) => obj is CaseObj<TCase, T> c && Equals(c);
+        public override bool Equals(object obj) => obj is Data<TData, T> c && Equals(c);
 
         // ReSharper disable once NonReadonlyMemberInGetHashCode
         /// <inheritdoc />
         public override int GetHashCode() => EqualityComparer<T>.Default.GetHashCode(Case);
 
         /// <inheritdoc />
-        public override string ToString() => Union.ToString<TCase, T>(Case);
+        public override string ToString() => UnionTools.ToString<TData, T>(Case, "data(");
     }
 
-    /// Wraps a single value in a nested struct
+    /// Wraps the `T` in a typed `TData` struct value in a one-line declaration,
+    /// so the <c><![CDATA[class Name : Case<Name, string>]]></c>
+    /// is different from the <c><![CDATA[class Address : Case<Address, string>]]></c> 
     public abstract class Case<TCase, T> where TCase : Case<TCase, T>
     {
         /// Creation method for the consistency with other types
@@ -207,7 +211,7 @@ namespace ImTools
             public override int GetHashCode() => EqualityComparer<T>.Default.GetHashCode(Value);
 
             /// <inheritdoc />
-            public override string ToString() => Union.ToString<TCase, T>(Value);
+            public override string ToString() => UnionTools.ToString<TCase, T>(Value);
         }
     }
 
@@ -261,7 +265,7 @@ namespace ImTools
             public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(Value);
 
             /// <inheritdoc />
-            public override string ToString() => Union.ToString<TName, T1>(Value);
+            public override string ToString() => UnionTools.ToString<TName, T1>(Value);
         }
 
         /// Wraps the respective case
@@ -292,7 +296,7 @@ namespace ImTools
             public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(Value);
 
             /// <inheritdoc />
-            public override string ToString() => Union.ToString<TName, T2>(Value);
+            public override string ToString() => UnionTools.ToString<TName, T2>(Value);
         }
     }
 
@@ -331,7 +335,7 @@ namespace ImTools
             public bool Equals(case1 other) => EqualityComparer<T1>.Default.Equals(X, other.X);
             public override bool Equals(object obj) => obj is case1 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(X);
-            public override string ToString() => Union.ToString<TName, T1>(X);
+            public override string ToString() => UnionTools.ToString<TName, T1>(X);
         }
 
         public struct case2 : union, IEquatable<case2>, I<T2>
@@ -350,7 +354,7 @@ namespace ImTools
             public bool Equals(case2 other) => EqualityComparer<T2>.Default.Equals(X, other.X);
             public override bool Equals(object obj) => obj is case2 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(X);
-            public override string ToString() => Union.ToString<TName, T2>(X);
+            public override string ToString() => UnionTools.ToString<TName, T2>(X);
         }
 
         public struct case3 : union, IEquatable<case3>, I<T3>
@@ -369,7 +373,7 @@ namespace ImTools
             public bool Equals(case3 other) => EqualityComparer<T3>.Default.Equals(X, other.X);
             public override bool Equals(object obj) => obj is case3 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T3>.Default.GetHashCode(X);
-            public override string ToString() => Union.ToString<TName, T3>(X);
+            public override string ToString() => UnionTools.ToString<TName, T3>(X);
         }
     }
 
@@ -396,7 +400,7 @@ namespace ImTools
             public bool Equals(Case1 other) => EqualityComparer<T1>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case1 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(Case);
-            public override string ToString() => Union.ToString<TType, T1>(Case);
+            public override string ToString() => UnionTools.ToString<TType, T1>(Case);
         }
 
         public struct Case2 : union, IEquatable<Case2>, I<T2>
@@ -409,7 +413,7 @@ namespace ImTools
             public bool Equals(Case2 other) => EqualityComparer<T2>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case2 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(Case);
-            public override string ToString() => Union.ToString<TType, T2>(Case);
+            public override string ToString() => UnionTools.ToString<TType, T2>(Case);
         }
 
         public struct Case3 : union, IEquatable<Case3>, I<T3>
@@ -422,7 +426,7 @@ namespace ImTools
             public bool Equals(Case3 other) => EqualityComparer<T3>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case3 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T3>.Default.GetHashCode(Case);
-            public override string ToString() => Union.ToString<TType, T3>(Case);
+            public override string ToString() => UnionTools.ToString<TType, T3>(Case);
         }
 
         public struct Case4 : union, IEquatable<Case4>, I<T4>
@@ -435,7 +439,7 @@ namespace ImTools
             public bool Equals(Case4 other) => EqualityComparer<T4>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case4 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T4>.Default.GetHashCode(Case);
-            public override string ToString() => Union.ToString<TType, T4>(Case);
+            public override string ToString() => UnionTools.ToString<TType, T4>(Case);
         }
     }
 
@@ -463,7 +467,7 @@ namespace ImTools
             public bool Equals(Case1 other) => EqualityComparer<T1>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case1 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(Case);
-            public override string ToString() => Union.ToString<TType, T1>(Case);
+            public override string ToString() => UnionTools.ToString<TType, T1>(Case);
         }
 
         public struct Case2 : union, IEquatable<Case2>, I<T2>
@@ -476,7 +480,7 @@ namespace ImTools
             public bool Equals(Case2 other) => EqualityComparer<T2>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case2 c && Equals(c);
             public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(Case);
-            public override string ToString() => Union.ToString<TType, T2>(Case);
+            public override string ToString() => UnionTools.ToString<TType, T2>(Case);
         }
 
         public struct Case3 : union, IEquatable<Case3>, I<T3>
@@ -489,7 +493,7 @@ namespace ImTools
             public bool Equals(Case3 other) => EqualityComparer<T3>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case3 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T3>.Default.GetHashCode(Case);
-            public override string ToString() => Union.ToString<TType, T3>(Case);
+            public override string ToString() => UnionTools.ToString<TType, T3>(Case);
         }
 
         public struct Case4 : union, IEquatable<Case4>, I<T4>
@@ -502,7 +506,7 @@ namespace ImTools
             public bool Equals(Case4 other) => EqualityComparer<T4>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case4 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T4>.Default.GetHashCode(Case);
-            public override string ToString() => Union.ToString<TType, T4>(Case);
+            public override string ToString() => UnionTools.ToString<TType, T4>(Case);
         }
 
         public struct Case5 : union, IEquatable<Case5>, I<T5>
@@ -515,7 +519,7 @@ namespace ImTools
             public bool Equals(Case5 other) => EqualityComparer<T5>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case5 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T5>.Default.GetHashCode(Case);
-            public override string ToString() => Union.ToString<TType, T5>(Case);
+            public override string ToString() => UnionTools.ToString<TType, T5>(Case);
         }
     }
 
@@ -546,7 +550,7 @@ namespace ImTools
             public bool Equals(Case1 other) => EqualityComparer<T1>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case1 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(Case);
-            public override string ToString() => Union.ToString<TType, T1>(Case);
+            public override string ToString() => UnionTools.ToString<TType, T1>(Case);
         }
 
         public struct Case2 : union, IEquatable<Case2>, I<T2>
@@ -560,7 +564,7 @@ namespace ImTools
             public bool Equals(Case2 other) => EqualityComparer<T2>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case2 c && Equals(c);
             public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(Case);
-            public override string ToString() => Union.ToString<TType, T2>(Case);
+            public override string ToString() => UnionTools.ToString<TType, T2>(Case);
         }
 
         public struct Case3 : union, IEquatable<Case3>, I<T3>
@@ -574,7 +578,7 @@ namespace ImTools
             public bool Equals(Case3 other) => EqualityComparer<T3>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case3 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T3>.Default.GetHashCode(Case);
-            public override string ToString() => Union.ToString<TType, T3>(Case);
+            public override string ToString() => UnionTools.ToString<TType, T3>(Case);
         }
 
         public struct Case4 : union, IEquatable<Case4>, I<T4>
@@ -588,7 +592,7 @@ namespace ImTools
             public bool Equals(Case4 other) => EqualityComparer<T4>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case4 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T4>.Default.GetHashCode(Case);
-            public override string ToString() => Union.ToString<TType, T4>(Case);
+            public override string ToString() => UnionTools.ToString<TType, T4>(Case);
         }
 
         public struct Case5 : union, IEquatable<Case5>, I<T5>
@@ -602,7 +606,7 @@ namespace ImTools
             public bool Equals(Case5 other) => EqualityComparer<T5>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case5 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T5>.Default.GetHashCode(Case);
-            public override string ToString() => Union.ToString<TType, T5>(Case);
+            public override string ToString() => UnionTools.ToString<TType, T5>(Case);
         }
 
         public struct Case6 : union, IEquatable<Case6>, I<T6>
@@ -616,7 +620,7 @@ namespace ImTools
             public bool Equals(Case6 other) => EqualityComparer<T6>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case5 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T6>.Default.GetHashCode(Case);
-            public override string ToString() => Union.ToString<TType, T6>(Case);
+            public override string ToString() => UnionTools.ToString<TType, T6>(Case);
         }
     }
 
@@ -648,7 +652,7 @@ namespace ImTools
             public bool Equals(Case1 other) => EqualityComparer<T1>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case1 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(Case);
-            public override string ToString() => Union.ToString<TType, T1>(Case);
+            public override string ToString() => UnionTools.ToString<TType, T1>(Case);
         }
 
         public struct Case2 : union, IEquatable<Case2>, I<T2>
@@ -662,7 +666,7 @@ namespace ImTools
             public bool Equals(Case2 other) => EqualityComparer<T2>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case2 c && Equals(c);
             public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(Case);
-            public override string ToString() => Union.ToString<TType, T2>(Case);
+            public override string ToString() => UnionTools.ToString<TType, T2>(Case);
         }
 
         public struct Case3 : union, IEquatable<Case3>, I<T3>
@@ -676,7 +680,7 @@ namespace ImTools
             public bool Equals(Case3 other) => EqualityComparer<T3>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case3 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T3>.Default.GetHashCode(Case);
-            public override string ToString() => Union.ToString<TType, T3>(Case);
+            public override string ToString() => UnionTools.ToString<TType, T3>(Case);
         }
 
         public struct Case4 : union, IEquatable<Case4>, I<T4>
@@ -690,7 +694,7 @@ namespace ImTools
             public bool Equals(Case4 other) => EqualityComparer<T4>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case4 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T4>.Default.GetHashCode(Case);
-            public override string ToString() => Union.ToString<TType, T4>(Case);
+            public override string ToString() => UnionTools.ToString<TType, T4>(Case);
         }
 
         public struct Case5 : union, IEquatable<Case5>, I<T5>
@@ -704,7 +708,7 @@ namespace ImTools
             public bool Equals(Case5 other) => EqualityComparer<T5>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case5 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T5>.Default.GetHashCode(Case);
-            public override string ToString() => Union.ToString<TType, T5>(Case);
+            public override string ToString() => UnionTools.ToString<TType, T5>(Case);
         }
 
         public struct Case6 : union, IEquatable<Case6>, I<T6>
@@ -718,7 +722,7 @@ namespace ImTools
             public bool Equals(Case6 other) => EqualityComparer<T6>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case6 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T6>.Default.GetHashCode(Case);
-            public override string ToString() => Union.ToString<TType, T6>(Case);
+            public override string ToString() => UnionTools.ToString<TType, T6>(Case);
         }
 
         public struct Case7 : union, IEquatable<Case7>, I<T7>
@@ -732,7 +736,7 @@ namespace ImTools
             public bool Equals(Case7 other) => EqualityComparer<T7>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is Case7 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T7>.Default.GetHashCode(Case);
-            public override string ToString() => Union.ToString<TType, T7>(Case);
+            public override string ToString() => UnionTools.ToString<TType, T7>(Case);
         }
     }
 
@@ -2398,8 +2402,8 @@ namespace ImTools
         }
     }
 
-    /// <summary>Immutable http://en.wikipedia.org/wiki/AVL_tree 
-    /// where node key is the hash code of <typeparamref name="K"/>.</summary>
+    /// Immutable http://en.wikipedia.org/wiki/AVL_tree 
+    /// where node key is the hash code of <typeparamref name="K"/>
     public sealed class ImHashMap<K, V>
     {
         /// <summary>Empty tree to start with.</summary>
