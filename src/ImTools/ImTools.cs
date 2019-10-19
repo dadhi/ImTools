@@ -25,6 +25,10 @@ THE SOFTWARE.
 
 // ReSharper disable once InconsistentNaming
 
+#if !NET35 && !PCL
+#define SUPPORTS_SPIN_WAIT
+#endif
+
 namespace ImTools
 {
     using System;
@@ -1345,6 +1349,9 @@ namespace ImTools
     /// <summary>Provides optimistic-concurrency consistent <see cref="Swap{T}"/> operation.</summary>
     public static class Ref
     {
+        /// The default max retry count - can be overriden by `Swap` optional parameter 
+        public const int RETRY_COUNT_UNTIL_THROW = 50;
+
         /// <summary>Factory for <see cref="Ref{T}"/> with type of value inference.</summary>
         /// <typeparam name="T">Type of value to wrap.</typeparam>
         /// <param name="value">Initial value to wrap.</param>
@@ -1361,11 +1368,17 @@ namespace ImTools
         /// <typeparam name="T">Type of value to swap.</typeparam>
         /// <param name="value">Reference to change to new value</param>
         /// <param name="getNewValue">Delegate to get value from old one.</param>
+        /// <param name="retryCountUntilThrow">(optional)</param>
         /// <returns>Old/original value. By analogy with <see cref="Interlocked.Exchange(ref int,int)"/>.</returns>
         /// <remarks>Important: <paramref name="getNewValue"/> May be called multiple times to retry update with value concurrently changed by other code.</remarks>
         [MethodImpl((MethodImplOptions)256)]
-        public static T Swap<T>(ref T value, Func<T, T> getNewValue) where T : class
+        public static T Swap<T>(ref T value, Func<T, T> getNewValue, 
+            int retryCountUntilThrow = RETRY_COUNT_UNTIL_THROW) 
+            where T : class
         {
+#if SUPPORTS_SPIN_WAIT
+            var spinWait = new SpinWait();
+#endif
             var retryCount = 0;
             while (true)
             {
@@ -1373,19 +1386,28 @@ namespace ImTools
                 var newValue = getNewValue(oldValue);
                 if (Interlocked.CompareExchange(ref value, newValue, oldValue) == oldValue)
                     return oldValue;
-                if (++retryCount > RETRY_COUNT_UNTIL_THROW)
-                    throw new InvalidOperationException(_errorRetryCountExceeded);
 
-                // relinquishes the thread’s current time slice immediately, voluntarily handing over the CPU to other threads
-                // todo: use Thread.Sleep from .NET 4.0 to relinquish only to threads running on the same processor
-                //Thread.Sleep(0);
+                if (++retryCount > retryCountUntilThrow)
+                    ThrowRetryCountExceeded(retryCountUntilThrow);
+#if SUPPORTS_SPIN_WAIT
+                spinWait.SpinOnce();
+#endif
             }
         }
 
+        private static void ThrowRetryCountExceeded(int retryCountExceeded) => 
+            throw new InvalidOperationException(
+                $"Ref retried to Update for {retryCountExceeded} times But there is always someone else intervened.");
+
         /// Option without allocation for capturing `a` in closure of `getNewValue`
         [MethodImpl((MethodImplOptions)256)]
-        public static T Swap<T, A>(ref T value, A a, Func<T, A, T> getNewValue) where T : class
+        public static T Swap<T, A>(ref T value, A a, Func<T, A, T> getNewValue, 
+            int retryCountUntilThrow = RETRY_COUNT_UNTIL_THROW) 
+            where T : class
         {
+#if SUPPORTS_SPIN_WAIT
+            var spinWait = new SpinWait();
+#endif
             var retryCount = 0;
             while (true)
             {
@@ -1393,19 +1415,23 @@ namespace ImTools
                 var newValue = getNewValue(oldValue, a);
                 if (Interlocked.CompareExchange(ref value, newValue, oldValue) == oldValue)
                     return oldValue;
-                if (++retryCount > RETRY_COUNT_UNTIL_THROW)
-                    throw new InvalidOperationException(_errorRetryCountExceeded);
-
-                // relinquishes the thread’s current time slice immediately, voluntarily handing over the CPU to other threads
-                // todo: use Thread.Sleep from .NET 4.0 to relinquish only to threads running on the same processor
-                //Thread.Sleep(0);
+                if (++retryCount > retryCountUntilThrow)
+                    ThrowRetryCountExceeded(retryCountUntilThrow);
+#if SUPPORTS_SPIN_WAIT
+                spinWait.SpinOnce();
+#endif
             }
         }
 
         /// Option without allocation for capturing `a` and `b` in closure of `getNewValue`
         [MethodImpl((MethodImplOptions)256)]
-        public static T Swap<T, A, B>(ref T value, A a, B b, Func<T, A, B, T> getNewValue) where T : class
+        public static T Swap<T, A, B>(ref T value, A a, B b, Func<T, A, B, T> getNewValue,
+            int retryCountUntilThrow = RETRY_COUNT_UNTIL_THROW) 
+            where T : class
         {
+#if SUPPORTS_SPIN_WAIT
+            var spinWait = new SpinWait();
+#endif
             var retryCount = 0;
             while (true)
             {
@@ -1413,19 +1439,25 @@ namespace ImTools
                 var newValue = getNewValue(oldValue, a, b);
                 if (Interlocked.CompareExchange(ref value, newValue, oldValue) == oldValue)
                     return oldValue;
-                if (++retryCount > RETRY_COUNT_UNTIL_THROW)
-                    throw new InvalidOperationException(_errorRetryCountExceeded);
 
-                // relinquishes the thread’s current time slice immediately, voluntarily handing over the CPU to other threads
-                // todo: use Thread.Sleep from .NET 4.0 to relinquish only to threads running on the same processor
-                //Thread.Sleep(0);
+                if (++retryCount > retryCountUntilThrow)
+                    ThrowRetryCountExceeded(retryCountUntilThrow);
+
+#if SUPPORTS_SPIN_WAIT
+                spinWait.SpinOnce();
+#endif
             }
         }
 
         /// Option without allocation for capturing `a`, `b`, `c` in closure of `getNewValue`
         [MethodImpl((MethodImplOptions)256)]
-        public static T Swap<T, A, B, C>(ref T value, A a, B b, C c, Func<T, A, B, C, T> getNewValue) where T : class
+        public static T Swap<T, A, B, C>(ref T value, A a, B b, C c, Func<T, A, B, C, T> getNewValue,
+            int retryCountUntilThrow = RETRY_COUNT_UNTIL_THROW)
+            where T : class
         {
+#if SUPPORTS_SPIN_WAIT
+            var spinWait = new SpinWait();
+#endif
             var retryCount = 0;
             while (true)
             {
@@ -1433,20 +1465,15 @@ namespace ImTools
                 var newValue = getNewValue(oldValue, a, b, c);
                 if (Interlocked.CompareExchange(ref value, newValue, oldValue) == oldValue)
                     return oldValue;
-                if (++retryCount > RETRY_COUNT_UNTIL_THROW)
-                    throw new InvalidOperationException(_errorRetryCountExceeded);
 
-                // relinquishes the thread’s current time slice immediately, voluntarily handing over the CPU to other threads
-                // todo: use Thread.Sleep from .NET 4.0 to relinquish only to threads running on the same processor
-                //Thread.Sleep(0);
+                if (++retryCount > retryCountUntilThrow)
+                    ThrowRetryCountExceeded(retryCountUntilThrow);
+
+#if SUPPORTS_SPIN_WAIT
+                spinWait.SpinOnce();
+#endif
             }
         }
-
-        private const int RETRY_COUNT_UNTIL_THROW = 50;
-
-        private static readonly string _errorRetryCountExceeded =
-            "Ref retried to Update for " + RETRY_COUNT_UNTIL_THROW +
-            " times But there is always someone else intervened.";
     }
 
     /// <summary>Printable thing via provided printer </summary>
@@ -2510,7 +2537,7 @@ namespace ImTools
         /// <summary>Outputs key value pair</summary>
         public override string ToString() => IsEmpty ? "empty" : (Key + ":" + Value);
 
-        #region Implementation
+#region Implementation
 
         private sealed class Data
         {
@@ -2931,7 +2958,7 @@ namespace ImTools
             return new ImHashMap<K, V>(new Data(Hash, Conflicts[0].Key, Conflicts[0].Value, shrinkedConflicts), Left, Right);
         }
 
-        #endregion
+#endregion
     }
 
     /// ImHashMap methods for faster performance
