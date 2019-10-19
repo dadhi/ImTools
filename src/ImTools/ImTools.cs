@@ -3145,49 +3145,5 @@ namespace ImTools
 
         private static void RefUpdateSlot<V>(ref ImMap<V> slot, int key, V value) =>
             Ref.Swap(ref slot, key, value, (s, k, v) => s.Update(k, v));
-
-        /// Gets value for found key or the default value otherwise.
-        [MethodImpl((MethodImplOptions)256)]
-        public static V GetValueOrDefault<V>(this ImMap<V>[] slots, int key)
-        {
-            var slot = slots[key & SLOT_MASK];
-
-            while (slot.Height != 0 && key != slot.Key)
-                slot = key < slot.Key ? slot.Left : slot.Right;
-
-            return slot.Value;
-        }
-
-        /// Gets value for found key or the default value otherwise.
-        [MethodImpl((MethodImplOptions)256)]
-        public static V GetValueOrDefault<V>(this ImMap<V>[] slots, int key, V defaultValue)
-        {
-            var slot = slots[key & SLOT_MASK];
-
-            while (slot.Height != 0 && key != slot.Key)
-                slot = key < slot.Key ? slot.Left : slot.Right;
-
-            return slot.Height == 0 ? defaultValue : slot.Value;
-        }
-
-        /// Returns true if key is found and sets the value.
-        [MethodImpl((MethodImplOptions)256)]
-        public static bool TryFind<V>(this ImMap<V>[] slots, int key, out V value)
-        {
-            var map = slots[key & SLOT_MASK];
-
-            while (map.Height != 0)
-            {
-                if (key < map.Key)
-                    map = map.Left;
-                else if (key > map.Key)
-                    map = map.Right;
-                else
-                    break;
-            }
-
-            value = map.Value;
-            return map.Height != 0;
-        }
     }
 }

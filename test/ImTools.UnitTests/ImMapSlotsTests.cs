@@ -15,9 +15,9 @@ namespace ImTools.Experimental.UnitTests
             t.AddOrUpdate(2, 22);
             t.AddOrUpdate(3, 33);
 
-            Assert.AreEqual(11, t.GetValueOrDefault(1));
-            Assert.AreEqual(22, t.GetValueOrDefault(2));
-            Assert.AreEqual(33, t.GetValueOrDefault(3));
+            Assert.AreEqual(11, t[1].GetValueOrDefault(1));
+            Assert.AreEqual(22, t[2].GetValueOrDefault(2));
+            Assert.AreEqual(33, t[3].GetValueOrDefault(3));
         }
 
         [Test]
@@ -25,15 +25,15 @@ namespace ImTools.Experimental.UnitTests
         {
             var tree = ImMapSlots.CreateWithEmpty<int>();
 
-            Assert.AreEqual(0, tree.GetValueOrDefault(0));
+            Assert.AreEqual(0, tree[0].GetValueOrDefault(0));
         }
 
         [Test]
         public void Search_in_empty_tree_should_NOT_throw_TryFind()
         {
-            var tree = ImMapSlots.CreateWithEmpty<int>();
+            var map = ImMapSlots.CreateWithEmpty<int>();
 
-            Assert.IsFalse(tree.TryFind(0, out _));
+            Assert.IsFalse(map.GetMapSlot(0).TryFind(0, out _));
         }
 
         [Test]
@@ -43,7 +43,7 @@ namespace ImTools.Experimental.UnitTests
             tree.AddOrUpdate(1, 1);
             tree.AddOrUpdate(3, 2);
 
-            Assert.AreEqual(0, tree.GetValueOrDefault(2));
+            Assert.AreEqual(0, tree[2].GetValueOrDefault(2));
         }
 
         [Test]
@@ -53,7 +53,7 @@ namespace ImTools.Experimental.UnitTests
             tree.AddOrUpdate(1, 1);
             tree.AddOrUpdate(3, 2);
 
-            Assert.IsFalse(tree.TryFind(2, out _));
+            Assert.IsFalse(tree[2].TryFind(2, out _));
         }
 
         [Test]
@@ -65,10 +65,10 @@ namespace ImTools.Experimental.UnitTests
             map.AddOrUpdate(3, "c");
             map.AddOrUpdate(4, "d");
 
-            Assert.AreEqual("d", map.GetValueOrDefault(4));
+            Assert.AreEqual("d", map[4].GetValueOrDefault(4));
 
             map.Update(4, null);
-            Assert.IsNull(map.GetValueOrDefault(4));
+            Assert.IsNull(map[4].GetValueOrDefault(4));
 
             map.Update(4, "X");
         }
@@ -123,7 +123,7 @@ namespace ImTools.Experimental.UnitTests
 
             string result = null;
 
-            var items = tree.GetValueOrDefault(keyHash);
+            var items = tree.GetMapSlot(keyHash).GetValueOrDefault(keyHash);
             if (items != null)
             {
                 var firstItem = items[0];
