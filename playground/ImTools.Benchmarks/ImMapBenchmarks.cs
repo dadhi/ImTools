@@ -504,7 +504,7 @@ Frequency=2156254 Hz, Resolution=463.7673 ns, Timer=TSC
             [Benchmark]
             public string ImMapSlots_TryFind()
             {
-                _mapSlots.TryFind(LookupMaxKey, out var result);
+                _mapSlots.GetMapSlot(LookupMaxKey).TryFind(LookupMaxKey, out var result);
                 return result;
             }
 
@@ -513,7 +513,6 @@ Frequency=2156254 Hz, Resolution=463.7673 ns, Timer=TSC
             {
                 return _map.GetValueOrDefault(LookupMaxKey);
             }
-
 
             //[Benchmark]
             public string ImMap_V1_GetValueOrDefault()
