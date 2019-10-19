@@ -3075,7 +3075,7 @@ namespace ImTools
         internal const int SLOT_COUNT = 32;
         internal const int SLOT_MASK  = SLOT_COUNT - 1;
 
-        /// Creates en empty array
+        /// Creates the array with the empty slots
         [MethodImpl((MethodImplOptions)256)]
         public static ImMap<V>[] CreateWithEmpty<V>()
         {
@@ -3107,52 +3107,58 @@ namespace ImTools
                 : k == s.Key ? new ImMap<V>(k, v, s.Left, s.Right)
                 : s.AddOrUpdate(k, v));
 
-        ///// <summary>Returns new tree with added or updated value for specified key.</summary>
-        ///// <param name="key">Key</param> <param name="value">Value</param>
-        ///// <param name="updateValue">(optional) Delegate to calculate new value from and old and a new value.</param>
-        ///// <returns>New tree.</returns>
-        //[MethodImpl((MethodImplOptions)256)]
-        //public void AddOrUpdate(int key, V value, Update<V> updateValue)
-        //{
-        //    ref var slot = ref Slots[key & HEIGHT_MASK];
-        //    var copy = slot;
+        /// Updates the value with help of `updateValue` function
+        [MethodImpl((MethodImplOptions)256)]
+        public static void AddOrUpdate<V>(this ImMap<V>[] slots, int key, V value, Update<int, V> updateValue)
+        {
+            ref var slot = ref slots[key & SLOT_MASK];
+            var copy = slot;
 
-        //    var newSlot = copy.AddOrUpdate(key & KEY_MASK, value, false, updateValue);
-        //    if (Interlocked.CompareExchange(ref slot, newSlot, copy) != copy)
-        //        RefAddOrUpdateSlot(ref slot, key & KEY_MASK, value, updateValue);
-        //}
+            var newSlot = copy.AddOrUpdate(key, value, updateValue);
+            if (Interlocked.CompareExchange(ref slot, newSlot, copy) != copy)
+                RefAddOrUpdateSlot(ref slot, key, value, updateValue);
+        }
 
-        //private static void RefAddOrUpdateSlot(ref ImMapSlot<V> slot, int key, V value, Update<V> updateValue) =>
-        //    Ref.Swap(ref slot, key, value, updateValue, (s, k, v, u) => s.AddOrUpdate(k, v, false, u));
+        private static void RefAddOrUpdateSlot<V>(ref ImMap<V> slot, int key, V value, Update<int, V> updateValue) =>
+            Ref.Swap(ref slot, key, value, updateValue, (s, k, v, u) => s.AddOrUpdate(k, v, u));
 
-        ///// <summary>Returns new tree with updated value for the key, Or the same tree if key was not found.</summary>
-        ///// <param name="key"></param> <param name="value"></param>
-        ///// <returns>New tree if key is found, or the same tree otherwise.</returns>
-        //[MethodImpl((MethodImplOptions)256)]
-        //public void Update(int key, V value)
-        //{
-        //    ref var slot = ref Slots[key & HEIGHT_MASK];
-        //    var copy = slot;
-        //    var newSlot = copy.AddOrUpdate(key & KEY_MASK, value, true, null);
-        //    if (Interlocked.CompareExchange(ref slot, newSlot, copy) != copy)
-        //        RefUpdateSlot(ref slot, key & KEY_MASK, value);
-        //}
+        /// Updates the specified slot or does not change it
+        [MethodImpl((MethodImplOptions)256)]
+        public static void Update<V>(this ImMap<V>[] slots, int key, V value)
+        {
+            ref var slot = ref slots[key & SLOT_MASK];
+            var copy = slot;
+            var newSlot = copy.Update(key, value);
+            if (Interlocked.CompareExchange(ref slot, newSlot, copy) != copy)
+                RefUpdateSlot(ref slot, key, value);
+        }
 
-        //private static void RefUpdateSlot(ref ImMapSlot<V> slot, int key, V value) =>
-        //    Ref.Swap(ref slot, key, value, (s, k, v) => s.AddOrUpdate(k, v, true, null));
+        private static void RefUpdateSlot<V>(ref ImMap<V> slot, int key, V value) =>
+            Ref.Swap(ref slot, key, value, (s, k, v) => s.Update(k, v));
 
-        ///// Get value for found key or the default value otherwise.
-        //[MethodImpl((MethodImplOptions)256)]
-        //public V GetValueOrDefault(int key)
-        //{
-        //    var slot = Slots[key & HEIGHT_MASK];
+        /// Gets value for found key or the default value otherwise.
+        [MethodImpl((MethodImplOptions)256)]
+        public static V GetValueOrDefault<V>(this ImMap<V>[] slots, int key)
+        {
+            var slot = slots[key & SLOT_MASK];
 
-        //    key &= KEY_MASK;
-        //    while (slot.KeyPlusHeight != 0 && key != slot.KeyPart)
-        //        slot = key < slot.KeyPart ? slot.Left : slot.Right;
+            while (slot.Height != 0 && key != slot.Key)
+                slot = key < slot.Key ? slot.Left : slot.Right;
 
-        //    return slot.Value;
-        //}
+            return slot.Value;
+        }
+
+        /// Gets value for found key or the default value otherwise.
+        [MethodImpl((MethodImplOptions)256)]
+        public static V GetValueOrDefault<V>(this ImMap<V>[] slots, int key, V defaultValue)
+        {
+            var slot = slots[key & SLOT_MASK];
+
+            while (slot.Height != 0 && key != slot.Key)
+                slot = key < slot.Key ? slot.Left : slot.Right;
+
+            return slot.Height == 0 ? defaultValue : slot.Value;
+        }
 
         /// Returns true if key is found and sets the value.
         [MethodImpl((MethodImplOptions)256)]
