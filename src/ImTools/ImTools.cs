@@ -3071,9 +3071,11 @@ namespace ImTools
     /// and the slot is the reference to ImMap that can be swapped with its updated value
     public static class ImMapSlots
     {
-        // Slots count and mask to partition the Key across the slots 
-        internal const int SLOT_COUNT = 32;
-        internal const int SLOT_MASK  = SLOT_COUNT - 1;
+        /// Default slot count
+        public const int SLOT_COUNT = 32;
+        
+        /// The mask for the key to find the slot
+        public const int SLOT_MASK  = SLOT_COUNT - 1;
 
         /// Creates the array with the empty slots
         [MethodImpl((MethodImplOptions)256)]
@@ -3099,19 +3101,20 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public static void AddOrUpdate<V>(this ImMap<V>[] slots, int key, V value)
         {
-            ref var slot = ref slots[key & SLOT_MASK];
-            var s = slot;
+            ref var slot = ref slots.GetMapSlotRef(key);
+            var copy = slot;
 
             var newSlot = 
-                s.Height == 0 ? new ImMap<V>(key, value)
-                : key == s.Key ? new ImMap<V>(key, value, s.Left, s.Right)
-                : s.AddOrUpdate(key, value);
+                copy.Height == 0 ? new ImMap<V>(key, value)
+                : key == copy.Key ? new ImMap<V>(key, value, copy.Left, copy.Right)
+                : copy.AddOrUpdate(key, value);
 
-            if (Interlocked.CompareExchange(ref slot, newSlot, s) != s)
+            if (Interlocked.CompareExchange(ref slot, newSlot, copy) != copy)
                 RefAddOrUpdateSlot(ref slot, key, value);
         }
 
-        private static void RefAddOrUpdateSlot<V>(ref ImMap<V> slot, int key, V value) =>
+        /// Update the ref to the slot with the new version - retry if the someone changed the slot in between
+        public static void RefAddOrUpdateSlot<V>(ref ImMap<V> slot, int key, V value) =>
             Ref.Swap(ref slot, key, value, (s, k, v) =>
                 s.Height == 0 ? new ImMap<V>(k, v)
                 : k == s.Key ? new ImMap<V>(k, v, s.Left, s.Right)
@@ -3121,29 +3124,30 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public static void AddOrUpdate<V>(this ImMap<V>[] slots, int key, V value, Update<int, V> updateValue)
         {
-            ref var slot = ref slots[key & SLOT_MASK];
+            ref var slot = ref slots.GetMapSlotRef(key);
             var copy = slot;
-
             var newSlot = copy.AddOrUpdate(key, value, updateValue);
             if (Interlocked.CompareExchange(ref slot, newSlot, copy) != copy)
                 RefAddOrUpdateSlot(ref slot, key, value, updateValue);
         }
 
-        private static void RefAddOrUpdateSlot<V>(ref ImMap<V> slot, int key, V value, Update<int, V> updateValue) =>
+        /// Update the ref to the slot with the new version - retry if the someone changed the slot in between
+        public static void RefAddOrUpdateSlot<V>(ref ImMap<V> slot, int key, V value, Update<int, V> updateValue) =>
             Ref.Swap(ref slot, key, value, updateValue, (s, k, v, u) => s.AddOrUpdate(k, v, u));
 
         /// Updates the specified slot or does not change it
         [MethodImpl((MethodImplOptions)256)]
         public static void Update<V>(this ImMap<V>[] slots, int key, V value)
         {
-            ref var slot = ref slots[key & SLOT_MASK];
+            ref var slot = ref slots.GetMapSlotRef(key);
             var copy = slot;
             var newSlot = copy.Update(key, value);
             if (Interlocked.CompareExchange(ref slot, newSlot, copy) != copy)
                 RefUpdateSlot(ref slot, key, value);
         }
 
-        private static void RefUpdateSlot<V>(ref ImMap<V> slot, int key, V value) =>
+        /// Update the ref to the slot with the new version - retry if the someone changed the slot in between
+        public static void RefUpdateSlot<V>(ref ImMap<V> slot, int key, V value) =>
             Ref.Swap(ref slot, key, value, (s, k, v) => s.Update(k, v));
     }
 }
