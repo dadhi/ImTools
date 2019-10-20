@@ -2452,8 +2452,7 @@ namespace ImTools
         {
             ref var slot = ref slots.GetMapSlotRef(key);
             var copy = slot;
-            var newSlot = copy.AddOrUpdate(key, value, updateValue);
-            if (Interlocked.CompareExchange(ref slot, newSlot, copy) != copy)
+            if (Interlocked.CompareExchange(ref slot, copy.AddOrUpdate(key, value, updateValue), copy) != copy)
                 RefAddOrUpdateSlot(ref slot, key, value, updateValue);
         }
 
@@ -2467,8 +2466,7 @@ namespace ImTools
         {
             ref var slot = ref slots.GetMapSlotRef(key);
             var copy = slot;
-            var newSlot = copy.Update(key, value);
-            if (Interlocked.CompareExchange(ref slot, newSlot, copy) != copy)
+            if (Interlocked.CompareExchange(ref slot, copy.Update(key, value), copy) != copy)
                 RefUpdateSlot(ref slot, key, value);
         }
 
