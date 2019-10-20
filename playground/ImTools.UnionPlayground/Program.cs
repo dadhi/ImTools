@@ -54,7 +54,7 @@ namespace ImTools.UnionPlayground
     public sealed class Other : U<Other, bool, string> { }
 
     // Typed union with a typed cases! Now you can pattern match via `I<Flag>` and `I<Name>`
-    public sealed class FlagOrName2 : U<FlagOrName2, Flag.value, Name.value> { }
+    public sealed class FlagOrName2 : U<FlagOrName2, Flag.data, Name.data> { }
     public sealed class Flag : Case<Flag, bool> { }
     public sealed class Name : Case<Name, string> { }
 
@@ -78,8 +78,8 @@ namespace ImTools.UnionPlayground
             // The performance price may be gained back any time by switching to CaseN struct matching.
             switch (x)
             {
-                case I<Flag.value> b: return "" + b.Case.Value;
-                case I<Name.value> s: return "" + s.Case.Value;
+                case I<Flag.data> b: return "" + b.Case.Value;
+                case I<Name.data> s: return "" + s.Case.Value;
                 default: throw new NotSupportedException();
             }
         }

@@ -23,9 +23,9 @@ type Message1() = class inherit Case<Message1, string>() end
 // NOTE: It happens that in F# is not possible to refer to nested type from the inheritor (the commented code below). 
 // It is much less verbose in C#. The same problem is with `match` clause later in the benchmarks.
 //
-// type FlagOrCount1 = class inherit U<FlagOrCount1, Flag1.value, Count1.value, Message1.value> end
+// type FlagOrCount1 = class inherit U<FlagOrCount1, Flag1.data, Count1.data, Message1.data> end
 //
-type FlagOrCount1 = class inherit U<FlagOrCount1, Case<Flag1, bool>.value, Case<Count1, int>.value, Case<Message1, string>.value> end
+type FlagOrCount1 = class inherit U<FlagOrCount1, Case<Flag1, bool>.data, Case<Count1, int>.data, Case<Message1, string>.data> end
 
 [<MemoryDiagnoser>]
 type Traverse_union_array_and_match_to_sum_something() =
@@ -49,11 +49,11 @@ type Traverse_union_array_and_match_to_sum_something() =
         for x in _cs1 do
             match x with
             // FlagOrCount1.case1 in C#
-            | :? U<FlagOrCount1, Case<Flag1, bool>.value, Case<Count1, int>.value, Case<Message1, string>.value>.case1 as f -> if f.Case.Value then sum <- sum + 1 else sum |> ignore
+            | :? U<FlagOrCount1, Case<Flag1, bool>.data, Case<Count1, int>.data, Case<Message1, string>.data>.case1 as f -> if f.Case.Value then sum <- sum + 1 else sum |> ignore
             // FlagOrCount1.case2 in C#
-            | :? U<FlagOrCount1, Case<Flag1, bool>.value, Case<Count1, int>.value, Case<Message1, string>.value>.case2 as n -> sum <- sum + n.Case.Value
+            | :? U<FlagOrCount1, Case<Flag1, bool>.data, Case<Count1, int>.data, Case<Message1, string>.data>.case2 as n -> sum <- sum + n.Case.Value
             // FlagOrCount1.case3 in C#
-            | :? U<FlagOrCount1, Case<Flag1, bool>.value, Case<Count1, int>.value, Case<Message1, string>.value>.case3 -> sum <- sum + 42
+            | :? U<FlagOrCount1, Case<Flag1, bool>.data, Case<Count1, int>.data, Case<Message1, string>.data>.case3 -> sum <- sum + 42
             | _ -> ()
         sum
 
@@ -62,8 +62,8 @@ type Traverse_union_array_and_match_to_sum_something() =
         let mutable sum = 0
         for x in _cs1 do
             match x.Tag with
-            | FlagOrCount1.Tag.Case1 -> if (x :?> U<FlagOrCount1, Case<Flag1, bool>.value, Case<Count1, int>.value, Case<Message1, string>.value>.case1).Case.Value then sum <- sum + 1 else sum |> ignore
-            | FlagOrCount1.Tag.Case2 -> sum <- sum + (x :?> U<FlagOrCount1, Case<Flag1, bool>.value, Case<Count1, int>.value, Case<Message1, string>.value>.case2).Case.Value
+            | FlagOrCount1.Tag.Case1 -> if (x :?> U<FlagOrCount1, Case<Flag1, bool>.data, Case<Count1, int>.data, Case<Message1, string>.data>.case1).Case.Value then sum <- sum + 1 else sum |> ignore
+            | FlagOrCount1.Tag.Case2 -> sum <- sum + (x :?> U<FlagOrCount1, Case<Flag1, bool>.data, Case<Count1, int>.data, Case<Message1, string>.data>.case2).Case.Value
             | FlagOrCount1.Tag.Case3 -> sum <- sum + 42
             | _ -> ()
         sum
@@ -73,9 +73,9 @@ type Traverse_union_array_and_match_to_sum_something() =
         let mutable sum = 0
         for x in _cs1 do
             match x with
-            | :? I<Case<Flag1, bool>.value> as f -> if f.Case.Value then sum <- sum + 1 else sum |> ignore
-            | :? I<Case<Count1, int>.value> as n -> sum <- sum + n.Case.Value
-            | :? I<Case<Message1, string>.value> -> sum <- sum + 42
+            | :? I<Case<Flag1, bool>.data> as f -> if f.Case.Value then sum <- sum + 1 else sum |> ignore
+            | :? I<Case<Count1, int>.data> as n -> sum <- sum + n.Case.Value
+            | :? I<Case<Message1, string>.data> -> sum <- sum + 42
             | _ -> ()
         sum
 

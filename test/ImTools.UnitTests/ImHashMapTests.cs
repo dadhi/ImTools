@@ -480,6 +480,9 @@ namespace ImTools.UnitTests
                 .AddOrUpdate(new HashConflictingKey<int>(2, 2), "c")
                 .AddOrUpdate(new HashConflictingKey<int>(3, 2), "d");
 
+            //      a
+            //   b     c,d
+
             tree = tree.Remove(new HashConflictingKey<int>(3, 2));
 
             Assert.That(tree.Value, Is.EqualTo("a"));

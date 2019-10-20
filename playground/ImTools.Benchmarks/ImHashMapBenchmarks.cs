@@ -279,17 +279,16 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
 
 # Newest results 
 
-|                   Method | Count |         Mean |        Error |       StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
-|------------------------- |------ |-------------:|-------------:|-------------:|------:|--------:|---------:|--------:|------:|----------:|
-|    ImHashMap_AddOrUpdate |    10 |     856.3 ns |     1.680 ns |     1.572 ns |  1.00 |    0.00 |   0.4978 |       - |     - |    2.3 KB |
-| ImHashMap_V1_AddOrUpdate |    10 |     935.4 ns |     6.456 ns |     5.391 ns |  1.09 |    0.01 |   0.5484 |       - |     - |   2.53 KB |
-|                          |       |              |              |              |       |         |          |         |       |           |
-|    ImHashMap_AddOrUpdate |   100 |  14,012.0 ns |   129.775 ns |   121.391 ns |  1.00 |    0.00 |   7.7972 |       - |     - |  35.95 KB |
-| ImHashMap_V1_AddOrUpdate |   100 |  15,406.4 ns |   305.979 ns |   327.394 ns |  1.10 |    0.02 |   8.5449 |       - |     - |  39.47 KB |
-|                          |       |              |              |              |       |         |          |         |       |           |
-|    ImHashMap_AddOrUpdate |  1000 | 289,246.2 ns | 1,493.719 ns | 1,324.143 ns |  1.00 |    0.00 | 112.3047 |  7.8125 |     - | 517.83 KB |
-| ImHashMap_V1_AddOrUpdate |  1000 | 317,224.9 ns | 3,198.762 ns | 2,992.124 ns |  1.10 |    0.01 | 121.0938 | 31.7383 |     - | 558.89 KB |
-
+|                   Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
+|------------------------- |------ |-------------:|------------:|------------:|------:|--------:|---------:|--------:|------:|----------:|
+|    ImHashMap_AddOrUpdate |    10 |     909.1 ns |    14.69 ns |    13.74 ns |  1.00 |    0.00 |   0.4978 |       - |     - |    2.3 KB |
+| ImHashMap_V1_AddOrUpdate |    10 |   1,038.5 ns |    17.65 ns |    16.51 ns |  1.14 |    0.02 |   0.5474 |       - |     - |   2.53 KB |
+|                          |       |              |             |             |       |         |          |         |       |           |
+|    ImHashMap_AddOrUpdate |   100 |  14,369.3 ns |   278.24 ns |   297.72 ns |  1.00 |    0.00 |   7.7972 |       - |     - |  35.95 KB |
+| ImHashMap_V1_AddOrUpdate |   100 |  16,287.9 ns |   325.13 ns |   422.77 ns |  1.13 |    0.04 |   8.5449 |       - |     - |  39.47 KB |
+|                          |       |              |             |             |       |         |          |         |       |           |
+|    ImHashMap_AddOrUpdate |  1000 | 300,115.0 ns | 5,387.34 ns | 5,039.32 ns |  1.00 |    0.00 | 112.3047 |  7.8125 |     - | 517.83 KB |
+| ImHashMap_V1_AddOrUpdate |  1000 | 333,344.8 ns | 6,493.49 ns | 7,974.59 ns |  1.12 |    0.03 | 121.0938 | 31.7383 |     - | 558.89 KB |
 
  */
             [Params(10, 100, 1_000)]
@@ -301,9 +300,9 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
                 var map = ImHashMap<Type, string>.Empty;
 
                 foreach (var key in _keys.Take(Count))
-                    map = map.AddOrUpdate(key, "a", out _, out _);
+                    map = map.AddOrUpdate(key, "a");
 
-                return map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!", out _, out _);
+                return map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
             }
 
             [Benchmark]
