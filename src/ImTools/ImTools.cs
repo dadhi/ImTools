@@ -2124,10 +2124,7 @@ namespace ImTools
             }
         }
 
-        /// <summary>Returns new tree with added or updated value for specified key.</summary>
-        /// <param name="key">Key</param> <param name="value">Value</param>
-        /// <param name="updateValue">(optional) Delegate to calculate new value from and old and a new value.</param>
-        /// <returns>New tree.</returns>
+        /// Returns the new map with added or updated value for the specified key.
         [MethodImpl((MethodImplOptions)256)]
         public ImMap<V> AddOrUpdate(int key, V value, Update<int, V> updateValue) =>
             Height == 0
@@ -2389,6 +2386,8 @@ namespace ImTools
     /// ImMap static methods
     public static class ImMap
     {
+        internal static V IgnoreKey<K, V>(this Update<V> update, K _, V oldValue, V newValue) => update(oldValue, newValue);
+
         /// Get value for found key or the default value otherwise.
         [MethodImpl((MethodImplOptions)256)]
         public static V GetValueOrDefault<V>(this ImMap<V> map, int key)
@@ -2787,43 +2786,17 @@ namespace ImTools
             }
         }
 
-        /// <summary>Returns new tree with added key-value. If value with the same key is exist, then
-        /// if <paramref name="update"/> is not specified: then existing value will be replaced by <paramref name="value"/>;
-        /// if <paramref name="update"/> is specified: then update delegate will decide what value to keep.</summary>
-        /// <param name="key">Key to add.</param><param name="value">Value to add.</param>
-        /// <param name="update">Update handler.</param>
-        /// <returns>New tree with added or updated key-value.</returns>
+        /// Returns a new tree with added or updated key-value. Uses the provided <paramref name="update"/> for updating the existing value.
         [MethodImpl((MethodImplOptions)256)]
         public ImHashMap<K, V> AddOrUpdate(K key, V value, Update<K, V> update) =>
             AddOrUpdate(key.GetHashCode(), key, value, update);
 
-        /// Allocation free for `update` delegate with key
+        /// Returns a new tree with added or updated key-value. Uses the provided <paramref name="update"/> for updating the existing value.
         [MethodImpl((MethodImplOptions)256)]
-        public ImHashMap<K, V> AddOrUpdate(K key, V value, out bool isUpdated, out V oldValue, Update<K, V> update = null)
-        {
-            isUpdated = false;
-            oldValue = default;
+        public ImHashMap<K, V> AddOrUpdate(K key, V value, Update<V> update) =>
+            AddOrUpdate(key.GetHashCode(), key, value, update.IgnoreKey);
 
-            var hash = key.GetHashCode();
-
-            if (Height == 0)
-                return new ImHashMap<K, V>(new Data(hash, key, value));
-
-            if (hash == Hash)
-                return ReferenceEquals(Key, key) || Key.Equals(key)
-                    ? UpdatedOrOld(hash, key, value, ref isUpdated, ref oldValue, update)
-                    : AddOrUpdateConflicts(key, value, ref isUpdated, ref oldValue, update);
-
-            return AddOrUpdateImpl(hash, key, value, ref isUpdated, ref oldValue, update);
-        }
-
-        /// <summary>Looks for <paramref name="key"/> and replaces its value with new <paramref name="value"/>, or 
-        /// runs custom update handler (<paramref name="update"/>) with old and new value to get the updated result.</summary>
-        /// <param name="key">Key to look for.</param>
-        /// <param name="value">New value to replace key value with.</param>
-        /// <param name="update">(optional) Delegate for custom update logic, it gets old and new <paramref name="value"/>
-        /// as inputs and should return updated value as output.</param>
-        /// <returns>New tree with updated value or the SAME tree if no key found.</returns>
+        /// Updates the map with the new value if key is found, otherwise returns the same unchanged map.
         [MethodImpl((MethodImplOptions)256)]
         public ImHashMap<K, V> Update(K key, V value, Update<V> update = null) =>
             Update(key.GetHashCode(), key, value, update);
