@@ -345,18 +345,6 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
                 return map;
             }
 
-            [Benchmark]
-            public ImHashMap<Type, string>[] ImHashMapSlots_AddOrUpdate_RuntimeHelpersGetHashCode()
-            {
-                var map = ImHashMapSlots.CreateWithEmpty<Type, string>();
-
-                foreach (var key in _keys.Take(Count))
-                    map.AddOrUpdate(RuntimeHelpers.GetHashCode(key), key, "a");
-
-                map.AddOrUpdate(RuntimeHelpers.GetHashCode(typeof(ImHashMapBenchmarks)), typeof(ImHashMapBenchmarks), "!");
-                return map;
-            }
- 
             //[Benchmark]
             public DictionarySlim<TypeVal, string> DictSlim_TryAdd()
             {
