@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using BenchmarkDotNet.Attributes;
 using ImTools;
 using Microsoft.Collections.Extensions;
@@ -279,17 +280,22 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
 
 # Newest results 
 
-|                   Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
-|------------------------- |------ |-------------:|------------:|------------:|------:|--------:|---------:|--------:|------:|----------:|
-|    ImHashMap_AddOrUpdate |    10 |     909.1 ns |    14.69 ns |    13.74 ns |  1.00 |    0.00 |   0.4978 |       - |     - |    2.3 KB |
-| ImHashMap_V1_AddOrUpdate |    10 |   1,038.5 ns |    17.65 ns |    16.51 ns |  1.14 |    0.02 |   0.5474 |       - |     - |   2.53 KB |
-|                          |       |              |             |             |       |         |          |         |       |           |
-|    ImHashMap_AddOrUpdate |   100 |  14,369.3 ns |   278.24 ns |   297.72 ns |  1.00 |    0.00 |   7.7972 |       - |     - |  35.95 KB |
-| ImHashMap_V1_AddOrUpdate |   100 |  16,287.9 ns |   325.13 ns |   422.77 ns |  1.13 |    0.04 |   8.5449 |       - |     - |  39.47 KB |
-|                          |       |              |             |             |       |         |          |         |       |           |
-|    ImHashMap_AddOrUpdate |  1000 | 300,115.0 ns | 5,387.34 ns | 5,039.32 ns |  1.00 |    0.00 | 112.3047 |  7.8125 |     - | 517.83 KB |
-| ImHashMap_V1_AddOrUpdate |  1000 | 333,344.8 ns | 6,493.49 ns | 7,974.59 ns |  1.12 |    0.03 | 121.0938 | 31.7383 |     - | 558.89 KB |
-
+|                                          Method | Count |         Mean |        Error |       StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
+|------------------------------------------------ |------ |-------------:|-------------:|-------------:|------:|--------:|---------:|--------:|------:|----------:|
+|                           ImHashMap_AddOrUpdate |    10 |     977.0 ns |    18.358 ns |    19.643 ns |  1.00 |    0.00 |   0.4978 |       - |     - |    2.3 KB |
+| ImHashMap_AddOrUpdate_RuntimeHelpersGetHashCode |    10 |     926.1 ns |    18.565 ns |    17.365 ns |  0.95 |    0.03 |   0.4978 |       - |     - |    2.3 KB |
+|                        ImHashMap_V1_AddOrUpdate |    10 |   1,030.7 ns |    17.990 ns |    16.828 ns |  1.05 |    0.03 |   0.5474 |       - |     - |   2.53 KB |
+|                      ImHashMapSlots_AddOrUpdate |    10 |     682.7 ns |     2.954 ns |     2.763 ns |  0.70 |    0.02 |   0.3128 |       - |     - |   1.45 KB |
+|                                                 |       |              |              |              |       |         |          |         |       |           |
+|                           ImHashMap_AddOrUpdate |   100 |  14,889.4 ns |   292.503 ns |   488.706 ns |  1.00 |    0.00 |   7.7972 |       - |     - |  35.95 KB |
+| ImHashMap_AddOrUpdate_RuntimeHelpersGetHashCode |   100 |  14,576.8 ns |   290.713 ns |   357.021 ns |  0.98 |    0.06 |   7.7972 |       - |     - |  35.95 KB |
+|                        ImHashMap_V1_AddOrUpdate |   100 |  17,019.3 ns |   228.169 ns |   213.430 ns |  1.16 |    0.05 |   8.5449 |       - |     - |  39.47 KB |
+|                      ImHashMapSlots_AddOrUpdate |   100 |   7,634.5 ns |   120.392 ns |   112.615 ns |  0.52 |    0.03 |   3.2806 |  0.0153 |     - |  15.13 KB |
+|                                                 |       |              |              |              |       |         |          |         |       |           |
+|                           ImHashMap_AddOrUpdate |  1000 | 307,587.1 ns | 5,570.811 ns | 6,191.942 ns |  1.00 |    0.00 | 112.3047 |  7.8125 |     - | 517.83 KB |
+| ImHashMap_AddOrUpdate_RuntimeHelpersGetHashCode |  1000 | 303,983.9 ns | 5,849.805 ns | 5,471.911 ns |  0.99 |    0.03 | 112.3047 |  7.8125 |     - | 517.83 KB |
+|                        ImHashMap_V1_AddOrUpdate |  1000 | 339,267.5 ns | 6,494.507 ns | 6,949.050 ns |  1.10 |    0.03 | 121.0938 | 31.7383 |     - | 558.89 KB |
+|                      ImHashMapSlots_AddOrUpdate |  1000 | 179,159.0 ns | 3,627.738 ns | 3,725.420 ns |  0.58 |    0.01 |  60.5469 | 20.0195 |     - | 279.09 KB |
  */
             [Params(10, 100, 1_000)]
             public int Count;
@@ -306,6 +312,17 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
             }
 
             [Benchmark]
+            public ImHashMap<Type, string> ImHashMap_AddOrUpdate_RuntimeHelpersGetHashCode()
+            {
+                var map = ImHashMap<Type, string>.Empty;
+
+                foreach (var key in _keys.Take(Count))
+                    map = map.AddOrUpdate(RuntimeHelpers.GetHashCode(key), key, "a");
+
+                return map.AddOrUpdate(RuntimeHelpers.GetHashCode(typeof(ImHashMapBenchmarks)), typeof(ImHashMapBenchmarks), "!");
+            }
+
+            [Benchmark]
             public ImTools.OldVersions.V1.ImHashMap<Type, string> ImHashMap_V1_AddOrUpdate()
             {
                 var map = ImTools.OldVersions.V1.ImHashMap<Type, string>.Empty;
@@ -314,6 +331,18 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
                     map = map.AddOrUpdate(key, "a");
 
                 return map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+            }
+
+            [Benchmark]
+            public ImHashMap<Type, string>[] ImHashMapSlots_AddOrUpdate()
+            {
+                var map = ImHashMapSlots.CreateWithEmpty<Type, string>();
+
+                foreach (var key in _keys.Take(Count))
+                    map.AddOrUpdate(key, "a");
+
+                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+                return map;
             }
 
             //[Benchmark]
