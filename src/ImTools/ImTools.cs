@@ -1478,6 +1478,32 @@ namespace ImTools
 #endif
             }
         }
+
+        /// Option without allocation for capturing `a`, `b`, `c`, `d` in closure of `getNewValue`
+        [MethodImpl((MethodImplOptions)256)]
+        public static T Swap<T, A, B, C, D>(ref T value, A a, B b, C c, D d, Func<T, A, B, C, D, T> getNewValue,
+            int retryCountUntilThrow = RETRY_COUNT_UNTIL_THROW)
+            where T : class
+        {
+#if SUPPORTS_SPIN_WAIT
+            var spinWait = new SpinWait();
+#endif
+            var retryCount = 0;
+            while (true)
+            {
+                var oldValue = value;
+                var newValue = getNewValue(oldValue, a, b, c, d);
+                if (Interlocked.CompareExchange(ref value, newValue, oldValue) == oldValue)
+                    return oldValue;
+
+                if (++retryCount > retryCountUntilThrow)
+                    ThrowRetryCountExceeded(retryCountUntilThrow);
+
+#if SUPPORTS_SPIN_WAIT
+                spinWait.SpinOnce();
+#endif
+            }
+        }
     }
 
     /// <summary>Printable thing via provided printer </summary>
@@ -2016,9 +2042,9 @@ namespace ImTools
                 ? new ImMap<V>(key, value)
                 : key == Key
                     ? this
-                    : AddOrKeepImpl(key, value);
+                    : AddOrKeepLeftOrRight(key, value);
 
-        private ImMap<V> AddOrKeepImpl(int key, V value)
+        private ImMap<V> AddOrKeepLeftOrRight(int key, V value)
         {
             if (key < Key)
             {
@@ -2038,7 +2064,7 @@ namespace ImTools
                         new ImMap<V>(Left.Key, Left.Value), new ImMap<V>(Key, Value), 2);
                 }
 
-                var newLeft = Left.AddOrKeepImpl(key, value);
+                var newLeft = Left.AddOrKeepLeftOrRight(key, value);
                 if (ReferenceEquals(newLeft, Left))
                     return this;
 
@@ -2076,7 +2102,7 @@ namespace ImTools
                         new ImMap<V>(Key, Value), new ImMap<V>(Right.Key, Right.Value), 2);
                 }
 
-                var newRight = Right.AddOrKeepImpl(key, value);
+                var newRight = Right.AddOrKeepLeftOrRight(key, value);
                 if (ReferenceEquals(newRight, Right))
                     return this;
 
@@ -2108,9 +2134,9 @@ namespace ImTools
             ? new ImMap<V>(key, value)
             : key == Key
                 ? new ImMap<V>(key, updateValue(key, Value, value), Left, Right, Height)
-                : AddOrUpdateImpl(key, value, updateValue);
+                : AddOrUpdateLeftOrRight(key, value, updateValue);
 
-        private ImMap<V> AddOrUpdateImpl(int key, V value, Update<int, V> updateValue)
+        private ImMap<V> AddOrUpdateLeftOrRight(int key, V value, Update<int, V> updateValue)
         {
             if (key < Key)
             {
@@ -2363,8 +2389,6 @@ namespace ImTools
     /// ImMap static methods
     public static class ImMap
     {
-        internal static V IgnoreKey<K, V>(this Update<V> u, K _, V ov, V nv) => u(ov, nv);
-
         /// Get value for found key or the default value otherwise.
         [MethodImpl((MethodImplOptions)256)]
         public static V GetValueOrDefault<V>(this ImMap<V> map, int key)
@@ -2527,7 +2551,7 @@ namespace ImTools
         public ImHashMap<K, V> AddOrUpdate(int hash, K key, V value) =>
             Height == 0 ? new ImHashMap<K, V>(new Data(hash, key, value))
             : hash == Hash ? UpdateValueOrConflicts(hash, key, value)
-            : AddOrUpdateImpl(hash, key, value);
+            : AddOrUpdateLeftOrRight(hash, key, value);
 
         /// Adds and updates the tree with passed key-value. Returns a new tree.
         [MethodImpl((MethodImplOptions) 256)]
@@ -2570,7 +2594,7 @@ namespace ImTools
             return new ImHashMap<K, V>(new Data(Hash, Key, Value, newConflicts), Left, Right, Height);
         }
 
-        private ImHashMap<K, V> AddOrUpdateImpl(int hash, K key, V value)
+        private ImHashMap<K, V> AddOrUpdateLeftOrRight(int hash, K key, V value)
         {
             if (hash < Hash)
             {
@@ -2590,7 +2614,7 @@ namespace ImTools
                         new ImHashMap<K, V>(Left._data), new ImHashMap<K, V>(_data), 2);
                 }
 
-                var left = Left.AddOrUpdateImpl(hash, key, value);
+                var left = Left.AddOrUpdateLeftOrRight(hash, key, value);
 
                 if (left.Height > Right.Height + 1) // left is longer by 2, rotate left
                 {
@@ -2626,7 +2650,125 @@ namespace ImTools
                         new ImHashMap<K, V>(_data), new ImHashMap<K, V>(new Data(hash, key, value)), 2);
                 }
 
-                var right = Right.AddOrUpdateImpl(hash, key, value);
+                var right = Right.AddOrUpdateLeftOrRight(hash, key, value);
+
+                if (right.Height > Left.Height + 1)
+                {
+                    var rightLeft = right.Left;
+                    var rightRight = right.Right;
+                    if (rightLeft.Height > rightRight.Height)
+                        return new ImHashMap<K, V>(rightLeft._data,
+                            new ImHashMap<K, V>(_data, Left, rightLeft.Left),
+                            new ImHashMap<K, V>(right._data, rightLeft.Right, rightRight));
+
+                    return new ImHashMap<K, V>(right._data,
+                        new ImHashMap<K, V>(_data, Left, rightLeft), rightRight);
+                }
+
+                return new ImHashMap<K, V>(_data, Left, right);
+            }
+        }
+
+        /// Uses the user provided hash and adds and updates the tree with passed key-value and the update function for the existing value. Returns a new tree.
+        [MethodImpl((MethodImplOptions)256)]
+        public ImHashMap<K, V> AddOrUpdate(int hash, K key, V value, Update<K, V> update) =>
+            Height == 0 ? new ImHashMap<K, V>(new Data(hash, key, value))
+            : hash == Hash? UpdateValueOrConflicts(hash, key, value, update)
+            : AddOrUpdateLeftOrRight(hash, key, value, update);
+
+        private ImHashMap<K, V> UpdateValueOrConflicts(int hash, K key, V value, Update<K, V> update) =>
+            ReferenceEquals(Key, key) || Key.Equals(key)
+                ? new ImHashMap<K, V>(new Data(hash, key, update(key, Value, value), Conflicts), Left, Right, Height)
+                : AddOrUpdateConflicts(key, value, update);
+
+        private ImHashMap<K, V> AddOrUpdateConflicts(K key, V value, Update<K, V> update)
+        {
+            if (Conflicts == null)
+                return new ImHashMap<K, V>(new Data(Hash, Key, Value,
+                    new[] { new KV<K, V>(key, value) }), Left, Right, Height);
+
+            var conflicts = Conflicts;
+            var conflictCount = conflicts.Length;
+            var conflictIndex = conflictCount - 1;
+            while (conflictIndex != -1 && !key.Equals(conflicts[conflictIndex].Key))
+                --conflictIndex;
+
+            KV<K, V>[] newConflicts;
+            if (conflictIndex != -1)
+            {
+                // update the existing conflicted value
+                newConflicts = new KV<K, V>[conflictCount];
+                Array.Copy(conflicts, 0, newConflicts, 0, conflictCount);
+                newConflicts[conflictIndex] = new KV<K, V>(key, update(key, conflicts[conflictIndex].Value, value));
+            }
+            else
+            {
+                // add the new conflicting value
+                newConflicts = new KV<K, V>[conflictCount + 1];
+                Array.Copy(conflicts, 0, newConflicts, 0, conflictCount);
+                newConflicts[conflictCount] = new KV<K, V>(key, value);
+            }
+
+            return new ImHashMap<K, V>(new Data(Hash, Key, Value, newConflicts), Left, Right, Height);
+        }
+
+        private ImHashMap<K, V> AddOrUpdateLeftOrRight(int hash, K key, V value, Update<K, V> update)
+        {
+            if (hash < Hash)
+            {
+                if (Left.Height == 0)
+                    return new ImHashMap<K, V>(_data, new ImHashMap<K, V>(new Data(hash, key, value)), Right, 2);
+
+                if (Left.Hash == hash)
+                    return new ImHashMap<K, V>(_data, Left.UpdateValueOrConflicts(hash, key, value, update), Right, Height);
+
+                if (Right.Height == 0)
+                {
+                    if (hash < Left.Hash)
+                        return new ImHashMap<K, V>(Left._data,
+                            new ImHashMap<K, V>(new Data(hash, key, value)), new ImHashMap<K, V>(_data), 2);
+
+                    return new ImHashMap<K, V>(new Data(hash, key, value),
+                        new ImHashMap<K, V>(Left._data), new ImHashMap<K, V>(_data), 2);
+                }
+
+                var left = Left.AddOrUpdateLeftOrRight(hash, key, value);
+
+                if (left.Height > Right.Height + 1) // left is longer by 2, rotate left
+                {
+                    var leftLeft = left.Left;
+                    var leftRight = left.Right;
+
+                    if (leftRight.Height > leftLeft.Height)
+                        return new ImHashMap<K, V>(leftRight._data,
+                            new ImHashMap<K, V>(left._data, leftLeft, leftRight.Left),
+                            new ImHashMap<K, V>(_data, leftRight.Right, Right));
+
+                    return new ImHashMap<K, V>(left._data,
+                        leftLeft, new ImHashMap<K, V>(_data, leftRight, Right));
+                }
+
+                return new ImHashMap<K, V>(_data, left, Right);
+            }
+            else
+            {
+                if (Right.Height == 0)
+                    return new ImHashMap<K, V>(_data, Left, new ImHashMap<K, V>(new Data(hash, key, value)), 2);
+
+                if (Right.Hash == hash)
+                    return new ImHashMap<K, V>(_data, Left, Right.UpdateValueOrConflicts(hash, key, value, update), Height);
+
+                if (Left.Height == 0)
+                {
+                    if (hash < Right.Hash)
+                        return new ImHashMap<K, V>(new Data(hash, key, value),
+                            new ImHashMap<K, V>(_data), new ImHashMap<K, V>(Right._data), 2);
+
+                    return new ImHashMap<K, V>(Right._data,
+                        new ImHashMap<K, V>(_data), new ImHashMap<K, V>(new Data(hash, key, value)), 2);
+                }
+
+                var right = Right.AddOrUpdateLeftOrRight(hash, key, value);
 
                 if (right.Height > Left.Height + 1)
                 {
@@ -2652,8 +2794,8 @@ namespace ImTools
         /// <param name="update">Update handler.</param>
         /// <returns>New tree with added or updated key-value.</returns>
         [MethodImpl((MethodImplOptions)256)]
-        public ImHashMap<K, V> AddOrUpdate(K key, V value, Update<V> update) =>
-            AddOrUpdate(key, value, out _, out _, update.IgnoreKey);
+        public ImHashMap<K, V> AddOrUpdate(K key, V value, Update<K, V> update) =>
+            AddOrUpdate(key.GetHashCode(), key, value, update);
 
         /// Allocation free for `update` delegate with key
         [MethodImpl((MethodImplOptions)256)]
@@ -3326,33 +3468,41 @@ namespace ImTools
 
         /// Returns a new tree with added or updated value for specified key.
         [MethodImpl((MethodImplOptions)256)]
-        public static void AddOrUpdate<K, V>(this ImHashMap<K, V>[] slots, K key, V value)
+        public static void AddOrUpdate<K, V>(this ImHashMap<K, V>[] slots, int hash, K key, V value)
         {
-            var hash = key.GetHashCode();
             ref var slot = ref slots.GetMapSlotRef(hash);
             var copy = slot;
             if (Interlocked.CompareExchange(ref slot, copy.AddOrUpdate(hash, key, value), copy) != copy)
                 RefAddOrUpdateSlot(ref slot, hash, key, value);
         }
 
+        /// Returns a new tree with added or updated value for specified key.
+        [MethodImpl((MethodImplOptions) 256)]
+        public static void AddOrUpdate<K, V>(this ImHashMap<K, V>[] slots, K key, V value) =>
+            slots.AddOrUpdate(key.GetHashCode(), key, value);
+
         /// Updates the ref to the slot with the new version - retry if the someone changed the slot in between
         public static void RefAddOrUpdateSlot<K, V>(ref ImHashMap<K, V> slot, int hash, K key, V value) =>
             Ref.Swap(ref slot, hash, key, value, (x, h, k, v) => x.AddOrUpdate(h, k, v));
 
-        ///// Updates the value with help of `updateValue` function
-        //[MethodImpl((MethodImplOptions)256)]
-        //public static void AddOrUpdate<V>(this ImMap<V>[] slots, int key, V value, Update<int, V> updateValue)
-        //{
-        //    ref var slot = ref slots.GetMapSlotRef(key);
-        //    var copy = slot;
-        //    var newSlot = copy.AddOrUpdate(key, value, updateValue);
-        //    if (Interlocked.CompareExchange(ref slot, newSlot, copy) != copy)
-        //        RefAddOrUpdateSlot(ref slot, key, value, updateValue);
-        //}
+        /// Updates the value with help of `updateValue` function
+        [MethodImpl((MethodImplOptions)256)]
+        public static void AddOrUpdate<K, V>(this ImHashMap<K, V>[] slots, int hash, K key, V value, Update<K, V> update)
+        {
+            ref var slot = ref slots.GetMapSlotRef(hash);
+            var copy = slot;
+            if (Interlocked.CompareExchange(ref slot, copy.AddOrUpdate(hash, key, value, update), copy) != copy)
+                RefAddOrUpdateSlot(ref slot, hash, key, value, update);
+        }
 
-        ///// Update the ref to the slot with the new version - retry if the someone changed the slot in between
-        //public static void RefAddOrUpdateSlot<V>(ref ImMap<V> slot, int key, V value, Update<int, V> updateValue) =>
-        //    Ref.Swap(ref slot, key, value, updateValue, (s, k, v, u) => s.AddOrUpdate(k, v, u));
+        /// Updates the value with help of `updateValue` function
+        [MethodImpl((MethodImplOptions) 256)]
+        public static void AddOrUpdate<K, V>(this ImHashMap<K, V>[] slots, K key, V value, Update<K, V> updateValue) =>
+            slots.AddOrUpdate(key.GetHashCode(), key, value, updateValue);
+
+        /// Update the ref to the slot with the new version - retry if the someone changed the slot in between
+        public static void RefAddOrUpdateSlot<K, V>(ref ImHashMap<K, V> slot, int hash, K key, V value, Update<K, V> update) =>
+            Ref.Swap(ref slot, hash, key, value, update, (x, h, k, v, u) => x.AddOrUpdate(h, k, v, u));
 
         ///// Updates the specified slot or does not change it
         //[MethodImpl((MethodImplOptions)256)]

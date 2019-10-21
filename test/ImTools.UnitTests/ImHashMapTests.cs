@@ -303,7 +303,7 @@ namespace ImTools.UnitTests
             var keyHash = key.GetHashCode();
             var value = "test";
 
-            KeyValuePair<Type, string>[] Update(KeyValuePair<Type, string>[] oldValue, KeyValuePair<Type, string>[] newValue)
+            KeyValuePair<Type, string>[] Update(int _, KeyValuePair<Type, string>[] oldValue, KeyValuePair<Type, string>[] newValue)
             {
                 var newItem = newValue[0];
                 var oldItemCount = oldValue.Length;

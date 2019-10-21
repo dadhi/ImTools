@@ -114,7 +114,7 @@ Frequency=2156251 Hz, Resolution=463.7679 ns, Timer=TSC
                 {
                     var a = i.ToString();
                     var v = a + KeySeed;
-                    map = map.AddOrUpdate(v + a, v, out _, out _);
+                    map = map.AddOrUpdate(v + a, v);
                 }
 
                 return map;
@@ -277,7 +277,7 @@ Frequency=2156251 Hz, Resolution=463.7679 ns, Timer=TSC
                 {
                     var a = i.ToString();
                     var v = a + Seed;
-                    map = map.AddOrUpdate(v + a, v, out _, out _);
+                    map = map.AddOrUpdate(v + a, v);
                 }
 
                 return map;
