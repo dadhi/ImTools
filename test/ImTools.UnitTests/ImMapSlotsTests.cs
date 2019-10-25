@@ -59,18 +59,18 @@ namespace ImTools.Experimental.UnitTests
         [Test]
         public void Update_to_null_and_then_to_value_should_remove_null()
         {
-            var map = ImMapSlots.CreateWithEmpty<string>();
-            map.AddOrUpdate(1, "a");
-            map.AddOrUpdate(2, "b");
-            map.AddOrUpdate(3, "c");
-            map.AddOrUpdate(4, "d");
+            var maps = ImMapSlots.CreateWithEmpty<string>();
+            maps.AddOrUpdate(1, "a");
+            maps.AddOrUpdate(2, "b");
+            maps.AddOrUpdate(3, "c");
+            maps.AddOrUpdate(4, "d");
 
-            Assert.AreEqual("d", map[4].GetValueOrDefault(4));
+            Assert.AreEqual("d", maps[4].GetValueOrDefault(4));
 
-            map.Update(4, null);
-            Assert.IsNull(map[4].GetValueOrDefault(4));
+            maps.Update(4, null);
+            Assert.IsNull(maps[4].GetValueOrDefault(4));
 
-            map.Update(4, "X");
+            maps.Update(4, "X");
         }
 
         [Test]

@@ -1479,31 +1479,32 @@ namespace ImTools
             }
         }
 
-        /// Option without allocation for capturing `a`, `b`, `c`, `d` in closure of `getNewValue`
-        [MethodImpl((MethodImplOptions)256)]
-        public static T Swap<T, A, B, C, D>(ref T value, A a, B b, C c, D d, Func<T, A, B, C, D, T> getNewValue,
-            int retryCountUntilThrow = RETRY_COUNT_UNTIL_THROW)
-            where T : class
-        {
-#if SUPPORTS_SPIN_WAIT
-            var spinWait = new SpinWait();
-#endif
-            var retryCount = 0;
-            while (true)
-            {
-                var oldValue = value;
-                var newValue = getNewValue(oldValue, a, b, c, d);
-                if (Interlocked.CompareExchange(ref value, newValue, oldValue) == oldValue)
-                    return oldValue;
+        // todo: Func of 5 args is not available on all plats
+//        /// Option without allocation for capturing `a`, `b`, `c`, `d` in closure of `getNewValue`
+//        [MethodImpl((MethodImplOptions)256)]
+//        public static T Swap<T, A, B, C, D>(ref T value, A a, B b, C c, D d, Func<T, A, B, C, D, T> getNewValue,
+//            int retryCountUntilThrow = RETRY_COUNT_UNTIL_THROW)
+//            where T : class
+//        {
+//#if SUPPORTS_SPIN_WAIT
+//            var spinWait = new SpinWait();
+//#endif
+//            var retryCount = 0;
+//            while (true)
+//            {
+//                var oldValue = value;
+//                var newValue = getNewValue(oldValue, a, b, c, d);
+//                if (Interlocked.CompareExchange(ref value, newValue, oldValue) == oldValue)
+//                    return oldValue;
 
-                if (++retryCount > retryCountUntilThrow)
-                    ThrowRetryCountExceeded(retryCountUntilThrow);
+//                if (++retryCount > retryCountUntilThrow)
+//                    ThrowRetryCountExceeded(retryCountUntilThrow);
 
-#if SUPPORTS_SPIN_WAIT
-                spinWait.SpinOnce();
-#endif
-            }
-        }
+//#if SUPPORTS_SPIN_WAIT
+//                spinWait.SpinOnce();
+//#endif
+//            }
+//        }
     }
 
     /// <summary>Printable thing via provided printer </summary>
@@ -3261,7 +3262,7 @@ namespace ImTools
 
         /// Update the ref to the slot with the new version - retry if the someone changed the slot in between
         public static void RefAddOrUpdateSlot<K, V>(ref ImHashMap<K, V> slot, int hash, K key, V value, Update<K, V> update) =>
-            Ref.Swap(ref slot, hash, key, value, update, (x, h, k, v, u) => x.AddOrUpdate(h, k, v, u));
+            Ref.Swap(ref slot, hash, key, value, (x, h, k, v) => x.AddOrUpdate(h, k, v, update));
 
         /// Updates the specified slot or does not change it
         [MethodImpl((MethodImplOptions)256)]
