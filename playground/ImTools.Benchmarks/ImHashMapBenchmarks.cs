@@ -345,7 +345,7 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
                 return map;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public DictionarySlim<TypeVal, string> DictSlim_TryAdd()
             {
                 var map = new DictionarySlim<TypeVal, string>();
@@ -357,7 +357,7 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
                 return map;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public Dictionary<Type, string> Dict_TryAdd()
             {
                 var map = new Dictionary<Type, string>();
@@ -369,7 +369,7 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
                 return map;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public ConcurrentDictionary<Type, string> ConcurrentDict_TryAdd()
             {
                 var map = new ConcurrentDictionary<Type, string>();
@@ -381,7 +381,7 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
                 return map;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public ImmutableDictionary<Type, string> ImmutableDict_Add()
             {
                 var map = ImmutableDictionary<Type, string>.Empty;
@@ -675,6 +675,8 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
             {
                 _map = AddOrUpdate();
                 _mapV1 = AddOrUpdate_v1();
+                _mapRtHlp = AddOrUpdate_RuntimeHelpersGetHashCode();
+                _mapSlots = ImHashMapSlots_AddOrUpdate();
                 _dict = Dict();
                 _dictSlim = DictSlim();
                 _concurrentDict = ConcurrentDict();
@@ -693,8 +695,20 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
                 map = map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
                 return map;
             }
-
+            
             private ImHashMap<Type, string> _map;
+
+            public ImHashMap<Type, string> AddOrUpdate_RuntimeHelpersGetHashCode()
+            {
+                var map = ImHashMap<Type, string>.Empty;
+
+                foreach (var key in _keys.Take(Count))
+                    map = map.AddOrUpdate(RuntimeHelpers.GetHashCode(key), key, "a");
+
+                return map.AddOrUpdate(RuntimeHelpers.GetHashCode(typeof(ImHashMapBenchmarks)), typeof(ImHashMapBenchmarks), "!");
+            }
+
+            private ImHashMap<Type, string> _mapRtHlp;
 
             public ImTools.OldVersions.V1.ImHashMap<Type, string> AddOrUpdate_v1()
             {
@@ -708,6 +722,19 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
             }
 
             private ImTools.OldVersions.V1.ImHashMap<Type, string> _mapV1;
+
+            public ImHashMap<Type, string>[] ImHashMapSlots_AddOrUpdate()
+            {
+                var map = ImHashMapSlots.CreateWithEmpty<Type, string>();
+
+                foreach (var key in _keys.Take(Count))
+                    map.AddOrUpdate(key, "a");
+
+                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+                return map;
+            }
+
+            private ImHashMap<Type, string>[] _mapSlots;
 
             public Dictionary<Type, string> Dict()
             {
@@ -773,9 +800,24 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
             }
 
             [Benchmark]
+            public string ImHashMap_TryFind_RuntimeHelpersGetHashCode()
+            {
+                _mapRtHlp.TryFind(RuntimeHelpers.GetHashCode(LookupKey), LookupKey, out var result);
+                return result;
+            }
+
+            [Benchmark]
             public string ImHashMap_TryFind_V1()
             {
                 _mapV1.TryFind(LookupKey, out var result);
+                return result;
+            }
+
+            [Benchmark]
+            public string ImHashMapSlots_TryFind()
+            {
+                var hash = LookupKey.GetHashCode();
+                _mapSlots[hash & ImHashMapSlots.HASH_MASK_TO_FIND_SLOT].TryFind(hash, LookupKey, out var result);
                 return result;
             }
 

@@ -2456,37 +2456,27 @@ namespace ImTools
     /// and the slot is the reference to ImMap that can be swapped with its updated value
     public static class ImMapSlots
     {
-        /// Default slot count
-        public const int SLOT_COUNT = 32;
+        /// Default number of slots
+        public const int SLOT_COUNT_POWER_OF_TWO = 32;
 
-        /// The mask for the key to find the slot
-        public const int SLOT_MASK = SLOT_COUNT - 1;
+        /// The default mask to partition the key to the target slot
+        public const int KEY_MASK_TO_FIND_SLOT = SLOT_COUNT_POWER_OF_TWO - 1;
 
         /// Creates the array with the empty slots
         [MethodImpl((MethodImplOptions)256)]
-        public static ImMap<V>[] CreateWithEmpty<V>()
+        public static ImMap<V>[] CreateWithEmpty<V>(int slotCountPowerOfTwo = SLOT_COUNT_POWER_OF_TWO)
         {
-            var slots = new ImMap<V>[SLOT_COUNT];
+            var slots = new ImMap<V>[slotCountPowerOfTwo];
             for (var i = 0; i < slots.Length; ++i)
                 slots[i] = ImMap<V>.Empty;
             return slots;
         }
 
-        /// Gets the map slot by key
-        [MethodImpl((MethodImplOptions)256)]
-        public static ImMap<V> GetMapSlot<V>(this ImMap<V>[] slots, int key) =>
-            slots[key & SLOT_MASK];
-
-        /// Gets the map slot by key
-        [MethodImpl((MethodImplOptions)256)]
-        public static ref ImMap<V> GetMapSlotRef<V>(this ImMap<V>[] slots, int key) =>
-            ref slots[key & SLOT_MASK];
-
         /// Returns a new tree with added or updated value for specified key.
         [MethodImpl((MethodImplOptions)256)]
-        public static void AddOrUpdate<V>(this ImMap<V>[] slots, int key, V value)
+        public static void AddOrUpdate<V>(this ImMap<V>[] slots, int key, V value, int keyMaskToFindSlot = KEY_MASK_TO_FIND_SLOT)
         {
-            ref var slot = ref slots.GetMapSlotRef(key);
+            ref var slot = ref slots[key & keyMaskToFindSlot];
             var copy = slot;
             if (Interlocked.CompareExchange(ref slot, copy.AddOrUpdate(key, value), copy) != copy)
                 RefAddOrUpdateSlot(ref slot, key, value);
@@ -2498,9 +2488,9 @@ namespace ImTools
 
         /// Updates the value with help of `updateValue` function
         [MethodImpl((MethodImplOptions)256)]
-        public static void AddOrUpdate<V>(this ImMap<V>[] slots, int key, V value, Update<int, V> updateValue)
+        public static void AddOrUpdate<V>(this ImMap<V>[] slots, int key, V value, Update<int, V> updateValue, int keyMaskToFindSlot = KEY_MASK_TO_FIND_SLOT)
         {
-            ref var slot = ref slots.GetMapSlotRef(key);
+            ref var slot = ref slots[key & keyMaskToFindSlot];
             var copy = slot;
             if (Interlocked.CompareExchange(ref slot, copy.AddOrUpdate(key, value, updateValue), copy) != copy)
                 RefAddOrUpdateSlot(ref slot, key, value, updateValue);
@@ -2512,9 +2502,9 @@ namespace ImTools
 
         /// Adds a new value for the specified key or keeps the existing map if the key is already in the map.
         [MethodImpl((MethodImplOptions)256)]
-        public static void AddOrKeep<V>(this ImMap<V>[] slots, int key, V value)
+        public static void AddOrKeep<V>(this ImMap<V>[] slots, int key, V value, int keyMaskToFindSlot = KEY_MASK_TO_FIND_SLOT)
         {
-            ref var slot = ref slots.GetMapSlotRef(key);
+            ref var slot = ref slots[key & keyMaskToFindSlot];
             var copy = slot;
             if (Interlocked.CompareExchange(ref slot, copy.AddOrKeep(key, value), copy) != copy)
                 RefAddOrKeepSlot(ref slot, key, value);
@@ -2526,9 +2516,9 @@ namespace ImTools
 
         /// Updates the specified slot or does not change it
         [MethodImpl((MethodImplOptions)256)]
-        public static void Update<V>(this ImMap<V>[] slots, int key, V value)
+        public static void Update<V>(this ImMap<V>[] slots, int key, V value, int keyMaskToFindSlot = KEY_MASK_TO_FIND_SLOT)
         {
-            ref var slot = ref slots.GetMapSlotRef(key);
+            ref var slot = ref slots[key & keyMaskToFindSlot];
             var copy = slot;
             if (Interlocked.CompareExchange(ref slot, copy.Update(key, value), copy) != copy)
                 RefUpdateSlot(ref slot, key, value);
@@ -2887,6 +2877,11 @@ namespace ImTools
             Height == 0 ? new ImHashMap<K, V>(new Data(hash, key, value))
             : hash == Hash ? KeepValueOrAddConflict(hash, key, value)
             : AddOrKeepLeftOrRight(hash, key, value);
+
+        /// Adds a new value for the specified key or keeps the existing map if the key is already in the map.
+        [MethodImpl((MethodImplOptions)256)]
+        public ImHashMap<K, V> AddOrKeep(K key, V value) => 
+            AddOrKeep(key.GetHashCode(), key, value);
 
         private ImHashMap<K, V> KeepValueOrAddConflict(int hash, K key, V value) =>
             ReferenceEquals(Key, key) || Key.Equals(key)
@@ -3365,37 +3360,27 @@ namespace ImTools
     /// and the slot is the reference to ImMap that can be swapped with its updated value
     public static class ImHashMapSlots
     {
-        /// Default slot count
-        public const int SLOT_COUNT = 32;
-        
-        /// The mask for the key to find the slot
-        public const int SLOT_MASK  = SLOT_COUNT - 1;
+        /// Default number of slots
+        public const int SLOT_COUNT_POWER_OF_TWO = 32;
+
+        /// The default mask to partition the key to the target slot
+        public const int HASH_MASK_TO_FIND_SLOT = SLOT_COUNT_POWER_OF_TWO - 1;
 
         /// Creates the array with the empty slots
         [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap<K, V>[] CreateWithEmpty<K, V>()
+        public static ImHashMap<K, V>[] CreateWithEmpty<K, V>(int slotCountPowerOfTwo = SLOT_COUNT_POWER_OF_TWO)
         {
-            var slots = new ImHashMap<K, V>[SLOT_COUNT];
+            var slots = new ImHashMap<K, V>[slotCountPowerOfTwo];
             for (var i = 0; i < slots.Length; ++i)
                 slots[i] = ImHashMap<K, V>.Empty;
             return slots;
         }
 
-        /// Gets the map slot by key hash
-        [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap<K, V> GetMapSlot<K, V>(this ImHashMap<K, V>[] slots, int keyHash) =>
-            slots[keyHash & SLOT_MASK];
-
-        /// Gets the map slot by key hash
-        [MethodImpl((MethodImplOptions)256)]
-        public static ref ImHashMap<K, V> GetMapSlotRef<K, V>(this ImHashMap<K, V>[] slots, int keyHash) =>
-            ref slots[keyHash & SLOT_MASK];
-
         /// Returns a new tree with added or updated value for specified key.
         [MethodImpl((MethodImplOptions)256)]
-        public static void AddOrUpdate<K, V>(this ImHashMap<K, V>[] slots, int hash, K key, V value)
+        public static void AddOrUpdate<K, V>(this ImHashMap<K, V>[] slots, int hash, K key, V value, int hashMaskToFindSlot = HASH_MASK_TO_FIND_SLOT)
         {
-            ref var slot = ref slots.GetMapSlotRef(hash);
+            ref var slot = ref slots[hash & hashMaskToFindSlot];
             var copy = slot;
             if (Interlocked.CompareExchange(ref slot, copy.AddOrUpdate(hash, key, value), copy) != copy)
                 RefAddOrUpdateSlot(ref slot, hash, key, value);
@@ -3403,8 +3388,8 @@ namespace ImTools
 
         /// Returns a new tree with added or updated value for specified key.
         [MethodImpl((MethodImplOptions) 256)]
-        public static void AddOrUpdate<K, V>(this ImHashMap<K, V>[] slots, K key, V value) =>
-            slots.AddOrUpdate(key.GetHashCode(), key, value);
+        public static void AddOrUpdate<K, V>(this ImHashMap<K, V>[] slots, K key, V value, int hashMaskToFindSlot = HASH_MASK_TO_FIND_SLOT) =>
+            slots.AddOrUpdate(key.GetHashCode(), key, value, hashMaskToFindSlot);
 
         /// Updates the ref to the slot with the new version - retry if the someone changed the slot in between
         public static void RefAddOrUpdateSlot<K, V>(ref ImHashMap<K, V> slot, int hash, K key, V value) =>
@@ -3412,9 +3397,9 @@ namespace ImTools
 
         /// Updates the value with help of `updateValue` function
         [MethodImpl((MethodImplOptions)256)]
-        public static void AddOrUpdate<K, V>(this ImHashMap<K, V>[] slots, int hash, K key, V value, Update<K, V> update)
+        public static void AddOrUpdate<K, V>(this ImHashMap<K, V>[] slots, int hash, K key, V value, Update<K, V> update, int hashMaskToFindSlot = HASH_MASK_TO_FIND_SLOT)
         {
-            ref var slot = ref slots.GetMapSlotRef(hash);
+            ref var slot = ref slots[hash & hashMaskToFindSlot];
             var copy = slot;
             if (Interlocked.CompareExchange(ref slot, copy.AddOrUpdate(hash, key, value, update), copy) != copy)
                 RefAddOrUpdateSlot(ref slot, hash, key, value, update);
@@ -3422,8 +3407,8 @@ namespace ImTools
 
         /// Updates the value with help of `updateValue` function
         [MethodImpl((MethodImplOptions) 256)]
-        public static void AddOrUpdate<K, V>(this ImHashMap<K, V>[] slots, K key, V value, Update<K, V> updateValue) =>
-            slots.AddOrUpdate(key.GetHashCode(), key, value, updateValue);
+        public static void AddOrUpdate<K, V>(this ImHashMap<K, V>[] slots, K key, V value, Update<K, V> updateValue, int hashMaskToFindSlot = HASH_MASK_TO_FIND_SLOT) =>
+            slots.AddOrUpdate(key.GetHashCode(), key, value, updateValue, hashMaskToFindSlot);
 
         /// Update the ref to the slot with the new version - retry if the someone changed the slot in between
         public static void RefAddOrUpdateSlot<K, V>(ref ImHashMap<K, V> slot, int hash, K key, V value, Update<K, V> update) =>
@@ -3431,13 +3416,18 @@ namespace ImTools
 
         /// Adds a new value for the specified key or keeps the existing map if the key is already in the map.
         [MethodImpl((MethodImplOptions)256)]
-        public static void AddOrKeep<K, V>(this ImHashMap<K, V>[] slots, int hash, K key, V value)
+        public static void AddOrKeep<K, V>(this ImHashMap<K, V>[] slots, int hash, K key, V value, int hashMaskToFindSlot = HASH_MASK_TO_FIND_SLOT)
         {
-            ref var slot = ref slots.GetMapSlotRef(hash);
+            ref var slot = ref slots[hash & hashMaskToFindSlot];
             var copy = slot;
             if (Interlocked.CompareExchange(ref slot, copy.AddOrKeep(hash, key, value), copy) != copy)
                 RefAddOrKeepSlot(ref slot, hash, key, value);
         }
+
+        /// Adds a new value for the specified key or keeps the existing map if the key is already in the map.
+        [MethodImpl((MethodImplOptions)256)]
+        public static void AddOrKeep<K, V>(this ImHashMap<K, V>[] slots, K key, V value, int hashMaskToFindSlot = HASH_MASK_TO_FIND_SLOT) =>
+            slots.AddOrKeep(key.GetHashCode(), key, value, hashMaskToFindSlot);
 
         /// Update the ref to the slot with the new version - retry if the someone changed the slot in between
         public static void RefAddOrKeepSlot<K, V>(ref ImHashMap<K, V> slot, int hash, K key, V value) =>
@@ -3445,13 +3435,18 @@ namespace ImTools
 
         /// Updates the specified slot or does not change it
         [MethodImpl((MethodImplOptions)256)]
-        public static void Update<K, V>(this ImHashMap<K, V>[] slots, int hash, K key, V value)
+        public static void Update<K, V>(this ImHashMap<K, V>[] slots, int hash, K key, V value, int hashMaskToFindSlot = HASH_MASK_TO_FIND_SLOT)
         {
-            ref var slot = ref slots.GetMapSlotRef(hash);
+            ref var slot = ref slots[hash & hashMaskToFindSlot];
             var copy = slot;
             if (Interlocked.CompareExchange(ref slot, copy.Update(hash, key, value), copy) != copy)
                 RefUpdateSlot(ref slot, hash, key, value);
         }
+
+        /// Updates the specified slot or does not change it
+        [MethodImpl((MethodImplOptions) 256)]
+        public static void Update<K, V>(this ImHashMap<K, V>[] slots, K key, V value, int hashMaskToFindSlot = HASH_MASK_TO_FIND_SLOT) =>
+            slots.Update(key.GetHashCode(), key, value, hashMaskToFindSlot);
 
         /// Update the ref to the slot with the new version - retry if the someone changed the slot in between
         public static void RefUpdateSlot<K, V>(ref ImHashMap<K, V> slot, int hash, K key, V value) =>

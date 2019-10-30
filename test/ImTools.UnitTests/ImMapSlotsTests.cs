@@ -31,9 +31,9 @@ namespace ImTools.Experimental.UnitTests
         [Test]
         public void Search_in_empty_tree_should_NOT_throw_TryFind()
         {
-            var map = ImMapSlots.CreateWithEmpty<int>();
+            var maps = ImMapSlots.CreateWithEmpty<int>();
 
-            Assert.IsFalse(map.GetMapSlot(0).TryFind(0, out _));
+            Assert.IsFalse(maps[0].TryFind(0, out _));
         }
 
         [Test]
@@ -76,16 +76,16 @@ namespace ImTools.Experimental.UnitTests
         [Test]
         public void Update_with_not_found_key_should_return_the_same_tree()
         {
-            var tree = ImMapSlots.CreateWithEmpty<string>();
-            tree.AddOrUpdate(1, "a");
-            tree.AddOrUpdate(2, "b");
-            tree.AddOrUpdate(3, "c");
-            tree.AddOrUpdate(4, "d");
+            var maps = ImMapSlots.CreateWithEmpty<string>();
+            maps.AddOrUpdate(1, "a");
+            maps.AddOrUpdate(2, "b");
+            maps.AddOrUpdate(3, "c");
+            maps.AddOrUpdate(4, "d");
 
-            var x = tree.GetMapSlot(5);
-            tree.Update(5, "e");
+            var x = maps[5];
+            maps.Update(5, "e");
 
-            Assert.AreSame(x, tree.GetMapSlot(5));
+            Assert.AreSame(x, maps[5]);
         }
 
         [Test]
@@ -123,7 +123,7 @@ namespace ImTools.Experimental.UnitTests
 
             string result = null;
 
-            var items = tree.GetMapSlot(keyHash).GetValueOrDefault(keyHash);
+            var items = tree[keyHash & ImMapSlots.KEY_MASK_TO_FIND_SLOT].GetValueOrDefault(keyHash);
             if (items != null)
             {
                 var firstItem = items[0];
