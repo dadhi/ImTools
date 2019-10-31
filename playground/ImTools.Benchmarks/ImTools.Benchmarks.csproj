@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFrameworks Condition="'$(TravisCI)' != 'true'">netcoreapp2.2</TargetFrameworks>
+        <TargetFrameworks Condition="'$(TravisCI)' != 'true'">netcoreapp3.0</TargetFrameworks>
         <TargetFrameworks Condition="'$(TravisCI)' == 'true'">netcoreapp2.1</TargetFrameworks>
         <Description>Benchmarks, sandbox for experiments.</Description>
         <NoWarn>1701;1702;AD0001;NU1608</NoWarn>
@@ -10,7 +10,7 @@
       <Compile Remove="HashVsImHashMap.cs" />
     </ItemGroup>
     <ItemGroup>
-      <PackageReference Include="BenchmarkDotNet" Version="0.11.5" />
+      <PackageReference Include="BenchmarkDotNet" Version="0.12.0" />
       <PackageReference Include="Microsoft.Experimental.Collections" Version="1.0.6-e190117-3" />
     </ItemGroup>
 
