@@ -1,9 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFrameworks Condition="'$(TravisCI)' != 'true'">netcoreapp3.0</TargetFrameworks>
-        <TargetFrameworks Condition="'$(TravisCI)' == 'true'">netcoreapp2.1</TargetFrameworks>
-        <Description>Benchmarks, sandbox for experiments.</Description>
+        <TargetFramework>netcoreapp2.2</TargetFramework>
+        <TargetFramework Condition="'$(DevMode)' != 'true'">netcoreapp3.0</TargetFramework>
+        <TargetFramework Condition="'$(TravisCI)' == 'true'">netcoreapp2.1</TargetFramework>
+        <Description>Benchmarks and sandbox for experiments.</Description>
         <NoWarn>1701;1702;AD0001;NU1608</NoWarn>
     </PropertyGroup>
     <ItemGroup>

@@ -278,7 +278,7 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
 |    ConcurrentDict_TryAdd |  1000 |   223,008.7 ns |   640.296 ns |   567.606 ns |   222,865.0 ns |  0.79 |    0.00 |     49.3164 |     17.8223 |           - |           254.29 KB |
 |        ImmutableDict_Add |  1000 | 1,403,209.7 ns | 6,072.856 ns | 5,383.428 ns | 1,401,542.6 ns |  4.96 |    0.03 |    140.6250 |      1.9531 |           - |           648.84 KB |
 
-# Newest results 
+# V2
 
 |                                          Method | Count |         Mean |        Error |       StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
 |------------------------------------------------ |------ |-------------:|-------------:|-------------:|------:|--------:|---------:|--------:|------:|----------:|
@@ -312,17 +312,6 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
             }
 
             [Benchmark]
-            public ImHashMap<Type, string> ImHashMap_AddOrUpdate_RuntimeHelpersGetHashCode()
-            {
-                var map = ImHashMap<Type, string>.Empty;
-
-                foreach (var key in _keys.Take(Count))
-                    map = map.AddOrUpdate(RuntimeHelpers.GetHashCode(key), key, "a");
-
-                return map.AddOrUpdate(RuntimeHelpers.GetHashCode(typeof(ImHashMapBenchmarks)), typeof(ImHashMapBenchmarks), "!");
-            }
-
-            [Benchmark]
             public ImTools.OldVersions.V1.ImHashMap<Type, string> ImHashMap_V1_AddOrUpdate()
             {
                 var map = ImTools.OldVersions.V1.ImHashMap<Type, string>.Empty;
@@ -331,6 +320,17 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
                     map = map.AddOrUpdate(key, "a");
 
                 return map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+            }
+
+            [Benchmark]
+            public ImHashMap<Type, string> ImHashMap_AddOrUpdate_RuntimeHelpersGetHashCode()
+            {
+                var map = ImHashMap<Type, string>.Empty;
+
+                foreach (var key in _keys.Take(Count))
+                    map = map.AddOrUpdate(RuntimeHelpers.GetHashCode(key), key, "a");
+
+                return map.AddOrUpdate(RuntimeHelpers.GetHashCode(typeof(ImHashMapBenchmarks)), typeof(ImHashMapBenchmarks), "!");
             }
 
             [Benchmark]
@@ -800,16 +800,16 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
             }
 
             [Benchmark]
-            public string ImHashMap_TryFind_RuntimeHelpersGetHashCode()
+            public string ImHashMap_TryFind_V1()
             {
-                _mapRtHlp.TryFind(RuntimeHelpers.GetHashCode(LookupKey), LookupKey, out var result);
+                _mapV1.TryFind(LookupKey, out var result);
                 return result;
             }
 
             [Benchmark]
-            public string ImHashMap_TryFind_V1()
+            public string ImHashMap_TryFind_RuntimeHelpersGetHashCode()
             {
-                _mapV1.TryFind(LookupKey, out var result);
+                _mapRtHlp.TryFind(RuntimeHelpers.GetHashCode(LookupKey), LookupKey, out var result);
                 return result;
             }
 

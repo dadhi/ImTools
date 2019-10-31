@@ -13,7 +13,7 @@ dotnet restore /p:DevMode=false %SLN%
 if %ERRORLEVEL% neq 0 goto :error
 echo:
 echo:## Finished: DOTNET RESTORE ##
-echo: 
+echo:
 
 rem Looking for MSBuild.exe path
 set MSB="C:\Program Files (x86)\Microsoft Visual Studio\2017\Professional\MSBuild\15.0\bin\MSBuild.exe"
