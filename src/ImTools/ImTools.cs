@@ -3272,6 +3272,31 @@ namespace ImTools
 
         /// Returns true if key is found and sets the value.
         [MethodImpl((MethodImplOptions)256)]
+        public static bool TryFind<K, V>(this ImHashMap<K, V> map, int hash, K key, out V value)
+        {
+            while (map.Height != 0)
+            {
+                if (hash < map.Hash)
+                    map = map.Left;
+                else if (hash > map.Hash)
+                    map = map.Right;
+                else if (ReferenceEquals(key, map.Key) || key.Equals(map.Key))
+                {
+                    value = map.Value;
+                    return true;
+                }
+                else
+                {
+                    return map.TryFindConflictedValue(key, out value);
+                }
+            }
+
+            value = default;
+            return false;
+        }
+
+        /// Returns true if key is found and sets the value.
+        [MethodImpl((MethodImplOptions)256)]
         public static bool TryFind<V>(this ImHashMap<string, V> map, string key, out V value)
         {
             if (map.Height != 0)
@@ -3300,6 +3325,31 @@ namespace ImTools
             return false;
         }
 
+        /// Returns true if key is found and sets the value.
+        [MethodImpl((MethodImplOptions)256)]
+        public static bool TryFind<V>(this ImHashMap<string, V> map, int hash, string key, out V value)
+        {
+            while (map.Height != 0)
+            {
+                if (hash < map.Hash)
+                    map = map.Left;
+                else if (hash > map.Hash)
+                    map = map.Right;
+                else if (key.Equals(map.Key))
+                {
+                    value = map.Value;
+                    return true;
+                }
+                else
+                {
+                    return map.TryFindConflictedValue(key, out value);
+                }
+            }
+
+            value = default;
+            return false;
+        }
+
         /// Returns true if hash and key are found and the result value, or the false otherwise
         [MethodImpl((MethodImplOptions)256)]
         public static bool TryFind<V>(this ImHashMap<Type, V> map, int hash, Type key, out V value)
@@ -3310,7 +3360,7 @@ namespace ImTools
                     map = map.Left;
                 else if (hash > map.Hash)
                     map = map.Right;
-                else if (key == map.Key)
+                else if (ReferenceEquals(key, map.Key))
                 {
                     value = map.Value;
                     return true;
