@@ -666,6 +666,43 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
 | ConcurrentDictionary_TryGetValue |  1000 | 22.150 ns | 0.1141 ns | 0.1068 ns |  1.61 |    0.01 |           - |           - |           - |                   - |
 |             ImmutableDict_TryGet |  1000 | 82.402 ns | 0.9798 ns | 0.9165 ns |  6.01 |    0.07 |           - |           - |           - |                   - |
 
+## V2:
+
+BenchmarkDotNet=v0.12.0, OS=Windows 10.0.18362
+Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+.NET Core SDK=3.0.100
+  [Host]     : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
+  DefaultJob : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
+
+|                                      Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|-------------------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+|                           ImHashMap_TryFind |    10 |  7.291 ns | 0.1047 ns | 0.0875 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|                        ImHashMap_TryFind_V1 |    10 |  7.445 ns | 0.0455 ns | 0.0426 ns |  1.02 |    0.01 |     - |     - |     - |         - |
+| ImHashMap_TryFind_RuntimeHelpersGetHashCode |    10 |  5.935 ns | 0.0429 ns | 0.0380 ns |  0.81 |    0.01 |     - |     - |     - |         - |
+|                      ImHashMapSlots_TryFind |    10 |  3.443 ns | 0.0559 ns | 0.0523 ns |  0.47 |    0.01 |     - |     - |     - |         - |
+|                  DictionarySlim_TryGetValue |    10 |  6.498 ns | 0.1152 ns | 0.1077 ns |  0.89 |    0.02 |     - |     - |     - |         - |
+|                      Dictionary_TryGetValue |    10 | 16.654 ns | 0.1028 ns | 0.0912 ns |  2.28 |    0.03 |     - |     - |     - |         - |
+|            ConcurrentDictionary_TryGetValue |    10 | 15.702 ns | 0.0464 ns | 0.0434 ns |  2.15 |    0.03 |     - |     - |     - |         - |
+|                        ImmutableDict_TryGet |    10 | 27.794 ns | 0.2004 ns | 0.1674 ns |  3.81 |    0.04 |     - |     - |     - |         - |
+|                                             |       |           |           |           |       |         |       |       |       |           |
+|                           ImHashMap_TryFind |   100 |  9.572 ns | 0.0283 ns | 0.0264 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|                        ImHashMap_TryFind_V1 |   100 | 10.865 ns | 0.0180 ns | 0.0169 ns |  1.14 |    0.00 |     - |     - |     - |         - |
+| ImHashMap_TryFind_RuntimeHelpersGetHashCode |   100 |  9.304 ns | 0.0535 ns | 0.0447 ns |  0.97 |    0.01 |     - |     - |     - |         - |
+|                      ImHashMapSlots_TryFind |   100 |  5.527 ns | 0.0400 ns | 0.0355 ns |  0.58 |    0.00 |     - |     - |     - |         - |
+|                  DictionarySlim_TryGetValue |   100 |  6.304 ns | 0.0380 ns | 0.0336 ns |  0.66 |    0.00 |     - |     - |     - |         - |
+|                      Dictionary_TryGetValue |   100 | 15.800 ns | 0.0720 ns | 0.0638 ns |  1.65 |    0.01 |     - |     - |     - |         - |
+|            ConcurrentDictionary_TryGetValue |   100 | 16.689 ns | 0.0731 ns | 0.0648 ns |  1.74 |    0.01 |     - |     - |     - |         - |
+|                        ImmutableDict_TryGet |   100 | 30.179 ns | 0.0480 ns | 0.0426 ns |  3.15 |    0.01 |     - |     - |     - |         - |
+|                                             |       |           |           |           |       |         |       |       |       |           |
+|                           ImHashMap_TryFind |  1000 | 12.817 ns | 0.0572 ns | 0.0507 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|                        ImHashMap_TryFind_V1 |  1000 | 13.722 ns | 0.0551 ns | 0.0515 ns |  1.07 |    0.00 |     - |     - |     - |         - |
+| ImHashMap_TryFind_RuntimeHelpersGetHashCode |  1000 | 10.649 ns | 0.0394 ns | 0.0329 ns |  0.83 |    0.00 |     - |     - |     - |         - |
+|                      ImHashMapSlots_TryFind |  1000 |  8.301 ns | 0.0075 ns | 0.0062 ns |  0.65 |    0.00 |     - |     - |     - |         - |
+|                  DictionarySlim_TryGetValue |  1000 |  6.275 ns | 0.0533 ns | 0.0499 ns |  0.49 |    0.00 |     - |     - |     - |         - |
+|                      Dictionary_TryGetValue |  1000 | 15.765 ns | 0.0284 ns | 0.0265 ns |  1.23 |    0.00 |     - |     - |     - |         - |
+|            ConcurrentDictionary_TryGetValue |  1000 | 15.750 ns | 0.0895 ns | 0.0793 ns |  1.23 |    0.01 |     - |     - |     - |         - |
+|                        ImmutableDict_TryGet |  1000 | 33.712 ns | 0.0788 ns | 0.0737 ns |  2.63 |    0.01 |     - |     - |     - |         - |
+
 */
             [Params(10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             public int Count;
@@ -820,6 +857,14 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
                 _mapSlots[hash & ImHashMapSlots.HASH_MASK_TO_FIND_SLOT].TryFind(hash, LookupKey, out var result);
                 return result;
             }
+
+            //[Benchmark]
+            public string ImHashMap_GetValueOrDefault() => 
+                _map.GetValueOrDefault(LookupKey);
+
+            //[Benchmark]
+            public string ImHashMap_GetValueOrDefault_V1() =>
+                _mapV1.GetValueOrDefault(LookupKey);
 
             [Benchmark]
             public string DictionarySlim_TryGetValue()
