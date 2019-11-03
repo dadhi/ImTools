@@ -41,16 +41,16 @@ namespace ImTools
     /// <summary>Helpers for functional composition</summary>
     public static class Fun
     {
-        /// <summary>Always a true condition.</summary>
+        /// Always a true condition.
         public static bool Always<T>(T _) => true;
 
-        /// <summary>Identity function returning passed argument as result.</summary>
+        /// Identity function returning passed argument as result.
         public static T Id<T>(T x) => x;
 
-        /// <summary>Piping</summary>
+        /// Forward pipe operator (`|>` in F#)
         public static R To<T, R>(this T x, Func<T, R> map) => map(x);
 
-        /// <summary>Piping</summary>
+        /// Forward pipe operator (`|>` in F#) but with side effect propagating the original `x` value
         public static T Do<T>(this T x, Action<T> effect)
         {
             effect(x);
@@ -66,75 +66,20 @@ namespace ImTools
     /// Replacement for `Void` type which can be used as a type argument and value.
     /// In traditional functional languages this type is a singleton empty record type,
     /// e.g. `()` in Haskell https://en.wikipedia.org/wiki/Unit_type
-    public struct Empty
+    public struct Unit
     {
         /// Singleton unit
-        public static readonly Empty Value = new Empty();
+        public static readonly Unit unit = new Unit();
 
         /// <inheritdoc />
-        public override string ToString() => "(empty)";
+        public override string ToString() => "(unit)";
     }
 
-    /*
-    ## The example of Union usage:
-    *
-    /// UI elements
-    sealed class UI     : U<Text, Input, Button, Check, Panel> {}
-    sealed class Text   : Data<Text,   string> {}
-    sealed class Input  : Data<Input,  (string Content, MessageRef<string> Changed)> {}
-    sealed class Button : Data<Button, (string Label, MessageRef<Empty> Clicked)> {}
-    sealed class Check  : Data<Check,  (string Label, bool IsChecked, MessageRef<bool> Changed)> {}
-    sealed class Panel  : Data<Panel,  (Layout Layout, ImZipper<UI.union> Elements)> {}
-
-    // Somewhere else:
-    private static UIElement CreateElement(UI.union ui)
-    {
-        switch (ui)
-        {
-            case I<Text> text:
-                return new Label { Content = text.Value() };
-
-            case I<Input> input:
-                {
-                    var (content, changed) = input.Value();
-                    var tb = new TextBox { Text = content };
-                    tb.TextChanged += (sender, _) => changed.Send(((TextBox)sender).Text);
-                    return tb;
-                }
-            case I<Button> button:
-                {
-                    var (label, clicked) = button.Value();
-                    var b = new Btn { Content = label };
-                    b.Click += (sender, _) => clicked.Send(Empty.Value);
-                    return b;
-                }
-            case I<Panel> panel:
-                {
-                    var (layout, elems) = panel.Value();
-                    var orientation = layout == Layout.Vertical ? Orientation.Vertical : Orientation.Horizontal;
-                    var p = new StackPanel { Orientation = orientation };
-                    elems.Map(CreateElement).Map(e => p.Children.Add(e));
-                    return p;
-                }
-            case I<Check> check:
-                {
-                    var (label, isChecked, changed) = check.Value();
-                    var c = new CheckBox { Content = label, IsChecked = isChecked };
-                    c.Checked += (s, _) => changed.Send(true);
-                    c.Unchecked += (s, _) => changed.Send(false);
-                    return c;
-                }
-            default:
-                throw new NotSupportedException("The type of UI is not supported: " + ui.GetType());
-        }
-    }
-*/
-
-    /// Useful for type pattern matching via `case I{T} x: ...`
+    /// Simple value provider interface - useful for the type pattern matching via `case I{T} x: ...`
     public interface I<out T>
     {
         /// The value in this case ;)
-        T Case { get; }
+        T Value { get; }
     }
 
     /// Helpers for `Is` and `Union`
@@ -143,7 +88,7 @@ namespace ImTools
         /// Pretty prints the Union using the type information
         internal static string ToString<TName, T>(T value, string prefix = "case(", string suffix = ")")
         {
-            if (typeof(TName) == typeof(Empty))
+            if (typeof(TName) == typeof(Unit))
                 return prefix + value + suffix;
 
             var typeName = typeof(TName).Name;
@@ -153,80 +98,93 @@ namespace ImTools
         }
     }
 
-    /// Wraps the `T` in a typed `TData` class in a one-line declaration,
-    /// so the <c><![CDATA[class Name : Data<Name, string>]]></c>
-    /// is different from the <c><![CDATA[class Address : Data<Address, string>]]></c> 
-    public abstract class Data<TData, T> : I<T>, IEquatable<Data<TData, T>>
-        where TData : Data<TData, T>, new()
-    {
-        /// Wraps the value
-        public static TData Of(T x) => new TData { Case = x };
-
-        /// <inheritdoc />
-        public T Case { get; private set; }
-
-        /// <inheritdoc />
-        public bool Equals(Data<TData, T> other) =>
-            other != null && EqualityComparer<T>.Default.Equals(Case, other.Case);
-
-        /// <inheritdoc />
-        public override bool Equals(object obj) => obj is Data<TData, T> c && Equals(c);
-
-        // ReSharper disable once NonReadonlyMemberInGetHashCode
-        /// <inheritdoc />
-        public override int GetHashCode() => EqualityComparer<T>.Default.GetHashCode(Case);
-
-        /// <inheritdoc />
-        public override string ToString() => UnionTools.ToString<TData, T>(Case, "data(");
-    }
-
     /// Wraps the `T` in a typed `TData` struct value in a one-line declaration,
     /// so the <c><![CDATA[class Name : Case<Name, string>]]></c>
     /// is different from the <c><![CDATA[class Address : Case<Address, string>]]></c> 
-    public abstract class Case<TCase, T> where TCase : Case<TCase, T>
+    public abstract class Item<TItem, T> where TItem : Item<TItem, T>
     {
         /// Creation method for the consistency with other types
-        public static data Of(T x) => new data(x);
+        public static item Of(T x) => new item(x);
 
         /// Nested structure that hosts a value.
         /// All nested types by convention here are lowercase
-        public readonly struct data : IEquatable<data>, I<T>
+        public readonly struct item : IEquatable<item>, I<T>
         {
             /// <inheritdoc />
-            public T Case { [MethodImpl((MethodImplOptions)256)] get => Value; }
+            public T Value { [MethodImpl((MethodImplOptions)256)] get => Item; }
 
             /// The value
-            public readonly T Value;
+            public readonly T Item;
 
             /// Constructor
-            public data(T x) => Value = x;
+            public item(T x) => Item = x;
 
             /// <inheritdoc />
-            public bool Equals(data other) => EqualityComparer<T>.Default.Equals(Value, other.Value);
+            public bool Equals(item other) => EqualityComparer<T>.Default.Equals(Value, other.Value);
 
             /// <inheritdoc />
-            public override bool Equals(object obj) => obj is data c && Equals(c);
+            public override bool Equals(object obj) => obj is item c && Equals(c);
 
             /// <inheritdoc />
             public override int GetHashCode() => EqualityComparer<T>.Default.GetHashCode(Value);
 
             /// <inheritdoc />
-            public override string ToString() => UnionTools.ToString<TCase, T>(Value);
+            public override string ToString() => UnionTools.ToString<TItem, T>(Value);
         }
     }
 
-    /// Unnamed discriminated union (with Empty name), shorter name for simplified inline usage
-    public class U2<T1, T2> : U<Empty, T1, T2> { }
-
-    /// Named discriminated union
-    public abstract class U<TName, T1, T2>
+    /// Wraps the `T` in a named `TBox` class in a one-line declaration,
+    /// so the <c><![CDATA[class Name : Data<Name, string>]]></c>
+    /// is different from the <c><![CDATA[class Address : Data<Address, string>]]></c> 
+    public abstract class Box<TBox, T> : I<T>, IEquatable<Box<TBox, T>>
+        where TBox : Box<TBox, T>, new()
     {
-        /// The base interface to operate.
+        /// Wraps the value
+        public static TBox Of(T x) => new TBox { Value = x };
+
+        /// <inheritdoc />
+        public T Value { get; private set; }
+
+        /// <inheritdoc />
+        public bool Equals(Box<TBox, T> other) =>
+            other != null && EqualityComparer<T>.Default.Equals(Value, other.Value);
+
+        /// <inheritdoc />
+        public override bool Equals(object obj) => obj is Box<TBox, T> c && Equals(c);
+
+        // ReSharper disable once NonReadonlyMemberInGetHashCode
+        /// <inheritdoc />
+        public override int GetHashCode() => EqualityComparer<T>.Default.GetHashCode(Value);
+
+        /// <inheritdoc />
+        public override string ToString() => UnionTools.ToString<TBox, T>(Value, "data(");
+    }
+
+    /// Unnamed discriminated union (with Empty name), shorter name for simplified inline usage
+    public class U<T1, T2> : Union<Unit, T1, T2> { }
+
+    /// Discriminated union
+    public abstract class Union<TUnion, T1, T2>
+    {
+        /// To tag the cases with enum value for efficient pattern matching of required -
+        /// otherwise we need to use `is CaseN` pattern or similar which is less efficient
+        public enum Tag : byte
+        {
+            /// Tags Case1
+            Case1,
+            /// Tags Case2
+            Case2
+        }
+
+        /// The base interface for the cases to operate.
         /// The naming is selected to start from the lower letter, cause we need to use the nested type.
         /// It is an unusual case, that's why using the __union__ will be fine to highlight this.
         // ReSharper disable once InconsistentNaming
         public interface union
         {
+            /// The tag
+            Tag Tag { get; }
+
             /// Matches the union cases to the R value
             R Match<R>(Func<T1, R> map1, Func<T2, R> map2);
         }
@@ -240,20 +198,23 @@ namespace ImTools
         /// Wraps the respective case
         public readonly struct case1 : union, IEquatable<case1>, I<T1>
         {
-            /// Conversion
+            /// Implicit conversion
             public static implicit operator case1(T1 x) => new case1(x);
+
+            /// <inheritdoc />
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case1; }
 
             /// <inheritdoc />
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2) => map1(Case);
 
             /// <inheritdoc />
-            public T1 Case => Value;
+            public T1 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
 
-            /// The X
-            public readonly T1 Value;
+            /// The case value
+            public readonly T1 Case;
 
             /// Wraps the value
-            public case1(T1 x) => Value = x;
+            public case1(T1 x) => Case = x;
 
             /// <inheritdoc />
             public bool Equals(case1 other) => EqualityComparer<T1>.Default.Equals(Value, other.Value);
@@ -265,7 +226,7 @@ namespace ImTools
             public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(Value);
 
             /// <inheritdoc />
-            public override string ToString() => UnionTools.ToString<TName, T1>(Value);
+            public override string ToString() => UnionTools.ToString<TUnion, T1>(Value);
         }
 
         /// Wraps the respective case
@@ -275,16 +236,19 @@ namespace ImTools
             public static implicit operator case2(T2 x) => new case2(x);
 
             /// <inheritdoc />
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case2; }
+
+            /// <inheritdoc />
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2) => map2(Value);
 
             /// <inheritdoc />
-            public T2 Case => Value;
+            public T2 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
 
-            /// The X
-            public readonly T2 Value;
+            /// The case value
+            public readonly T2 Case;
 
             /// Wraps the value
-            public case2(T2 x) => Value = x;
+            public case2(T2 x) => Case = x;
 
             /// <inheritdoc />
             public bool Equals(case2 other) => EqualityComparer<T2>.Default.Equals(Value, other.Value);
@@ -296,14 +260,14 @@ namespace ImTools
             public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(Value);
 
             /// <inheritdoc />
-            public override string ToString() => UnionTools.ToString<TName, T2>(Value);
+            public override string ToString() => UnionTools.ToString<TUnion, T2>(Value);
         }
     }
 
 #pragma warning disable 1591
-    public class U3<T1, T2, T3> : U<Empty, T1, T2, T3> { }
+    public class U<T1, T2, T3> : Union<Unit, T1, T2, T3> { }
 
-    public abstract class U<TName, T1, T2, T3>
+    public abstract class Union<TUnion, T1, T2, T3>
     {
         public enum Tag : byte { Case1, Case2, Case3 }
 
@@ -321,422 +285,1110 @@ namespace ImTools
         {
             public static implicit operator case1(T1 x) => new case1(x);
 
-            public Tag Tag => Tag.Case1;
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case1; }
 
             [MethodImpl((MethodImplOptions)256)]
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3) => map1(X);
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3) => map1(Case);
 
-            public T1 Case { [MethodImpl((MethodImplOptions)256)] get => X; }
+            public T1 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
 
-            public readonly T1 X;
+            public readonly T1 Case;
+            public case1(T1 x) => Case = x;
 
-            public case1(T1 x) => X = x;
-
-            public bool Equals(case1 other) => EqualityComparer<T1>.Default.Equals(X, other.X);
+            public bool Equals(case1 other) => EqualityComparer<T1>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is case1 x && Equals(x);
-            public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(X);
-            public override string ToString() => UnionTools.ToString<TName, T1>(X);
+            public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T1>(Case);
         }
 
         public struct case2 : union, IEquatable<case2>, I<T2>
         {
             public static implicit operator case2(T2 x) => new case2(x);
 
-            public Tag Tag => Tag.Case2;
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3) => map2(X);
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case2; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3) => map2(Case);
 
-            public T2 Case { [MethodImpl((MethodImplOptions)256)] get => X; }
+            public T2 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
 
-            public readonly T2 X;
+            public readonly T2 Case;
+            public case2(T2 x) => Case = x;
 
-            public case2(T2 x) => X = x;
-
-            public bool Equals(case2 other) => EqualityComparer<T2>.Default.Equals(X, other.X);
+            public bool Equals(case2 other) => EqualityComparer<T2>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is case2 x && Equals(x);
-            public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(X);
-            public override string ToString() => UnionTools.ToString<TName, T2>(X);
+            public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T2>(Case);
         }
 
         public struct case3 : union, IEquatable<case3>, I<T3>
         {
             public static implicit operator case3(T3 x) => new case3(x);
 
-            public Tag Tag => Tag.Case3;
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3) => map3(X);
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case3; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3) => map3(Case);
 
-            public T3 Case => X;
+            public T3 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
 
-            public readonly T3 X;
+            public readonly T3 Case;
+            public case3(T3 x) => Case = x;
 
-            public case3(T3 x) => X = x;
-
-            public bool Equals(case3 other) => EqualityComparer<T3>.Default.Equals(X, other.X);
+            public bool Equals(case3 other) => EqualityComparer<T3>.Default.Equals(Case, other.Case);
             public override bool Equals(object obj) => obj is case3 x && Equals(x);
-            public override int GetHashCode() => EqualityComparer<T3>.Default.GetHashCode(X);
-            public override string ToString() => UnionTools.ToString<TName, T3>(X);
+            public override int GetHashCode() => EqualityComparer<T3>.Default.GetHashCode(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T3>(Case);
         }
     }
 
-    public class U4<T1, T2, T3, T4> : Union<Empty, T1, T2, T3, T4> { }
-    public abstract class Union<TType, T1, T2, T3, T4>
+    public class U<T1, T2, T3, T4> : Union<Unit, T1, T2, T3, T4> { }
+    public abstract class Union<TUnion, T1, T2, T3, T4>
     {
+        public enum Tag : byte { Case1, Case2, Case3, Case4 }
+
         public interface union
         {
+            Tag Tag { get; }
             R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4);
         }
 
-        public static union Of(T1 x) => new Case1(x);
-        public static union Of(T2 x) => new Case2(x);
-        public static union Of(T3 x) => new Case3(x);
-        public static union Of(T4 x) => new Case4(x);
+        public static union Of(T1 x) => new case1(x);
+        public static union Of(T2 x) => new case2(x);
+        public static union Of(T3 x) => new case3(x);
+        public static union Of(T4 x) => new case4(x);
 
-        public struct Case1 : union, IEquatable<Case1>, I<T1>
+        public struct case1 : union, IEquatable<case1>, I<T1>
         {
+            public static implicit operator case1(T1 x) => new case1(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case1; }
+
+            [MethodImpl((MethodImplOptions)256)]
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4) => map1(Case);
 
-            public T1 Case { get; }
-            public Case1(T1 v) => Case = v;
+            public T1 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
 
-            public bool Equals(Case1 other) => EqualityComparer<T1>.Default.Equals(Case, other.Case);
-            public override bool Equals(object obj) => obj is Case1 x && Equals(x);
+            public readonly T1 Case;
+            public case1(T1 x) => Case = x;
+
+            public bool Equals(case1 other) => EqualityComparer<T1>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case1 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(Case);
-            public override string ToString() => UnionTools.ToString<TType, T1>(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T1>(Case);
         }
 
-        public struct Case2 : union, IEquatable<Case2>, I<T2>
+        public struct case2 : union, IEquatable<case2>, I<T2>
         {
+            public static implicit operator case2(T2 x) => new case2(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case2; }
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4) => map2(Case);
 
-            public T2 Case { get; }
-            public Case2(T2 v) { Case = v; }
+            public T2 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
 
-            public bool Equals(Case2 other) => EqualityComparer<T2>.Default.Equals(Case, other.Case);
-            public override bool Equals(object obj) => obj is Case2 x && Equals(x);
+            public readonly T2 Case;
+            public case2(T2 x) => Case = x;
+
+            public bool Equals(case2 other) => EqualityComparer<T2>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case2 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(Case);
-            public override string ToString() => UnionTools.ToString<TType, T2>(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T2>(Case);
         }
 
-        public struct Case3 : union, IEquatable<Case3>, I<T3>
+        public struct case3 : union, IEquatable<case3>, I<T3>
         {
+            public static implicit operator case3(T3 x) => new case3(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case3; }
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4) => map3(Case);
 
-            public T3 Case { get; }
-            public Case3(T3 v) { Case = v; }
+            public T3 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
 
-            public bool Equals(Case3 other) => EqualityComparer<T3>.Default.Equals(Case, other.Case);
-            public override bool Equals(object obj) => obj is Case3 x && Equals(x);
+            public readonly T3 Case;
+            public case3(T3 x) => Case = x;
+
+            public bool Equals(case3 other) => EqualityComparer<T3>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case3 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T3>.Default.GetHashCode(Case);
-            public override string ToString() => UnionTools.ToString<TType, T3>(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T3>(Case);
         }
 
-        public struct Case4 : union, IEquatable<Case4>, I<T4>
+        public struct case4 : union, IEquatable<case4>, I<T4>
         {
+            public static implicit operator case4(T4 x) => new case4(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case4; }
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4) => map4(Case);
 
-            public T4 Case { get; }
-            public Case4(T4 v) { Case = v; }
+            public T4 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
 
-            public bool Equals(Case4 other) => EqualityComparer<T4>.Default.Equals(Case, other.Case);
-            public override bool Equals(object obj) => obj is Case4 x && Equals(x);
+            public readonly T4 Case;
+            public case4(T4 x) => Case = x;
+
+            public bool Equals(case4 other) => EqualityComparer<T4>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case4 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T4>.Default.GetHashCode(Case);
-            public override string ToString() => UnionTools.ToString<TType, T4>(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T4>(Case);
         }
     }
 
-    public class U<T1, T2, T3, T4, T5> : Union<Empty, T1, T2, T3, T4, T5> { }
-    public abstract class Union<TType, T1, T2, T3, T4, T5>
+    public class U<T1, T2, T3, T4, T5> : Union<Unit, T1, T2, T3, T4, T5> { }
+    public abstract class Union<TUnion, T1, T2, T3, T4, T5>
     {
+        public enum Tag : byte { Case1, Case2, Case3, Case4, Case5 }
+
         public interface union
         {
+            Tag Tag { get; }
             R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5);
         }
 
-        public static union Of(T1 x) => new Case1(x);
-        public static union Of(T2 x) => new Case2(x);
-        public static union Of(T3 x) => new Case3(x);
-        public static union Of(T4 x) => new Case4(x);
-        public static union Of(T5 x) => new Case5(x);
+        public static union Of(T1 x) => new case1(x);
+        public static union Of(T2 x) => new case2(x);
+        public static union Of(T3 x) => new case3(x);
+        public static union Of(T4 x) => new case4(x);
+        public static union Of(T5 x) => new case5(x);
 
-        public struct Case1 : union, IEquatable<Case1>, I<T1>
+        public struct case1 : union, IEquatable<case1>, I<T1>
         {
+            public static implicit operator case1(T1 x) => new case1(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case1; }
+
+            [MethodImpl((MethodImplOptions)256)]
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5) => map1(Case);
 
-            public T1 Case { get; }
-            public Case1(T1 v) => Case = v;
+            public T1 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
 
-            public bool Equals(Case1 other) => EqualityComparer<T1>.Default.Equals(Case, other.Case);
-            public override bool Equals(object obj) => obj is Case1 x && Equals(x);
+            public readonly T1 Case;
+            public case1(T1 x) => Case = x;
+
+            public bool Equals(case1 other) => EqualityComparer<T1>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case1 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(Case);
-            public override string ToString() => UnionTools.ToString<TType, T1>(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T1>(Case);
         }
 
-        public struct Case2 : union, IEquatable<Case2>, I<T2>
+        public struct case2 : union, IEquatable<case2>, I<T2>
         {
+            public static implicit operator case2(T2 x) => new case2(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case2; }
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5) => map2(Case);
 
-            public T2 Case { get; }
-            public Case2(T2 v) => Case = v;
+            public T2 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
 
-            public bool Equals(Case2 other) => EqualityComparer<T2>.Default.Equals(Case, other.Case);
-            public override bool Equals(object obj) => obj is Case2 c && Equals(c);
+            public readonly T2 Case;
+            public case2(T2 x) => Case = x;
+
+            public bool Equals(case2 other) => EqualityComparer<T2>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case2 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(Case);
-            public override string ToString() => UnionTools.ToString<TType, T2>(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T2>(Case);
         }
 
-        public struct Case3 : union, IEquatable<Case3>, I<T3>
+        public struct case3 : union, IEquatable<case3>, I<T3>
         {
+            public static implicit operator case3(T3 x) => new case3(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case3; }
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5) => map3(Case);
 
-            public T3 Case { get; }
-            public Case3(T3 v) => Case = v;
+            public T3 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
 
-            public bool Equals(Case3 other) => EqualityComparer<T3>.Default.Equals(Case, other.Case);
-            public override bool Equals(object obj) => obj is Case3 x && Equals(x);
+            public readonly T3 Case;
+            public case3(T3 x) => Case = x;
+
+            public bool Equals(case3 other) => EqualityComparer<T3>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case3 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T3>.Default.GetHashCode(Case);
-            public override string ToString() => UnionTools.ToString<TType, T3>(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T3>(Case);
         }
 
-        public struct Case4 : union, IEquatable<Case4>, I<T4>
+        public struct case4 : union, IEquatable<case4>, I<T4>
         {
+            public static implicit operator case4(T4 x) => new case4(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case4; }
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5) => map4(Case);
 
-            public T4 Case { get; }
-            public Case4(T4 v) { Case = v; }
+            public T4 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
 
-            public bool Equals(Case4 other) => EqualityComparer<T4>.Default.Equals(Case, other.Case);
-            public override bool Equals(object obj) => obj is Case4 x && Equals(x);
+            public readonly T4 Case;
+            public case4(T4 x) => Case = x;
+
+            public bool Equals(case4 other) => EqualityComparer<T4>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case4 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T4>.Default.GetHashCode(Case);
-            public override string ToString() => UnionTools.ToString<TType, T4>(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T4>(Case);
         }
 
-        public struct Case5 : union, IEquatable<Case5>, I<T5>
+        public struct case5 : union, IEquatable<case5>, I<T5>
         {
+            public static implicit operator case5(T5 x) => new case5(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case5; }
             public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5) => map5(Case);
 
-            public T5 Case { get; }
-            public Case5(T5 v) { Case = v; }
+            public T5 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
 
-            public bool Equals(Case5 other) => EqualityComparer<T5>.Default.Equals(Case, other.Case);
-            public override bool Equals(object obj) => obj is Case5 x && Equals(x);
+            public readonly T5 Case;
+            public case5(T5 x) => Case = x;
+
+            public bool Equals(case5 other) => EqualityComparer<T5>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case5 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T5>.Default.GetHashCode(Case);
-            public override string ToString() => UnionTools.ToString<TType, T5>(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T5>(Case);
         }
     }
 
-    public class U<T1, T2, T3, T4, T5, T6> : Union<Empty, T1, T2, T3, T4, T5, T6> { }
-    public abstract class Union<TType, T1, T2, T3, T4, T5, T6>
+    public class U<T1, T2, T3, T4, T5, T6> : Union<Unit, T1, T2, T3, T4, T5, T6> { }
+    public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6>
     {
+        public enum Tag : byte { Case1, Case2, Case3, Case4, Case5, Case6 }
+
         public interface union
         {
-            R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
-                Func<T6, R> map6);
+            Tag Tag { get; }
+            R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, Func<T6, R> map6);
         }
 
-        public static union Of(T1 x) => new Case1(x);
-        public static union Of(T2 x) => new Case2(x);
-        public static union Of(T3 x) => new Case3(x);
-        public static union Of(T4 x) => new Case4(x);
-        public static union Of(T5 x) => new Case5(x);
-        public static union Of(T6 x) => new Case6(x);
+        public static union Of(T1 x) => new case1(x);
+        public static union Of(T2 x) => new case2(x);
+        public static union Of(T3 x) => new case3(x);
+        public static union Of(T4 x) => new case4(x);
+        public static union Of(T5 x) => new case5(x);
+        public static union Of(T6 x) => new case6(x);
 
-        public struct Case1 : union, IEquatable<Case1>, I<T1>
+        public struct case1 : union, IEquatable<case1>, I<T1>
         {
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
-                Func<T6, R> map6) => map1(Case);
+            public static implicit operator case1(T1 x) => new case1(x);
 
-            public T1 Case { get; }
-            public Case1(T1 v) => Case = v;
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case1; }
 
-            public bool Equals(Case1 other) => EqualityComparer<T1>.Default.Equals(Case, other.Case);
-            public override bool Equals(object obj) => obj is Case1 x && Equals(x);
+            [MethodImpl((MethodImplOptions)256)]
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, Func<T6, R> map6) => map1(Case);
+
+            public T1 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T1 Case;
+            public case1(T1 x) => Case = x;
+
+            public bool Equals(case1 other) => EqualityComparer<T1>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case1 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(Case);
-            public override string ToString() => UnionTools.ToString<TType, T1>(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T1>(Case);
         }
 
-        public struct Case2 : union, IEquatable<Case2>, I<T2>
+        public struct case2 : union, IEquatable<case2>, I<T2>
         {
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
-                Func<T6, R> map6) => map2(Case);
+            public static implicit operator case2(T2 x) => new case2(x);
 
-            public T2 Case { get; }
-            public Case2(T2 v) => Case = v;
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case2; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, Func<T6, R> map6) => map2(Case);
 
-            public bool Equals(Case2 other) => EqualityComparer<T2>.Default.Equals(Case, other.Case);
-            public override bool Equals(object obj) => obj is Case2 c && Equals(c);
+            public T2 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T2 Case;
+            public case2(T2 x) => Case = x;
+
+            public bool Equals(case2 other) => EqualityComparer<T2>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case2 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(Case);
-            public override string ToString() => UnionTools.ToString<TType, T2>(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T2>(Case);
         }
 
-        public struct Case3 : union, IEquatable<Case3>, I<T3>
+        public struct case3 : union, IEquatable<case3>, I<T3>
         {
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
-                Func<T6, R> map6) => map3(Case);
+            public static implicit operator case3(T3 x) => new case3(x);
 
-            public T3 Case { get; }
-            public Case3(T3 v) => Case = v;
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case3; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, Func<T6, R> map6) => map3(Case);
 
-            public bool Equals(Case3 other) => EqualityComparer<T3>.Default.Equals(Case, other.Case);
-            public override bool Equals(object obj) => obj is Case3 x && Equals(x);
+            public T3 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T3 Case;
+            public case3(T3 x) => Case = x;
+
+            public bool Equals(case3 other) => EqualityComparer<T3>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case3 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T3>.Default.GetHashCode(Case);
-            public override string ToString() => UnionTools.ToString<TType, T3>(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T3>(Case);
         }
 
-        public struct Case4 : union, IEquatable<Case4>, I<T4>
+        public struct case4 : union, IEquatable<case4>, I<T4>
         {
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
-                Func<T6, R> map6) => map4(Case);
+            public static implicit operator case4(T4 x) => new case4(x);
 
-            public T4 Case { get; }
-            public Case4(T4 v) { Case = v; }
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case4; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, Func<T6, R> map6) => map4(Case);
 
-            public bool Equals(Case4 other) => EqualityComparer<T4>.Default.Equals(Case, other.Case);
-            public override bool Equals(object obj) => obj is Case4 x && Equals(x);
+            public T4 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T4 Case;
+            public case4(T4 x) => Case = x;
+
+            public bool Equals(case4 other) => EqualityComparer<T4>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case4 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T4>.Default.GetHashCode(Case);
-            public override string ToString() => UnionTools.ToString<TType, T4>(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T4>(Case);
         }
 
-        public struct Case5 : union, IEquatable<Case5>, I<T5>
+        public struct case5 : union, IEquatable<case5>, I<T5>
         {
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
-                Func<T6, R> map6) => map5(Case);
+            public static implicit operator case5(T5 x) => new case5(x);
 
-            public T5 Case { get; }
-            public Case5(T5 v) { Case = v; }
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case5; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, Func<T6, R> map6) => map5(Case);
 
-            public bool Equals(Case5 other) => EqualityComparer<T5>.Default.Equals(Case, other.Case);
-            public override bool Equals(object obj) => obj is Case5 x && Equals(x);
+            public T5 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T5 Case;
+            public case5(T5 x) => Case = x;
+
+            public bool Equals(case5 other) => EqualityComparer<T5>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case5 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T5>.Default.GetHashCode(Case);
-            public override string ToString() => UnionTools.ToString<TType, T5>(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T5>(Case);
         }
 
-        public struct Case6 : union, IEquatable<Case6>, I<T6>
+        public struct case6 : union, IEquatable<case6>, I<T6>
         {
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
-                Func<T6, R> map6) => map6(Case);
+            public static implicit operator case6(T6 x) => new case6(x);
 
-            public T6 Case { get; }
-            public Case6(T6 v) { Case = v; }
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case6; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, Func<T6, R> map6) => map6(Case);
 
-            public bool Equals(Case6 other) => EqualityComparer<T6>.Default.Equals(Case, other.Case);
-            public override bool Equals(object obj) => obj is Case5 x && Equals(x);
+            public T6 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T6 Case;
+            public case6(T6 x) => Case = x;
+
+            public bool Equals(case6 other) => EqualityComparer<T6>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case6 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T6>.Default.GetHashCode(Case);
-            public override string ToString() => UnionTools.ToString<TType, T6>(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T6>(Case);
         }
     }
 
-    public class U<T1, T2, T3, T4, T5, T6, T7> : Union<Empty, T1, T2, T3, T4, T5, T6, T7> { }
-    public abstract class Union<TType, T1, T2, T3, T4, T5, T6, T7>
+    public class U<T1, T2, T3, T4, T5, T6, T7> : Union<Unit, T1, T2, T3, T4, T5, T6, T7> { }
+    public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7>
     {
+        public enum Tag : byte { Case1, Case2, Case3, Case4, Case5, Case6, Case7 }
+
         public interface union
         {
-            R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
-                Func<T6, R> map6, Func<T7, R> map7);
+            Tag Tag { get; }
+            R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, Func<T6, R> map6, Func<T7, R> map7);
         }
 
-        public static union Of(T1 x) => new Case1(x);
-        public static union Of(T2 x) => new Case2(x);
-        public static union Of(T3 x) => new Case3(x);
-        public static union Of(T4 x) => new Case4(x);
-        public static union Of(T5 x) => new Case5(x);
-        public static union Of(T6 x) => new Case6(x);
-        public static union Of(T7 x) => new Case7(x);
+        public static union Of(T1 x) => new case1(x);
+        public static union Of(T2 x) => new case2(x);
+        public static union Of(T3 x) => new case3(x);
+        public static union Of(T4 x) => new case4(x);
+        public static union Of(T5 x) => new case5(x);
+        public static union Of(T6 x) => new case6(x);
+        public static union Of(T7 x) => new case7(x);
 
-        public struct Case1 : union, IEquatable<Case1>, I<T1>
+        public struct case1 : union, IEquatable<case1>, I<T1>
         {
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
-                Func<T6, R> map6, Func<T7, R> map7) => map1(Case);
+            public static implicit operator case1(T1 x) => new case1(x);
 
-            public T1 Case { get; }
-            public Case1(T1 v) => Case = v;
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case1; }
 
-            public bool Equals(Case1 other) => EqualityComparer<T1>.Default.Equals(Case, other.Case);
-            public override bool Equals(object obj) => obj is Case1 x && Equals(x);
+            [MethodImpl((MethodImplOptions)256)]
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, Func<T6, R> map6, Func<T7, R> map7) => map1(Case);
+
+            public T1 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T1 Case;
+            public case1(T1 x) => Case = x;
+
+            public bool Equals(case1 other) => EqualityComparer<T1>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case1 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(Case);
-            public override string ToString() => UnionTools.ToString<TType, T1>(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T1>(Case);
         }
 
-        public struct Case2 : union, IEquatable<Case2>, I<T2>
+        public struct case2 : union, IEquatable<case2>, I<T2>
         {
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
-                Func<T6, R> map6, Func<T7, R> map7) => map2(Case);
+            public static implicit operator case2(T2 x) => new case2(x);
 
-            public T2 Case { get; }
-            public Case2(T2 v) => Case = v;
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case2; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, Func<T6, R> map6, Func<T7, R> map7) => map2(Case);
 
-            public bool Equals(Case2 other) => EqualityComparer<T2>.Default.Equals(Case, other.Case);
-            public override bool Equals(object obj) => obj is Case2 c && Equals(c);
+            public T2 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T2 Case;
+            public case2(T2 x) => Case = x;
+
+            public bool Equals(case2 other) => EqualityComparer<T2>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case2 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(Case);
-            public override string ToString() => UnionTools.ToString<TType, T2>(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T2>(Case);
         }
 
-        public struct Case3 : union, IEquatable<Case3>, I<T3>
+        public struct case3 : union, IEquatable<case3>, I<T3>
         {
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
-                Func<T6, R> map6, Func<T7, R> map7) => map3(Case);
+            public static implicit operator case3(T3 x) => new case3(x);
 
-            public T3 Case { get; }
-            public Case3(T3 v) => Case = v;
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case3; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, Func<T6, R> map6, Func<T7, R> map7) => map3(Case);
 
-            public bool Equals(Case3 other) => EqualityComparer<T3>.Default.Equals(Case, other.Case);
-            public override bool Equals(object obj) => obj is Case3 x && Equals(x);
+            public T3 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T3 Case;
+            public case3(T3 x) => Case = x;
+
+            public bool Equals(case3 other) => EqualityComparer<T3>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case3 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T3>.Default.GetHashCode(Case);
-            public override string ToString() => UnionTools.ToString<TType, T3>(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T3>(Case);
         }
 
-        public struct Case4 : union, IEquatable<Case4>, I<T4>
+        public struct case4 : union, IEquatable<case4>, I<T4>
         {
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
-                Func<T6, R> map6, Func<T7, R> map7) => map4(Case);
+            public static implicit operator case4(T4 x) => new case4(x);
 
-            public T4 Case { get; }
-            public Case4(T4 v) { Case = v; }
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case4; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, Func<T6, R> map6, Func<T7, R> map7) => map4(Case);
 
-            public bool Equals(Case4 other) => EqualityComparer<T4>.Default.Equals(Case, other.Case);
-            public override bool Equals(object obj) => obj is Case4 x && Equals(x);
+            public T4 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T4 Case;
+            public case4(T4 x) => Case = x;
+
+            public bool Equals(case4 other) => EqualityComparer<T4>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case4 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T4>.Default.GetHashCode(Case);
-            public override string ToString() => UnionTools.ToString<TType, T4>(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T4>(Case);
         }
 
-        public struct Case5 : union, IEquatable<Case5>, I<T5>
+        public struct case5 : union, IEquatable<case5>, I<T5>
         {
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
-                Func<T6, R> map6, Func<T7, R> map7) => map5(Case);
+            public static implicit operator case5(T5 x) => new case5(x);
 
-            public T5 Case { get; }
-            public Case5(T5 v) { Case = v; }
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case5; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, Func<T6, R> map6, Func<T7, R> map7) => map5(Case);
 
-            public bool Equals(Case5 other) => EqualityComparer<T5>.Default.Equals(Case, other.Case);
-            public override bool Equals(object obj) => obj is Case5 x && Equals(x);
+            public T5 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T5 Case;
+            public case5(T5 x) => Case = x;
+
+            public bool Equals(case5 other) => EqualityComparer<T5>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case5 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T5>.Default.GetHashCode(Case);
-            public override string ToString() => UnionTools.ToString<TType, T5>(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T5>(Case);
         }
 
-        public struct Case6 : union, IEquatable<Case6>, I<T6>
+        public struct case6 : union, IEquatable<case6>, I<T6>
         {
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
-                Func<T6, R> map6, Func<T7, R> map7) => map6(Case);
+            public static implicit operator case6(T6 x) => new case6(x);
 
-            public T6 Case { get; }
-            public Case6(T6 v) { Case = v; }
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case6; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, Func<T6, R> map6, Func<T7, R> map7) => map6(Case);
 
-            public bool Equals(Case6 other) => EqualityComparer<T6>.Default.Equals(Case, other.Case);
-            public override bool Equals(object obj) => obj is Case6 x && Equals(x);
+            public T6 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T6 Case;
+            public case6(T6 x) => Case = x;
+
+            public bool Equals(case6 other) => EqualityComparer<T6>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case6 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T6>.Default.GetHashCode(Case);
-            public override string ToString() => UnionTools.ToString<TType, T6>(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T6>(Case);
         }
 
-        public struct Case7 : union, IEquatable<Case7>, I<T7>
+        public struct case7 : union, IEquatable<case7>, I<T7>
         {
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
-                Func<T6, R> map6, Func<T7, R> map7) => map7(Case);
+            public static implicit operator case7(T7 x) => new case7(x);
 
-            public T7 Case { get; }
-            public Case7(T7 v) { Case = v; }
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case7; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, Func<T6, R> map6, Func<T7, R> map7) => map7(Case);
 
-            public bool Equals(Case7 other) => EqualityComparer<T7>.Default.Equals(Case, other.Case);
-            public override bool Equals(object obj) => obj is Case7 x && Equals(x);
+            public T7 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T7 Case;
+            public case7(T7 x) => Case = x;
+
+            public bool Equals(case7 other) => EqualityComparer<T7>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case7 x && Equals(x);
             public override int GetHashCode() => EqualityComparer<T7>.Default.GetHashCode(Case);
-            public override string ToString() => UnionTools.ToString<TType, T7>(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T7>(Case);
+        }
+    }
+
+    public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7, T8>
+    {
+        public enum Tag : byte { Case1, Case2, Case3, Case4, Case5, Case6, Case7, Case8 }
+
+        public interface union
+        {
+            Tag Tag { get; }
+            R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8);
+        }
+
+        public static union Of(T1 x) => new case1(x);
+        public static union Of(T2 x) => new case2(x);
+        public static union Of(T3 x) => new case3(x);
+        public static union Of(T4 x) => new case4(x);
+        public static union Of(T5 x) => new case5(x);
+        public static union Of(T6 x) => new case6(x);
+        public static union Of(T7 x) => new case7(x);
+        public static union Of(T8 x) => new case8(x);
+
+        public struct case1 : union, IEquatable<case1>, I<T1>
+        {
+            public static implicit operator case1(T1 x) => new case1(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case1; }
+
+            [MethodImpl((MethodImplOptions)256)]
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8) => map1(Case);
+
+            public T1 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T1 Case;
+            public case1(T1 x) => Case = x;
+
+            public bool Equals(case1 other) => EqualityComparer<T1>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case1 x && Equals(x);
+            public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T1>(Case);
+        }
+
+        public struct case2 : union, IEquatable<case2>, I<T2>
+        {
+            public static implicit operator case2(T2 x) => new case2(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case2; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8) => map2(Case);
+
+            public T2 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T2 Case;
+            public case2(T2 x) => Case = x;
+
+            public bool Equals(case2 other) => EqualityComparer<T2>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case2 x && Equals(x);
+            public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T2>(Case);
+        }
+
+        public struct case3 : union, IEquatable<case3>, I<T3>
+        {
+            public static implicit operator case3(T3 x) => new case3(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case3; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8) => map3(Case);
+
+            public T3 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T3 Case;
+            public case3(T3 x) => Case = x;
+
+            public bool Equals(case3 other) => EqualityComparer<T3>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case3 x && Equals(x);
+            public override int GetHashCode() => EqualityComparer<T3>.Default.GetHashCode(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T3>(Case);
+        }
+
+        public struct case4 : union, IEquatable<case4>, I<T4>
+        {
+            public static implicit operator case4(T4 x) => new case4(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case4; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8) => map4(Case);
+
+            public T4 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T4 Case;
+            public case4(T4 x) => Case = x;
+
+            public bool Equals(case4 other) => EqualityComparer<T4>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case4 x && Equals(x);
+            public override int GetHashCode() => EqualityComparer<T4>.Default.GetHashCode(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T4>(Case);
+        }
+
+        public struct case5 : union, IEquatable<case5>, I<T5>
+        {
+            public static implicit operator case5(T5 x) => new case5(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case5; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8) => map5(Case);
+
+            public T5 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T5 Case;
+            public case5(T5 x) => Case = x;
+
+            public bool Equals(case5 other) => EqualityComparer<T5>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case5 x && Equals(x);
+            public override int GetHashCode() => EqualityComparer<T5>.Default.GetHashCode(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T5>(Case);
+        }
+
+        public struct case6 : union, IEquatable<case6>, I<T6>
+        {
+            public static implicit operator case6(T6 x) => new case6(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case6; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8) => map6(Case);
+
+            public T6 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T6 Case;
+            public case6(T6 x) => Case = x;
+
+            public bool Equals(case6 other) => EqualityComparer<T6>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case6 x && Equals(x);
+            public override int GetHashCode() => EqualityComparer<T6>.Default.GetHashCode(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T6>(Case);
+        }
+
+        public struct case7 : union, IEquatable<case7>, I<T7>
+        {
+            public static implicit operator case7(T7 x) => new case7(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case7; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8) => map7(Case);
+
+            public T7 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T7 Case;
+            public case7(T7 x) => Case = x;
+
+            public bool Equals(case7 other) => EqualityComparer<T7>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case7 x && Equals(x);
+            public override int GetHashCode() => EqualityComparer<T7>.Default.GetHashCode(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T7>(Case);
+        }
+
+        public struct case8 : union, IEquatable<case8>, I<T8>
+        {
+            public static implicit operator case8(T8 x) => new case8(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case8; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8) => map8(Case);
+
+            public T8 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T8 Case;
+            public case8(T8 x) => Case = x;
+
+            public bool Equals(case8 other) => EqualityComparer<T8>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case8 x && Equals(x);
+            public override int GetHashCode() => EqualityComparer<T8>.Default.GetHashCode(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T8>(Case);
+        }
+    }
+
+    public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7, T8, T9>
+    {
+        public enum Tag : byte { Case1, Case2, Case3, Case4, Case5, Case6, Case7, Case8, Case9 }
+
+        public interface union
+        {
+            Tag Tag { get; }
+            R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, 
+                Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9);
+        }
+
+        public static union Of(T1 x) => new case1(x);
+        public static union Of(T2 x) => new case2(x);
+        public static union Of(T3 x) => new case3(x);
+        public static union Of(T4 x) => new case4(x);
+        public static union Of(T5 x) => new case5(x);
+        public static union Of(T6 x) => new case6(x);
+        public static union Of(T7 x) => new case7(x);
+        public static union Of(T8 x) => new case8(x);
+        public static union Of(T9 x) => new case9(x);
+
+        public struct case1 : union, IEquatable<case1>, I<T1>
+        {
+            public static implicit operator case1(T1 x) => new case1(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case1; }
+
+            [MethodImpl((MethodImplOptions)256)]
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, 
+                Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9) => map1(Case);
+
+            public T1 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T1 Case;
+            public case1(T1 x) => Case = x;
+
+            public bool Equals(case1 other) => EqualityComparer<T1>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case1 x && Equals(x);
+            public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T1>(Case);
+        }
+
+        public struct case2 : union, IEquatable<case2>, I<T2>
+        {
+            public static implicit operator case2(T2 x) => new case2(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case2; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, 
+                Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9) => map2(Case);
+
+            public T2 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T2 Case;
+            public case2(T2 x) => Case = x;
+
+            public bool Equals(case2 other) => EqualityComparer<T2>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case2 x && Equals(x);
+            public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T2>(Case);
+        }
+
+        public struct case3 : union, IEquatable<case3>, I<T3>
+        {
+            public static implicit operator case3(T3 x) => new case3(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case3; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, 
+                Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9) => map3(Case);
+
+            public T3 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T3 Case;
+            public case3(T3 x) => Case = x;
+
+            public bool Equals(case3 other) => EqualityComparer<T3>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case3 x && Equals(x);
+            public override int GetHashCode() => EqualityComparer<T3>.Default.GetHashCode(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T3>(Case);
+        }
+
+        public struct case4 : union, IEquatable<case4>, I<T4>
+        {
+            public static implicit operator case4(T4 x) => new case4(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case4; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, 
+                Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9) => map4(Case);
+
+            public T4 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T4 Case;
+            public case4(T4 x) => Case = x;
+
+            public bool Equals(case4 other) => EqualityComparer<T4>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case4 x && Equals(x);
+            public override int GetHashCode() => EqualityComparer<T4>.Default.GetHashCode(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T4>(Case);
+        }
+
+        public struct case5 : union, IEquatable<case5>, I<T5>
+        {
+            public static implicit operator case5(T5 x) => new case5(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case5; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, 
+                Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9) => map5(Case);
+
+            public T5 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T5 Case;
+            public case5(T5 x) => Case = x;
+
+            public bool Equals(case5 other) => EqualityComparer<T5>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case5 x && Equals(x);
+            public override int GetHashCode() => EqualityComparer<T5>.Default.GetHashCode(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T5>(Case);
+        }
+
+        public struct case6 : union, IEquatable<case6>, I<T6>
+        {
+            public static implicit operator case6(T6 x) => new case6(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case6; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, 
+                Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9) => map6(Case);
+
+            public T6 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T6 Case;
+            public case6(T6 x) => Case = x;
+
+            public bool Equals(case6 other) => EqualityComparer<T6>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case6 x && Equals(x);
+            public override int GetHashCode() => EqualityComparer<T6>.Default.GetHashCode(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T6>(Case);
+        }
+
+        public struct case7 : union, IEquatable<case7>, I<T7>
+        {
+            public static implicit operator case7(T7 x) => new case7(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case7; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, 
+                Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9) => map7(Case);
+
+            public T7 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T7 Case;
+            public case7(T7 x) => Case = x;
+
+            public bool Equals(case7 other) => EqualityComparer<T7>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case7 x && Equals(x);
+            public override int GetHashCode() => EqualityComparer<T7>.Default.GetHashCode(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T7>(Case);
+        }
+
+        public struct case8 : union, IEquatable<case8>, I<T8>
+        {
+            public static implicit operator case8(T8 x) => new case8(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case8; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, 
+                Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9) => map8(Case);
+
+            public T8 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T8 Case;
+            public case8(T8 x) => Case = x;
+
+            public bool Equals(case8 other) => EqualityComparer<T8>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case8 x && Equals(x);
+            public override int GetHashCode() => EqualityComparer<T8>.Default.GetHashCode(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T8>(Case);
+        }
+
+        public struct case9 : union, IEquatable<case9>, I<T9>
+        {
+            public static implicit operator case9(T9 x) => new case9(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case9; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
+                Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9) => map9(Case);
+
+            public T9 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T9 Case;
+            public case9(T9 x) => Case = x;
+
+            public bool Equals(case9 other) => EqualityComparer<T9>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case9 x && Equals(x);
+            public override int GetHashCode() => EqualityComparer<T9>.Default.GetHashCode(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T9>(Case);
+        }
+    }
+
+    public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>
+    {
+        public enum Tag : byte { Case1, Case2, Case3, Case4, Case5, Case6, Case7, Case8, Case9, Case10 }
+
+        public interface union
+        {
+            Tag Tag { get; }
+            R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
+                Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9, Func<T10, R> map10);
+        }
+
+        public static union Of(T1 x) => new case1(x);
+        public static union Of(T2 x) => new case2(x);
+        public static union Of(T3 x) => new case3(x);
+        public static union Of(T4 x) => new case4(x);
+        public static union Of(T5 x) => new case5(x);
+        public static union Of(T6 x) => new case6(x);
+        public static union Of(T7 x) => new case7(x);
+        public static union Of(T8 x) => new case8(x);
+        public static union Of(T9 x) => new case9(x);
+        public static union Of(T10 x) => new case10(x);
+
+        public struct case1 : union, IEquatable<case1>, I<T1>
+        {
+            public static implicit operator case1(T1 x) => new case1(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case1; }
+
+            [MethodImpl((MethodImplOptions)256)]
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
+                Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9, Func<T10, R> map10) => map1(Case);
+
+            public T1 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T1 Case;
+            public case1(T1 x) => Case = x;
+
+            public bool Equals(case1 other) => EqualityComparer<T1>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case1 x && Equals(x);
+            public override int GetHashCode() => EqualityComparer<T1>.Default.GetHashCode(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T1>(Case);
+        }
+
+        public struct case2 : union, IEquatable<case2>, I<T2>
+        {
+            public static implicit operator case2(T2 x) => new case2(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case2; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
+                Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9, Func<T10, R> map10) => map2(Case);
+
+            public T2 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T2 Case;
+            public case2(T2 x) => Case = x;
+
+            public bool Equals(case2 other) => EqualityComparer<T2>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case2 x && Equals(x);
+            public override int GetHashCode() => EqualityComparer<T2>.Default.GetHashCode(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T2>(Case);
+        }
+
+        public struct case3 : union, IEquatable<case3>, I<T3>
+        {
+            public static implicit operator case3(T3 x) => new case3(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case3; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
+                Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9, Func<T10, R> map10) => map3(Case);
+
+            public T3 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T3 Case;
+            public case3(T3 x) => Case = x;
+
+            public bool Equals(case3 other) => EqualityComparer<T3>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case3 x && Equals(x);
+            public override int GetHashCode() => EqualityComparer<T3>.Default.GetHashCode(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T3>(Case);
+        }
+
+        public struct case4 : union, IEquatable<case4>, I<T4>
+        {
+            public static implicit operator case4(T4 x) => new case4(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case4; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
+                Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9, Func<T10, R> map10) => map4(Case);
+
+            public T4 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T4 Case;
+            public case4(T4 x) => Case = x;
+
+            public bool Equals(case4 other) => EqualityComparer<T4>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case4 x && Equals(x);
+            public override int GetHashCode() => EqualityComparer<T4>.Default.GetHashCode(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T4>(Case);
+        }
+
+        public struct case5 : union, IEquatable<case5>, I<T5>
+        {
+            public static implicit operator case5(T5 x) => new case5(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case5; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
+                Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9, Func<T10, R> map10) => map5(Case);
+
+            public T5 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T5 Case;
+            public case5(T5 x) => Case = x;
+
+            public bool Equals(case5 other) => EqualityComparer<T5>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case5 x && Equals(x);
+            public override int GetHashCode() => EqualityComparer<T5>.Default.GetHashCode(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T5>(Case);
+        }
+
+        public struct case6 : union, IEquatable<case6>, I<T6>
+        {
+            public static implicit operator case6(T6 x) => new case6(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case6; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
+                Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9, Func<T10, R> map10) => map6(Case);
+
+            public T6 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T6 Case;
+            public case6(T6 x) => Case = x;
+
+            public bool Equals(case6 other) => EqualityComparer<T6>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case6 x && Equals(x);
+            public override int GetHashCode() => EqualityComparer<T6>.Default.GetHashCode(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T6>(Case);
+        }
+
+        public struct case7 : union, IEquatable<case7>, I<T7>
+        {
+            public static implicit operator case7(T7 x) => new case7(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case7; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
+                Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9, Func<T10, R> map10) => map7(Case);
+
+            public T7 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T7 Case;
+            public case7(T7 x) => Case = x;
+
+            public bool Equals(case7 other) => EqualityComparer<T7>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case7 x && Equals(x);
+            public override int GetHashCode() => EqualityComparer<T7>.Default.GetHashCode(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T7>(Case);
+        }
+
+        public struct case8 : union, IEquatable<case8>, I<T8>
+        {
+            public static implicit operator case8(T8 x) => new case8(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case8; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
+                Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9, Func<T10, R> map10) => map8(Case);
+
+            public T8 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T8 Case;
+            public case8(T8 x) => Case = x;
+
+            public bool Equals(case8 other) => EqualityComparer<T8>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case8 x && Equals(x);
+            public override int GetHashCode() => EqualityComparer<T8>.Default.GetHashCode(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T8>(Case);
+        }
+
+        public struct case9 : union, IEquatable<case9>, I<T9>
+        {
+            public static implicit operator case9(T9 x) => new case9(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case9; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
+                Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9, Func<T10, R> map10) => map9(Case);
+
+            public T9 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T9 Case;
+            public case9(T9 x) => Case = x;
+
+            public bool Equals(case9 other) => EqualityComparer<T9>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case9 x && Equals(x);
+            public override int GetHashCode() => EqualityComparer<T9>.Default.GetHashCode(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T9>(Case);
+        }
+
+        public struct case10 : union, IEquatable<case10>, I<T10>
+        {
+            public static implicit operator case10(T10 x) => new case10(x);
+
+            public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case10; }
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
+                Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9, Func<T10, R> map10) => map10(Case);
+
+            public T10 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
+
+            public readonly T10 Case;
+            public case10(T10 x) => Case = x;
+
+            public bool Equals(case10 other) => EqualityComparer<T10>.Default.Equals(Case, other.Case);
+            public override bool Equals(object obj) => obj is case10 x && Equals(x);
+            public override int GetHashCode() => EqualityComparer<T10>.Default.GetHashCode(Case);
+            public override string ToString() => UnionTools.ToString<TUnion, T10>(Case);
         }
     }
 

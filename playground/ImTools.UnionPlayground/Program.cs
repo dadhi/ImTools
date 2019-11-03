@@ -2,6 +2,7 @@
 
 using System;
 using static System.Console;
+using static ImTools.UnionPlayground.Usage;
 
 namespace ImTools.UnionPlayground
 {
@@ -10,31 +11,31 @@ namespace ImTools.UnionPlayground
         static void Main()
         {
             // Unnamed (anonymous) union is fast to declare and use
-            var i = U2<int, string>.Of(42);
-            var s = U2<int, string>.Of("hey");
+            var i = U<int, string>.Of(42);
+            var s = U<int, string>.Of("hey");
 
             WriteLine(i);
             WriteLine(s);
 
             // You may create the union case directly via constructor, helpful for cases like `U<A, A>` or `U<string, string>`
-            var s2 = new U2<int, string>.case1(24);
+            var s2 = new U<int, string>.case1(24);
             WriteLine(s2);
 
             // Typed union, the type is different from U<int, string>, e.g. `s = name;` won't compile
-            var name = FlagOrName.Of("Bob");
-            var flag = FlagOrName.Of(false);
+            var name = BoolOrString.Of("Bob");
+            var flag = BoolOrString.Of(false);
 
-            WriteLine(Usage.PatternMatching(name));
-            WriteLine(Usage.PatternMatching(flag));
+            WriteLine(SwitchOnCases(name));
+            WriteLine(SwitchOnCases(flag));
             WriteLine(name.Match(f => "" + f, n => n));
 
             // Typed union with Typed cases, so you can pattern match on `case Is<Name> name` or `Is<Flag> flag`
-            var name2 = FlagOrName2.Of(Name.Of("Alice"));
-            var flag2 = FlagOrName2.Of(Flag.Of(true));
+            var name2 = FlagOrName.Of(Name.Of("Alice"));
+            var flag2 = FlagOrName.Of(Flag.Of(true));
 
-            WriteLine(Usage.PatternMatchingWithTypedCases(name2));
-            WriteLine(Usage.PatternMatchingWithTypedCases(flag2));
-            WriteLine(flag2.Match(f => "" + f.Case, n => n.Case));
+            WriteLine(SwitchOnTypedItems(name2));
+            WriteLine(SwitchOnTypedItems(flag2));
+            WriteLine(flag2.Match(f => "" + f.Value, n => n.Value));
 
             // Option (MayBe) type defined as `sealed class Option<T> : Union<Option<T>, Empty, T> { ... }`.
             WriteLine(Some.Of(42));
@@ -48,51 +49,51 @@ namespace ImTools.UnionPlayground
     }
 
     // One line named union definition
-    public sealed class FlagOrName : U<FlagOrName, bool, string> { }
+    public sealed class BoolOrString : Union<BoolOrString, bool, string> { }
 
-    // A different type from FlagOrName
-    public sealed class Other : U<Other, bool, string> { }
+    // A different type from the NamedBoolOrString
+    public sealed class OtherBoolOrString : Union<OtherBoolOrString, bool, string> { }
 
     // Typed union with a typed cases! Now you can pattern match via `I<Flag>` and `I<Name>`
-    public sealed class FlagOrName2 : U<FlagOrName2, Flag.data, Name.data> { }
-    public sealed class Flag : Case<Flag, bool> { }
-    public sealed class Name : Case<Name, string> { }
+    public sealed class FlagOrName : Union<FlagOrName, Flag.item, Name.item> { }
+    public sealed class Flag : Item<Flag, bool>   { }
+    public sealed class Name : Item<Name, string> { }
 
     public static class Usage
     {
         // note: Using T with constraint instead of FlagOrName.I interface improves the performance by avoiding boxing.
-        public static string PatternMatching<T>(T x) where T : FlagOrName.union
+        public static string SwitchOnCases<T>(T x) where T : BoolOrString.union
         {
             switch (x)
             {
-                case FlagOrName.case1 b: return "" + b.Value; // b.Value for the actual value
-                case FlagOrName.case2 s: return "" + s.Value;
+                case BoolOrString.case1 b: return "" + b.Case; // b.Value for the actual value
+                case BoolOrString.case2 s: return "" + s.Case;
                 default: throw new NotSupportedException();
             }
         }
 
-        public static string PatternMatchingWithTypedCases(FlagOrName2.union x)
+        public static string SwitchOnTypedItems(FlagOrName.union x)
         {
             // Refactoring friendly Named cases, with some performance price due the boxing - likely is not important for your case, 
             // except you are designing a performance oriented data structure or being used in performance sensitive spot context.
             // The performance price may be gained back any time by switching to CaseN struct matching.
             switch (x)
             {
-                case I<Flag.data> b: return "" + b.Case.Value;
-                case I<Name.data> s: return "" + s.Case.Value;
+                case I<Flag.item> b: return "" + b.Value.Item;
+                case I<Name.item> s: return "" + s.Value.Item;
                 default: throw new NotSupportedException();
             }
         }
     }
 
-    public class Option<T> : U<Option<T>, Empty, T>
+    public class Option<T> : Union<Option<T>, Unit, T>
     {
         // Type specific custom Case names
-        public static readonly case1 None = new case1(Empty.Value);
+        public static readonly case1 None = new case1(Unit.unit);
         public static case2 Some(T x) => new case2(x);
     }
 
-    // Named facades for the cases are the best for inference and simplicity of use.
+    // Named facades for the cases are the best for type inference and simplicity of use.
     public static class None
     {
         public static Option<T>.case1 Of<T>() => Option<T>.None;
@@ -104,7 +105,7 @@ namespace ImTools.UnionPlayground
     }
 
     // Enum without additional state in a Union disguise. Can be pattern matched as `case Is<Increment> _: ...; break;`
-    public sealed class CounterMessage : U<CounterMessage, Increment, Decrement> { }
+    public sealed class CounterMessage : Union<CounterMessage, Increment, Decrement> { }
     public struct Increment { }
     public struct Decrement { }
 
@@ -121,9 +122,9 @@ namespace ImTools.UnionPlayground
     //public sealed class ListY<T> : Union<ListY<T>, Unit, ListY<T>.I> { }
 
     // Recursive definition of the List
-    public sealed class MyList<T> : U<MyList<T>, Empty, MyList<T>.NonEmptyList>
+    public sealed class MyList<T> : Union<MyList<T>, Unit, MyList<T>.NonEmptyList>
     {
-        public static readonly case1 Empty = new case1(ImTools.Empty.Value);
+        public static readonly case1 Empty = new case1(Unit.unit);
         public static case2 NonEmpty(T head, union tail) => new case2(new NonEmptyList(head, tail));
 
         public readonly struct NonEmptyList
@@ -141,10 +142,10 @@ namespace ImTools.UnionPlayground
     }
 
     // Less efficient, but less boilerplate recursive type - requires one heap reference per recursive type usage.
-    public sealed class MyTree<T> : U<MyTree<T>, Empty, MyTree<T>.NonEmptyTree>
+    public sealed class MyTree<T> : Union<MyTree<T>, Unit, MyTree<T>.NonEmptyTree>
     {
-        public sealed class NonEmptyTree : Data<NonEmptyTree, (union Left, T Leaf, union Right)> { }
-        public static readonly case1 Empty = new case1(ImTools.Empty.Value);
+        public sealed class NonEmptyTree : Box<NonEmptyTree, (union Left, T Leaf, union Right)> { }
+        public static readonly case1 Empty = new case1(Unit.unit);
     }
 
     public static class MyTree
