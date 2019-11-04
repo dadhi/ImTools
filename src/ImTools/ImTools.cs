@@ -66,13 +66,22 @@ namespace ImTools
     /// Replacement for `Void` type which can be used as a type argument and value.
     /// In traditional functional languages this type is a singleton empty record type,
     /// e.g. `()` in Haskell https://en.wikipedia.org/wiki/Unit_type
-    public struct Unit
+    public struct Unit : IEquatable<Unit>
     {
-        /// Singleton unit
+        /// Singleton unit value - making it a lower-case so you could import `using static ImTools.Unit;` and write `return unit;`
         public static readonly Unit unit = new Unit();
 
         /// <inheritdoc />
         public override string ToString() => "(unit)";
+
+        /// Equals to any other Unit
+        public bool Equals(Unit other) => true;
+
+        /// <inheritdoc />
+        public override bool Equals(object obj) => obj is Unit;
+
+        /// Using type hash code for the value
+        public override int GetHashCode() => typeof(Unit).GetHashCode();
     }
 
     /// Simple value provider interface - useful for the type pattern matching via `case I{T} x: ...`
@@ -130,6 +139,30 @@ namespace ImTools
 
             /// <inheritdoc />
             public override string ToString() => UnionTools.ToString<TItem, T>(Value);
+        }
+    }
+
+    /// Item without the data payload
+    public abstract class Item<TItem> where TItem : Item<TItem>
+    {
+        /// Single item value
+        public static readonly item Single = new item();
+
+        /// Nested structure that hosts a value.
+        /// All nested types by convention here are lowercase
+        public readonly struct item : IEquatable<item>
+        {
+            /// <inheritdoc />
+            public bool Equals(item other) => true;
+
+            /// <inheritdoc />
+            public override bool Equals(object obj) => obj is item;
+
+            /// <inheritdoc />
+            public override int GetHashCode() => typeof(TItem).GetHashCode();
+
+            /// <inheritdoc />
+            public override string ToString() => "(" + typeof(TItem).Name + ")";
         }
     }
 

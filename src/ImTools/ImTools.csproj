@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <TargetFrameworks Condition="'$(DevMode)' == 'true'">net45;netstandard2.0</TargetFrameworks>
         <TargetFrameworks Condition="'$(DevMode)' != 'true'">net35;net40;net45;netstandard1.0;netstandard1.3;netstandard2.0;portable-net45+win8+wpa81+wp8;portable-net40+win8+wpa81+wp8+sl5</TargetFrameworks>
@@ -26,7 +26,7 @@
         
         ### Features
         
-        - Added Descriminated Union (ADT Sum-type)
+        - Added Descriminated Union (ADT Sum-type) and single case typed wrapper
         - Faster and less allocative ImMap and ImHashMap with ability to specialize lookup for Key type 
         
         ## Fixes

@@ -105,9 +105,9 @@ namespace ImTools.UnionPlayground
     }
 
     // Enum without additional state in a Union disguise. Can be pattern matched as `case Is<Increment> _: ...; break;`
-    public sealed class CounterMessage : Union<CounterMessage, Increment, Decrement> { }
-    public struct Increment { }
-    public struct Decrement { }
+    public sealed class CounterMessage : Union<CounterMessage, Increment.item, Decrement.item> { }
+    public sealed class Increment : Item<Increment> { }
+    public sealed class Decrement : Item<Decrement> { }
 
     // I expect it should not compile, but...
     // 
