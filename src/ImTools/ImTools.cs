@@ -2489,8 +2489,8 @@ namespace ImTools
     }
 
     /// Zipper is an immutable persistent data structure, to represent collection with single focused (selected, active) element.
-    /// Consist of REVERSED `Left` immutable list, `Focus` element, and `Right` immutable list. That's why a Zipper name,
-    /// where left and right part are joined in focus item.
+    /// Consist of REVERSED `Left` immutable list, `Focus` element, and the `Right` immutable list. That's why a Zipper name,
+    /// where left and right part are joined / zipped in focus item.
     public sealed class ImZipper<T>
     {
         /// Empty singleton instance to start building your zipper
@@ -2723,19 +2723,17 @@ namespace ImTools
                 if (Left.Height == 0)
                     return new ImMap<V>(Key, Value, new ImMap<V>(key, value), Right, 2);
 
-                if (Left.Key == key)
-                {
-                    var left = Left;
-                    return new ImMap<V>(Key, Value, new ImMap<V>(key, value, left.Left, left.Right, left.Height), Right, Height);
-                }
+                var left = Left;
+                if (left.Key == key)
+                    return new ImMap<V>(Key, Value, new ImMap<V>(key, value, left.Left, left.Right, left.Height), Right,
+                        Height);
 
                 if (Right.Height == 0)
-                    return key < Left.Key
-                        ? new ImMap<V>(Left.Key, Left.Value, new ImMap<V>(key, value), new ImMap<V>(Key, Value), 2)
-                        : new ImMap<V>(key, value, new ImMap<V>(Left.Key, Left.Value), new ImMap<V>(Key, Value), 2);
+                    return key < left.Key
+                        ? new ImMap<V>(left.Key, left.Value, new ImMap<V>(key, value), new ImMap<V>(Key, Value), 2)
+                        : new ImMap<V>(key, value, new ImMap<V>(left.Key, left.Value), new ImMap<V>(Key, Value), 2);
 
-                var newLeft = Left.AddOrUpdateLeftOrRight(key, value);
-
+                var newLeft = left.AddOrUpdateLeftOrRight(key, value);
                 if (newLeft.Height > Right.Height + 1) // left is longer by 2, rotate left
                 {
                     var leftLeft = newLeft.Left;
@@ -2757,19 +2755,17 @@ namespace ImTools
                 if (Right.Height == 0)
                     return new ImMap<V>(Key, Value, Left, new ImMap<V>(key, value), 2);
 
-                if (Right.Key == key)
-                {
-                    var right = Right;
-                    return new ImMap<V>(Key, Value, Left, new ImMap<V>(key, value, right.Left, right.Right, right.Height), Height);
-                }
+                var right = Right;
+                if (right.Key == key)
+                    return new ImMap<V>(Key, Value, Left,
+                        new ImMap<V>(key, value, right.Left, right.Right, right.Height), Height);
 
                 if (Left.Height == 0)
-                    return key >= Right.Key
-                        ? new ImMap<V>(Right.Key, Right.Value, new ImMap<V>(Key, Value), new ImMap<V>(key, value), 2)
-                        : new ImMap<V>(key, value, new ImMap<V>(Key, Value), new ImMap<V>(Right.Key, Right.Value), 2);
+                    return key >= right.Key
+                        ? new ImMap<V>(right.Key, right.Value, new ImMap<V>(Key, Value), new ImMap<V>(key, value), 2)
+                        : new ImMap<V>(key, value, new ImMap<V>(Key, Value), new ImMap<V>(right.Key, right.Value), 2);
 
-                var newRight = Right.AddOrUpdateLeftOrRight(key, value);
-
+                var newRight = right.AddOrUpdateLeftOrRight(key, value);
                 if (newRight.Height > Left.Height + 1)
                 {
                     var rightLeft = newRight.Left;
