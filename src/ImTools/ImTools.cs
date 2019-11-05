@@ -2957,7 +2957,6 @@ namespace ImTools
           : key > Key ? new ImMap<V>(Key, Value, Left, Right.UpdateImpl(key, value), Height)
           : new ImMap<V>(key, value, Left, Right, Height);
 
-        // todo: Potentially leaks, cause returned ImMap references left and right sub-trees - replace with `KeyValuePair`
         /// Returns all map tree nodes enumerated from the lesser to the bigger keys 
         public IEnumerable<ImMap<V>> Enumerate()
         {
