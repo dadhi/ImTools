@@ -2217,11 +2217,11 @@ namespace ImTools
         }
     }
 
-    /// Simple object pool
+    /// Simple unbounded object pool
     public sealed class StackPool<T> where T : class
     {
         /// Give me an object
-        public T Rent() =>
+        public T RentOrDefault() =>
             Interlocked.Exchange(ref _s, _s?.Tail)?.Head;
 
         /// Give it back
@@ -2234,7 +2234,6 @@ namespace ImTools
         {
             public readonly T Head;
             public readonly Stack Tail;
-
             public Stack(T h, Stack t)
             {
                 Head = h;
@@ -2965,9 +2964,7 @@ namespace ImTools
             if (Height == 0)
                 yield break;
 
-            // todo: use the GrowingArray to pool the trees
             var parents = new ImMap<V>[Height];
-
             var node = this;
             var parentCount = -1;
             while (node.Height != 0 || parentCount != -1)
@@ -3745,9 +3742,7 @@ namespace ImTools
             if (Height == 0)
                 yield break;
 
-            // todo: We can utilize StackPool of GrowingArray internal Array to get a pre-created parents
             var parents = new ImHashMap<K, V>[Height];
-
             var node = this;
             var parentCount = -1;
             while (node.Height != 0 || parentCount != -1)

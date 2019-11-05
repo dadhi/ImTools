@@ -946,7 +946,6 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             {
                 _map = AddOrUpdate();
                 _mapV1 = AddOrUpdate_v1();
-                _mapRtHlp = AddOrUpdate_RuntimeHelpersGetHashCode();
                 _mapSlots = ImHashMapSlots_AddOrUpdate();
                 _dict = Dict();
                 _dictSlim = DictSlim();
@@ -968,18 +967,6 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             }
 
             private ImHashMap<Type, string> _map;
-
-            public ImHashMap<Type, string> AddOrUpdate_RuntimeHelpersGetHashCode()
-            {
-                var map = ImHashMap<Type, string>.Empty;
-
-                foreach (var key in _keys.Take(Count))
-                    map = map.AddOrUpdate(RuntimeHelpers.GetHashCode(key), key, "a");
-
-                return map.AddOrUpdate(RuntimeHelpers.GetHashCode(typeof(ImHashMapBenchmarks)), typeof(ImHashMapBenchmarks), "!");
-            }
-
-            private ImHashMap<Type, string> _mapRtHlp;
 
             public ImTools.OldVersions.V1.ImHashMap<Type, string> AddOrUpdate_v1()
             {
@@ -1064,19 +1051,19 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             public static Type LookupKey = typeof(ImHashMapBenchmarks);
 
             [Benchmark(Baseline = true)]
-            public object ImHashMap_TryFind()
+            public object ImHashMap_EnumerateToArray()
             {
                 return _map.Enumerate().ToArray();
             }
 
             [Benchmark]
-            public object ImHashMap_TryFind_V1()
+            public object ImHashMap_V1_EnumerateToArray()
             {
                 return _mapV1.Enumerate().ToArray();
             }
 
-            [Benchmark]
-            public object ImHashMapSlots_TryFind()
+            //[Benchmark]
+            public object ImHashMapSlots_EnumerateToArray()
             {
                 IEnumerable<ImHashMapData<Type, string>> Enumerate()
                 {
