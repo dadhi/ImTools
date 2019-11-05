@@ -924,18 +924,33 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
         public class Enumerate
         {
             /*
-            ## V2 Initial comparison
+            ## V2:
 
-            |               Method | Count |        Mean |     Error |    StdDev | Ratio | RatioSD |   Gen 0 |  Gen 1 | Gen 2 | Allocated |
-            |--------------------- |------ |------------:|----------:|----------:|------:|--------:|--------:|-------:|------:|----------:|
-            |    ImHashMap_TryFind |    10 |    418.6 ns |   2.77 ns |   2.31 ns |  1.00 |    0.00 |  0.1001 |      - |     - |     472 B |
-            | ImHashMap_TryFind_V1 |    10 |    482.5 ns |   2.33 ns |   2.07 ns |  1.15 |    0.01 |  0.1726 |      - |     - |     816 B |
-            |                      |       |             |           |           |       |         |         |        |       |           |
-            |    ImHashMap_TryFind |   100 |  2,738.4 ns |   3.94 ns |   3.08 ns |  1.00 |    0.00 |  0.4768 |      - |     - |    2248 B |
-            | ImHashMap_TryFind_V1 |   100 |  3,435.1 ns |   8.47 ns |   7.51 ns |  1.25 |    0.00 |  1.1597 | 0.0267 |     - |    5472 B |
-            |                      |       |             |           |           |       |         |         |        |       |           |
-            |    ImHashMap_TryFind |  1000 | 26,306.8 ns | 521.73 ns | 871.69 ns |  1.00 |    0.00 |  3.5706 | 0.1526 |     - |   16808 B |
-            | ImHashMap_TryFind_V1 |  1000 | 34,083.0 ns | 403.63 ns | 377.56 ns |  1.28 |    0.05 | 10.3149 | 1.8311 |     - |   48832 B |
+            BenchmarkDotNet=v0.12.0, OS=Windows 10.0.18362
+            Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+            .NET Core SDK=3.0.100
+              [Host]     : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
+              DefaultJob : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
+
+            |                          Method | Count |         Mean |     Error |    StdDev | Ratio | RatioSD |   Gen 0 |  Gen 1 | Gen 2 | Allocated |
+            |-------------------------------- |------ |-------------:|----------:|----------:|------:|--------:|--------:|-------:|------:|----------:|
+            |      ImHashMap_EnumerateToArray |    10 |     411.9 ns |   1.64 ns |   1.53 ns |  1.00 |    0.00 |  0.1001 |      - |     - |     472 B |
+            |   ImHashMap_V1_EnumerateToArray |    10 |     473.4 ns |   0.51 ns |   0.46 ns |  1.15 |    0.00 |  0.1726 |      - |     - |     816 B |
+            | ImHashMapSlots_EnumerateToArray |    10 |     505.4 ns |   2.24 ns |   2.10 ns |  1.23 |    0.01 |  0.1507 |      - |     - |     712 B |
+            | DictionarySlim_EnumerateToArray |    10 |     423.4 ns |   2.31 ns |   2.16 ns |  1.03 |    0.01 |  0.1359 |      - |     - |     640 B |
+            |  ImmutableDict_EnumerateToArray |    10 |   1,997.7 ns |   4.79 ns |   4.24 ns |  4.85 |    0.02 |  0.0420 |      - |     - |     200 B |
+            |                                 |       |              |           |           |       |         |         |        |       |           |
+            |      ImHashMap_EnumerateToArray |   100 |   2,678.1 ns |  15.61 ns |  14.60 ns |  1.00 |    0.00 |  0.4768 |      - |     - |    2248 B |
+            |   ImHashMap_V1_EnumerateToArray |   100 |   3,474.7 ns |  48.27 ns |  45.15 ns |  1.30 |    0.01 |  1.1597 | 0.0267 |     - |    5472 B |
+            | ImHashMapSlots_EnumerateToArray |   100 |   2,809.5 ns |  48.94 ns |  38.21 ns |  1.05 |    0.01 |  0.7477 | 0.0038 |     - |    3528 B |
+            | DictionarySlim_EnumerateToArray |   100 |   2,477.8 ns |   6.47 ns |   6.05 ns |  0.93 |    0.01 |  0.8469 | 0.0076 |     - |    4000 B |
+            |  ImmutableDict_EnumerateToArray |   100 |  16,113.5 ns | 123.03 ns | 109.07 ns |  6.01 |    0.04 |  0.3357 |      - |     - |    1640 B |
+            |                                 |       |              |           |           |       |         |         |        |       |           |
+            |      ImHashMap_EnumerateToArray |  1000 |  25,735.1 ns | 174.67 ns | 163.39 ns |  1.00 |    0.00 |  3.5706 | 0.1831 |     - |   16808 B |
+            |   ImHashMap_V1_EnumerateToArray |  1000 |  33,515.9 ns | 299.94 ns | 250.46 ns |  1.30 |    0.01 | 10.3149 | 1.8311 |     - |   48832 B |
+            | ImHashMapSlots_EnumerateToArray |  1000 |  24,905.0 ns |  37.24 ns |  33.01 ns |  0.97 |    0.01 |  4.0283 | 0.1831 |     - |   19016 B |
+            | DictionarySlim_EnumerateToArray |  1000 |  22,346.4 ns | 564.26 ns | 500.20 ns |  0.87 |    0.02 |  6.9885 | 0.6714 |     - |   32896 B |
+            |  ImmutableDict_EnumerateToArray |  1000 | 155,611.6 ns | 136.14 ns | 113.68 ns |  6.05 |    0.04 |  3.1738 |      - |     - |   16041 B |
 
             */
             [Params(10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
@@ -1048,73 +1063,33 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
             #endregion
 
-            public static Type LookupKey = typeof(ImHashMapBenchmarks);
-
             [Benchmark(Baseline = true)]
-            public object ImHashMap_EnumerateToArray()
-            {
-                return _map.Enumerate().ToArray();
-            }
+            public object ImHashMap_EnumerateToArray() => 
+                _map.Enumerate().ToArray();
 
             [Benchmark]
-            public object ImHashMap_V1_EnumerateToArray()
-            {
-                return _mapV1.Enumerate().ToArray();
-            }
+            public object ImHashMap_V1_EnumerateToArray() => 
+                _mapV1.Enumerate().ToArray();
+
+            [Benchmark]
+            public object ImHashMapSlots_EnumerateToArray() => 
+                _mapSlots.Enumerate().ToArray();
+
+            [Benchmark]
+            public object DictionarySlim_EnumerateToArray() => 
+                _dictSlim.ToArray();
 
             //[Benchmark]
-            public object ImHashMapSlots_EnumerateToArray()
-            {
-                IEnumerable<ImHashMapData<Type, string>> Enumerate()
-                {
-                    var slots = _mapSlots;
-                    for (var i = 0; i < slots.Length; i++)
-                    {
-                        var map = slots[i];
-                        if (!map.IsEmpty)
-                            foreach (var x in map.Enumerate())
-                                yield return x;
-                    }
-                }
-                
-                return Enumerate().ToArray();
-            }
+            public object Dictionary_EnumerateToArray() => 
+                _dict.ToArray();
 
             //[Benchmark]
-            public string ImHashMap_GetValueOrDefault() =>
-                _map.GetValueOrDefault(LookupKey);
+            public object ConcurrentDictionary_EnumerateToArray() => 
+                _concurrentDict.ToArray();
 
-            //[Benchmark]
-            public string ImHashMap_GetValueOrDefault_V1() =>
-                _mapV1.GetValueOrDefault(LookupKey);
-
-            //[Benchmark]
-            public string DictionarySlim_TryGetValue()
-            {
-                _dictSlim.TryGetValue(LookupKey, out var result);
-                return result;
-            }
-
-            //[Benchmark]
-            public string Dictionary_TryGetValue()
-            {
-                _dict.TryGetValue(LookupKey, out var result);
-                return result;
-            }
-
-            //[Benchmark]
-            public string ConcurrentDictionary_TryGetValue()
-            {
-                _concurrentDict.TryGetValue(LookupKey, out var result);
-                return result;
-            }
-
-            //[Benchmark]
-            public string ImmutableDict_TryGet()
-            {
-                _immutableDict.TryGetValue(LookupKey, out var result);
-                return result;
-            }
+            [Benchmark]
+            public object ImmutableDict_EnumerateToArray() => 
+                _immutableDict.ToArray();
         }
     }
 }

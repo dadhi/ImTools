@@ -2958,7 +2958,7 @@ namespace ImTools
           : new ImMap<V>(key, value, Left, Right, Height);
 
         // todo: Potentially leaks, cause returned ImMap references left and right sub-trees - replace with `KeyValuePair`
-        /// Returns all map tree nodes enumerated the lesser to the bigger keys 
+        /// Returns all map tree nodes enumerated from the lesser to the bigger keys 
         public IEnumerable<ImMap<V>> Enumerate()
         {
             if (Height == 0)
@@ -3217,6 +3217,34 @@ namespace ImTools
         /// Update the ref to the slot with the new version - retry if the someone changed the slot in between
         public static void RefUpdateSlot<V>(ref ImMap<V> slot, int key, V value) =>
             Ref.Swap(ref slot, key, value, (s, k, v) => s.Update(k, v));
+
+        /// Returns all map tree nodes without the order
+        public static IEnumerable<ImMap<V>> Enumerate<V>(this ImMap<V>[] slots)
+        {
+            for (var i = 0; i < slots.Length; i++)
+            {
+                var node = slots[i];
+                if (node.Height != 0)
+                {
+                    var parents = new ImMap<V>[node.Height];
+                    var parentCount = -1;
+                    while (node.Height != 0 || parentCount != -1)
+                    {
+                        if (node.Height != 0)
+                        {
+                            parents[++parentCount] = node;
+                            node = node.Left;
+                        }
+                        else
+                        {
+                            node = parents[parentCount--];
+                            yield return node;
+                            node = node.Right;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /// Wraps the stored data
@@ -3734,39 +3762,38 @@ namespace ImTools
         public ImHashMap<K, V> Update(K key, V value, Update<V> update) =>
             Update(key.GetHashCode(), key, value, update.IgnoreKey);
 
-        /// <summary>Depth-first in-order traversal as described in http://en.wikipedia.org/wiki/Tree_traversal
-        /// The only difference is using fixed size array instead of stack for speed-up (~20% faster than stack).</summary>
-        /// <returns>Sequence of enumerated key value pairs.</returns>
+        /// Depth-first in-order traversal as described in http://en.wikipedia.org/wiki/Tree_traversal
+        /// The only difference is using fixed size array instead of stack for speed-up (~20% faster than stack).
         public IEnumerable<ImHashMapData<K, V>> Enumerate()
         {
-            if (Height == 0)
-                yield break;
-
-            var parents = new ImHashMap<K, V>[Height];
-            var node = this;
-            var parentCount = -1;
-            while (node.Height != 0 || parentCount != -1)
+            if (Height != 0)
             {
-                if (node.Height != 0)
+                var parents = new ImHashMap<K, V>[Height];
+                var node = this;
+                var parentCount = -1;
+                while (node.Height != 0 || parentCount != -1)
                 {
-                    parents[++parentCount] = node;
-                    node = node.Left;
-                }
-                else
-                {
-                    node = parents[parentCount--];
-                    if (node.Data is ImHashMapConflicts<K, V> conflictsData)
+                    if (node.Height != 0)
                     {
-                        var conflicts = conflictsData.Conflicts;
-                        for (var i = 0; i < conflicts.Length; i++)
-                            yield return conflicts[i];
+                        parents[++parentCount] = node;
+                        node = node.Left;
                     }
                     else
                     {
-                        yield return node.Data;
-                    }
+                        node = parents[parentCount--];
+                        if (node.Data is ImHashMapConflicts<K, V> conflictsData)
+                        {
+                            var conflicts = conflictsData.Conflicts;
+                            for (var i = 0; i < conflicts.Length; i++)
+                                yield return conflicts[i];
+                        }
+                        else
+                        {
+                            yield return node.Data;
+                        }
 
-                    node = node.Right;
+                        node = node.Right;
+                    }
                 }
             }
         }
@@ -4191,5 +4218,43 @@ namespace ImTools
         /// Update the ref to the slot with the new version - retry if the someone changed the slot in between
         public static void RefUpdateSlot<K, V>(ref ImHashMap<K, V> slot, int hash, K key, V value) =>
             Ref.Swap(ref slot, key, value, (s, k, v) => s.Update(k, v));
+
+        /// Returns all map tree nodes without the order
+        public static IEnumerable<ImHashMapData<K, V>> Enumerate<K, V>(this ImHashMap<K, V>[] slots)
+        {
+            for (var s = 0; s < slots.Length; s++)
+            {
+                var node = slots[s];
+                if (node.Height != 0)
+                {
+                    var parents = new ImHashMap<K, V>[node.Height];
+                    var parentCount = -1;
+                    while (node.Height != 0 || parentCount != -1)
+                    {
+                        if (node.Height != 0)
+                        {
+                            parents[++parentCount] = node;
+                            node = node.Left;
+                        }
+                        else
+                        {
+                            node = parents[parentCount--];
+                            if (node.Data is ImHashMapConflicts<K, V> conflictsData)
+                            {
+                                var conflicts = conflictsData.Conflicts;
+                                for (var i = 0; i < conflicts.Length; i++)
+                                    yield return conflicts[i];
+                            }
+                            else
+                            {
+                                yield return node.Data;
+                            }
+
+                            node = node.Right;
+                        }
+                    }
+                }
+            }
+        }
     }
 }
