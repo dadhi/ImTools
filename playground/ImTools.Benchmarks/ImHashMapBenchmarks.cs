@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -1074,19 +1075,22 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return _mapV1.Enumerate().ToArray();
             }
 
-            //[Benchmark]
-            public string ImHashMap_TryFind_RuntimeHelpersGetHashCode()
+            [Benchmark]
+            public object ImHashMapSlots_TryFind()
             {
-                _mapRtHlp.TryFind(RuntimeHelpers.GetHashCode(LookupKey), LookupKey, out var result);
-                return result;
-            }
-
-            //[Benchmark]
-            public string ImHashMapSlots_TryFind()
-            {
-                var hash = LookupKey.GetHashCode();
-                _mapSlots[hash & ImHashMapSlots.HASH_MASK_TO_FIND_SLOT].TryFind(hash, LookupKey, out var result);
-                return result;
+                IEnumerable<ImHashMapData<Type, string>> Enumerate()
+                {
+                    var slots = _mapSlots;
+                    for (var i = 0; i < slots.Length; i++)
+                    {
+                        var map = slots[i];
+                        if (!map.IsEmpty)
+                            foreach (var x in map.Enumerate())
+                                yield return x;
+                    }
+                }
+                
+                return Enumerate().ToArray();
             }
 
             //[Benchmark]
