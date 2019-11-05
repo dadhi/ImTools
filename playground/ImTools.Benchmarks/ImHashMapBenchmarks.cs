@@ -918,5 +918,212 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return result;
             }
         }
+
+        [MemoryDiagnoser]
+        public class Enumerate
+        {
+            /*
+            ## V2 Initial comparison
+
+            |               Method | Count |        Mean |     Error |    StdDev | Ratio | RatioSD |   Gen 0 |  Gen 1 | Gen 2 | Allocated |
+            |--------------------- |------ |------------:|----------:|----------:|------:|--------:|--------:|-------:|------:|----------:|
+            |    ImHashMap_TryFind |    10 |    418.6 ns |   2.77 ns |   2.31 ns |  1.00 |    0.00 |  0.1001 |      - |     - |     472 B |
+            | ImHashMap_TryFind_V1 |    10 |    482.5 ns |   2.33 ns |   2.07 ns |  1.15 |    0.01 |  0.1726 |      - |     - |     816 B |
+            |                      |       |             |           |           |       |         |         |        |       |           |
+            |    ImHashMap_TryFind |   100 |  2,738.4 ns |   3.94 ns |   3.08 ns |  1.00 |    0.00 |  0.4768 |      - |     - |    2248 B |
+            | ImHashMap_TryFind_V1 |   100 |  3,435.1 ns |   8.47 ns |   7.51 ns |  1.25 |    0.00 |  1.1597 | 0.0267 |     - |    5472 B |
+            |                      |       |             |           |           |       |         |         |        |       |           |
+            |    ImHashMap_TryFind |  1000 | 26,306.8 ns | 521.73 ns | 871.69 ns |  1.00 |    0.00 |  3.5706 | 0.1526 |     - |   16808 B |
+            | ImHashMap_TryFind_V1 |  1000 | 34,083.0 ns | 403.63 ns | 377.56 ns |  1.28 |    0.05 | 10.3149 | 1.8311 |     - |   48832 B |
+
+            */
+            [Params(10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
+            public int Count;
+
+            [GlobalSetup]
+            public void Populate()
+            {
+                _map = AddOrUpdate();
+                _mapV1 = AddOrUpdate_v1();
+                _mapRtHlp = AddOrUpdate_RuntimeHelpersGetHashCode();
+                _mapSlots = ImHashMapSlots_AddOrUpdate();
+                _dict = Dict();
+                _dictSlim = DictSlim();
+                _concurrentDict = ConcurrentDict();
+                _immutableDict = ImmutableDict();
+            }
+
+            #region Population
+
+            public ImHashMap<Type, string> AddOrUpdate()
+            {
+                var map = ImHashMap<Type, string>.Empty;
+
+                foreach (var key in _keys.Take(Count))
+                    map = map.AddOrUpdate(key, "a");
+
+                map = map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+                return map;
+            }
+
+            private ImHashMap<Type, string> _map;
+
+            public ImHashMap<Type, string> AddOrUpdate_RuntimeHelpersGetHashCode()
+            {
+                var map = ImHashMap<Type, string>.Empty;
+
+                foreach (var key in _keys.Take(Count))
+                    map = map.AddOrUpdate(RuntimeHelpers.GetHashCode(key), key, "a");
+
+                return map.AddOrUpdate(RuntimeHelpers.GetHashCode(typeof(ImHashMapBenchmarks)), typeof(ImHashMapBenchmarks), "!");
+            }
+
+            private ImHashMap<Type, string> _mapRtHlp;
+
+            public ImTools.OldVersions.V1.ImHashMap<Type, string> AddOrUpdate_v1()
+            {
+                var map = ImTools.OldVersions.V1.ImHashMap<Type, string>.Empty;
+
+                foreach (var key in _keys.Take(Count))
+                    map = map.AddOrUpdate(key, "a");
+
+                map = map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+                return map;
+            }
+
+            private ImTools.OldVersions.V1.ImHashMap<Type, string> _mapV1;
+
+            public ImHashMap<Type, string>[] ImHashMapSlots_AddOrUpdate()
+            {
+                var map = ImHashMapSlots.CreateWithEmpty<Type, string>();
+
+                foreach (var key in _keys.Take(Count))
+                    map.AddOrUpdate(key, "a");
+
+                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+                return map;
+            }
+
+            private ImHashMap<Type, string>[] _mapSlots;
+
+            public Dictionary<Type, string> Dict()
+            {
+                var map = new Dictionary<Type, string>();
+
+                foreach (var key in _keys.Take(Count))
+                    map.TryAdd(key, "a");
+
+                map.TryAdd(typeof(ImHashMapBenchmarks), "!");
+
+                return map;
+            }
+
+            private Dictionary<Type, string> _dict;
+
+            public DictionarySlim<TypeVal, string> DictSlim()
+            {
+                var dict = new DictionarySlim<TypeVal, string>();
+
+                foreach (var key in _keys.Take(Count))
+                    dict.GetOrAddValueRef(key) = "a";
+
+                dict.GetOrAddValueRef(typeof(ImHashMapBenchmarks)) = "!";
+                return dict;
+            }
+
+            private DictionarySlim<TypeVal, string> _dictSlim;
+
+            public ConcurrentDictionary<Type, string> ConcurrentDict()
+            {
+                var map = new ConcurrentDictionary<Type, string>();
+
+                foreach (var key in _keys.Take(Count))
+                    map.TryAdd(key, "a");
+
+                map.TryAdd(typeof(ImHashMapBenchmarks), "!");
+                return map;
+            }
+
+            private ConcurrentDictionary<Type, string> _concurrentDict;
+
+            public ImmutableDictionary<Type, string> ImmutableDict()
+            {
+                var map = ImmutableDictionary<Type, string>.Empty;
+
+                foreach (var key in _keys.Take(Count))
+                    map = map.Add(key, "a");
+
+                return map.Add(typeof(ImHashMapBenchmarks), "!");
+            }
+
+            private ImmutableDictionary<Type, string> _immutableDict;
+
+            #endregion
+
+            public static Type LookupKey = typeof(ImHashMapBenchmarks);
+
+            [Benchmark(Baseline = true)]
+            public object ImHashMap_TryFind()
+            {
+                return _map.Enumerate().ToArray();
+            }
+
+            [Benchmark]
+            public object ImHashMap_TryFind_V1()
+            {
+                return _mapV1.Enumerate().ToArray();
+            }
+
+            //[Benchmark]
+            public string ImHashMap_TryFind_RuntimeHelpersGetHashCode()
+            {
+                _mapRtHlp.TryFind(RuntimeHelpers.GetHashCode(LookupKey), LookupKey, out var result);
+                return result;
+            }
+
+            //[Benchmark]
+            public string ImHashMapSlots_TryFind()
+            {
+                var hash = LookupKey.GetHashCode();
+                _mapSlots[hash & ImHashMapSlots.HASH_MASK_TO_FIND_SLOT].TryFind(hash, LookupKey, out var result);
+                return result;
+            }
+
+            //[Benchmark]
+            public string ImHashMap_GetValueOrDefault() =>
+                _map.GetValueOrDefault(LookupKey);
+
+            //[Benchmark]
+            public string ImHashMap_GetValueOrDefault_V1() =>
+                _mapV1.GetValueOrDefault(LookupKey);
+
+            //[Benchmark]
+            public string DictionarySlim_TryGetValue()
+            {
+                _dictSlim.TryGetValue(LookupKey, out var result);
+                return result;
+            }
+
+            //[Benchmark]
+            public string Dictionary_TryGetValue()
+            {
+                _dict.TryGetValue(LookupKey, out var result);
+                return result;
+            }
+
+            //[Benchmark]
+            public string ConcurrentDictionary_TryGetValue()
+            {
+                _concurrentDict.TryGetValue(LookupKey, out var result);
+                return result;
+            }
+
+            //[Benchmark]
+            public string ImmutableDict_TryGet()
+            {
+                _immutableDict.TryGetValue(LookupKey, out var result);
+                return result;
+            }
+        }
     }
 }
