@@ -283,19 +283,31 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
 |                                          Method | Count |         Mean |        Error |       StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
 |------------------------------------------------ |------ |-------------:|-------------:|-------------:|------:|--------:|---------:|--------:|------:|----------:|
 |                           ImHashMap_AddOrUpdate |    10 |     977.0 ns |    18.358 ns |    19.643 ns |  1.00 |    0.00 |   0.4978 |       - |     - |    2.3 KB |
-| ImHashMap_AddOrUpdate_RuntimeHelpersGetHashCode |    10 |     926.1 ns |    18.565 ns |    17.365 ns |  0.95 |    0.03 |   0.4978 |       - |     - |    2.3 KB |
 |                        ImHashMap_V1_AddOrUpdate |    10 |   1,030.7 ns |    17.990 ns |    16.828 ns |  1.05 |    0.03 |   0.5474 |       - |     - |   2.53 KB |
+| ImHashMap_AddOrUpdate_RuntimeHelpersGetHashCode |    10 |     926.1 ns |    18.565 ns |    17.365 ns |  0.95 |    0.03 |   0.4978 |       - |     - |    2.3 KB |
 |                      ImHashMapSlots_AddOrUpdate |    10 |     682.7 ns |     2.954 ns |     2.763 ns |  0.70 |    0.02 |   0.3128 |       - |     - |   1.45 KB |
 |                                                 |       |              |              |              |       |         |          |         |       |           |
 |                           ImHashMap_AddOrUpdate |   100 |  14,889.4 ns |   292.503 ns |   488.706 ns |  1.00 |    0.00 |   7.7972 |       - |     - |  35.95 KB |
-| ImHashMap_AddOrUpdate_RuntimeHelpersGetHashCode |   100 |  14,576.8 ns |   290.713 ns |   357.021 ns |  0.98 |    0.06 |   7.7972 |       - |     - |  35.95 KB |
 |                        ImHashMap_V1_AddOrUpdate |   100 |  17,019.3 ns |   228.169 ns |   213.430 ns |  1.16 |    0.05 |   8.5449 |       - |     - |  39.47 KB |
+| ImHashMap_AddOrUpdate_RuntimeHelpersGetHashCode |   100 |  14,576.8 ns |   290.713 ns |   357.021 ns |  0.98 |    0.06 |   7.7972 |       - |     - |  35.95 KB |
 |                      ImHashMapSlots_AddOrUpdate |   100 |   7,634.5 ns |   120.392 ns |   112.615 ns |  0.52 |    0.03 |   3.2806 |  0.0153 |     - |  15.13 KB |
 |                                                 |       |              |              |              |       |         |          |         |       |           |
 |                           ImHashMap_AddOrUpdate |  1000 | 307,587.1 ns | 5,570.811 ns | 6,191.942 ns |  1.00 |    0.00 | 112.3047 |  7.8125 |     - | 517.83 KB |
-| ImHashMap_AddOrUpdate_RuntimeHelpersGetHashCode |  1000 | 303,983.9 ns | 5,849.805 ns | 5,471.911 ns |  0.99 |    0.03 | 112.3047 |  7.8125 |     - | 517.83 KB |
 |                        ImHashMap_V1_AddOrUpdate |  1000 | 339,267.5 ns | 6,494.507 ns | 6,949.050 ns |  1.10 |    0.03 | 121.0938 | 31.7383 |     - | 558.89 KB |
+| ImHashMap_AddOrUpdate_RuntimeHelpersGetHashCode |  1000 | 303,983.9 ns | 5,849.805 ns | 5,471.911 ns |  0.99 |    0.03 | 112.3047 |  7.8125 |     - | 517.83 KB |
 |                      ImHashMapSlots_AddOrUpdate |  1000 | 179,159.0 ns | 3,627.738 ns | 3,725.420 ns |  0.58 |    0.01 |  60.5469 | 20.0195 |     - | 279.09 KB |
+
+|                   Method | Count |         Mean |       Error |      StdDev | Ratio |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
+|------------------------- |------ |-------------:|------------:|------------:|------:|---------:|--------:|------:|----------:|
+|    ImHashMap_AddOrUpdate |    10 |     853.6 ns |     6.58 ns |     5.83 ns |  1.00 |   0.5007 |  0.0029 |     - |    2.3 KB |
+| ImHashMap_V1_AddOrUpdate |    10 |     981.4 ns |     1.66 ns |     1.30 ns |  1.15 |   0.6218 |  0.0038 |     - |   2.86 KB |
+|                          |       |              |             |             |       |          |         |       |           |
+|    ImHashMap_AddOrUpdate |   100 |  13,505.0 ns |    58.48 ns |    54.70 ns |  1.00 |   7.5531 |  0.3662 |     - |  34.74 KB |
+| ImHashMap_V1_AddOrUpdate |   100 |  15,003.7 ns |    26.90 ns |    25.17 ns |  1.11 |   8.5602 |  0.4425 |     - |  39.38 KB |
+|                          |       |              |             |             |       |          |         |       |           |
+|    ImHashMap_AddOrUpdate |  1000 | 273,796.5 ns | 2,104.48 ns | 1,968.54 ns |  1.00 | 110.3516 | 32.7148 |     - | 507.85 KB |
+| ImHashMap_V1_AddOrUpdate |  1000 | 307,504.2 ns |   963.38 ns |   854.01 ns |  1.12 | 121.0938 | 35.1563 |     - | 557.86 KB |
+
  */
             [Params(10, 100, 1_000)]
             public int Count;
@@ -322,7 +334,7 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
                 return map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
             }
 
-            [Benchmark]
+            //[Benchmark]
             public ImHashMap<Type, string> ImHashMap_AddOrUpdate_RuntimeHelpersGetHashCode()
             {
                 var map = ImHashMap<Type, string>.Empty;
@@ -333,7 +345,7 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
                 return map.AddOrUpdate(RuntimeHelpers.GetHashCode(typeof(ImHashMapBenchmarks)), typeof(ImHashMapBenchmarks), "!");
             }
 
-            [Benchmark]
+            //[Benchmark]
             public ImHashMap<Type, string>[] ImHashMapSlots_AddOrUpdate()
             {
                 var map = ImHashMapSlots.CreateWithEmpty<Type, string>();
@@ -345,7 +357,7 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
                 return map;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public DictionarySlim<TypeVal, string> DictSlim_TryAdd()
             {
                 var map = new DictionarySlim<TypeVal, string>();
@@ -357,7 +369,7 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
                 return map;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public Dictionary<Type, string> Dict_TryAdd()
             {
                 var map = new Dictionary<Type, string>();
@@ -369,7 +381,7 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
                 return map;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public ConcurrentDictionary<Type, string> ConcurrentDict_TryAdd()
             {
                 var map = new ConcurrentDictionary<Type, string>();
@@ -381,7 +393,7 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
                 return map;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public ImmutableDictionary<Type, string> ImmutableDict_Add()
             {
                 var map = ImmutableDictionary<Type, string>.Empty;
@@ -703,6 +715,18 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |            ConcurrentDictionary_TryGetValue |  1000 | 15.750 ns | 0.0895 ns | 0.0793 ns |  1.23 |    0.01 |     - |     - |     - |         - |
 |                        ImmutableDict_TryGet |  1000 | 33.712 ns | 0.0788 ns | 0.0737 ns |  2.63 |    0.01 |     - |     - |     - |         - |
 
+|               Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|--------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+|    ImHashMap_TryFind |    10 |  6.616 ns | 0.3288 ns | 0.4715 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| ImHashMap_TryFind_V1 |    10 |  6.075 ns | 0.0214 ns | 0.0200 ns |  0.91 |    0.07 |     - |     - |     - |         - |
+|                      |       |           |           |           |       |         |       |       |       |           |
+|    ImHashMap_TryFind |   100 |  8.511 ns | 0.0715 ns | 0.0597 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| ImHashMap_TryFind_V1 |   100 |  9.491 ns | 0.0053 ns | 0.0045 ns |  1.12 |    0.01 |     - |     - |     - |         - |
+|                      |       |           |           |           |       |         |       |       |       |           |
+|    ImHashMap_TryFind |  1000 | 11.130 ns | 0.1238 ns | 0.1158 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| ImHashMap_TryFind_V1 |  1000 | 12.543 ns | 0.0105 ns | 0.0098 ns |  1.13 |    0.01 |     - |     - |     - |         - |
+
+
 */
             [Params(10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             public int Count;
@@ -843,14 +867,14 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string ImHashMap_TryFind_RuntimeHelpersGetHashCode()
             {
                 _mapRtHlp.TryFind(RuntimeHelpers.GetHashCode(LookupKey), LookupKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string ImHashMapSlots_TryFind()
             {
                 var hash = LookupKey.GetHashCode();
@@ -866,28 +890,28 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             public string ImHashMap_GetValueOrDefault_V1() =>
                 _mapV1.GetValueOrDefault(LookupKey);
 
-            [Benchmark]
+            //[Benchmark]
             public string DictionarySlim_TryGetValue()
             {
                 _dictSlim.TryGetValue(LookupKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string Dictionary_TryGetValue()
             {
                 _dict.TryGetValue(LookupKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string ConcurrentDictionary_TryGetValue()
             {
                 _concurrentDict.TryGetValue(LookupKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string ImmutableDict_TryGet()
             {
                 _immutableDict.TryGetValue(LookupKey, out var result);
