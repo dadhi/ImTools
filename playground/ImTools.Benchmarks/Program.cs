@@ -11,10 +11,10 @@ namespace ImTools.Benchmarks
             //x.ImMapArray_AddOrUpdate();
 
             //var b = new ImMapBenchmarks.Populate() { Count = 10 };
-            //b.ImMap_FixedData2();
+            //b.ImMap_FixedData3();
 
-            BenchmarkRunner.Run<ImMapBenchmarks.Populate>();
-            //BenchmarkRunner.Run<ImMapBenchmarks.Lookup>();
+            //BenchmarkRunner.Run<ImMapBenchmarks.Populate>();
+            BenchmarkRunner.Run<ImMapBenchmarks.Lookup>();
 
             //BenchmarkRunner.Run<ImHashMapBenchmarks.Populate>();
             //BenchmarkRunner.Run<ImHashMapBenchmarks.Lookup>();

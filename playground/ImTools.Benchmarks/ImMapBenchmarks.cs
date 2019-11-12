@@ -151,7 +151,6 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
 ## Reuse newLeft/newRight in re-balancing in both ImMap and ImMapFixedData2
 
-
 |            Method |  Count |            Mean |         Error |        StdDev | Ratio | RatioSD |      Gen 0 |     Gen 1 |    Gen 2 |   Allocated |
 |------------------ |------- |----------------:|--------------:|--------------:|------:|--------:|-----------:|----------:|---------:|------------:|
 | ImMap_AddOrUpdate |     10 |        622.6 ns |       8.59 ns |       8.03 ns |  1.00 |    0.00 |     0.3567 |    0.0010 |        - |     1.64 KB |
@@ -169,11 +168,25 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 | ImMap_AddOrUpdate | 100000 | 61,490,977.8 ns | 640,187.46 ns | 567,509.51 ns |  1.00 |    0.00 | 13666.6667 | 1777.7778 | 444.4444 | 81355.74 KB |
 |  ImMap_FixedData2 | 100000 | 72,905,032.4 ns | 678,240.75 ns | 634,426.82 ns |  1.19 |    0.01 | 13142.8571 | 2285.7143 | 571.4286 | 77450.39 KB |
 
+## FixedData3
 
+|            Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |    Gen 0 |  Gen 1 | Gen 2 | Allocated |
+|------------------ |------ |-------------:|------------:|------------:|------:|--------:|---------:|-------:|------:|----------:|
+| ImMap_AddOrUpdate |    10 |     621.7 ns |     2.88 ns |     2.56 ns |  1.00 |    0.00 |   0.3567 | 0.0010 |     - |   1.64 KB |
+|  ImMap_FixedData2 |    10 |     591.6 ns |     1.51 ns |     1.34 ns |  0.95 |    0.00 |   0.2813 | 0.0010 |     - |    1.3 KB |
+|  ImMap_FixedData3 |    10 |     625.6 ns |     2.28 ns |     1.90 ns |  1.01 |    0.00 |   0.3176 | 0.0010 |     - |   1.46 KB |
+|                   |       |              |             |             |       |         |          |        |       |           |
+| ImMap_AddOrUpdate |   100 |  12,156.4 ns |    16.34 ns |    14.48 ns |  1.00 |    0.00 |   7.4768 | 0.3052 |     - |  34.36 KB |
+|  ImMap_FixedData2 |   100 |  13,054.0 ns |    68.59 ns |    64.16 ns |  1.07 |    0.01 |   6.6376 | 0.3052 |     - |   30.5 KB |
+|  ImMap_FixedData3 |   100 |  13,670.9 ns |   118.70 ns |   111.04 ns |  1.13 |    0.01 |   7.5226 | 0.3662 |     - |  34.59 KB |
+|                   |       |              |             |             |       |         |          |        |       |           |
+| ImMap_AddOrUpdate |  1000 | 201,940.0 ns | 4,782.19 ns | 3,993.35 ns |  1.00 |    0.00 | 108.3984 | 0.2441 |     - | 498.61 KB |
+|  ImMap_FixedData2 |  1000 | 218,123.5 ns |   598.36 ns |   559.71 ns |  1.08 |    0.02 |  99.8535 | 0.2441 |     - | 459.59 KB |
+|  ImMap_FixedData3 |  1000 | 228,489.7 ns | 3,616.17 ns | 3,382.57 ns |  1.13 |    0.02 | 114.2578 | 0.2441 |     - | 525.83 KB |
 
 */
 
-            [Params(10, 100, 1_000, 10_000, 100_000)]
+            [Params(10, 100, 1_000)]//, 10_000, 100_000)]
             public int Count;
 
             [Benchmark(Baseline = true)]
@@ -213,6 +226,17 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             public ImTools.Benchmarks.ImMapFixedData2.ImMap<string> ImMap_FixedData2()
             {
                 var map = ImTools.Benchmarks.ImMapFixedData2.ImMap<string>.Empty;
+
+                for (var i = 0; i < Count; i++)
+                    map = map.AddOrUpdate(i, i.ToString());
+
+                return map;
+            }
+
+            [Benchmark]
+            public ImTools.Benchmarks.ImMapFixedData3.ImMap<string> ImMap_FixedData3()
+            {
+                var map = ImTools.Benchmarks.ImMapFixedData3.ImMap<string>.Empty;
 
                 for (var i = 0; i < Count; i++)
                     map = map.AddOrUpdate(i, i.ToString());
@@ -477,6 +501,18 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |            ImMap_TryFind | 100000 | 15.889 ns | 0.0256 ns | 0.0214 ns |  1.00 |     - |     - |     - |         - |
 | ImMap_FixedData2_TryFind | 100000 | 22.550 ns | 0.2120 ns | 0.1655 ns |  1.42 |     - |     - |     - |         - |
 
+## FixedData3 - Data.Key access - ignoring the Key
+
+|                   Method | Count |      Mean |     Error |    StdDev | Ratio | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|------------------------- |------ |----------:|----------:|----------:|------:|------:|------:|------:|----------:|
+|            ImMap_TryFind |    10 |  3.493 ns | 0.0300 ns | 0.0281 ns |  1.00 |     - |     - |     - |         - |
+| ImMap_FixedData3_TryFind |    10 |  4.331 ns | 0.0327 ns | 0.0289 ns |  1.24 |     - |     - |     - |         - |
+|                          |       |           |           |           |       |       |       |       |           |
+|            ImMap_TryFind |   100 |  6.274 ns | 0.0473 ns | 0.0395 ns |  1.00 |     - |     - |     - |         - |
+| ImMap_FixedData3_TryFind |   100 |  7.219 ns | 0.0370 ns | 0.0328 ns |  1.15 |     - |     - |     - |         - |
+|                          |       |           |           |           |       |       |       |       |           |
+|            ImMap_TryFind |  1000 |  9.022 ns | 0.0471 ns | 0.0440 ns |  1.00 |     - |     - |     - |         - |
+| ImMap_FixedData3_TryFind |  1000 | 10.321 ns | 0.0540 ns | 0.0451 ns |  1.14 |     - |     - |     - |         - |
  */
             private ImMap<string> _map;
             public ImMap<string> AddOrUpdate()
@@ -504,6 +540,17 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             public ImTools.Benchmarks.ImMapFixedData2.ImMap<string> AddOrUpdate_FixedData2()
             {
                 var map = ImTools.Benchmarks.ImMapFixedData2.ImMap<string>.Empty;
+
+                for (var i = 0; i < Count; i++)
+                    map = map.AddOrUpdate(i, i.ToString());
+
+                return map;
+            }
+
+            private ImTools.Benchmarks.ImMapFixedData3.ImMap<string> _mapFixedData3;
+            public ImTools.Benchmarks.ImMapFixedData3.ImMap<string> AddOrUpdate_FixedData3()
+            {
+                var map = ImTools.Benchmarks.ImMapFixedData3.ImMap<string>.Empty;
 
                 for (var i = 0; i < Count; i++)
                     map = map.AddOrUpdate(i, i.ToString());
@@ -566,7 +613,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            [Params(10, 100, 1_000, 10_000, 100_000)]
+            [Params(10, 100, 1_000)]//, 10_000, 100_000)]
             public int Count;
 
             public int LookupMaxKey;
@@ -579,6 +626,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 _map = AddOrUpdate();
                 _mapV1 = AddOrUpdate_V1();
                 _mapFixedData2 = AddOrUpdate_FixedData2();
+                _mapFixedData3 = AddOrUpdate_FixedData3();
                 _mapSlots = AddOrUpdate_ImMapSlots();
                 _dictSlim = DictSlim();
                 _dict = Dict();
@@ -600,10 +648,17 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string ImMap_FixedData2_TryFind()
             {
                 ImTools.Benchmarks.ImMapFixedData2.ImMap.TryFind(_mapFixedData2, LookupMaxKey, out var result);
+                return result;
+            }
+
+            [Benchmark]
+            public string ImMap_FixedData3_TryFind()
+            {
+                ImTools.Benchmarks.ImMapFixedData3.ImMap.TryFind(_mapFixedData3, LookupMaxKey, out var result);
                 return result;
             }
 
