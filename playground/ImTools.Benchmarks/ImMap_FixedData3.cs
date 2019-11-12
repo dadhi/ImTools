@@ -258,9 +258,10 @@ namespace ImTools.Benchmarks.ImMapFixedData3
         [MethodImpl((MethodImplOptions)256)]
         public static bool TryFind<V>(this ImMap<V> map, int key, out V value)
         {
+            int mapKey;
             while (map is ImMapTree<V> mapTree)
             {
-                var mapKey = mapTree.Data.Key;
+                mapKey = mapTree.Data.Key;
                 if (key < mapKey)
                     map = mapTree.Left;
                 else if (key > mapKey)

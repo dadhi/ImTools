@@ -184,7 +184,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |  ImMap_FixedData2 |  1000 | 218,123.5 ns |   598.36 ns |   559.71 ns |  1.08 |    0.02 |  99.8535 | 0.2441 |     - | 459.59 KB |
 |  ImMap_FixedData3 |  1000 | 228,489.7 ns | 3,616.17 ns | 3,382.57 ns |  1.13 |    0.02 | 114.2578 | 0.2441 |     - | 525.83 KB |
 
-## FixedData3 with Data.Key as Height
+## FixedData3 with Key as Height
 
 |            Method | Count |        Mean |     Error |    StdDev | Ratio | RatioSD |  Gen 0 |  Gen 1 | Gen 2 | Allocated |
 |------------------ |------ |------------:|----------:|----------:|------:|--------:|-------:|-------:|------:|----------:|
@@ -195,7 +195,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |  ImMap_FixedData3 |   100 | 13,443.4 ns | 174.49 ns | 163.22 ns |  1.11 |    0.02 | 7.4463 | 0.3510 |     - |  34.27 KB |
 */
 
-            [Params(10, 100)]//, 1_000, 10_000, 100_000)]
+            [Params(10, 100, 1_000, 10_000, 100_000)]
             public int Count;
 
             [Benchmark(Baseline = true)]
@@ -512,16 +512,16 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
 ## FixedData3 - Data.Key access - ignoring the Key
 
-|                   Method | Count |      Mean |     Error |    StdDev | Ratio | Gen 0 | Gen 1 | Gen 2 | Allocated |
-|------------------------- |------ |----------:|----------:|----------:|------:|------:|------:|------:|----------:|
-|            ImMap_TryFind |    10 |  3.493 ns | 0.0300 ns | 0.0281 ns |  1.00 |     - |     - |     - |         - |
-| ImMap_FixedData3_TryFind |    10 |  4.331 ns | 0.0327 ns | 0.0289 ns |  1.24 |     - |     - |     - |         - |
-|                          |       |           |           |           |       |       |       |       |           |
-|            ImMap_TryFind |   100 |  6.274 ns | 0.0473 ns | 0.0395 ns |  1.00 |     - |     - |     - |         - |
-| ImMap_FixedData3_TryFind |   100 |  7.219 ns | 0.0370 ns | 0.0328 ns |  1.15 |     - |     - |     - |         - |
-|                          |       |           |           |           |       |       |       |       |           |
-|            ImMap_TryFind |  1000 |  9.022 ns | 0.0471 ns | 0.0440 ns |  1.00 |     - |     - |     - |         - |
-| ImMap_FixedData3_TryFind |  1000 | 10.321 ns | 0.0540 ns | 0.0451 ns |  1.14 |     - |     - |     - |         - |
+|                   Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|------------------------- |------ |---------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+|            ImMap_TryFind |    10 | 3.441 ns | 0.0872 ns | 0.0681 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| ImMap_FixedData3_TryFind |    10 | 4.064 ns | 0.0577 ns | 0.0539 ns |  1.18 |    0.03 |     - |     - |     - |         - |
+|                          |       |          |           |           |       |         |       |       |       |           |
+|            ImMap_TryFind |   100 | 6.105 ns | 0.0742 ns | 0.0658 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| ImMap_FixedData3_TryFind |   100 | 7.142 ns | 0.0999 ns | 0.0934 ns |  1.17 |    0.02 |     - |     - |     - |         - |
+|                          |       |          |           |           |       |         |       |       |       |           |
+|            ImMap_TryFind |  1000 | 8.803 ns | 0.0740 ns | 0.0656 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| ImMap_FixedData3_TryFind |  1000 | 9.990 ns | 0.0419 ns | 0.0392 ns |  1.13 |    0.01 |     - |     - |     - |         - |
  */
             private ImMap<string> _map;
             public ImMap<string> AddOrUpdate()
