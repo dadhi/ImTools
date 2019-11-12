@@ -145,7 +145,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public ImTools.OldVersions.V1.ImMap<string> ImMap_V1_AddOrUpdate()
             {
                 var map = ImTools.OldVersions.V1.ImMap<string>.Empty;
@@ -156,10 +156,21 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public ImTools.Benchmarks.ImMapFixedData.ImMap<string> ImMap_FixedData()
             {
                 var map = ImTools.Benchmarks.ImMapFixedData.ImMap<string>.Empty;
+
+                for (var i = 0; i < Count; i++)
+                    map = map.AddOrUpdate(i, i.ToString());
+
+                return map;
+            }
+
+            [Benchmark]
+            public ImTools.Benchmarks.ImMapFixedData2.ImMap<string> ImMap_FixedData2()
+            {
+                var map = ImTools.Benchmarks.ImMapFixedData2.ImMap<string>.Empty;
 
                 for (var i = 0; i < Count; i++)
                     map = map.AddOrUpdate(i, i.ToString());

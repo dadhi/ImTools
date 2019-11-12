@@ -3397,7 +3397,6 @@ namespace ImTools
 
         internal enum DoAddOrUpdateConflicts { AddOrUpdate, AddOrKeep, Update }
 
-        // todo: pass the `hash` to construct ..WithConflicts and avoid field access
         private ImHashMap<K, V> AddOrUpdateConflict(ImHashMapConflicts<K, V> conflictsData, int hash, K key, V value, 
             Update<K, V> update = null, DoAddOrUpdateConflicts doWhat = DoAddOrUpdateConflicts.AddOrUpdate)
         {
