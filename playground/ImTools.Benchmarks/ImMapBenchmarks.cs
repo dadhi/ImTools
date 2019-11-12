@@ -129,6 +129,26 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |               Dict_TryAdd | 100000 |  10,539,553.2 ns |   141,171.29 ns |   132,051.71 ns |  10,540,217.2 ns |  0.17 |    0.00 |   906.2500 |  640.6250 | 500.0000 |  11652128 B |
 |     ConcurrentDict_TryAdd | 100000 |  34,202,418.3 ns |   570,236.69 ns |   533,399.76 ns |  34,138,325.0 ns |  0.54 |    0.01 |  2500.0000 | 1125.0000 | 437.5000 |  15066715 B |
 |         ImmutableDict_Add | 100000 | 194,366,442.2 ns | 1,505,482.08 ns | 1,408,228.88 ns | 194,159,900.0 ns |  3.07 |    0.03 | 18666.6667 | 2666.6667 | 666.6667 | 114011384 B |
+
+## FixedData2
+
+|            Method |  Count |            Mean |         Error |        StdDev | Ratio |      Gen 0 |     Gen 1 |    Gen 2 |   Allocated |
+|------------------ |------- |----------------:|--------------:|--------------:|------:|-----------:|----------:|---------:|------------:|
+| ImMap_AddOrUpdate |     10 |        641.3 ns |       3.50 ns |       3.27 ns |  1.00 |     0.3767 |    0.0010 |        - |     1.73 KB |
+|  ImMap_FixedData2 |     10 |        625.7 ns |       3.72 ns |       3.30 ns |  0.98 |     0.3023 |    0.0010 |        - |     1.39 KB |
+|                   |        |                 |               |               |       |            |           |          |             |
+| ImMap_AddOrUpdate |    100 |     12,697.6 ns |      80.35 ns |      67.09 ns |  1.00 |     7.9193 |    0.3357 |        - |    36.42 KB |
+|  ImMap_FixedData2 |    100 |     13,599.2 ns |      39.41 ns |      34.93 ns |  1.07 |     7.0801 |    0.3204 |        - |    32.56 KB |
+|                   |        |                 |               |               |       |            |           |          |             |
+| ImMap_AddOrUpdate |   1000 |    206,763.7 ns |   1,700.92 ns |   1,507.82 ns |  1.00 |   113.5254 |    0.2441 |        - |   521.63 KB |
+|  ImMap_FixedData2 |   1000 |    230,479.3 ns |   3,289.74 ns |   3,077.23 ns |  1.12 |   104.9805 |    0.2441 |        - |   482.61 KB |
+|                   |        |                 |               |               |       |            |           |          |             |
+| ImMap_AddOrUpdate |  10000 |  4,472,363.1 ns |  49,620.44 ns |  41,435.31 ns |  1.00 |  1109.3750 |  234.3750 | 101.5625 |  6809.29 KB |
+|  ImMap_FixedData2 |  10000 |  4,954,560.5 ns |  20,282.18 ns |  18,971.97 ns |  1.11 |  1046.8750 |  304.6875 | 117.1875 |  6418.68 KB |
+|                   |        |                 |               |               |       |            |           |          |             |
+| ImMap_AddOrUpdate | 100000 | 62,702,587.4 ns | 517,296.89 ns | 483,879.83 ns |  1.00 | 14222.2222 | 2000.0000 | 555.5556 | 83699.22 KB |
+|  ImMap_FixedData2 | 100000 | 72,595,912.4 ns | 519,397.26 ns | 485,844.52 ns |  1.16 | 13571.4286 | 2285.7143 | 571.4286 | 79792.54 KB |
+
 */
 
             [Params(10, 100, 1_000, 10_000, 100_000)]
@@ -417,6 +437,24 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 | ConcurrentDict_TryGetValue | 100000 | 11.0017 ns | 0.0565 ns | 0.0529 ns | 11.0147 ns |  0.68 |    0.00 |     - |     - |     - |         - |
 |  ImmutableDict_TryGetValue | 100000 | 35.4956 ns | 0.1117 ns | 0.1045 ns | 35.4829 ns |  2.21 |    0.01 |     - |     - |     - |         - |
 
+## FixedData2:
+|                   Method |  Count |      Mean |     Error |    StdDev | Ratio | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|------------------------- |------- |----------:|----------:|----------:|------:|------:|------:|------:|----------:|
+|            ImMap_TryFind |     10 |  3.469 ns | 0.0252 ns | 0.0236 ns |  1.00 |     - |     - |     - |         - |
+| ImMap_FixedData2_TryFind |     10 |  4.777 ns | 0.0281 ns | 0.0263 ns |  1.38 |     - |     - |     - |         - |
+|                          |        |           |           |           |       |       |       |       |           |
+|            ImMap_TryFind |    100 |  6.302 ns | 0.0416 ns | 0.0389 ns |  1.00 |     - |     - |     - |         - |
+| ImMap_FixedData2_TryFind |    100 |  7.348 ns | 0.0580 ns | 0.0542 ns |  1.17 |     - |     - |     - |         - |
+|                          |        |           |           |           |       |       |       |       |           |
+|            ImMap_TryFind |   1000 |  9.078 ns | 0.0452 ns | 0.0401 ns |  1.00 |     - |     - |     - |         - |
+| ImMap_FixedData2_TryFind |   1000 | 10.440 ns | 0.0397 ns | 0.0372 ns |  1.15 |     - |     - |     - |         - |
+|                          |        |           |           |           |       |       |       |       |           |
+|            ImMap_TryFind |  10000 | 13.058 ns | 0.0785 ns | 0.0734 ns |  1.00 |     - |     - |     - |         - |
+| ImMap_FixedData2_TryFind |  10000 | 14.984 ns | 0.0647 ns | 0.0605 ns |  1.15 |     - |     - |     - |         - |
+|                          |        |           |           |           |       |       |       |       |           |
+|            ImMap_TryFind | 100000 | 15.889 ns | 0.0256 ns | 0.0214 ns |  1.00 |     - |     - |     - |         - |
+| ImMap_FixedData2_TryFind | 100000 | 22.550 ns | 0.2120 ns | 0.1655 ns |  1.42 |     - |     - |     - |         - |
+
  */
             private ImMap<string> _map;
             public ImMap<string> AddOrUpdate()
@@ -433,6 +471,17 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             public ImTools.OldVersions.V1.ImMap<string> AddOrUpdate_V1()
             {
                 var map = ImTools.OldVersions.V1.ImMap<string>.Empty;
+
+                for (var i = 0; i < Count; i++)
+                    map = map.AddOrUpdate(i, i.ToString());
+
+                return map;
+            }
+
+            private ImTools.Benchmarks.ImMapFixedData2.ImMap<string> _mapFixedData2;
+            public ImTools.Benchmarks.ImMapFixedData2.ImMap<string> AddOrUpdate_FixedData2()
+            {
+                var map = ImTools.Benchmarks.ImMapFixedData2.ImMap<string>.Empty;
 
                 for (var i = 0; i < Count; i++)
                     map = map.AddOrUpdate(i, i.ToString());
@@ -507,6 +556,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
                 _map = AddOrUpdate();
                 _mapV1 = AddOrUpdate_V1();
+                _mapFixedData2 = AddOrUpdate_FixedData2();
                 _mapSlots = AddOrUpdate_ImMapSlots();
                 _dictSlim = DictSlim();
                 _dict = Dict();
@@ -521,7 +571,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string ImMap_V1_TryFind()
             {
                 _mapV1.TryFind(LookupMaxKey, out var result);
@@ -529,6 +579,13 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             }
 
             [Benchmark]
+            public string ImMap_FixedData2_TryFind()
+            {
+                ImTools.Benchmarks.ImMapFixedData2.ImMap.TryFind(_mapFixedData2, LookupMaxKey, out var result);
+                return result;
+            }
+
+            //[Benchmark]
             public string ImMapSlots_TryFind()
             {
                 _mapSlots[LookupMaxKey & ImMapSlots.KEY_MASK_TO_FIND_SLOT].TryFind(LookupMaxKey, out var result);
@@ -547,28 +604,28 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return _mapV1.GetValueOrDefault(LookupMaxKey);
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string DictSlim_TryGetValue()
             {
                 _dictSlim.TryGetValue(LookupMaxKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string Dict_TryGetValue()
             {
                 _dict.TryGetValue(LookupMaxKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string ConcurrentDict_TryGetValue()
             {
                 _concurDict.TryGetValue(LookupMaxKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string ImmutableDict_TryGetValue()
             {
                 _immutableDict.TryGetValue(LookupMaxKey, out var result);

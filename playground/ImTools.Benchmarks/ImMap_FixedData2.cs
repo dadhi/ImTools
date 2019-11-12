@@ -61,7 +61,7 @@ namespace ImTools.Benchmarks.ImMapFixedData2
 
                 var left = Left;
                 var leftTree = left as ImMapTree<V>;
-                if (leftTree == null) // the leaf
+                if (leftTree == null) // left is the leaf
                     return key == left.Key
                         ? new ImMapTree<V>(Key, ValueOrData, new ImMap<V>(key, value), Right, Height)
                         : key < left.Key
@@ -247,12 +247,15 @@ namespace ImTools.Benchmarks.ImMapFixedData2
                 else if (key > mapTree.Key)
                     map = mapTree.Right;
                 else
-                    break;
+                {
+                    value = (V)((ImMap<V>)mapTree.ValueOrData).ValueOrData;
+                    return true;
+                }
             }
 
-            if (map != null && !ReferenceEquals(map, ImMap<V>.Empty) && map.Key == key)
+            if (!ReferenceEquals(map, ImMap<V>.Empty) && map.Key == key)
             {
-                value = map is ImMapTree<V> foundTree ? (V) ((ImMap<V>)foundTree.ValueOrData).ValueOrData : (V)map.ValueOrData;
+                value = (V)map.ValueOrData;
                 return true;
             }
 
