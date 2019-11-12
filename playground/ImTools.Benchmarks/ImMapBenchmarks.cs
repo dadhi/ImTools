@@ -184,9 +184,18 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |  ImMap_FixedData2 |  1000 | 218,123.5 ns |   598.36 ns |   559.71 ns |  1.08 |    0.02 |  99.8535 | 0.2441 |     - | 459.59 KB |
 |  ImMap_FixedData3 |  1000 | 228,489.7 ns | 3,616.17 ns | 3,382.57 ns |  1.13 |    0.02 | 114.2578 | 0.2441 |     - | 525.83 KB |
 
+## FixedData3 with Data.Key as Height
+
+|            Method | Count |        Mean |     Error |    StdDev | Ratio | RatioSD |  Gen 0 |  Gen 1 | Gen 2 | Allocated |
+|------------------ |------ |------------:|----------:|----------:|------:|--------:|-------:|-------:|------:|----------:|
+| ImMap_AddOrUpdate |    10 |    638.1 ns |   5.43 ns |   4.82 ns |  1.00 |    0.00 | 0.3567 | 0.0010 |     - |   1.64 KB |
+|  ImMap_FixedData3 |    10 |    519.3 ns |   2.14 ns |   2.00 ns |  0.81 |    0.01 | 0.2813 |      - |     - |    1.3 KB |
+|                   |       |             |           |           |       |         |        |        |       |           |
+| ImMap_AddOrUpdate |   100 | 12,136.9 ns | 139.79 ns | 123.92 ns |  1.00 |    0.00 | 7.4768 | 0.3052 |     - |  34.36 KB |
+|  ImMap_FixedData3 |   100 | 13,443.4 ns | 174.49 ns | 163.22 ns |  1.11 |    0.02 | 7.4463 | 0.3510 |     - |  34.27 KB |
 */
 
-            [Params(10, 100, 1_000)]//, 10_000, 100_000)]
+            [Params(10, 100)]//, 1_000, 10_000, 100_000)]
             public int Count;
 
             [Benchmark(Baseline = true)]
@@ -222,7 +231,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public ImTools.Benchmarks.ImMapFixedData2.ImMap<string> ImMap_FixedData2()
             {
                 var map = ImTools.Benchmarks.ImMapFixedData2.ImMap<string>.Empty;
