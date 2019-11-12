@@ -43,13 +43,13 @@ namespace ImTools.Benchmarks.ImMapFixedData2
     public sealed class ImMapTree<V> : ImMap<V> where V : class
     {
         /// <summary>Left sub-tree/branch, or empty.</summary>
-        public readonly ImMap<V> Left;
+        public ImMap<V> Left;
 
         /// <summary>Right sub-tree/branch, or empty.</summary>
         public readonly ImMap<V> Right;
 
         /// <summary>Height of the longest sub-tree/branch. It is 0 for empty tree, and 1 for single node tree.</summary>
-        public readonly int Height;
+        public int Height;
 
         // subj
         public ImMapTree<V> AddOrUpdateLeftOrRight(int key, V value)
@@ -151,9 +151,8 @@ namespace ImTools.Benchmarks.ImMapFixedData2
                 var newRightTree = rightTree.AddOrUpdateLeftOrRight(key, value);
                 if (newRightTree.Height == rightTree.Height)
                     return new ImMapTree<V>(Key, ValueOrData, Left, newRightTree, Height);
-                
-                var leftTree = Left as ImMapTree<V>;
-                var leftHeight = leftTree?.Height ?? 1;
+
+                var leftHeight = Left is ImMapTree<V> lt ? lt.Height : 1;
                 if (newRightTree.Height - 1 > leftHeight)
                 {
                     var rightLeft = newRightTree.Left;
@@ -165,27 +164,46 @@ namespace ImTools.Benchmarks.ImMapFixedData2
                         if (rightRightTree != null)
                         {
                             if (rightRightTree.Height >= rightLeftTree.Height)
-                                return new ImMapTree<V>(newRightTree.Key, newRightTree.ValueOrData,
-                                    new ImMapTree<V>(Key, ValueOrData, leftHeight, Left, rightLeftTree.Height, rightLeftTree),
-                                    rightRightTree.Height, rightRightTree);
+                            {
+                                rightLeftTree = new ImMapTree<V>(Key, ValueOrData, leftHeight, Left, rightLeftTree.Height, rightLeft);
+                                newRightTree.Left = rightLeftTree;
+                                newRightTree.Height = rightLeftTree.Height > rightRightTree.Height ? rightLeftTree.Height + 1 : rightRightTree.Height + 1;
+                                return newRightTree;
+                                //return new ImMapTree<V>(newRightTree.Key, newRightTree.ValueOrData,
+                                //    new ImMapTree<V>(Key, ValueOrData, leftHeight, Left, rightLeftTree.Height, rightLeft),
+                                //    rightRightTree.Height, rightRight);
+                            }
 
-                            return new ImMapTree<V>(rightLeftTree.Key, rightLeftTree.ValueOrData,
-                                new ImMapTree<V>(Key, ValueOrData, leftHeight, Left, rightLeftTree.Left),
-                                new ImMapTree<V>(newRightTree.Key, newRightTree.ValueOrData, rightLeftTree.Right,
-                                    rightRightTree.Height, rightRightTree));
+                            //return new ImMapTree<V>(rightLeftTree.Key, rightLeftTree.ValueOrData,
+                            //    new ImMapTree<V>(Key, ValueOrData, leftHeight, Left, rightLeftTree.Left),
+                            //    new ImMapTree<V>(newRightTree.Key, newRightTree.ValueOrData, rightLeftTree.Right, rightRightTree.Height, rightRight));
                         }
 
-                        // right-left is tree and right-right is leaf - use the double rotation
+                        // right-left is tree and right-right is leaf - use a double rotation
+                        newRightTree.Left = rightLeftTree.Right;
+                        var newRightLeftHeight = newRightTree.Left is ImMapTree<V> rl ? rl.Height : 1;
+                        var newRightRightHeight = rightRightTree?.Height ?? 1;
+                        newRightTree.Height = newRightLeftHeight > newRightRightHeight ? newRightLeftHeight + 1 : newRightRightHeight + 1;
+
                         return new ImMapTree<V>(rightLeftTree.Key, rightLeftTree.ValueOrData,
                             new ImMapTree<V>(Key, ValueOrData, leftHeight, Left, rightLeftTree.Left),
-                            new ImMapTree<V>(newRightTree.Key, newRightTree.ValueOrData, rightLeftTree.Right, 1, rightRight));
+                            newRightTree);
+                        //return new ImMapTree<V>(rightLeftTree.Key, rightLeftTree.ValueOrData,
+                        //    new ImMapTree<V>(Key, ValueOrData, leftHeight, Left, rightLeftTree.Left),
+                        //    new ImMapTree<V>(newRightTree.Key, newRightTree.ValueOrData, rightLeftTree.Right, 
+                        //        rightRightTree?.Height ?? 1, rightRight));
                     }
 
-                    // `rightLeft` is leaf node and `rightRight` is the tree - so a single rotation
+                    // `rightLeft` is leaf node and `rightRight` is the tree - use a single rotation
+                    rightLeftTree = new ImMapTree<V>(Key, ValueOrData, leftHeight, Left, 1, rightLeft);
+                    newRightTree.Left = rightLeftTree;
                     // ReSharper disable once PossibleNullReferenceException
-                    return new ImMapTree<V>(newRightTree.Key, newRightTree.ValueOrData,
-                        new ImMapTree<V>(Key, ValueOrData, leftHeight, Left, 1, rightLeft),
-                        rightRightTree.Height, rightRightTree);
+                    newRightTree.Height = rightLeftTree.Height > rightRightTree.Height ? rightLeftTree.Height + 1 : rightRightTree.Height + 1;
+                    return newRightTree;
+
+                    //return new ImMapTree<V>(newRightTree.Key, newRightTree.ValueOrData,
+                    //    new ImMapTree<V>(Key, ValueOrData, leftHeight, Left, 1, rightLeft),
+                    //    rightRightTree.Height, rightRight);
                 }
 
                 // Height does not changed
