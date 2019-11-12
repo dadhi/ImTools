@@ -2689,19 +2689,19 @@ namespace ImTools
         public static readonly ImMap<V> Empty = new ImMap<V>();
 
         /// <summary>Key.</summary>
-        public readonly int Key;
+        public int Key;
 
         /// <summary>Value.</summary>
-        public readonly V Value;
+        public V Value;
 
         /// <summary>Left sub-tree/branch, or empty.</summary>
-        public readonly ImMap<V> Left;
+        public ImMap<V> Left;
 
         /// <summary>Right sub-tree/branch, or empty.</summary>
-        public readonly ImMap<V> Right;
+        public ImMap<V> Right;
 
         /// <summary>Height of the longest sub-tree/branch. It is 0 for empty tree, and 1 for single node tree.</summary>
-        public readonly int Height;
+        public int Height;
 
         /// <summary>Returns true if tree is empty.</summary>
         public bool IsEmpty => Height == 0;
@@ -2739,12 +2739,25 @@ namespace ImTools
                     var leftRight = newLeft.Right;
 
                     if (leftLeft.Height >= leftRight.Height)
-                        return new ImMap<V>(newLeft.Key, newLeft.Value,
-                            leftLeft, new ImMap<V>(Key, Value, leftRight, Right));
+                    {
+                        newLeft.Right = new ImMap<V>(Key, Value, leftRight, Right);
+                        newLeft.Height = newLeft.Right.Height > leftLeft.Height ? newLeft.Right.Height + 1 : leftLeft.Height + 1;
+                        return newLeft;
 
+                        //return new ImMap<V>(newLeft.Key, newLeft.Value,
+                        //    leftLeft, 
+                        //    new ImMap<V>(Key, Value, leftRight, Right));
+                    }
+
+                    newLeft.Right = leftRight.Left;
+                    newLeft.Height = newLeft.Right.Height > leftLeft.Height ? newLeft.Right.Height + 1 : leftLeft.Height + 1;
                     return new ImMap<V>(leftRight.Key, leftRight.Value,
-                        new ImMap<V>(newLeft.Key, newLeft.Value, leftLeft, leftRight.Left),
+                        newLeft,
                         new ImMap<V>(Key, Value, leftRight.Right, Right));
+
+                    //return new ImMap<V>(leftRight.Key, leftRight.Value,
+                    //    new ImMap<V>(newLeft.Key, newLeft.Value, leftLeft, leftRight.Left),
+                    //    new ImMap<V>(Key, Value, leftRight.Right, Right));
                 }
 
                 return new ImMap<V>(Key, Value, newLeft, Right);
@@ -2771,12 +2784,24 @@ namespace ImTools
                     var rightRight = newRight.Right;
 
                     if (rightRight.Height >= rightLeft.Height)
-                        return new ImMap<V>(newRight.Key, newRight.Value,
-                            new ImMap<V>(Key, Value, Left, rightLeft), rightRight);
+                    {
+                        newRight.Left = new ImMap<V>(Key, Value, Left, rightLeft);
+                        newRight.Height = newRight.Left.Height > rightRight.Height ? newRight.Left.Height + 1 : rightRight.Height + 1;
+                        return newRight;
+                        //return new ImMap<V>(newRight.Key, newRight.Value,
+                        //    new ImMap<V>(Key, Value, Left, rightLeft), rightRight);
+                    }
+
+                    newRight.Left = rightLeft.Right;
+                    newRight.Height = newRight.Left.Height > rightRight.Height ? newRight.Left.Height + 1 : rightRight.Height + 1;
 
                     return new ImMap<V>(rightLeft.Key, rightLeft.Value,
                         new ImMap<V>(Key, Value, Left, rightLeft.Left),
-                        new ImMap<V>(newRight.Key, newRight.Value, rightLeft.Right, rightRight));
+                        newRight);
+
+                    //return new ImMap<V>(rightLeft.Key, rightLeft.Value,
+                    //    new ImMap<V>(Key, Value, Left, rightLeft.Left),
+                    //    new ImMap<V>(newRight.Key, newRight.Value, rightLeft.Right, rightRight));
                 }
 
                 return new ImMap<V>(Key, Value, Left, newRight);
