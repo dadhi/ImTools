@@ -30,7 +30,7 @@ namespace ImTools.Benchmarks.ImMapFixedData3
             ReferenceEquals(this, Empty)
                 ? new ImMap<V>(key, value)
                 : this is ImMapTree<V> tree ?
-                    (key == Key 
+                    (key == tree.Data.Key 
                         ? new ImMapTree<V>(new ImMap<V>(key, value), tree.Left, tree.Right, tree.Height)
                         : tree.AddOrUpdateLeftOrRight(key, value)) 
                     : key > Key ? new ImMapTree<V>(this, Empty, new ImMap<V>(key, value), 2) 

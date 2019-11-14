@@ -193,6 +193,26 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |                   |       |             |           |           |       |         |        |        |       |           |
 | ImMap_AddOrUpdate |   100 | 12,136.9 ns | 139.79 ns | 123.92 ns |  1.00 |    0.00 | 7.4768 | 0.3052 |     - |  34.36 KB |
 |  ImMap_FixedData3 |   100 | 13,443.4 ns | 174.49 ns | 163.22 ns |  1.11 |    0.02 | 7.4463 | 0.3510 |     - |  34.27 KB |
+
+
+## FixedData4 with Key as Height
+
+|            Method |  Count |            Mean |         Error |        StdDev | Ratio | RatioSD |      Gen 0 |     Gen 1 |    Gen 2 |   Allocated |
+|------------------ |------- |----------------:|--------------:|--------------:|------:|--------:|-----------:|----------:|---------:|------------:|
+| ImMap_AddOrUpdate |     10 |        629.2 ns |       3.16 ns |       2.96 ns |  1.00 |    0.00 |     0.3567 |    0.0010 |        - |     1.64 KB |
+|  ImMap_FixedData4 |     10 |        520.4 ns |       0.66 ns |       0.58 ns |  0.83 |    0.00 |     0.2813 |    0.0010 |        - |      1.3 KB |
+|                   |        |                 |               |               |       |         |            |           |          |             |
+| ImMap_AddOrUpdate |    100 |     12,217.2 ns |     118.56 ns |     105.10 ns |  1.00 |    0.00 |     7.4768 |    0.3052 |        - |    34.36 KB |
+|  ImMap_FixedData4 |    100 |     11,553.7 ns |      44.21 ns |      39.19 ns |  0.95 |    0.01 |     6.6376 |    0.3052 |        - |     30.5 KB |
+|                   |        |                 |               |               |       |         |            |           |          |             |
+| ImMap_AddOrUpdate |   1000 |    197,138.7 ns |     479.15 ns |     424.75 ns |  1.00 |    0.00 |   108.3984 |    0.2441 |        - |   498.61 KB |
+|  ImMap_FixedData4 |   1000 |    197,882.5 ns |   2,680.40 ns |   2,507.25 ns |  1.00 |    0.01 |    99.8535 |    0.2441 |        - |   459.59 KB |
+|                   |        |                 |               |               |       |         |            |           |          |             |
+| ImMap_AddOrUpdate |  10000 |  4,339,026.4 ns |  35,870.56 ns |  29,953.54 ns |  1.00 |    0.00 |  1070.3125 |  257.8125 |  93.7500 |  6575.53 KB |
+|  ImMap_FixedData4 |  10000 |  4,627,081.5 ns |  32,761.64 ns |  30,645.26 ns |  1.07 |    0.01 |  1007.8125 |  335.9375 | 140.6250 |  6184.91 KB |
+|                   |        |                 |               |               |       |         |            |           |          |             |
+| ImMap_AddOrUpdate | 100000 | 60,443,932.6 ns | 699,530.63 ns | 654,341.39 ns |  1.00 |    0.00 | 13666.6667 | 1777.7778 | 444.4444 | 81355.74 KB |
+|  ImMap_FixedData4 | 100000 | 68,104,046.7 ns | 652,238.77 ns | 610,104.55 ns |  1.13 |    0.02 | 13250.0000 | 2250.0000 | 625.0000 | 77449.94 KB |
 */
 
             [Params(10, 100, 1_000, 10_000, 100_000)]
@@ -242,13 +262,24 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public ImTools.Benchmarks.ImMapFixedData3.ImMap<string> ImMap_FixedData3()
             {
                 var map = ImTools.Benchmarks.ImMapFixedData3.ImMap<string>.Empty;
 
                 for (var i = 0; i < Count; i++)
                     map = map.AddOrUpdate(i, i.ToString());
+
+                return map;
+            }
+
+            [Benchmark]
+            public ImTools.Benchmarks.ImMapFixedData4.ImMap<string> ImMap_FixedData4()
+            {
+                var map = ImTools.Benchmarks.ImMapFixedData4.ImMapEmpty<string>.Empty;
+
+                for (var i = 0; i < Count; i++)
+                    map = ImTools.Benchmarks.ImMapFixedData4.ImMap.AddOrUpdate(map, i, i.ToString());
 
                 return map;
             }
