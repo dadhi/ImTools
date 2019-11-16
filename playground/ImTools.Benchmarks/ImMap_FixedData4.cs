@@ -2,7 +2,7 @@ using System.Runtime.CompilerServices;
 
 namespace ImTools.Benchmarks.ImMapFixedData4
 {
-    /// Marker interface to denote the map
+    /// Empty ImMap to start with
     public class ImMap<V> 
     {
         /// Empty tree to start with.
