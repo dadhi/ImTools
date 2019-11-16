@@ -569,19 +569,27 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 | ImMap_FixedData4_TryFind |  1000 | 10.459 ns | 0.0429 ns | 0.0381 ns |  1.35 |    0.02 |     - |     - |     - |         - |
 
 
-|                   Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
-|------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
-|            ImMap_TryFind |    10 |  2.863 ns | 0.0451 ns | 0.0421 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| ImMap_FixedData2_TryFind |    10 |  4.341 ns | 0.0211 ns | 0.0187 ns |  1.52 |    0.03 |     - |     - |     - |         - |
-| ImMap_FixedData4_TryFind |    10 |  4.400 ns | 0.0365 ns | 0.0304 ns |  1.54 |    0.03 |     - |     - |     - |         - |
-|                          |       |           |           |           |       |         |       |       |       |           |
-|            ImMap_TryFind |   100 |  5.560 ns | 0.0224 ns | 0.0198 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| ImMap_FixedData2_TryFind |   100 |  6.729 ns | 0.0792 ns | 0.0702 ns |  1.21 |    0.01 |     - |     - |     - |         - |
-| ImMap_FixedData4_TryFind |   100 |  7.522 ns | 0.0710 ns | 0.0664 ns |  1.35 |    0.01 |     - |     - |     - |         - |
-|                          |       |           |           |           |       |         |       |       |       |           |
-|            ImMap_TryFind |  1000 |  8.397 ns | 0.0829 ns | 0.0692 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| ImMap_FixedData2_TryFind |  1000 |  9.901 ns | 0.0439 ns | 0.0411 ns |  1.18 |    0.01 |     - |     - |     - |         - |
-| ImMap_FixedData4_TryFind |  1000 | 10.465 ns | 0.0286 ns | 0.0254 ns |  1.25 |    0.01 |     - |     - |     - |         - |
+|                   Method |  Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|------------------------- |------- |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+|            ImMap_TryFind |     10 |  2.951 ns | 0.0367 ns | 0.0343 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|         ImMap_V1_TryFind |     10 |  4.825 ns | 0.0237 ns | 0.0221 ns |  1.63 |    0.02 |     - |     - |     - |         - |
+| ImMap_FixedData4_TryFind |     10 |  5.453 ns | 0.0474 ns | 0.0420 ns |  1.85 |    0.03 |     - |     - |     - |         - |
+|                          |        |           |           |           |       |         |       |       |       |           |
+|            ImMap_TryFind |    100 |  5.452 ns | 0.0516 ns | 0.0482 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|         ImMap_V1_TryFind |    100 |  7.547 ns | 0.0478 ns | 0.0399 ns |  1.38 |    0.02 |     - |     - |     - |         - |
+| ImMap_FixedData4_TryFind |    100 |  8.693 ns | 0.0356 ns | 0.0333 ns |  1.59 |    0.01 |     - |     - |     - |         - |
+|                          |        |           |           |           |       |         |       |       |       |           |
+|            ImMap_TryFind |   1000 |  7.765 ns | 0.0300 ns | 0.0281 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|         ImMap_V1_TryFind |   1000 |  8.838 ns | 0.0421 ns | 0.0394 ns |  1.14 |    0.00 |     - |     - |     - |         - |
+| ImMap_FixedData4_TryFind |   1000 | 12.558 ns | 0.0750 ns | 0.0702 ns |  1.62 |    0.01 |     - |     - |     - |         - |
+|                          |        |           |           |           |       |         |       |       |       |           |
+|            ImMap_TryFind |  10000 | 10.848 ns | 0.0901 ns | 0.0752 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|         ImMap_V1_TryFind |  10000 | 12.358 ns | 0.0279 ns | 0.0248 ns |  1.14 |    0.01 |     - |     - |     - |         - |
+| ImMap_FixedData4_TryFind |  10000 | 17.575 ns | 0.1108 ns | 0.1037 ns |  1.62 |    0.01 |     - |     - |     - |         - |
+|                          |        |           |           |           |       |         |       |       |       |           |
+|            ImMap_TryFind | 100000 | 14.383 ns | 0.0618 ns | 0.0548 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|         ImMap_V1_TryFind | 100000 | 16.610 ns | 0.0478 ns | 0.0400 ns |  1.16 |    0.01 |     - |     - |     - |         - |
+| ImMap_FixedData4_TryFind | 100000 | 19.096 ns | 0.0518 ns | 0.0433 ns |  1.33 |    0.01 |     - |     - |     - |         - |
 
  */
             private ImMap<string> _map;
@@ -694,7 +702,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            [Params(10, 100, 1_000)]//, 10_000, 100_000)]
+            [Params(10, 100, 1_000, 10_000, 100_000)]
             public int Count;
 
             public int LookupMaxKey;
@@ -723,14 +731,14 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return result;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public string ImMap_V1_TryFind()
             {
                 _mapV1.TryFind(LookupMaxKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string ImMap_FixedData2_TryFind()
             {
                 ImTools.Benchmarks.ImMapFixedData2.ImMap.TryFind(_mapFixedData2, LookupMaxKey, out var result);

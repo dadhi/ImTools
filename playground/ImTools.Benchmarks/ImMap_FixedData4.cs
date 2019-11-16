@@ -315,31 +315,5 @@ namespace ImTools.Benchmarks.ImMapFixedData4
             value = default;
             return false;
         }
-
-        [MethodImpl((MethodImplOptions)256)]
-        public static bool TryFind2<V>(this ImMap<V> map, int key, out V value)
-        {
-            while (map is ImMapTree<V> mapTree)
-            {
-                if (key < mapTree.Data.Key)
-                    map = mapTree.Left;
-                else if (key > mapTree.Data.Key)
-                    map = mapTree.Right;
-                else
-                {
-                    value = mapTree.Data.Value;
-                    return true;
-                }
-            }
-
-            if (map is ImMapLeaf<V> leaf && leaf.Key == key)
-            {
-                value = leaf.Value;
-                return true;
-            }
-
-            value = default;
-            return false;
-        }
     }
 }
