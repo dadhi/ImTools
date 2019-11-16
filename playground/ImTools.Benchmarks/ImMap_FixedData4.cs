@@ -5,6 +5,9 @@ namespace ImTools.Benchmarks.ImMapFixedData4
     /// Marker interface to denote the map
     public abstract class ImMap<V> 
     {
+        /// Empty tree to start with.
+        public static readonly ImMap<V> Empty = new ImMapEmpty<V>();
+
         /// Height of the longest sub-tree/branch. Starts from 2 because it a tree and not the leaf
         public abstract int Height { get; }
     }
@@ -12,9 +15,7 @@ namespace ImTools.Benchmarks.ImMapFixedData4
     /// The empty tree
     public sealed class ImMapEmpty<V> : ImMap<V>
     {
-        /// Empty tree to start with.
-        public static readonly ImMap<V> Empty = new ImMapEmpty<V>();
-        private ImMapEmpty() { }
+        internal ImMapEmpty() { }
 
         /// <inheritdoc />
         public override int Height => 0;
