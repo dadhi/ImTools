@@ -282,9 +282,9 @@ namespace ImTools.Benchmarks.ImMapFixedData4
             : map is ImMapLeaf<V> leaf
                 ? key > leaf.Key
                     ? new ImMapTree<V>(leaf, ImMap<V>.Empty, new ImMapLeaf<V>(key, value), 2)
-                    : key < leaf.Key
-                        ? new ImMapTree<V>(leaf, new ImMapLeaf<V>(key, value), ImMap<V>.Empty, 2)
-                        : (ImMap<V>)new ImMapLeaf<V>(key, value)
+                : key < leaf.Key
+                    ? new ImMapTree<V>(leaf, new ImMapLeaf<V>(key, value), ImMap<V>.Empty, 2)
+                : (ImMap<V>)new ImMapLeaf<V>(key, value)
             : new ImMapLeaf<V>(key, value);
 
         /// Returns true if key is found and sets the value.
