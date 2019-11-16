@@ -129,10 +129,108 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |               Dict_TryAdd | 100000 |  10,539,553.2 ns |   141,171.29 ns |   132,051.71 ns |  10,540,217.2 ns |  0.17 |    0.00 |   906.2500 |  640.6250 | 500.0000 |  11652128 B |
 |     ConcurrentDict_TryAdd | 100000 |  34,202,418.3 ns |   570,236.69 ns |   533,399.76 ns |  34,138,325.0 ns |  0.54 |    0.01 |  2500.0000 | 1125.0000 | 437.5000 |  15066715 B |
 |         ImmutableDict_Add | 100000 | 194,366,442.2 ns | 1,505,482.08 ns | 1,408,228.88 ns | 194,159,900.0 ns |  3.07 |    0.03 | 18666.6667 | 2666.6667 | 666.6667 | 114011384 B |
+
+## FixedData2
+
+|            Method |  Count |            Mean |         Error |        StdDev | Ratio |      Gen 0 |     Gen 1 |    Gen 2 |   Allocated |
+|------------------ |------- |----------------:|--------------:|--------------:|------:|-----------:|----------:|---------:|------------:|
+| ImMap_AddOrUpdate |     10 |        641.3 ns |       3.50 ns |       3.27 ns |  1.00 |     0.3767 |    0.0010 |        - |     1.73 KB |
+|  ImMap_FixedData2 |     10 |        625.7 ns |       3.72 ns |       3.30 ns |  0.98 |     0.3023 |    0.0010 |        - |     1.39 KB |
+|                   |        |                 |               |               |       |            |           |          |             |
+| ImMap_AddOrUpdate |    100 |     12,697.6 ns |      80.35 ns |      67.09 ns |  1.00 |     7.9193 |    0.3357 |        - |    36.42 KB |
+|  ImMap_FixedData2 |    100 |     13,599.2 ns |      39.41 ns |      34.93 ns |  1.07 |     7.0801 |    0.3204 |        - |    32.56 KB |
+|                   |        |                 |               |               |       |            |           |          |             |
+| ImMap_AddOrUpdate |   1000 |    206,763.7 ns |   1,700.92 ns |   1,507.82 ns |  1.00 |   113.5254 |    0.2441 |        - |   521.63 KB |
+|  ImMap_FixedData2 |   1000 |    230,479.3 ns |   3,289.74 ns |   3,077.23 ns |  1.12 |   104.9805 |    0.2441 |        - |   482.61 KB |
+|                   |        |                 |               |               |       |            |           |          |             |
+| ImMap_AddOrUpdate |  10000 |  4,472,363.1 ns |  49,620.44 ns |  41,435.31 ns |  1.00 |  1109.3750 |  234.3750 | 101.5625 |  6809.29 KB |
+|  ImMap_FixedData2 |  10000 |  4,954,560.5 ns |  20,282.18 ns |  18,971.97 ns |  1.11 |  1046.8750 |  304.6875 | 117.1875 |  6418.68 KB |
+|                   |        |                 |               |               |       |            |           |          |             |
+| ImMap_AddOrUpdate | 100000 | 62,702,587.4 ns | 517,296.89 ns | 483,879.83 ns |  1.00 | 14222.2222 | 2000.0000 | 555.5556 | 83699.22 KB |
+|  ImMap_FixedData2 | 100000 | 72,595,912.4 ns | 519,397.26 ns | 485,844.52 ns |  1.16 | 13571.4286 | 2285.7143 | 571.4286 | 79792.54 KB |
+
+## Reuse newLeft/newRight in re-balancing in both ImMap and ImMapFixedData2
+
+|            Method |  Count |            Mean |         Error |        StdDev | Ratio | RatioSD |      Gen 0 |     Gen 1 |    Gen 2 |   Allocated |
+|------------------ |------- |----------------:|--------------:|--------------:|------:|--------:|-----------:|----------:|---------:|------------:|
+| ImMap_AddOrUpdate |     10 |        622.6 ns |       8.59 ns |       8.03 ns |  1.00 |    0.00 |     0.3567 |    0.0010 |        - |     1.64 KB |
+|  ImMap_FixedData2 |     10 |        598.4 ns |       4.04 ns |       3.78 ns |  0.96 |    0.01 |     0.2813 |    0.0010 |        - |      1.3 KB |
+|                   |        |                 |               |               |       |         |            |           |          |             |
+| ImMap_AddOrUpdate |    100 |     12,281.9 ns |      84.87 ns |      75.24 ns |  1.00 |    0.00 |     7.4768 |    0.3052 |        - |    34.36 KB |
+|  ImMap_FixedData2 |    100 |     13,396.1 ns |     259.10 ns |     242.36 ns |  1.09 |    0.02 |     6.6376 |    0.3052 |        - |     30.5 KB |
+|                   |        |                 |               |               |       |         |            |           |          |             |
+| ImMap_AddOrUpdate |   1000 |    196,145.8 ns |   2,543.43 ns |   2,379.12 ns |  1.00 |    0.00 |   108.3984 |    0.2441 |        - |   498.61 KB |
+|  ImMap_FixedData2 |   1000 |    218,331.6 ns |     545.98 ns |     510.71 ns |  1.11 |    0.01 |    99.8535 |    0.2441 |        - |   459.59 KB |
+|                   |        |                 |               |               |       |         |            |           |          |             |
+| ImMap_AddOrUpdate |  10000 |  4,265,735.0 ns |  44,037.18 ns |  34,381.33 ns |  1.00 |    0.00 |  1070.3125 |  257.8125 |  93.7500 |  6575.53 KB |
+|  ImMap_FixedData2 |  10000 |  5,144,891.8 ns |  34,954.45 ns |  30,986.21 ns |  1.20 |    0.01 |  1007.8125 |  335.9375 | 140.6250 |  6184.92 KB |
+|                   |        |                 |               |               |       |         |            |           |          |             |
+| ImMap_AddOrUpdate | 100000 | 61,490,977.8 ns | 640,187.46 ns | 567,509.51 ns |  1.00 |    0.00 | 13666.6667 | 1777.7778 | 444.4444 | 81355.74 KB |
+|  ImMap_FixedData2 | 100000 | 72,905,032.4 ns | 678,240.75 ns | 634,426.82 ns |  1.19 |    0.01 | 13142.8571 | 2285.7143 | 571.4286 | 77450.39 KB |
+
+## FixedData3
+
+|            Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |    Gen 0 |  Gen 1 | Gen 2 | Allocated |
+|------------------ |------ |-------------:|------------:|------------:|------:|--------:|---------:|-------:|------:|----------:|
+| ImMap_AddOrUpdate |    10 |     621.7 ns |     2.88 ns |     2.56 ns |  1.00 |    0.00 |   0.3567 | 0.0010 |     - |   1.64 KB |
+|  ImMap_FixedData2 |    10 |     591.6 ns |     1.51 ns |     1.34 ns |  0.95 |    0.00 |   0.2813 | 0.0010 |     - |    1.3 KB |
+|  ImMap_FixedData3 |    10 |     625.6 ns |     2.28 ns |     1.90 ns |  1.01 |    0.00 |   0.3176 | 0.0010 |     - |   1.46 KB |
+|                   |       |              |             |             |       |         |          |        |       |           |
+| ImMap_AddOrUpdate |   100 |  12,156.4 ns |    16.34 ns |    14.48 ns |  1.00 |    0.00 |   7.4768 | 0.3052 |     - |  34.36 KB |
+|  ImMap_FixedData2 |   100 |  13,054.0 ns |    68.59 ns |    64.16 ns |  1.07 |    0.01 |   6.6376 | 0.3052 |     - |   30.5 KB |
+|  ImMap_FixedData3 |   100 |  13,670.9 ns |   118.70 ns |   111.04 ns |  1.13 |    0.01 |   7.5226 | 0.3662 |     - |  34.59 KB |
+|                   |       |              |             |             |       |         |          |        |       |           |
+| ImMap_AddOrUpdate |  1000 | 201,940.0 ns | 4,782.19 ns | 3,993.35 ns |  1.00 |    0.00 | 108.3984 | 0.2441 |     - | 498.61 KB |
+|  ImMap_FixedData2 |  1000 | 218,123.5 ns |   598.36 ns |   559.71 ns |  1.08 |    0.02 |  99.8535 | 0.2441 |     - | 459.59 KB |
+|  ImMap_FixedData3 |  1000 | 228,489.7 ns | 3,616.17 ns | 3,382.57 ns |  1.13 |    0.02 | 114.2578 | 0.2441 |     - | 525.83 KB |
+
+## FixedData3 with Key as Height
+
+|            Method | Count |        Mean |     Error |    StdDev | Ratio | RatioSD |  Gen 0 |  Gen 1 | Gen 2 | Allocated |
+|------------------ |------ |------------:|----------:|----------:|------:|--------:|-------:|-------:|------:|----------:|
+| ImMap_AddOrUpdate |    10 |    638.1 ns |   5.43 ns |   4.82 ns |  1.00 |    0.00 | 0.3567 | 0.0010 |     - |   1.64 KB |
+|  ImMap_FixedData3 |    10 |    519.3 ns |   2.14 ns |   2.00 ns |  0.81 |    0.01 | 0.2813 |      - |     - |    1.3 KB |
+|                   |       |             |           |           |       |         |        |        |       |           |
+| ImMap_AddOrUpdate |   100 | 12,136.9 ns | 139.79 ns | 123.92 ns |  1.00 |    0.00 | 7.4768 | 0.3052 |     - |  34.36 KB |
+|  ImMap_FixedData3 |   100 | 13,443.4 ns | 174.49 ns | 163.22 ns |  1.11 |    0.02 | 7.4463 | 0.3510 |     - |  34.27 KB |
+
+## FixedData4
+
+|               Method |     Mean |    Error |   StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|--------------------- |---------:|---------:|---------:|------:|--------:|-------:|------:|------:|----------:|
+|    ImMap_AddOrUpdate | 23.36 ns | 0.141 ns | 0.132 ns |  1.00 |    0.00 | 0.0102 |     - |     - |      48 B |
+| ImMap_V1_AddOrUpdate | 29.20 ns | 0.212 ns | 0.198 ns |  1.25 |    0.01 | 0.0102 |     - |     - |      48 B |
+|     ImMap_FixedData4 | 21.36 ns | 0.554 ns | 0.721 ns |  0.93 |    0.03 | 0.0068 |     - |     - |      32 B |
+
+
+|               Method |  Count |            Mean |         Error |        StdDev | Ratio | RatioSD |      Gen 0 |     Gen 1 |    Gen 2 |   Allocated |
+|--------------------- |------- |----------------:|--------------:|--------------:|------:|--------:|-----------:|----------:|---------:|------------:|
+|    ImMap_AddOrUpdate |     10 |        625.3 ns |       2.46 ns |       2.30 ns |  1.00 |    0.00 |     0.3567 |    0.0010 |        - |     1.64 KB |
+| ImMap_V1_AddOrUpdate |     10 |        790.0 ns |       4.33 ns |       4.05 ns |  1.26 |    0.01 |     0.4787 |    0.0010 |        - |      2.2 KB |
+|     ImMap_FixedData4 |     10 |        490.4 ns |       1.57 ns |       1.31 ns |  0.78 |    0.00 |     0.2813 |    0.0010 |        - |      1.3 KB |
+|                      |        |                 |               |               |       |         |            |           |          |             |
+|    ImMap_AddOrUpdate |    100 |     12,226.8 ns |      51.04 ns |      47.74 ns |  1.00 |    0.00 |     7.4768 |    0.3052 |        - |    34.36 KB |
+| ImMap_V1_AddOrUpdate |    100 |     14,799.7 ns |      17.58 ns |      14.68 ns |  1.21 |    0.00 |     9.3689 |    0.3967 |        - |    43.08 KB |
+|     ImMap_FixedData4 |    100 |     10,499.8 ns |      99.58 ns |      88.28 ns |  0.86 |    0.01 |     6.6376 |    0.3052 |        - |     30.5 KB |
+|                      |        |                 |               |               |       |         |            |           |          |             |
+|    ImMap_AddOrUpdate |   1000 |    193,976.5 ns |     655.66 ns |     613.31 ns |  1.00 |    0.00 |   108.3984 |    0.2441 |        - |   498.61 KB |
+| ImMap_V1_AddOrUpdate |   1000 |    233,278.7 ns |   1,416.43 ns |   1,255.63 ns |  1.20 |    0.01 |   128.6621 |    0.2441 |        - |   591.42 KB |
+|     ImMap_FixedData4 |   1000 |    184,114.7 ns |     493.73 ns |     437.68 ns |  0.95 |    0.00 |    99.8535 |    0.2441 |        - |   459.59 KB |
+|                      |        |                 |               |               |       |         |            |           |          |             |
+|    ImMap_AddOrUpdate |  10000 |  4,272,567.1 ns |  43,836.21 ns |  38,859.66 ns |  1.00 |    0.00 |  1070.3125 |  257.8125 |  93.7500 |  6575.49 KB |
+| ImMap_V1_AddOrUpdate |  10000 |  4,908,416.9 ns |  44,077.17 ns |  41,229.82 ns |  1.15 |    0.02 |  1226.5625 |  226.5625 | 101.5625 |  7511.68 KB |
+|     ImMap_FixedData4 |  10000 |  4,425,094.8 ns |  52,906.97 ns |  49,489.21 ns |  1.04 |    0.01 |  1007.8125 |  335.9375 | 140.6250 |  6184.92 KB |
+|                      |        |                 |               |               |       |         |            |           |          |             |
+|    ImMap_AddOrUpdate | 100000 | 60,702,839.3 ns | 630,407.60 ns | 589,683.66 ns |  1.00 |    0.00 | 13666.6667 | 1777.7778 | 444.4444 | 81356.87 KB |
+| ImMap_V1_AddOrUpdate | 100000 | 66,207,335.8 ns | 418,512.92 ns | 391,477.25 ns |  1.09 |    0.01 | 15250.0000 | 2000.0000 | 500.0000 | 90730.88 KB |
+|     ImMap_FixedData4 | 100000 | 66,284,828.6 ns | 323,173.70 ns | 286,485.07 ns |  1.09 |    0.01 | 13250.0000 | 2250.0000 | 625.0000 | 77451.22 KB |
+ 
+
+
 */
 
-            [Params(10, 100, 1_000, 10_000, 100_000)]
-            public int Count;
+            //[Params(10, 100, 1_000, 10_000, 100_000)]
+            public int Count = 1;
 
             [Benchmark(Baseline = true)]
             public ImMap<string> ImMap_AddOrUpdate()
@@ -156,13 +254,46 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public ImTools.Benchmarks.ImMapFixedData.ImMap<string> ImMap_FixedData()
             {
                 var map = ImTools.Benchmarks.ImMapFixedData.ImMap<string>.Empty;
 
                 for (var i = 0; i < Count; i++)
                     map = map.AddOrUpdate(i, i.ToString());
+
+                return map;
+            }
+
+            //[Benchmark]
+            public ImTools.Benchmarks.ImMapFixedData2.ImMap<string> ImMap_FixedData2()
+            {
+                var map = ImTools.Benchmarks.ImMapFixedData2.ImMap<string>.Empty;
+
+                for (var i = 0; i < Count; i++)
+                    map = map.AddOrUpdate(i, i.ToString());
+
+                return map;
+            }
+
+            //[Benchmark]
+            public ImTools.Benchmarks.ImMapFixedData3.ImMap<string> ImMap_FixedData3()
+            {
+                var map = ImTools.Benchmarks.ImMapFixedData3.ImMap<string>.Empty;
+
+                for (var i = 0; i < Count; i++)
+                    map = map.AddOrUpdate(i, i.ToString());
+
+                return map;
+            }
+
+            [Benchmark]
+            public ImTools.Benchmarks.ImMapFixedData4.ImMap<string> ImMap_FixedData4()
+            {
+                var map = ImTools.Benchmarks.ImMapFixedData4.ImMap<string>.Empty;
+
+                for (var i = 0; i < Count; i++)
+                    map = ImTools.Benchmarks.ImMapFixedData4.ImMap.AddOrUpdate(map, i, i.ToString());
 
                 return map;
             }
@@ -406,6 +537,74 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 | ConcurrentDict_TryGetValue | 100000 | 11.0017 ns | 0.0565 ns | 0.0529 ns | 11.0147 ns |  0.68 |    0.00 |     - |     - |     - |         - |
 |  ImmutableDict_TryGetValue | 100000 | 35.4956 ns | 0.1117 ns | 0.1045 ns | 35.4829 ns |  2.21 |    0.01 |     - |     - |     - |         - |
 
+## FixedData2:
+|                   Method |  Count |      Mean |     Error |    StdDev | Ratio | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|------------------------- |------- |----------:|----------:|----------:|------:|------:|------:|------:|----------:|
+|            ImMap_TryFind |     10 |  3.469 ns | 0.0252 ns | 0.0236 ns |  1.00 |     - |     - |     - |         - |
+| ImMap_FixedData2_TryFind |     10 |  4.777 ns | 0.0281 ns | 0.0263 ns |  1.38 |     - |     - |     - |         - |
+|                          |        |           |           |           |       |       |       |       |           |
+|            ImMap_TryFind |    100 |  6.302 ns | 0.0416 ns | 0.0389 ns |  1.00 |     - |     - |     - |         - |
+| ImMap_FixedData2_TryFind |    100 |  7.348 ns | 0.0580 ns | 0.0542 ns |  1.17 |     - |     - |     - |         - |
+|                          |        |           |           |           |       |       |       |       |           |
+|            ImMap_TryFind |   1000 |  9.078 ns | 0.0452 ns | 0.0401 ns |  1.00 |     - |     - |     - |         - |
+| ImMap_FixedData2_TryFind |   1000 | 10.440 ns | 0.0397 ns | 0.0372 ns |  1.15 |     - |     - |     - |         - |
+|                          |        |           |           |           |       |       |       |       |           |
+|            ImMap_TryFind |  10000 | 13.058 ns | 0.0785 ns | 0.0734 ns |  1.00 |     - |     - |     - |         - |
+| ImMap_FixedData2_TryFind |  10000 | 14.984 ns | 0.0647 ns | 0.0605 ns |  1.15 |     - |     - |     - |         - |
+|                          |        |           |           |           |       |       |       |       |           |
+|            ImMap_TryFind | 100000 | 15.889 ns | 0.0256 ns | 0.0214 ns |  1.00 |     - |     - |     - |         - |
+| ImMap_FixedData2_TryFind | 100000 | 22.550 ns | 0.2120 ns | 0.1655 ns |  1.42 |     - |     - |     - |         - |
+
+## FixedData3 - Data.Key access - ignoring the Key
+
+|                   Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|------------------------- |------ |---------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+|            ImMap_TryFind |    10 | 3.441 ns | 0.0872 ns | 0.0681 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| ImMap_FixedData3_TryFind |    10 | 4.064 ns | 0.0577 ns | 0.0539 ns |  1.18 |    0.03 |     - |     - |     - |         - |
+|                          |       |          |           |           |       |         |       |       |       |           |
+|            ImMap_TryFind |   100 | 6.105 ns | 0.0742 ns | 0.0658 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| ImMap_FixedData3_TryFind |   100 | 7.142 ns | 0.0999 ns | 0.0934 ns |  1.17 |    0.02 |     - |     - |     - |         - |
+|                          |       |          |           |           |       |         |       |       |       |           |
+|            ImMap_TryFind |  1000 | 8.803 ns | 0.0740 ns | 0.0656 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| ImMap_FixedData3_TryFind |  1000 | 9.990 ns | 0.0419 ns | 0.0392 ns |  1.13 |    0.01 |     - |     - |     - |         - |
+
+
+## FixedData4 - Making ImMap an abstract class
+
+|                   Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+|            ImMap_TryFind |    10 |  3.016 ns | 0.0395 ns | 0.0330 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| ImMap_FixedData4_TryFind |    10 |  5.447 ns | 0.0271 ns | 0.0240 ns |  1.81 |    0.02 |     - |     - |     - |         - |
+|                          |       |           |           |           |       |         |       |       |       |           |
+|            ImMap_TryFind |   100 |  5.623 ns | 0.0558 ns | 0.0522 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| ImMap_FixedData4_TryFind |   100 |  7.393 ns | 0.0267 ns | 0.0223 ns |  1.31 |    0.01 |     - |     - |     - |         - |
+|                          |       |           |           |           |       |         |       |       |       |           |
+|            ImMap_TryFind |  1000 |  7.756 ns | 0.0828 ns | 0.0774 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| ImMap_FixedData4_TryFind |  1000 | 10.459 ns | 0.0429 ns | 0.0381 ns |  1.35 |    0.02 |     - |     - |     - |         - |
+
+
+|                   Method |  Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|------------------------- |------- |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+|            ImMap_TryFind |     10 |  2.951 ns | 0.0367 ns | 0.0343 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|         ImMap_V1_TryFind |     10 |  4.825 ns | 0.0237 ns | 0.0221 ns |  1.63 |    0.02 |     - |     - |     - |         - |
+| ImMap_FixedData4_TryFind |     10 |  5.453 ns | 0.0474 ns | 0.0420 ns |  1.85 |    0.03 |     - |     - |     - |         - |
+|                          |        |           |           |           |       |         |       |       |       |           |
+|            ImMap_TryFind |    100 |  5.452 ns | 0.0516 ns | 0.0482 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|         ImMap_V1_TryFind |    100 |  7.547 ns | 0.0478 ns | 0.0399 ns |  1.38 |    0.02 |     - |     - |     - |         - |
+| ImMap_FixedData4_TryFind |    100 |  8.693 ns | 0.0356 ns | 0.0333 ns |  1.59 |    0.01 |     - |     - |     - |         - |
+|                          |        |           |           |           |       |         |       |       |       |           |
+|            ImMap_TryFind |   1000 |  7.765 ns | 0.0300 ns | 0.0281 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|         ImMap_V1_TryFind |   1000 |  8.838 ns | 0.0421 ns | 0.0394 ns |  1.14 |    0.00 |     - |     - |     - |         - |
+| ImMap_FixedData4_TryFind |   1000 | 12.558 ns | 0.0750 ns | 0.0702 ns |  1.62 |    0.01 |     - |     - |     - |         - |
+|                          |        |           |           |           |       |         |       |       |       |           |
+|            ImMap_TryFind |  10000 | 10.848 ns | 0.0901 ns | 0.0752 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|         ImMap_V1_TryFind |  10000 | 12.358 ns | 0.0279 ns | 0.0248 ns |  1.14 |    0.01 |     - |     - |     - |         - |
+| ImMap_FixedData4_TryFind |  10000 | 17.575 ns | 0.1108 ns | 0.1037 ns |  1.62 |    0.01 |     - |     - |     - |         - |
+|                          |        |           |           |           |       |         |       |       |       |           |
+|            ImMap_TryFind | 100000 | 14.383 ns | 0.0618 ns | 0.0548 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|         ImMap_V1_TryFind | 100000 | 16.610 ns | 0.0478 ns | 0.0400 ns |  1.16 |    0.01 |     - |     - |     - |         - |
+| ImMap_FixedData4_TryFind | 100000 | 19.096 ns | 0.0518 ns | 0.0433 ns |  1.33 |    0.01 |     - |     - |     - |         - |
+
  */
             private ImMap<string> _map;
             public ImMap<string> AddOrUpdate()
@@ -425,6 +624,39 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
                 for (var i = 0; i < Count; i++)
                     map = map.AddOrUpdate(i, i.ToString());
+
+                return map;
+            }
+
+            private ImTools.Benchmarks.ImMapFixedData2.ImMap<string> _mapFixedData2;
+            public ImTools.Benchmarks.ImMapFixedData2.ImMap<string> AddOrUpdate_FixedData2()
+            {
+                var map = ImTools.Benchmarks.ImMapFixedData2.ImMap<string>.Empty;
+
+                for (var i = 0; i < Count; i++)
+                    map = map.AddOrUpdate(i, i.ToString());
+
+                return map;
+            }
+
+            private ImTools.Benchmarks.ImMapFixedData3.ImMap<string> _mapFixedData3;
+            public ImTools.Benchmarks.ImMapFixedData3.ImMap<string> AddOrUpdate_FixedData3()
+            {
+                var map = ImTools.Benchmarks.ImMapFixedData3.ImMap<string>.Empty;
+
+                for (var i = 0; i < Count; i++)
+                    map = map.AddOrUpdate(i, i.ToString());
+
+                return map;
+            }
+
+            private ImTools.Benchmarks.ImMapFixedData4.ImMap<string> _mapFixedData4;
+            public ImTools.Benchmarks.ImMapFixedData4.ImMap<string> AddOrUpdate_FixedData4()
+            {
+                var map = ImTools.Benchmarks.ImMapFixedData4.ImMap<string>.Empty;
+
+                for (var i = 0; i < Count; i++)
+                    map = ImTools.Benchmarks.ImMapFixedData4.ImMap.AddOrUpdate(map, i, i.ToString());
 
                 return map;
             }
@@ -496,6 +728,9 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
                 _map = AddOrUpdate();
                 _mapV1 = AddOrUpdate_V1();
+                _mapFixedData2 = AddOrUpdate_FixedData2();
+                _mapFixedData3 = AddOrUpdate_FixedData3();
+                _mapFixedData4 = AddOrUpdate_FixedData4();
                 _mapSlots = AddOrUpdate_ImMapSlots();
                 _dictSlim = DictSlim();
                 _dict = Dict();
@@ -517,7 +752,28 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return result;
             }
 
+            //[Benchmark]
+            public string ImMap_FixedData2_TryFind()
+            {
+                ImTools.Benchmarks.ImMapFixedData2.ImMap.TryFind(_mapFixedData2, LookupMaxKey, out var result);
+                return result;
+            }
+
+            //[Benchmark]
+            public string ImMap_FixedData3_TryFind()
+            {
+                ImTools.Benchmarks.ImMapFixedData3.ImMap.TryFind(_mapFixedData3, LookupMaxKey, out var result);
+                return result;
+            }
+
             [Benchmark]
+            public string ImMap_FixedData4_TryFind()
+            {
+                ImTools.Benchmarks.ImMapFixedData4.ImMap.TryFind(_mapFixedData4, LookupMaxKey, out var result);
+                return result;
+            }
+
+            //[Benchmark]
             public string ImMapSlots_TryFind()
             {
                 _mapSlots[LookupMaxKey & ImMapSlots.KEY_MASK_TO_FIND_SLOT].TryFind(LookupMaxKey, out var result);
@@ -536,28 +792,28 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return _mapV1.GetValueOrDefault(LookupMaxKey);
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string DictSlim_TryGetValue()
             {
                 _dictSlim.TryGetValue(LookupMaxKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string Dict_TryGetValue()
             {
                 _dict.TryGetValue(LookupMaxKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string ConcurrentDict_TryGetValue()
             {
                 _concurDict.TryGetValue(LookupMaxKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string ImmutableDict_TryGetValue()
             {
                 _immutableDict.TryGetValue(LookupMaxKey, out var result);

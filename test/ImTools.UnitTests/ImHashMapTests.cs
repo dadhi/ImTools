@@ -439,13 +439,13 @@ namespace ImTools.UnitTests
         [Test]
         public void Remove_from_node_with_one_conflict()
         {
-            var tree = ImHashMap<HashConflictingKey<int>, string>.Empty
-                .AddOrUpdate(new HashConflictingKey<int>(1, 1), "a")
-                .AddOrUpdate(new HashConflictingKey<int>(0, 0), "b")
-                .AddOrUpdate(new HashConflictingKey<int>(2, 2), "c")
-                .AddOrUpdate(new HashConflictingKey<int>(3, 2), "d");
+            var tree = ImHashMap<int, string>.Empty
+                .AddOrUpdate(1, 1, "a")
+                .AddOrUpdate(0, 0, "b")
+                .AddOrUpdate(2, 2, "c")
+                .AddOrUpdate(2, 3, "d");
 
-            tree = tree.Remove(new HashConflictingKey<int>(2, 2));
+            tree = tree.Remove(2, 2);
 
             Assert.That(tree.Value, Is.EqualTo("a"));
             Assert.That(tree.Left.Value, Is.EqualTo("b"));
@@ -467,8 +467,8 @@ namespace ImTools.UnitTests
 
             Assert.That(tree.Value, Is.EqualTo("a"));
             Assert.That(tree.Left.Value, Is.EqualTo("b"));
-            Assert.That(tree.Right.Value, Is.EqualTo("d"));
-            Assert.That(tree.Right.Conflicts[0].Value, Is.EqualTo("e"));
+            Assert.That(tree.Right.Conflicts[0].Value, Is.EqualTo("d"));
+            Assert.That(tree.Right.Conflicts[1].Value, Is.EqualTo("e"));
         }
 
         [Test]
@@ -505,8 +505,8 @@ namespace ImTools.UnitTests
 
             Assert.That(tree.Value, Is.EqualTo("a"));
             Assert.That(tree.Left.Value, Is.EqualTo("b"));
-            Assert.That(tree.Right.Value, Is.EqualTo("c"));
-            Assert.That(tree.Right.Conflicts[0].Value, Is.EqualTo("e"));
+            Assert.That(tree.Right.Conflicts[0].Value, Is.EqualTo("c"));
+            Assert.That(tree.Right.Conflicts[1].Value, Is.EqualTo("e"));
         }
 
         [Test]
@@ -536,7 +536,8 @@ namespace ImTools.UnitTests
 
             Assert.That(tree.Value, Is.EqualTo("a"));
             Assert.That(tree.Left.Value, Is.EqualTo("b"));
-            Assert.That(tree.Right.Value, Is.EqualTo("c"));
+            Assert.That(tree.Right.Conflicts[0].Value, Is.EqualTo("c"));
+            Assert.That(tree.Right.Conflicts[1].Value, Is.EqualTo("d"));
         }
 
         internal class HashConflictingKey<T>
