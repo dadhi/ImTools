@@ -50,6 +50,9 @@ namespace ImTools
         /// Forward pipe operator (`|>` in F#)
         public static R To<T, R>(this T x, Func<T, R> map) => map(x);
 
+        /// Forward pipe operator (`|>` in F#) with the additional state A for two arguments function
+        public static R To<T, A, R>(this T x, A a, Func<T, A, R> map) => map(x, a);
+
         /// Forward pipe operator (`|>` in F#) but with side effect propagating the original `x` value
         public static T Do<T>(this T x, Action<T> effect)
         {
