@@ -100,20 +100,16 @@ namespace ImTools.Benchmarks.ImMapFixedData4
             TreeHeight = leftHeight > rightHeight ? leftHeight + 1 : rightHeight + 1;
         }
 
-        internal ImMapTree(ImMapLeaf<V> data, ImMap<V> left, ImMap<V> right)
+        internal ImMapTree(ImMapLeaf<V> data, ImMapTree<V> left, ImMapTree<V> right)
         {
             Data = data;
             Left = left;
             Right = right;
-            var leftHeight = left.Height;
-            var rightHeight = right.Height;
-            TreeHeight = leftHeight > rightHeight ? leftHeight + 1 : rightHeight + 1;
+            TreeHeight = left.TreeHeight > right.TreeHeight ? left.TreeHeight + 1 : right.TreeHeight + 1;
         }
 
         /// Outputs the key value pair
         public override string ToString() => "tree(" + Data + ")";
-
-        private static readonly ImMap<V> Empty = ImMapEmpty<V>.Empty;
 
         // Adds or updates the left or right branch
         public ImMapTree<V> AddOrUpdateLeftOrRight(int key, V value)
@@ -160,7 +156,7 @@ namespace ImTools.Benchmarks.ImMapFixedData4
                         if (leftRightTree != null)
                         {
                             if (leftLeftTree.TreeHeight >= leftRightTree.TreeHeight)
-                                return new ImMapTree<V>(newLeftTree.Data, leftLeftTree.TreeHeight, leftLeft,
+                                return new ImMapTree<V>(newLeftTree.Data, leftLeftTree,
                                     new ImMapTree<V>(Data, leftRightTree.TreeHeight, leftRight, rightHeight, Right));
 
                             return new ImMapTree<V>(leftRightTree.Data,
@@ -169,7 +165,7 @@ namespace ImTools.Benchmarks.ImMapFixedData4
                         }
 
                         // `leftLeft` is tree and `leftRight` is leaf - do a single rotation
-                        return new ImMapTree<V>(newLeftTree.Data, leftLeftTree.TreeHeight, leftLeftTree,
+                        return new ImMapTree<V>(newLeftTree.Data, leftLeftTree,
                             new ImMapTree<V>(Data, 1, leftRight, rightHeight, Right));
                     }
 
@@ -242,9 +238,9 @@ namespace ImTools.Benchmarks.ImMapFixedData4
                         var newRightRightHeight = rightRight.Height;
                         newRightTree.TreeHeight = newRightLeftHeight > newRightRightHeight ? newRightLeftHeight + 1 : newRightRightHeight + 1;
 
-                        return new ImMapTree<V>(rightLeftTree.Data,
-                            new ImMapTree<V>(Data, leftHeight, Left, rightLeftTree.Left),
-                            newRightTree.TreeHeight, newRightTree);
+                        return new ImMapTree<V>(rightLeftTree.Data, 
+                            new ImMapTree<V>(Data, leftHeight, Left, rightLeftTree.Left), 
+                            newRightTree);
                         //return new ImMapTree<V>(rightLeftTree.Data,
                         //    new ImMapTree<V>(Data, leftHeight, Left, rightLeftTree.Left),
                         //    new ImMapTree<V>(newRightTree.Data, rightLeftTree.Right, rightRight));
