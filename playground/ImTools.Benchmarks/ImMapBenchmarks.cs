@@ -130,100 +130,19 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |     ConcurrentDict_TryAdd | 100000 |  34,202,418.3 ns |   570,236.69 ns |   533,399.76 ns |  34,138,325.0 ns |  0.54 |    0.01 |  2500.0000 | 1125.0000 | 437.5000 |  15066715 B |
 |         ImmutableDict_Add | 100000 | 194,366,442.2 ns | 1,505,482.08 ns | 1,408,228.88 ns | 194,159,900.0 ns |  3.07 |    0.03 | 18666.6667 | 2666.6667 | 666.6667 | 114011384 B |
 
-## FixedData2
+## With Experimental.ImMap and ImMapSlots
 
-|            Method |  Count |            Mean |         Error |        StdDev | Ratio |      Gen 0 |     Gen 1 |    Gen 2 |   Allocated |
-|------------------ |------- |----------------:|--------------:|--------------:|------:|-----------:|----------:|---------:|------------:|
-| ImMap_AddOrUpdate |     10 |        641.3 ns |       3.50 ns |       3.27 ns |  1.00 |     0.3767 |    0.0010 |        - |     1.73 KB |
-|  ImMap_FixedData2 |     10 |        625.7 ns |       3.72 ns |       3.30 ns |  0.98 |     0.3023 |    0.0010 |        - |     1.39 KB |
-|                   |        |                 |               |               |       |            |           |          |             |
-| ImMap_AddOrUpdate |    100 |     12,697.6 ns |      80.35 ns |      67.09 ns |  1.00 |     7.9193 |    0.3357 |        - |    36.42 KB |
-|  ImMap_FixedData2 |    100 |     13,599.2 ns |      39.41 ns |      34.93 ns |  1.07 |     7.0801 |    0.3204 |        - |    32.56 KB |
-|                   |        |                 |               |               |       |            |           |          |             |
-| ImMap_AddOrUpdate |   1000 |    206,763.7 ns |   1,700.92 ns |   1,507.82 ns |  1.00 |   113.5254 |    0.2441 |        - |   521.63 KB |
-|  ImMap_FixedData2 |   1000 |    230,479.3 ns |   3,289.74 ns |   3,077.23 ns |  1.12 |   104.9805 |    0.2441 |        - |   482.61 KB |
-|                   |        |                 |               |               |       |            |           |          |             |
-| ImMap_AddOrUpdate |  10000 |  4,472,363.1 ns |  49,620.44 ns |  41,435.31 ns |  1.00 |  1109.3750 |  234.3750 | 101.5625 |  6809.29 KB |
-|  ImMap_FixedData2 |  10000 |  4,954,560.5 ns |  20,282.18 ns |  18,971.97 ns |  1.11 |  1046.8750 |  304.6875 | 117.1875 |  6418.68 KB |
-|                   |        |                 |               |               |       |            |           |          |             |
-| ImMap_AddOrUpdate | 100000 | 62,702,587.4 ns | 517,296.89 ns | 483,879.83 ns |  1.00 | 14222.2222 | 2000.0000 | 555.5556 | 83699.22 KB |
-|  ImMap_FixedData2 | 100000 | 72,595,912.4 ns | 519,397.26 ns | 485,844.52 ns |  1.16 | 13571.4286 | 2285.7143 | 571.4286 | 79792.54 KB |
-
-## Reuse newLeft/newRight in re-balancing in both ImMap and ImMapFixedData2
-
-|            Method |  Count |            Mean |         Error |        StdDev | Ratio | RatioSD |      Gen 0 |     Gen 1 |    Gen 2 |   Allocated |
-|------------------ |------- |----------------:|--------------:|--------------:|------:|--------:|-----------:|----------:|---------:|------------:|
-| ImMap_AddOrUpdate |     10 |        622.6 ns |       8.59 ns |       8.03 ns |  1.00 |    0.00 |     0.3567 |    0.0010 |        - |     1.64 KB |
-|  ImMap_FixedData2 |     10 |        598.4 ns |       4.04 ns |       3.78 ns |  0.96 |    0.01 |     0.2813 |    0.0010 |        - |      1.3 KB |
-|                   |        |                 |               |               |       |         |            |           |          |             |
-| ImMap_AddOrUpdate |    100 |     12,281.9 ns |      84.87 ns |      75.24 ns |  1.00 |    0.00 |     7.4768 |    0.3052 |        - |    34.36 KB |
-|  ImMap_FixedData2 |    100 |     13,396.1 ns |     259.10 ns |     242.36 ns |  1.09 |    0.02 |     6.6376 |    0.3052 |        - |     30.5 KB |
-|                   |        |                 |               |               |       |         |            |           |          |             |
-| ImMap_AddOrUpdate |   1000 |    196,145.8 ns |   2,543.43 ns |   2,379.12 ns |  1.00 |    0.00 |   108.3984 |    0.2441 |        - |   498.61 KB |
-|  ImMap_FixedData2 |   1000 |    218,331.6 ns |     545.98 ns |     510.71 ns |  1.11 |    0.01 |    99.8535 |    0.2441 |        - |   459.59 KB |
-|                   |        |                 |               |               |       |         |            |           |          |             |
-| ImMap_AddOrUpdate |  10000 |  4,265,735.0 ns |  44,037.18 ns |  34,381.33 ns |  1.00 |    0.00 |  1070.3125 |  257.8125 |  93.7500 |  6575.53 KB |
-|  ImMap_FixedData2 |  10000 |  5,144,891.8 ns |  34,954.45 ns |  30,986.21 ns |  1.20 |    0.01 |  1007.8125 |  335.9375 | 140.6250 |  6184.92 KB |
-|                   |        |                 |               |               |       |         |            |           |          |             |
-| ImMap_AddOrUpdate | 100000 | 61,490,977.8 ns | 640,187.46 ns | 567,509.51 ns |  1.00 |    0.00 | 13666.6667 | 1777.7778 | 444.4444 | 81355.74 KB |
-|  ImMap_FixedData2 | 100000 | 72,905,032.4 ns | 678,240.75 ns | 634,426.82 ns |  1.19 |    0.01 | 13142.8571 | 2285.7143 | 571.4286 | 77450.39 KB |
-
-## FixedData3
-
-|            Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |    Gen 0 |  Gen 1 | Gen 2 | Allocated |
-|------------------ |------ |-------------:|------------:|------------:|------:|--------:|---------:|-------:|------:|----------:|
-| ImMap_AddOrUpdate |    10 |     621.7 ns |     2.88 ns |     2.56 ns |  1.00 |    0.00 |   0.3567 | 0.0010 |     - |   1.64 KB |
-|  ImMap_FixedData2 |    10 |     591.6 ns |     1.51 ns |     1.34 ns |  0.95 |    0.00 |   0.2813 | 0.0010 |     - |    1.3 KB |
-|  ImMap_FixedData3 |    10 |     625.6 ns |     2.28 ns |     1.90 ns |  1.01 |    0.00 |   0.3176 | 0.0010 |     - |   1.46 KB |
-|                   |       |              |             |             |       |         |          |        |       |           |
-| ImMap_AddOrUpdate |   100 |  12,156.4 ns |    16.34 ns |    14.48 ns |  1.00 |    0.00 |   7.4768 | 0.3052 |     - |  34.36 KB |
-|  ImMap_FixedData2 |   100 |  13,054.0 ns |    68.59 ns |    64.16 ns |  1.07 |    0.01 |   6.6376 | 0.3052 |     - |   30.5 KB |
-|  ImMap_FixedData3 |   100 |  13,670.9 ns |   118.70 ns |   111.04 ns |  1.13 |    0.01 |   7.5226 | 0.3662 |     - |  34.59 KB |
-|                   |       |              |             |             |       |         |          |        |       |           |
-| ImMap_AddOrUpdate |  1000 | 201,940.0 ns | 4,782.19 ns | 3,993.35 ns |  1.00 |    0.00 | 108.3984 | 0.2441 |     - | 498.61 KB |
-|  ImMap_FixedData2 |  1000 | 218,123.5 ns |   598.36 ns |   559.71 ns |  1.08 |    0.02 |  99.8535 | 0.2441 |     - | 459.59 KB |
-|  ImMap_FixedData3 |  1000 | 228,489.7 ns | 3,616.17 ns | 3,382.57 ns |  1.13 |    0.02 | 114.2578 | 0.2441 |     - | 525.83 KB |
-
-## FixedData3 with Key as Height
-
-|            Method | Count |        Mean |     Error |    StdDev | Ratio | RatioSD |  Gen 0 |  Gen 1 | Gen 2 | Allocated |
-|------------------ |------ |------------:|----------:|----------:|------:|--------:|-------:|-------:|------:|----------:|
-| ImMap_AddOrUpdate |    10 |    638.1 ns |   5.43 ns |   4.82 ns |  1.00 |    0.00 | 0.3567 | 0.0010 |     - |   1.64 KB |
-|  ImMap_FixedData3 |    10 |    519.3 ns |   2.14 ns |   2.00 ns |  0.81 |    0.01 | 0.2813 |      - |     - |    1.3 KB |
-|                   |       |             |           |           |       |         |        |        |       |           |
-| ImMap_AddOrUpdate |   100 | 12,136.9 ns | 139.79 ns | 123.92 ns |  1.00 |    0.00 | 7.4768 | 0.3052 |     - |  34.36 KB |
-|  ImMap_FixedData3 |   100 | 13,443.4 ns | 174.49 ns | 163.22 ns |  1.11 |    0.02 | 7.4463 | 0.3510 |     - |  34.27 KB |
-
-## FixedData4
-
-|               Method |     Mean |    Error |   StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-|--------------------- |---------:|---------:|---------:|------:|--------:|-------:|------:|------:|----------:|
-|    ImMap_AddOrUpdate | 23.36 ns | 0.141 ns | 0.132 ns |  1.00 |    0.00 | 0.0102 |     - |     - |      48 B |
-| ImMap_V1_AddOrUpdate | 29.20 ns | 0.212 ns | 0.198 ns |  1.25 |    0.01 | 0.0102 |     - |     - |      48 B |
-|     ImMap_FixedData4 | 21.36 ns | 0.554 ns | 0.721 ns |  0.93 |    0.03 | 0.0068 |     - |     - |      32 B |
-
-
-|               Method |  Count |            Mean |         Error |        StdDev | Ratio | RatioSD |      Gen 0 |     Gen 1 |    Gen 2 |   Allocated |
-|--------------------- |------- |----------------:|--------------:|--------------:|------:|--------:|-----------:|----------:|---------:|------------:|
-|    ImMap_AddOrUpdate |     10 |        625.3 ns |       2.46 ns |       2.30 ns |  1.00 |    0.00 |     0.3567 |    0.0010 |        - |     1.64 KB |
-| ImMap_V1_AddOrUpdate |     10 |        790.0 ns |       4.33 ns |       4.05 ns |  1.26 |    0.01 |     0.4787 |    0.0010 |        - |      2.2 KB |
-|     ImMap_FixedData4 |     10 |        490.4 ns |       1.57 ns |       1.31 ns |  0.78 |    0.00 |     0.2813 |    0.0010 |        - |      1.3 KB |
-|                      |        |                 |               |               |       |         |            |           |          |             |
-|    ImMap_AddOrUpdate |    100 |     12,226.8 ns |      51.04 ns |      47.74 ns |  1.00 |    0.00 |     7.4768 |    0.3052 |        - |    34.36 KB |
-| ImMap_V1_AddOrUpdate |    100 |     14,799.7 ns |      17.58 ns |      14.68 ns |  1.21 |    0.00 |     9.3689 |    0.3967 |        - |    43.08 KB |
-|     ImMap_FixedData4 |    100 |     10,499.8 ns |      99.58 ns |      88.28 ns |  0.86 |    0.01 |     6.6376 |    0.3052 |        - |     30.5 KB |
-|                      |        |                 |               |               |       |         |            |           |          |             |
-|    ImMap_AddOrUpdate |   1000 |    193,976.5 ns |     655.66 ns |     613.31 ns |  1.00 |    0.00 |   108.3984 |    0.2441 |        - |   498.61 KB |
-| ImMap_V1_AddOrUpdate |   1000 |    233,278.7 ns |   1,416.43 ns |   1,255.63 ns |  1.20 |    0.01 |   128.6621 |    0.2441 |        - |   591.42 KB |
-|     ImMap_FixedData4 |   1000 |    184,114.7 ns |     493.73 ns |     437.68 ns |  0.95 |    0.00 |    99.8535 |    0.2441 |        - |   459.59 KB |
-|                      |        |                 |               |               |       |         |            |           |          |             |
-|    ImMap_AddOrUpdate |  10000 |  4,272,567.1 ns |  43,836.21 ns |  38,859.66 ns |  1.00 |    0.00 |  1070.3125 |  257.8125 |  93.7500 |  6575.49 KB |
-| ImMap_V1_AddOrUpdate |  10000 |  4,908,416.9 ns |  44,077.17 ns |  41,229.82 ns |  1.15 |    0.02 |  1226.5625 |  226.5625 | 101.5625 |  7511.68 KB |
-|     ImMap_FixedData4 |  10000 |  4,425,094.8 ns |  52,906.97 ns |  49,489.21 ns |  1.04 |    0.01 |  1007.8125 |  335.9375 | 140.6250 |  6184.92 KB |
-|                      |        |                 |               |               |       |         |            |           |          |             |
-|    ImMap_AddOrUpdate | 100000 | 60,702,839.3 ns | 630,407.60 ns | 589,683.66 ns |  1.00 |    0.00 | 13666.6667 | 1777.7778 | 444.4444 | 81356.87 KB |
-| ImMap_V1_AddOrUpdate | 100000 | 66,207,335.8 ns | 418,512.92 ns | 391,477.25 ns |  1.09 |    0.01 | 15250.0000 | 2000.0000 | 500.0000 | 90730.88 KB |
-|     ImMap_FixedData4 | 100000 | 66,284,828.6 ns | 323,173.70 ns | 286,485.07 ns |  1.09 |    0.01 | 13250.0000 | 2250.0000 | 625.0000 | 77451.22 KB |
+|                              Method | Count |      Mean |    Error |   StdDev | Ratio | RatioSD |  Gen 0 |  Gen 1 | Gen 2 | Allocated |
+|------------------------------------ |------ |----------:|---------:|---------:|------:|--------:|-------:|-------:|------:|----------:|
+|                   ImMap_AddOrUpdate |     1 |  22.83 ns | 0.059 ns | 0.053 ns |  1.00 |    0.00 | 0.0102 |      - |     - |      48 B |
+|      ImMap_Experimental_AddOrUpdate |     1 |  19.62 ns | 0.145 ns | 0.136 ns |  0.86 |    0.01 | 0.0068 |      - |     - |      32 B |
+|              ImMapSlots_AddOrUpdate |     1 | 129.21 ns | 0.634 ns | 0.562 ns |  5.66 |    0.03 | 0.0696 |      - |     - |     328 B |
+| ImMapSlots_Experimental_AddOrUpdate |     1 | 106.85 ns | 0.567 ns | 0.530 ns |  4.68 |    0.03 | 0.0663 |      - |     - |     312 B |
+|                                     |       |           |          |          |       |         |        |        |       |           |
+|                   ImMap_AddOrUpdate |    10 | 618.53 ns | 1.739 ns | 1.541 ns |  1.00 |    0.00 | 0.3567 | 0.0010 |     - |    1680 B |
+|      ImMap_Experimental_AddOrUpdate |    10 | 516.97 ns | 1.721 ns | 1.526 ns |  0.84 |    0.00 | 0.2813 | 0.0010 |     - |    1328 B |
+|              ImMapSlots_AddOrUpdate |    10 | 393.73 ns | 0.514 ns | 0.429 ns |  0.64 |    0.00 | 0.1612 | 0.0005 |     - |     760 B |
+| ImMapSlots_Experimental_AddOrUpdate |    10 | 333.47 ns | 0.594 ns | 0.526 ns |  0.54 |    0.00 | 0.1273 | 0.0005 |     - |     600 B |
 
 */
 
@@ -263,13 +182,24 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public ImMap<string>[] ImMapSlots_AddOrUpdate()
             {
                 var slots = ImMapSlots.CreateWithEmpty<string>();
 
                 for (var i = 0; i < Count; i++)
                     slots.AddOrUpdate(i, i.ToString());
+
+                return slots;
+            }
+
+            [Benchmark]
+            public ImTools.Experimental.ImMap<string>[] ImMapSlots_Experimental_AddOrUpdate()
+            {
+                var slots = ImTools.Experimental.ImMapSlots.CreateWithEmpty<string>();
+
+                for (var i = 0; i < Count; i++)
+                    ImTools.Experimental.ImMapSlots.AddOrUpdate(slots, i, i.ToString());
 
                 return slots;
             }
