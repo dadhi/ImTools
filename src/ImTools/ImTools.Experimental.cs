@@ -1,5 +1,8 @@
 using System.Collections.Generic;
-using System.Runtime.CompilerServices; // For [MethodImpl(AggressiveInlining)]
+using System.Runtime.CompilerServices;
+using System.Threading;
+
+// For [MethodImpl(AggressiveInlining)]
 
 namespace ImTools.Experimental
 {
@@ -503,5 +506,54 @@ namespace ImTools.Experimental
         //        }
         //    }
         //}
+    }
+
+    /// The array of ImMap slots where the key first bits are used for FAST slot location
+    /// and the slot is the reference to ImMap that can be swapped with its updated value
+    public static class ImMapSlots
+    {
+        /// Default number of slots
+        public const int SLOT_COUNT_POWER_OF_TWO = 32;
+
+        /// The default mask to partition the key to the target slot
+        public const int KEY_MASK_TO_FIND_SLOT = SLOT_COUNT_POWER_OF_TWO - 1;
+
+        /// Creates the array with the empty slots
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMap<V>[] CreateWithEmpty<V>(int slotCountPowerOfTwo = SLOT_COUNT_POWER_OF_TWO)
+        {
+            var slots = new ImMap<V>[slotCountPowerOfTwo];
+            for (var i = 0; i < slots.Length; ++i)
+                slots[i] = ImMap<V>.Empty;
+            return slots;
+        }
+
+        /// Returns a new tree with added or updated value for specified key.
+        [MethodImpl((MethodImplOptions)256)]
+        public static void AddOrUpdate<V>(this ImMap<V>[] slots, int key, V value, int keyMaskToFindSlot = KEY_MASK_TO_FIND_SLOT)
+        {
+            ref var slot = ref slots[key & keyMaskToFindSlot];
+            var copy = slot;
+            if (Interlocked.CompareExchange(ref slot, copy.AddOrUpdate(key, value), copy) != copy)
+                RefAddOrUpdateSlot(ref slot, key, value);
+        }
+
+        /// Update the ref to the slot with the new version - retry if the someone changed the slot in between
+        public static void RefAddOrUpdateSlot<V>(ref ImMap<V> slot, int key, V value) =>
+            Ref.Swap(ref slot, key, value, (x, k, v) => x.AddOrUpdate(k, v));
+
+        /// Adds a new value for the specified key or keeps the existing map if the key is already in the map.
+        [MethodImpl((MethodImplOptions)256)]
+        public static void AddOrKeep<V>(this ImMap<V>[] slots, int key, V value, int keyMaskToFindSlot = KEY_MASK_TO_FIND_SLOT)
+        {
+            ref var slot = ref slots[key & keyMaskToFindSlot];
+            var copy = slot;
+            if (Interlocked.CompareExchange(ref slot, copy.AddOrKeep(key, value), copy) != copy)
+                RefAddOrKeepSlot(ref slot, key, value);
+        }
+
+        /// Update the ref to the slot with the new version - retry if the someone changed the slot in between
+        public static void RefAddOrKeepSlot<V>(ref ImMap<V> slot, int key, V value) =>
+            Ref.Swap(ref slot, key, value, (s, k, v) => s.AddOrKeep(k, v));
     }
 }
