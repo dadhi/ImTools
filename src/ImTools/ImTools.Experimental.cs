@@ -155,14 +155,20 @@ namespace ImTools.Experimental
                         var leftRightHeight = leftRightTree?.TreeHeight ?? 1;
 
                         if (leftLeftHeight >= leftRightHeight)
-                            return new ImMapTree<V>(newLeftTree.Data, 
-                                leftLeftTree,
-                                new ImMapTree<V>(Data, leftRightHeight, leftRight, rightHeight, Right));
+                        {
+                            leftRightTree = new ImMapTree<V>(Data, leftRightHeight, leftRight, rightHeight, Right);
+                            newLeftTree.Right = leftRightTree;
+                            newLeftTree.TreeHeight = leftLeftHeight > leftRightTree.TreeHeight ? leftLeftHeight + 1 : leftRightTree.TreeHeight + 1;
+                            return newLeftTree;
+                        }
 
                         // the leftRight should a tree because its height is greater than leftLeft and the latter at least the leaf
                         // ReSharper disable once PossibleNullReferenceException
+                        newLeftTree.Right = leftRightTree.Left;
+                        var newLeftRightHeight = newLeftTree.Right.Height;
+                        newLeftTree.TreeHeight = leftLeftHeight > newLeftRightHeight ? leftLeftHeight + 1 : newLeftRightHeight + 1;
                         return new ImMapTree<V>(leftRightTree.Data,
-                            new ImMapTree<V>(newLeftTree.Data, leftLeftHeight, leftLeft, leftRightTree.Left),
+                            newLeftTree,
                             new ImMapTree<V>(Data, leftRightTree.Right, rightHeight, Right));
                     }
 
