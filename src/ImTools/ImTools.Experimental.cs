@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Runtime.CompilerServices; // For [MethodImpl(AggressiveInlining)]
 
 namespace ImTools.Experimental
@@ -304,5 +305,34 @@ namespace ImTools.Experimental
 
             return map is ImMapLeaf<V> leaf && leaf.Key == key ? leaf.Value : default;
         }
+    
+        //// Returns all map tree nodes enumerated from the lesser to the bigger keys 
+        //public static IEnumerable<ImMapLeaf<V>> Enumerate<V>(this ImMap<V> map)
+        //{
+        //    if (map is ImMapLeaf<V> leaf)
+        //    {
+        //        yield return leaf;
+        //    }
+        //    else if (map != ImMap<V>.Empty)
+        //    {
+        //        var tree = (ImMapTree<V>)map;
+        //        var parents = new ImMap<V>[tree.TreeHeight];
+        //        var parentCount = -1;
+        //        while (map.Height != 0 || parentCount != -1)
+        //        {
+        //            if (map.Height > 0)
+        //            {
+        //                parents[++parentCount] = map;
+        //                map = tree.Left;
+        //            }
+        //            else
+        //            {
+        //                map = parents[parentCount--];
+        //                yield return (ImMapLeaf<V>)map;
+        //                map = (map as ImMapTree<V>)?.Right ?? ImMap<V>.Empty;
+        //            }
+        //        }
+        //    }
+        //}
     }
 }

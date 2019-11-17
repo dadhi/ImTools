@@ -136,13 +136,13 @@ namespace ImTools.Experimental.UnitTests
         public void Test_balance_when_adding_10_items_to_the_right()
         {
             var t = ImMap<int>.Empty;
-            for (var i = 1; i <= 10; i++) 
+            for (var i = 1; i <= 10; i++)
                 t = t.AddOrUpdate(i, i);
 
-            // 1     =>   2     =>    2     =>    2    =>    2      =>       4       =>        4        =>        4           =>         4           =>         4           =>          4       
-            //    2     1   3       1   3       1   3     1     4        2       5        2         6        2         6            2         6            2         6            2           8
-            //                            4           4       3   5    1   3       6    1   3     5   7   1     3   5     7      1     3   5     8      1     3   5     8      1     3     6     9
-            //                                                                                                              8                  7   9                  7   9              5   7     10
+            // 1     =>   2     =>    2     =>    2      =>       4       =>        4        =>        4           =>         4           =>         4           =>          4       
+            //    2     1   3       1   3      1     4        2       5        2         6        2         6            2         6            2         6            2           8
+            //                            4        3   5    1   3       6    1   3     5   7   1     3   5     7      1     3   5     8      1     3   5     8      1     3     6     9
+            //                                                                                                   8                  7   9                  7   9              5   7     10
             Assert.AreEqual(4, t.Key());
             Assert.AreEqual(2, t.Left().Key());
             Assert.AreEqual(1, t.Left().Left().Key());
@@ -153,6 +153,91 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreEqual(7, t.Right().Left().Right().Key());
             Assert.AreEqual(9, t.Right().Right().Key());
             Assert.AreEqual(10, t.Right().Right().Right().Key());
+        }
+
+        [Test]
+        public void Test_balance_when_adding_10_items_to_the_right_with_double_rotation()
+        {
+            var t = ImMap<int>.Empty;
+            t = t.AddOrUpdate(1, 1);
+            t = t.AddOrUpdate(3, 3);
+            t = t.AddOrUpdate(2, 2);
+            t = t.AddOrUpdate(5, 5);
+            t = t.AddOrUpdate(4, 4);
+            t = t.AddOrUpdate(7, 7);
+            t = t.AddOrUpdate(6, 6);
+            t = t.AddOrUpdate(8, 8);
+            t = t.AddOrUpdate(9, 9);
+            t = t.AddOrUpdate(10, 10);
+
+            // 1     =>   2     =>    2     =>    2      =>       4       =>        4        =>        4           =>         4           =>         4           =>          4       
+            //    2     1   3       1   3      1     4        2       5        2         6        2         6            2         6            2         6            2           8
+            //                            4        3   5    1   3       6    1   3     5   7   1     3   5     7      1     3   5     8      1     3   5     8      1     3     6     9
+            //                                                                                                   8                  7   9                  7   9              5   7     10
+            Assert.AreEqual(4, t.Key());
+            Assert.AreEqual(2, t.Left().Key());
+            Assert.AreEqual(1, t.Left().Left().Key());
+            Assert.AreEqual(3, t.Left().Right().Key());
+            Assert.AreEqual(8, t.Right().Key());
+            Assert.AreEqual(6, t.Right().Left().Key());
+            Assert.AreEqual(5, t.Right().Left().Left().Key());
+            Assert.AreEqual(7, t.Right().Left().Right().Key());
+            Assert.AreEqual(9, t.Right().Right().Key());
+            Assert.AreEqual(10, t.Right().Right().Right().Key());
+        }
+
+        [Test]
+        public void Test_balance_when_adding_10_items_to_the_left()
+        {
+            var t = ImMap<int>.Empty;
+            for (var i = 10; i >= 1; i--)
+                t = t.AddOrUpdate(i, i);
+
+            // 10  =>   10     =>   9     =>    9     =>      9      =>       7      =>        7      =>          7      =>         7      =>         7       
+            //        9           8   10      8   10      7      10       6       9        5       9          5       9         5       9         3       9   
+            //                               7          6   8           5       8   10   4   6   8   10     4   6   8   10    3   6   8   10    2   5   8   10
+            //                                                                                            3                  2 4               1   4 6         
+            Assert.AreEqual(7, t.Key());
+            Assert.AreEqual(3, t.Left().Key());
+            Assert.AreEqual(2, t.Left().Left().Key());
+            Assert.AreEqual(1, t.Left().Left().Left().Key());
+            Assert.AreEqual(5, t.Left().Right().Key());
+            Assert.AreEqual(4, t.Left().Right().Left().Key());
+            Assert.AreEqual(6, t.Left().Right().Right().Key());
+            Assert.AreEqual(9, t.Right().Key());
+            Assert.AreEqual(8, t.Right().Left().Key());
+            Assert.AreEqual(10, t.Right().Right().Key());
+        }
+
+        [Test]
+        public void Test_balance_when_adding_10_items_to_the_left_with_double_rotation()
+        {
+            var t = ImMap<int>.Empty;
+            t = t.AddOrUpdate(10, 10);
+            t = t.AddOrUpdate(8, 8);
+            t = t.AddOrUpdate(9, 9);
+            t = t.AddOrUpdate(6, 6);
+            t = t.AddOrUpdate(7, 7);
+            t = t.AddOrUpdate(4, 4);
+            t = t.AddOrUpdate(5, 5);
+            t = t.AddOrUpdate(2, 2);
+            t = t.AddOrUpdate(3, 3);
+            t = t.AddOrUpdate(1, 1);
+
+            // 10  =>   10     =>   9     =>    9     =>      9      =>       7      =>        7      =>          7      =>         7      =>         7       
+            //        9           8   10      8   10      7      10       6       9        5       9          5       9         5       9         3       9   
+            //                               7          6   8           5       8   10   4   6   8   10     4   6   8   10    3   6   8   10    2   5   8   10
+            //                                                                                            3                  2 4               1   4 6         
+            Assert.AreEqual(7, t.Key());
+            Assert.AreEqual(3, t.Left().Key());
+            Assert.AreEqual(2, t.Left().Left().Key());
+            Assert.AreEqual(1, t.Left().Left().Left().Key());
+            Assert.AreEqual(5, t.Left().Right().Key());
+            Assert.AreEqual(4, t.Left().Right().Left().Key());
+            Assert.AreEqual(6, t.Left().Right().Right().Key());
+            Assert.AreEqual(9, t.Right().Key());
+            Assert.AreEqual(8, t.Right().Left().Key());
+            Assert.AreEqual(10, t.Right().Right().Key());
         }
 
         [Test]
