@@ -133,6 +133,29 @@ namespace ImTools.Experimental.UnitTests
         }
 
         [Test]
+        public void Test_balance_when_adding_10_items_to_the_right()
+        {
+            var t = ImMap<int>.Empty;
+            for (var i = 1; i <= 10; i++) 
+                t = t.AddOrUpdate(i, i);
+
+            // 1     =>   2     =>    2     =>    2    =>    2      =>       4       =>        4        =>        4           =>         4           =>         4           =>          4       
+            //    2     1   3       1   3       1   3     1     4        2       5        2         6        2         6            2         6            2         6            2           8
+            //                            4           4       3   5    1   3       6    1   3     5   7   1     3   5     7      1     3   5     8      1     3   5     8      1     3     6     9
+            //                                                                                                              8                  7   9                  7   9              5   7     10
+            Assert.AreEqual(4, t.Key());
+            Assert.AreEqual(2, t.Left().Key());
+            Assert.AreEqual(1, t.Left().Left().Key());
+            Assert.AreEqual(3, t.Left().Right().Key());
+            Assert.AreEqual(8, t.Right().Key());
+            Assert.AreEqual(6, t.Right().Left().Key());
+            Assert.AreEqual(5, t.Right().Left().Left().Key());
+            Assert.AreEqual(7, t.Right().Left().Right().Key());
+            Assert.AreEqual(9, t.Right().Right().Key());
+            Assert.AreEqual(10, t.Right().Right().Right().Key());
+        }
+
+        [Test]
         public void Search_in_empty_tree_should_NOT_throw()
         {
             var tree = ImMap<int>.Empty;
