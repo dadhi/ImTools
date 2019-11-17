@@ -23,7 +23,7 @@ namespace ImTools.Experimental
     }
 
     /// The leaf node - just the key-value pair
-    public sealed class ImMapLeaf<V> : ImMap<V>
+    public sealed class ImMapData<V> : ImMap<V>
     {
         /// <inheritdoc />
         public override int Height => 1;
@@ -35,7 +35,7 @@ namespace ImTools.Experimental
         public V Value;
 
         /// Creates the leaf
-        public ImMapLeaf(int key, V value)
+        public ImMapData(int key, V value)
         {
             Key = key;
             Value = value;
@@ -57,7 +57,7 @@ namespace ImTools.Experimental
         public int TreeHeight;
 
         /// Contains the once created data node
-        public readonly ImMapLeaf<V> Data;
+        public readonly ImMapData<V> Data;
 
         /// Left sub-tree/branch, or empty.
         public ImMap<V> Left;
@@ -65,7 +65,7 @@ namespace ImTools.Experimental
         /// Right sub-tree/branch, or empty.
         public ImMap<V> Right;
 
-        internal ImMapTree(ImMapLeaf<V> data, ImMap<V> left, ImMap<V> right, int height)
+        internal ImMapTree(ImMapData<V> data, ImMap<V> left, ImMap<V> right, int height)
         {
             Data = data;
             Left = left;
@@ -73,7 +73,7 @@ namespace ImTools.Experimental
             TreeHeight = height;
         }
 
-        internal ImMapTree(ImMapLeaf<V> data, int leftHeight, ImMap<V> left, int rightHeight, ImMap<V> right)
+        internal ImMapTree(ImMapData<V> data, int leftHeight, ImMap<V> left, int rightHeight, ImMap<V> right)
         {
             Data = data;
             Left = left;
@@ -81,7 +81,7 @@ namespace ImTools.Experimental
             TreeHeight = leftHeight > rightHeight ? leftHeight + 1 : rightHeight + 1;
         }
 
-        internal ImMapTree(ImMapLeaf<V> data, int leftHeight, ImMap<V> left, ImMap<V> right)
+        internal ImMapTree(ImMapData<V> data, int leftHeight, ImMap<V> left, ImMap<V> right)
         {
             Data = data;
             Left = left;
@@ -90,7 +90,7 @@ namespace ImTools.Experimental
             TreeHeight = leftHeight > rightHeight ? leftHeight + 1 : rightHeight + 1;
         }
 
-        internal ImMapTree(ImMapLeaf<V> data, ImMap<V> left, int rightHeight, ImMap<V> right)
+        internal ImMapTree(ImMapData<V> data, ImMap<V> left, int rightHeight, ImMap<V> right)
         {
             Data = data;
             Left = left;
@@ -99,7 +99,7 @@ namespace ImTools.Experimental
             TreeHeight = leftHeight > rightHeight ? leftHeight + 1 : rightHeight + 1;
         }
 
-        internal ImMapTree(ImMapLeaf<V> data, ImMapTree<V> left, ImMapTree<V> right)
+        internal ImMapTree(ImMapData<V> data, ImMapTree<V> left, ImMapTree<V> right)
         {
             Data = data;
             Left = left;
@@ -116,23 +116,23 @@ namespace ImTools.Experimental
             if (key < Data.Key)
             {
                 var left = Left;
-                if (left is ImMapLeaf<V> leftLeaf)
+                if (left is ImMapData<V> leftLeaf)
                 {
                     if (key < leftLeaf.Key)
                         return Right == Empty
-                            ? new ImMapTree<V>(leftLeaf, new ImMapLeaf<V>(key, value), Data, 2)
+                            ? new ImMapTree<V>(leftLeaf, new ImMapData<V>(key, value), Data, 2)
                             : new ImMapTree<V>(Data, 
-                                new ImMapTree<V>(leftLeaf, new ImMapLeaf<V>(key, value), Empty, 2), 
+                                new ImMapTree<V>(leftLeaf, new ImMapData<V>(key, value), Empty, 2), 
                                 Right, 3); // given that left is the leaf, the Right tree should be less than 2 - otherwise tree is unbalanced
 
                     if (key > leftLeaf.Key)
                         return Right == Empty
-                            ? new ImMapTree<V>(new ImMapLeaf<V>(key, value), left, Data, 2)
+                            ? new ImMapTree<V>(new ImMapData<V>(key, value), left, Data, 2)
                             : new ImMapTree<V>(Data,
-                                new ImMapTree<V>(leftLeaf, Empty, new ImMapLeaf<V>(key, value), 2),
+                                new ImMapTree<V>(leftLeaf, Empty, new ImMapData<V>(key, value), 2),
                                 Right, 3);
                     
-                    return new ImMapTree<V>(Data, new ImMapLeaf<V>(key, value), Right, TreeHeight);
+                    return new ImMapTree<V>(Data, new ImMapData<V>(key, value), Right, TreeHeight);
                 }
 
                 // when the left is tree the right could not be empty
@@ -140,7 +140,7 @@ namespace ImTools.Experimental
                 {
                     if (key == leftTree.Data.Key)
                         return new ImMapTree<V>(Data,
-                            new ImMapTree<V>(new ImMapLeaf<V>(key, value), leftTree.Left, leftTree.Right, leftTree.TreeHeight),
+                            new ImMapTree<V>(new ImMapData<V>(key, value), leftTree.Left, leftTree.Right, leftTree.TreeHeight),
                             Right, TreeHeight);
 
                     var newLeftTree = leftTree.AddOrUpdateLeftOrRight(key, value);
@@ -181,33 +181,33 @@ namespace ImTools.Experimental
                     return new ImMapTree<V>(Data, newLeftTree.TreeHeight, newLeftTree, rightHeight, Right);
                 }
 
-                return new ImMapTree<V>(Data, new ImMapLeaf<V>(key, value), Right, 2);
+                return new ImMapTree<V>(Data, new ImMapData<V>(key, value), Right, 2);
             }
             else
             {
                 var right = Right;
-                if (right is ImMapLeaf<V> rightLeaf)
+                if (right is ImMapData<V> rightLeaf)
                 {
                     if (key > rightLeaf.Key)
                         return Left == Empty
-                            ? new ImMapTree<V>(rightLeaf, Data, new ImMapLeaf<V>(key, value), 2)
+                            ? new ImMapTree<V>(rightLeaf, Data, new ImMapData<V>(key, value), 2)
                             : new ImMapTree<V>(Data, Left,
-                                new ImMapTree<V>(rightLeaf, Empty, new ImMapLeaf<V>(key, value), 2), 3);
+                                new ImMapTree<V>(rightLeaf, Empty, new ImMapData<V>(key, value), 2), 3);
 
                     if (key < rightLeaf.Key)
                         return Left == Empty
-                            ? new ImMapTree<V>(new ImMapLeaf<V>(key, value), Data, right, 2)
+                            ? new ImMapTree<V>(new ImMapData<V>(key, value), Data, right, 2)
                             : new ImMapTree<V>(Data, Left,
-                                new ImMapTree<V>(rightLeaf, new ImMapLeaf<V>(key, value), Empty, 2), 3);
+                                new ImMapTree<V>(rightLeaf, new ImMapData<V>(key, value), Empty, 2), 3);
                     
-                    return new ImMapTree<V>(Data, Left, new ImMapLeaf<V>(key, value), TreeHeight);
+                    return new ImMapTree<V>(Data, Left, new ImMapData<V>(key, value), TreeHeight);
                 }
 
                 if (right is ImMapTree<V> rightTree)
                 {
                     if (key == rightTree.Data.Key)
                         return new ImMapTree<V>(Data, Left,
-                            new ImMapTree<V>(new ImMapLeaf<V>(key, value), rightTree.Left, rightTree.Right, rightTree.TreeHeight),
+                            new ImMapTree<V>(new ImMapData<V>(key, value), rightTree.Left, rightTree.Right, rightTree.TreeHeight),
                             TreeHeight);
 
                     var newRightTree = rightTree.AddOrUpdateLeftOrRight(key, value);
@@ -247,7 +247,7 @@ namespace ImTools.Experimental
                     return new ImMapTree<V>(Data, leftHeight, Left, newRightTree.TreeHeight, newRightTree);
                 }
 
-                return new ImMapTree<V>(Data, Left, new ImMapLeaf<V>(key, value), 2);
+                return new ImMapTree<V>(Data, Left, new ImMapData<V>(key, value), 2);
             }
         }
 
@@ -257,20 +257,20 @@ namespace ImTools.Experimental
             if (key < Data.Key)
             {
                 var left = Left;
-                if (left is ImMapLeaf<V> leftLeaf)
+                if (left is ImMapData<V> leftLeaf)
                 {
                     if (key < leftLeaf.Key)
                         return Right == Empty
-                            ? new ImMapTree<V>(leftLeaf, new ImMapLeaf<V>(key, value), Data, 2)
+                            ? new ImMapTree<V>(leftLeaf, new ImMapData<V>(key, value), Data, 2)
                             : new ImMapTree<V>(Data,
-                                new ImMapTree<V>(leftLeaf, new ImMapLeaf<V>(key, value), Empty, 2),
+                                new ImMapTree<V>(leftLeaf, new ImMapData<V>(key, value), Empty, 2),
                                 Right, 3); // given that left is the leaf, the Right tree should be less than 2 - otherwise tree is unbalanced
 
                     if (key > leftLeaf.Key)
                         return Right == Empty
-                            ? new ImMapTree<V>(new ImMapLeaf<V>(key, value), left, Data, 2)
+                            ? new ImMapTree<V>(new ImMapData<V>(key, value), left, Data, 2)
                             : new ImMapTree<V>(Data,
-                                new ImMapTree<V>(leftLeaf, Empty, new ImMapLeaf<V>(key, value), 2),
+                                new ImMapTree<V>(leftLeaf, Empty, new ImMapData<V>(key, value), 2),
                                 Right, 3);
 
                     return this;
@@ -323,24 +323,24 @@ namespace ImTools.Experimental
                     return new ImMapTree<V>(Data, newLeftTree.TreeHeight, newLeftTree, rightHeight, Right);
                 }
 
-                return new ImMapTree<V>(Data, new ImMapLeaf<V>(key, value), Right, 2);
+                return new ImMapTree<V>(Data, new ImMapData<V>(key, value), Right, 2);
             }
             else
             {
                 var right = Right;
-                if (right is ImMapLeaf<V> rightLeaf)
+                if (right is ImMapData<V> rightLeaf)
                 {
                     if (key > rightLeaf.Key)
                         return Left == Empty
-                            ? new ImMapTree<V>(rightLeaf, Data, new ImMapLeaf<V>(key, value), 2)
+                            ? new ImMapTree<V>(rightLeaf, Data, new ImMapData<V>(key, value), 2)
                             : new ImMapTree<V>(Data, Left,
-                                new ImMapTree<V>(rightLeaf, Empty, new ImMapLeaf<V>(key, value), 2), 3);
+                                new ImMapTree<V>(rightLeaf, Empty, new ImMapData<V>(key, value), 2), 3);
 
                     if (key < rightLeaf.Key)
                         return Left == Empty
-                            ? new ImMapTree<V>(new ImMapLeaf<V>(key, value), Data, right, 2)
+                            ? new ImMapTree<V>(new ImMapData<V>(key, value), Data, right, 2)
                             : new ImMapTree<V>(Data, Left,
-                                new ImMapTree<V>(rightLeaf, new ImMapLeaf<V>(key, value), Empty, 2), 3);
+                                new ImMapTree<V>(rightLeaf, new ImMapData<V>(key, value), Empty, 2), 3);
 
                     return this;
                 }
@@ -349,7 +349,7 @@ namespace ImTools.Experimental
                 {
                     if (key == rightTree.Data.Key)
                         return new ImMapTree<V>(Data, Left,
-                            new ImMapTree<V>(new ImMapLeaf<V>(key, value), rightTree.Left, rightTree.Right, rightTree.TreeHeight),
+                            new ImMapTree<V>(new ImMapData<V>(key, value), rightTree.Left, rightTree.Right, rightTree.TreeHeight),
                             TreeHeight);
 
                     var newRightTree = rightTree.AddOrUpdateLeftOrRight(key, value);
@@ -392,7 +392,7 @@ namespace ImTools.Experimental
                     return new ImMapTree<V>(Data, leftHeight, Left, newRightTree.TreeHeight, newRightTree);
                 }
 
-                return new ImMapTree<V>(Data, Left, new ImMapLeaf<V>(key, value), 2);
+                return new ImMapTree<V>(Data, Left, new ImMapData<V>(key, value), 2);
             }
         }
     }
@@ -405,15 +405,15 @@ namespace ImTools.Experimental
         public static ImMap<V> AddOrUpdate<V>(this ImMap<V> map, int key, V value) =>
             map is ImMapTree<V> tree
                 ? key == tree.Data.Key
-                    ? new ImMapTree<V>(new ImMapLeaf<V>(key, value), tree.Left, tree.Right, tree.TreeHeight)
+                    ? new ImMapTree<V>(new ImMapData<V>(key, value), tree.Left, tree.Right, tree.TreeHeight)
                     : tree.AddOrUpdateLeftOrRight(key, value)
-            : map is ImMapLeaf<V> leaf
+            : map is ImMapData<V> leaf
                 ? key > leaf.Key
-                    ? new ImMapTree<V>(leaf, ImMap<V>.Empty, new ImMapLeaf<V>(key, value), 2)
+                    ? new ImMapTree<V>(leaf, ImMap<V>.Empty, new ImMapData<V>(key, value), 2)
                 : key < leaf.Key
-                    ? new ImMapTree<V>(leaf, new ImMapLeaf<V>(key, value), ImMap<V>.Empty, 2)
-                : (ImMap<V>)new ImMapLeaf<V>(key, value)
-            : new ImMapLeaf<V>(key, value);
+                    ? new ImMapTree<V>(leaf, new ImMapData<V>(key, value), ImMap<V>.Empty, 2)
+                : (ImMap<V>)new ImMapData<V>(key, value)
+            : new ImMapData<V>(key, value);
 
         /// Returns a new map with added value for the specified key or the existing map if the key is already in the map.
         [MethodImpl((MethodImplOptions)256)]
@@ -422,13 +422,13 @@ namespace ImTools.Experimental
                 ? key == tree.Data.Key
                     ? map
                     : tree.AddOrKeepLeftOrRight(key, value)
-                : map is ImMapLeaf<V> leaf
+                : map is ImMapData<V> leaf
                     ? key > leaf.Key
-                        ? new ImMapTree<V>(leaf, ImMap<V>.Empty, new ImMapLeaf<V>(key, value), 2)
+                        ? new ImMapTree<V>(leaf, ImMap<V>.Empty, new ImMapData<V>(key, value), 2)
                     : key < leaf.Key
-                        ? new ImMapTree<V>(leaf, new ImMapLeaf<V>(key, value), ImMap<V>.Empty, 2)
+                        ? new ImMapTree<V>(leaf, new ImMapData<V>(key, value), ImMap<V>.Empty, 2)
                     : map
-                : new ImMapLeaf<V>(key, value);
+                : new ImMapData<V>(key, value);
 
         /// Returns true if key is found and sets the value.
         [MethodImpl((MethodImplOptions)256)]
@@ -449,7 +449,7 @@ namespace ImTools.Experimental
                 }
             }
 
-            if (map is ImMapLeaf<V> leaf && leaf.Key == key)
+            if (map is ImMapData<V> leaf && leaf.Key == key)
             {
                 value = leaf.Value;
                 return true;
@@ -475,7 +475,7 @@ namespace ImTools.Experimental
                     return mapTree.Data.Value;
             }
 
-            return map is ImMapLeaf<V> leaf && leaf.Key == key ? leaf.Value : default;
+            return map is ImMapData<V> leaf && leaf.Key == key ? leaf.Value : default;
         }
     
         //// Returns all map tree nodes enumerated from the lesser to the bigger keys 

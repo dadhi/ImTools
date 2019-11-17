@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using NUnit.Framework;
 
-namespace ImTools.Experimental.UnitTests
+namespace ImTools.UnitTests
 {
     [TestFixture]
     public class ImMapSlotsTests
