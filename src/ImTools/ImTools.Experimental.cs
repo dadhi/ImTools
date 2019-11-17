@@ -128,6 +128,7 @@ namespace ImTools.Experimental
                     return new ImMapTree<V>(Data, new ImMapLeaf<V>(key, value), Right, TreeHeight);
                 }
 
+                // when the left is tree the right could not be empty
                 if (left is ImMapTree<V> leftTree)
                 {
                     if (key == leftTree.Data.Key)
@@ -139,18 +140,18 @@ namespace ImTools.Experimental
                     if (newLeftTree.TreeHeight == leftTree.TreeHeight)
                         return new ImMapTree<V>(Data, newLeftTree, Right, TreeHeight);
 
-                    var rightHeight = Right.Height;
+                    var rightHeight = (Right as ImMapTree<V>)?.TreeHeight ?? 1;
                     if (newLeftTree.TreeHeight - 1 > rightHeight)
                     {
                         // 1st fact - `leftLeft` and `leftRight` cannot be Empty otherwise we won't need to re-balance the left tree
                         // 2nd fact - either lefLeft or leftRight or both should be a tree
                         var leftLeft = newLeftTree.Left;
                         var leftLeftTree = leftLeft as ImMapTree<V>;
-                        var leftLeftHeight = leftLeftTree?.Height ?? 1;
+                        var leftLeftHeight = leftLeftTree?.TreeHeight ?? 1;
 
                         var leftRight = newLeftTree.Right;
                         var leftRightTree = leftRight as ImMapTree<V>;
-                        var leftRightHeight = leftRightTree?.Height ?? 1;
+                        var leftRightHeight = leftRightTree?.TreeHeight ?? 1;
 
                         if (leftLeftHeight >= leftRightHeight)
                             return new ImMapTree<V>(newLeftTree.Data, 
@@ -200,16 +201,17 @@ namespace ImTools.Experimental
                     if (newRightTree.TreeHeight == rightTree.TreeHeight)
                         return new ImMapTree<V>(Data, Left, newRightTree, TreeHeight);
 
-                    var leftHeight = Left.Height;
+                    // right tree is at least 3+ deep - means its either rightLeft or rightRight is tree
+                    var leftHeight = (Left as ImMapTree<V>)?.TreeHeight ?? 1;
                     if (newRightTree.TreeHeight - 1 > leftHeight)
                     {
                         var rightLeft = newRightTree.Left;
                         var rightLeftTree = rightLeft as ImMapTree<V>;
-                        var rightLeftHeight = rightLeftTree?.Height ?? 1;
+                        var rightLeftHeight = rightLeftTree?.TreeHeight ?? 1;
                         
                         var rightRight = newRightTree.Right;
                         var rightRightTree = rightRight as ImMapTree<V>;
-                        var rightRightHeight = rightRightTree?.Height ?? 1;
+                        var rightRightHeight = rightRightTree?.TreeHeight ?? 1;
 
                         if (rightRightHeight >= rightLeftHeight)
                         {
@@ -222,7 +224,7 @@ namespace ImTools.Experimental
                         // `rightLeftTree` should be the tree because rightRight is at least a leaf
                         // ReSharper disable once PossibleNullReferenceException
                         newRightTree.Left = rightLeftTree.Right;
-                        var newRightLeftHeight = newRightTree.Left.Height;
+                        var newRightLeftHeight = rightLeftTree.Right.Height;
                         newRightTree.TreeHeight = newRightLeftHeight > rightRightHeight ? newRightLeftHeight + 1 : rightRightHeight + 1;
                         return new ImMapTree<V>(rightLeftTree.Data,
                             new ImMapTree<V>(Data, leftHeight, Left, rightLeftTree.Left),

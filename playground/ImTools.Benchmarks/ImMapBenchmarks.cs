@@ -224,13 +224,11 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |    ImMap_AddOrUpdate | 100000 | 60,702,839.3 ns | 630,407.60 ns | 589,683.66 ns |  1.00 |    0.00 | 13666.6667 | 1777.7778 | 444.4444 | 81356.87 KB |
 | ImMap_V1_AddOrUpdate | 100000 | 66,207,335.8 ns | 418,512.92 ns | 391,477.25 ns |  1.09 |    0.01 | 15250.0000 | 2000.0000 | 500.0000 | 90730.88 KB |
 |     ImMap_FixedData4 | 100000 | 66,284,828.6 ns | 323,173.70 ns | 286,485.07 ns |  1.09 |    0.01 | 13250.0000 | 2250.0000 | 625.0000 | 77451.22 KB |
- 
-
 
 */
 
-            //[Params(10, 100, 1_000, 10_000, 100_000)]
-            public int Count = 1;
+            [Params(1, 10)]//, 100, 1_000, 10_000, 100_000)]
+            public int Count;
 
             [Benchmark(Baseline = true)]
             public ImMap<string> ImMap_AddOrUpdate()
@@ -243,7 +241,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public ImTools.OldVersions.V1.ImMap<string> ImMap_V1_AddOrUpdate()
             {
                 var map = ImTools.OldVersions.V1.ImMap<string>.Empty;
@@ -254,46 +252,13 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            //[Benchmark]
-            public ImTools.Benchmarks.ImMapFixedData.ImMap<string> ImMap_FixedData()
-            {
-                var map = ImTools.Benchmarks.ImMapFixedData.ImMap<string>.Empty;
-
-                for (var i = 0; i < Count; i++)
-                    map = map.AddOrUpdate(i, i.ToString());
-
-                return map;
-            }
-
-            //[Benchmark]
-            public ImTools.Benchmarks.ImMapFixedData2.ImMap<string> ImMap_FixedData2()
-            {
-                var map = ImTools.Benchmarks.ImMapFixedData2.ImMap<string>.Empty;
-
-                for (var i = 0; i < Count; i++)
-                    map = map.AddOrUpdate(i, i.ToString());
-
-                return map;
-            }
-
-            //[Benchmark]
-            public ImTools.Benchmarks.ImMapFixedData3.ImMap<string> ImMap_FixedData3()
-            {
-                var map = ImTools.Benchmarks.ImMapFixedData3.ImMap<string>.Empty;
-
-                for (var i = 0; i < Count; i++)
-                    map = map.AddOrUpdate(i, i.ToString());
-
-                return map;
-            }
-
             [Benchmark]
-            public ImTools.Benchmarks.ImMapFixedData4.ImMap<string> ImMap_FixedData4()
+            public ImTools.Experimental.ImMap<string> ImMap_Experimental_AddOrUpdate()
             {
-                var map = ImTools.Benchmarks.ImMapFixedData4.ImMap<string>.Empty;
+                var map = ImTools.Experimental.ImMap<string>.Empty;
 
                 for (var i = 0; i < Count; i++)
-                    map = ImTools.Benchmarks.ImMapFixedData4.ImMap.AddOrUpdate(map, i, i.ToString());
+                    map = ImTools.Experimental.ImMap.AddOrUpdate(map, i, i.ToString());
 
                 return map;
             }
