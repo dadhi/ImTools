@@ -562,7 +562,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            [Params(1, 10, 100, 1_000)]//, 10_000, 100_000)]
+            [Params(1, 10, 100)]//, 1_000, 10_000, 100_000)]
             public int Count;
 
             public int LookupMaxKey;
@@ -590,7 +590,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return result;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public string ImMap_V1_TryFind()
             {
                 _mapV1.TryFind(LookupMaxKey, out var result);
@@ -601,6 +601,13 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             public string ImMap_Experimental_TryFind()
             {
                 _mapExp.TryFind(LookupMaxKey, out var result);
+                return result;
+            }
+
+            [Benchmark]
+            public string ImMap_Experimental_TryFind2()
+            {
+                _mapExp.TryFind2(LookupMaxKey, out var result);
                 return result;
             }
 

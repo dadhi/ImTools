@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -11,6 +10,9 @@ namespace ImTools.Experimental
     {
         /// Empty tree to start with.
         public static readonly ImMap<V> Empty = new ImMap<V>();
+
+        /// Creates an empty map
+        protected ImMap() { }
 
         /// Height of the longest sub-tree/branch. Starts from 2 because it a tree and not the leaf
         public virtual int Height => 0;
@@ -28,13 +30,13 @@ namespace ImTools.Experimental
         /// <inheritdoc />
         public override int Height => 1;
 
-        /// The Key is basically the hash, or the Height for ImMapTree
+        /// The key
         public readonly int Key;
 
         /// The value - may be modified if you need a Ref{V} semantics
         public V Value;
 
-        /// Creates the leaf
+        /// Creates the data leaf
         public ImMapData(int key, V value)
         {
             Key = key;
@@ -108,7 +110,11 @@ namespace ImTools.Experimental
         }
 
         /// Outputs the key value pair
-        public override string ToString() => "tree(" + Data + ")";
+        public override string ToString() => 
+            "(" + Data 
+            + ") -> (left: " + (Left  is ImMapTree<V> leftTree  ? leftTree.Data  : Left)
+            + ", right: "    + (Right is ImMapTree<V> rightTree ? rightTree.Data : Right) 
+            + ")";
 
         /// Adds or updates the left or right branch
         public ImMapTree<V> AddOrUpdateLeftOrRight(int key, V value)
@@ -237,7 +243,7 @@ namespace ImTools.Experimental
                         // `rightLeftTree` should be the tree because rightRight is at least a leaf
                         // ReSharper disable once PossibleNullReferenceException
                         newRightTree.Left = rightLeftTree.Right;
-                        var newRightLeftHeight = rightLeftTree.Right.Height;
+                        var newRightLeftHeight = newRightTree.Left.Height;
                         newRightTree.TreeHeight = newRightLeftHeight > rightRightHeight ? newRightLeftHeight + 1 : rightRightHeight + 1;
                         return new ImMapTree<V>(rightLeftTree.Data,
                             new ImMapTree<V>(Data, leftHeight, Left, rightLeftTree.Left),
@@ -382,7 +388,7 @@ namespace ImTools.Experimental
                         // `rightLeftTree` should be the tree because rightRight is at least a leaf
                         // ReSharper disable once PossibleNullReferenceException
                         newRightTree.Left = rightLeftTree.Right;
-                        var newRightLeftHeight = rightLeftTree.Right.Height;
+                        var newRightLeftHeight = newRightTree.Left.Height;
                         newRightTree.TreeHeight = newRightLeftHeight > rightRightHeight ? newRightLeftHeight + 1 : rightRightHeight + 1;
                         return new ImMapTree<V>(rightLeftTree.Data,
                             new ImMapTree<V>(Data, leftHeight, Left, rightLeftTree.Left),
@@ -403,74 +409,41 @@ namespace ImTools.Experimental
         /// Adds or updates the value by key in the map, always returns a modified map
         [MethodImpl((MethodImplOptions)256)]
         public static ImMap<V> AddOrUpdate<V>(this ImMap<V> map, int key, V value) =>
-            map is ImMapTree<V> tree
+              map is ImMapTree<V> tree
                 ? key == tree.Data.Key
                     ? new ImMapTree<V>(new ImMapData<V>(key, value), tree.Left, tree.Right, tree.TreeHeight)
                     : tree.AddOrUpdateLeftOrRight(key, value)
-            : map is ImMapData<V> leaf
-                ? key > leaf.Key
-                    ? new ImMapTree<V>(leaf, ImMap<V>.Empty, new ImMapData<V>(key, value), 2)
-                : key < leaf.Key
-                    ? new ImMapTree<V>(leaf, new ImMapData<V>(key, value), ImMap<V>.Empty, 2)
+            : map is ImMapData<V> data
+                ? key > data.Key ? new ImMapTree<V>(data, ImMap<V>.Empty, new ImMapData<V>(key, value), 2)
+                : key < data.Key ? new ImMapTree<V>(data, new ImMapData<V>(key, value), ImMap<V>.Empty, 2)
                 : (ImMap<V>)new ImMapData<V>(key, value)
             : new ImMapData<V>(key, value);
 
         /// Returns a new map with added value for the specified key or the existing map if the key is already in the map.
         [MethodImpl((MethodImplOptions)256)]
         public static ImMap<V> AddOrKeep<V>(this ImMap<V> map, int key, V value) =>
-            map is ImMapTree<V> tree
+              map is ImMapTree<V> tree
                 ? key == tree.Data.Key
                     ? map
                     : tree.AddOrKeepLeftOrRight(key, value)
-                : map is ImMapData<V> leaf
-                    ? key > leaf.Key
-                        ? new ImMapTree<V>(leaf, ImMap<V>.Empty, new ImMapData<V>(key, value), 2)
-                    : key < leaf.Key
-                        ? new ImMapTree<V>(leaf, new ImMapData<V>(key, value), ImMap<V>.Empty, 2)
-                    : map
-                : new ImMapData<V>(key, value);
-
-        ///// Returns true if key is found and sets the value.
-        //[MethodImpl((MethodImplOptions)256)]
-        //public static bool TryFind<V>(this ImMap<V> map, int key, out V value)
-        //{
-        //    int mapKey;
-        //    while (map is ImMapTree<V> mapTree)
-        //    {
-        //        mapKey = mapTree.Data.Key;
-        //        if (key < mapKey)
-        //            map = mapTree.Left;
-        //        else if (key > mapKey)
-        //            map = mapTree.Right;
-        //        else
-        //        {
-        //            value = mapTree.Data.Value;
-        //            return true;
-        //        }
-        //    }
-
-        //    if (map is ImMapData<V> leaf && leaf.Key == key)
-        //    {
-        //        value = leaf.Value;
-        //        return true;
-        //    }
-
-        //    value = default(V);
-        //    return false;
-        //}
+            : map is ImMapData<V> data
+                ? key > data.Key ? new ImMapTree<V>(data, ImMap<V>.Empty, new ImMapData<V>(key, value), 2)
+                : key < data.Key ? new ImMapTree<V>(data, new ImMapData<V>(key, value), ImMap<V>.Empty, 2)
+                : map
+            : new ImMapData<V>(key, value);
 
         /// Returns true if key is found and sets the value.
         [MethodImpl((MethodImplOptions)256)]
         public static bool TryFind<V>(this ImMap<V> map, int key, out V value)
         {
             ImMapData<V> data;
-            while (map is ImMapTree<V> mapTree)
+            while (map is ImMapTree<V> tree)
             {
-                data = mapTree.Data;
-                if (key > data.Key) 
-                    map = mapTree.Left;
+                data = tree.Data;
+                if (key > data.Key)
+                    map = tree.Right;
                 else if (key < data.Key)
-                    map = mapTree.Right;
+                    map = tree.Left;
                 else
                 {
                     value = data.Value;
@@ -494,15 +467,15 @@ namespace ImTools.Experimental
         public static ImMapData<V> TryFindData<V>(this ImMap<V> map, int key)
         {
             ImMapData<V> data;
-            while (map is ImMapTree<V> mapTree)
+            while (map is ImMapTree<V> tree)
             {
-                data = mapTree.Data;
+                data = tree.Data;
                 if (key > data.Key)
-                    map = mapTree.Left;
+                    map = tree.Right;
                 else if (key < data.Key)
-                    map = mapTree.Right;
+                    map = tree.Left;
                 else
-                    return data;
+                    return tree.Data;
             }
 
             data = map as ImMapData<V>;
@@ -518,44 +491,15 @@ namespace ImTools.Experimental
             {
                 mapKey = mapTree.Data.Key;
                 if (key > mapKey)
-                    map = mapTree.Left;
-                else if (key < mapKey)
                     map = mapTree.Right;
+                else if (key < mapKey)
+                    map = mapTree.Left;
                 else
                     return mapTree.Data.Value;
             }
 
             return map is ImMapData<V> leaf && leaf.Key == key ? leaf.Value : default;
         }
-    
-        //// Returns all map tree nodes enumerated from the lesser to the bigger keys 
-        //public static IEnumerable<ImMapLeaf<V>> Enumerate<V>(this ImMap<V> map)
-        //{
-        //    if (map is ImMapLeaf<V> leaf)
-        //    {
-        //        yield return leaf;
-        //    }
-        //    else if (map != ImMap<V>.Empty)
-        //    {
-        //        var tree = (ImMapTree<V>)map;
-        //        var parents = new ImMap<V>[tree.TreeHeight];
-        //        var parentCount = -1;
-        //        while (map.Height != 0 || parentCount != -1)
-        //        {
-        //            if (map.Height > 0)
-        //            {
-        //                parents[++parentCount] = map;
-        //                map = tree.Left;
-        //            }
-        //            else
-        //            {
-        //                map = parents[parentCount--];
-        //                yield return (ImMapLeaf<V>)map;
-        //                map = (map as ImMapTree<V>)?.Right ?? ImMap<V>.Empty;
-        //            }
-        //        }
-        //    }
-        //}
     }
 
     /// The array of ImMap slots where the key first bits are used for FAST slot location
