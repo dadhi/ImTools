@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using BenchmarkDotNet.Attributes;
 using ImTools;
+using ImTools.Experimental;
 using Microsoft.Collections.Extensions;
+using ImMapSlots = ImTools.ImMapSlots;
 
 namespace Playground
 {
@@ -150,9 +152,9 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             public int Count;
 
             [Benchmark(Baseline = true)]
-            public ImMap<string> ImMap_AddOrUpdate()
+            public ImTools.ImMap<string> ImMap_AddOrUpdate()
             {
-                var map = ImMap<string>.Empty;
+                var map = ImTools.ImMap<string>.Empty;
 
                 for (var i = 0; i < Count; i++)
                     map = map.AddOrUpdate(i, i.ToString());
@@ -183,7 +185,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             }
 
             [Benchmark]
-            public ImMap<string>[] ImMapSlots_AddOrUpdate()
+            public ImTools.ImMap<string>[] ImMapSlots_AddOrUpdate()
             {
                 var slots = ImMapSlots.CreateWithEmpty<string>();
 
@@ -432,79 +434,39 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 | ConcurrentDict_TryGetValue | 100000 | 11.0017 ns | 0.0565 ns | 0.0529 ns | 11.0147 ns |  0.68 |    0.00 |     - |     - |     - |         - |
 |  ImmutableDict_TryGetValue | 100000 | 35.4956 ns | 0.1117 ns | 0.1045 ns | 35.4829 ns |  2.21 |    0.01 |     - |     - |     - |         - |
 
-## FixedData2:
-|                   Method |  Count |      Mean |     Error |    StdDev | Ratio | Gen 0 | Gen 1 | Gen 2 | Allocated |
-|------------------------- |------- |----------:|----------:|----------:|------:|------:|------:|------:|----------:|
-|            ImMap_TryFind |     10 |  3.469 ns | 0.0252 ns | 0.0236 ns |  1.00 |     - |     - |     - |         - |
-| ImMap_FixedData2_TryFind |     10 |  4.777 ns | 0.0281 ns | 0.0263 ns |  1.38 |     - |     - |     - |         - |
-|                          |        |           |           |           |       |       |       |       |           |
-|            ImMap_TryFind |    100 |  6.302 ns | 0.0416 ns | 0.0389 ns |  1.00 |     - |     - |     - |         - |
-| ImMap_FixedData2_TryFind |    100 |  7.348 ns | 0.0580 ns | 0.0542 ns |  1.17 |     - |     - |     - |         - |
-|                          |        |           |           |           |       |       |       |       |           |
-|            ImMap_TryFind |   1000 |  9.078 ns | 0.0452 ns | 0.0401 ns |  1.00 |     - |     - |     - |         - |
-| ImMap_FixedData2_TryFind |   1000 | 10.440 ns | 0.0397 ns | 0.0372 ns |  1.15 |     - |     - |     - |         - |
-|                          |        |           |           |           |       |       |       |       |           |
-|            ImMap_TryFind |  10000 | 13.058 ns | 0.0785 ns | 0.0734 ns |  1.00 |     - |     - |     - |         - |
-| ImMap_FixedData2_TryFind |  10000 | 14.984 ns | 0.0647 ns | 0.0605 ns |  1.15 |     - |     - |     - |         - |
-|                          |        |           |           |           |       |       |       |       |           |
-|            ImMap_TryFind | 100000 | 15.889 ns | 0.0256 ns | 0.0214 ns |  1.00 |     - |     - |     - |         - |
-| ImMap_FixedData2_TryFind | 100000 | 22.550 ns | 0.2120 ns | 0.1655 ns |  1.42 |     - |     - |     - |         - |
+## Experimental
 
-## FixedData3 - Data.Key access - ignoring the Key
-
-|                   Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
-|------------------------- |------ |---------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
-|            ImMap_TryFind |    10 | 3.441 ns | 0.0872 ns | 0.0681 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| ImMap_FixedData3_TryFind |    10 | 4.064 ns | 0.0577 ns | 0.0539 ns |  1.18 |    0.03 |     - |     - |     - |         - |
-|                          |       |          |           |           |       |         |       |       |       |           |
-|            ImMap_TryFind |   100 | 6.105 ns | 0.0742 ns | 0.0658 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| ImMap_FixedData3_TryFind |   100 | 7.142 ns | 0.0999 ns | 0.0934 ns |  1.17 |    0.02 |     - |     - |     - |         - |
-|                          |       |          |           |           |       |         |       |       |       |           |
-|            ImMap_TryFind |  1000 | 8.803 ns | 0.0740 ns | 0.0656 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| ImMap_FixedData3_TryFind |  1000 | 9.990 ns | 0.0419 ns | 0.0392 ns |  1.13 |    0.01 |     - |     - |     - |         - |
-
-
-## FixedData4 - Making ImMap an abstract class
-
-|                   Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
-|------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
-|            ImMap_TryFind |    10 |  3.016 ns | 0.0395 ns | 0.0330 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| ImMap_FixedData4_TryFind |    10 |  5.447 ns | 0.0271 ns | 0.0240 ns |  1.81 |    0.02 |     - |     - |     - |         - |
-|                          |       |           |           |           |       |         |       |       |       |           |
-|            ImMap_TryFind |   100 |  5.623 ns | 0.0558 ns | 0.0522 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| ImMap_FixedData4_TryFind |   100 |  7.393 ns | 0.0267 ns | 0.0223 ns |  1.31 |    0.01 |     - |     - |     - |         - |
-|                          |       |           |           |           |       |         |       |       |       |           |
-|            ImMap_TryFind |  1000 |  7.756 ns | 0.0828 ns | 0.0774 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| ImMap_FixedData4_TryFind |  1000 | 10.459 ns | 0.0429 ns | 0.0381 ns |  1.35 |    0.02 |     - |     - |     - |         - |
-
-
-|                   Method |  Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
-|------------------------- |------- |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
-|            ImMap_TryFind |     10 |  2.951 ns | 0.0367 ns | 0.0343 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-|         ImMap_V1_TryFind |     10 |  4.825 ns | 0.0237 ns | 0.0221 ns |  1.63 |    0.02 |     - |     - |     - |         - |
-| ImMap_FixedData4_TryFind |     10 |  5.453 ns | 0.0474 ns | 0.0420 ns |  1.85 |    0.03 |     - |     - |     - |         - |
-|                          |        |           |           |           |       |         |       |       |       |           |
-|            ImMap_TryFind |    100 |  5.452 ns | 0.0516 ns | 0.0482 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-|         ImMap_V1_TryFind |    100 |  7.547 ns | 0.0478 ns | 0.0399 ns |  1.38 |    0.02 |     - |     - |     - |         - |
-| ImMap_FixedData4_TryFind |    100 |  8.693 ns | 0.0356 ns | 0.0333 ns |  1.59 |    0.01 |     - |     - |     - |         - |
-|                          |        |           |           |           |       |         |       |       |       |           |
-|            ImMap_TryFind |   1000 |  7.765 ns | 0.0300 ns | 0.0281 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-|         ImMap_V1_TryFind |   1000 |  8.838 ns | 0.0421 ns | 0.0394 ns |  1.14 |    0.00 |     - |     - |     - |         - |
-| ImMap_FixedData4_TryFind |   1000 | 12.558 ns | 0.0750 ns | 0.0702 ns |  1.62 |    0.01 |     - |     - |     - |         - |
-|                          |        |           |           |           |       |         |       |       |       |           |
-|            ImMap_TryFind |  10000 | 10.848 ns | 0.0901 ns | 0.0752 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-|         ImMap_V1_TryFind |  10000 | 12.358 ns | 0.0279 ns | 0.0248 ns |  1.14 |    0.01 |     - |     - |     - |         - |
-| ImMap_FixedData4_TryFind |  10000 | 17.575 ns | 0.1108 ns | 0.1037 ns |  1.62 |    0.01 |     - |     - |     - |         - |
-|                          |        |           |           |           |       |         |       |       |       |           |
-|            ImMap_TryFind | 100000 | 14.383 ns | 0.0618 ns | 0.0548 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-|         ImMap_V1_TryFind | 100000 | 16.610 ns | 0.0478 ns | 0.0400 ns |  1.16 |    0.01 |     - |     - |     - |         - |
-| ImMap_FixedData4_TryFind | 100000 | 19.096 ns | 0.0518 ns | 0.0433 ns |  1.33 |    0.01 |     - |     - |     - |         - |
+|                          Method | Count |       Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|-------------------------------- |------ |-----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+|                   ImMap_TryFind |     1 |  0.6049 ns | 0.0866 ns | 0.1031 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|      ImMap_Experimental_TryFind |     1 |  0.7273 ns | 0.0342 ns | 0.0303 ns |  1.29 |    0.32 |     - |     - |     - |         - |
+|  ImMap_Experimental_TryFindData |     1 |  1.5122 ns | 0.0296 ns | 0.0277 ns |  2.68 |    0.67 |     - |     - |     - |         - |
+|              ImMapSlots_TryFind |     1 |  1.1096 ns | 0.1018 ns | 0.0902 ns |  1.95 |    0.42 |     - |     - |     - |         - |
+| ImMapSlots_Experimental_TryFind |     1 |  1.4498 ns | 0.0309 ns | 0.0289 ns |  2.57 |    0.65 |     - |     - |     - |         - |
+|                                 |       |            |           |           |       |         |       |       |       |           |
+|                   ImMap_TryFind |    10 |  3.2067 ns | 0.0357 ns | 0.0317 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|      ImMap_Experimental_TryFind |    10 |  3.3929 ns | 0.0938 ns | 0.0877 ns |  1.06 |    0.03 |     - |     - |     - |         - |
+|  ImMap_Experimental_TryFindData |    10 |  3.6635 ns | 0.1508 ns | 0.1337 ns |  1.14 |    0.04 |     - |     - |     - |         - |
+|              ImMapSlots_TryFind |    10 |  1.0951 ns | 0.0203 ns | 0.0158 ns |  0.34 |    0.01 |     - |     - |     - |         - |
+| ImMapSlots_Experimental_TryFind |    10 |  1.1594 ns | 0.0106 ns | 0.0088 ns |  0.36 |    0.00 |     - |     - |     - |         - |
+|                                 |       |            |           |           |       |         |       |       |       |           |
+|                   ImMap_TryFind |   100 |  5.6499 ns | 0.0719 ns | 0.0637 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|      ImMap_Experimental_TryFind |   100 |  6.3405 ns | 0.0280 ns | 0.0262 ns |  1.12 |    0.01 |     - |     - |     - |         - |
+|  ImMap_Experimental_TryFindData |   100 |  7.3972 ns | 0.0622 ns | 0.0519 ns |  1.31 |    0.02 |     - |     - |     - |         - |
+|              ImMapSlots_TryFind |   100 |  3.0274 ns | 0.0177 ns | 0.0157 ns |  0.54 |    0.01 |     - |     - |     - |         - |
+| ImMapSlots_Experimental_TryFind |   100 |  2.7556 ns | 0.0621 ns | 0.0581 ns |  0.49 |    0.01 |     - |     - |     - |         - |
+|                                 |       |            |           |           |       |         |       |       |       |           |
+|                   ImMap_TryFind |  1000 |  7.8028 ns | 0.0194 ns | 0.0162 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|      ImMap_Experimental_TryFind |  1000 |  9.3970 ns | 0.0342 ns | 0.0320 ns |  1.20 |    0.00 |     - |     - |     - |         - |
+|  ImMap_Experimental_TryFindData |  1000 | 10.4084 ns | 0.0618 ns | 0.0547 ns |  1.33 |    0.01 |     - |     - |     - |         - |
+|              ImMapSlots_TryFind |  1000 |  5.7929 ns | 0.0327 ns | 0.0306 ns |  0.74 |    0.00 |     - |     - |     - |         - |
+| ImMapSlots_Experimental_TryFind |  1000 |  6.2946 ns | 0.0878 ns | 0.0821 ns |  0.81 |    0.01 |     - |     - |     - |         - |
 
  */
-            private ImMap<string> _map;
-            public ImMap<string> AddOrUpdate()
+            private ImTools.ImMap<string> _map;
+            public ImTools.ImMap<string> AddOrUpdate()
             {
-                var map = ImMap<string>.Empty;
+                var map = ImTools.ImMap<string>.Empty;
 
                 for (var i = 0; i < Count; i++)
                     map = map.AddOrUpdate(i, i.ToString());
@@ -523,10 +485,10 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            private ImTools.Benchmarks.ImMapFixedData2.ImMap<string> _mapFixedData2;
-            public ImTools.Benchmarks.ImMapFixedData2.ImMap<string> AddOrUpdate_FixedData2()
+            private ImTools.Experimental.ImMap<string> _mapExp;
+            public ImTools.Experimental.ImMap<string> AddOrUpdate_Exp()
             {
-                var map = ImTools.Benchmarks.ImMapFixedData2.ImMap<string>.Empty;
+                var map = ImTools.Experimental.ImMap<string>.Empty;
 
                 for (var i = 0; i < Count; i++)
                     map = map.AddOrUpdate(i, i.ToString());
@@ -534,32 +496,21 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            private ImTools.Benchmarks.ImMapFixedData3.ImMap<string> _mapFixedData3;
-            public ImTools.Benchmarks.ImMapFixedData3.ImMap<string> AddOrUpdate_FixedData3()
-            {
-                var map = ImTools.Benchmarks.ImMapFixedData3.ImMap<string>.Empty;
-
-                for (var i = 0; i < Count; i++)
-                    map = map.AddOrUpdate(i, i.ToString());
-
-                return map;
-            }
-
-            private ImTools.Benchmarks.ImMapFixedData4.ImMap<string> _mapFixedData4;
-            public ImTools.Benchmarks.ImMapFixedData4.ImMap<string> AddOrUpdate_FixedData4()
-            {
-                var map = ImTools.Benchmarks.ImMapFixedData4.ImMap<string>.Empty;
-
-                for (var i = 0; i < Count; i++)
-                    map = ImTools.Benchmarks.ImMapFixedData4.ImMap.AddOrUpdate(map, i, i.ToString());
-
-                return map;
-            }
-
-            private ImMap<string>[] _mapSlots;
-            public ImMap<string>[] AddOrUpdate_ImMapSlots()
+            private ImTools.ImMap<string>[] _mapSlots;
+            public ImTools.ImMap<string>[] AddOrUpdate_ImMapSlots()
             {
                 var slots = ImMapSlots.CreateWithEmpty<string>();
+
+                for (var i = 0; i < Count; i++)
+                    slots.AddOrUpdate(i, i.ToString());
+
+                return slots;
+            }
+
+            private ImTools.Experimental.ImMap<string>[] _mapSlotsExp;
+            public ImTools.Experimental.ImMap<string>[] AddOrUpdate_ImMapSlots_Exp()
+            {
+                var slots = ImTools.Experimental.ImMapSlots.CreateWithEmpty<string>();
 
                 for (var i = 0; i < Count; i++)
                     slots.AddOrUpdate(i, i.ToString());
@@ -611,7 +562,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            [Params(10, 100, 1_000, 10_000, 100_000)]
+            [Params(1, 10, 100, 1_000)]//, 10_000, 100_000)]
             public int Count;
 
             public int LookupMaxKey;
@@ -623,10 +574,9 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
                 _map = AddOrUpdate();
                 _mapV1 = AddOrUpdate_V1();
-                _mapFixedData2 = AddOrUpdate_FixedData2();
-                _mapFixedData3 = AddOrUpdate_FixedData3();
-                _mapFixedData4 = AddOrUpdate_FixedData4();
+                _mapExp = AddOrUpdate_Exp();
                 _mapSlots = AddOrUpdate_ImMapSlots();
+                _mapSlotsExp = AddOrUpdate_ImMapSlots_Exp();
                 _dictSlim = DictSlim();
                 _dict = Dict();
                 _concurDict = ConcurrentDict();
@@ -640,38 +590,37 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string ImMap_V1_TryFind()
             {
                 _mapV1.TryFind(LookupMaxKey, out var result);
                 return result;
             }
 
-            //[Benchmark]
-            public string ImMap_FixedData2_TryFind()
+            [Benchmark]
+            public string ImMap_Experimental_TryFind()
             {
-                ImTools.Benchmarks.ImMapFixedData2.ImMap.TryFind(_mapFixedData2, LookupMaxKey, out var result);
-                return result;
-            }
-
-            //[Benchmark]
-            public string ImMap_FixedData3_TryFind()
-            {
-                ImTools.Benchmarks.ImMapFixedData3.ImMap.TryFind(_mapFixedData3, LookupMaxKey, out var result);
+                _mapExp.TryFind(LookupMaxKey, out var result);
                 return result;
             }
 
             [Benchmark]
-            public string ImMap_FixedData4_TryFind()
+            public string ImMap_Experimental_TryFindData()
             {
-                ImTools.Benchmarks.ImMapFixedData4.ImMap.TryFind(_mapFixedData4, LookupMaxKey, out var result);
-                return result;
+                return _mapExp.TryFindData(LookupMaxKey)?.Value;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public string ImMapSlots_TryFind()
             {
                 _mapSlots[LookupMaxKey & ImMapSlots.KEY_MASK_TO_FIND_SLOT].TryFind(LookupMaxKey, out var result);
+                return result;
+            }
+
+            [Benchmark]
+            public string ImMapSlots_Experimental_TryFind()
+            {
+                _mapSlotsExp[LookupMaxKey & ImTools.Experimental.ImMapSlots.KEY_MASK_TO_FIND_SLOT].TryFind(LookupMaxKey, out var result);
                 return result;
             }
 

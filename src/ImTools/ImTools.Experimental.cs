@@ -430,33 +430,83 @@ namespace ImTools.Experimental
                     : map
                 : new ImMapData<V>(key, value);
 
+        ///// Returns true if key is found and sets the value.
+        //[MethodImpl((MethodImplOptions)256)]
+        //public static bool TryFind<V>(this ImMap<V> map, int key, out V value)
+        //{
+        //    int mapKey;
+        //    while (map is ImMapTree<V> mapTree)
+        //    {
+        //        mapKey = mapTree.Data.Key;
+        //        if (key < mapKey)
+        //            map = mapTree.Left;
+        //        else if (key > mapKey)
+        //            map = mapTree.Right;
+        //        else
+        //        {
+        //            value = mapTree.Data.Value;
+        //            return true;
+        //        }
+        //    }
+
+        //    if (map is ImMapData<V> leaf && leaf.Key == key)
+        //    {
+        //        value = leaf.Value;
+        //        return true;
+        //    }
+
+        //    value = default(V);
+        //    return false;
+        //}
+
         /// Returns true if key is found and sets the value.
         [MethodImpl((MethodImplOptions)256)]
         public static bool TryFind<V>(this ImMap<V> map, int key, out V value)
         {
-            int mapKey;
+            ImMapData<V> data;
             while (map is ImMapTree<V> mapTree)
             {
-                mapKey = mapTree.Data.Key;
-                if (key < mapKey)
+                data = mapTree.Data;
+                if (key > data.Key) 
                     map = mapTree.Left;
-                else if (key > mapKey)
+                else if (key < data.Key)
                     map = mapTree.Right;
                 else
                 {
-                    value = mapTree.Data.Value;
+                    value = data.Value;
                     return true;
                 }
             }
 
-            if (map is ImMapData<V> leaf && leaf.Key == key)
+            data = map as ImMapData<V>;
+            if (data != null && data.Key == key)
             {
-                value = leaf.Value;
+                value = data.Value;
                 return true;
             }
 
             value = default(V);
             return false;
+        }
+
+        /// Returns true if key is found and sets the value.
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMapData<V> TryFindData<V>(this ImMap<V> map, int key)
+        {
+            ImMapData<V> data;
+            while (map is ImMapTree<V> mapTree)
+            {
+                data = mapTree.Data;
+                if (key > data.Key)
+                    map = mapTree.Left;
+                else if (key < data.Key)
+                    map = mapTree.Right;
+                else
+                    return data;
+            }
+
+            data = map as ImMapData<V>;
+            return data != null && data.Key == key ? data : null;
         }
 
         /// Returns true if key is found and sets the value.
@@ -467,9 +517,9 @@ namespace ImTools.Experimental
             while (map is ImMapTree<V> mapTree)
             {
                 mapKey = mapTree.Data.Key;
-                if (key < mapKey)
+                if (key > mapKey)
                     map = mapTree.Left;
-                else if (key > mapKey)
+                else if (key < mapKey)
                     map = mapTree.Right;
                 else
                     return mapTree.Data.Value;
