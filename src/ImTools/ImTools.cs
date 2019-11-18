@@ -2742,25 +2742,13 @@ namespace ImTools
                     var leftRight = newLeft.Right;
 
                     if (leftLeft.Height >= leftRight.Height)
-                    {
-                        newLeft.Right = new ImMap<V>(Key, Value, leftRight, Right);
-                        newLeft.Height = newLeft.Right.Height > leftLeft.Height ? newLeft.Right.Height + 1 : leftLeft.Height + 1;
-                        return newLeft;
+                        return new ImMap<V>(newLeft.Key, newLeft.Value,
+                            leftLeft,
+                            new ImMap<V>(Key, Value, leftRight, Right));
 
-                        //return new ImMap<V>(newLeft.Key, newLeft.Value,
-                        //    leftLeft, 
-                        //    new ImMap<V>(Key, Value, leftRight, Right));
-                    }
-
-                    newLeft.Right = leftRight.Left;
-                    newLeft.Height = newLeft.Right.Height > leftLeft.Height ? newLeft.Right.Height + 1 : leftLeft.Height + 1;
                     return new ImMap<V>(leftRight.Key, leftRight.Value,
-                        newLeft,
+                        new ImMap<V>(newLeft.Key, newLeft.Value, leftLeft, leftRight.Left),
                         new ImMap<V>(Key, Value, leftRight.Right, Right));
-
-                    //return new ImMap<V>(leftRight.Key, leftRight.Value,
-                    //    new ImMap<V>(newLeft.Key, newLeft.Value, leftLeft, leftRight.Left),
-                    //    new ImMap<V>(Key, Value, leftRight.Right, Right));
                 }
 
                 return new ImMap<V>(Key, Value, newLeft, Right);
@@ -2787,24 +2775,13 @@ namespace ImTools
                     var rightRight = newRight.Right;
 
                     if (rightRight.Height >= rightLeft.Height)
-                    {
-                        newRight.Left = new ImMap<V>(Key, Value, Left, rightLeft);
-                        newRight.Height = newRight.Left.Height > rightRight.Height ? newRight.Left.Height + 1 : rightRight.Height + 1;
-                        return newRight;
-                        //return new ImMap<V>(newRight.Key, newRight.Value,
-                        //    new ImMap<V>(Key, Value, Left, rightLeft), rightRight);
-                    }
-
-                    newRight.Left = rightLeft.Right;
-                    newRight.Height = newRight.Left.Height > rightRight.Height ? newRight.Left.Height + 1 : rightRight.Height + 1;
+                        return new ImMap<V>(newRight.Key, newRight.Value,
+                            new ImMap<V>(Key, Value, Left, rightLeft),
+                            rightRight);
 
                     return new ImMap<V>(rightLeft.Key, rightLeft.Value,
                         new ImMap<V>(Key, Value, Left, rightLeft.Left),
-                        newRight);
-
-                    //return new ImMap<V>(rightLeft.Key, rightLeft.Value,
-                    //    new ImMap<V>(Key, Value, Left, rightLeft.Left),
-                    //    new ImMap<V>(newRight.Key, newRight.Value, rightLeft.Right, rightRight));
+                        new ImMap<V>(newRight.Key, newRight.Value, rightLeft.Right, rightRight));
                 }
 
                 return new ImMap<V>(Key, Value, Left, newRight);
