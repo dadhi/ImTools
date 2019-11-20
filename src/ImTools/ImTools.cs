@@ -2473,8 +2473,15 @@ namespace ImTools
         }
 
         /// <summary>Returns new list in reverse order.</summary>
-        public static ImList<T> Reverse<T>(this ImList<T> list) =>
-            list.IsEmpty || list.Tail.IsEmpty ? list : list.Fold(ImList<T>.Empty, List);
+        public static ImList<T> Reverse<T>(this ImList<T> list)
+        {
+            if (list.IsEmpty || list.Tail.IsEmpty)
+                return list;
+            var reversed = ImList<T>.Empty;
+            for (; !list.IsEmpty; list = list.Tail)
+                reversed = reversed.Push(list.Head);
+            return reversed;
+        }
 
         /// <summary>Maps the items from the first list to the result list.</summary>
         public static ImList<R> Map<T, R>(this ImList<T> list, Func<T, R> map) =>
@@ -3852,6 +3859,22 @@ namespace ImTools
         }
 
         /// Searches for the key in the node conflicts
+        public ImHashMapData<K, V> GetConflictedDataOrDefault(K key)
+        {
+            if (Conflicts != null)
+            {
+                var conflicts = Conflicts;
+                for (var i = 0; i < conflicts.Length; ++i)
+                {
+                    var data = conflicts[i];
+                    if (key.Equals(data.Key))
+                        return data;
+                }
+            }
+            return null;
+        }
+
+        /// Searches for the key in the node conflicts
         public V GetConflictedValueOrDefault(K key, V defaultValue)
         {
             if (Conflicts != null)
@@ -3950,6 +3973,37 @@ namespace ImTools
     /// ImHashMap methods for faster performance
     public static class ImHashMap
     {
+        /// Looks for key in a tree and returns the Data object if found or `null` otherwise.
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMapData<K, V> GetDataOrDefault<K, V>(this ImHashMap<K, V> map, int hash, K key)
+        {
+            while (map.Height != 0 && map.Hash != hash) 
+                map = hash < map.Hash ? map.Left : map.Right;
+
+            return map.Height == 0 ? null : 
+                key.Equals(map.Key) ? map.Data : 
+                map.GetConflictedDataOrDefault(key);
+        }
+
+        /// Looks for key in a tree and returns the Data object if found or `null` otherwise.
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMapData<K, V> GetDataOrDefault<K, V>(this ImHashMap<K, V> map, K key)
+        {
+            if (map.Height == 0)
+                return null;
+
+            var hash = key.GetHashCode();
+
+            while (map.Hash != hash)
+            {
+                map = hash < map.Hash ? map.Left : map.Right;
+                if (map.Height == 0)
+                    return null;
+            }
+
+            return key.Equals(map.Key) ? map.Data : map.GetConflictedDataOrDefault(key);
+        }
+
         /// Looks for key in a tree and returns the key value if found, or <paramref name="defaultValue"/> otherwise.
         [MethodImpl((MethodImplOptions)256)]
         public static V GetValueOrDefault<K, V>(this ImHashMap<K, V> map, K key, V defaultValue = default)

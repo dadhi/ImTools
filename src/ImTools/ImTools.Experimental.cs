@@ -626,7 +626,7 @@ namespace ImTools.Experimental
 
         /// Returns true if key is found and sets the value.
         [MethodImpl((MethodImplOptions)256)]
-        public static ImMapData<V> TryFindData<V>(this ImMap<V> map, int key)
+        public static ImMapData<V> GetDataOrDefault<V>(this ImMap<V> map, int key)
         {
             ImMapData<V> data;
             while (map is ImMapTree<V> tree)

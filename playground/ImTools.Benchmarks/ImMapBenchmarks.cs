@@ -611,9 +611,9 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             }
 
             [Benchmark]
-            public string ImMap_Experimental_TryFindData()
+            public string ImMap_Experimental_GetDataOrDefault()
             {
-                return _mapExp.TryFindData(LookupMaxKey)?.Value;
+                return _mapExp.GetDataOrDefault(LookupMaxKey)?.Value;
             }
 
             [Benchmark]
