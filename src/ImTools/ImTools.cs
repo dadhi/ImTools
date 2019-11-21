@@ -3909,6 +3909,49 @@ namespace ImTools
         /// Note: By passing <paramref name="parentsStack"/> you may reuse the stack array between different method calls,
         /// but it should be at least <see cref="ImHashMap{K,V}.Height"/> length. The contents of array are not important.
         /// </summary>
+        public S Fold<S, R>(S state, R reducer, ImHashMap<K, V>[] parentsStack = null) 
+            where R : struct, IFoldReducer<ImHashMapData<K, V>, S>
+        {
+            if (Height != 0)
+            {
+                parentsStack = parentsStack ?? new ImHashMap<K, V>[Height];
+                var node = this;
+                var parentCount = -1;
+                while (node.Height != 0 || parentCount != -1)
+                {
+                    if (node.Height != 0)
+                    {
+                        parentsStack[++parentCount] = node;
+                        node = node.Left;
+                    }
+                    else
+                    {
+                        node = parentsStack[parentCount--];
+
+                        if (!(node.Data is ImHashMapConflicts<K, V> conflicts))
+                            state = reducer.Reduce(node.Data, state);
+                        else
+                        {
+                            var conflictData = conflicts.Conflicts;
+                            for (var i = 0; i < conflictData.Length; i++)
+                                state = reducer.Reduce(conflictData[i], state);
+                        }
+
+                        node = node.Right;
+                    }
+                }
+            }
+
+            return state;
+        }
+
+
+        /// <summary>
+        /// Depth-first in-order traversal as described in http://en.wikipedia.org/wiki/Tree_traversal
+        /// The only difference is using fixed size array instead of stack for speed-up.
+        /// Note: By passing <paramref name="parentsStack"/> you may reuse the stack array between different method calls,
+        /// but it should be at least <see cref="ImHashMap{K,V}.Height"/> length. The contents of array are not important.
+        /// </summary>
         public S Fold<S>(S state, Func<ImHashMapData<K, V>, int, S, S> reduce, ImHashMap<K, V>[] parentsStack = null)
         {
             if (Height != 0)
@@ -4105,6 +4148,15 @@ namespace ImTools
                     shrinkedConflicts[newIndex++] = conflicts[i];
             return new ImHashMap<K, V>(new ImHashMapConflicts<K, V>(hash, shrinkedConflicts), Left, Right, Height);
         }
+    }
+
+    /// Huh
+    public interface IFoldReducer<T, S>
+    {
+        /// <summary>
+        /// Wut
+        /// </summary>
+        S Reduce(T item, S state);
     }
 
     /// ImHashMap methods for faster performance
@@ -4420,21 +4472,26 @@ namespace ImTools
         {
             for (var s = 0; s < slots.Length; s++)
             {
+                var parentStack = ArrayTools.Empty<ImHashMap<K, V>>();
+
                 var node = slots[s];
                 if (node.Height != 0)
                 {
-                    var parents = new ImHashMap<K, V>[node.Height];
+                    // reuse the parents stack if it has enough depth
+                    if (parentStack.Length < node.Height)
+                        parentStack = new ImHashMap<K, V>[node.Height];
+                    
                     var parentCount = -1;
                     while (node.Height != 0 || parentCount != -1)
                     {
                         if (node.Height != 0)
                         {
-                            parents[++parentCount] = node;
+                            parentStack[++parentCount] = node;
                             node = node.Left;
                         }
                         else
                         {
-                            node = parents[parentCount--];
+                            node = parentStack[parentCount--];
                             if (node.Data is ImHashMapConflicts<K, V> conflictsData)
                             {
                                 var conflicts = conflictsData.Conflicts;
