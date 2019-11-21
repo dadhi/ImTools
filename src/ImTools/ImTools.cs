@@ -3024,24 +3024,30 @@ namespace ImTools
         /// Returns all map tree nodes enumerated from the lesser to the bigger keys 
         public IEnumerable<ImMap<V>> Enumerate()
         {
-            if (Height == 0)
-                yield break;
-
-            var parents = new ImMap<V>[Height];
-            var node = this;
-            var parentCount = -1;
-            while (node.Height != 0 || parentCount != -1)
+            if (Height != 0)
             {
-                if (node.Height != 0)
+                if (Height == 1)
                 {
-                    parents[++parentCount] = node;
-                    node = node.Left;
+                    yield return this;
                 }
                 else
                 {
-                    node = parents[parentCount--];
-                    yield return node;
-                    node = node.Right;
+                    var parentStack = new ImMap<V>[Height];
+                    var node = this;
+                    var parentCount = -1;
+                    while (node.Height != 0 || parentCount != -1)
+                    {
+                        if (node.Height != 0)
+                        {
+                            parentStack[++parentCount] = node;
+                            node = node.Left;
+                        }
+                        else
+                        {
+                            yield return node = parentStack[parentCount--];
+                            node = node.Right;
+                        }
+                    }
                 }
             }
         }
@@ -4150,12 +4156,10 @@ namespace ImTools
         }
     }
 
-    /// Huh
+    /// <summary>Interface for the Fold operation - the implementation as a `struct` will enable operation inlining which is not possible with delegate, yet.</summary>
     public interface IFoldReducer<T, S>
     {
-        /// <summary>
-        /// Wut
-        /// </summary>
+        /// <summary>The operation</summary>
         S Reduce(T item, S state);
     }
 
