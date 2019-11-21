@@ -41,28 +41,49 @@ namespace ImTools
     /// <summary>Helpers for functional composition</summary>
     public static class Fun
     {
+        /// <summary>
         /// Always a true condition.
+        /// </summary> 
         public static bool Always<T>(T _) => true;
 
+        /// <summary>
         /// Identity function returning passed argument as result.
+        /// </summary> 
         public static T Id<T>(T x) => x;
 
+        /// <summary>
         /// Forward pipe operator (`|>` in F#)
+        /// </summary> 
         public static R To<T, R>(this T x, Func<T, R> map) => map(x);
 
+        /// <summary>
         /// Forward pipe operator (`|>` in F#) with the additional state A for two arguments function
-        public static R To<T, A, R>(this T x, A a, Func<T, A, R> map) => map(x, a);
+        /// </summary> 
+        public static R To<T, S, R>(this T x, S state, Func<T, S, R> map) => map(x, state);
 
+        /// <summary>
         /// Forward pipe operator (`|>` in F#) but with side effect propagating the original `x` value
+        /// </summary> 
         public static T Do<T>(this T x, Action<T> effect)
         {
             effect(x);
             return x;
         }
 
+        /// <summary>
+        /// Forward pipe operator (`|>` in F#) but with side effect propagating the original `x` value and the state object
+        /// </summary> 
+        public static T Do<T, S>(this T x, S state, Action<T, S> effect)
+        {
+            effect(x, state);
+            return x;
+        }
+
+        /// <summary>
         /// Lifts argument to Func without allocations ignoring the first argument.
         /// For example if you have `Func{T, R} = _ => instance`,
-        /// you may rewrite it without allocations as `instance.ToFunc{A, R}` 
+        /// you may rewrite it without allocations as `instance.ToFunc{A, R}`
+        /// </summary> 
         public static R ToFunc<T, R>(this R result, T ignoredArg) => result;
     }
 
@@ -2091,7 +2112,9 @@ namespace ImTools
             throw new InvalidOperationException(
                 $"Ref retried to Update for {retryCountExceeded} times But there is always someone else intervened.");
 
+        /// <summary>
         /// Option without allocation for capturing `a` in closure of `getNewValue`
+        /// </summary>
         [MethodImpl((MethodImplOptions)256)]
         public static T Swap<T, A>(ref T value, A a, Func<T, A, T> getNewValue, 
             int retryCountUntilThrow = RETRY_COUNT_UNTIL_THROW) 
@@ -2427,14 +2450,43 @@ namespace ImTools
             isEmpty = list.IsEmpty;
         }
 
-        /// Constructs from the parameter array of items
+        /// <summary>
+        /// Constructs the reversed list from the parameter array of items
+        /// </summary>
         public static ImList<T> List<T>(params T[] items)
         {
             var l = ImList<T>.Empty;
-            if (!items.IsNullOrEmpty())
+            if (items != null)
                 for (var i = items.Length - 1; i >= 0; --i)
                     l = l.Push(items[i]);
             return l;
+        }
+
+        /// <summary>
+        /// Constructs the list as the reversed input list
+        /// </summary>
+        public static ImList<T> ToImList<T>(this IList<T> source)
+        {
+            var l = ImList<T>.Empty;
+            if (source != null)
+                for (var i = source.Count - 1; i >= 0; --i)
+                    l = l.Push(source[i]);
+            return l;
+        }
+
+        /// <summary>
+        /// Constructs the list as the reversed enumerable
+        /// </summary>
+        public static ImList<T> ToImList<T>(this IEnumerable<T> source)
+        {
+            if (source is IList<T> list)
+                return list.ToImList();
+            var l = ImList<T>.Empty;
+
+            if (source != null)
+                foreach (var item in source)
+                    l = l.Push(item);
+            return l.Reverse();
         }
 
         /// <summary>Constructs list of one element</summary>
@@ -2451,22 +2503,22 @@ namespace ImTools
         }
 
         /// <summary>Fold list to a single value. The respective name for it in LINQ is Aggregate</summary>
-        public static R Fold<T, R>(this ImList<T> list, R seed, Func<T, R, R> reduce)
+        public static S Fold<T, S>(this ImList<T> list, S state, Func<T, S, S> reduce)
         {
             if (list.IsEmpty)
-                return seed;
-            var result = seed;
+                return state;
+            var result = state;
             for (; !list.IsEmpty; list = list.Tail)
                 result = reduce(list.Head, result);
             return result;
         }
 
         /// <summary>Fold list to a single value with index of item. The respective name for it in LINQ is Aggregate.</summary>
-        public static R Fold<T, R>(this ImList<T> list, R seed, Func<T, int, R, R> reduce)
+        public static S Fold<T, S>(this ImList<T> list, S state, Func<T, int, S, S> reduce)
         {
             if (list.IsEmpty)
-                return seed;
-            var result = seed;
+                return state;
+            var result = state;
             for (var i = 0; !list.IsEmpty; list = list.Tail, ++i)
                 result = reduce(list.Head, i, result);
             return result;
@@ -2657,17 +2709,17 @@ namespace ImTools
             i < 0 || i >= z.Count ? z : z.ShiftTo(i).PopLeft();
 
         /// Folds zipper to a single value
-        public static R Fold<T, R>(this ImZipper<T> z, R seed, Func<T, R, R> reduce) =>
-            z.IsEmpty ? seed :
-            z.Right.Fold(reduce(z.Focus, z.Left.Reverse().Fold(seed, reduce)), reduce);
+        public static S Fold<T, S>(this ImZipper<T> z, S state, Func<T, S, S> reduce) =>
+            z.IsEmpty ? state :
+            z.Right.Fold(reduce(z.Focus, z.Left.Reverse().Fold(state, reduce)), reduce);
 
         /// Folds zipper to a single value by using an item index
-        public static R Fold<T, R>(this ImZipper<T> z, R seed, Func<T, int, R, R> reduce)
+        public static S Fold<T, S>(this ImZipper<T> z, S state, Func<T, int, S, S> reduce)
         {
             if (z.IsEmpty)
-                return seed;
+                return state;
             var focusIndex = z.Index;
-            var reducedLeft = z.Left.Reverse().Fold(seed, reduce);
+            var reducedLeft = z.Left.Reverse().Fold(state, reduce);
             return z.Right.Fold(reduce(z.Focus, focusIndex, reducedLeft),
                 (x, i, r) => reduce(x, focusIndex + i + 1, r));
         }
@@ -3772,8 +3824,10 @@ namespace ImTools
         public ImHashMap<K, V> Update(K key, V value, Update<V> update) =>
             Update(key.GetHashCode(), key, value, update.IgnoreKey);
 
+        /// <summary>
         /// Depth-first in-order traversal as described in http://en.wikipedia.org/wiki/Tree_traversal
-        /// The only difference is using fixed size array instead of stack for speed-up (~20% faster than stack).
+        /// The only difference is using fixed size array instead of stack for speed-up.
+        /// </summary>
         public IEnumerable<ImHashMapData<K, V>> Enumerate()
         {
             if (Height != 0)
@@ -3810,34 +3864,35 @@ namespace ImTools
 
         /// <summary>
         /// Depth-first in-order traversal as described in http://en.wikipedia.org/wiki/Tree_traversal
-        /// The only difference is using fixed size array instead of stack for speed-up (~20% faster than stack).
+        /// The only difference is using fixed size array instead of stack for speed-up.
+        /// Note: By passing <paramref name="parentsStack"/> you may reuse the stack array between different method calls,
+        /// but it should be at least <see cref="ImHashMap{K,V}.Height"/> length. The contents of array are not important.
         /// </summary>
-        public T Fold<T>(T state, Func<T, ImHashMapData<K, V>, T> fold)
+        public S Fold<S>(S state, Func<ImHashMapData<K, V>, S, S> reduce, ImHashMap<K, V>[] parentsStack = null)
         {
             if (Height != 0)
             {
-                var parents = new ImHashMap<K, V>[Height];
+                parentsStack = parentsStack ?? new ImHashMap<K, V>[Height];
                 var node = this;
                 var parentCount = -1;
                 while (node.Height != 0 || parentCount != -1)
                 {
                     if (node.Height != 0)
                     {
-                        parents[++parentCount] = node;
+                        parentsStack[++parentCount] = node;
                         node = node.Left;
                     }
                     else
                     {
-                        node = parents[parentCount--];
-                        if (node.Data is ImHashMapConflicts<K, V> conflictsData)
-                        {
-                            var conflictData = conflictsData.Conflicts;
-                            for (var i = 0; i < conflictData.Length; i++)
-                                state = fold(state, conflictData[i]);
-                        }
+                        node = parentsStack[parentCount--];
+
+                        if (!(node.Data is ImHashMapConflicts<K, V> conflicts))
+                            state = reduce(node.Data, state);
                         else
                         {
-                            state = fold(state, node.Data);
+                            var conflictData = conflicts.Conflicts;
+                            for (var i = 0; i < conflictData.Length; i++)
+                                state = reduce(conflictData[i], state);
                         }
 
                         node = node.Right;
@@ -3848,6 +3903,47 @@ namespace ImTools
             return state;
         }
 
+        /// <summary>
+        /// Depth-first in-order traversal as described in http://en.wikipedia.org/wiki/Tree_traversal
+        /// The only difference is using fixed size array instead of stack for speed-up.
+        /// Note: By passing <paramref name="parentsStack"/> you may reuse the stack array between different method calls,
+        /// but it should be at least <see cref="ImHashMap{K,V}.Height"/> length. The contents of array are not important.
+        /// </summary>
+        public S Fold<S>(S state, Func<ImHashMapData<K, V>, int, S, S> reduce, ImHashMap<K, V>[] parentsStack = null)
+        {
+            if (Height != 0)
+            {
+                var index = 0;
+                parentsStack = parentsStack ?? new ImHashMap<K, V>[Height];
+                var node = this;
+                var parentCount = -1;
+                while (node.Height != 0 || parentCount != -1)
+                {
+                    if (node.Height != 0)
+                    {
+                        parentsStack[++parentCount] = node;
+                        node = node.Left;
+                    }
+                    else
+                    {
+                        node = parentsStack[parentCount--];
+
+                        if (!(node.Data is ImHashMapConflicts<K, V> conflicts))
+                            state = reduce(node.Data, index++, state);
+                        else
+                        {
+                            var conflictData = conflicts.Conflicts;
+                            for (var i = 0; i < conflictData.Length; i++)
+                                state = reduce(conflictData[i], index++, state);
+                        }
+
+                        node = node.Right;
+                    }
+                }
+            }
+
+            return state;
+        }
 
         /// Removes or updates value for specified key, or does nothing if the key is not found (returns the unchanged map)
         /// Based on Eric Lippert http://blogs.msdn.com/b/ericlippert/archive/2008/01/21/immutability-in-c-part-nine-academic-plus-my-avl-tree-implementation.aspx

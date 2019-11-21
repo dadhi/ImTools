@@ -91,6 +91,27 @@ namespace ImTools.UnitTests
         }
 
         [Test]
+        public void Can_fold_values_with_hash_conflicted_key()
+        {
+            var key1 = new HashConflictingKey<string>("a", 1);
+            var key2 = new HashConflictingKey<string>("b", 1);
+            var key3 = new HashConflictingKey<string>("c", 1);
+            var tree = ImHashMap<HashConflictingKey<string>, int>.Empty
+                .AddOrUpdate(key1, 1)
+                .AddOrUpdate(key2, 2)
+                .AddOrUpdate(key3, 3);
+
+            var values = tree.Fold(new Dictionary<string, int>(), (data, dict) => dict.Do(data, (x, d) => x.Add(d.Key.Key, d.Value)));
+
+            Assert.That(values, Is.EqualTo(new Dictionary<string, int>
+            {
+                {"a", 1},
+                {"b", 2},
+                {"c", 3},
+            }));
+        }
+
+        [Test]
         public void Test_that_all_added_values_are_accessible()
         {
             var t = ImHashMap<int, int>.Empty
@@ -266,6 +287,28 @@ namespace ImTools.UnitTests
             var enumerated = tree.Enumerate().Select(t => t.Value).ToArray();
 
             CollectionAssert.AreEqual(items, enumerated);
+        }
+
+        [Test]
+        public void Folded_values_should_be_returned_in_sorted_order()
+        {
+            var list = Enumerable.Range(0, 10).ToImList();
+            var tree = list.Fold(ImHashMap<int, int>.Empty, (i, t) => t.AddOrUpdate(i, i));
+
+            var enumerated = tree.Fold(new List<int>(tree.Height << 1), (data, l) => l.Do(data, (x, d) => x.Add(d.Value)));
+
+            CollectionAssert.AreEqual(list.ToArray(), enumerated);
+        }
+
+        [Test]
+        public void Folded_values_should_be_returned_in_sorted_order_with_index()
+        {
+            var list = Enumerable.Range(0, 10).ToImList();
+            var tree = list.Fold(ImHashMap<int, int>.Empty, (i, t) => t.AddOrUpdate(i, i));
+
+            var enumerated = tree.Fold(new List<int>(tree.Height << 1), (data, index, l) => l.Do(index, (x, i) => x.Add(i)));
+
+            CollectionAssert.AreEqual(list.ToArray(), enumerated);
         }
 
         [Test]
