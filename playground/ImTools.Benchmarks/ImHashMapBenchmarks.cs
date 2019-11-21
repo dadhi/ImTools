@@ -964,8 +964,19 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |            ConcurrentDictionary_ToArray |  1000 |  37,416.03 ns |   134.185 ns | 125.516 ns |  1.43 |    0.01 |  3.3569 | 0.1831 |     - |   16040 B |
 |                   ImmutableDict_ToArray |  1000 | 155,705.41 ns | 1,058.882 ns | 990.479 ns |  5.94 |    0.03 |  3.1738 |      - |     - |   16041 B |
 
+|                                  Method | Count |      Mean |    Error |   StdDev | Ratio |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|---------------------------------------- |------ |----------:|---------:|---------:|------:|-------:|------:|------:|----------:|
+|              ImHashMap_EnumerateToArray |     1 | 149.36 ns | 1.159 ns | 1.084 ns |  1.00 | 0.0441 |     - |     - |     208 B |
+|                   ImHashMap_FoldToArray |     1 |  55.09 ns | 0.195 ns | 0.183 ns |  0.37 | 0.0356 |     - |     - |     168 B |
+| ImHashMap_FoldToArray_FoldReducerStruct |     1 |  53.13 ns | 0.267 ns | 0.237 ns |  0.36 | 0.0356 |     - |     - |     168 B |
+|              ImHashMapSlots_FoldToArray |     1 |  79.45 ns | 0.594 ns | 0.556 ns |  0.53 | 0.0340 |     - |     - |     160 B |
+|                                         |       |           |          |          |       |        |       |       |           |
+|              ImHashMap_EnumerateToArray |    10 | 396.95 ns | 3.539 ns | 2.955 ns |  1.00 | 0.1001 |     - |     - |     472 B |
+|                   ImHashMap_FoldToArray |    10 | 201.54 ns | 1.077 ns | 1.007 ns |  0.51 | 0.1051 |     - |     - |     496 B |
+| ImHashMap_FoldToArray_FoldReducerStruct |    10 | 185.10 ns | 1.408 ns | 1.248 ns |  0.47 | 0.1054 |     - |     - |     496 B |
+|              ImHashMapSlots_FoldToArray |    10 | 235.15 ns | 1.626 ns | 1.521 ns |  0.59 | 0.1082 |     - |     - |     512 B |
             */
-            [Params(10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
+            [Params(1, 10)]//100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             public int Count;
 
             [GlobalSetup]
@@ -1079,7 +1090,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             public object ImHashMap_EnumerateToArray() => 
                 _map.Enumerate().ToArray();
 
-            [Benchmark]
+            //[Benchmark]
             public object ImHashMap_V1_EnumerateToArray() => 
                 _mapV1.Enumerate().ToArray();
 
@@ -1105,22 +1116,26 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             }
 
             [Benchmark]
-            public object ImHashMapSlots_EnumerateToArray() => 
-                _mapSlots.Enumerate().ToArray();
+            public object ImHashMapSlots_FoldToArray() => 
+                _mapSlots.Fold(new List<ImHashMapData<Type, string>>(), (data, list) =>
+                {
+                    list.Add(data);
+                    return list;
+                }).ToArray();
 
-            [Benchmark]
+            //[Benchmark]
             public object DictionarySlim_ToArray() => 
                 _dictSlim.ToArray();
 
-            [Benchmark]
+            //[Benchmark]
             public object Dictionary_ToArray() => 
                 _dict.ToArray();
 
-            [Benchmark]
+            //[Benchmark]
             public object ConcurrentDictionary_ToArray() => 
                 _concurrentDict.ToArray();
 
-            [Benchmark]
+            //[Benchmark]
             public object ImmutableDict_ToArray() => 
                 _immutableDict.ToArray();
         }

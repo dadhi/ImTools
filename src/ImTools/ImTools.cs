@@ -3021,35 +3021,97 @@ namespace ImTools
           : key > Key ? new ImMap<V>(Key, Value, Left, Right.UpdateImpl(key, value), Height)
           : new ImMap<V>(key, value, Left, Right, Height);
 
-        /// Returns all map tree nodes enumerated from the lesser to the bigger keys 
+        /// <summary>
+        /// Returns all map tree nodes enumerated from the lesser to the bigger keys
+        /// </summary>
         public IEnumerable<ImMap<V>> Enumerate()
         {
-            if (Height != 0)
+            if (Height == 1)
+                yield return this;
+            else if (Height != 0)
             {
-                if (Height == 1)
+                var parentStack = new ImMap<V>[Height];
+                var node = this;
+                var parentCount = -1;
+                while (node.Height != 0 || parentCount != -1)
                 {
-                    yield return this;
-                }
-                else
-                {
-                    var parentStack = new ImMap<V>[Height];
-                    var node = this;
-                    var parentCount = -1;
-                    while (node.Height != 0 || parentCount != -1)
+                    if (node.Height != 0)
                     {
-                        if (node.Height != 0)
-                        {
-                            parentStack[++parentCount] = node;
-                            node = node.Left;
-                        }
-                        else
-                        {
-                            yield return node = parentStack[parentCount--];
-                            node = node.Right;
-                        }
+                        parentStack[++parentCount] = node;
+                        node = node.Left;
+                    }
+                    else
+                    {
+                        yield return node = parentStack[parentCount--];
+                        node = node.Right;
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Folds all the map nods with the state from left to right and from bottom to top
+        /// </summary>
+        public S Fold<S>(S state, Func<ImMap<V>, S, S> reduce)
+        {
+            if (Height == 1)
+                return reduce(this, state);
+
+            if (Height != 0)
+            {
+                var parentStack = new ImMap<V>[Height];
+                var node = this;
+                var parentCount = -1;
+                while (node.Height != 0 || parentCount != -1)
+                {
+                    if (node.Height != 0)
+                    {
+                        parentStack[++parentCount] = node;
+                        node = node.Left;
+                    }
+                    else
+                    {
+                        node = parentStack[parentCount--];
+                        state = reduce(node, state);
+                        node = node.Right;
+                    }
+                }
+            }
+
+            return state;
+        }
+
+        /// <summary>
+        /// Folds all the map nods with the state from left to right and from bottom to top
+        /// </summary>
+        public S Fold<S>(S state, Func<ImMap<V>, int, S, S> reduce)
+        {
+            if (Height == 1)
+                return reduce(this, 0, state);
+
+            if (Height != 0)
+            {
+                var parentStack = new ImMap<V>[Height];
+                var index = 0;
+                var node = this;
+                var parentCount = -1;
+                while (node.Height != 0 || parentCount != -1)
+                {
+                    if (node.Height != 0)
+                    {
+                        parentStack[++parentCount] = node;
+                        node = node.Left;
+                    }
+                    else
+                    {
+                        node = parentStack[parentCount--];
+                        state = reduce(node, index++, state);
+                        node = node.Right;
+                    }
+                }
+            }
+
+            return state;
         }
 
         /// <summary>Removes or updates value for specified key, or does nothing if key is not found.
@@ -3876,6 +3938,9 @@ namespace ImTools
         /// </summary>
         public S Fold<S>(S state, Func<ImHashMapData<K, V>, S, S> reduce, ImHashMap<K, V>[] parentsStack = null)
         {
+            if (Height == 1 && Data is ImHashMapConflicts<K, V> == false)
+                return reduce(Data, state);
+
             if (Height != 0)
             {
                 parentsStack = parentsStack ?? new ImHashMap<K, V>[Height];
@@ -3896,9 +3961,9 @@ namespace ImTools
                             state = reduce(node.Data, state);
                         else
                         {
-                            var conflictData = conflicts.Conflicts;
-                            for (var i = 0; i < conflictData.Length; i++)
-                                state = reduce(conflictData[i], state);
+                            var conflict = conflicts.Conflicts;
+                            for (var i = 0; i < conflict.Length; i++)
+                                state = reduce(conflict[i], state);
                         }
 
                         node = node.Right;
@@ -3918,6 +3983,9 @@ namespace ImTools
         public S Fold<S, R>(S state, R reducer, ImHashMap<K, V>[] parentsStack = null) 
             where R : struct, IFoldReducer<ImHashMapData<K, V>, S>
         {
+            if (Height == 1 && Data is ImHashMapConflicts<K, V> == false)
+                return reducer.Reduce(Data, state);
+
             if (Height != 0)
             {
                 parentsStack = parentsStack ?? new ImHashMap<K, V>[Height];
@@ -3960,10 +4028,13 @@ namespace ImTools
         /// </summary>
         public S Fold<S>(S state, Func<ImHashMapData<K, V>, int, S, S> reduce, ImHashMap<K, V>[] parentsStack = null)
         {
+            if (Height == 1 && Data is ImHashMapConflicts<K, V> == false)
+                return reduce(Data, 0, state);
+
             if (Height != 0)
             {
-                var index = 0;
                 parentsStack = parentsStack ?? new ImHashMap<K, V>[Height];
+                var index = 0;
                 var node = this;
                 var parentCount = -1;
                 while (node.Height != 0 || parentCount != -1)
@@ -4472,46 +4543,22 @@ namespace ImTools
             Ref.Swap(ref slot, key, value, (s, k, v) => s.Update(k, v));
 
         /// Returns all map tree nodes without the order
-        public static IEnumerable<ImHashMapData<K, V>> Enumerate<K, V>(this ImHashMap<K, V>[] slots)
+        public static S Fold<K, V, S>(this ImHashMap<K, V>[] slots, S state, Func<ImHashMapData<K, V>, S, S> reduce)
         {
+            var parentStack = ArrayTools.Empty<ImHashMap<K, V>>();
             for (var s = 0; s < slots.Length; s++)
             {
-                var parentStack = ArrayTools.Empty<ImHashMap<K, V>>();
-
-                var node = slots[s];
-                if (node.Height != 0)
+                var map = slots[s];
+                var height = map.Height;
+                if (height != 0)
                 {
-                    // reuse the parents stack if it has enough depth
-                    if (parentStack.Length < node.Height)
-                        parentStack = new ImHashMap<K, V>[node.Height];
-                    
-                    var parentCount = -1;
-                    while (node.Height != 0 || parentCount != -1)
-                    {
-                        if (node.Height != 0)
-                        {
-                            parentStack[++parentCount] = node;
-                            node = node.Left;
-                        }
-                        else
-                        {
-                            node = parentStack[parentCount--];
-                            if (node.Data is ImHashMapConflicts<K, V> conflictsData)
-                            {
-                                var conflicts = conflictsData.Conflicts;
-                                for (var i = 0; i < conflicts.Length; i++)
-                                    yield return conflicts[i];
-                            }
-                            else
-                            {
-                                yield return node.Data;
-                            }
-
-                            node = node.Right;
-                        }
-                    }
+                    if (parentStack.Length < height)
+                        parentStack = new ImHashMap<K, V>[height];
+                    state = map.Fold(state, reduce, parentStack);
                 }
             }
+
+            return state;
         }
     }
 }
