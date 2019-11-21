@@ -3808,6 +3808,47 @@ namespace ImTools
             }
         }
 
+        /// <summary>
+        /// Depth-first in-order traversal as described in http://en.wikipedia.org/wiki/Tree_traversal
+        /// The only difference is using fixed size array instead of stack for speed-up (~20% faster than stack).
+        /// </summary>
+        public T Fold<T>(T state, Func<T, ImHashMapData<K, V>, T> fold)
+        {
+            if (Height != 0)
+            {
+                var parents = new ImHashMap<K, V>[Height];
+                var node = this;
+                var parentCount = -1;
+                while (node.Height != 0 || parentCount != -1)
+                {
+                    if (node.Height != 0)
+                    {
+                        parents[++parentCount] = node;
+                        node = node.Left;
+                    }
+                    else
+                    {
+                        node = parents[parentCount--];
+                        if (node.Data is ImHashMapConflicts<K, V> conflictsData)
+                        {
+                            var conflictData = conflictsData.Conflicts;
+                            for (var i = 0; i < conflictData.Length; i++)
+                                state = fold(state, conflictData[i]);
+                        }
+                        else
+                        {
+                            state = fold(state, node.Data);
+                        }
+
+                        node = node.Right;
+                    }
+                }
+            }
+
+            return state;
+        }
+
+
         /// Removes or updates value for specified key, or does nothing if the key is not found (returns the unchanged map)
         /// Based on Eric Lippert http://blogs.msdn.com/b/ericlippert/archive/2008/01/21/immutability-in-c-part-nine-academic-plus-my-avl-tree-implementation.aspx
         public ImHashMap<K, V> Remove(int hash, K key) =>
