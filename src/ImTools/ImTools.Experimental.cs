@@ -620,7 +620,7 @@ namespace ImTools.Experimental
                 return true;
             }
 
-            value = default(V);
+            value = default;
             return false;
         }
 
@@ -637,7 +637,7 @@ namespace ImTools.Experimental
                 else if (key < data.Key)
                     map = tree.Left;
                 else
-                    return tree.Data;
+                    return data;
             }
 
             data = map as ImMapData<V>;
@@ -648,19 +648,20 @@ namespace ImTools.Experimental
         [MethodImpl((MethodImplOptions)256)]
         public static V GetValueOrDefault<V>(this ImMap<V> map, int key)
         {
-            int mapKey;
-            while (map is ImMapTree<V> mapTree)
+            ImMapData<V> data;
+            while (map is ImMapTree<V> tree)
             {
-                mapKey = mapTree.Data.Key;
-                if (key > mapKey)
-                    map = mapTree.Right;
-                else if (key < mapKey)
-                    map = mapTree.Left;
+                data = tree.Data;
+                if (key > data.Key)
+                    map = tree.Right;
+                else if (key < data.Key)
+                    map = tree.Left;
                 else
-                    return mapTree.Data.Value;
+                    return data.Value;
             }
 
-            return map is ImMapData<V> leaf && leaf.Key == key ? leaf.Value : default;
+            data = map as ImMapData<V>;
+            return data != null && data.Key == key ? data.Value : default;
         }
     }
 
