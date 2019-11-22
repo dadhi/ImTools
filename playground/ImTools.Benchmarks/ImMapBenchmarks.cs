@@ -469,6 +469,23 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |              ImMapSlots_TryFind |  1000 |  5.7929 ns | 0.0327 ns | 0.0306 ns |  0.74 |    0.00 |     - |     - |     - |         - |
 | ImMapSlots_Experimental_TryFind |  1000 |  6.2946 ns | 0.0878 ns | 0.0821 ns |  0.81 |    0.01 |     - |     - |     - |         - |
 
+## Inlining difference!
+
+|                             Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|----------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+|                      ImMap_TryFind |     1 | 1.0721 ns | 0.0424 ns | 0.0376 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|         ImMap_Experimental_TryFind |     1 | 1.0650 ns | 0.0201 ns | 0.0188 ns |  0.99 |    0.04 |     - |     - |     - |         - |
+| ImMap_Experimental_TryFind_Inlined |     1 | 0.6274 ns | 0.0185 ns | 0.0173 ns |  0.59 |    0.02 |     - |     - |     - |         - |
+|                                    |       |           |           |           |       |         |       |       |       |           |
+|                      ImMap_TryFind |    10 | 3.6679 ns | 0.0278 ns | 0.0246 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|         ImMap_Experimental_TryFind |    10 | 4.3106 ns | 0.0233 ns | 0.0195 ns |  1.17 |    0.01 |     - |     - |     - |         - |
+| ImMap_Experimental_TryFind_Inlined |    10 | 3.4304 ns | 0.0408 ns | 0.0382 ns |  0.94 |    0.01 |     - |     - |     - |         - |
+|                                    |       |           |           |           |       |         |       |       |       |           |
+|                      ImMap_TryFind |   100 | 4.6623 ns | 0.0402 ns | 0.0376 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|         ImMap_Experimental_TryFind |   100 | 7.1235 ns | 0.0635 ns | 0.0563 ns |  1.53 |    0.02 |     - |     - |     - |         - |
+| ImMap_Experimental_TryFind_Inlined |   100 | 5.4459 ns | 0.0220 ns | 0.0195 ns |  1.17 |    0.01 |     - |     - |     - |         - |
+
+
  */
             private ImTools.ImMap<string> _map;
             public ImTools.ImMap<string> AddOrUpdate()
@@ -597,7 +614,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string ImMap_V1_TryFind()
             {
                 _mapV1.TryFind(LookupMaxKey, out var result);
@@ -612,19 +629,43 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             }
 
             [Benchmark]
+            public string ImMap_Experimental_TryFind_Inlined()
+            {
+                var map = _mapExp;
+                var key = LookupMaxKey;
+                ImMapData<string> data;
+                while (map is ImMapTree<string> tree)
+                {
+                    data = tree.Data;
+                    if (key > data.Key)
+                        map = tree.Right;
+                    else if (key < data.Key)
+                        map = tree.Left;
+                    else
+                        return data.Value;
+                }
+
+                data = map as ImMapData<string>;
+                if (data != null && data.Key == key)
+                    return data.Value;
+
+                return null;
+            }
+
+            //[Benchmark]
             public string ImMap_Experimental_GetDataOrDefault()
             {
                 return _mapExp.GetDataOrDefault(LookupMaxKey)?.Value;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string ImMapSlots_TryFind()
             {
                 _mapSlots[LookupMaxKey & ImMapSlots.KEY_MASK_TO_FIND_SLOT].TryFind(LookupMaxKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string ImMapSlots_Experimental_TryFind()
             {
                 _mapSlotsExp[LookupMaxKey & ImTools.Experimental.ImMapSlots.KEY_MASK_TO_FIND_SLOT].TryFind(LookupMaxKey, out var result);
