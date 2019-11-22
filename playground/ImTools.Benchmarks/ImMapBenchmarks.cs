@@ -629,41 +629,10 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return result;
             }
 
-            [Benchmark]
-            public string ImMap_Experimental_TryFind2()
-            {
-                _mapExp.TryFind2(LookupMaxKey, out var result);
-                return result;
-            }
-
             //[Benchmark]
-            public string ImMap_Experimental_TryFind_Inlined()
+            public string ImMap_Experimental_GetValueOrDefault()
             {
-                var map = _mapExp;
-                var key = LookupMaxKey;
-                ImMapData<string> data;
-                while (map is ImMapTree<string> tree)
-                {
-                    data = tree.Data;
-                    if (key > data.Key)
-                        map = tree.Right;
-                    else if (key < data.Key)
-                        map = tree.Left;
-                    else
-                        return data.Value;
-                }
-
-                data = map as ImMapData<string>;
-                if (data != null && data.Key == key)
-                    return data.Value;
-
-                return null;
-            }
-
-            //[Benchmark]
-            public string ImMap_Experimental_GetDataOrDefault()
-            {
-                return _mapExp.GetDataOrDefault(LookupMaxKey)?.Value;
+                return _mapExp.GetValueOrDefault(LookupMaxKey);
             }
 
             //[Benchmark]

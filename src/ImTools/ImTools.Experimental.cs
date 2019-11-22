@@ -594,7 +594,9 @@ namespace ImTools.Experimental
                 : newData;
         }
 
+        /// <summary>
         /// Returns true if key is found and sets the value.
+        /// </summary>
         [MethodImpl((MethodImplOptions)256)]
         public static bool TryFind<V>(this ImMap<V> map, int key, out V value)
         {
@@ -624,7 +626,9 @@ namespace ImTools.Experimental
             return false;
         }
 
+        /// <summary>
         /// Returns true if key is found and sets the value.
+        /// </summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImMapData<V> GetDataOrDefault<V>(this ImMap<V> map, int key)
         {
@@ -644,7 +648,9 @@ namespace ImTools.Experimental
             return data != null && data.Key == key ? data : null;
         }
 
+        /// <summary>
         /// Returns true if key is found and sets the value.
+        /// </summary>
         [MethodImpl((MethodImplOptions)256)]
         public static V GetValueOrDefault<V>(this ImMap<V> map, int key)
         {
