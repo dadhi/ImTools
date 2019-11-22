@@ -932,51 +932,45 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
               [Host]     : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
               DefaultJob : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
 
-|                                  Method | Count |          Mean |        Error |     StdDev | Ratio | RatioSD |   Gen 0 |  Gen 1 | Gen 2 | Allocated |
-|---------------------------------------- |------ |--------------:|-------------:|-----------:|------:|--------:|--------:|-------:|------:|----------:|
-|              ImHashMap_EnumerateToArray |    10 |     402.79 ns |     3.801 ns |   3.370 ns |  1.00 |    0.00 |  0.1001 |      - |     - |     472 B |
-|           ImHashMap_V1_EnumerateToArray |    10 |     466.62 ns |     3.967 ns |   3.516 ns |  1.16 |    0.02 |  0.1731 | 0.0005 |     - |     816 B |
-|                   ImHashMap_FoldToArray |    10 |     202.66 ns |     3.036 ns |   2.370 ns |  0.50 |    0.01 |  0.1051 |      - |     - |     496 B |
-| ImHashMap_FoldToArray_FoldReducerStruct |    10 |     189.68 ns |     0.625 ns |   0.584 ns |  0.47 |    0.00 |  0.1054 |      - |     - |     496 B |
-|         ImHashMapSlots_EnumerateToArray |    10 |     720.54 ns |     4.833 ns |   4.521 ns |  1.79 |    0.02 |  0.1507 |      - |     - |     712 B |
-|                  DictionarySlim_ToArray |    10 |     435.09 ns |     1.507 ns |   1.409 ns |  1.08 |    0.01 |  0.1359 |      - |     - |     640 B |
-|                      Dictionary_ToArray |    10 |      87.91 ns |     0.774 ns |   0.686 ns |  0.22 |    0.00 |  0.0424 |      - |     - |     200 B |
-|            ConcurrentDictionary_ToArray |    10 |     495.58 ns |     5.469 ns |   4.848 ns |  1.23 |    0.01 |  0.0420 |      - |     - |     200 B |
-|                   ImmutableDict_ToArray |    10 |   2,004.71 ns |    10.939 ns |  10.233 ns |  4.98 |    0.05 |  0.0381 |      - |     - |     200 B |
-|                                         |       |               |              |            |       |         |         |        |       |           |
-|              ImHashMap_EnumerateToArray |   100 |   2,715.37 ns |    22.546 ns |  19.987 ns |  1.00 |    0.00 |  0.4768 |      - |     - |    2248 B |
-|           ImHashMap_V1_EnumerateToArray |   100 |   3,358.45 ns |    17.589 ns |  15.592 ns |  1.24 |    0.01 |  1.1597 | 0.0267 |     - |    5472 B |
-|                   ImHashMap_FoldToArray |   100 |   1,398.97 ns |     7.703 ns |   6.829 ns |  0.52 |    0.00 |  0.6599 | 0.0038 |     - |    3112 B |
-| ImHashMap_FoldToArray_FoldReducerStruct |   100 |   1,279.24 ns |    21.068 ns |  17.593 ns |  0.47 |    0.01 |  0.6599 | 0.0038 |     - |    3112 B |
-|         ImHashMapSlots_EnumerateToArray |   100 |   2,972.06 ns |    27.550 ns |  25.770 ns |  1.09 |    0.01 |  0.7477 | 0.0038 |     - |    3528 B |
-|                  DictionarySlim_ToArray |   100 |   2,555.44 ns |    19.144 ns |  17.908 ns |  0.94 |    0.01 |  0.8469 | 0.0076 |     - |    4000 B |
-|                      Dictionary_ToArray |   100 |     553.85 ns |     4.225 ns |   3.952 ns |  0.20 |    0.00 |  0.3481 | 0.0019 |     - |    1640 B |
-|            ConcurrentDictionary_ToArray |   100 |   2,271.12 ns |    16.157 ns |  15.113 ns |  0.84 |    0.01 |  0.3471 |      - |     - |    1640 B |
-|                   ImmutableDict_ToArray |   100 |  15,686.98 ns |    51.898 ns |  46.006 ns |  5.78 |    0.05 |  0.3357 |      - |     - |    1640 B |
-|                                         |       |               |              |            |       |         |         |        |       |           |
-|              ImHashMap_EnumerateToArray |  1000 |  26,227.03 ns |   138.012 ns | 107.751 ns |  1.00 |    0.00 |  3.5706 | 0.1831 |     - |   16808 B |
-|           ImHashMap_V1_EnumerateToArray |  1000 |  33,154.61 ns |   138.541 ns | 129.591 ns |  1.26 |    0.01 | 10.3149 | 1.7700 |     - |   48832 B |
-|                   ImHashMap_FoldToArray |  1000 |  14,887.93 ns |    69.173 ns |  61.320 ns |  0.57 |    0.00 |  5.2490 | 0.2899 |     - |   24752 B |
-| ImHashMap_FoldToArray_FoldReducerStruct |  1000 |  13,563.65 ns |    50.727 ns |  47.450 ns |  0.52 |    0.00 |  5.2490 | 0.2899 |     - |   24752 B |
-|         ImHashMapSlots_EnumerateToArray |  1000 |  24,609.06 ns |   209.512 ns | 185.727 ns |  0.94 |    0.01 |  4.0283 | 0.1831 |     - |   19016 B |
-|                  DictionarySlim_ToArray |  1000 |  22,380.47 ns |    76.637 ns |  71.687 ns |  0.85 |    0.00 |  6.9885 | 0.6714 |     - |   32896 B |
-|                      Dictionary_ToArray |  1000 |   5,172.93 ns |    38.483 ns |  32.135 ns |  0.20 |    0.00 |  3.3951 | 0.1831 |     - |   16040 B |
-|            ConcurrentDictionary_ToArray |  1000 |  37,416.03 ns |   134.185 ns | 125.516 ns |  1.43 |    0.01 |  3.3569 | 0.1831 |     - |   16040 B |
-|                   ImmutableDict_ToArray |  1000 | 155,705.41 ns | 1,058.882 ns | 990.479 ns |  5.94 |    0.03 |  3.1738 |      - |     - |   16041 B |
-
-|                                  Method | Count |      Mean |    Error |   StdDev | Ratio |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-|---------------------------------------- |------ |----------:|---------:|---------:|------:|-------:|------:|------:|----------:|
-|              ImHashMap_EnumerateToArray |     1 | 149.36 ns | 1.159 ns | 1.084 ns |  1.00 | 0.0441 |     - |     - |     208 B |
-|                   ImHashMap_FoldToArray |     1 |  55.09 ns | 0.195 ns | 0.183 ns |  0.37 | 0.0356 |     - |     - |     168 B |
-| ImHashMap_FoldToArray_FoldReducerStruct |     1 |  53.13 ns | 0.267 ns | 0.237 ns |  0.36 | 0.0356 |     - |     - |     168 B |
-|              ImHashMapSlots_FoldToArray |     1 |  79.45 ns | 0.594 ns | 0.556 ns |  0.53 | 0.0340 |     - |     - |     160 B |
-|                                         |       |           |          |          |       |        |       |       |           |
-|              ImHashMap_EnumerateToArray |    10 | 396.95 ns | 3.539 ns | 2.955 ns |  1.00 | 0.1001 |     - |     - |     472 B |
-|                   ImHashMap_FoldToArray |    10 | 201.54 ns | 1.077 ns | 1.007 ns |  0.51 | 0.1051 |     - |     - |     496 B |
-| ImHashMap_FoldToArray_FoldReducerStruct |    10 | 185.10 ns | 1.408 ns | 1.248 ns |  0.47 | 0.1054 |     - |     - |     496 B |
-|              ImHashMapSlots_FoldToArray |    10 | 235.15 ns | 1.626 ns | 1.521 ns |  0.59 | 0.1082 |     - |     - |     512 B |
-            */
-            [Params(1, 10)]//100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
+|                        Method | Count |          Mean |      Error |     StdDev | Ratio | RatioSD |   Gen 0 |  Gen 1 | Gen 2 | Allocated |
+|------------------------------ |------ |--------------:|-----------:|-----------:|------:|--------:|--------:|-------:|------:|----------:|
+|    ImHashMap_EnumerateToArray |     1 |     147.31 ns |   0.567 ns |   0.531 ns |  1.00 |    0.00 |  0.0441 |      - |     - |     208 B |
+| ImHashMap_V1_EnumerateToArray |     1 |     160.45 ns |   0.856 ns |   0.801 ns |  1.09 |    0.01 |  0.0560 |      - |     - |     264 B |
+|         ImHashMap_FoldToArray |     1 |      55.05 ns |   0.436 ns |   0.387 ns |  0.37 |    0.00 |  0.0356 |      - |     - |     168 B |
+|    ImHashMapSlots_FoldToArray |     1 |      89.21 ns |   1.473 ns |   1.378 ns |  0.61 |    0.01 |  0.0271 |      - |     - |     128 B |
+|        DictionarySlim_ToArray |     1 |     150.88 ns |   1.424 ns |   1.189 ns |  1.02 |    0.01 |  0.0408 |      - |     - |     192 B |
+|            Dictionary_ToArray |     1 |      40.47 ns |   0.864 ns |   1.093 ns |  0.28 |    0.01 |  0.0119 |      - |     - |      56 B |
+|  ConcurrentDictionary_ToArray |     1 |     232.31 ns |   1.981 ns |   1.654 ns |  1.58 |    0.01 |  0.0114 |      - |     - |      56 B |
+|         ImmutableDict_ToArray |     1 |     618.68 ns |  11.308 ns |  10.578 ns |  4.20 |    0.07 |  0.0114 |      - |     - |      56 B |
+|                               |       |               |            |            |       |         |         |        |       |           |
+|    ImHashMap_EnumerateToArray |    10 |     423.85 ns |   8.425 ns |   9.364 ns |  1.00 |    0.00 |  0.1001 |      - |     - |     472 B |
+| ImHashMap_V1_EnumerateToArray |    10 |     492.81 ns |   4.461 ns |   4.173 ns |  1.16 |    0.03 |  0.1726 |      - |     - |     816 B |
+|         ImHashMap_FoldToArray |    10 |     213.14 ns |   4.054 ns |   3.981 ns |  0.50 |    0.02 |  0.1054 |      - |     - |     496 B |
+|    ImHashMapSlots_FoldToArray |    10 |     255.16 ns |   1.863 ns |   1.743 ns |  0.60 |    0.01 |  0.1016 |      - |     - |     480 B |
+|        DictionarySlim_ToArray |    10 |     450.09 ns |   8.918 ns |  10.616 ns |  1.06 |    0.04 |  0.1354 |      - |     - |     640 B |
+|            Dictionary_ToArray |    10 |      87.40 ns |   1.696 ns |   1.586 ns |  0.21 |    0.01 |  0.0424 |      - |     - |     200 B |
+|  ConcurrentDictionary_ToArray |    10 |     499.22 ns |   4.804 ns |   4.494 ns |  1.17 |    0.03 |  0.0420 |      - |     - |     200 B |
+|         ImmutableDict_ToArray |    10 |   1,954.98 ns |  10.732 ns |  10.038 ns |  4.60 |    0.11 |  0.0381 |      - |     - |     200 B |
+|                               |       |               |            |            |       |         |         |        |       |           |
+|    ImHashMap_EnumerateToArray |   100 |   2,735.61 ns |  34.407 ns |  32.185 ns |  1.00 |    0.00 |  0.4768 |      - |     - |    2248 B |
+| ImHashMap_V1_EnumerateToArray |   100 |   3,368.76 ns |   6.822 ns |   6.048 ns |  1.23 |    0.02 |  1.1597 | 0.0267 |     - |    5472 B |
+|         ImHashMap_FoldToArray |   100 |   1,433.97 ns |  14.981 ns |  14.013 ns |  0.52 |    0.01 |  0.6599 | 0.0038 |     - |    3112 B |
+|    ImHashMapSlots_FoldToArray |   100 |   1,541.62 ns |   8.594 ns |   8.039 ns |  0.56 |    0.01 |  0.6714 | 0.0038 |     - |    3168 B |
+|        DictionarySlim_ToArray |   100 |   2,505.97 ns |  44.927 ns |  37.516 ns |  0.92 |    0.02 |  0.8469 | 0.0076 |     - |    4000 B |
+|            Dictionary_ToArray |   100 |     549.34 ns |   6.559 ns |   6.136 ns |  0.20 |    0.00 |  0.3481 | 0.0019 |     - |    1640 B |
+|  ConcurrentDictionary_ToArray |   100 |   2,236.03 ns |  10.044 ns |   9.395 ns |  0.82 |    0.01 |  0.3471 |      - |     - |    1640 B |
+|         ImmutableDict_ToArray |   100 |  15,683.87 ns |  68.105 ns |  60.373 ns |  5.74 |    0.08 |  0.3357 |      - |     - |    1640 B |
+|                               |       |               |            |            |       |         |         |        |       |           |
+|    ImHashMap_EnumerateToArray |  1000 |  25,723.37 ns | 504.158 ns | 560.370 ns |  1.00 |    0.00 |  3.5706 | 0.1526 |     - |   16808 B |
+| ImHashMap_V1_EnumerateToArray |  1000 |  34,316.66 ns | 583.573 ns | 545.874 ns |  1.34 |    0.04 | 10.3149 | 1.8921 |     - |   48833 B |
+|         ImHashMap_FoldToArray |  1000 |  16,277.05 ns |  38.330 ns |  33.979 ns |  0.64 |    0.02 |  5.2490 | 0.3052 |     - |   24752 B |
+|    ImHashMapSlots_FoldToArray |  1000 |  15,167.14 ns | 261.927 ns | 218.721 ns |  0.59 |    0.02 |  5.2490 | 0.2899 |     - |   24784 B |
+|        DictionarySlim_ToArray |  1000 |  22,273.30 ns | 384.716 ns | 359.864 ns |  0.87 |    0.01 |  6.9885 | 0.6714 |     - |   32896 B |
+|            Dictionary_ToArray |  1000 |   4,997.89 ns |  20.869 ns |  18.500 ns |  0.20 |    0.00 |  3.3951 | 0.1831 |     - |   16040 B |
+|  ConcurrentDictionary_ToArray |  1000 |  36,859.40 ns | 193.536 ns | 181.034 ns |  1.44 |    0.04 |  3.3569 | 0.1831 |     - |   16040 B |
+|         ImmutableDict_ToArray |  1000 | 155,798.41 ns | 484.101 ns | 452.828 ns |  6.08 |    0.14 |  3.1738 |      - |     - |   16040 B |
+*/
+            [Params(1, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             public int Count;
 
             [GlobalSetup]
@@ -1090,52 +1084,31 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             public object ImHashMap_EnumerateToArray() => 
                 _map.Enumerate().ToArray();
 
-            //[Benchmark]
+            [Benchmark]
             public object ImHashMap_V1_EnumerateToArray() => 
                 _mapV1.Enumerate().ToArray();
 
             [Benchmark]
             public object ImHashMap_FoldToArray() =>
-                _map.Fold(new List<ImHashMapData<Type, string>>(), (data, list) =>
-                {
-                     list.Add(data);
-                     return list;
-                }).ToArray();
-
-            [Benchmark]
-            public object ImHashMap_FoldToArray_FoldReducerStruct() =>
-                _map.Fold(new List<ImHashMapData<Type, string>>(), new AddToList()).ToArray();
-
-            private struct AddToList : IFoldReducer<ImHashMapData<Type, string>, List<ImHashMapData<Type, string>>>
-            {
-                public List<ImHashMapData<Type, string>> Reduce(ImHashMapData<Type, string> item, List<ImHashMapData<Type, string>> state)
-                {
-                    state.Add(item);
-                    return state;
-                }
-            }
+                _map.Fold(new List<ImHashMapData<Type, string>>(), (data, list) => { list.Add(data); return list; }).ToArray();
 
             [Benchmark]
             public object ImHashMapSlots_FoldToArray() => 
-                _mapSlots.Fold(new List<ImHashMapData<Type, string>>(), (data, list) =>
-                {
-                    list.Add(data);
-                    return list;
-                }).ToArray();
+                _mapSlots.Fold(new List<ImHashMapData<Type, string>>(), (data, list) => { list.Add(data); return list; }).ToArray();
 
-            //[Benchmark]
+            [Benchmark]
             public object DictionarySlim_ToArray() => 
                 _dictSlim.ToArray();
 
-            //[Benchmark]
+            [Benchmark]
             public object Dictionary_ToArray() => 
                 _dict.ToArray();
 
-            //[Benchmark]
+            [Benchmark]
             public object ConcurrentDictionary_ToArray() => 
                 _concurrentDict.ToArray();
 
-            //[Benchmark]
+            [Benchmark]
             public object ImmutableDict_ToArray() => 
                 _immutableDict.ToArray();
         }

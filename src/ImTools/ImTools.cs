@@ -3050,16 +3050,18 @@ namespace ImTools
         }
 
         /// <summary>
-        /// Folds all the map nods with the state from left to right and from bottom to top
+        /// Folds all the map nodes with the state from left to right and from bottom to top
+        /// You may pass `parentStacks` to reuse the array memory.
+        /// NOTE: the length of `parentStack` should be at least of map height, content is not important and could be erased.
         /// </summary>
-        public S Fold<S>(S state, Func<ImMap<V>, S, S> reduce)
+        public S Fold<S>(S state, Func<ImMap<V>, S, S> reduce, ImMap<V>[] parentStack = null)
         {
             if (Height == 1)
                 return reduce(this, state);
 
             if (Height != 0)
             {
-                var parentStack = new ImMap<V>[Height];
+                parentStack = parentStack ?? new ImMap<V>[Height];
                 var node = this;
                 var parentCount = -1;
                 while (node.Height != 0 || parentCount != -1)
@@ -3082,16 +3084,18 @@ namespace ImTools
         }
 
         /// <summary>
-        /// Folds all the map nods with the state from left to right and from bottom to top
+        /// Folds all the map nodes with the state and index from left to right and from bottom to top
+        /// You may pass `parentStacks` to reuse the array memory.
+        /// NOTE: the length of `parentStack` should be at least of map height, content is not important and could be erased.
         /// </summary>
-        public S Fold<S>(S state, Func<ImMap<V>, int, S, S> reduce)
+        public S Fold<S>(S state, Func<ImMap<V>, int, S, S> reduce, ImMap<V>[] parentStack = null)
         {
             if (Height == 1)
                 return reduce(this, 0, state);
 
             if (Height != 0)
             {
-                var parentStack = new ImMap<V>[Height];
+                parentStack = parentStack ?? new ImMap<V>[Height];
                 var index = 0;
                 var node = this;
                 var parentCount = -1;
@@ -3349,32 +3353,27 @@ namespace ImTools
         public static void RefUpdateSlot<V>(ref ImMap<V> slot, int key, V value) =>
             Ref.Swap(ref slot, key, value, (s, k, v) => s.Update(k, v));
 
-        /// Returns all map tree nodes without the order
-        public static IEnumerable<ImMap<V>> Enumerate<V>(this ImMap<V>[] slots)
+        /// <summary>
+        /// Folds all map tree nodes without the order
+        /// </summary>
+        public static S Fold<V, S>(this ImMap<V>[] slots, S state, Func<ImMap<V>, S, S> reduce)
         {
+            var parentStack = ArrayTools.Empty<ImMap<V>>();
             for (var i = 0; i < slots.Length; i++)
             {
-                var node = slots[i];
-                if (node.Height != 0)
+                var map = slots[i];
+                var height = map.Height;
+                if (height == 1)
+                    state = map.Fold(state, reduce);
+                else if (height != 0)
                 {
-                    var parents = new ImMap<V>[node.Height];
-                    var parentCount = -1;
-                    while (node.Height != 0 || parentCount != -1)
-                    {
-                        if (node.Height != 0)
-                        {
-                            parents[++parentCount] = node;
-                            node = node.Left;
-                        }
-                        else
-                        {
-                            node = parents[parentCount--];
-                            yield return node;
-                            node = node.Right;
-                        }
-                    }
+                    if (parentStack.Length < height)
+                        parentStack = new ImMap<V>[height];
+                    state = map.Fold(state, reduce, parentStack);
                 }
             }
+
+            return state;
         }
     }
 
@@ -3980,52 +3979,6 @@ namespace ImTools
         /// Note: By passing <paramref name="parentsStack"/> you may reuse the stack array between different method calls,
         /// but it should be at least <see cref="ImHashMap{K,V}.Height"/> length. The contents of array are not important.
         /// </summary>
-        public S Fold<S, R>(S state, R reducer, ImHashMap<K, V>[] parentsStack = null) 
-            where R : struct, IFoldReducer<ImHashMapData<K, V>, S>
-        {
-            if (Height == 1 && Data is ImHashMapConflicts<K, V> == false)
-                return reducer.Reduce(Data, state);
-
-            if (Height != 0)
-            {
-                parentsStack = parentsStack ?? new ImHashMap<K, V>[Height];
-                var node = this;
-                var parentCount = -1;
-                while (node.Height != 0 || parentCount != -1)
-                {
-                    if (node.Height != 0)
-                    {
-                        parentsStack[++parentCount] = node;
-                        node = node.Left;
-                    }
-                    else
-                    {
-                        node = parentsStack[parentCount--];
-
-                        if (!(node.Data is ImHashMapConflicts<K, V> conflicts))
-                            state = reducer.Reduce(node.Data, state);
-                        else
-                        {
-                            var conflictData = conflicts.Conflicts;
-                            for (var i = 0; i < conflictData.Length; i++)
-                                state = reducer.Reduce(conflictData[i], state);
-                        }
-
-                        node = node.Right;
-                    }
-                }
-            }
-
-            return state;
-        }
-
-
-        /// <summary>
-        /// Depth-first in-order traversal as described in http://en.wikipedia.org/wiki/Tree_traversal
-        /// The only difference is using fixed size array instead of stack for speed-up.
-        /// Note: By passing <paramref name="parentsStack"/> you may reuse the stack array between different method calls,
-        /// but it should be at least <see cref="ImHashMap{K,V}.Height"/> length. The contents of array are not important.
-        /// </summary>
         public S Fold<S>(S state, Func<ImHashMapData<K, V>, int, S, S> reduce, ImHashMap<K, V>[] parentsStack = null)
         {
             if (Height == 1 && Data is ImHashMapConflicts<K, V> == false)
@@ -4225,13 +4178,6 @@ namespace ImTools
                     shrinkedConflicts[newIndex++] = conflicts[i];
             return new ImHashMap<K, V>(new ImHashMapConflicts<K, V>(hash, shrinkedConflicts), Left, Right, Height);
         }
-    }
-
-    /// <summary>Interface for the Fold operation - the implementation as a `struct` will enable operation inlining which is not possible with delegate, yet.</summary>
-    public interface IFoldReducer<T, S>
-    {
-        /// <summary>The operation</summary>
-        S Reduce(T item, S state);
     }
 
     /// ImHashMap methods for faster performance
@@ -4552,7 +4498,7 @@ namespace ImTools
                 var height = map.Height;
                 if (height != 0)
                 {
-                    if (parentStack.Length < height)
+                    if (height > 1 && parentStack.Length < height)
                         parentStack = new ImHashMap<K, V>[height];
                     state = map.Fold(state, reduce, parentStack);
                 }

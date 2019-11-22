@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using BenchmarkDotNet.Attributes;
 using ImTools;
 using ImTools.Experimental;
@@ -669,6 +670,165 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 _immutableDict.TryGetValue(LookupMaxKey, out var result);
                 return result;
             }
+        }
+
+        [MemoryDiagnoser]
+        public class Enumerate
+        {
+            /*
+            ## V2
+
+
+            */
+
+            #region Populate
+
+            private ImTools.ImMap<string> _map;
+            public ImTools.ImMap<string> AddOrUpdate()
+            {
+                var map = ImTools.ImMap<string>.Empty;
+
+                for (var i = 0; i < Count; i++)
+                    map = map.AddOrUpdate(i, i.ToString());
+
+                return map;
+            }
+
+            private ImTools.OldVersions.V1.ImMap<string> _mapV1;
+            public ImTools.OldVersions.V1.ImMap<string> AddOrUpdate_V1()
+            {
+                var map = ImTools.OldVersions.V1.ImMap<string>.Empty;
+
+                for (var i = 0; i < Count; i++)
+                    map = map.AddOrUpdate(i, i.ToString());
+
+                return map;
+            }
+
+            private ImTools.Experimental.ImMap<string> _mapExp;
+            public ImTools.Experimental.ImMap<string> AddOrUpdate_Exp()
+            {
+                var map = ImTools.Experimental.ImMap<string>.Empty;
+
+                for (var i = 0; i < Count; i++)
+                    map = map.AddOrUpdate(i, i.ToString());
+
+                return map;
+            }
+
+            private ImTools.ImMap<string>[] _mapSlots;
+            public ImTools.ImMap<string>[] AddOrUpdate_ImMapSlots()
+            {
+                var slots = ImMapSlots.CreateWithEmpty<string>();
+
+                for (var i = 0; i < Count; i++)
+                    slots.AddOrUpdate(i, i.ToString());
+
+                return slots;
+            }
+
+            private ImTools.Experimental.ImMap<string>[] _mapSlotsExp;
+            public ImTools.Experimental.ImMap<string>[] AddOrUpdate_ImMapSlots_Exp()
+            {
+                var slots = ImTools.Experimental.ImMapSlots.CreateWithEmpty<string>();
+
+                for (var i = 0; i < Count; i++)
+                    slots.AddOrUpdate(i, i.ToString());
+
+                return slots;
+            }
+
+            private DictionarySlim<int, string> _dictSlim;
+            public DictionarySlim<int, string> DictSlim()
+            {
+                var map = new DictionarySlim<int, string>();
+
+                for (var i = 0; i < Count; i++)
+                    map.GetOrAddValueRef(i) = i.ToString();
+
+                return map;
+            }
+
+            private Dictionary<int, string> _dict;
+            public Dictionary<int, string> Dict()
+            {
+                var map = new Dictionary<int, string>();
+
+                for (var i = 0; i < Count; i++)
+                    map.TryAdd(i, i.ToString());
+
+                return map;
+            }
+
+            private ConcurrentDictionary<int, string> _concurDict;
+            public ConcurrentDictionary<int, string> ConcurrentDict()
+            {
+                var map = new ConcurrentDictionary<int, string>();
+
+                for (var i = 0; i < Count; i++)
+                    map.TryAdd(i, i.ToString());
+
+                return map;
+            }
+
+            private ImmutableDictionary<int, string> _immutableDict;
+            public ImmutableDictionary<int, string> ImmutableDict()
+            {
+                var map = ImmutableDictionary<int, string>.Empty;
+
+                for (var i = 0; i < Count; i++)
+                    map = map.Add(i, i.ToString());
+
+                return map;
+            }
+
+            #endregion
+
+            [Params(1, 10, 100, 1_000, 10_000, 100_000)]
+            public int Count;
+
+
+            [GlobalSetup]
+            public void Populate()
+            {
+                _map = AddOrUpdate();
+                _mapV1 = AddOrUpdate_V1();
+                _mapExp = AddOrUpdate_Exp();
+                _mapSlots = AddOrUpdate_ImMapSlots();
+                _mapSlotsExp = AddOrUpdate_ImMapSlots_Exp();
+                _dictSlim = DictSlim();
+                _dict = Dict();
+                _concurDict = ConcurrentDict();
+                _immutableDict = ImmutableDict();
+            }
+
+            [Benchmark(Baseline = true)]
+            public object ImMap_EnumerateToArray() => 
+                _map.Enumerate().ToArray();
+
+            [Benchmark]
+            public object ImMap_V1_EnumerateToArray() =>
+                _mapV1.Enumerate().ToArray();
+
+            [Benchmark]
+            public object ImMap_FoldToArray() =>
+                _map.Fold(new List<ImTools.ImMap<string>>(), (item, list) => { list.Add(item); return list; }).ToArray();
+
+            [Benchmark]
+            public object ImMapSlots_FoldToArray() => 
+                _mapSlots.Fold(new List<ImTools.ImMap<string>>(), (item, list) => { list.Add(item); return list; }).ToArray();
+
+            [Benchmark]
+            public object DictSlim_ToArray() => _dictSlim.ToArray();
+
+            [Benchmark]
+            public object Dict_ToArray() => _dict.ToArray();
+
+            [Benchmark]
+            public object ConcurrentDict_ToArray() => _concurDict.ToArray();
+
+            [Benchmark]
+            public object ImmutableDict_ToArray() => _immutableDict.ToArray();
         }
     }
 }
