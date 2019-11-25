@@ -696,6 +696,17 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             /*
             ## V2
 
+|                    Method | Count |      Mean |    Error |   StdDev | Ratio |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|-------------------------- |------ |----------:|---------:|---------:|------:|-------:|------:|------:|----------:|
+|    ImMap_EnumerateToArray |     1 | 100.05 ns | 1.185 ns | 1.051 ns |  1.00 | 0.0334 |     - |     - |     160 B |
+| ImMap_V1_EnumerateToArray |     1 | 121.44 ns | 0.537 ns | 0.476 ns |  1.21 | 0.0391 |     - |     - |     184 B |
+|         ImMap_FoldToArray |     1 |  36.66 ns | 0.302 ns | 0.283 ns |  0.37 | 0.0255 |     - |     - |     120 B |
+|                           |       |           |          |          |       |        |       |       |           |
+|    ImMap_EnumerateToArray |    10 | 367.07 ns | 0.927 ns | 0.867 ns |  1.00 | 0.0982 |     - |     - |     464 B |
+| ImMap_V1_EnumerateToArray |    10 | 368.55 ns | 3.307 ns | 2.931 ns |  1.00 | 0.0968 |     - |     - |     456 B |
+|         ImMap_FoldToArray |    10 | 160.81 ns | 0.921 ns | 0.862 ns |  0.44 | 0.1001 |     - |     - |     472 B |
+
+
 |                    Method |  Count |             Mean |          Error |         StdDev |           Median | Ratio | RatioSD |   Gen 0 |   Gen 1 |   Gen 2 | Allocated |
 |-------------------------- |------- |-----------------:|---------------:|---------------:|-----------------:|------:|--------:|--------:|--------:|--------:|----------:|
 |    ImMap_EnumerateToArray |      1 |        108.41 ns |       0.625 ns |       0.554 ns |        108.24 ns |  1.00 |    0.00 |  0.0323 |       - |       - |     152 B |
@@ -857,7 +868,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
             #endregion
 
-            [Params(1, 10, 100, 1_000, 10_000, 100_000)]
+            [Params(1, 10)]//, 100, 1_000, 10_000, 100_000)]
             public int Count;
 
 
@@ -887,20 +898,20 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             public object ImMap_FoldToArray() =>
                 _map.Fold(new List<ImTools.ImMap<string>>(), (item, list) => { list.Add(item); return list; }).ToArray();
 
-            [Benchmark]
+            //[Benchmark]
             public object ImMapSlots_FoldToArray() => 
                 _mapSlots.Fold(new List<ImTools.ImMap<string>>(), (item, list) => { list.Add(item); return list; }).ToArray();
 
-            [Benchmark]
+            //[Benchmark]
             public object DictSlim_ToArray() => _dictSlim.ToArray();
 
-            [Benchmark]
+            //[Benchmark]
             public object Dict_ToArray() => _dict.ToArray();
 
-            [Benchmark]
+            //[Benchmark]
             public object ConcurrentDict_ToArray() => _concurDict.ToArray();
 
-            [Benchmark]
+            //[Benchmark]
             public object ImmutableDict_ToArray() => _immutableDict.ToArray();
         }
     }

@@ -62,6 +62,11 @@ namespace ImTools
         public static R To<T, S, R>(this T x, S state, Func<T, S, R> map) => map(x, state);
 
         /// <summary>
+        /// Cast to the R type with the forward pipe operator (`|>` in F#)
+        /// </summary> 
+        public static R To<R>(this object x) => (R)x;
+
+        /// <summary>
         /// Forward pipe operator (`|>` in F#) but with side effect propagating the original `x` value
         /// </summary> 
         public static T Do<T>(this T x, Action<T> effect)
@@ -85,6 +90,13 @@ namespace ImTools
         /// you may rewrite it without allocations as `instance.ToFunc{A, R}`
         /// </summary> 
         public static R ToFunc<T, R>(this R result, T ignoredArg) => result;
+    }
+
+    /// <summary>Helpers for lazy instantiations</summary>
+    public static class Lazy
+    {
+        /// <summary>Provides result type inference for creation of lazy.</summary>
+        public static Lazy<T> Of<T>(Func<T> valueFactory) => new Lazy<T>(valueFactory);
     }
 
     /// Replacement for `Void` type which can be used as a type argument and value.
@@ -1480,6 +1492,19 @@ namespace ImTools
         /// Returns source enumerable if it is list, otherwise converts source to IList or an empty array if null.
         public static IList<T> ToListOrSelf<T>(this IEnumerable<T> source) =>
             source == null ? Empty<T>() : source as IList<T> ?? source.ToList();
+
+        /// <summary>
+        /// Array copy
+        /// </summary>
+        public static T[] Copy<T>(this T[] items)
+        {
+            if (items == null)
+                return null;
+            var copy = new T[items.Length];
+            for (var i = 0; i < copy.Length; i++)
+                copy[i] = items[i];
+            return copy;
+        }
 
         /// <summary>Returns new array consisting from all items from source array then all items from added array.
         /// If source is null or empty, then added array will be returned.
@@ -3024,26 +3049,54 @@ namespace ImTools
         /// <summary>
         /// Returns all map tree nodes enumerated from the lesser to the bigger keys
         /// </summary>
-        public IEnumerable<ImMap<V>> Enumerate()
+        public IEnumerable<ImMap<V>> Enumerate(ImMap<V>[] parentStack = null)
         {
+            if (Height == 0)
+                yield break;
+
             if (Height == 1)
-                yield return this;
-            else if (Height != 0)
             {
-                var parentStack = new ImMap<V>[Height];
-                var node = this;
-                var parentCount = -1;
-                while (node.Height != 0 || parentCount != -1)
+                yield return this;
+            }
+            else if (Height == 2)
+            {
+                if (Left.Height != 0)
+                    yield return Left;
+                yield return this;
+                if (Right.Height != 0)
+                    yield return Right;
+            }
+            else
+            {
+                parentStack = parentStack ?? new ImMap<V>[Height - 2];
+                var map = this;
+                var parentIndex = -1;
+                while (map.Height != 0)
                 {
-                    if (node.Height != 0)
+                    if (map.Height == 1)
                     {
-                        parentStack[++parentCount] = node;
-                        node = node.Left;
+                        yield return map;
+                        if (parentIndex == -1)
+                            break;
+                        yield return map = parentStack[parentIndex--];
+                        map = map.Right;
+                    }
+                    else if (map.Height == 2)
+                    {
+                        if (map.Left.Height != 0)
+                            yield return map.Left;
+                        yield return map;
+                        if (map.Right.Height != 0)
+                            yield return map.Right;
+                        if (parentIndex == -1)
+                            break;
+                        yield return map = parentStack[parentIndex--];
+                        map = map.Right;
                     }
                     else
                     {
-                        yield return node = parentStack[parentCount--];
-                        node = node.Right;
+                        parentStack[++parentIndex] = map;
+                        map = map.Left;
                     }
                 }
             }
@@ -3056,27 +3109,53 @@ namespace ImTools
         /// </summary>
         public S Fold<S>(S state, Func<ImMap<V>, S, S> reduce, ImMap<V>[] parentStack = null)
         {
+            if (Height == 0)
+                return state;
+
             if (Height == 1)
                 return reduce(this, state);
 
-            if (Height != 0)
+            if (Height == 2)
             {
-                parentStack = parentStack ?? new ImMap<V>[Height];
-                var node = this;
-                var parentCount = -1;
-                while (node.Height != 0 || parentCount != -1)
+                if (Left.Height != 0)
+                    state = reduce(Left, state);
+                state = reduce(this, state);
+                if (Right.Height != 0)
+                    state = reduce(Right, state);
+                return state;
+            }
+
+            parentStack = parentStack ?? new ImMap<V>[Height - 2];
+            var map = this;
+            var parentIndex = -1;
+            while (map.Height != 0)
+            {
+                if (map.Height == 1)
                 {
-                    if (node.Height != 0)
-                    {
-                        parentStack[++parentCount] = node;
-                        node = node.Left;
-                    }
-                    else
-                    {
-                        node = parentStack[parentCount--];
-                        state = reduce(node, state);
-                        node = node.Right;
-                    }
+                    state = reduce(map, state);
+                    if (parentIndex == -1)
+                        break;
+                    map = parentStack[parentIndex--];
+                    state = reduce(map, state);
+                    map = map.Right;
+                }
+                else if (map.Height == 2)
+                {
+                    if (map.Left.Height != 0)
+                        state = reduce(map.Left, state);
+                    state = reduce(map, state);
+                    if (map.Right.Height != 0)
+                        state = reduce(map.Right, state);
+                    if (parentIndex == -1)
+                        break;
+                    map = parentStack[parentIndex--];
+                    state = reduce(map, state);
+                    map = map.Right;
+                }
+                else
+                {
+                    parentStack[++parentIndex] = map;
+                    map = map.Left;
                 }
             }
 
@@ -3363,13 +3442,52 @@ namespace ImTools
             {
                 var map = slots[i];
                 var height = map.Height;
+                if (height == 0)
+                    continue;
+
                 if (height == 1)
-                    state = map.Fold(state, reduce);
-                else if (height != 0)
+                    state = reduce(map, state);
+                else if (height == 2)
                 {
-                    if (parentStack.Length < height)
-                        parentStack = new ImMap<V>[height];
-                    state = map.Fold(state, reduce, parentStack);
+                    if (map.Left.Height != 0)
+                        state = reduce(map.Left, state);
+                    state = reduce(map, state);
+                    if (map.Right.Height != 0)
+                        state = reduce(map.Right, state);
+                }
+                else
+                {
+                    if (parentStack.Length < height - 2)
+                        parentStack = new ImMap<V>[height - 2];
+                    var parentIndex = -1;
+                    while (map.Height != 0)
+                    {
+                        if (map.Height == 1)
+                        {
+                            state = reduce(map, state);
+                            if (parentIndex == -1)
+                                break;
+                            state = reduce(map = parentStack[parentIndex--], state);
+                            map = map.Right;
+                        }
+                        else if (map.Height == 2)
+                        {
+                            if (map.Left.Height != 0)
+                                state = reduce(map.Left, state);
+                            state = reduce(map, state);
+                            if (map.Right.Height != 0)
+                                state = reduce(map.Right, state);
+                            if (parentIndex == -1)
+                                break;
+                            state = reduce(map = parentStack[parentIndex--], state);
+                            map = map.Right;
+                        }
+                        else
+                        {
+                            parentStack[++parentIndex] = map;
+                            map = map.Left;
+                        }
+                    }
                 }
             }
 
@@ -4008,6 +4126,51 @@ namespace ImTools
                             var conflictData = conflicts.Conflicts;
                             for (var i = 0; i < conflictData.Length; i++)
                                 state = reduce(conflictData[i], index++, state);
+                        }
+
+                        node = node.Right;
+                    }
+                }
+            }
+
+            return state;
+        }
+
+        /// <summary>
+        /// Depth-first in-order traversal as described in http://en.wikipedia.org/wiki/Tree_traversal
+        /// The only difference is using fixed size array instead of stack for speed-up.
+        /// Note: By passing <paramref name="parentsStack"/> you may reuse the stack array between different method calls,
+        /// but it should be at least <see cref="ImHashMap{K,V}.Height"/> length. The contents of array are not important.
+        /// </summary>
+        public S Visit<S>(S state, Action<ImHashMapData<K, V>, S> effect, ImHashMap<K, V>[] parentsStack = null)
+        {
+            if (Height == 1 && Data is ImHashMapConflicts<K, V> == false)
+            {
+                effect(Data, state);
+            }
+            else if (Height != 0)
+            {
+                parentsStack = parentsStack ?? new ImHashMap<K, V>[Height];
+                var node = this;
+                var parentCount = -1;
+                while (node.Height != 0 || parentCount != -1)
+                {
+                    if (node.Height != 0)
+                    {
+                        parentsStack[++parentCount] = node;
+                        node = node.Left;
+                    }
+                    else
+                    {
+                        node = parentsStack[parentCount--];
+
+                        if (!(node.Data is ImHashMapConflicts<K, V> conflicts))
+                            effect(node.Data, state);
+                        else
+                        {
+                            var conflict = conflicts.Conflicts;
+                            for (var i = 0; i < conflict.Length; i++)
+                                effect(conflict[i], state);
                         }
 
                         node = node.Right;

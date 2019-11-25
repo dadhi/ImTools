@@ -289,6 +289,70 @@ namespace ImTools.UnitTests
         }
 
         [Test]
+        public void Can_fold_2_level_tree()
+        {
+            var t = ImMap<int>.Empty;
+            t= t.AddOrUpdate(1, 1).AddOrUpdate(2, 2);
+
+            var list = t.Fold(new List<int>(), (data, l) =>
+            {
+                l.Add(data.Value);
+                return l;
+            });
+
+            CollectionAssert.AreEqual(new[] { 1, 2 }, list);
+        }
+
+        [Test]
+        public void Can_fold_3_level_tree()
+        {
+            var t = ImMap<int>.Empty;
+            t = t
+                .AddOrUpdate(1, 1)
+                .AddOrUpdate(2, 2)
+                .AddOrUpdate(3, 3)
+                .AddOrUpdate(4, 4);
+
+            var list = t.Fold(new List<int>(), (data, l) =>
+            {
+                l.Add(data.Value);
+                return l;
+            });
+
+            CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 }, list);
+        }
+
+        [Test]
+        public void Folded_values_should_be_returned_in_sorted_order()
+        {
+            var items = Enumerable.Range(0, 10).ToArray();
+            var tree = items.Aggregate(ImMap<int>.Empty, (t, i) => t.AddOrUpdate(i, i));
+
+            var list = tree.Fold(new List<int>(), (data, l) =>
+            {
+                l.Add(data.Value);
+                return l;
+            });
+
+            CollectionAssert.AreEqual(items, list);
+        }
+
+        [Test]
+        public void Folded_lefty_values_should_be_returned_in_sorted_order()
+        {
+            var items = Enumerable.Range(0, 20).ToArray();
+            var tree = items.Aggregate(ImMap<int>.Empty, (t, i) => t.AddOrUpdate(i, i));
+
+            var list = tree.Fold(new List<int>(), (data, l) =>
+            {
+                l.Add(data.Value);
+                return l;
+            });
+
+            CollectionAssert.AreEqual(items, list);
+        }
+
+        [Test]
         public void Update_to_null_and_then_to_value_should_remove_null()
         {
             var map = ImMap<string>.Empty

@@ -14,8 +14,8 @@ namespace ImTools.Benchmarks
             //b.ImMap_FixedData4();
 
             //BenchmarkRunner.Run<ImMapBenchmarks.Populate>();
-            BenchmarkRunner.Run<ImMapBenchmarks.Lookup>();
-            //BenchmarkRunner.Run<ImMapBenchmarks.Enumerate>();
+            //BenchmarkRunner.Run<ImMapBenchmarks.Lookup>();
+            BenchmarkRunner.Run<ImMapBenchmarks.Enumerate>();
 
             //BenchmarkRunner.Run<ImHashMapBenchmarks.Populate>();
             //BenchmarkRunner.Run<ImHashMapBenchmarks.Lookup>();
