@@ -3096,7 +3096,7 @@ namespace ImTools
         }
 
         /// <summary>
-        /// Folds all the map nodes with the state from left to right and from bottom to top
+        /// Folds all the map nodes with the state from left to right and from the bottom to top
         /// You may pass `parentStacks` to reuse the array memory.
         /// NOTE: the length of `parentStack` should be at least of map height, content is not important and could be erased.
         /// </summary>
@@ -3108,41 +3108,28 @@ namespace ImTools
             if (Height == 1)
                 return reduce(this, state);
 
-            if (Height == 2)
-            {
-                if (Left.Height != 0)
-                    state = reduce(Left, state);
-                state = reduce(this, state);
-                if (Right.Height != 0)
-                    state = reduce(Right, state);
-                return state;
-            }
+            if (Height == 2) 
+                return this.ReduceTwoLevelTree(state, reduce);
 
             parentStack = parentStack ?? new ImMap<V>[Height - 2];
             var map = this;
             var parentIndex = -1;
-            while (map.Height != 0)
+            do
             {
                 if (map.Height == 1)
                 {
                     state = reduce(map, state);
                     if (parentIndex == -1)
                         break;
-                    map = parentStack[parentIndex--];
-                    state = reduce(map, state);
+                    state = reduce(map = parentStack[parentIndex--], state);
                     map = map.Right;
                 }
                 else if (map.Height == 2)
                 {
-                    if (map.Left.Height != 0)
-                        state = reduce(map.Left, state);
-                    state = reduce(map, state);
-                    if (map.Right.Height != 0)
-                        state = reduce(map.Right, state);
+                    state = map.ReduceTwoLevelTree(state, reduce);
                     if (parentIndex == -1)
                         break;
-                    map = parentStack[parentIndex--];
-                    state = reduce(map, state);
+                    state = reduce(map = parentStack[parentIndex--], state);
                     map = map.Right;
                 }
                 else
@@ -3150,7 +3137,7 @@ namespace ImTools
                     parentStack[++parentIndex] = map;
                     map = map.Left;
                 }
-            }
+            } while (map.Height != 0);
 
             return state;
         }
@@ -3162,30 +3149,54 @@ namespace ImTools
         /// </summary>
         public S Fold<S>(S state, Func<ImMap<V>, int, S, S> reduce, ImMap<V>[] parentStack = null)
         {
+            if (Height == 0)
+                return state;
+
             if (Height == 1)
                 return reduce(this, 0, state);
 
-            if (Height != 0)
+            if (Height == 2)
             {
-                parentStack = parentStack ?? new ImMap<V>[Height];
-                var index = 0;
-                var node = this;
-                var parentCount = -1;
-                while (node.Height != 0 || parentCount != -1)
-                {
-                    if (node.Height != 0)
-                    {
-                        parentStack[++parentCount] = node;
-                        node = node.Left;
-                    }
-                    else
-                    {
-                        node = parentStack[parentCount--];
-                        state = reduce(node, index++, state);
-                        node = node.Right;
-                    }
-                }
+                if (Left.Height != 0)
+                    state = reduce(Left, 0, state);
+                state = reduce(this, 1, state);
+                if (Right.Height != 0)
+                    state = reduce(Right, 2, state);
+                return state;
             }
+
+            parentStack = parentStack ?? new ImMap<V>[Height - 2];
+            var map = this;
+            var parentIndex = -1;
+            var index = 0;
+            do
+            {
+                if (map.Height == 1)
+                {
+                    state = reduce(map, index++, state);
+                    if (parentIndex == -1)
+                        break;
+                    state = reduce(map = parentStack[parentIndex--], index++, state);
+                    map = map.Right;
+                }
+                else if (map.Height == 2)
+                {
+                    if (map.Left.Height != 0)
+                        state = reduce(Left, index++, state);
+                    state = reduce(map, index++, state);
+                    if (Right.Height != 0)
+                        state = reduce(map.Right, index++, state);
+                    if (parentIndex == -1)
+                        break;
+                    state = reduce(map = parentStack[parentIndex--], index++, state);
+                    map = map.Right;
+                }
+                else
+                {
+                    parentStack[++parentIndex] = map;
+                    map = map.Left;
+                }
+            } while (map.Height != 0);
 
             return state;
         }
@@ -3347,6 +3358,17 @@ namespace ImTools
             value = map.Value;
             return map.Height != 0;
         }
+
+        [MethodImpl((MethodImplOptions)256)]
+        internal static S ReduceTwoLevelTree<V, S>(this ImMap<V> map, S state, Func<ImMap<V>, S, S> reduce)
+        {
+            if (map.Left.Height != 0)
+                state = reduce(map.Left, state);
+            state = reduce(map, state);
+            if (map.Right.Height != 0)
+                state = reduce(map.Right, state);
+            return state;
+        }
     }
 
     /// The array of ImMap slots where the key first bits are used for FAST slot location
@@ -3437,23 +3459,16 @@ namespace ImTools
                 var height = map.Height;
                 if (height == 0)
                     continue;
-
                 if (height == 1)
                     state = reduce(map, state);
                 else if (height == 2)
-                {
-                    if (map.Left.Height != 0)
-                        state = reduce(map.Left, state);
-                    state = reduce(map, state);
-                    if (map.Right.Height != 0)
-                        state = reduce(map.Right, state);
-                }
+                    state = map.ReduceTwoLevelTree(state, reduce);
                 else
                 {
                     if (parentStack.Length < height - 2)
                         parentStack = new ImMap<V>[height - 2];
                     var parentIndex = -1;
-                    while (map.Height != 0)
+                    do
                     {
                         if (map.Height == 1)
                         {
@@ -3465,11 +3480,7 @@ namespace ImTools
                         }
                         else if (map.Height == 2)
                         {
-                            if (map.Left.Height != 0)
-                                state = reduce(map.Left, state);
-                            state = reduce(map, state);
-                            if (map.Right.Height != 0)
-                                state = reduce(map.Right, state);
+                            state = map.ReduceTwoLevelTree(state, reduce);
                             if (parentIndex == -1)
                                 break;
                             state = reduce(map = parentStack[parentIndex--], state);
@@ -3480,7 +3491,7 @@ namespace ImTools
                             parentStack[++parentIndex] = map;
                             map = map.Left;
                         }
-                    }
+                    } while (map.Height != 0);
                 }
             }
 

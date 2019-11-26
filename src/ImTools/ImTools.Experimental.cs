@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -24,7 +25,9 @@ namespace ImTools.Experimental
         public override string ToString() => "empty";
     }
 
+    /// <summary>
     /// The leaf node - just the key-value pair
+    /// </summary>
     public sealed class ImMapData<V> : ImMap<V>
     {
         /// <inheritdoc />
@@ -668,6 +671,75 @@ namespace ImTools.Experimental
 
             data = map as ImMapData<V>;
             return data != null && data.Key == key ? data.Value : default;
+        }
+
+        /// <summary>
+        /// Folds all the map nodes with the state from left to right and from the bottom to top
+        /// You may pass `parentStacks` to reuse the array memory.
+        /// NOTE: the length of `parentStack` should be at least of map height, content is not important and could be erased.
+        /// </summary>
+        public static S Fold<V, S>(this ImMap<V> map, S state, Func<ImMapData<V>, S, S> reduce, ImMapTree<V>[] parentStack = null)
+        {
+            if (map is ImMapData<V> data)
+                state = reduce(data, state);
+            else if (map is ImMapTree<V> tree)
+            {
+                if (tree.TreeHeight == 2)
+                    state = ReduceTwoLevelTree(tree, state, reduce);
+                else
+                {
+                    parentStack = parentStack ?? new ImMapTree<V>[tree.TreeHeight - 2];
+                    var parentIndex = -1;
+                    do
+                    {
+                        if ((tree = map as ImMapTree<V>) != null)
+                        {
+                            if (tree.TreeHeight == 2)
+                            {
+                                ReduceTwoLevelTree(tree, state, reduce);
+                                if (parentIndex == -1)
+                                    break;
+                                tree = parentStack[parentIndex--];
+                                state = reduce(tree.Data, state);
+                                map = tree.Right;
+                            }
+                            else
+                            {
+                                parentStack[++parentIndex] = tree;
+                                map = tree.Left;
+                            }
+                        }
+                        else
+                        {
+                            data = (ImMapData<V>)map;
+                            state = reduce(data, state);
+                            if (parentIndex == -1)
+                                break;
+                            tree = parentStack[parentIndex--];
+                            state = reduce(tree.Data, state);
+                            map = tree.Right;
+                        }
+                    }
+                    while (map != ImMap<V>.Empty);
+                }
+            }
+
+            return state;
+        }
+
+        [MethodImpl((MethodImplOptions)256)]
+        private static S ReduceTwoLevelTree<V, S>(ImMapTree<V> tree, S state, Func<ImMapData<V>, S, S> reduce)
+        {
+            if (tree.Left is ImMapTree<V> lt)
+                state = reduce(lt.Data, state);
+            else if (tree.Left is ImMapData<V> ld)
+                state = reduce(ld, state);
+            state = reduce(tree.Data, state);
+            if (tree.Right is ImMapTree<V> rt)
+                state = reduce(rt.Data, state);
+            else if (tree.Right is ImMapData<V> rd)
+                state = reduce(rd, state);
+            return state;
         }
     }
 
