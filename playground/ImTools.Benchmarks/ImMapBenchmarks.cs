@@ -6,6 +6,7 @@ using BenchmarkDotNet.Attributes;
 using ImTools;
 using ImTools.Experimental;
 using Microsoft.Collections.Extensions;
+using ImMap = ImTools.ImMap;
 using ImMapSlots = ImTools.ImMapSlots;
 
 namespace Playground
@@ -863,7 +864,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
             #endregion
 
-            [Params(1, 10, 100, 1_000, 10_000, 100_000)]
+            [Params(1, 10, 100, 1_000)]//, 10_000, 100_000)]
             public int Count;
 
             [GlobalSetup]
@@ -884,13 +885,26 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             public object ImMap_EnumerateToArray() => 
                 _map.Enumerate().ToArray();
 
-            [Benchmark]
+            //[Benchmark]
             public object ImMap_V1_EnumerateToArray() =>
                 _mapV1.Enumerate().ToArray();
 
             [Benchmark]
             public object ImMap_FoldToArray() =>
                 _map.Fold(new List<ImTools.ImMap<string>>(), (item, list) => { list.Add(item); return list; }).ToArray();
+
+            [Benchmark]
+            public object ImMap_FoldToArray_FoldReducerStruct() =>
+                _map.Fold(new List<ImTools.ImMap<string>>(), new AddToListReducer()).ToArray();
+
+            struct AddToListReducer : IFoldReducer<ImTools.ImMap<string>, List<ImTools.ImMap<string>>>
+            {
+                public List<ImTools.ImMap<string>> Reduce(ImTools.ImMap<string> x, List<ImTools.ImMap<string>> state)
+                {
+                    state.Add(x);
+                    return state;
+                }
+            }
 
             [Benchmark]
             public object ImMapSlots_FoldToArray() => 
@@ -900,16 +914,16 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             public object ImMap_Experimental_FoldToArray() =>
                 _mapExp.Fold(new List<ImMapData<string>>(), (item, list) => { list.Add(item); return list; }).ToArray();
 
-            [Benchmark]
+            //[Benchmark]
             public object DictSlim_ToArray() => _dictSlim.ToArray();
 
-            [Benchmark]
+            //[Benchmark]
             public object Dict_ToArray() => _dict.ToArray();
 
-            [Benchmark]
+            //[Benchmark]
             public object ConcurrentDict_ToArray() => _concurDict.ToArray();
 
-            [Benchmark]
+            //[Benchmark]
             public object ImmutableDict_ToArray() => _immutableDict.ToArray();
         }
     }
