@@ -74,53 +74,56 @@ namespace ImTools.Experimental2.UnitTests
             Assert.AreEqual(5, t1.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Right.To<ImMapData<int>>().Key);
         }
 
-        //[Test]
-        //public void Test_balance_ensured_for_left_right_tree()
-        //{
-        //    var t = ImMap<int>.Empty
-        //        .AddOrUpdate(5, 1)
-        //        .AddOrUpdate(3, 2)
-        //        .AddOrUpdate(4, 3);
+        [Test]
+        public void Test_balance_ensured_for_left_right_tree()
+        {
+            var t = ImMap<int>.Empty
+                .AddOrUpdate(5, 1)
+                .AddOrUpdate(3, 2)
+                .AddOrUpdate(4, 3)
+                .To<ImMapTree<int>>();
 
-        //    //     5  =>    5   =>   4 
-        //    //  3         4        3   5
-        //    //    4     3  
-        //    Assert.AreEqual(4, t.Key);
-        //    Assert.AreEqual(3, t.Left.Key);
-        //    Assert.AreEqual(5, t.Right.Key);
-        //}
+            //     5  =>    5   =>   4 
+            //  3         4        3   5
+            //    4     3  
+            Assert.AreEqual(4, t.Data.Key);
+            Assert.AreEqual(3, t.Left .To<ImMapData<int>>().Key);
+            Assert.AreEqual(5, t.Right.To<ImMapData<int>>().Key);
+        }
 
-        //[Test]
-        //public void Test_balance_ensured_for_right_right_tree()
-        //{
-        //    var t = ImMap<int>.Empty
-        //        .AddOrUpdate(3, 1)
-        //        .AddOrUpdate(4, 2)
-        //        .AddOrUpdate(5, 3);
+        [Test]
+        public void Test_balance_ensured_for_right_right_tree()
+        {
+            var t = ImMap<int>.Empty
+                .AddOrUpdate(3, 1)
+                .AddOrUpdate(4, 2)
+                .AddOrUpdate(5, 3)
+                .To<ImMapTree<int>>();
 
-        //    // 3      =>     4
-        //    //   4         3   5
-        //    //     5
-        //    Assert.AreEqual(4, t.Key);
-        //    Assert.AreEqual(3, t.Left.Key);
-        //    Assert.AreEqual(5, t.Right.Key);
-        //}
+            // 3      =>     4
+            //   4         3   5
+            //     5
+            Assert.AreEqual(4, t.Data.Key);
+            Assert.AreEqual(3, t.Left.To<ImMapData<int>>().Key);
+            Assert.AreEqual(5, t.Right.To<ImMapData<int>>().Key);
+        }
 
-        //[Test]
-        //public void Test_balance_ensured_for_right_left_tree()
-        //{
-        //    var t = ImMap<int>.Empty
-        //        .AddOrUpdate(3, 1)
-        //        .AddOrUpdate(5, 2)
-        //        .AddOrUpdate(4, 3);
+        [Test]
+        public void Test_balance_ensured_for_right_left_tree()
+        {
+            var t = ImMap<int>.Empty
+                .AddOrUpdate(3, 1)
+                .AddOrUpdate(5, 2)
+                .AddOrUpdate(4, 3)
+                .To<ImMapTree<int>>();
 
-        //    // 3      =>   3     =>    4
-        //    //    5          4       3   5
-        //    //  4              5
-        //    Assert.AreEqual(4, t.Key);
-        //    Assert.AreEqual(3, t.Left.Key);
-        //    Assert.AreEqual(5, t.Right.Key);
-        //}
+            // 3      =>   3     =>    4
+            //    5          4       3   5
+            //  4              5
+            Assert.AreEqual(4, t.Data.Key);
+            Assert.AreEqual(3, t.Left.To<ImMapData<int>>().Key);
+            Assert.AreEqual(5, t.Right.To<ImMapData<int>>().Key);
+        }
 
         [Test]
         public void Test_balance_when_adding_10_items_to_the_right()
@@ -145,36 +148,36 @@ namespace ImTools.Experimental2.UnitTests
             Assert.AreEqual(10,t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Right.To<ImMapBranch<int>>().LeftOrRight.Key);
         }
 
-        //[Test]
-        //public void Test_balance_when_adding_10_items_to_the_right_with_double_rotation()
-        //{
-        //    var t = ImMap<int>.Empty;
-        //    t = t.AddOrUpdate(1, 1);
-        //    t = t.AddOrUpdate(3, 3);
-        //    t = t.AddOrUpdate(2, 2);
-        //    t = t.AddOrUpdate(5, 5);
-        //    t = t.AddOrUpdate(4, 4);
-        //    t = t.AddOrUpdate(7, 7);
-        //    t = t.AddOrUpdate(6, 6);
-        //    t = t.AddOrUpdate(8, 8);
-        //    t = t.AddOrUpdate(9, 9);
-        //    t = t.AddOrUpdate(10, 10);
+        [Test]
+        public void Test_balance_when_adding_10_items_to_the_right_with_double_rotation()
+        {
+            var t = ImMap<int>.Empty;
+            t = t.AddOrUpdate(1, 1);
+            t = t.AddOrUpdate(3, 3);
+            t = t.AddOrUpdate(2, 2);
+            t = t.AddOrUpdate(5, 5);
+            t = t.AddOrUpdate(4, 4);
+            t = t.AddOrUpdate(7, 7);
+            t = t.AddOrUpdate(6, 6);
+            t = t.AddOrUpdate(8, 8);
+            t = t.AddOrUpdate(9, 9);
+            t = t.AddOrUpdate(10, 10);
 
-        //    // 1     =>   2     =>    2     =>    2      =>       4       =>        4        =>        4           =>         4           =>         4           =>          4       
-        //    //    2     1   3       1   3      1     4        2       5        2         6        2         6            2         6            2         6            2           8
-        //    //                            4        3   5    1   3       6    1   3     5   7   1     3   5     7      1     3   5     8      1     3   5     8      1     3     6     9
-        //    //                                                                                                   8                  7   9                  7   9              5   7     10
-        //    Assert.AreEqual(4, t.Key);
-        //    Assert.AreEqual(2, t.Left.Key);
-        //    Assert.AreEqual(1, t.Left.Left.Key);
-        //    Assert.AreEqual(3, t.Left.Right.Key);
-        //    Assert.AreEqual(8, t.Right.Key);
-        //    Assert.AreEqual(6, t.Right.Left.Key);
-        //    Assert.AreEqual(5, t.Right.Left.Left.Key);
-        //    Assert.AreEqual(7, t.Right.Left.Right.Key);
-        //    Assert.AreEqual(9, t.Right.Right.Key);
-        //    Assert.AreEqual(10, t.Right.Right.Right.Key);
-        //}
+            // 1     =>   2     =>    2     =>    2      =>       4       =>        4        =>        4           =>         4           =>         4           =>          4       
+            //    2     1   3       1   3      1     4        2       5        2         6        2         6            2         6            2         6            2           8
+            //                            4        3   5    1   3       6    1   3     5   7   1     3   5     7      1     3   5     8      1     3   5     8      1     3     6     9
+            //                                                                                                   8                  7   9                  7   9              5   7     10
+            Assert.AreEqual(4, t.To<ImMapTree<int>>().Data.Key);
+            Assert.AreEqual(2, t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Data.Key);
+            Assert.AreEqual(1, t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Left.To<ImMapData<int>>().Key);
+            Assert.AreEqual(3, t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Right.To<ImMapData<int>>().Key);
+            Assert.AreEqual(8, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Data.Key);
+            Assert.AreEqual(6, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Data.Key);
+            Assert.AreEqual(5, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Left.To<ImMapData<int>>().Key);
+            Assert.AreEqual(7, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Right.To<ImMapData<int>>().Key);
+            Assert.AreEqual(9, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Right.To<ImMapBranch<int>>().Data.Key);
+            Assert.AreEqual(10, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Right.To<ImMapBranch<int>>().LeftOrRight.Key);
+        }
 
         //[Test]
         //public void Test_balance_when_adding_10_items_to_the_left()
