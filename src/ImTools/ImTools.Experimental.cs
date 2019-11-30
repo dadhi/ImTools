@@ -110,7 +110,7 @@ namespace ImTools.Experimental
             TreeHeight = left.TreeHeight > right.TreeHeight ? left.TreeHeight + 1 : right.TreeHeight + 1;
         }
 
-        /// Outputs the key value pair
+        /// <summary>Outputs the key value pair</summary>
         public override string ToString() => 
             "(" + Data 
             + ") -> (left: " + (Left  is ImMapTree<V> leftTree  ? leftTree.Data  : Left)
