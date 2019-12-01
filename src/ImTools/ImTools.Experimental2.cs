@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices; // for [MethodImpl((MethodImplOptions)256)]
 
 namespace ImTools.Experimental2
@@ -148,17 +149,12 @@ namespace ImTools.Experimental2
                 var left = Left;
                 if (left is ImMapData<V> leftLeaf)
                 {
-                    if (key > leftLeaf.Key)
-                        return Right == Empty
-                            ? new ImMapTree<V>(new ImMapData<V>(key, value), leftLeaf, Data)
-                            : new ImMapTree<V>(Data, new ImMapBranch<V>(leftLeaf, new ImMapData<V>(key, value)), Right, 3);
-
-                    if (key < leftLeaf.Key)
-                        return Right == Empty 
-                            ? new ImMapTree<V>(leftLeaf, new ImMapData<V>(key, value), Data)
-                            : new ImMapTree<V>(Data, new ImMapBranch<V>(new ImMapData<V>(key, value), leftLeaf), Right, 3);
-
-                    return new ImMapTree<V>(Data, new ImMapData<V>(key, value), Right, TreeHeight);
+                    Debug.Assert(Right != Empty, "Right could not be null because we handled it with branch on a caller side");
+                    return key > leftLeaf.Key
+                            ? new ImMapTree<V>(Data, new ImMapBranch<V>(leftLeaf, new ImMapData<V>(key, value)), Right, 3)
+                        : key < leftLeaf.Key
+                            ? new ImMapTree<V>(Data, new ImMapBranch<V>(new ImMapData<V>(key, value), leftLeaf), Right, 3)
+                            : new ImMapTree<V>(Data, new ImMapData<V>(key, value), Right, TreeHeight);
                 }
 
                 if (left is ImMapBranch<V> leftBranch)
@@ -251,17 +247,11 @@ namespace ImTools.Experimental2
                 var right = Right;
                 if (right is ImMapData<V> rightLeaf)
                 {
-                    if (key > rightLeaf.Key)
-                        return Left == Empty
-                            ? new ImMapTree<V>(rightLeaf, Data, new ImMapData<V>(key, value), 2)
-                            : new ImMapTree<V>(Data, Left, new ImMapBranch<V>(rightLeaf, new ImMapData<V>(key, value)), 3);
-
-                    if (key < rightLeaf.Key)
-                        return Left == Empty 
-                            ? new ImMapTree<V>(new ImMapData<V>(key, value), Data, right, 2)
-                            : new ImMapTree<V>(Data, Left, new ImMapBranch<V>(new ImMapData<V>(key, value), rightLeaf), 3);
-
-                    return new ImMapTree<V>(Data, Left, new ImMapData<V>(key, value), TreeHeight);
+                    Debug.Assert(Left != Empty, "Left could not be null because we handled it with branch on a caller side");
+                    return key > rightLeaf.Key
+                        ? new ImMapTree<V>(Data, Left, new ImMapBranch<V>(rightLeaf, new ImMapData<V>(key, value)), 3)
+                        : key < rightLeaf.Key ? new ImMapTree<V>(Data, Left, new ImMapBranch<V>(new ImMapData<V>(key, value), rightLeaf), 3) 
+                        : new ImMapTree<V>(Data, Left, new ImMapData<V>(key, value), TreeHeight);
                 }
 
                 if (right is ImMapBranch<V> rightBranch)
