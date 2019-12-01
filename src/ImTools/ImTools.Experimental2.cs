@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Dynamic;
 using System.Runtime.CompilerServices; // for [MethodImpl((MethodImplOptions)256)]
 
 namespace ImTools.Experimental2
@@ -59,6 +60,13 @@ namespace ImTools.Experimental2
             Data = data;
             RightData = rightData;
         }
+
+        /// Creates with data and right data passed in any order. Note: the keys though should no be equal - it should be checked on caller side
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMapBranch<V> CreateNormalized(ImMapData<V> data1, ImMapData<V> data2) => 
+            data2.Key > data1.Key 
+                ? new ImMapBranch<V>(data1, data2) 
+                : new ImMapBranch<V>(data2, data1);
 
         /// Prints the key value pair
         public override string ToString() => Data + "->" + RightData;
@@ -230,10 +238,17 @@ namespace ImTools.Experimental2
                             // leftLeftHeight should be less than leftRightHeight here,
                             // so if leftRightHeight is 2 for branch, then leftLeftHeight should be 1 to prevent re-balancing 
                             var leftRightBranch = (ImMapBranch<V>)leftRight;
-                            newLeftTree.Right = Empty;
-                            newLeftTree.TreeHeight = 2;
                             return new ImMapTree<V>(leftRightBranch.Data,
-                                newLeftTree, new ImMapTree<V>(Data, 1, leftRightBranch.RightData, rightHeight, Right));
+                                2, ImMapBranch<V>.CreateNormalized(newLeftTree.Data, (ImMapData<V>)newLeftTree.Left),
+                                new ImMapTree<V>(Data, leftRightBranch.RightData, Right, rightHeight));
+
+                            //// leftLeftHeight should be less than leftRightHeight here,
+                            //// so if leftRightHeight is 2 for branch, then leftLeftHeight should be 1 to prevent re-balancing 
+                            //var leftRightBranch = (ImMapBranch<V>)leftRight;
+                            //newLeftTree.Right = Empty;
+                            //newLeftTree.TreeHeight = 2;
+                            //return new ImMapTree<V>(leftRightBranch.Data,
+                            //    newLeftTree, new ImMapTree<V>(Data, 1, leftRightBranch.RightData, rightHeight, Right));
                         }
                     }
 
