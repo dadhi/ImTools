@@ -179,28 +179,38 @@ namespace ImTools.Experimental2.UnitTests
             Assert.AreEqual(10, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Right.To<ImMapBranch<int>>().RightData.Key);
         }
 
-        //[Test]
-        //public void Test_balance_when_adding_10_items_to_the_left()
-        //{
-        //    var t = ImMap<int>.Empty;
-        //    for (var i = 10; i >= 1; i--)
-        //        t = t.AddOrUpdate(i, i);
+        [Test]
+        public void Test_balance_when_adding_10_items_to_the_left()
+        {
+            var t = ImMap<int>.Empty;
+            for (var i = 10; i >= 1; i--)
+                t = t.AddOrUpdate(i, i);
 
-        //    // 10  =>   10     =>   9     =>    9     =>      9      =>       7      =>        7      =>          7      =>         7      =>         7       
-        //    //        9           8   10      8   10      7      10       6       9        5       9          5       9         5       9         3       9   
-        //    //                               7          6   8           5       8   10   4   6   8   10     4   6   8   10    3   6   8   10    2   5   8   10
-        //    //                                                                                            3                  2 4               1   4 6         
-        //    Assert.AreEqual(7, t.Key  );
-        //    Assert.AreEqual(3, t.Left .Key  );
-        //    Assert.AreEqual(2, t.Left .Left .Key  );
-        //    Assert.AreEqual(1, t.Left .Left .Left .Key);
-        //    Assert.AreEqual(5, t.Left .Right.Key  );
-        //    Assert.AreEqual(4, t.Left .Right.Left .Key);
-        //    Assert.AreEqual(6, t.Left .Right.Right.Key);
-        //    Assert.AreEqual(9, t.Right.Key  );
-        //    Assert.AreEqual(8, t.Right.Left .Key  );
-        //    Assert.AreEqual(10,t.Right.Right.Key  );
-        //}
+            // 10  =>   10     =>   9     =>    9     =>      9      =>       7      =>        7      =>          7      =>         7      =>         7       
+            //        9           8   10      8   10      7      10       6       9        5       9          5       9         5       9         3       9   
+            //                               7          6   8           5       8   10   4   6   8   10     4   6   8   10    3   6   8   10    1   5   8   10
+            //                                                                                            3                  2 4                 2 4 6         
+            Assert.AreEqual(7,  t.To<ImMapTree<int>>().Data.Key);
+            Assert.AreEqual(3,  t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Data.Key);
+            Assert.AreEqual(1,  t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Left.To<ImMapBranch<int>>().Data.Key);
+            Assert.AreEqual(2,  t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Left.To<ImMapBranch<int>>().RightData.Key);
+            Assert.AreEqual(5,  t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Data.Key);
+            Assert.AreEqual(4,  t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Left .To<ImMapData<int>>().Key);
+            Assert.AreEqual(6,  t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Right.To<ImMapData<int>>().Key);
+            Assert.AreEqual(9,  t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Data.Key);
+            Assert.AreEqual(8,  t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Left .To<ImMapData<int>>().Key);
+            Assert.AreEqual(10, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Right.To<ImMapData<int>>().Key);
+        }
+
+        [Test]
+        public void Test_balance_when_adding_100_items_to_the_left()
+        {
+            var t = ImMap<int>.Empty;
+            for (var i = 100; i >= 1; i--)
+                t = t.AddOrUpdate(i, i);
+
+            Assert.AreEqual(37, t.To<ImMapTree<int>>().Data.Key);
+        }
 
         //[Test]
         //public void Test_balance_when_adding_10_items_to_the_left_with_double_rotation()
@@ -551,4 +561,4 @@ namespace ImTools.Experimental2.UnitTests
         //    Assert.That(tree.Right.Right.Value, Is.EqualTo("e"));
         //}
     }
-}
+    }
