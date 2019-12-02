@@ -156,7 +156,7 @@ namespace ImTools.Experimental2
                 var left = Left;
                 if (left is ImMapData<V> leftLeaf)
                 {
-                    Debug.Assert(Right != Empty, "Right could not be null because we handled it with branch on a caller side");
+                    Debug.Assert(Right != Empty, "Right could not be Empty  because we handled it with branch on a caller side");
                     return key > leftLeaf.Key
                             ? new ImMapTree<V>(Data, new ImMapBranch<V>(leftLeaf, new ImMapData<V>(key, value)), Right, 3)
                         : key < leftLeaf.Key
@@ -224,7 +224,6 @@ namespace ImTools.Experimental2
                     {
                         // 1st fact - `leftLeft` and `leftRight` cannot be Empty otherwise we need to re-balance the left tree
                         // 2nd fact - either lefLeft or leftRight or both should be a tree or a branch
-
                         var leftLeftHeight = newLeftTree.Left.Height;
                         var leftRight = newLeftTree.Right;
                         var leftRightHeight = leftRight.Height;
@@ -261,7 +260,7 @@ namespace ImTools.Experimental2
                 var right = Right;
                 if (right is ImMapData<V> rightLeaf)
                 {
-                    Debug.Assert(Left != Empty, "Left could not be null because we handled it with branch on a caller side");
+                    Debug.Assert(Left != Empty, "Left could not be Empty because we handled it with branch on a caller side");
                     return key > rightLeaf.Key
                         ? new ImMapTree<V>(Data, Left, new ImMapBranch<V>(rightLeaf, new ImMapData<V>(key, value)), 3)
                         : key < rightLeaf.Key ? new ImMapTree<V>(Data, Left, new ImMapBranch<V>(new ImMapData<V>(key, value), rightLeaf), 3) 
@@ -326,21 +325,16 @@ namespace ImTools.Experimental2
                         }
                         else
                         {
+                            // no optimizations to simplify the logic - actually this case is rarely hit anyways
                             if (rightLeft is ImMapTree<V> rightLeftTree)
-                            {
-                                newRightTree.Left = rightLeftTree.Right;
-                                var newRightLeftHeight = newRightTree.Left.Height;
-                                newRightTree.TreeHeight = newRightLeftHeight > rightRightHeight ? newRightLeftHeight + 1 : rightRightHeight + 1;
                                 return new ImMapTree<V>(rightLeftTree.Data,
                                     new ImMapTree<V>(Data, leftHeight, Left, rightLeftTree.Left),
-                                    newRightTree);
-                            }
+                                    new ImMapTree<V>(newRightTree.Data, rightLeftTree.Right, rightRightHeight, newRightTree.Right));
 
                             var rightLeftBranch = (ImMapBranch<V>)rightLeft;
-                            newRightTree.Right = rightLeftBranch.RightData;
-                            newRightTree.TreeHeight = 2;
                             return new ImMapTree<V>(rightLeftBranch.Data,
-                                new ImMapBranch<V>(Data, (ImMapData<V>) Right), newRightTree, 3);
+                                2, ImMapBranch<V>.CreateNormalized(Data, (ImMapData<V>)Left),
+                                new ImMapTree<V>(newRightTree.Data, rightLeftBranch.RightData, newRightTree.Right, rightRightHeight));
                         }
                     }
 
