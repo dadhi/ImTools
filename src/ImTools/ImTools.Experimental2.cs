@@ -88,7 +88,7 @@ namespace ImTools.Experimental2
         /// Left sub-tree/branch, or empty.
         public ImMap<V> Left;
 
-        /// Right sub-tree/branch, or empty.
+        /// Right sub-tree/branch, or empty.md
         public ImMap<V> Right;
 
         internal ImMapTree(ImMapData<V> data, ImMap<V> left, ImMap<V> right, int height)
@@ -104,6 +104,7 @@ namespace ImTools.Experimental2
             Data = data;
             Left = left;
             Right = right;
+            Debug.Assert(leftHeight - rightHeight < 2 && rightHeight - leftHeight - rightHeight < 2);
             TreeHeight = leftHeight > rightHeight ? leftHeight + 1 : rightHeight + 1;
         }
 
@@ -113,6 +114,7 @@ namespace ImTools.Experimental2
             Left = left;
             Right = right;
             var rightHeight = right.Height;
+            Debug.Assert(leftHeight - rightHeight < 2 && rightHeight - leftHeight - rightHeight < 2);
             TreeHeight = leftHeight > rightHeight ? leftHeight + 1 : rightHeight + 1;
         }
 
@@ -122,6 +124,7 @@ namespace ImTools.Experimental2
             Left = left;
             Right = right;
             var leftHeight = left.Height;
+            Debug.Assert(leftHeight - rightHeight < 2 && rightHeight - leftHeight - rightHeight < 2);
             TreeHeight = leftHeight > rightHeight ? leftHeight + 1 : rightHeight + 1;
         }
 
@@ -308,56 +311,76 @@ namespace ImTools.Experimental2
                     if (newRightTree.TreeHeight == rightTree.TreeHeight)
                         return new ImMapTree<V>(Data, Left, newRightTree, TreeHeight);
 
-                    // fact: left is not Empty
+                    // the fact: left is not Empty
                     if (Left is ImMapData<V> leftLeaf)
                     {
                         // here we need to re-balance by default, because the new right tree is at least 3 level (actually exactly 3 or it would be too unbalanced)
                         // double rotation needed if only the right-right is a leaf
-                        if (newRightTree.Right is ImMapData<V> rightRightLeaf == false)
+                        if (newRightTree.Right is ImMapData<V> == false)
                         {
                             newRightTree.Left = new ImMapTree<V>(Data, leftLeaf, newRightTree.Left, 2);
                             newRightTree.TreeHeight = 3;
                             return newRightTree;
                         }
 
-                        if (newRightTree.Left is ImMapTree<V> rightLeftTree)
-                            return new ImMapTree<V>(rightLeftTree.Data,
-                                new ImMapTree<V>(Data, 1, leftLeaf, rightLeftTree.Left),
-                                new ImMapTree<V>(newRightTree.Data, rightLeftTree.Right, 1, newRightTree.Right));
+                        if (newRightTree.Left is ImMapTree<V> newRightLeftTree)
+                            return new ImMapTree<V>(newRightLeftTree.Data,
+                                new ImMapTree<V>(Data, 1, leftLeaf, newRightLeftTree.Left),
+                                new ImMapTree<V>(newRightTree.Data, newRightLeftTree.Right, 1, newRightTree.Right));
 
                         var rightLeftBranch = (ImMapBranch<V>)newRightTree.Left;
                         return new ImMapTree<V>(rightLeftBranch.Data,
                             2, ImMapBranch<V>.CreateNormalized(Data, (ImMapData<V>)Left),
-                            new ImMapTree<V>(newRightTree.Data, 1, rightLeftBranch.RightData, newRightTree.Right));
+                            new ImMapTree<V>(newRightTree.Data, rightLeftBranch.RightData, (ImMapData<V>)newRightTree.Right));
                     }
 
-                    // right tree is at least 3+ deep - means its either rightLeft or rightRight is tree
-                    var leftHeight = Left.Height;
-                    if (newRightTree.TreeHeight - 1 > leftHeight)
+                    int leftHeight;
+                    if (Left is ImMapTree<V> leftTree)
                     {
-                        var rightRightHeight = newRightTree.Right.Height;
-                        var rightLeft = newRightTree.Left;
-                        var rightLeftHeight = rightLeft.Height;
-
-                        if (rightRightHeight >= rightLeftHeight)
+                        leftHeight = leftTree.Height;
+                        if (newRightTree.TreeHeight > leftTree.TreeHeight + 1)
                         {
-                            var rightLeftTree = new ImMapTree<V>(Data, leftHeight, Left, rightLeftHeight, rightLeft);
-                            newRightTree.Left = rightLeftTree;
-                            newRightTree.TreeHeight = rightLeftTree.TreeHeight > rightRightHeight ? rightLeftTree.TreeHeight + 1 : rightRightHeight + 1;
-                            return newRightTree;
+                            var rightRight = newRightTree.Right;
+                            var rightRightHeight = (rightRight as ImMapTree<V>)?.TreeHeight ?? 2;
+                            var rightLeft = newRightTree.Left;
+                            var rightLeftHeight  = (rightLeft as ImMapTree<V>)?.TreeHeight ?? 2;
+                            if (rightRightHeight >= rightLeftHeight)
+                            {
+                                var newRightLeftTree = new ImMapTree<V>(Data, leftHeight, leftTree, rightLeftHeight, rightLeft);
+                                newRightTree.Left = newRightLeftTree;
+                                newRightTree.TreeHeight = 1 + (newRightLeftTree.TreeHeight > rightRightHeight ? newRightLeftTree.TreeHeight : rightRightHeight);
+                                return newRightTree;
+                            }
+
+                            var rightLeftTree = (ImMapTree<V>)rightLeft;
+                            return new ImMapTree<V>(rightLeftTree.Data,
+                                new ImMapTree<V>(Data, leftHeight, leftTree, rightLeftTree.Left),
+                                new ImMapTree<V>(newRightTree.Data, rightLeftTree.Right, rightRightHeight, rightRight));
                         }
-                        else
+                    }
+                    else
+                    {
+                        leftHeight = 2;
+                        var leftBranch = (ImMapBranch<V>)Left;
+                        if (newRightTree.TreeHeight >= 4) // actually it could be only 4 
                         {
-                            // no optimizations to simplify the logic - actually this case is rarely hit anyways
-                            if (rightLeft is ImMapTree<V> rightLeftTree)
-                                return new ImMapTree<V>(rightLeftTree.Data,
-                                    new ImMapTree<V>(Data, leftHeight, Left, rightLeftTree.Left),
-                                    new ImMapTree<V>(newRightTree.Data, rightLeftTree.Right, rightRightHeight, newRightTree.Right));
+                            var rightRight = newRightTree.Right;
+                            var rightRightHeight = rightRight.Height;
+                            var rightLeft = newRightTree.Left;
+                            var rightLeftHeight = rightLeft.Height;
+                            if (rightRightHeight >= rightLeftHeight)
+                            {
+                                var newRightLeftTree = new ImMapTree<V>(Data, 2, leftBranch, rightLeftHeight, rightLeft);
+                                newRightTree.Left = newRightLeftTree;
+                                newRightTree.TreeHeight = 1 +
+                                                          (newRightLeftTree.TreeHeight > rightRightHeight ? newRightLeftTree.TreeHeight : rightRightHeight);
+                                return newRightTree;
+                            }
 
-                            var rightLeftBranch = (ImMapBranch<V>)rightLeft;
-                            return new ImMapTree<V>(rightLeftBranch.Data,
-                                2, ImMapBranch<V>.CreateNormalized(Data, (ImMapData<V>)Left),
-                                new ImMapTree<V>(newRightTree.Data, rightLeftBranch.RightData, newRightTree.Right, rightRightHeight));
+                            var rightLeftTree = (ImMapTree<V>)rightLeft;
+                            return new ImMapTree<V>(rightLeftTree.Data,
+                                new ImMapTree<V>(Data, 2, leftBranch, rightLeftTree.Left),
+                                new ImMapTree<V>(newRightTree.Data, rightLeftTree.Right, rightRightHeight, rightRight));
                         }
                     }
 

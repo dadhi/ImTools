@@ -180,6 +180,16 @@ namespace ImTools.Experimental2.UnitTests
         }
 
         [Test]
+        public void Test_balance_when_adding_100_items_to_the_right()
+        {
+            var t = ImMap<int>.Empty;
+            for (var i = 1; i <= 100; i++)
+                t = t.AddOrUpdate(i, i);
+
+            Assert.AreEqual(64, t.To<ImMapTree<int>>().Data.Key);
+        }
+
+        [Test]
         public void Test_balance_when_adding_10_items_to_the_left()
         {
             var t = ImMap<int>.Empty;
