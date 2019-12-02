@@ -308,8 +308,31 @@ namespace ImTools.Experimental2
                     if (newRightTree.TreeHeight == rightTree.TreeHeight)
                         return new ImMapTree<V>(Data, Left, newRightTree, TreeHeight);
 
+                    // fact: left is not Empty
+                    if (Left is ImMapData<V> leftLeaf)
+                    {
+                        // here we need to re-balance by default, because the new right tree is at least 3 level (actually exactly 3 or it would be too unbalanced)
+                        // double rotation needed if only the right-right is a leaf
+                        if (newRightTree.Right is ImMapData<V> rightRightLeaf == false)
+                        {
+                            newRightTree.Left = new ImMapTree<V>(Data, leftLeaf, newRightTree.Left, 2);
+                            newRightTree.TreeHeight = 3;
+                            return newRightTree;
+                        }
+
+                        if (newRightTree.Left is ImMapTree<V> rightLeftTree)
+                            return new ImMapTree<V>(rightLeftTree.Data,
+                                new ImMapTree<V>(Data, 1, leftLeaf, rightLeftTree.Left),
+                                new ImMapTree<V>(newRightTree.Data, rightLeftTree.Right, 1, newRightTree.Right));
+
+                        var rightLeftBranch = (ImMapBranch<V>)newRightTree.Left;
+                        return new ImMapTree<V>(rightLeftBranch.Data,
+                            2, ImMapBranch<V>.CreateNormalized(Data, (ImMapData<V>)Left),
+                            new ImMapTree<V>(newRightTree.Data, 1, rightLeftBranch.RightData, newRightTree.Right));
+                    }
+
                     // right tree is at least 3+ deep - means its either rightLeft or rightRight is tree
-                    var leftHeight = (Left as ImMapTree<V>)?.TreeHeight ?? 1;
+                    var leftHeight = Left.Height;
                     if (newRightTree.TreeHeight - 1 > leftHeight)
                     {
                         var rightRightHeight = newRightTree.Right.Height;
