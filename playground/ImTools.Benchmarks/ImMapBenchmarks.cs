@@ -157,23 +157,30 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
 ## Experiment #2
 
-|                          Method | Count |         Mean |      Error |     StdDev | Ratio | RatioSD |  Gen 0 |  Gen 1 | Gen 2 | Allocated |
-|-------------------------------- |------ |-------------:|-----------:|-----------:|------:|--------:|-------:|-------:|------:|----------:|
-|  ImMap_Experimental_AddOrUpdate |     1 |     20.30 ns |   0.125 ns |   0.111 ns |  1.00 |    0.00 | 0.0068 |      - |     - |      32 B |
-| ImMap_Experimental2_AddOrUpdate |     1 |     21.72 ns |   0.094 ns |   0.088 ns |  1.07 |    0.01 | 0.0068 |      - |     - |      32 B |
-|                                 |       |              |            |            |       |         |        |        |       |           |
-|  ImMap_Experimental_AddOrUpdate |    10 |    520.95 ns |   2.125 ns |   1.883 ns |  1.00 |    0.00 | 0.2813 | 0.0010 |     - |    1328 B |
-| ImMap_Experimental2_AddOrUpdate |    10 |    449.34 ns |   1.491 ns |   1.322 ns |  0.86 |    0.00 | 0.2651 | 0.0005 |     - |    1248 B |
-|                                 |       |              |            |            |       |         |        |        |       |           |
-|  ImMap_Experimental_AddOrUpdate |   100 | 11,560.11 ns | 188.463 ns | 176.289 ns |  1.00 |    0.00 | 6.6376 | 0.3052 |     - |   31232 B |
-| ImMap_Experimental2_AddOrUpdate |   100 | 10,555.13 ns | 134.807 ns | 126.099 ns |  0.91 |    0.02 | 6.4545 | 0.2747 |     - |   30432 B |
+|                          Method | Count |          Mean |        Error |       StdDev |        Median | Ratio | RatioSD |    Gen 0 |  Gen 1 | Gen 2 | Allocated |
+|-------------------------------- |------ |--------------:|-------------:|-------------:|--------------:|------:|--------:|---------:|-------:|------:|----------:|
+|               ImMap_AddOrUpdate |     1 |      23.38 ns |     0.142 ns |     0.133 ns |      23.35 ns |  1.00 |    0.00 |   0.0102 |      - |     - |      48 B |
+|  ImMap_Experimental_AddOrUpdate |     1 |      20.40 ns |     0.078 ns |     0.069 ns |      20.37 ns |  0.87 |    0.01 |   0.0068 |      - |     - |      32 B |
+| ImMap_Experimental2_AddOrUpdate |     1 |      21.67 ns |     0.065 ns |     0.057 ns |      21.65 ns |  0.93 |    0.01 |   0.0068 |      - |     - |      32 B |
+|                                 |       |               |              |              |               |       |         |          |        |       |           |
+|               ImMap_AddOrUpdate |    10 |     646.80 ns |    19.395 ns |    18.142 ns |     637.00 ns |  1.00 |    0.00 |   0.3767 | 0.0010 |     - |    1776 B |
+|  ImMap_Experimental_AddOrUpdate |    10 |     527.32 ns |     2.053 ns |     1.820 ns |     527.49 ns |  0.82 |    0.02 |   0.2813 | 0.0010 |     - |    1328 B |
+| ImMap_Experimental2_AddOrUpdate |    10 |     451.12 ns |     9.098 ns |     9.735 ns |     444.45 ns |  0.70 |    0.03 |   0.2651 | 0.0005 |     - |    1248 B |
+|                                 |       |               |              |              |               |       |         |          |        |       |           |
+|               ImMap_AddOrUpdate |   100 |  12,710.30 ns |   252.728 ns |   270.416 ns |  12,850.21 ns |  1.00 |    0.00 |   7.9193 | 0.3204 |     - |   37296 B |
+|  ImMap_Experimental_AddOrUpdate |   100 |  11,798.41 ns |   234.948 ns |   251.392 ns |  11,852.07 ns |  0.93 |    0.03 |   6.6376 | 0.3052 |     - |   31232 B |
+| ImMap_Experimental2_AddOrUpdate |   100 |  10,362.05 ns |    21.455 ns |    17.916 ns |  10,362.89 ns |  0.81 |    0.01 |   6.4545 | 0.2899 |     - |   30432 B |
+|                                 |       |               |              |              |               |       |         |          |        |       |           |
+|               ImMap_AddOrUpdate |  1000 | 206,799.13 ns | 3,979.848 ns | 4,087.011 ns | 204,940.19 ns |  1.00 |    0.00 | 113.5254 | 0.2441 |     - |  534146 B |
+|  ImMap_Experimental_AddOrUpdate |  1000 | 197,713.59 ns | 3,067.692 ns | 2,869.521 ns | 197,026.42 ns |  0.95 |    0.02 |  99.8535 | 0.2441 |     - |  470624 B |
+| ImMap_Experimental2_AddOrUpdate |  1000 | 183,698.91 ns | 1,438.216 ns | 1,200.976 ns | 183,217.94 ns |  0.88 |    0.02 |  98.1445 | 0.2441 |     - |  462625 B |
 
 */
 
-            [Params(1, 10, 100)]//, 1_000)]//, 10_000, 100_000)]
+            [Params(1, 10, 100, 1_000)]//, 10_000, 100_000)]
             public int Count;
 
-            //[Benchmark(Baseline = true)]
+            [Benchmark(Baseline = true)]
             public ImTools.ImMap<string> ImMap_AddOrUpdate()
             {
                 var map = ImTools.ImMap<string>.Empty;
@@ -195,7 +202,8 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            [Benchmark(Baseline = true)]
+            [Benchmark]
+            //[Benchmark(Baseline = true)]
             public ImTools.Experimental.ImMap<string> ImMap_Experimental_AddOrUpdate()
             {
                 var map = ImTools.Experimental.ImMap<string>.Empty;

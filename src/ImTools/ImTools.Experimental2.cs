@@ -105,7 +105,7 @@ namespace ImTools.Experimental2
             Left = left;
             Right = right;
             Debug.Assert(leftHeight - rightHeight < 2 && rightHeight - leftHeight - rightHeight < 2);
-            TreeHeight = leftHeight > rightHeight ? leftHeight + 1 : rightHeight + 1;
+            TreeHeight = 1 + (leftHeight > rightHeight ? leftHeight : rightHeight);
         }
 
         internal ImMapTree(ImMapData<V> data, int leftHeight, ImMap<V> left, ImMap<V> right)
@@ -115,7 +115,7 @@ namespace ImTools.Experimental2
             Right = right;
             var rightHeight = right.Height;
             Debug.Assert(leftHeight - rightHeight < 2 && rightHeight - leftHeight - rightHeight < 2);
-            TreeHeight = leftHeight > rightHeight ? leftHeight + 1 : rightHeight + 1;
+            TreeHeight = 1 + (leftHeight > rightHeight ? leftHeight : rightHeight);
         }
 
         internal ImMapTree(ImMapData<V> data, ImMap<V> left, int rightHeight, ImMap<V> right)
@@ -125,7 +125,7 @@ namespace ImTools.Experimental2
             Right = right;
             var leftHeight = left.Height;
             Debug.Assert(leftHeight - rightHeight < 2 && rightHeight - leftHeight - rightHeight < 2);
-            TreeHeight = leftHeight > rightHeight ? leftHeight + 1 : rightHeight + 1;
+            TreeHeight = 1 + (leftHeight > rightHeight ? leftHeight : rightHeight);
         }
 
         internal ImMapTree(ImMapData<V> data, ImMapData<V> leftData, ImMapData<V> rightData)
@@ -147,8 +147,8 @@ namespace ImTools.Experimental2
         /// <summary>Outputs the key value pair</summary>
         public override string ToString() =>
             "(" + Data
-                + ") -> (left: " + (Left is ImMapTree<V> leftTree ? leftTree.Data : Left)
-                + ", right: " + (Right is ImMapTree<V> rightTree ? rightTree.Data : Right)
+                + ") -> (" + (Left is ImMapTree<V> leftTree ? leftTree.Data  + " height:" + leftTree.TreeHeight  : "" + Left)
+                + ", " +   (Right is ImMapTree<V> rightTree ? rightTree.Data + " height:" + rightTree.TreeHeight : "" + Right)
                 + ")";
 
         /// <summary>Adds or updates the left or right branch</summary>
