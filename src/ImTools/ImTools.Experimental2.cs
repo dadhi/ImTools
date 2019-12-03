@@ -343,11 +343,11 @@ namespace ImTools.Experimental2
                         var rightLeftHeight = (rightLeft as ImMapTree<V>)?.TreeHeight ?? 2;
                         if (rightRightHeight >= rightLeftHeight)
                         {
-                            // todo: could we optimize the final tree height calculation?
-                            var newRightLeftTree = new ImMapTree<V>(Data, leftHeight, Left, rightLeftHeight, rightLeft);
+                            Debug.Assert(rightLeftHeight >= leftHeight, "The whole rightHeight > leftHeight by 2, and rightRight >= leftHeight but not more than by 2");
+                            var newRightLeftTree = new ImMapTree<V>(Data, Left, rightLeft, rightLeftHeight + 1);
                             newRightTree.Left = newRightLeftTree;
-                            newRightTree.TreeHeight = 1 +
-                                (newRightLeftTree.TreeHeight > rightRightHeight ? newRightLeftTree.TreeHeight : rightRightHeight);
+                            // 
+                            newRightTree.TreeHeight = 1 + (newRightLeftTree.TreeHeight > rightRightHeight ? newRightLeftTree.TreeHeight : rightRightHeight);
                             return newRightTree;
                         }
 
