@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices; // for [MethodImpl((MethodImplOptions)256)]
 
@@ -484,5 +485,74 @@ namespace ImTools.Experimental2
             return default;
         }
 
+        /// <summary>
+        /// Folds all the map nodes with the state from left to right and from the bottom to top
+        /// You may pass `parentStacks` to reuse the array memory.
+        /// NOTE: the length of `parentStack` should be at least of map height, content is not important and could be erased.
+        /// </summary>
+        public static S Fold<V, S>(this ImMap<V> map, S state, Func<ImMapData<V>, S, S> reduce, ImMapTree<V>[] parentStack = null)
+        {
+            if (map is ImMapData<V> leaf)
+            {
+                state = reduce(leaf, state);
+            }
+            else if (map is ImMapBranch<V> branch)
+            {
+                state = reduce(branch.RightData, reduce(branch.Data, state));
+            }
+            else if (map is ImMapTree<V> tree)
+            {
+                if (tree.TreeHeight == 2)
+                {
+                    state = reduce((ImMapData<V>)tree.Right, reduce(tree.Data, reduce((ImMapData<V>)tree.Left, state)));
+                }
+                else
+                {
+                    parentStack = parentStack ?? new ImMapTree<V>[tree.TreeHeight - 2];
+                    var parentIndex = -1;
+                    do
+                    {
+                        if ((tree = map as ImMapTree<V>) != null)
+                        {
+                            if (tree.TreeHeight == 2)
+                            {
+                                state = reduce((ImMapData<V>)tree.Right, reduce(tree.Data, reduce((ImMapData<V>)tree.Left, state)));
+                                if (parentIndex == -1)
+                                    break;
+                                tree = parentStack[parentIndex--];
+                                state = reduce(tree.Data, state);
+                                map = tree.Right;
+                            }
+                            else
+                            {
+                                parentStack[++parentIndex] = tree;
+                                map = tree.Left;
+                            }
+                        }
+                        else if ((branch = map as ImMapBranch<V>) != null)
+                        {
+                            state = reduce(branch.RightData, reduce(branch.Data, state));
+                            if (parentIndex == -1)
+                                break;
+                            tree = parentStack[parentIndex--];
+                            state = reduce(tree.Data, state);
+                            map = tree.Right;
+                        }
+                        else
+                        {
+                            state = reduce((ImMapData<V>)map, state);
+                            if (parentIndex == -1)
+                                break;
+                            tree = parentStack[parentIndex--];
+                            state = reduce(tree.Data, state);
+                            map = tree.Right;
+                        }
+                    }
+                    while (map != ImMap<V>.Empty);
+                }
+            }
+
+            return state;
+        }
     }
 }
