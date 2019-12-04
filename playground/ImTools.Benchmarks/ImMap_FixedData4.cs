@@ -16,7 +16,7 @@ namespace ImTools.Benchmarks.ImMapFixedData4
     }
 
     /// The leaf node - just the key-value pair
-    public sealed class ImMapLeaf<V> : ImMap<V>
+    public sealed class ImMapData<V> : ImMap<V>
     {
         /// <inheritdoc />
         public override int Height => 1;
@@ -27,7 +27,7 @@ namespace ImTools.Benchmarks.ImMapFixedData4
         /// The value - may be modified if you need a Ref{V} semantics
         public V Value;
 
-        public ImMapLeaf(int key, V value)
+        public ImMapData(int key, V value)
         {
             Key = key;
             Value = value;
@@ -35,6 +35,41 @@ namespace ImTools.Benchmarks.ImMapFixedData4
 
         /// Prints the key value pair
         public override string ToString() => Key + ":" + Value;
+    }
+
+    /// <summary>
+    /// The two level - two node tree with either left or right
+    /// </summary>
+    public sealed class ImMapBranch<V> : ImMap<V>
+    {
+        public override int Height => 2;
+
+        /// Contains the once created data node
+        public readonly ImMapData<V> Data;
+
+        /// Left sub-tree/branch, or empty.
+        public ImMapData<V> LeftOrRight;
+
+        /// <summary>Is left oriented</summary>
+        public bool IsLeftOriented
+        {
+            [MethodImpl((MethodImplOptions)256)]
+            get => LeftOrRight.Key < Data.Key;
+        }
+
+        /// <summary>Is right oriented</summary>
+        public bool IsRightOriented
+        {
+            [MethodImpl((MethodImplOptions)256)]
+            get => LeftOrRight.Key > Data.Key;
+        }
+
+        /// Constructor
+        public ImMapBranch(ImMapData<V> data, ImMapData<V> leftOrRight)
+        {
+            Data = data;
+            LeftOrRight = leftOrRight;
+        }
     }
 
     /// <summary>
@@ -49,7 +84,7 @@ namespace ImTools.Benchmarks.ImMapFixedData4
         public int TreeHeight;
 
         /// Contains the once created data node
-        public readonly ImMapLeaf<V> Data;
+        public readonly ImMapData<V> Data;
 
         /// Left sub-tree/branch, or empty.
         public ImMap<V> Left;
@@ -57,7 +92,7 @@ namespace ImTools.Benchmarks.ImMapFixedData4
         /// Right sub-tree/branch, or empty.
         public ImMap<V> Right;
 
-        internal ImMapTree(ImMapLeaf<V> data, ImMap<V> left, ImMap<V> right, int height)
+        internal ImMapTree(ImMapData<V> data, ImMap<V> left, ImMap<V> right, int height)
         {
             Data = data;
             Left = left;
@@ -65,7 +100,7 @@ namespace ImTools.Benchmarks.ImMapFixedData4
             TreeHeight = height;
         }
 
-        internal ImMapTree(ImMapLeaf<V> data, int leftHeight, ImMap<V> left, int rightHeight, ImMap<V> right) 
+        internal ImMapTree(ImMapData<V> data, int leftHeight, ImMap<V> left, int rightHeight, ImMap<V> right) 
         {
             Data = data;
             Left = left;
@@ -73,7 +108,7 @@ namespace ImTools.Benchmarks.ImMapFixedData4
             TreeHeight = leftHeight > rightHeight ? leftHeight + 1 : rightHeight + 1;
         }
 
-        internal ImMapTree(ImMapLeaf<V> data, int leftHeight, ImMap<V> left, ImMap<V> right) 
+        internal ImMapTree(ImMapData<V> data, int leftHeight, ImMap<V> left, ImMap<V> right) 
         {
             Data = data;
             Left = left;
@@ -82,7 +117,7 @@ namespace ImTools.Benchmarks.ImMapFixedData4
             TreeHeight = leftHeight > rightHeight ? leftHeight + 1 : rightHeight + 1;
         }
 
-        internal ImMapTree(ImMapLeaf<V> data, ImMap<V> left, int rightHeight, ImMap<V> right)
+        internal ImMapTree(ImMapData<V> data, ImMap<V> left, int rightHeight, ImMap<V> right)
         {
             Data = data;
             Left = left;
@@ -91,7 +126,15 @@ namespace ImTools.Benchmarks.ImMapFixedData4
             TreeHeight = leftHeight > rightHeight ? leftHeight + 1 : rightHeight + 1;
         }
 
-        internal ImMapTree(ImMapLeaf<V> data, ImMapTree<V> left, ImMapTree<V> right)
+        internal ImMapTree(ImMapData<V> data, ImMapData<V> leftData, ImMapData<V> rightData)
+        {
+            Data = data;
+            Left = leftData;
+            Right = rightData;
+            TreeHeight = 2;
+        }
+
+        internal ImMapTree(ImMapData<V> data, ImMapTree<V> left, ImMapTree<V> right)
         {
             Data = data;
             Left = left;
@@ -108,28 +151,76 @@ namespace ImTools.Benchmarks.ImMapFixedData4
             if (key < Data.Key)
             {
                 var left = Left;
-                if (left is ImMapLeaf<V> leftLeaf)
+                if (left is ImMapData<V> leftLeaf)
                 {
-                    return key < leftLeaf.Key
-                            ? Right is ImMapLeaf<V> rightLeaf1
-                                ? new ImMapTree<V>(Data, new ImMapTree<V>(leftLeaf, new ImMapLeaf<V>(key, value), Empty, 2), rightLeaf1, 3)
-                            : Right is ImMapTree<V> rightTree1
-                                ? new ImMapTree<V>(Data, new ImMapTree<V>(leftLeaf, new ImMapLeaf<V>(key, value), Empty, 2), rightTree1)
-                            : new ImMapTree<V>(leftLeaf, new ImMapLeaf<V>(key, value), Data, 2)
-                        : key > leftLeaf.Key 
-                            ? Right is ImMapLeaf<V> rightLeaf2
-                                ? new ImMapTree<V>(Data, new ImMapTree<V>(leftLeaf, Empty, new ImMapLeaf<V>(key, value), 2), rightLeaf2, 3)
-                            : Right is ImMapTree<V> rightTree2
-                                ? new ImMapTree<V>(Data, new ImMapTree<V>(leftLeaf, Empty, new ImMapLeaf<V>(key, value), 2), rightTree2)
-                            : new ImMapTree<V>(new ImMapLeaf<V>(key, value), left, Data, 2)
-                        : new ImMapTree<V>(Data, new ImMapLeaf<V>(key, value), Right, TreeHeight);
+                    if (Right != Empty)
+                        return new ImMapTree<V>(Data, new ImMapBranch<V>(leftLeaf, new ImMapData<V>(key, value)), Right, 3);
+
+                    if (key > leftLeaf.Key)
+                        return new ImMapTree<V>(new ImMapData<V>(key, value), leftLeaf, Data);
+
+                    if (key < leftLeaf.Key)
+                        return new ImMapTree<V>(leftLeaf, new ImMapData<V>(key, value), Data);
+
+                    return new ImMapTree<V>(Data, new ImMapData<V>(key, value), Right, TreeHeight);
                 }
 
+                if (left is ImMapBranch<V> leftBranch)
+                {
+                    if (key < leftBranch.Data.Key)
+                    {
+                        var newLeft = leftBranch.IsRightOriented // no need for rotation
+                            ? new ImMapTree<V>(leftBranch.Data, new ImMapData<V>(key, value), leftBranch.LeftOrRight)
+                            //          5                         5
+                            //       3     ?  =>             2        ?
+                            //    2                       1     3
+                            //  1             
+                            : key < leftBranch.LeftOrRight.Key
+                                ? new ImMapTree<V>(leftBranch.LeftOrRight, new ImMapData<V>(key, value), leftBranch.Data)
+                            //           5                        5
+                            //        3     ?  =>            2.5        ?
+                            //    2                        2     3
+                            //     2.5          
+                            : key > leftBranch.LeftOrRight.Key
+                                ? new ImMapTree<V>(new ImMapData<V>(key, value), leftBranch.LeftOrRight, leftBranch.Data)
+                            : (ImMap<V>)new ImMapBranch<V>(leftBranch.Data, new ImMapData<V>(key, value));
+
+                        return new ImMapTree<V>(Data, newLeft, Right, TreeHeight);
+                    }
+
+                    if (key > leftBranch.Data.Key)
+                    {
+                            //           5                         5
+                            //       3       ?  =>             3        ?
+                            //     2   !                     2   !
+                        var newLeft = leftBranch.IsLeftOriented
+                            ? new ImMapTree<V>(leftBranch.Data, leftBranch.LeftOrRight, new ImMapData<V>(key, value))
+                            //            5                         5
+                            //       2        ?  =>             3        ?
+                            //         3                      2   4
+                            //          4
+                            : key > leftBranch.LeftOrRight.Key
+                                ? new ImMapTree<V>(leftBranch.LeftOrRight, leftBranch.Data, new ImMapData<V>(key, value))
+                            //            5                         5
+                            //      2          ?  =>            2.5        ?
+                            //          3                      2   3
+                            //       2.5  
+                            : key < leftBranch.LeftOrRight.Key 
+                                ? new ImMapTree<V>(new ImMapData<V>(key, value), leftBranch.Data, leftBranch.LeftOrRight) 
+                            : (ImMap<V>)new ImMapBranch<V>(leftBranch.Data, new ImMapData<V>(key, value));
+
+                        return new ImMapTree<V>(Data, newLeft, Right, TreeHeight);
+                    }
+
+                    return new ImMapTree<V>(Data, new ImMapBranch<V>(new ImMapData<V>(key, value), leftBranch.LeftOrRight), Right, TreeHeight);
+                }
+
+                // when the left is tree the right could not be empty
                 if (left is ImMapTree<V> leftTree)
                 {
                     if (key == leftTree.Data.Key)
                         return new ImMapTree<V>(Data,
-                            new ImMapTree<V>(new ImMapLeaf<V>(key, value), leftTree.Left, leftTree.Right, leftTree.TreeHeight),
+                            new ImMapTree<V>(new ImMapData<V>(key, value), leftTree.Left, leftTree.Right, leftTree.TreeHeight),
                             Right, TreeHeight);
 
                     var newLeftTree = leftTree.AddOrUpdateLeftOrRight(key, value);
@@ -141,129 +232,181 @@ namespace ImTools.Benchmarks.ImMapFixedData4
                     {
                         // 1st fact - `leftLeft` and `leftRight` cannot be Empty otherwise we won't need to re-balance the left tree
                         // 2nd fact - either lefLeft or leftRight or both should be a tree
-
-                        var leftLeft = newLeftTree.Left;
-                        var leftLeftTree = leftLeft as ImMapTree<V>;
+                        var leftLeftHeight = newLeftTree.Left.Height;
                         var leftRight = newLeftTree.Right;
-                        var leftRightTree = leftRight as ImMapTree<V>;
-                        if (leftLeftTree != null)
-                        {
-                            if (leftRightTree != null)
-                            {
-                                if (leftLeftTree.TreeHeight >= leftRightTree.TreeHeight)
-                                    return new ImMapTree<V>(newLeftTree.Data, leftLeftTree,
-                                        new ImMapTree<V>(Data, leftRightTree.TreeHeight, leftRight, rightHeight, Right));
+                        var leftRightHeight = leftRight.Height;
 
+                        if (leftLeftHeight >= leftRightHeight)
+                        {
+                            var leftRightTree = new ImMapTree<V>(Data, leftRightHeight, leftRight, rightHeight, Right);
+                            newLeftTree.Right = leftRightTree;
+                            newLeftTree.TreeHeight = leftLeftHeight > leftRightTree.TreeHeight ? leftLeftHeight + 1 : leftRightTree.TreeHeight + 1;
+                            return newLeftTree;
+                        }
+                        else
+                        {
+                            // the leftRight should a tree because its height is greater than leftLeft and the latter at least the leaf
+                            if (leftRight is ImMapTree<V> leftRightTree)
+                            {
+                                newLeftTree.Right = leftRightTree.Left;
+                                var newLeftRightHeight = newLeftTree.Right.Height;
+                                newLeftTree.TreeHeight = leftLeftHeight > newLeftRightHeight ? leftLeftHeight + 1 : newLeftRightHeight + 1;
                                 return new ImMapTree<V>(leftRightTree.Data,
-                                    new ImMapTree<V>(newLeftTree.Data, leftLeftTree.TreeHeight, leftLeft, leftRightTree.Left),
-                                    new ImMapTree<V>(Data, leftRightTree.Right, rightHeight, Right));
+                                    newLeftTree, new ImMapTree<V>(Data, leftRightTree.Right, rightHeight, Right));
                             }
 
-                            // `leftLeft` is tree and `leftRight` is leaf - do a single rotation
-                            return new ImMapTree<V>(newLeftTree.Data, leftLeftTree,
-                                new ImMapTree<V>(Data, 1, leftRight, rightHeight, Right));
-                        }
+                            // leftLeftHeight should be less than leftRightHeight here,
+                            // so if leftRightHeight is 2 for branch, then leftLeftHeight should be 1 to prevent re-balancing 
+                            var leftRightBranch = (ImMapBranch<V>)leftRight;
+                            if (leftRightBranch.IsLeftOriented)
+                            {
+                                newLeftTree.Right = leftRightBranch.LeftOrRight;
+                                newLeftTree.TreeHeight = 2;
+                                return new ImMapTree<V>(leftRightBranch.Data, newLeftTree, new ImMapBranch<V>(Data, (ImMapData<V>)Right), 3);
+                            }
 
-                        // `leftLeft` is leaf and `leftRight` is the tree - do a double rotation
-                        // ReSharper disable once PossibleNullReferenceException
-                        return new ImMapTree<V>(leftRightTree.Data,
-                            new ImMapTree<V>(newLeftTree.Data, 1, leftLeft, leftRightTree.Left),
-                            new ImMapTree<V>(Data, leftRightTree.Right, rightHeight, Right));
+                            // maybe we need to convert this to branch
+                            newLeftTree.Right = Empty;
+                            newLeftTree.TreeHeight = 2;
+                            return new ImMapTree<V>(leftRightBranch.Data,
+                                newLeftTree, new ImMapTree<V>(Data, 1, leftRightBranch.LeftOrRight, rightHeight, Right));
+                        }
                     }
 
                     return new ImMapTree<V>(Data, newLeftTree.TreeHeight, newLeftTree, rightHeight, Right);
                 }
 
-                return new ImMapTree<V>(Data, new ImMapLeaf<V>(key, value), Right, 2);
+                return new ImMapTree<V>(Data, new ImMapData<V>(key, value), Right, 2);
             }
             else
             {
                 var right = Right;
-                if (right is ImMapLeaf<V> rightLeaf)
+                if (right is ImMapData<V> rightLeaf)
                 {
-                    return key > rightLeaf.Key 
-                            ? Left is ImMapLeaf<V> leftLeaf1
-                                ? new ImMapTree<V>(Data, leftLeaf1, new ImMapTree<V>(rightLeaf, Empty, new ImMapLeaf<V>(key, value), 2), 3)
-                            : Left is ImMapTree<V> leftTree1
-                                ? new ImMapTree<V>(Data, leftTree1, new ImMapTree<V>(rightLeaf, Empty, new ImMapLeaf<V>(key, value), 2))
-                            : new ImMapTree<V>(rightLeaf, Data, new ImMapLeaf<V>(key, value), 2)
-                        : key < rightLeaf.Key
-                            ? Left is ImMapLeaf<V> leftLeaf2
-                                ? new ImMapTree<V>(Data, leftLeaf2, new ImMapTree<V>(rightLeaf, new ImMapLeaf<V>(key, value), Empty, 2),3)
-                            : Left is ImMapTree<V> leftTree2
-                                ? new ImMapTree<V>(Data, leftTree2, new ImMapTree<V>(rightLeaf, new ImMapLeaf<V>(key, value), Empty, 2))
-                                : new ImMapTree<V>(new ImMapLeaf<V>(key, value), Data, right, 2)
-                        : new ImMapTree<V>(Data, Left, new ImMapLeaf<V>(key, value), TreeHeight);
+                    if (Left != Empty)
+                        return new ImMapTree<V>(Data, Left, new ImMapBranch<V>(rightLeaf, new ImMapData<V>(key, value)), 3);
+
+                    if (key > rightLeaf.Key)
+                        return new ImMapTree<V>(rightLeaf, Data, new ImMapData<V>(key, value), 2);
+
+                    if (key < rightLeaf.Key)
+                        return new ImMapTree<V>(new ImMapData<V>(key, value), Data, right, 2);
+
+                    return new ImMapTree<V>(Data, Left, new ImMapData<V>(key, value), TreeHeight);
+                }
+
+                if (right is ImMapBranch<V> rightBranch)
+                {
+                    if (key > rightBranch.Data.Key)
+                    {
+                            //      5                5       
+                            //  ?       7    =>  ?       7   
+                            //        6   !            6   ! 
+                        var newLeft = rightBranch.IsLeftOriented
+                            ? new ImMapTree<V>(rightBranch.Data, rightBranch.LeftOrRight, new ImMapData<V>(key, value))
+                            //      5                5      
+                            //  ?       6    =>  ?       8  
+                            //            8            6   !
+                            //              !               
+                            : key > rightBranch.LeftOrRight.Key
+                                ? new ImMapTree<V>(rightBranch.LeftOrRight, rightBranch.Data, new ImMapData<V>(key, value))
+                            //      5                 5      
+                            //  ?       6     =>  ?       7  
+                            //              8            6  8
+                            //            7               
+                            : key < rightBranch.LeftOrRight.Key
+                                ? new ImMapTree<V>(new ImMapData<V>(key, value), rightBranch.Data, rightBranch.LeftOrRight)
+                            : (ImMap<V>)new ImMapBranch<V>(rightBranch.Data, new ImMapData<V>(key, value));
+
+                        return new ImMapTree<V>(Data, newLeft, Right, TreeHeight);
+                    }
+
+                    if (key < rightBranch.Data.Key)
+                    {
+                            //      5                5       
+                            //  ?       7    =>  ?       7   
+                            //        !   9            6   9  
+                        var newLeft = rightBranch.IsRightOriented // no need for rotation
+                            ? new ImMapTree<V>(rightBranch.Data, new ImMapData<V>(key, value), rightBranch.LeftOrRight)
+                            //      5              5       
+                            //  ?       8  =>  ?       7   
+                            //        7              !   8 
+                            //       !                     
+                            : key < rightBranch.LeftOrRight.Key
+                                ? new ImMapTree<V>(rightBranch.LeftOrRight, new ImMapData<V>(key, value), rightBranch.Data)
+                            //      5              5       
+                            //  ?       9  =>  ?       !   
+                            //        7              7   9 
+                            //         !                     
+                            : key > rightBranch.LeftOrRight.Key
+                                ? new ImMapTree<V>(new ImMapData<V>(key, value), rightBranch.LeftOrRight, rightBranch.Data)
+                            : (ImMap<V>)new ImMapBranch<V>(rightBranch.Data, new ImMapData<V>(key, value));
+
+                        return new ImMapTree<V>(Data, newLeft, Right, TreeHeight);
+                    }
+
+                    return new ImMapTree<V>(Data, Left, new ImMapBranch<V>(new ImMapData<V>(key, value), rightBranch.LeftOrRight), TreeHeight);
                 }
 
                 if (right is ImMapTree<V> rightTree)
                 {
                     if (key == rightTree.Data.Key)
                         return new ImMapTree<V>(Data, Left,
-                            new ImMapTree<V>(new ImMapLeaf<V>(key, value), rightTree.Left, rightTree.Right, rightTree.TreeHeight),
+                            new ImMapTree<V>(new ImMapData<V>(key, value), rightTree.Left, rightTree.Right, rightTree.TreeHeight),
                             TreeHeight);
 
                     var newRightTree = rightTree.AddOrUpdateLeftOrRight(key, value);
                     if (newRightTree.TreeHeight == rightTree.TreeHeight)
                         return new ImMapTree<V>(Data, Left, newRightTree, TreeHeight);
 
-                    var leftHeight = Left.Height;
+                    // right tree is at least 3+ deep - means its either rightLeft or rightRight is tree
+                    var leftHeight = (Left as ImMapTree<V>)?.TreeHeight ?? 1;
                     if (newRightTree.TreeHeight - 1 > leftHeight)
                     {
+                        var rightRightHeight = (newRightTree.Right as ImMapTree<V>)?.TreeHeight ?? 1;
                         var rightLeft = newRightTree.Left;
-                        var rightLeftTree = rightLeft as ImMapTree<V>;
-                        var rightRight = newRightTree.Right;
-                        var rightRightTree = rightRight as ImMapTree<V>;
-                        if (rightLeftTree != null)
-                        {
-                            if (rightRightTree != null)
-                            {
-                                if (rightRightTree.TreeHeight >= rightLeftTree.TreeHeight)
-                                {
-                                    rightLeftTree = new ImMapTree<V>(Data, leftHeight, Left, rightLeftTree.TreeHeight, rightLeft);
-                                    newRightTree.Left = rightLeftTree;
-                                    newRightTree.TreeHeight = rightLeftTree.TreeHeight > rightRightTree.TreeHeight ? rightLeftTree.TreeHeight + 1 : rightRightTree.TreeHeight + 1;
-                                    return newRightTree;
-                                    //return new ImMapTree<V>(newRightTree.Key, newRightTree.ValueOrData,
-                                    //    new ImMapTree<V>(Key, ValueOrData, leftHeight, Left, rightLeftTree.Height, rightLeft),
-                                    //    rightRightTree.Height, rightRight);
-                                }
+                        var rightLeftHeight = rightLeft.Height;
 
-                                //return new ImMapTree<V>(rightLeftTree.Data,
-                                //    new ImMapTree<V>(Data, leftHeight, Left, rightLeftTree.Left),
-                                //    new ImMapTree<V>(newRightTree.Data, rightLeftTree.Right, rightRightTree.Height, rightRight));
+                        if (rightRightHeight >= rightLeftHeight)
+                        {
+                            var rightLeftTree = new ImMapTree<V>(Data, leftHeight, Left, rightLeftHeight, rightLeft);
+                            newRightTree.Left = rightLeftTree;
+                            newRightTree.TreeHeight = rightLeftTree.TreeHeight > rightRightHeight ? rightLeftTree.TreeHeight + 1 : rightRightHeight + 1;
+                            return newRightTree;
+                        }
+                        else
+                        {
+                            if (rightLeft is ImMapTree<V> rightLeftTree)
+                            {
+                                newRightTree.Left = rightLeftTree.Right;
+                                var newRightLeftHeight = newRightTree.Left.Height;
+                                newRightTree.TreeHeight = newRightLeftHeight > rightRightHeight ? newRightLeftHeight + 1 : rightRightHeight + 1;
+                                return new ImMapTree<V>(rightLeftTree.Data,
+                                    new ImMapTree<V>(Data, leftHeight, Left, rightLeftTree.Left),
+                                    newRightTree);
                             }
 
-                            // right-left is tree and right-right is leaf - use a double rotation
-                            newRightTree.Left = rightLeftTree.Right;
-                            var newRightLeftHeight = newRightTree.Left.Height;
-                            var newRightRightHeight = rightRight.Height;
-                            newRightTree.TreeHeight = newRightLeftHeight > newRightRightHeight ? newRightLeftHeight + 1 : newRightRightHeight + 1;
+                            var rightLeftBranch = (ImMapBranch<V>)rightLeft;
+                            if (rightLeftBranch.IsRightOriented)
+                            {
+                                newRightTree.Right = rightLeftBranch.LeftOrRight;
+                                newRightTree.TreeHeight = 2;
+                                return new ImMapTree<V>(rightLeftBranch.Data, 
+                                    new ImMapBranch<V>(Data, (ImMapData<V>)Right), newRightTree, 3);
+                            }
 
-                            return new ImMapTree<V>(rightLeftTree.Data, 
-                                new ImMapTree<V>(Data, leftHeight, Left, rightLeftTree.Left), 
-                                newRightTree);
-                            //return new ImMapTree<V>(rightLeftTree.Data,
-                            //    new ImMapTree<V>(Data, leftHeight, Left, rightLeftTree.Left),
-                            //    new ImMapTree<V>(newRightTree.Data, rightLeftTree.Right, rightRight));
+                            // maybe we need to convert this to branch
+                            newRightTree.Right = Empty;
+                            newRightTree.TreeHeight = 2;
+                            return new ImMapTree<V>(rightLeftBranch.Data,
+                                new ImMapTree<V>(Data, leftHeight, Left, 1, rightLeftBranch.LeftOrRight), newRightTree);
                         }
-
-                        // `rightLeft` is leaf node and `rightRight` is the tree - use a single rotation
-                        rightLeftTree = new ImMapTree<V>(Data, leftHeight, Left, 1, rightLeft);
-                        newRightTree.Left = rightLeftTree;
-                        // ReSharper disable once PossibleNullReferenceException
-                        newRightTree.TreeHeight = rightLeftTree.TreeHeight > rightRightTree.TreeHeight ? rightLeftTree.TreeHeight + 1 : rightRightTree.TreeHeight + 1;
-                        return newRightTree;
-
-                        //return new ImMapTree<V>(newRightTree.Data,
-                        //    new ImMapTree<V>(Data, leftHeight, Left, 1, rightLeft),
-                        //    rightRightTree.Height, rightRight);
                     }
 
                     return new ImMapTree<V>(Data, leftHeight, Left, newRightTree.TreeHeight, newRightTree);
                 }
 
-                return new ImMapTree<V>(Data, Left, new ImMapLeaf<V>(key, value), 2);
+                return new ImMapTree<V>(Data, Left, new ImMapData<V>(key, value), 2);
             }
         }
     }
@@ -274,18 +417,45 @@ namespace ImTools.Benchmarks.ImMapFixedData4
         // todo: try switch expression
         /// Adds or updates the value by key in the map, always returns a modified map
         [MethodImpl((MethodImplOptions)256)]
-        public static ImMap<V> AddOrUpdate<V>(this ImMap<V> map, int key, V value) =>
-            map is ImMapTree<V> tree
-                ? key == tree.Data.Key
-                    ? new ImMapTree<V>(new ImMapLeaf<V>(key, value), tree.Left, tree.Right, tree.TreeHeight)
-                    : tree.AddOrUpdateLeftOrRight(key, value)
-            : map is ImMapLeaf<V> leaf
-                ? key > leaf.Key
-                    ? new ImMapTree<V>(leaf, ImMap<V>.Empty, new ImMapLeaf<V>(key, value), 2)
-                : key < leaf.Key
-                    ? new ImMapTree<V>(leaf, new ImMapLeaf<V>(key, value), ImMap<V>.Empty, 2)
-                : (ImMap<V>)new ImMapLeaf<V>(key, value)
-            : new ImMapLeaf<V>(key, value);
+        public static ImMap<V> AddOrUpdate<V>(this ImMap<V> map, int key, V value)
+        {
+            if (map is ImMapTree<V> tree)
+                return key == tree.Data.Key
+                    ? new ImMapTree<V>(new ImMapData<V>(key, value), tree.Left, tree.Right, tree.TreeHeight)
+                    : tree.AddOrUpdateLeftOrRight(key, value);
+
+            if (map is ImMapBranch<V> treeLeaf)
+            {
+                if (key > treeLeaf.Data.Key)
+                    return treeLeaf.IsLeftOriented 
+                        ? new ImMapTree<V>(treeLeaf.Data, treeLeaf.LeftOrRight, new ImMapData<V>(key, value))
+                        : key < treeLeaf.LeftOrRight.Key // rotate if right
+                            ? new ImMapTree<V>(new ImMapData<V>(key, value), treeLeaf.Data, treeLeaf.LeftOrRight) 
+                        : key > treeLeaf.LeftOrRight.Key
+                            ? new ImMapTree<V>(treeLeaf.LeftOrRight, treeLeaf.Data, new ImMapData<V>(key, value))
+                        : (ImMap<V>)new ImMapBranch<V>(treeLeaf.Data, new ImMapData<V>(key, value));
+
+                if (key < treeLeaf.Data.Key)
+                    return treeLeaf.IsRightOriented
+                        ? new ImMapTree<V>(treeLeaf.Data, new ImMapData<V>(key, value), treeLeaf.LeftOrRight)
+                        : key > treeLeaf.LeftOrRight.Key // rotate if left
+                            ? new ImMapTree<V>(new ImMapData<V>(key, value), treeLeaf.LeftOrRight, treeLeaf.Data)
+                        : key < treeLeaf.LeftOrRight.Key
+                            ? new ImMapTree<V>(treeLeaf.LeftOrRight, new ImMapData<V>(key, value), treeLeaf.Data)
+                        : (ImMap<V>)new ImMapBranch<V>(treeLeaf.Data, new ImMapData<V>(key, value));
+
+                return new ImMapBranch<V>(new ImMapData<V>(key, value), treeLeaf.LeftOrRight);
+            }
+
+            if (map is ImMapData<V> data)
+                return key > data.Key
+                    ? new ImMapBranch<V>(data, new ImMapData<V>(key, value))
+                : key < data.Key
+                    ? new ImMapBranch<V>(new ImMapData<V>(key, value), data)
+                : (ImMap<V>)new ImMapData<V>(key, value);
+            
+            return new ImMapData<V>(key, value);
+        }
 
         /// Returns true if key is found and sets the value.
         [MethodImpl((MethodImplOptions)256)]
@@ -306,7 +476,7 @@ namespace ImTools.Benchmarks.ImMapFixedData4
                 }
             }
 
-            if (map is ImMapLeaf<V> leaf && leaf.Key == key)
+            if (map is ImMapData<V> leaf && leaf.Key == key)
             {
                 value = leaf.Value;
                 return true;

@@ -367,7 +367,6 @@ namespace ImTools.UnitTests
             CollectionAssert.AreEqual(items, list);
         }
 
-
         [Test]
         public void Experimental_Folded_2_level_tree_values_should_be_returned_in_sorted_order()
         {
