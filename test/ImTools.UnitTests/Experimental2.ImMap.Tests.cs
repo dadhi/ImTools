@@ -126,6 +126,45 @@ namespace ImTools.Experimental2.UnitTests
         }
 
         [Test]
+        public void Test_double_rotation_in_tree_when_adding_to_the_right()
+        {
+            //            10                            10
+            //      5           15                5           15
+            //   3     7    12      20     =>  3     7    12      23
+            //                          25                      20   25
+            //                        23
+
+            var t = ImMap<int>.Empty
+                .AddOrUpdate(10, 10)
+
+                .AddOrUpdate(15, 15)
+                .AddOrUpdate(5,  5)
+                .AddOrUpdate(7,  7)
+
+                .AddOrUpdate(3,  3)
+                .AddOrUpdate(20, 20)
+                .AddOrUpdate(12, 12)
+                .AddOrUpdate(25, 25)
+
+                .AddOrUpdate(23, 23) // <- here
+
+                .To<ImMapTree<int>>();
+
+            Assert.AreEqual(10, t.To<ImMapTree<int>>().Data.Key);
+            
+            Assert.AreEqual(5,  t.To<ImMapTree<int>>().Left .To<ImMapTree<int>>().Data.Key);
+            Assert.AreEqual(3,  t.To<ImMapTree<int>>().Left .To<ImMapTree<int>>().Left .To<ImMapData<int>>().Key);
+            Assert.AreEqual(7,  t.To<ImMapTree<int>>().Left .To<ImMapTree<int>>().Right.To<ImMapData<int>>().Key);
+
+            Assert.AreEqual(15, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Data.Key);
+            Assert.AreEqual(12, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Left .To<ImMapData<int>>().Key);
+            
+            Assert.AreEqual(23, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Data.Key);
+            Assert.AreEqual(20, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Left .To<ImMapData<int>>().Key);
+            Assert.AreEqual(25, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Right.To<ImMapData<int>>().Key);
+        }
+
+        [Test]
         public void Test_balance_when_adding_10_items_to_the_right()
         {
             var t = ImMap<int>.Empty;

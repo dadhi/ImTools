@@ -161,11 +161,11 @@ namespace ImTools.Experimental2
                 if (left is ImMapData<V> leftLeaf)
                 {
                     Debug.Assert(Right != Empty, "Right could not be Empty  because we handled it with branch on a caller side");
-                    return key > leftLeaf.Key
+                    return key > leftLeaf.Key 
                             ? new ImMapTree<V>(Data, new ImMapBranch<V>(leftLeaf, new ImMapData<V>(key, value)), Right, 3)
-                        : key < leftLeaf.Key
+                        : key < leftLeaf.Key 
                             ? new ImMapTree<V>(Data, new ImMapBranch<V>(new ImMapData<V>(key, value), leftLeaf), Right, 3)
-                            : new ImMapTree<V>(Data, new ImMapData<V>(key, value), Right, TreeHeight);
+                        : new ImMapTree<V>(Data, new ImMapData<V>(key, value), Right, TreeHeight);
                 }
 
                 if (left is ImMapBranch<V> leftBranch)
@@ -198,7 +198,6 @@ namespace ImTools.Experimental2
                     return new ImMapTree<V>(Data, new ImMapBranch<V>(new ImMapData<V>(key, value), leftBranch.RightData), Right, TreeHeight);
                 }
 
-                // when the left is tree the right could not be empty
                 if (left is ImMapTree<V> leftTree)
                 {
                     if (key == leftTree.Data.Key)
@@ -258,13 +257,14 @@ namespace ImTools.Experimental2
             }
             else
             {
-                var right = Right;
+                var right = Right; 
                 if (right is ImMapData<V> rightLeaf)
                 {
-                    Debug.Assert(Left != Empty, "Left could not be Empty because we handled it with branch on a caller side");
+                    Debug.Assert(Left != Empty, "Left could not be Empty because we handled it with branch on the caller side");
                     return key > rightLeaf.Key
-                        ? new ImMapTree<V>(Data, Left, new ImMapBranch<V>(rightLeaf, new ImMapData<V>(key, value)), 3)
-                        : key < rightLeaf.Key ? new ImMapTree<V>(Data, Left, new ImMapBranch<V>(new ImMapData<V>(key, value), rightLeaf), 3) 
+                            ? new ImMapTree<V>(Data, Left, new ImMapBranch<V>(rightLeaf, new ImMapData<V>(key, value)), 3)
+                        : key < rightLeaf.Key 
+                            ? new ImMapTree<V>(Data, Left, new ImMapBranch<V>(new ImMapData<V>(key, value), rightLeaf), 3) 
                         : new ImMapTree<V>(Data, Left, new ImMapData<V>(key, value), TreeHeight);
                 }
 
