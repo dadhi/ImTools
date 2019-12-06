@@ -719,7 +719,7 @@ namespace ImTools.Experimental
                 ? key > tree.Data.Key ? new ImMapTree<V>(tree.Data, tree.Left, tree.Right.UpdateImpl(key, value), tree.TreeHeight)
                 : key < tree.Data.Key ? new ImMapTree<V>(tree.Data, tree.Left.UpdateImpl(key, value), tree.Right, tree.TreeHeight)
                 : new ImMapTree<V>(new ImMapData<V>(key, value), tree.Left, tree.Right, tree.TreeHeight)
-                : (ImMap<V>)new ImMapData<V>(key, value);
+            : (ImMap<V>)new ImMapData<V>(key, value);
     }
 
     /// The array of ImMap slots where the key first bits are used for FAST slot location

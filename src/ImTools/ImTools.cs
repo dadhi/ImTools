@@ -2962,9 +2962,9 @@ namespace ImTools
             ? new ImMap<V>(key, value)
             : key == Key
                 ? new ImMap<V>(key, updateValue(key, Value, value), Left, Right, Height)
-                : AddOrUpdateLeftOrRight(key, value, updateValue);
+                : AddOrUpdateLeftOrRightWithUpdate(key, value, updateValue);
 
-        private ImMap<V> AddOrUpdateLeftOrRight(int key, V value, Update<int, V> updateValue)
+        private ImMap<V> AddOrUpdateLeftOrRightWithUpdate(int key, V value, Update<int, V> updateValue)
         {
             if (key < Key)
             {
@@ -2984,7 +2984,7 @@ namespace ImTools
                         ? new ImMap<V>(Left.Key, Left.Value, new ImMap<V>(key, value), new ImMap<V>(Key, Value), 2)
                         : new ImMap<V>(key, value, new ImMap<V>(Left.Key, Left.Value), new ImMap<V>(Key, Value), 2);
 
-                var newLeft = Left.AddOrUpdateLeftOrRight(key, value);
+                var newLeft = Left.AddOrUpdateLeftOrRightWithUpdate(key, value, updateValue);
 
                 if (newLeft.Height > Right.Height + 1) // left is longer by 2, rotate left
                 {
@@ -3020,7 +3020,7 @@ namespace ImTools
                         ? new ImMap<V>(Right.Key, Right.Value, new ImMap<V>(Key, Value), new ImMap<V>(key, value), 2)
                         : new ImMap<V>(key, value, new ImMap<V>(Key, Value), new ImMap<V>(Right.Key, Right.Value), 2);
 
-                var newRight = Right.AddOrUpdateLeftOrRight(key, value);
+                var newRight = Right.AddOrUpdateLeftOrRightWithUpdate(key, value, updateValue);
 
                 if (newRight.Height > Left.Height + 1)
                 {
@@ -3843,7 +3843,7 @@ namespace ImTools
         public ImHashMap<K, V> AddOrUpdate(int hash, K key, V value, Update<K, V> update) =>
             Height == 0 ? new ImHashMap<K, V>(hash, key, value)
             : hash == Hash ? UpdateValueOrAddOrUpdateConflict(hash, key, value, update)
-            : AddOrUpdateLeftOrRight(hash, key, value, update);
+            : AddOrUpdateLeftOrRightWithUpdate(hash, key, value, update);
 
         private ImHashMap<K, V> UpdateValueOrAddOrUpdateConflict(int hash, K key, V value, Update<K, V> update)
         {
@@ -3855,7 +3855,7 @@ namespace ImTools
                 : AddOrUpdateConflict(conflictsData, hash, key, value, update);
         }
 
-        private ImHashMap<K, V> AddOrUpdateLeftOrRight(int hash, K key, V value, Update<K, V> update)
+        private ImHashMap<K, V> AddOrUpdateLeftOrRightWithUpdate(int hash, K key, V value, Update<K, V> update)
         {
             if (hash < Hash)
             {
@@ -3874,7 +3874,7 @@ namespace ImTools
                         new ImHashMap<K, V>(Left.Data), new ImHashMap<K, V>(Data), 2);
                 }
 
-                var left = Left.AddOrUpdateLeftOrRight(hash, key, value);
+                var left = Left.AddOrUpdateLeftOrRightWithUpdate(hash, key, value, update);
 
                 if (left.Height > Right.Height + 1) // left is longer by 2, rotate left
                 {
@@ -3910,7 +3910,7 @@ namespace ImTools
                         new ImHashMap<K, V>(Data), new ImHashMap<K, V>(hash, key, value), 2);
                 }
 
-                var right = Right.AddOrUpdateLeftOrRight(hash, key, value);
+                var right = Right.AddOrUpdateLeftOrRightWithUpdate(hash, key, value, update);
 
                 if (right.Height > Left.Height + 1)
                 {
