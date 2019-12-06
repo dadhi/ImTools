@@ -477,7 +477,6 @@ namespace ImTools.Experimental
                 : map
             : new ImMapData<V>(key, value);
 
-
         /// Returns a new map with added value for the specified key or the existing map if the key is already in the map.
         [MethodImpl((MethodImplOptions)256)]
         public static ImMap<V> AddOrKeep<V>(this ImMap<V> map, ImMapData<V> newData)
@@ -526,31 +525,7 @@ namespace ImTools.Experimental
             return false;
         }
 
-        /// <summary>
-        /// Returns true if key is found and sets the value.
-        /// </summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static ImMapData<V> GetDataOrDefault<V>(this ImMap<V> map, int key)
-        {
-            ImMapData<V> data;
-            while (map is ImMapTree<V> tree)
-            {
-                data = tree.Data;
-                if (key > data.Key)
-                    map = tree.Right;
-                else if (key < data.Key)
-                    map = tree.Left;
-                else
-                    return data;
-            }
-
-            data = map as ImMapData<V>;
-            return data != null && data.Key == key ? data : null;
-        }
-
-        /// <summary>
-        /// Returns true if key is found and sets the value.
-        /// </summary>
+        /// <summary> Returns true if key is found and sets the value. </summary>
         [MethodImpl((MethodImplOptions)256)]
         public static V GetValueOrDefault<V>(this ImMap<V> map, int key)
         {
@@ -570,8 +545,48 @@ namespace ImTools.Experimental
             return data != null && data.Key == key ? data.Value : default;
         }
 
+        /// <summary> Returns true if key is found and sets the value. </summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMapData<V> GetDataOrDefault<V>(this ImMap<V> map, int key)
+        {
+            ImMapData<V> data;
+            while (map is ImMapTree<V> tree)
+            {
+                data = tree.Data;
+                if (key > data.Key)
+                    map = tree.Right;
+                else if (key < data.Key)
+                    map = tree.Left;
+                else
+                    return data;
+            }
+
+            data = map as ImMapData<V>;
+            return data != null && data.Key == key ? data : null;
+        }
+
+        /// <summary> Returns true if key is found and sets the value. </summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static bool Contains<V>(this ImMap<V> map, int key)
+        {
+            ImMapData<V> data;
+            while (map is ImMapTree<V> tree)
+            {
+                data = tree.Data;
+                if (key > data.Key)
+                    map = tree.Right;
+                else if (key < data.Key)
+                    map = tree.Left;
+                else
+                    return true;
+            }
+
+            data = map as ImMapData<V>;
+            return data != null && data.Key == key;
+        }
+
         /// <summary>
-        /// Folds all the map nodes with the state from left to right and from the bottom to top
+        /// Folds all the map nodes with the state from the left to the right and from the bottom to the top
         /// You may pass `parentStacks` to reuse the array memory.
         /// NOTE: the length of `parentStack` should be at least of map height, content is not important and could be erased.
         /// </summary>
@@ -582,7 +597,13 @@ namespace ImTools.Experimental
             else if (map is ImMapTree<V> tree)
             {
                 if (tree.TreeHeight == 2)
-                    state = ReduceTwoLevelTree(tree, state, reduce);
+                {
+                    if (tree.Left is ImMapData<V> ld)
+                        state = reduce(ld, state);
+                    state = reduce(tree.Data, state);
+                    if (tree.Right is ImMapData<V> rd)
+                        state = reduce(rd, state);
+                }
                 else
                 {
                     parentStack = parentStack ?? new ImMapTree<V>[tree.TreeHeight - 2];
@@ -593,7 +614,11 @@ namespace ImTools.Experimental
                         {
                             if (tree.TreeHeight == 2)
                             {
-                                ReduceTwoLevelTree(tree, state, reduce);
+                                if (tree.Left is ImMapData<V> ld)
+                                    state = reduce(ld, state);
+                                state = reduce(tree.Data, state);
+                                if (tree.Right is ImMapData<V> rd)
+                                    state = reduce(rd, state);
                                 if (parentIndex == -1)
                                     break;
                                 tree = parentStack[parentIndex--];
@@ -608,8 +633,7 @@ namespace ImTools.Experimental
                         }
                         else
                         {
-                            data = (ImMapData<V>)map;
-                            state = reduce(data, state);
+                            state = reduce((ImMapData<V>)map, state);
                             if (parentIndex == -1)
                                 break;
                             tree = parentStack[parentIndex--];
@@ -624,20 +648,78 @@ namespace ImTools.Experimental
             return state;
         }
 
-        [MethodImpl((MethodImplOptions)256)]
-        private static S ReduceTwoLevelTree<V, S>(ImMapTree<V> tree, S state, Func<ImMapData<V>, S, S> reduce)
+        /// <summary>
+        /// Visits all the map nodes with from the left to the right and from the bottom to the top
+        /// You may pass `parentStacks` to reuse the array memory.
+        /// NOTE: the length of `parentStack` should be at least of map height, content is not important and could be erased.
+        /// </summary>
+        public static void Visit<V>(this ImMap<V> map, Action<ImMapData<V>> visit, ImMapTree<V>[] parentStack = null)
         {
-            if (tree.Left is ImMapTree<V> lt)
-                state = reduce(lt.Data, state);
-            else if (tree.Left is ImMapData<V> ld)
-                state = reduce(ld, state);
-            state = reduce(tree.Data, state);
-            if (tree.Right is ImMapTree<V> rt)
-                state = reduce(rt.Data, state);
-            else if (tree.Right is ImMapData<V> rd)
-                state = reduce(rd, state);
-            return state;
+            if (map is ImMapData<V> data)
+                visit(data);
+            else if (map is ImMapTree<V> tree)
+            {
+                if (tree.TreeHeight == 2)
+                {
+                    if (tree.Left is ImMapData<V> ld)
+                        visit(ld);
+                    visit(tree.Data);
+                    if (tree.Right is ImMapData<V> rd)
+                        visit(rd);
+                }
+                else
+                {
+                    parentStack = parentStack ?? new ImMapTree<V>[tree.TreeHeight - 2];
+                    var parentIndex = -1;
+                    do
+                    {
+                        if ((tree = map as ImMapTree<V>) != null)
+                        {
+                            if (tree.TreeHeight == 2)
+                            {
+                                if (tree.Left is ImMapData<V> ld)
+                                    visit(ld);
+                                visit(tree.Data);
+                                if (tree.Right is ImMapData<V> rd)
+                                    visit(rd);
+                                if (parentIndex == -1)
+                                    break;
+                                tree = parentStack[parentIndex--];
+                                visit(tree.Data);
+                                map = tree.Right;
+                            }
+                            else
+                            {
+                                parentStack[++parentIndex] = tree;
+                                map = tree.Left;
+                            }
+                        }
+                        else
+                        {
+                            visit((ImMapData<V>)map);
+                            if (parentIndex == -1)
+                                break;
+                            tree = parentStack[parentIndex--];
+                            visit(tree.Data);
+                            map = tree.Right;
+                        }
+                    }
+                    while (map != ImMap<V>.Empty);
+                }
+            }
         }
+
+        ///<summary>Returns the new map with the updated value for the key, or the same map if the key was not found.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMap<V> Update<V>(this ImMap<V> map, int key, V value) =>
+            map.Contains(key) ? map.UpdateImpl(key, value) : map;
+
+        internal static ImMap<V> UpdateImpl<V>(this ImMap<V> map, int key, V value) =>
+            map is ImMapTree<V> tree
+                ? key > tree.Data.Key ? new ImMapTree<V>(tree.Data, tree.Left, tree.Right.UpdateImpl(key, value), tree.TreeHeight)
+                : key < tree.Data.Key ? new ImMapTree<V>(tree.Data, tree.Left.UpdateImpl(key, value), tree.Right, tree.TreeHeight)
+                : new ImMapTree<V>(new ImMapData<V>(key, value), tree.Left, tree.Right, tree.TreeHeight)
+                : (ImMap<V>)new ImMapData<V>(key, value);
     }
 
     /// The array of ImMap slots where the key first bits are used for FAST slot location

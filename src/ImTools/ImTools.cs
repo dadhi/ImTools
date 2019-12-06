@@ -2333,9 +2333,10 @@ namespace ImTools
     public static class KV
     {
         /// <summary>Creates the key value pair.</summary>
-        /// <typeparam name="K">Key type</typeparam> <typeparam name="V">Value type</typeparam>
-        /// <param name="key">Key</param> <param name="value">Value</param> <returns>New pair.</returns>
         public static KV<K, V> Of<K, V>(K key, V value) => new KV<K, V>(key, value);
+
+        /// <summary>Creates the pair with the new value</summary>
+        public static KV<K, V> WithValue<K, V>(this KV<K, V> kv, V value) => new KV<K, V>(kv.Key, value);
     }
 
     /// Simple helper for creation of the pair of two parts.
@@ -3039,7 +3040,7 @@ namespace ImTools
             }
         }
 
-        /// Returns the new map with the updated value for the key, or the same map if the key was not found.
+        ///<summary>Returns the new map with the updated value for the key, or the same map if the key was not found.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public ImMap<V> Update(int key, V value) => 
             this.TryFind(key, out _) ? UpdateImpl(key, value) : this;
