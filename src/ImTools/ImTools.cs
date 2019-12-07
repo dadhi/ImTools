@@ -4306,7 +4306,23 @@ namespace ImTools
             return result;
         }
 
-        /// Searches for the key in the node conflicts
+        /// <summary> Searches for the key in the conflicts and returns true if found </summary>
+        public bool ContainsConflictedData(K key)
+        {
+            if (Conflicts != null)
+            {
+                var conflicts = Conflicts;
+                for (var i = 0; i < conflicts.Length; ++i)
+                {
+                    var data = conflicts[i];
+                    if (key.Equals(data.Key))
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary> Searches for the key in the node conflicts </summary>
         public ImHashMapData<K, V> GetConflictedDataOrDefault(K key)
         {
             if (Conflicts != null)
@@ -4433,7 +4449,21 @@ namespace ImTools
                 map.GetConflictedDataOrDefault(key);
         }
 
-        /// Looks for key in a tree and returns the Data object if found or `null` otherwise.
+        /// <summary> Looks for key in a tree and returns `true` if found. </summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static bool Contains<K, V>(this ImHashMap<K, V> map, int hash, K key)
+        {
+            while (map.Height != 0 && map.Hash != hash)
+                map = hash < map.Hash ? map.Left : map.Right;
+            return map.Height != 0 && (key.Equals(map.Key) || map.ContainsConflictedData(key));
+        }
+
+        /// <summary> Looks for key in a tree and returns `true` if found. </summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static bool Contains<K, V>(this ImHashMap<K, V> map, K key) =>
+            map.Height != 0 && map.Contains(key.GetHashCode(), key);
+
+        /// <summary> Looks for key in a tree and returns the Data object if found or `null` otherwise. </summary> 
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMapData<K, V> GetDataOrDefault<K, V>(this ImHashMap<K, V> map, K key)
         {
