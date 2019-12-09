@@ -250,7 +250,6 @@ namespace ImTools.Experimental2
                 }
 
                 var leftLeaf = (ImMapData<V>)left;
-                Debug.Assert(Right != Empty, "Right could not be Empty  because we handled it with branch on a caller side");
                 return key > leftLeaf.Key
                         ? new ImMapTree<V>(Data, new ImMapBranch<V>(leftLeaf, new ImMapData<V>(key, value)), Right, 3)
                     : key < leftLeaf.Key
@@ -272,7 +271,6 @@ namespace ImTools.Experimental2
                     if (newRightTree.TreeHeight == rightTree.TreeHeight)
                         return new ImMapTree<V>(Data, Left, newRightTree, TreeHeight);
 
-                    // the fact: left is not Empty
                     if (Left is ImMapData<V> leftLeaf)
                     {
                         // here we need to re-balance by default, because the new right tree is at least 3 level (actually exactly 3 or it would be too unbalanced)
@@ -349,7 +347,6 @@ namespace ImTools.Experimental2
                 }
 
                 var rightLeaf = (ImMapData<V>)right;
-                Debug.Assert(Left != Empty, "Left could not be Empty because we handled it with branch on the caller side");
                 return key > rightLeaf.Key
                     ? new ImMapTree<V>(Data, Left, new ImMapBranch<V>(rightLeaf, new ImMapData<V>(key, value)), 3)
                     : key < rightLeaf.Key
@@ -362,9 +359,7 @@ namespace ImTools.Experimental2
     /// ImMap methods
     public static class ImMap
     {
-        /// <summary>
-        /// Adds or updates the value by key in the map, always returns a modified map
-        /// </summary>
+        /// <summary> Adds or updates the value by key in the map, always returns a modified map </summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImMap<V> AddOrUpdate<V>(this ImMap<V> map, int key, V value)
         {
@@ -439,6 +434,9 @@ namespace ImTools.Experimental2
                     value = branch.RightData.Value;
                     return true;
                 }
+
+                value = default;
+                return false;
             }
 
             data = map as ImMapData<V>;
@@ -452,9 +450,32 @@ namespace ImTools.Experimental2
             return false;
         }
 
-        /// <summary>
-        /// Returns the value if key is found or default value otherwise.
-        /// </summary>
+        /// <summary> Returns the data slot if key is found or null otherwise. </summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMapData<V> GetDataOrDefault<V>(this ImMap<V> map, int key)
+        {
+            ImMapData<V> data;
+            while (map is ImMapTree<V> tree)
+            {
+                data = tree.Data;
+                if (key > data.Key)
+                    map = tree.Right;
+                else if (key < data.Key)
+                    map = tree.Left;
+                else
+                    return data;
+            }
+
+            if (map is ImMapBranch<V> branch)
+                return branch.Data.Key == key ? branch.Data
+                    : branch.RightData.Key == key ? branch.RightData
+                    : null;
+
+            data = map as ImMapData<V>;
+            return data != null && data.Key == key ? data : null;
+        }
+
+        /// <summary> Returns the value if key is found or default value otherwise. </summary>
         [MethodImpl((MethodImplOptions)256)]
         public static V GetValueOrDefault<V>(this ImMap<V> map, int key)
         {
@@ -471,13 +492,9 @@ namespace ImTools.Experimental2
             }
 
             if (map is ImMapBranch<V> branch)
-            {
-                if (branch.Data.Key == key)
-                    return branch.Data.Value;
-
-                if (branch.RightData.Key == key)
-                    return branch.RightData.Value;
-            }
+                return branch.Data.Key == key ? branch.Data.Value 
+                    : branch.RightData.Key == key ? branch.RightData.Value 
+                    : default;
 
             data = map as ImMapData<V>;
             if (data != null && data.Key == key)
@@ -493,6 +510,9 @@ namespace ImTools.Experimental2
         /// </summary>
         public static S Fold<V, S>(this ImMap<V> map, S state, Func<ImMapData<V>, S, S> reduce, ImMapTree<V>[] parentStack = null)
         {
+            if (map == ImMap<V>.Empty)
+                return state;
+
             if (map is ImMapData<V> leaf)
             {
                 state = reduce(leaf, state);
@@ -511,7 +531,7 @@ namespace ImTools.Experimental2
                 {
                     parentStack = parentStack ?? new ImMapTree<V>[tree.TreeHeight - 2];
                     var parentIndex = -1;
-                    do
+                    while (true)
                     {
                         if ((tree = map as ImMapTree<V>) != null)
                         {
@@ -549,7 +569,6 @@ namespace ImTools.Experimental2
                             map = tree.Right;
                         }
                     }
-                    while (map != ImMap<V>.Empty);
                 }
             }
 
