@@ -2367,9 +2367,12 @@ namespace ImTools
         public T OrDefault(T defaultValue = default) => HasValue ? Value : defaultValue;
     }
 
-    /// Ever growing stack
+    /// <summary>Ever growing stack</summary>
     public struct GrowingStack<T>
     {
+        /// <summary>Default initial capacity </summary>
+        public const int DefaultInitialCapacity = 2;
+
         /// The items array
         public T[] Items;
 
@@ -2386,7 +2389,9 @@ namespace ImTools
         /// Push the new slot and return the ref to it
         public ref T PushSlot()
         {
-            if (Count >= Items.Length)
+            if (Items == null)
+                Items = new T[DefaultInitialCapacity];
+            else if (Count >= Items.Length)
                 Items = Expand(Items);
             return ref Items[Count++];
         }
@@ -2394,7 +2399,9 @@ namespace ImTools
         /// Adds the new item possibly extending the item collection
         public void PushSlot(T item)
         {
-            if (Count >= Items.Length)
+            if (Items == null)
+                Items = new T[DefaultInitialCapacity];
+            else if (Count >= Items.Length)
                 Items = Expand(Items);
             Items[Count++] = item;
         }
@@ -2410,6 +2417,10 @@ namespace ImTools
             Array.Copy(items, 0, newItems, 0, count);
             return newItems;
         }
+
+        /// <inheritdoc />
+        public override string ToString() =>
+            $"Count {Count} of {(Count == 0 || Items == null || Items.Length == 0 ? "empty" : "first (" + Items[0] + ") and last (" + Items[Count - 1] + ")")}";
     }
 
     /// <summary>Immutable list - simplest linked list with the Head and the Tail.</summary>
