@@ -4449,6 +4449,92 @@ namespace ImTools
             return state;
         }
 
+        /// <summary>
+        /// Depth-first in-order traversal as described in http://en.wikipedia.org/wiki/Tree_traversal
+        /// The only difference is using fixed size array instead of stack for speed-up.
+        /// Note: By passing <paramref name="parentsStack"/> you may reuse the stack array between different method calls,
+        /// but it should be at least <see cref="ImHashMap{K,V}.Height"/> length. The contents of array are not important.
+        /// </summary>
+        public void Visit(Action<ImHashMapEntry<K, V>> effect, ImHashMap<K, V>[] parentsStack = null)
+        {
+            if (Height == 1 && Entry is ImHashMapConflicts<K, V> == false)
+                effect(Entry);
+            else if (Height != 0)
+            {
+                parentsStack = parentsStack ?? new ImHashMap<K, V>[Height];
+                var node = this;
+                var parentCount = -1;
+                while (node.Height != 0 || parentCount != -1)
+                {
+                    if (node.Height != 0)
+                    {
+                        parentsStack[++parentCount] = node;
+                        node = node.Left;
+                    }
+                    else
+                    {
+                        node = parentsStack[parentCount--];
+
+                        if (!(node.Entry is ImHashMapConflicts<K, V> conflicts))
+                            effect(node.Entry);
+                        else
+                        {
+                            var conflict = conflicts.Conflicts;
+                            for (var i = 0; i < conflict.Length; i++)
+                                effect(conflict[i]);
+                        }
+
+                        node = node.Right;
+                    }
+                }
+            }
+        }
+
+        /// <summary> Finds the first entry matching the condition, returns `null` if not found </summary>
+        public ImHashMapEntry<K, V> FindFirstOrDefault(Func<ImHashMapEntry<K, V>, bool> condition, ImHashMap<K, V>[] parentsStack = null)
+        {
+            if (Height == 1 && Entry is ImHashMapConflicts<K, V> == false)
+            {
+                if (condition(Entry))
+                    return Entry;
+            }
+            else if (Height != 0)
+            {
+                parentsStack = parentsStack ?? new ImHashMap<K, V>[Height];
+                var node = this;
+                var parentCount = -1;
+                while (node.Height != 0 || parentCount != -1)
+                {
+                    if (node.Height != 0)
+                    {
+                        parentsStack[++parentCount] = node;
+                        node = node.Left;
+                    }
+                    else
+                    {
+                        node = parentsStack[parentCount--];
+
+                        if (!(node.Entry is ImHashMapConflicts<K, V> conflicts))
+                        {
+                            if (condition(node.Entry))
+                                return node.Entry;
+                        }
+                        else
+                        {
+                            var conflictedEntries = conflicts.Conflicts;
+                            for (var i = 0; i < conflictedEntries.Length; i++)
+                                if (condition(conflictedEntries[i]))
+                                    return conflictedEntries[i];
+                        }
+
+                        node = node.Right;
+                    }
+                }
+            }
+
+            return null;
+        }
+
         /// Removes or updates value for specified key, or does nothing if the key is not found (returns the unchanged map)
         /// Based on Eric Lippert http://blogs.msdn.com/b/ericlippert/archive/2008/01/21/immutability-in-c-part-nine-academic-plus-my-avl-tree-implementation.aspx
         public ImHashMap<K, V> Remove(int hash, K key) =>
