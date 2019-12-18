@@ -2367,8 +2367,8 @@ namespace ImTools
         public T OrDefault(T defaultValue = default) => HasValue ? Value : defaultValue;
     }
 
-    /// <summary>Ever growing stack</summary>
-    public struct GrowingStack<T>
+    /// <summary>Ever growing list</summary>
+    public struct GrowingList<T>
     {
         /// <summary>Default initial capacity </summary>
         public const int DefaultInitialCapacity = 2;
@@ -2380,7 +2380,7 @@ namespace ImTools
         public int Count;
 
         /// Constructs the thing 
-        public GrowingStack(T[] items, int count = 0)
+        public GrowingList(T[] items, int count = 0)
         {
             Items = items;
             Count = count;
@@ -3115,6 +3115,7 @@ namespace ImTools
             }
         }
 
+        // todo: add `FindFirst`
         /// <summary>
         /// Folds all the map nodes with the state from left to right and from the bottom to top
         /// You may pass `parentStacks` to reuse the array memory.
