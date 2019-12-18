@@ -26,13 +26,14 @@
         
         ### Features
         
-        - Added Descriminated Union (ADT Sum-type) and single case typed wrapper
-        - Faster and less allocative ImMap and ImHashMap with ability to specialize lookup for Key type 
+        - Faster and less allocative ImMap and ImHashMap with more methods (plus bucketed ImMapSlots and ImHashMapSlots variants)
+        - Algebraic sum-type aka descriminated union
+        - GrowingList<T>, ImZip<T>, StackPool<T>, Fun extensions, Ref.Swap now accepts state for closure-less lambdas, and more
         
         ## Fixes
             
         - fixed: wrong KV<K,V> ToString output
-
+        - fixed: likely manythings
 ]]>
     </PackageReleaseNotes>
     </PropertyGroup>

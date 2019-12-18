@@ -21,7 +21,7 @@ echo:## Finished: TESTS
 echo: 
 echo:## Finished: TESTS
 echo: 
-call BuildScripts\NugetPack.bat
+call build\NugetPack.bat
 if %ERRORLEVEL% neq 0 goto :error
 echo:
 echo:## Finished: PACKAGING ##

@@ -35,10 +35,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImTools.UnitTests", "test\I
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImTools.Benchmarks", "playground\ImTools.Benchmarks\ImTools.Benchmarks.csproj", "{113D7A58-BA48-4C82-9E3C-0862BE1186A5}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "BuildScripts", "BuildScripts", "{CD913EEB-7AF4-47E3-8B7C-02235E5DCDE4}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{CD913EEB-7AF4-47E3-8B7C-02235E5DCDE4}"
 	ProjectSection(SolutionItems) = preProject
-		BuildScripts\NuGetPack.bat = BuildScripts\NuGetPack.bat
-		BuildScripts\NuGetPublish.bat = BuildScripts\NuGetPublish.bat
+		build\NuGetPack.bat = build\NuGetPack.bat
+		build\NuGetPublish.bat = build\NuGetPublish.bat
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "nuspecs", "nuspecs", "{29BC7B76-D817-425F-98F1-A92454D23857}"
