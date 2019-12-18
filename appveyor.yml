@@ -10,4 +10,4 @@ skip_commits:
   message: /skip .*/
 
 artifacts:
-- path: ./src/ImTools/dist/*.nupkg
+- path: ./.dist/packages/*.nupkg
