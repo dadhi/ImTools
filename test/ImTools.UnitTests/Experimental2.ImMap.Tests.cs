@@ -1,6 +1,6 @@
 using NUnit.Framework;
 
-namespace ImTools.Experimental2.UnitTests
+namespace ImTools.Experimental.UnitTests
 {
     [TestFixture]
     public class ImMapTests

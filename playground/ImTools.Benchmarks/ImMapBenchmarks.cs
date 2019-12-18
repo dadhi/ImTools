@@ -6,7 +6,6 @@ using BenchmarkDotNet.Attributes;
 using ImTools;
 using ImTools.Experimental;
 using Microsoft.Collections.Extensions;
-using ImMap = ImTools.ImMap;
 using ImMapSlots = ImTools.ImMapSlots;
 
 namespace Playground
@@ -213,10 +212,10 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
 */
 
-            [Params(1, 2, 3, 10, 100)]//], 1_000, 10_000, 100_000)]
+            [Params(1, 10, 100, 1_000, 10_000, 100_000)]
             public int Count;
 
-            //[Benchmark(Baseline = true)]
+            [Benchmark(Baseline = true)]
             public ImTools.ImMap<string> ImMap_AddOrUpdate()
             {
                 var map = ImTools.ImMap<string>.Empty;
@@ -227,7 +226,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public ImTools.OldVersions.V1.ImMap<string> ImMap_V1_AddOrUpdate()
             {
                 var map = ImTools.OldVersions.V1.ImMap<string>.Empty;
@@ -238,8 +237,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            //[Benchmark]
-            //[Benchmark(Baseline = true)]
+            [Benchmark]
             public ImTools.Experimental.ImMap<string> ImMap_Experimental_AddOrUpdate()
             {
                 var map = ImTools.Experimental.ImMap<string>.Empty;
@@ -250,18 +248,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            //[Benchmark]
-            public ImTools.Experimental2.ImMap<string> ImMap_Experimental2_AddOrUpdate()
-            {
-                var map = ImTools.Experimental2.ImMap<string>.Empty;
-
-                for (var i = 0; i < Count; i++)
-                    map = ImTools.Experimental2.ImMap.AddOrUpdate(map, i, i.ToString());
-
-                return map;
-            }
-
-            //[Benchmark]
+            [Benchmark]
             public ImTools.ImMap<string>[] ImMapSlots_AddOrUpdate()
             {
                 var slots = ImMapSlots.CreateWithEmpty<string>();
@@ -272,8 +259,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return slots;
             }
 
-            //[Benchmark]
-            [Benchmark(Baseline = true)]
+            [Benchmark]
             public ImTools.Experimental.ImMap<string>[] ImMapSlots_Experimental_AddOrUpdate()
             {
                 var slots = ImTools.Experimental.ImMapSlots.CreateWithEmpty<string>();
@@ -285,17 +271,6 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             }
 
             [Benchmark]
-            public ImTools.Experimental2.ImMap<string>[] ImMapSlots_Experimental2_AddOrUpdate()
-            {
-                var slots = ImTools.Experimental2.ImMapSlots.CreateWithEmpty<string>();
-
-                for (var i = 0; i < Count; i++)
-                    ImTools.Experimental2.ImMapSlots.AddOrUpdate(slots, i, i.ToString());
-
-                return slots;
-            }
-
-            //[Benchmark]
             public DictionarySlim<int, string> DictSlim_GetOrAddValueRef()
             {
                 var map = new DictionarySlim<int, string>();
@@ -306,7 +281,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public Dictionary<int, string> Dict_TryAdd()
             {
                 var map = new Dictionary<int, string>();
@@ -317,7 +292,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public ConcurrentDictionary<int, string> ConcurrentDict_TryAdd()
             {
                 var map = new ConcurrentDictionary<int, string>();
@@ -328,7 +303,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public ImmutableDictionary<int, string> ImmutableDict_Add()
             {
                 var map = ImmutableDictionary<int, string>.Empty;
@@ -602,16 +577,6 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            private ImTools.Experimental2.ImMap<string> _mapExp2;
-            public ImTools.Experimental2.ImMap<string> AddOrUpdate_Exp2()
-            {
-                var map = ImTools.Experimental2.ImMap<string>.Empty;
-
-                for (var i = 0; i < Count; i++)
-                    map = ImTools.Experimental2.ImMap.AddOrUpdate(map, i, i.ToString());
-
-                return map;
-            }
 
             private ImTools.ImMap<string>[] _mapSlots;
             public ImTools.ImMap<string>[] AddOrUpdate_ImMapSlots()
@@ -679,7 +644,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            [Params(1, 10, 100)]//, 1_000, 10_000, 100_000)]
+            [Params(1, 10, 100, 1_000, 10_000, 100_000)]
             public int Count;
 
             public int LookupMaxKey;
@@ -692,7 +657,6 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 _map = AddOrUpdate();
                 _mapV1 = AddOrUpdate_V1();
                 _mapExp = AddOrUpdate_Exp();
-                _mapExp2 = AddOrUpdate_Exp2();
                 _mapSlots = AddOrUpdate_ImMapSlots();
                 _mapSlotsExp = AddOrUpdate_ImMapSlots_Exp();
                 _dictSlim = DictSlim();
@@ -708,7 +672,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return result;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public string ImMap_V1_TryFind()
             {
                 _mapV1.TryFind(LookupMaxKey, out var result);
@@ -716,7 +680,6 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             }
 
             [Benchmark]
-            //[Benchmark(Baseline = true)]
             public string ImMap_Experimental_TryFind()
             {
                 _mapExp.TryFind(LookupMaxKey, out var result);
@@ -724,67 +687,41 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             }
 
             [Benchmark]
-            //[Benchmark(Baseline = true)]
-            public string ImMap_Experimental2_TryFind()
-            {
-                ImTools.Experimental2.ImMap.TryFind(_mapExp2, LookupMaxKey, out var result);
-                return result;
-            }
-
-            //[Benchmark]
-            public string ImMap_Experimental_GetValueOrDefault()
-            {
-                return _mapExp.GetValueOrDefault(LookupMaxKey);
-            }
-
-            //[Benchmark]
             public string ImMapSlots_TryFind()
             {
                 _mapSlots[LookupMaxKey & ImMapSlots.KEY_MASK_TO_FIND_SLOT].TryFind(LookupMaxKey, out var result);
                 return result;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public string ImMapSlots_Experimental_TryFind()
             {
                 _mapSlotsExp[LookupMaxKey & ImTools.Experimental.ImMapSlots.KEY_MASK_TO_FIND_SLOT].TryFind(LookupMaxKey, out var result);
                 return result;
             }
 
-            //[Benchmark]
-            public string ImMap_GetValueOrDefault()
-            {
-                return _map.GetValueOrDefault(LookupMaxKey);
-            }
-
-            //[Benchmark]
-            public string ImMap_V1_GetValueOrDefault()
-            {
-                return _mapV1.GetValueOrDefault(LookupMaxKey);
-            }
-
-            //[Benchmark]
+            [Benchmark]
             public string DictSlim_TryGetValue()
             {
                 _dictSlim.TryGetValue(LookupMaxKey, out var result);
                 return result;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public string Dict_TryGetValue()
             {
                 _dict.TryGetValue(LookupMaxKey, out var result);
                 return result;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public string ConcurrentDict_TryGetValue()
             {
                 _concurDict.TryGetValue(LookupMaxKey, out var result);
                 return result;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public string ImmutableDict_TryGetValue()
             {
                 _immutableDict.TryGetValue(LookupMaxKey, out var result);
@@ -913,17 +850,6 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            private ImTools.Experimental2.ImMap<string> _mapExp2;
-            public ImTools.Experimental2.ImMap<string> AddOrUpdate_Exp2()
-            {
-                var map = ImTools.Experimental2.ImMap<string>.Empty;
-
-                for (var i = 0; i < Count; i++)
-                    map = ImTools.Experimental2.ImMap.AddOrUpdate(map, i, i.ToString());
-
-                return map;
-            }
-
             private ImTools.ImMap<string>[] _mapSlots;
             public ImTools.ImMap<string>[] AddOrUpdate_ImMapSlots()
             {
@@ -992,7 +918,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
             #endregion
 
-            [Params(1, 10, 100, 1_000)]//, 10_000, 100_000)]
+            [Params(1, 10, 100, 1_000, 10_000, 100_000)]
             public int Count;
 
             [GlobalSetup]
@@ -1001,7 +927,6 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 _map = AddOrUpdate();
                 _mapV1 = AddOrUpdate_V1();
                 _mapExp = AddOrUpdate_Exp();
-                _mapExp2 = AddOrUpdate_Exp2();
                 _mapSlots = AddOrUpdate_ImMapSlots();
                 _mapSlotsExp = AddOrUpdate_ImMapSlots_Exp();
                 _dictSlim = DictSlim();
@@ -1010,19 +935,19 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 _immutableDict = ImmutableDict();
             }
 
-            //[Benchmark(Baseline = true)]
+            [Benchmark(Baseline = true)]
             public object ImMap_EnumerateToArray() => 
                 _map.Enumerate().ToArray();
 
-            //[Benchmark]
+            [Benchmark]
             public object ImMap_V1_EnumerateToArray() =>
                 _mapV1.Enumerate().ToArray();
 
-            //[Benchmark]
+            [Benchmark]
             public object ImMap_FoldToArray() =>
                 _map.Fold(new List<ImTools.ImMap<string>>(), (item, list) => { list.Add(item); return list; }).ToArray();
 
-            //[Benchmark]
+            [Benchmark]
             public object ImMap_FoldToArray_FoldReducerStruct() =>
                 _map.Fold(new List<ImTools.ImMap<string>>(), new AddToListReducer()).ToArray();
 
@@ -1035,29 +960,24 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 }
             }
 
-            //[Benchmark]
+            [Benchmark]
             public object ImMapSlots_FoldToArray() => 
                 _mapSlots.Fold(new List<ImTools.ImMap<string>>(), (item, list) => { list.Add(item); return list; }).ToArray();
 
-            //[Benchmark]
-            [Benchmark(Baseline = true)]
+            [Benchmark]
             public object ImMap_Experimental_FoldToArray() =>
                 _mapExp.Fold(new List<ImMapEntry<string>>(), (item, list) => { list.Add(item); return list; }).ToArray();
 
             [Benchmark]
-            public object ImMap_Experimental2_FoldToArray() =>
-                ImTools.Experimental2.ImMap.Fold(_mapExp2, new List<ImTools.Experimental2.ImMapEntry<string>>(), (item, list) => { list.Add(item); return list; }).ToArray();
-
-            //[Benchmark]
             public object DictSlim_ToArray() => _dictSlim.ToArray();
 
-            //[Benchmark]
+            [Benchmark]
             public object Dict_ToArray() => _dict.ToArray();
 
-            //[Benchmark]
+            [Benchmark]
             public object ConcurrentDict_ToArray() => _concurDict.ToArray();
 
-            //[Benchmark]
+            [Benchmark]
             public object ImmutableDict_ToArray() => _immutableDict.ToArray();
         }
     }
