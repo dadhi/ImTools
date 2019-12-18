@@ -713,6 +713,29 @@ namespace ImTools.Experimental2
             return new ImMapEntry<V>(key, value);
         }
 
+        ///<summary>Returns the new map with the value set to default, or the same map if the key was not found.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMap<V> UpdateToDefault<V>(this ImMap<V> map, int key) =>
+            map.Contains(key) ? map.UpdateToDefaultImpl(key) : map;
+
+        internal static ImMap<V> UpdateToDefaultImpl<V>(this ImMap<V> map, int key)
+        {
+            if (map is ImMapTree<V> tree)
+                return key > tree.Entry.Key
+                    ? new ImMapTree<V>(tree.Entry, tree.Left, tree.Right.UpdateToDefaultImpl(key), tree.TreeHeight)
+                    : key < tree.Entry.Key
+                        ? new ImMapTree<V>(tree.Entry, tree.Left.UpdateToDefaultImpl(key), tree.Right, tree.TreeHeight)
+                        : new ImMapTree<V>(new ImMapEntry<V>(key), tree.Left, tree.Right, tree.TreeHeight);
+
+            // the key was found - so it should be either entry or right entry
+            if (map is ImMapBranch<V> branch)
+                return key == branch.Entry.Key
+                    ? new ImMapBranch<V>(new ImMapEntry<V>(key), branch.RightEntry)
+                    : new ImMapBranch<V>(branch.Entry, new ImMapEntry<V>(key));
+
+            return new ImMapEntry<V>(key);
+        }
+
         /// <summary> Returns `true` if key is found or `false` otherwise. </summary>
         [MethodImpl((MethodImplOptions)256)]
         public static bool Contains<V>(this ImMap<V> map, int key)
