@@ -4239,6 +4239,54 @@ namespace ImTools
         public ImHashMap<K, V> Update(K key, V value, Update<V> update) =>
             Update(key.GetHashCode(), key, value, update.IgnoreKey);
 
+        /// Updates the map with the Default (null for reference types) value if key is found, otherwise returns the same unchanged map.
+        [MethodImpl((MethodImplOptions) 256)]
+        public ImHashMap<K, V> UpdateToDefault(int hash, K key)
+        {
+            if (Height == 0)
+                return this;
+
+            // No need to balance cause we not adding or removing nodes
+            if (hash < Hash)
+            {
+                var left = Left.UpdateToDefault(hash, key);
+                return left == Left ? this : new ImHashMap<K, V>(Entry, left, Right, Height);
+            }
+
+            if (hash > Hash)
+            {
+                var right = Right.UpdateToDefault(hash, key);
+                return right == Right ? this : new ImHashMap<K, V>(Entry, Left, right, Height);
+            }
+
+            var conflictsData = Entry as ImHashMapConflicts<K, V>;
+            if (conflictsData == null && (ReferenceEquals(Key, key) || Key.Equals(key)))
+                return new ImHashMap<K, V>(new ImHashMapEntry<K, V>(hash, key), Left, Right, Height);
+
+            return UpdateConflictToDefault(conflictsData, hash, key);
+        }
+
+        private ImHashMap<K, V> UpdateConflictToDefault(ImHashMapConflicts<K, V> conflictsData, int hash, K key)
+        {
+            if (conflictsData == null)
+                return this;
+
+            var conflicts = conflictsData.Conflicts;
+            var conflictCount = conflicts.Length;
+            var conflictIndex = conflictCount - 1;
+            while (conflictIndex != -1 && !key.Equals(conflicts[conflictIndex].Key))
+                --conflictIndex;
+
+            if (conflictIndex == -1)
+                return this;
+
+            // update the existing conflicted value
+            var newConflicts = new ImHashMapEntry<K, V>[conflictCount];
+            Array.Copy(conflicts, 0, newConflicts, 0, conflictCount);
+            newConflicts[conflictIndex] = new ImHashMapEntry<K, V>(hash, key);
+            return new ImHashMap<K, V>(new ImHashMapConflicts<K, V>(hash, newConflicts), Left, Right, Height);
+        }
+
         /// <summary>
         /// Depth-first in-order traversal as described in http://en.wikipedia.org/wiki/Tree_traversal
         /// The only difference is using fixed size array instead of stack for speed-up.
