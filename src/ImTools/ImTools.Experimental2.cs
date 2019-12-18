@@ -371,14 +371,14 @@ namespace ImTools.Experimental2
                     ? new ImMapBranch<V>(leaf, new ImMapEntry<V>(key, value))
                     : key < leaf.Key
                         ? new ImMapBranch<V>(new ImMapEntry<V>(key, value), leaf)
-                        : (ImMap<V>)new ImMapEntry<V>(key, value);
+                    : (ImMap<V>)new ImMapEntry<V>(key, value);
 
             if (map is ImMapBranch<V> branch)
             {
                 if (key > branch.Entry.Key)
-                    //   5                  10
-                    //        10     =>  5     11
-                    //           11           
+                        //   5                  10
+                        //        10     =>  5     11
+                        //           11           
                     return key > branch.RightEntry.Key
                         ? new ImMapTree<V>(branch.RightEntry, branch.Entry, new ImMapEntry<V>(key, value))
                         //   5               7
@@ -388,10 +388,9 @@ namespace ImTools.Experimental2
                             ? new ImMapTree<V>(new ImMapEntry<V>(key, value), branch.Entry, branch.RightEntry)
                             : (ImMap<V>)new ImMapBranch<V>(branch.Entry, new ImMapEntry<V>(key, value));
 
-                if (key < branch.Entry.Key)
-                    return new ImMapTree<V>(branch.Entry, new ImMapEntry<V>(key, value), branch.RightEntry);
-
-                return new ImMapBranch<V>(new ImMapEntry<V>(key, value), branch.RightEntry);
+                return key < branch.Entry.Key
+                    ? new ImMapTree<V>(branch.Entry, new ImMapEntry<V>(key, value), branch.RightEntry)
+                    : (ImMap<V>)new ImMapBranch<V>(new ImMapEntry<V>(key, value), branch.RightEntry);
             }
 
             var tree = (ImMapTree<V>)map;
@@ -400,9 +399,83 @@ namespace ImTools.Experimental2
                 : tree.AddOrUpdateLeftOrRight(key, value);
         }
 
-        /// <summary>
-        /// Returns true if key is found and sets the value.
-        /// </summary>
+        /// <summary> Returns `true` if key is found or `false` otherwise. </summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static bool Contains<V>(this ImMap<V> map, int key)
+        {
+            ImMapEntry<V> entry;
+            while (map is ImMapTree<V> tree)
+            {
+                entry = tree.Entry;
+                if (key > entry.Key)
+                    map = tree.Right;
+                else if (key < entry.Key)
+                    map = tree.Left;
+                else
+                    return true;
+            }
+
+            if (map is ImMapBranch<V> branch)
+                return branch.Entry.Key == key || branch.RightEntry.Key == key;
+
+            entry = map as ImMapEntry<V>;
+            return entry != null && entry.Key == key;
+        }
+
+        /// <summary> Returns the entry if key is found or null otherwise. </summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMapEntry<V> GetEntryOrDefault<V>(this ImMap<V> map, int key)
+        {
+            ImMapEntry<V> entry;
+            while (map is ImMapTree<V> tree)
+            {
+                entry = tree.Entry;
+                if (key > entry.Key)
+                    map = tree.Right;
+                else if (key < entry.Key)
+                    map = tree.Left;
+                else
+                    return entry;
+            }
+
+            if (map is ImMapBranch<V> branch)
+                return branch.Entry.Key == key ? branch.Entry
+                    : branch.RightEntry.Key == key ? branch.RightEntry
+                    : null;
+
+            entry = map as ImMapEntry<V>;
+            return entry != null && entry.Key == key ? entry : null;
+        }
+
+        /// <summary> Returns the value if key is found or default value otherwise. </summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static V GetValueOrDefault<V>(this ImMap<V> map, int key)
+        {
+            ImMapEntry<V> entry;
+            while (map is ImMapTree<V> tree)
+            {
+                entry = tree.Entry;
+                if (key > entry.Key)
+                    map = tree.Right;
+                else if (key < entry.Key)
+                    map = tree.Left;
+                else
+                    return entry.Value;
+            }
+
+            if (map is ImMapBranch<V> branch)
+                return branch.Entry.Key == key ? branch.Entry.Value
+                    : branch.RightEntry.Key == key ? branch.RightEntry.Value
+                    : default;
+
+            entry = map as ImMapEntry<V>;
+            if (entry != null && entry.Key == key)
+                return entry.Value;
+
+            return default;
+        }
+
+        /// <summary> Returns true if key is found and sets the value. </summary>
         [MethodImpl((MethodImplOptions)256)]
         public static bool TryFind<V>(this ImMap<V> map, int key, out V value)
         {
@@ -448,59 +521,6 @@ namespace ImTools.Experimental2
 
             value = default;
             return false;
-        }
-
-        /// <summary> Returns the data slot if key is found or null otherwise. </summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static ImMapEntry<V> GetDataOrDefault<V>(this ImMap<V> map, int key)
-        {
-            ImMapEntry<V> entry;
-            while (map is ImMapTree<V> tree)
-            {
-                entry = tree.Entry;
-                if (key > entry.Key)
-                    map = tree.Right;
-                else if (key < entry.Key)
-                    map = tree.Left;
-                else
-                    return entry;
-            }
-
-            if (map is ImMapBranch<V> branch)
-                return branch.Entry.Key == key ? branch.Entry
-                    : branch.RightEntry.Key == key ? branch.RightEntry
-                    : null;
-
-            entry = map as ImMapEntry<V>;
-            return entry != null && entry.Key == key ? entry : null;
-        }
-
-        /// <summary> Returns the value if key is found or default value otherwise. </summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static V GetValueOrDefault<V>(this ImMap<V> map, int key)
-        {
-            ImMapEntry<V> entry;
-            while (map is ImMapTree<V> tree)
-            {
-                entry = tree.Entry;
-                if (key > entry.Key)
-                    map = tree.Right;
-                else if (key < entry.Key)
-                    map = tree.Left;
-                else
-                    return entry.Value;
-            }
-
-            if (map is ImMapBranch<V> branch)
-                return branch.Entry.Key == key ? branch.Entry.Value 
-                    : branch.RightEntry.Key == key ? branch.RightEntry.Value 
-                    : default;
-
-            entry = map as ImMapEntry<V>;
-            if (entry != null && entry.Key == key)
-                return entry.Value;
-
-            return default;
         }
 
         /// <summary>
