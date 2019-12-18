@@ -764,8 +764,10 @@ namespace ImTools.Experimental
             : (ImMap<V>)new ImMapEntry<V>(key, value);
     }
 
+    /// <summary>
     /// The array of ImMap slots where the key first bits are used for FAST slot location
     /// and the slot is the reference to ImMap that can be swapped with its updated value
+    /// </summary>
     public static class ImMapSlots
     {
         /// Default number of slots
