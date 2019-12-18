@@ -814,6 +814,54 @@ namespace ImTools.Experimental2
             return false;
         }
 
+        /// <summary> Returns true if key is found and sets the value. </summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static bool TryFindEntry<V>(this ImMap<V> map, int key, out ImMapEntry<V> result)
+        {
+            ImMapEntry<V> entry;
+            while (map is ImMapTree<V> tree)
+            {
+                entry = tree.Entry;
+                if (key > entry.Key)
+                    map = tree.Right;
+                else if (key < entry.Key)
+                    map = tree.Left;
+                else
+                {
+                    result = entry;
+                    return true;
+                }
+            }
+
+            if (map is ImMapBranch<V> branch)
+            {
+                if (branch.Entry.Key == key)
+                {
+                    result = branch.Entry;
+                    return true;
+                }
+
+                if (branch.RightEntry.Key == key)
+                {
+                    result = branch.RightEntry;
+                    return true;
+                }
+
+                result = null;
+                return false;
+            }
+
+            entry = map as ImMapEntry<V>;
+            if (entry != null && entry.Key == key)
+            {
+                result = entry;
+                return true;
+            }
+
+            result = null;
+            return false;
+        }
+
         /// <summary>
         /// Folds all the map nodes with the state from left to right and from the bottom to top
         /// You may pass `parentStacks` to reuse the array memory.
