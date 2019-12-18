@@ -216,7 +216,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             [Params(1, 2, 3, 10, 100)]//], 1_000, 10_000, 100_000)]
             public int Count;
 
-            [Benchmark(Baseline = true)]
+            //[Benchmark(Baseline = true)]
             public ImTools.ImMap<string> ImMap_AddOrUpdate()
             {
                 var map = ImTools.ImMap<string>.Empty;
@@ -238,7 +238,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            [Benchmark]
+            //[Benchmark]
             //[Benchmark(Baseline = true)]
             public ImTools.Experimental.ImMap<string> ImMap_Experimental_AddOrUpdate()
             {
@@ -250,7 +250,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public ImTools.Experimental2.ImMap<string> ImMap_Experimental2_AddOrUpdate()
             {
                 var map = ImTools.Experimental2.ImMap<string>.Empty;
@@ -273,12 +273,24 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             }
 
             //[Benchmark]
+            [Benchmark(Baseline = true)]
             public ImTools.Experimental.ImMap<string>[] ImMapSlots_Experimental_AddOrUpdate()
             {
                 var slots = ImTools.Experimental.ImMapSlots.CreateWithEmpty<string>();
 
                 for (var i = 0; i < Count; i++)
                     slots.AddOrUpdate(i, i.ToString());
+
+                return slots;
+            }
+
+            [Benchmark]
+            public ImTools.Experimental2.ImMap<string>[] ImMapSlots_Experimental2_AddOrUpdate()
+            {
+                var slots = ImTools.Experimental2.ImMapSlots.CreateWithEmpty<string>();
+
+                for (var i = 0; i < Count; i++)
+                    ImTools.Experimental2.ImMapSlots.AddOrUpdate(slots, i, i.ToString());
 
                 return slots;
             }

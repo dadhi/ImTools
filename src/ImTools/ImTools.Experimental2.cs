@@ -977,6 +977,80 @@ namespace ImTools.Experimental2
 
             return state;
         }
+
+        /// <summary>
+        /// Visits all the map nodes with from the left to the right and from the bottom to the top
+        /// You may pass `parentStacks` to reuse the array memory.
+        /// NOTE: the length of `parentStack` should be at least of map height, content is not important and could be erased.
+        /// </summary>
+        public static void Visit<V>(this ImMap<V> map, Action<ImMapEntry<V>> visit, ImMapTree<V>[] parentStack = null)
+        {
+            if (map == ImMap<V>.Empty)
+                return;
+
+            if (map is ImMapEntry<V> leaf)
+                visit(leaf);
+            else if (map is ImMapBranch<V> branch)
+            {
+                visit(branch.Entry);
+                visit(branch.RightEntry);
+            }
+            else if (map is ImMapTree<V> tree)
+            {
+                if (tree.TreeHeight == 2)
+                {
+                    visit((ImMapEntry<V>)tree.Left);
+                    visit(tree.Entry);
+                    visit((ImMapEntry<V>)tree.Right);
+                }
+                else
+                {
+                    parentStack = parentStack ?? new ImMapTree<V>[tree.TreeHeight - 2];
+                    var parentIndex = -1;
+                    while (true)
+                    {
+                        if ((tree = map as ImMapTree<V>) != null)
+                        {
+                            if (tree.TreeHeight == 2)
+                            {
+                                visit((ImMapEntry<V>)tree.Left);
+                                visit(tree.Entry);
+                                visit((ImMapEntry<V>)tree.Right);
+                                if (parentIndex == -1)
+                                    break;
+                                tree = parentStack[parentIndex--];
+                                visit(tree.Entry);
+                                map = tree.Right;
+                            }
+                            else
+                            {
+                                parentStack[++parentIndex] = tree;
+                                map = tree.Left;
+                            }
+                        }
+                        else if ((branch = map as ImMapBranch<V>) != null)
+                        {
+                            visit(branch.Entry);
+                            visit(branch.RightEntry);
+                            if (parentIndex == -1)
+                                break;
+                            tree = parentStack[parentIndex--];
+                            visit(tree.Entry);
+                            map = tree.Right;
+                        }
+                        else
+                        {
+                            visit((ImMapEntry<V>)map);
+                            if (parentIndex == -1)
+                                break;
+                            tree = parentStack[parentIndex--];
+                            visit(tree.Entry);
+                            map = tree.Right;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /// <summary>
