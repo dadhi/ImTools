@@ -27,13 +27,15 @@
         ### Features
         
         - Faster and less allocative ImMap and ImHashMap with more methods (plus bucketed ImMapSlots and ImHashMapSlots variants)
-        - Algebraic sum-type aka descriminated union
-        - GrowingList<T>, ImZip<T>, StackPool<T>, Fun extensions, Ref.Swap now accepts state for closure-less lambdas, and more
+        - Algebraic sum-type aka descriminated union and one-liner records - Union<TUnion, T1..N>, Box<TBox, T>, Item<TItem, T>
+        - GrowingList<T>, ImZipper<T>, StackPool<T>, Unit, Fun extensions with forward pipe operators
+        - Ref.Swap now accepts state to use closure-less lambdas with less allocations
+        - likely more
         
         ## Fixes
             
         - fixed: wrong KV<K,V> ToString output
-        - fixed: likely manythings
+        - fixed: likely more
 ]]>
     </PackageReleaseNotes>
     </PropertyGroup>

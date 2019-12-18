@@ -22,13 +22,15 @@
         ### Features
         
         - Faster and less allocative ImMap and ImHashMap with more methods (plus bucketed ImMapSlots and ImHashMapSlots variants)
-        - Algebraic sum-type aka descriminated union
-        - GrowingList<T>, ImZip<T>, StackPool<T>, Fun extensions, Ref.Swap now accepts state for closure-less lambdas, and more
+        - Algebraic sum-type aka descriminated union and one-liner records - Union<TUnion, T1..N>, Box<TBox, T>, Item<TItem, T>
+        - GrowingList<T>, ImZipper<T>, StackPool<T>, Unit, Fun extensions with forward pipe operators
+        - Ref.Swap now accepts state to use closure-less lambdas with less allocations
+        - likely more
         
         ## Fixes
             
         - fixed: wrong KV<K,V> ToString output
-        - fixed: likely manythings
+        - fixed: likely more
 ]]>
         </releaseNotes>
         <contentFiles>
@@ -55,27 +57,35 @@
 
         <!--net35-->
         <file src="..\src\ImTools\ImTools.cs" target="content\net35\ImTools" />
+        <file src="..\src\ImTools\ImTools.Experimental.cs" target="content\net35\ImTools" />
 
         <!--net40-->
         <file src="..\src\ImTools\ImTools.cs" target="content\net40\ImTools" />
+        <file src="..\src\ImTools\ImTools.Experimental.cs" target="content\net40\ImTools" />
 
         <!--net45-->
         <file src="..\src\ImTools\ImTools.cs" target="content\net45\ImTools" />
+        <file src="..\src\ImTools\ImTools.Experimental.cs" target="content\net45\ImTools" />
 
         <!-- .netstandard 1.0 (based on PCL Profile259) -->
         <file src="..\src\ImTools\ImTools.cs" target="contentFiles\cs\netstandard1.0\ImTools" />
+        <file src="..\src\ImTools\ImTools.Experimental.cs" target="contentFiles\cs\netstandard1.0\ImTools" />
 
         <!-- .netstandard 1.3 (based on PCL Profile259 except for FEC) -->
         <file src="..\src\ImTools\ImTools.cs" target="contentFiles\cs\netstandard1.3\ImTools" />
+        <file src="..\src\ImTools\ImTools.Experimental.cs" target="contentFiles\cs\netstandard1.3\ImTools" />
 
         <!-- .netstandard 2.0 (based on PCL Profile259 except for FEC) -->
         <file src="..\src\ImTools\ImTools.cs" target="contentFiles\cs\netstandard2.0\ImTools" />
+        <file src="..\src\ImTools\ImTools.Experimental.cs" target="contentFiles\cs\netstandard2.0\ImTools" />
 
         <!-- PCL Profile328: .NET Portable Subset (.NET Framework 4, Silverlight 5, Windows 8, Windows Phone 8.1, Windows Phone Silverlight 8) -->
         <file src="..\src\ImTools\ImTools.cs" target="content\portable-net4+sl5+netcore45+wpa81+wp8+MonoAndroid1+MonoTouch1\ImTools" />
+        <file src="..\src\ImTools\ImTools.Experimental.cs" target="content\portable-net4+sl5+netcore45+wpa81+wp8+MonoAndroid1+MonoTouch1\ImTools" />
 
         <!-- PCL Profile259: .NET Portable Subset (.NET Framework 4.5, Windows 8, Windows Phone 8.1, Windows Phone Silverlight 8) -->
         <file src="..\src\ImTools\ImTools.cs" target="content\portable-net45+netcore45+wpa81+wp8+MonoAndroid1+MonoTouch1\ImTools" />
+        <file src="..\src\ImTools\ImTools.Experimental.cs" target="content\portable-net45+netcore45+wpa81+wp8+MonoAndroid1+MonoTouch1\ImTools" />
 
     </files>
 </package>
