@@ -30,9 +30,9 @@ namespace ImTools.Experimental2.UnitTests
             //     5   =>    4
             //   4         3   5
             // 3
-            Assert.AreEqual(4, t.Data.Key);
-            Assert.AreEqual(3, t.Left.To<ImMapData<int>>().Key);
-            Assert.AreEqual(5, t.Right.To<ImMapData<int>>().Key);
+            Assert.AreEqual(4, t.Entry.Key);
+            Assert.AreEqual(3, t.Left.To<ImMapEntry<int>>().Key);
+            Assert.AreEqual(5, t.Right.To<ImMapEntry<int>>().Key);
         }
 
         [Test]
@@ -51,11 +51,11 @@ namespace ImTools.Experimental2.UnitTests
             //     3   5      2     5
             //   2          1   3
             // 1
-            Assert.AreEqual(4, t.Data.Key);
-            Assert.AreEqual(2, t.Left.To<ImMapTree<int>>().Data.Key);
-            Assert.AreEqual(1, t.Left.To<ImMapTree<int>>().Left.To<ImMapData<int>>().Key);
-            Assert.AreEqual(3, t.Left.To<ImMapTree<int>>().Right.To<ImMapData<int>>().Key);
-            Assert.AreEqual(5, t.Right.To<ImMapData<int>>().Key);
+            Assert.AreEqual(4, t.Entry.Key);
+            Assert.AreEqual(2, t.Left.To<ImMapTree<int>>().Entry.Key);
+            Assert.AreEqual(1, t.Left.To<ImMapTree<int>>().Left.To<ImMapEntry<int>>().Key);
+            Assert.AreEqual(3, t.Left.To<ImMapTree<int>>().Right.To<ImMapEntry<int>>().Key);
+            Assert.AreEqual(5, t.Right.To<ImMapEntry<int>>().Key);
 
             // parent node balancing
             var t1 = t.AddOrUpdate(-1, 6);
@@ -65,13 +65,13 @@ namespace ImTools.Experimental2.UnitTests
             //    1   3                1   3   5
             // -1
 
-            Assert.AreEqual(2,  t1.To<ImMapTree<int>>().Data.Key);
-            Assert.AreEqual(-1, t1.To<ImMapTree<int>>().Left.To<ImMapBranch<int>>().Data.Key);
-            Assert.AreEqual(1, t1.To<ImMapTree<int>>().Left.To<ImMapBranch<int>>().RightData.Key);
+            Assert.AreEqual(2,  t1.To<ImMapTree<int>>().Entry.Key);
+            Assert.AreEqual(-1, t1.To<ImMapTree<int>>().Left.To<ImMapBranch<int>>().Entry.Key);
+            Assert.AreEqual(1, t1.To<ImMapTree<int>>().Left.To<ImMapBranch<int>>().RightEntry.Key);
 
-            Assert.AreEqual(4, t1.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Data.Key);
-            Assert.AreEqual(3, t1.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Left.To<ImMapData<int>>().Key);
-            Assert.AreEqual(5, t1.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Right.To<ImMapData<int>>().Key);
+            Assert.AreEqual(4, t1.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Entry.Key);
+            Assert.AreEqual(3, t1.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Left.To<ImMapEntry<int>>().Key);
+            Assert.AreEqual(5, t1.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Right.To<ImMapEntry<int>>().Key);
         }
 
         [Test]
@@ -86,9 +86,9 @@ namespace ImTools.Experimental2.UnitTests
             //     5  =>    5   =>   4 
             //  3         4        3   5
             //    4     3  
-            Assert.AreEqual(4, t.Data.Key);
-            Assert.AreEqual(3, t.Left .To<ImMapData<int>>().Key);
-            Assert.AreEqual(5, t.Right.To<ImMapData<int>>().Key);
+            Assert.AreEqual(4, t.Entry.Key);
+            Assert.AreEqual(3, t.Left .To<ImMapEntry<int>>().Key);
+            Assert.AreEqual(5, t.Right.To<ImMapEntry<int>>().Key);
         }
 
         [Test]
@@ -103,9 +103,9 @@ namespace ImTools.Experimental2.UnitTests
             // 3      =>     4
             //   4         3   5
             //     5
-            Assert.AreEqual(4, t.Data.Key);
-            Assert.AreEqual(3, t.Left.To<ImMapData<int>>().Key);
-            Assert.AreEqual(5, t.Right.To<ImMapData<int>>().Key);
+            Assert.AreEqual(4, t.Entry.Key);
+            Assert.AreEqual(3, t.Left.To<ImMapEntry<int>>().Key);
+            Assert.AreEqual(5, t.Right.To<ImMapEntry<int>>().Key);
         }
 
         [Test]
@@ -120,9 +120,9 @@ namespace ImTools.Experimental2.UnitTests
             // 3      =>   3     =>    4
             //    5          4       3   5
             //  4              5
-            Assert.AreEqual(4, t.Data.Key);
-            Assert.AreEqual(3, t.Left.To<ImMapData<int>>().Key);
-            Assert.AreEqual(5, t.Right.To<ImMapData<int>>().Key);
+            Assert.AreEqual(4, t.Entry.Key);
+            Assert.AreEqual(3, t.Left.To<ImMapEntry<int>>().Key);
+            Assert.AreEqual(5, t.Right.To<ImMapEntry<int>>().Key);
         }
 
         [Test]
@@ -152,23 +152,23 @@ namespace ImTools.Experimental2.UnitTests
                 .AddOrUpdate(17, 17) // boom again - on the global scale!
                 .To<ImMapTree<int>>();
 
-            Assert.AreEqual(12, t.Data.Key);
+            Assert.AreEqual(12, t.Entry.Key);
             
-            Assert.AreEqual(10, t.Left .To<ImMapTree<int>>().Data.Key);
+            Assert.AreEqual(10, t.Left .To<ImMapTree<int>>().Entry.Key);
             
-            Assert.AreEqual(5,  t.Left .To<ImMapTree<int>>().Left .To<ImMapTree<int>>().Data.Key);
-            Assert.AreEqual(3,  t.Left .To<ImMapTree<int>>().Left .To<ImMapTree<int>>().Left .To<ImMapData<int>>().Key);
-            Assert.AreEqual(7,  t.Left .To<ImMapTree<int>>().Left .To<ImMapTree<int>>().Right.To<ImMapData<int>>().Key);
+            Assert.AreEqual(5,  t.Left .To<ImMapTree<int>>().Left .To<ImMapTree<int>>().Entry.Key);
+            Assert.AreEqual(3,  t.Left .To<ImMapTree<int>>().Left .To<ImMapTree<int>>().Left .To<ImMapEntry<int>>().Key);
+            Assert.AreEqual(7,  t.Left .To<ImMapTree<int>>().Left .To<ImMapTree<int>>().Right.To<ImMapEntry<int>>().Key);
 
-            Assert.AreEqual(11,  t.Left .To<ImMapTree<int>>().Right.To<ImMapData<int>>().Key);
+            Assert.AreEqual(11,  t.Left .To<ImMapTree<int>>().Right.To<ImMapEntry<int>>().Key);
 
-            Assert.AreEqual(20, t.Right.To<ImMapTree<int>>().Data.Key);
-            Assert.AreEqual(15, t.Right.To<ImMapTree<int>>().Left .To<ImMapBranch<int>>().Data.Key);
-            Assert.AreEqual(17, t.Right.To<ImMapTree<int>>().Left .To<ImMapBranch<int>>().RightData.Key);
+            Assert.AreEqual(20, t.Right.To<ImMapTree<int>>().Entry.Key);
+            Assert.AreEqual(15, t.Right.To<ImMapTree<int>>().Left .To<ImMapBranch<int>>().Entry.Key);
+            Assert.AreEqual(17, t.Right.To<ImMapTree<int>>().Left .To<ImMapBranch<int>>().RightEntry.Key);
 
-            Assert.AreEqual(23, t.Right.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Data.Key);
-            Assert.AreEqual(21, t.Right.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Left .To<ImMapData<int>>().Key);
-            Assert.AreEqual(25, t.Right.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Right.To<ImMapData<int>>().Key);
+            Assert.AreEqual(23, t.Right.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Entry.Key);
+            Assert.AreEqual(21, t.Right.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Left .To<ImMapEntry<int>>().Key);
+            Assert.AreEqual(25, t.Right.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Right.To<ImMapEntry<int>>().Key);
         }
 
         [Test]
@@ -182,16 +182,16 @@ namespace ImTools.Experimental2.UnitTests
             //    2     1   3       1   3      1     4        2       5        2         6        2         6            2         6            2         6            2           8
             //                            4        3   5    1   3       6    1   3     5   7   1     3   5     7      1     3   5     8      1     3   5     8      1     3     6     9
             //                                                                                                   8                  7   9                  7   9              5   7     10
-            Assert.AreEqual(4, t.To<ImMapTree<int>>().Data.Key);
-            Assert.AreEqual(2, t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Data.Key);
-            Assert.AreEqual(1, t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Left .To<ImMapData<int>>().Key);
-            Assert.AreEqual(3, t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Right.To<ImMapData<int>>().Key);
-            Assert.AreEqual(8, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Data.Key);
-            Assert.AreEqual(6, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Data.Key);
-            Assert.AreEqual(5, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Left .To<ImMapData<int>>().Key);
-            Assert.AreEqual(7, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Right.To<ImMapData<int>>().Key);
-            Assert.AreEqual(9, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Right.To<ImMapBranch<int>>().Data.Key);
-            Assert.AreEqual(10,t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Right.To<ImMapBranch<int>>().RightData.Key);
+            Assert.AreEqual(4, t.To<ImMapTree<int>>().Entry.Key);
+            Assert.AreEqual(2, t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Entry.Key);
+            Assert.AreEqual(1, t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Left .To<ImMapEntry<int>>().Key);
+            Assert.AreEqual(3, t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Right.To<ImMapEntry<int>>().Key);
+            Assert.AreEqual(8, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Entry.Key);
+            Assert.AreEqual(6, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Entry.Key);
+            Assert.AreEqual(5, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Left .To<ImMapEntry<int>>().Key);
+            Assert.AreEqual(7, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Right.To<ImMapEntry<int>>().Key);
+            Assert.AreEqual(9, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Right.To<ImMapBranch<int>>().Entry.Key);
+            Assert.AreEqual(10,t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Right.To<ImMapBranch<int>>().RightEntry.Key);
         }
 
         [Test]
@@ -213,16 +213,16 @@ namespace ImTools.Experimental2.UnitTests
             //    2     1   3       1   3      1     4        2       5        2         6        2         6            2         6            2         6            2           8
             //                            4        3   5    1   3       6    1   3     5   7   1     3   5     7      1     3   5     8      1     3   5     8      1     3     6     9
             //                                                                                                   8                  7   9                  7   9              5   7     10
-            Assert.AreEqual(4, t.To<ImMapTree<int>>().Data.Key);
-            Assert.AreEqual(2, t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Data.Key);
-            Assert.AreEqual(1, t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Left.To<ImMapData<int>>().Key);
-            Assert.AreEqual(3, t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Right.To<ImMapData<int>>().Key);
-            Assert.AreEqual(8, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Data.Key);
-            Assert.AreEqual(6, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Data.Key);
-            Assert.AreEqual(5, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Left.To<ImMapData<int>>().Key);
-            Assert.AreEqual(7, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Right.To<ImMapData<int>>().Key);
-            Assert.AreEqual(9, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Right.To<ImMapBranch<int>>().Data.Key);
-            Assert.AreEqual(10, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Right.To<ImMapBranch<int>>().RightData.Key);
+            Assert.AreEqual(4, t.To<ImMapTree<int>>().Entry.Key);
+            Assert.AreEqual(2, t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Entry.Key);
+            Assert.AreEqual(1, t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Left.To<ImMapEntry<int>>().Key);
+            Assert.AreEqual(3, t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Right.To<ImMapEntry<int>>().Key);
+            Assert.AreEqual(8, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Entry.Key);
+            Assert.AreEqual(6, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Entry.Key);
+            Assert.AreEqual(5, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Left.To<ImMapEntry<int>>().Key);
+            Assert.AreEqual(7, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Right.To<ImMapEntry<int>>().Key);
+            Assert.AreEqual(9, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Right.To<ImMapBranch<int>>().Entry.Key);
+            Assert.AreEqual(10, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Right.To<ImMapBranch<int>>().RightEntry.Key);
         }
 
         [Test]
@@ -232,7 +232,7 @@ namespace ImTools.Experimental2.UnitTests
             for (var i = 1; i <= 100; i++)
                 t = t.AddOrUpdate(i, i);
 
-            Assert.AreEqual(64, t.To<ImMapTree<int>>().Data.Key);
+            Assert.AreEqual(64, t.To<ImMapTree<int>>().Entry.Key);
         }
 
         [Test]
@@ -246,16 +246,16 @@ namespace ImTools.Experimental2.UnitTests
             //        9           8   10      8   10      7      10       6       9        5       9          5       9         5       9         3       9   
             //                               7          6   8           5       8   10   4   6   8   10     4   6   8   10    3   6   8   10    1   5   8   10
             //                                                                                            3                  2 4                 2 4 6         
-            Assert.AreEqual(7,  t.To<ImMapTree<int>>().Data.Key);
-            Assert.AreEqual(3,  t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Data.Key);
-            Assert.AreEqual(1,  t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Left.To<ImMapBranch<int>>().Data.Key);
-            Assert.AreEqual(2,  t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Left.To<ImMapBranch<int>>().RightData.Key);
-            Assert.AreEqual(5,  t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Data.Key);
-            Assert.AreEqual(4,  t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Left .To<ImMapData<int>>().Key);
-            Assert.AreEqual(6,  t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Right.To<ImMapData<int>>().Key);
-            Assert.AreEqual(9,  t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Data.Key);
-            Assert.AreEqual(8,  t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Left .To<ImMapData<int>>().Key);
-            Assert.AreEqual(10, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Right.To<ImMapData<int>>().Key);
+            Assert.AreEqual(7,  t.To<ImMapTree<int>>().Entry.Key);
+            Assert.AreEqual(3,  t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Entry.Key);
+            Assert.AreEqual(1,  t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Left.To<ImMapBranch<int>>().Entry.Key);
+            Assert.AreEqual(2,  t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Left.To<ImMapBranch<int>>().RightEntry.Key);
+            Assert.AreEqual(5,  t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Entry.Key);
+            Assert.AreEqual(4,  t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Left .To<ImMapEntry<int>>().Key);
+            Assert.AreEqual(6,  t.To<ImMapTree<int>>().Left.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Right.To<ImMapEntry<int>>().Key);
+            Assert.AreEqual(9,  t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Entry.Key);
+            Assert.AreEqual(8,  t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Left .To<ImMapEntry<int>>().Key);
+            Assert.AreEqual(10, t.To<ImMapTree<int>>().Right.To<ImMapTree<int>>().Right.To<ImMapEntry<int>>().Key);
         }
 
         [Test]
@@ -265,7 +265,7 @@ namespace ImTools.Experimental2.UnitTests
             for (var i = 100; i >= 1; i--)
                 t = t.AddOrUpdate(i, i);
 
-            Assert.AreEqual(37, t.To<ImMapTree<int>>().Data.Key);
+            Assert.AreEqual(37, t.To<ImMapTree<int>>().Entry.Key);
         }
 
         //[Test]
