@@ -5,7 +5,7 @@ namespace ImTools.Experimental.UnitTests
     public static class Ext
     {
         public static int Key<V>(this ImMap<V> map) =>
-            map is ImMapTree<V> tree ? tree.Data.Key : map is ImMapData<V> leaf ? leaf.Key : 0;
+            map is ImMapTree<V> tree ? tree.Entry.Key : map is ImMapEntry<V> leaf ? leaf.Key : 0;
 
         public static ImMap<V> Left<V>(this ImMap<V> map) =>
             map is ImMapTree<V> tree ? tree.Left : ImMap<V>.Empty;

@@ -1025,11 +1025,11 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             //[Benchmark]
             [Benchmark(Baseline = true)]
             public object ImMap_Experimental_FoldToArray() =>
-                _mapExp.Fold(new List<ImMapData<string>>(), (item, list) => { list.Add(item); return list; }).ToArray();
+                _mapExp.Fold(new List<ImMapEntry<string>>(), (item, list) => { list.Add(item); return list; }).ToArray();
 
             [Benchmark]
             public object ImMap_Experimental2_FoldToArray() =>
-                ImTools.Experimental2.ImMap.Fold(_mapExp2, new List<ImTools.Experimental2.ImMapData<string>>(), (item, list) => { list.Add(item); return list; }).ToArray();
+                ImTools.Experimental2.ImMap.Fold(_mapExp2, new List<ImTools.Experimental2.ImMapEntry<string>>(), (item, list) => { list.Add(item); return list; }).ToArray();
 
             //[Benchmark]
             public object DictSlim_ToArray() => _dictSlim.ToArray();
