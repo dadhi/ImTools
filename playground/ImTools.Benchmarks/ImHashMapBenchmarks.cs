@@ -281,47 +281,46 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
 
 # V2
 
-|                                          Method | Count |         Mean |        Error |       StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
-|------------------------------------------------ |------ |-------------:|-------------:|-------------:|------:|--------:|---------:|--------:|------:|----------:|
-|                           ImHashMap_AddOrUpdate |    10 |     977.0 ns |    18.358 ns |    19.643 ns |  1.00 |    0.00 |   0.4978 |       - |     - |    2.3 KB |
-|                        ImHashMap_V1_AddOrUpdate |    10 |   1,030.7 ns |    17.990 ns |    16.828 ns |  1.05 |    0.03 |   0.5474 |       - |     - |   2.53 KB |
-| ImHashMap_AddOrUpdate_RuntimeHelpersGetHashCode |    10 |     926.1 ns |    18.565 ns |    17.365 ns |  0.95 |    0.03 |   0.4978 |       - |     - |    2.3 KB |
-|                      ImHashMapSlots_AddOrUpdate |    10 |     682.7 ns |     2.954 ns |     2.763 ns |  0.70 |    0.02 |   0.3128 |       - |     - |   1.45 KB |
-|                                                 |       |              |              |              |       |         |          |         |       |           |
-|                           ImHashMap_AddOrUpdate |   100 |  14,889.4 ns |   292.503 ns |   488.706 ns |  1.00 |    0.00 |   7.7972 |       - |     - |  35.95 KB |
-|                        ImHashMap_V1_AddOrUpdate |   100 |  17,019.3 ns |   228.169 ns |   213.430 ns |  1.16 |    0.05 |   8.5449 |       - |     - |  39.47 KB |
-| ImHashMap_AddOrUpdate_RuntimeHelpersGetHashCode |   100 |  14,576.8 ns |   290.713 ns |   357.021 ns |  0.98 |    0.06 |   7.7972 |       - |     - |  35.95 KB |
-|                      ImHashMapSlots_AddOrUpdate |   100 |   7,634.5 ns |   120.392 ns |   112.615 ns |  0.52 |    0.03 |   3.2806 |  0.0153 |     - |  15.13 KB |
-|                                                 |       |              |              |              |       |         |          |         |       |           |
-|                           ImHashMap_AddOrUpdate |  1000 | 307,587.1 ns | 5,570.811 ns | 6,191.942 ns |  1.00 |    0.00 | 112.3047 |  7.8125 |     - | 517.83 KB |
-|                        ImHashMap_V1_AddOrUpdate |  1000 | 339,267.5 ns | 6,494.507 ns | 6,949.050 ns |  1.10 |    0.03 | 121.0938 | 31.7383 |     - | 558.89 KB |
-| ImHashMap_AddOrUpdate_RuntimeHelpersGetHashCode |  1000 | 303,983.9 ns | 5,849.805 ns | 5,471.911 ns |  0.99 |    0.03 | 112.3047 |  7.8125 |     - | 517.83 KB |
-|                      ImHashMapSlots_AddOrUpdate |  1000 | 179,159.0 ns | 3,627.738 ns | 3,725.420 ns |  0.58 |    0.01 |  60.5469 | 20.0195 |     - | 279.09 KB |
+BenchmarkDotNet=v0.12.0, OS=Windows 10.0.18362
+Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+.NET Core SDK=3.1.100
+  [Host]     : .NET Core 3.1.0 (CoreCLR 4.700.19.56402, CoreFX 4.700.19.56404), X64 RyuJIT
+  DefaultJob : .NET Core 3.1.0 (CoreCLR 4.700.19.56402, CoreFX 4.700.19.56404), X64 RyuJIT
 
-|                   Method | Count |         Mean |       Error |      StdDev | Ratio |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
-|------------------------- |------ |-------------:|------------:|------------:|------:|---------:|--------:|------:|----------:|
-|    ImHashMap_AddOrUpdate |    10 |     853.6 ns |     6.58 ns |     5.83 ns |  1.00 |   0.5007 |  0.0029 |     - |    2.3 KB |
-| ImHashMap_V1_AddOrUpdate |    10 |     981.4 ns |     1.66 ns |     1.30 ns |  1.15 |   0.6218 |  0.0038 |     - |   2.86 KB |
-|                          |       |              |             |             |       |          |         |       |           |
-|    ImHashMap_AddOrUpdate |   100 |  13,505.0 ns |    58.48 ns |    54.70 ns |  1.00 |   7.5531 |  0.3662 |     - |  34.74 KB |
-| ImHashMap_V1_AddOrUpdate |   100 |  15,003.7 ns |    26.90 ns |    25.17 ns |  1.11 |   8.5602 |  0.4425 |     - |  39.38 KB |
-|                          |       |              |             |             |       |          |         |       |           |
-|    ImHashMap_AddOrUpdate |  1000 | 273,796.5 ns | 2,104.48 ns | 1,968.54 ns |  1.00 | 110.3516 | 32.7148 |     - | 507.85 KB |
-| ImHashMap_V1_AddOrUpdate |  1000 | 307,504.2 ns |   963.38 ns |   854.01 ns |  1.12 | 121.0938 | 35.1563 |     - | 557.86 KB |
 
-|                   Method | Count |         Mean |       Error |       StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
-|------------------------- |------ |-------------:|------------:|-------------:|------:|--------:|---------:|--------:|------:|----------:|
-|    ImHashMap_AddOrUpdate |     1 |     191.1 ns |     8.07 ns |     23.55 ns |  1.00 |    0.00 |   0.1292 |       - |     - |     272 B |
-| ImHashMap_V1_AddOrUpdate |     1 |     167.6 ns |     3.38 ns |      3.16 ns |  0.93 |    0.10 |   0.1371 |       - |     - |     288 B |
-|                          |       |              |             |              |       |         |          |         |       |           |
-|    ImHashMap_AddOrUpdate |    10 |   1,064.3 ns |    21.19 ns |     18.79 ns |  1.00 |    0.00 |   1.1044 |       - |     - |    2312 B |
-| ImHashMap_V1_AddOrUpdate |    10 |   1,310.9 ns |    25.72 ns |     37.70 ns |  1.23 |    0.03 |   1.4000 |       - |     - |    2928 B |
-|                          |       |              |             |              |       |         |          |         |       |           |
-|    ImHashMap_AddOrUpdate |   100 |  17,011.3 ns |   328.49 ns |    415.44 ns |  1.00 |    0.00 |  16.7847 |       - |     - |   35144 B |
-| ImHashMap_V1_AddOrUpdate |   100 |  20,161.2 ns |   393.23 ns |    403.82 ns |  1.19 |    0.04 |  19.2566 |       - |     - |   40320 B |
-|                          |       |              |             |              |       |         |          |         |       |           |
-|    ImHashMap_AddOrUpdate |  1000 | 390,469.4 ns | 7,691.21 ns | 10,267.54 ns |  1.00 |    0.00 | 214.3555 | 47.3633 |     - |  515672 B |
-| ImHashMap_V1_AddOrUpdate |  1000 | 462,249.8 ns | 5,627.72 ns |  5,264.18 ns |  1.18 |    0.04 | 210.4492 | 62.0117 |     - |  571250 B |
+|                     Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
+|--------------------------- |------ |-------------:|------------:|------------:|------:|--------:|---------:|--------:|------:|----------:|
+|      ImHashMap_AddOrUpdate |     1 |     120.9 ns |     1.00 ns |     0.93 ns |  1.00 |    0.00 |   0.0577 |       - |     - |     272 B |
+|   ImHashMap_V1_AddOrUpdate |     1 |     132.3 ns |     2.64 ns |     2.71 ns |  1.10 |    0.02 |   0.0610 |       - |     - |     288 B |
+| ImHashMapSlots_AddOrUpdate |     1 |     213.6 ns |     0.32 ns |     0.27 ns |  1.76 |    0.01 |   0.1070 |  0.0002 |     - |     504 B |
+|            DictSlim_TryAdd |     1 |     125.8 ns |     0.79 ns |     0.66 ns |  1.04 |    0.01 |   0.0408 |       - |     - |     192 B |
+|                Dict_TryAdd |     1 |     130.6 ns |     0.65 ns |     0.61 ns |  1.08 |    0.01 |   0.0544 |       - |     - |     256 B |
+|      ConcurrentDict_TryAdd |     1 |     290.6 ns |     1.27 ns |     1.19 ns |  2.40 |    0.02 |   0.2074 |  0.0014 |     - |     976 B |
+|  ImmutableDict_Builder_Add |     1 |     398.0 ns |     1.15 ns |     1.08 ns |  3.29 |    0.03 |   0.0577 |       - |     - |     272 B |
+|                            |       |              |             |             |       |         |          |         |       |           |
+|      ImHashMap_AddOrUpdate |    10 |     812.8 ns |     4.65 ns |     3.88 ns |  1.00 |    0.00 |   0.4911 |  0.0029 |     - |    2312 B |
+|   ImHashMap_V1_AddOrUpdate |    10 |   1,017.5 ns |     3.90 ns |     3.65 ns |  1.25 |    0.01 |   0.6218 |  0.0038 |     - |    2928 B |
+| ImHashMapSlots_AddOrUpdate |    10 |     595.5 ns |     1.75 ns |     1.46 ns |  0.73 |    0.00 |   0.2956 |  0.0019 |     - |    1392 B |
+|            DictSlim_TryAdd |    10 |     556.0 ns |     2.24 ns |     2.09 ns |  0.68 |    0.01 |   0.2375 |  0.0010 |     - |    1120 B |
+|                Dict_TryAdd |    10 |     604.9 ns |     1.78 ns |     1.57 ns |  0.74 |    0.00 |   0.2193 |  0.0010 |     - |    1032 B |
+|      ConcurrentDict_TryAdd |    10 |   1,387.4 ns |     5.62 ns |     4.69 ns |  1.71 |    0.01 |   0.6294 |  0.0095 |     - |    2968 B |
+|  ImmutableDict_Builder_Add |    10 |   2,505.4 ns |    25.19 ns |    22.33 ns |  3.08 |    0.03 |   0.1793 |       - |     - |     848 B |
+|                            |       |              |             |             |       |         |          |         |       |           |
+|      ImHashMap_AddOrUpdate |   100 |  12,489.6 ns |    51.63 ns |    48.29 ns |  1.00 |    0.00 |   7.4005 |  0.3510 |     - |   34856 B |
+|   ImHashMap_V1_AddOrUpdate |   100 |  15,068.0 ns |   121.82 ns |    95.11 ns |  1.21 |    0.01 |   8.5449 |  0.4272 |     - |   40320 B |
+| ImHashMapSlots_AddOrUpdate |   100 |   6,526.1 ns |    16.45 ns |    14.58 ns |  0.52 |    0.00 |   3.1052 |  0.2060 |     - |   14640 B |
+|            DictSlim_TryAdd |   100 |   4,200.5 ns |    28.71 ns |    23.97 ns |  0.34 |    0.00 |   1.5945 |  0.0458 |     - |    7536 B |
+|                Dict_TryAdd |   100 |   5,021.9 ns |    18.09 ns |    16.92 ns |  0.40 |    0.00 |   2.1667 |  0.0916 |     - |   10232 B |
+|      ConcurrentDict_TryAdd |   100 |  15,519.5 ns |    68.27 ns |    63.86 ns |  1.24 |    0.01 |   6.5613 |  0.0305 |     - |   30944 B |
+|  ImmutableDict_Builder_Add |   100 |  34,182.6 ns |   106.60 ns |    99.71 ns |  2.74 |    0.01 |   1.4038 |  0.0610 |     - |    6608 B |
+|                            |       |              |             |             |       |         |          |         |       |           |
+|      ImHashMap_AddOrUpdate |  1000 | 265,875.9 ns |   897.54 ns |   839.56 ns |  1.00 |    0.00 | 108.3984 | 30.7617 |     - |  511209 B |
+|   ImHashMap_V1_AddOrUpdate |  1000 | 307,754.2 ns | 1,962.45 ns | 1,739.66 ns |  1.16 |    0.01 | 121.0938 | 35.1563 |     - |  571250 B |
+| ImHashMapSlots_AddOrUpdate |  1000 | 155,827.3 ns |   537.71 ns |   502.97 ns |  0.59 |    0.00 |  57.3730 | 19.0430 |     - |  270866 B |
+|            DictSlim_TryAdd |  1000 |  38,470.1 ns |   334.14 ns |   312.56 ns |  0.14 |    0.00 |  12.2681 |  0.0610 |     - |   57856 B |
+|                Dict_TryAdd |  1000 |  50,979.3 ns |   165.64 ns |   154.94 ns |  0.19 |    0.00 |  21.6064 |  5.3711 |     - |  102256 B |
+|      ConcurrentDict_TryAdd |  1000 | 174,180.3 ns | 3,453.65 ns | 3,061.57 ns |  0.65 |    0.01 |  48.8281 | 23.9258 |     - |  260009 B |
+|  ImmutableDict_Builder_Add |  1000 | 501,694.1 ns | 2,097.12 ns | 1,961.65 ns |  1.89 |    0.01 |  12.6953 |  2.9297 |     - |   64209 B |
 
  */
             [Params(1, 10, 100, 1_000)]
@@ -360,7 +359,7 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
                 return map.AddOrUpdate(RuntimeHelpers.GetHashCode(typeof(ImHashMapBenchmarks)), typeof(ImHashMapBenchmarks), "!");
             }
 
-            //[Benchmark]
+            [Benchmark]
             public ImHashMap<Type, string>[] ImHashMapSlots_AddOrUpdate()
             {
                 var map = ImHashMapSlots.CreateWithEmpty<Type, string>();
@@ -372,7 +371,7 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
                 return map;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public DictionarySlim<TypeVal, string> DictSlim_TryAdd()
             {
                 var map = new DictionarySlim<TypeVal, string>();
@@ -384,7 +383,7 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
                 return map;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public Dictionary<Type, string> Dict_TryAdd()
             {
                 var map = new Dictionary<Type, string>();
@@ -396,7 +395,7 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
                 return map;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public ConcurrentDictionary<Type, string> ConcurrentDict_TryAdd()
             {
                 var map = new ConcurrentDictionary<Type, string>();
@@ -406,6 +405,17 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
 
                 map.TryAdd(typeof(ImHashMapBenchmarks), "!");
                 return map;
+            }
+
+            [Benchmark]
+            public ImmutableDictionary<Type, string> ImmutableDict_Builder_Add()
+            {
+                var builder = ImmutableDictionary.CreateBuilder<Type, string>();
+
+                foreach (var key in _keys.Take(Count))
+                    builder.Add(key, "a");
+                builder.Add(typeof(ImHashMapBenchmarks), "!");
+                return builder.ToImmutable();
             }
 
             //[Benchmark]
@@ -743,7 +753,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
 
 */
-            [Params(10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
+            [Params(1, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             public int Count;
 
             [GlobalSetup]
@@ -889,7 +899,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return result;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public string ImHashMapSlots_TryFind()
             {
                 var hash = LookupKey.GetHashCode();
@@ -905,28 +915,28 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             public string ImHashMap_GetValueOrDefault_V1() =>
                 _mapV1.GetValueOrDefault(LookupKey);
 
-            //[Benchmark]
+            [Benchmark]
             public string DictionarySlim_TryGetValue()
             {
                 _dictSlim.TryGetValue(LookupKey, out var result);
                 return result;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public string Dictionary_TryGetValue()
             {
                 _dict.TryGetValue(LookupKey, out var result);
                 return result;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public string ConcurrentDictionary_TryGetValue()
             {
                 _concurrentDict.TryGetValue(LookupKey, out var result);
                 return result;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public string ImmutableDict_TryGet()
             {
                 _immutableDict.TryGetValue(LookupKey, out var result);
