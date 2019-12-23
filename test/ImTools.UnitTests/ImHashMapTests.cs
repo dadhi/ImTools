@@ -276,16 +276,21 @@ namespace ImTools.UnitTests
             Assert.AreEqual(5, t.Right.Key);
 
             // parent node balancing
-            t = t.AddOrUpdate(-1, 6);
+            t = t
+                .AddOrUpdate(-1, -1)
+                .AddOrUpdate(-5, -5)
+                .AddOrUpdate(-9, -9)
+                .AddOrUpdate(-7, -7)
+                ;
 
-            //         4                 2
-            //      2     5   =>      1     4
-            //    1   3            -1     3   5
-            // -1
-
-            Assert.AreEqual(2, t.Key);
-            Assert.AreEqual(1, t.Left.Key);
-            Assert.AreEqual(-1, t.Left.Left.Key);
+            //         4                 2                2                     2                     2
+            //      2     5   =>      1     4   =>   -1        4   =>     -5        4   =>    -5          4  
+            //    1   3            -1     3   5    -5   1     3   5     -7  -1    3   5    -7     -1    3   5
+            // -1                                                     -9      1          -9     -3   1
+            //                                                                                 -4 -2
+            Assert.AreEqual( 2, t.Key);
+            Assert.AreEqual(-1, t.Left.Key);
+            Assert.AreEqual(-7, t.Left.Left.Key);
 
             Assert.AreEqual(4, t.Right.Key);
             Assert.AreEqual(3, t.Right.Left.Key);

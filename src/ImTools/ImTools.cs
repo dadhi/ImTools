@@ -3846,46 +3846,58 @@ namespace ImTools
             }
         }
 
-        private ImHashMap<K, V> BalanceNewLeftTree(ImHashMap<K, V> left)
+        private ImHashMap<K, V> BalanceNewLeftTree(ImHashMap<K, V> newLeftTree)
         {
-            var leftLeft = left.Left;
-            var leftRight = left.Right;
+            var leftLeft = newLeftTree.Left;
+            var leftRight = newLeftTree.Right;
 
             if (leftRight.Height > leftLeft.Height)
+            {
+                newLeftTree.Right  = leftRight.Left;
+                newLeftTree.Height = leftLeft.Height + 1;
                 return new ImHashMap<K, V>(leftRight.Entry,
-                    new ImHashMap<K, V>(left.Entry, leftLeft, leftRight.Left),
-                    new ImHashMap<K, V>(Entry, leftRight.Right, Right));
+                    newLeftTree,
+                    new ImHashMap<K, V>(Entry, leftRight.Right, Right, Right.Height + 1),
+                    leftLeft.Height + 2);
 
-            return new ImHashMap<K, V>(left.Entry,
-                leftLeft, new ImHashMap<K, V>(Entry, leftRight, Right));
+                //return new ImHashMap<K, V>(leftRight.Entry,
+                //    new ImHashMap<K, V>(newLeftTree.Entry, leftLeft, leftRight.Left),
+                //    new ImHashMap<K, V>(Entry, leftRight.Right, Right));
+            }
+
+            newLeftTree.Right = new ImHashMap<K, V>(Entry, leftRight, Right, leftRight.Height + 1);
+            newLeftTree.Height = leftRight.Height + 2;
+            return newLeftTree;
+            //return new ImHashMap<K, V>(newLeftTree.Entry,
+            //    leftLeft, new ImHashMap<K, V>(Entry, leftRight, Right));
         }
 
         // Note that Left is by 2 less deep than `newRightTree` - means that at `newRightTree.Left/Right` is at least of Left height or deeper
         private ImHashMap<K, V> BalanceNewRightTree(ImHashMap<K, V> newRightTree)
         {
-            var rightLeft = newRightTree.Left;
+            var rightLeft  = newRightTree.Left;
             var rightRight = newRightTree.Right;
             if (rightLeft.Height > rightRight.Height) // 1 greater - not 2 greater because it would be too unbalanced
             {
-                //return new ImHashMap<K, V>(rightLeft.Entry,
-                //    new ImHashMap<K, V>(Entry, Left, rightLeft.Left),
-                //    new ImHashMap<K, V>(newRightTree.Entry, rightLeft.Right, rightRight));
                 newRightTree.Left = rightLeft.Right;
                 // the height now should be defined by rr - because left now is shorter by 1
-                newRightTree.Height = 1 + rightRight.Height;
+                newRightTree.Height = rightRight.Height + 1;
                 // the whole height consequentially can be defined by `newRightTree` (rr+1) because left is consist of short Left and -2 rl.Left
                 return new ImHashMap<K, V>(rightLeft.Entry,
                     // Left should be >= rightLeft.Left because it maybe rightLeft.Right which defines rl height
-                    new ImHashMap<K, V>(Entry, Left, rightLeft.Left, 1 + Left.Height),
-                    newRightTree, 1 + newRightTree.Height);
+                    new ImHashMap<K, V>(Entry, Left, rightLeft.Left, height:Left.Height + 1),
+                    newRightTree, rightRight.Height + 2);
+                //return new ImHashMap<K, V>(rightLeft.Entry,
+                //    new ImHashMap<K, V>(Entry, Left, rightLeft.Left),
+                //    new ImHashMap<K, V>(newRightTree.Entry, rightLeft.Right, rightRight));
             }
 
-            //return new ImHashMap<K, V>(newRightTree.Entry, new ImHashMap<K, V>(Entry, Left, rightLeft), rightRight);
             // we may decide on the height because the Left smaller by 2
             newRightTree.Left = new ImHashMap<K, V>(Entry, Left, rightLeft, rightLeft.Height + 1); 
             // if rr was > rl by 1 than new rl+1 should be equal height to rr now, if rr was == rl than new rl wins anyway
             newRightTree.Height = newRightTree.Left.Height + 1;
             return newRightTree;
+            //return new ImHashMap<K, V>(newRightTree.Entry, new ImHashMap<K, V>(Entry, Left, rightLeft), rightRight);
         }
 
         /// Uses the user provided hash and adds and updates the tree with passed key-value and the update function for the existing value. Returns a new tree.
