@@ -309,8 +309,22 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
 |    ImHashMap_AddOrUpdate |  1000 | 273,796.5 ns | 2,104.48 ns | 1,968.54 ns |  1.00 | 110.3516 | 32.7148 |     - | 507.85 KB |
 | ImHashMap_V1_AddOrUpdate |  1000 | 307,504.2 ns |   963.38 ns |   854.01 ns |  1.12 | 121.0938 | 35.1563 |     - | 557.86 KB |
 
+|                   Method | Count |         Mean |       Error |       StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
+|------------------------- |------ |-------------:|------------:|-------------:|------:|--------:|---------:|--------:|------:|----------:|
+|    ImHashMap_AddOrUpdate |     1 |     191.1 ns |     8.07 ns |     23.55 ns |  1.00 |    0.00 |   0.1292 |       - |     - |     272 B |
+| ImHashMap_V1_AddOrUpdate |     1 |     167.6 ns |     3.38 ns |      3.16 ns |  0.93 |    0.10 |   0.1371 |       - |     - |     288 B |
+|                          |       |              |             |              |       |         |          |         |       |           |
+|    ImHashMap_AddOrUpdate |    10 |   1,064.3 ns |    21.19 ns |     18.79 ns |  1.00 |    0.00 |   1.1044 |       - |     - |    2312 B |
+| ImHashMap_V1_AddOrUpdate |    10 |   1,310.9 ns |    25.72 ns |     37.70 ns |  1.23 |    0.03 |   1.4000 |       - |     - |    2928 B |
+|                          |       |              |             |              |       |         |          |         |       |           |
+|    ImHashMap_AddOrUpdate |   100 |  17,011.3 ns |   328.49 ns |    415.44 ns |  1.00 |    0.00 |  16.7847 |       - |     - |   35144 B |
+| ImHashMap_V1_AddOrUpdate |   100 |  20,161.2 ns |   393.23 ns |    403.82 ns |  1.19 |    0.04 |  19.2566 |       - |     - |   40320 B |
+|                          |       |              |             |              |       |         |          |         |       |           |
+|    ImHashMap_AddOrUpdate |  1000 | 390,469.4 ns | 7,691.21 ns | 10,267.54 ns |  1.00 |    0.00 | 214.3555 | 47.3633 |     - |  515672 B |
+| ImHashMap_V1_AddOrUpdate |  1000 | 462,249.8 ns | 5,627.72 ns |  5,264.18 ns |  1.18 |    0.04 | 210.4492 | 62.0117 |     - |  571250 B |
+
  */
-            [Params(10, 100, 1_000)]
+            [Params(1, 10, 100, 1_000)]
             public int Count;
 
             [Benchmark(Baseline = true)]

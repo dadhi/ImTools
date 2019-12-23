@@ -155,7 +155,7 @@ namespace ImTools.Experimental
             TreeHeight = left.TreeHeight > right.TreeHeight ? left.TreeHeight + 1 : right.TreeHeight + 1;
         }
 
-        /// <summary>Outputs the key value pair</summary>
+        /// <summary>Outputs the brief tree info - mostly for debugging purposes</summary>
         public override string ToString() =>
             "(" + Entry
                 + ") -> (" + (Left is ImMapTree<V> leftTree ? leftTree.Entry  + " height:" + leftTree.TreeHeight  : "" + Left)
@@ -267,7 +267,7 @@ namespace ImTools.Experimental
 
                 var rightLeaf = (ImMapEntry<V>)right;
                 return key > rightLeaf.Key
-                    ? new ImMapTree<V>(Entry, Left, new ImMapBranch<V>(rightLeaf, new ImMapEntry<V>(key, value)), 3)
+                        ? new ImMapTree<V>(Entry, Left, new ImMapBranch<V>(rightLeaf, new ImMapEntry<V>(key, value)), 3)
                     : key < rightLeaf.Key
                         ? new ImMapTree<V>(Entry, Left, new ImMapBranch<V>(new ImMapEntry<V>(key, value), rightLeaf), 3)
                         : new ImMapTree<V>(Entry, Left, new ImMapEntry<V>(key, value), TreeHeight);

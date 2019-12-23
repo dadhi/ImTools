@@ -3611,6 +3611,9 @@ namespace ImTools
             Hash = hash;
             Key = key;
         }
+
+        /// <summary>Outputs the brief tree info - mostly for debugging purposes</summary>
+        public override string ToString() => Key + ": " + Value;
     }
 
     /// Stores ALL the data in `Conflicts` array, the fields except the `hash` are just fillers.
@@ -3661,26 +3664,23 @@ namespace ImTools
         }
 
         /// <summary>Left sub-tree/branch, or empty.</summary>
-        public readonly ImHashMap<K, V> Left;
+        public ImHashMap<K, V> Left;
 
         /// <summary>Right sub-tree/branch, or empty.</summary>
-        public readonly ImHashMap<K, V> Right;
+        public ImHashMap<K, V> Right;
 
         /// <summary>Height of longest sub-tree/branch plus 1. It is 0 for empty tree, and 1 for single node tree.</summary>
-        public readonly int Height;
+        public int Height;
 
         /// <summary>Returns true if tree is empty.</summary>
         public bool IsEmpty => Height == 0;
 
-        /// <summary>Outputs key value pair</summary>
-        public override string ToString() => IsEmpty ? "empty" : Key + ":" + Value;
-
-        /// Tha data payload holder
+        /// <summary>The entry which is allocated once and can be used as a "fixed" reference to the Key and Value</summary>
         public readonly ImHashMapEntry<K, V> Entry;
 
         internal ImHashMap() => Entry = ImHashMapEntry<K, V>.Empty;
 
-        /// Creates a leaf node
+        /// Creates  leaf node
         public ImHashMap(int hash, K key, V value)
         {
             Entry = new ImHashMapEntry<K, V>(hash, key, value);
@@ -3724,6 +3724,13 @@ namespace ImTools
             Right = right;
             Height = height;
         }
+
+        /// <summary>Outputs the brief tree info - mostly for debugging purposes</summary>
+        public override string ToString() => Height == 0 ? "empty" 
+            : "(" + Entry
+            + ") -> (" + (Left.Height  == 0 ? "empty" : Left.Entry  + " of height " + Left.Height)
+            + ", "     + (Right.Height == 0 ? "empty" : Right.Entry + " of height " + Right.Height)
+            + ")";
 
         /// Uses the user provided hash and adds and updates the tree with passed key-value. Returns a new tree.
         [MethodImpl((MethodImplOptions)256)]
@@ -3810,22 +3817,9 @@ namespace ImTools
                 }
 
                 var left = Left.AddOrUpdateLeftOrRight(hash, key, value);
-
-                if (left.Height > Right.Height + 1) // left is longer by 2, rotate left
-                {
-                    var leftLeft = left.Left;
-                    var leftRight = left.Right;
-
-                    if (leftRight.Height > leftLeft.Height)
-                        return new ImHashMap<K, V>(leftRight.Entry,
-                            new ImHashMap<K, V>(left.Entry, leftLeft, leftRight.Left),
-                            new ImHashMap<K, V>(Entry, leftRight.Right, Right));
-
-                    return new ImHashMap<K, V>(left.Entry,
-                        leftLeft, new ImHashMap<K, V>(Entry, leftRight, Right));
-                }
-
-                return new ImHashMap<K, V>(Entry, left, Right);
+                return left.Height > Right.Height + 1 
+                    ? BalanceNewLeftTree(left) 
+                    : new ImHashMap<K, V>(Entry, left, Right);
             }
             else
             {
@@ -3846,22 +3840,52 @@ namespace ImTools
                 }
 
                 var right = Right.AddOrUpdateLeftOrRight(hash, key, value);
-
-                if (right.Height > Left.Height + 1)
-                {
-                    var rightLeft = right.Left;
-                    var rightRight = right.Right;
-                    if (rightLeft.Height > rightRight.Height)
-                        return new ImHashMap<K, V>(rightLeft.Entry,
-                            new ImHashMap<K, V>(Entry, Left, rightLeft.Left),
-                            new ImHashMap<K, V>(right.Entry, rightLeft.Right, rightRight));
-
-                    return new ImHashMap<K, V>(right.Entry,
-                        new ImHashMap<K, V>(Entry, Left, rightLeft), rightRight);
-                }
-
-                return new ImHashMap<K, V>(Entry, Left, right);
+                return right.Height > Left.Height + 1 
+                    ? BalanceNewRightTree(right) 
+                    : new ImHashMap<K, V>(Entry, Left, right);
             }
+        }
+
+        private ImHashMap<K, V> BalanceNewLeftTree(ImHashMap<K, V> left)
+        {
+            var leftLeft = left.Left;
+            var leftRight = left.Right;
+
+            if (leftRight.Height > leftLeft.Height)
+                return new ImHashMap<K, V>(leftRight.Entry,
+                    new ImHashMap<K, V>(left.Entry, leftLeft, leftRight.Left),
+                    new ImHashMap<K, V>(Entry, leftRight.Right, Right));
+
+            return new ImHashMap<K, V>(left.Entry,
+                leftLeft, new ImHashMap<K, V>(Entry, leftRight, Right));
+        }
+
+        // Note that Left is by 2 less deep than `newRightTree` - means that at `newRightTree.Left/Right` is at least of Left height or deeper
+        private ImHashMap<K, V> BalanceNewRightTree(ImHashMap<K, V> newRightTree)
+        {
+            var rightLeft = newRightTree.Left;
+            var rightRight = newRightTree.Right;
+            if (rightLeft.Height > rightRight.Height) // 1 greater - not 2 greater because it would be too unbalanced
+            {
+                //return new ImHashMap<K, V>(rightLeft.Entry,
+                //    new ImHashMap<K, V>(Entry, Left, rightLeft.Left),
+                //    new ImHashMap<K, V>(newRightTree.Entry, rightLeft.Right, rightRight));
+                newRightTree.Left = rightLeft.Right;
+                // the height now should be defined by rr - because left now is shorter by 1
+                newRightTree.Height = 1 + rightRight.Height;
+                // the whole height consequentially can be defined by `newRightTree` (rr+1) because left is consist of short Left and -2 rl.Left
+                return new ImHashMap<K, V>(rightLeft.Entry,
+                    // Left should be >= rightLeft.Left because it maybe rightLeft.Right which defines rl height
+                    new ImHashMap<K, V>(Entry, Left, rightLeft.Left, 1 + Left.Height),
+                    newRightTree, 1 + newRightTree.Height);
+            }
+
+            //return new ImHashMap<K, V>(newRightTree.Entry, new ImHashMap<K, V>(Entry, Left, rightLeft), rightRight);
+            // we may decide on the height because the Left smaller by 2
+            newRightTree.Left = new ImHashMap<K, V>(Entry, Left, rightLeft, rightLeft.Height + 1); 
+            // if rr was > rl by 1 than new rl+1 should be equal height to rr now, if rr was == rl than new rl wins anyway
+            newRightTree.Height = newRightTree.Left.Height + 1;
+            return newRightTree;
         }
 
         /// Uses the user provided hash and adds and updates the tree with passed key-value and the update function for the existing value. Returns a new tree.
@@ -3875,9 +3899,7 @@ namespace ImTools
         {
             var conflictsData = Entry as ImHashMapConflicts<K, V>;
             return conflictsData == null && (ReferenceEquals(Key, key) || Key.Equals(key))
-                ? new ImHashMap<K, V>(
-                    new ImHashMapEntry<K, V>(hash, key, update(key, Value, value)), 
-                    Left, Right, Height)
+                ? new ImHashMap<K, V>(new ImHashMapEntry<K, V>(hash, key, update(key, Value, value)), Left, Right, Height)
                 : AddOrUpdateConflict(conflictsData, hash, key, value, update);
         }
 
@@ -3901,22 +3923,9 @@ namespace ImTools
                 }
 
                 var left = Left.AddOrUpdateLeftOrRightWithUpdate(hash, key, value, update);
-
-                if (left.Height > Right.Height + 1) // left is longer by 2, rotate left
-                {
-                    var leftLeft = left.Left;
-                    var leftRight = left.Right;
-
-                    if (leftRight.Height > leftLeft.Height)
-                        return new ImHashMap<K, V>(leftRight.Entry,
-                            new ImHashMap<K, V>(left.Entry, leftLeft, leftRight.Left),
-                            new ImHashMap<K, V>(Entry, leftRight.Right, Right));
-
-                    return new ImHashMap<K, V>(left.Entry,
-                        leftLeft, new ImHashMap<K, V>(Entry, leftRight, Right));
-                }
-
-                return new ImHashMap<K, V>(Entry, left, Right);
+                return left.Height > Right.Height + 1
+                    ? BalanceNewLeftTree(left)
+                    : new ImHashMap<K, V>(Entry, left, Right);
             }
             else
             {
@@ -3937,21 +3946,9 @@ namespace ImTools
                 }
 
                 var right = Right.AddOrUpdateLeftOrRightWithUpdate(hash, key, value, update);
-
-                if (right.Height > Left.Height + 1)
-                {
-                    var rightLeft = right.Left;
-                    var rightRight = right.Right;
-                    if (rightLeft.Height > rightRight.Height)
-                        return new ImHashMap<K, V>(rightLeft.Entry,
-                            new ImHashMap<K, V>(Entry, Left, rightLeft.Left),
-                            new ImHashMap<K, V>(right.Entry, rightLeft.Right, rightRight));
-
-                    return new ImHashMap<K, V>(right.Entry,
-                        new ImHashMap<K, V>(Entry, Left, rightLeft), rightRight);
-                }
-
-                return new ImHashMap<K, V>(Entry, Left, right);
+                return right.Height > Left.Height + 1
+                    ? BalanceNewRightTree(right)
+                    : new ImHashMap<K, V>(Entry, Left, right);
             }
         }
 
@@ -3983,7 +3980,6 @@ namespace ImTools
             return conflictsData == null && (ReferenceEquals(Key, key) || Key.Equals(key)) ? this
                 : AddOrUpdateConflict(conflictsData, hash, key, value, null, DoAddOrUpdateConflicts.AddOrKeep);
         }
-
         private ImHashMap<K, V> AddOrKeepLeftOrRight(int hash, K key, V value)
         {
             if (hash < Hash)
@@ -4012,21 +4008,9 @@ namespace ImTools
                 if (ReferenceEquals(left, Left))
                     return this;
 
-                if (left.Height > Right.Height + 1) // left is longer by 2, rotate left
-                {
-                    var leftLeft = left.Left;
-                    var leftRight = left.Right;
-
-                    if (leftRight.Height > leftLeft.Height)
-                        return new ImHashMap<K, V>(leftRight.Entry,
-                            new ImHashMap<K, V>(left.Entry, leftLeft, leftRight.Left),
-                            new ImHashMap<K, V>(Entry, leftRight.Right, Right));
-
-                    return new ImHashMap<K, V>(left.Entry,
-                        leftLeft, new ImHashMap<K, V>(Entry, leftRight, Right));
-                }
-
-                return new ImHashMap<K, V>(Entry, left, Right);
+                return left.Height > Right.Height + 1
+                    ? BalanceNewLeftTree(left)
+                    : new ImHashMap<K, V>(Entry, left, Right);
             }
             else
             {
@@ -4054,20 +4038,9 @@ namespace ImTools
                 if (ReferenceEquals(right, Right))
                     return this;
 
-                if (right.Height > Left.Height + 1)
-                {
-                    var rightLeft = right.Left;
-                    var rightRight = right.Right;
-                    if (rightLeft.Height > rightRight.Height)
-                        return new ImHashMap<K, V>(rightLeft.Entry,
-                            new ImHashMap<K, V>(Entry, Left, rightLeft.Left),
-                            new ImHashMap<K, V>(right.Entry, rightLeft.Right, rightRight));
-
-                    return new ImHashMap<K, V>(right.Entry,
-                        new ImHashMap<K, V>(Entry, Left, rightLeft), rightRight);
-                }
-
-                return new ImHashMap<K, V>(Entry, Left, right);
+                return right.Height > Left.Height + 1
+                    ? BalanceNewRightTree(right)
+                    : new ImHashMap<K, V>(Entry, Left, right);
             }
         }
 
@@ -4142,21 +4115,9 @@ namespace ImTools
                 if (ReferenceEquals(left, Left))
                     return this;
 
-                if (left.Height > Right.Height + 1) // left is longer by 2, rotate left
-                {
-                    var leftLeft = left.Left;
-                    var leftRight = left.Right;
-
-                    if (leftRight.Height > leftLeft.Height)
-                        return new ImHashMap<K, V>(leftRight.Entry,
-                            new ImHashMap<K, V>(left.Entry, leftLeft, leftRight.Left),
-                            new ImHashMap<K, V>(Entry, leftRight.Right, Right));
-
-                    return new ImHashMap<K, V>(left.Entry,
-                        leftLeft, new ImHashMap<K, V>(Entry, leftRight, Right));
-                }
-
-                return new ImHashMap<K, V>(Entry, left, Right);
+                return left.Height > Right.Height + 1
+                    ? BalanceNewLeftTree(left)
+                    : new ImHashMap<K, V>(Entry, left, Right);
             }
             else
             {
@@ -4184,20 +4145,9 @@ namespace ImTools
                 if (ReferenceEquals(right, Right))
                     return this;
 
-                if (right.Height > Left.Height + 1)
-                {
-                    var rightLeft = right.Left;
-                    var rightRight = right.Right;
-                    if (rightLeft.Height > rightRight.Height)
-                        return new ImHashMap<K, V>(rightLeft.Entry,
-                            new ImHashMap<K, V>(Entry, Left, rightLeft.Left),
-                            new ImHashMap<K, V>(right.Entry, rightLeft.Right, rightRight));
-
-                    return new ImHashMap<K, V>(right.Entry,
-                        new ImHashMap<K, V>(Entry, Left, rightLeft), rightRight);
-                }
-
-                return new ImHashMap<K, V>(Entry, Left, right);
+                return right.Height > Left.Height + 1
+                    ? BalanceNewRightTree(right)
+                    : new ImHashMap<K, V>(Entry, Left, right);
             }
         }
 
@@ -4292,44 +4242,6 @@ namespace ImTools
         /// The only difference is using fixed size array instead of stack for speed-up.
         /// </summary>
         public IEnumerable<ImHashMapEntry<K, V>> Enumerate()
-        {
-            if (Height != 0)
-            {
-                var parents = new ImHashMap<K, V>[Height];
-                var node = this;
-                var parentCount = -1;
-                while (node.Height != 0 || parentCount != -1)
-                {
-                    if (node.Height != 0)
-                    {
-                        parents[++parentCount] = node;
-                        node = node.Left;
-                    }
-                    else
-                    {
-                        node = parents[parentCount--];
-                        if (node.Entry is ImHashMapConflicts<K, V> conflictsData)
-                        {
-                            var conflicts = conflictsData.Conflicts;
-                            for (var i = 0; i < conflicts.Length; i++)
-                                yield return conflicts[i];
-                        }
-                        else
-                        {
-                            yield return node.Entry;
-                        }
-
-                        node = node.Right;
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Depth-first in-order traversal as described in http://en.wikipedia.org/wiki/Tree_traversal
-        /// The only difference is using fixed size array instead of stack for speed-up.
-        /// </summary>
-        public IEnumerable<ImHashMapEntry<K, V>> Enumerate2()
         {
             if (Height != 0)
             {

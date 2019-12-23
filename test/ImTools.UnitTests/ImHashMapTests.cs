@@ -341,6 +341,51 @@ namespace ImTools.UnitTests
         }
 
         [Test]
+        public void Test_double_rotation_in_tree_when_adding_to_the_right()
+        {
+            //            10                            10                            10                            10                                     12
+            //      5           15                5           15                5            20               5                20                    10             20
+            //   3     7    12      20     =>  3     7    12       23    =>  3     7    12       23    =>  3     7       12          23     =>    5      11    15        23
+            //                          25                      20    25                  15   21   25                 11   15      21   25     3   7            17    21   25
+            //                        23!                         21!                                                        17!                                   
+            var t = ImHashMap<int, int>.Empty
+                .AddOrUpdate(10, 10)
+
+                .AddOrUpdate(15, 15)
+                .AddOrUpdate(5, 5)
+                .AddOrUpdate(7, 7)
+
+                .AddOrUpdate(3, 3)
+                .AddOrUpdate(20, 20)
+                .AddOrUpdate(12, 12)
+                .AddOrUpdate(25, 25)
+
+                .AddOrUpdate(23, 23)
+                .AddOrUpdate(21, 21) // here it goes double rotate!
+
+                .AddOrUpdate(11, 11)
+                .AddOrUpdate(17, 17); // boom again - on the global scale!
+
+            Assert.AreEqual(12, t.Entry.Key);
+
+            Assert.AreEqual(10, t.Left.Entry.Key);
+
+            Assert.AreEqual(5, t.Left.Left.Entry.Key);
+            Assert.AreEqual(3, t.Left.Left.Left.Key);
+            Assert.AreEqual(7, t.Left.Left.Right.Key);
+
+            Assert.AreEqual(11, t.Left.Right.Key);
+
+            Assert.AreEqual(20, t.Right.Entry.Key);
+            Assert.AreEqual(15, t.Right.Left.Entry.Key);
+            Assert.AreEqual(17, t.Right.Left.Right.Key);
+
+            Assert.AreEqual(23, t.Right.Right.Entry.Key);
+            Assert.AreEqual(21, t.Right.Right.Left .Key);
+            Assert.AreEqual(25, t.Right.Right.Right.Key);
+        }
+
+        [Test]
         public void Search_in_empty_tree_should_NOT_throw()
         {
             var tree = ImHashMap<int, int>.Empty;
