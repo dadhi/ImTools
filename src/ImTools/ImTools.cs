@@ -3849,24 +3849,27 @@ namespace ImTools
         private ImHashMap<K, V> BalanceNewLeftTree(ImHashMap<K, V> newLeftTree)
         {
             var leftLeft = newLeftTree.Left;
-            var leftRight = newLeftTree.Right;
+            var leftLeftHeight = leftLeft.Height;
 
-            if (leftRight.Height > leftLeft.Height)
+            var leftRight = newLeftTree.Right;
+            var leftRightHeight = leftRight.Height;
+
+            if (leftRightHeight > leftLeftHeight)
             {
                 newLeftTree.Right  = leftRight.Left;
-                newLeftTree.Height = leftLeft.Height + 1;
+                newLeftTree.Height = leftLeftHeight + 1;
                 return new ImHashMap<K, V>(leftRight.Entry,
                     newLeftTree,
                     new ImHashMap<K, V>(Entry, leftRight.Right, Right, Right.Height + 1),
-                    leftLeft.Height + 2);
+                    leftLeftHeight + 2);
 
                 //return new ImHashMap<K, V>(leftRight.Entry,
                 //    new ImHashMap<K, V>(newLeftTree.Entry, leftLeft, leftRight.Left),
                 //    new ImHashMap<K, V>(Entry, leftRight.Right, Right));
             }
 
-            newLeftTree.Right = new ImHashMap<K, V>(Entry, leftRight, Right, leftRight.Height + 1);
-            newLeftTree.Height = leftRight.Height + 2;
+            newLeftTree.Right = new ImHashMap<K, V>(Entry, leftRight, Right, leftRightHeight + 1);
+            newLeftTree.Height = leftRightHeight + 2;
             return newLeftTree;
             //return new ImHashMap<K, V>(newLeftTree.Entry,
             //    leftLeft, new ImHashMap<K, V>(Entry, leftRight, Right));
@@ -3876,26 +3879,30 @@ namespace ImTools
         private ImHashMap<K, V> BalanceNewRightTree(ImHashMap<K, V> newRightTree)
         {
             var rightLeft  = newRightTree.Left;
+            var rightLeftHeight = rightLeft.Height;
+
             var rightRight = newRightTree.Right;
-            if (rightLeft.Height > rightRight.Height) // 1 greater - not 2 greater because it would be too unbalanced
+            var rightRightHeight = rightRight.Height;
+            
+            if (rightLeftHeight > rightRightHeight) // 1 greater - not 2 greater because it would be too unbalanced
             {
                 newRightTree.Left = rightLeft.Right;
                 // the height now should be defined by rr - because left now is shorter by 1
-                newRightTree.Height = rightRight.Height + 1;
+                newRightTree.Height = rightRightHeight + 1;
                 // the whole height consequentially can be defined by `newRightTree` (rr+1) because left is consist of short Left and -2 rl.Left
                 return new ImHashMap<K, V>(rightLeft.Entry,
                     // Left should be >= rightLeft.Left because it maybe rightLeft.Right which defines rl height
                     new ImHashMap<K, V>(Entry, Left, rightLeft.Left, height:Left.Height + 1),
-                    newRightTree, rightRight.Height + 2);
+                    newRightTree, rightRightHeight + 2);
                 //return new ImHashMap<K, V>(rightLeft.Entry,
                 //    new ImHashMap<K, V>(Entry, Left, rightLeft.Left),
                 //    new ImHashMap<K, V>(newRightTree.Entry, rightLeft.Right, rightRight));
             }
 
             // we may decide on the height because the Left smaller by 2
-            newRightTree.Left = new ImHashMap<K, V>(Entry, Left, rightLeft, rightLeft.Height + 1); 
+            newRightTree.Left = new ImHashMap<K, V>(Entry, Left, rightLeft, rightLeftHeight + 1); 
             // if rr was > rl by 1 than new rl+1 should be equal height to rr now, if rr was == rl than new rl wins anyway
-            newRightTree.Height = newRightTree.Left.Height + 1;
+            newRightTree.Height = rightLeftHeight + 2;
             return newRightTree;
             //return new ImHashMap<K, V>(newRightTree.Entry, new ImHashMap<K, V>(Entry, Left, rightLeft), rightRight);
         }
