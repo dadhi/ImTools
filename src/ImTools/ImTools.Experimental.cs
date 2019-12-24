@@ -942,11 +942,18 @@ namespace ImTools.Experimental
             if (map is ImMapEntry<V> leaf)
                 state = reduce(leaf, state);
             else if (map is ImMapBranch<V> branch)
-                state = reduce(branch.RightEntry, reduce(branch.Entry, state));
+            {
+                state = reduce(branch.Entry, state);
+                state = reduce(branch.RightEntry, state);
+            }
             else if (map is ImMapTree<V> tree)
             {
                 if (tree.TreeHeight == 2)
-                    state = reduce((ImMapEntry<V>) tree.Right, reduce(tree.Entry, reduce((ImMapEntry<V>) tree.Left, state)));
+                {
+                    state = reduce((ImMapEntry<V>)tree.Left, state);
+                    state = reduce(tree.Entry, state);
+                    state = reduce((ImMapEntry<V>)tree.Right, state);
+                }
                 else
                 {
                     parentStack = parentStack ?? new ImMapTree<V>[tree.TreeHeight - 2];
@@ -957,7 +964,9 @@ namespace ImTools.Experimental
                         {
                             if (tree.TreeHeight == 2)
                             {
-                                state = reduce((ImMapEntry<V>)tree.Right, reduce(tree.Entry, reduce((ImMapEntry<V>)tree.Left, state)));
+                                state = reduce((ImMapEntry<V>)tree.Left, state);
+                                state = reduce(tree.Entry, state);
+                                state = reduce((ImMapEntry<V>)tree.Right, state);
                                 if (parentIndex == -1)
                                     break;
                                 tree = parentStack[parentIndex--];
@@ -972,7 +981,8 @@ namespace ImTools.Experimental
                         }
                         else if ((branch = map as ImMapBranch<V>) != null)
                         {
-                            state = reduce(branch.RightEntry, reduce(branch.Entry, state));
+                            state = reduce(branch.Entry, state);
+                            state = reduce(branch.RightEntry, state);
                             if (parentIndex == -1)
                                 break;
                             tree = parentStack[parentIndex--];
@@ -1133,5 +1143,126 @@ namespace ImTools.Experimental
         /// Update the ref to the slot with the new version - retry if the someone changed the slot in between
         public static void RefAddEntryOrKeepSlot<V>(ref ImMap<V> slot, int key) =>
             Ref.Swap(ref slot, key, (s, k) => s.AddEntryOrKeep(k));
+
+        /// <summary> Folds all map nodes without the order </summary>
+        public static S Fold<V, S>(this ImMap<V>[] slots, S state, Func<ImMapEntry<V>, S, S> reduce)
+        {
+            var parentStack = ArrayTools.Empty<ImMapTree<V>>();
+            for (var i = 0; i < slots.Length; ++i)
+            {
+                var map = slots[i];
+                if (map == ImMap<V>.Empty)
+                    continue;
+
+                if (map is ImMapEntry<V> leaf)
+                    state = reduce(leaf, state);
+                else if (map is ImMapBranch<V> branch)
+                {
+                    state = reduce(branch.Entry,      state);
+                    state = reduce(branch.RightEntry, state);
+                }
+                else if (map is ImMapTree<V> tree)
+                {
+                    if (tree.TreeHeight == 2)
+                    {
+                        state = reduce((ImMapEntry<V>) tree.Left, state);
+                        state = reduce(tree.Entry, state);
+                        state = reduce((ImMapEntry<V>) tree.Right, state);
+                    }
+                    else
+                    {
+                        parentStack = parentStack ?? new ImMapTree<V>[tree.TreeHeight - 2];
+                        var parentIndex = -1;
+                        while (true)
+                        {
+                            if ((tree = map as ImMapTree<V>) != null)
+                            {
+                                if (tree.TreeHeight == 2)
+                                {
+                                    state = reduce((ImMapEntry<V>)tree.Left, state);
+                                    state = reduce(tree.Entry, state);
+                                    state = reduce((ImMapEntry<V>)tree.Right, state);
+                                    if (parentIndex == -1)
+                                        break;
+                                    tree = parentStack[parentIndex--];
+                                    state = reduce(tree.Entry, state);
+                                    map = tree.Right;
+                                }
+                                else
+                                {
+                                    parentStack[++parentIndex] = tree;
+                                    map = tree.Left;
+                                }
+                            }
+                            else if ((branch = map as ImMapBranch<V>) != null)
+                            {
+                                state = reduce(branch.Entry, state);
+                                state = reduce(branch.RightEntry, state);
+                                if (parentIndex == -1)
+                                    break;
+                                tree = parentStack[parentIndex--];
+                                state = reduce(tree.Entry, state);
+                                map = tree.Right;
+                            }
+                            else
+                            {
+                                state = reduce((ImMapEntry<V>) map, state);
+                                if (parentIndex == -1)
+                                    break;
+                                tree = parentStack[parentIndex--];
+                                state = reduce(tree.Entry, state);
+                                map = tree.Right;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return state;
+
+            //for (var i = 0; i < slots.Length; i++)
+            //{
+            //    var map = slots[i];
+            //    var height = map.Height;
+            //    if (height == 0)
+            //        continue;
+            //    if (height == 1)
+            //        state = reduce(map, state);
+            //    else if (height == 2)
+            //        state = map.ReduceTwoLevelTree(state, reduce);
+            //    else
+            //    {
+            //        if (parentStack.Length < height - 2)
+            //            parentStack = new ImMap<V>[height - 2];
+            //        var parentIndex = -1;
+            //        do
+            //        {
+            //            if (map.Height == 1)
+            //            {
+            //                state = reduce(map, state);
+            //                if (parentIndex == -1)
+            //                    break;
+            //                state = reduce(map = parentStack[parentIndex--], state);
+            //                map = map.Right;
+            //            }
+            //            else if (map.Height == 2)
+            //            {
+            //                state = map.ReduceTwoLevelTree(state, reduce);
+            //                if (parentIndex == -1)
+            //                    break;
+            //                state = reduce(map = parentStack[parentIndex--], state);
+            //                map = map.Right;
+            //            }
+            //            else
+            //            {
+            //                parentStack[++parentIndex] = map;
+            //                map = map.Left;
+            //            }
+            //        } while (map.Height != 0);
+            //    }
+            //}
+
+            //return state;
+        }
     }
 }

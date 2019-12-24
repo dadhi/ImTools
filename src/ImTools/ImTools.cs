@@ -3528,9 +3528,7 @@ namespace ImTools
         public static void RefUpdateSlot<V>(ref ImMap<V> slot, int key, V value) =>
             Ref.Swap(ref slot, key, value, (s, k, v) => s.Update(k, v));
 
-        /// <summary>
-        /// Folds all map tree nodes without the order
-        /// </summary>
+        /// <summary> Folds all map tree nodes without the order </summary>
         public static S Fold<V, S>(this ImMap<V>[] slots, S state, Func<ImMap<V>, S, S> reduce)
         {
             var parentStack = ArrayTools.Empty<ImMap<V>>();
