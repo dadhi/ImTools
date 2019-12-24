@@ -1171,7 +1171,8 @@ namespace ImTools.Experimental
                     }
                     else
                     {
-                        parentStack = parentStack ?? new ImMapTree<V>[tree.TreeHeight - 2];
+                        if (parentStack.Length < tree.TreeHeight - 2)
+                            parentStack = new ImMapTree<V>[tree.TreeHeight - 2];
                         var parentIndex = -1;
                         while (true)
                         {

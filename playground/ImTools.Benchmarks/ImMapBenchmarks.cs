@@ -632,84 +632,67 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             /*
             ## V2
 
-            |                         Method |  Count |             Mean |          Error |         StdDev | Ratio | RatioSD |   Gen 0 |   Gen 1 |   Gen 2 | Allocated |
-            |------------------------------- |------- |-----------------:|---------------:|---------------:|------:|--------:|--------:|--------:|--------:|----------:|
-            |         ImMap_EnumerateToArray |      1 |        112.56 ns |       1.242 ns |       1.162 ns |  1.00 |    0.00 |  0.0340 |       - |       - |     160 B |
-            |      ImMap_V1_EnumerateToArray |      1 |        120.32 ns |       0.351 ns |       0.311 ns |  1.07 |    0.01 |  0.0391 |       - |       - |     184 B |
-            |              ImMap_FoldToArray |      1 |         34.14 ns |       0.203 ns |       0.190 ns |  0.30 |    0.00 |  0.0255 |       - |       - |     120 B |
-            |         ImMapSlots_FoldToArray |      1 |         55.19 ns |       0.185 ns |       0.173 ns |  0.49 |    0.00 |  0.0254 |       - |       - |     120 B |
-            | ImMap_Experimental_FoldToArray |      1 |         35.36 ns |       0.109 ns |       0.096 ns |  0.31 |    0.00 |  0.0255 |       - |       - |     120 B |
-            |               DictSlim_ToArray |      1 |        118.93 ns |       2.452 ns |       2.294 ns |  1.06 |    0.02 |  0.0372 |       - |       - |     176 B |
-            |                   Dict_ToArray |      1 |         32.98 ns |       0.591 ns |       0.553 ns |  0.29 |    0.01 |  0.0085 |       - |       - |      40 B |
-            |         ConcurrentDict_ToArray |      1 |        222.83 ns |       0.842 ns |       0.657 ns |  1.97 |    0.01 |  0.0083 |       - |       - |      40 B |
-            |          ImmutableDict_ToArray |      1 |        460.15 ns |       9.011 ns |       9.641 ns |  4.09 |    0.10 |  0.0081 |       - |       - |      40 B |
-            |                                |        |                  |                |                |       |         |         |         |         |           |
-            |         ImMap_EnumerateToArray |     10 |        292.52 ns |       5.830 ns |       6.713 ns |  1.00 |    0.00 |  0.0949 |       - |       - |     448 B |
-            |      ImMap_V1_EnumerateToArray |     10 |        377.47 ns |       3.431 ns |       3.042 ns |  1.28 |    0.03 |  0.0968 |       - |       - |     456 B |
-            |              ImMap_FoldToArray |     10 |        165.32 ns |       3.297 ns |       4.049 ns |  0.57 |    0.02 |  0.1001 |       - |       - |     472 B |
-            |         ImMapSlots_FoldToArray |     10 |        170.89 ns |       3.413 ns |       3.193 ns |  0.58 |    0.02 |  0.0918 |       - |       - |     432 B |
-            | ImMap_Experimental_FoldToArray |     10 |        195.06 ns |       3.905 ns |       3.653 ns |  0.66 |    0.01 |  0.1001 |       - |       - |     472 B |
-            |               DictSlim_ToArray |     10 |        337.32 ns |       2.994 ns |       2.801 ns |  1.15 |    0.03 |  0.1326 |       - |       - |     624 B |
-            |                   Dict_ToArray |     10 |         66.66 ns |       1.204 ns |       1.126 ns |  0.23 |    0.01 |  0.0391 |       - |       - |     184 B |
-            |         ConcurrentDict_ToArray |     10 |        243.89 ns |       0.778 ns |       0.649 ns |  0.83 |    0.02 |  0.0391 |       - |       - |     184 B |
-            |          ImmutableDict_ToArray |     10 |      1,791.78 ns |      30.391 ns |      28.428 ns |  6.10 |    0.21 |  0.0381 |       - |       - |     184 B |
-            |                                |        |                  |                |                |       |         |         |         |         |           |
-            |         ImMap_EnumerateToArray |    100 |      1,612.49 ns |      35.420 ns |      49.654 ns |  1.00 |    0.00 |  0.4692 |  0.0019 |       - |    2216 B |
-            |      ImMap_V1_EnumerateToArray |    100 |      2,338.79 ns |      38.249 ns |      35.778 ns |  1.43 |    0.06 |  0.4692 |       - |       - |    2224 B |
-            |              ImMap_FoldToArray |    100 |      1,030.10 ns |       8.368 ns |       7.828 ns |  0.63 |    0.02 |  0.6542 |  0.0038 |       - |    3080 B |
-            |         ImMapSlots_FoldToArray |    100 |        927.08 ns |       9.959 ns |       9.315 ns |  0.57 |    0.02 |  0.6475 |  0.0048 |       - |    3048 B |
-            | ImMap_Experimental_FoldToArray |    100 |      1,267.60 ns |      24.876 ns |      27.650 ns |  0.78 |    0.03 |  0.6542 |  0.0038 |       - |    3080 B |
-            |               DictSlim_ToArray |    100 |      1,887.14 ns |      35.421 ns |      33.132 ns |  1.16 |    0.04 |  0.8450 |  0.0076 |       - |    3984 B |
-            |                   Dict_ToArray |    100 |        385.92 ns |       1.574 ns |       1.395 ns |  0.24 |    0.01 |  0.3448 |  0.0019 |       - |    1624 B |
-            |         ConcurrentDict_ToArray |    100 |      1,965.60 ns |      15.761 ns |      14.743 ns |  1.20 |    0.04 |  0.3433 |       - |       - |    1624 B |
-            |          ImmutableDict_ToArray |    100 |     15,326.90 ns |     205.371 ns |     182.056 ns |  9.37 |    0.36 |  0.3357 |       - |       - |    1624 B |
-            |                                |        |                  |                |                |       |         |         |         |         |           |
-            |         ImMap_EnumerateToArray |   1000 |     14,802.01 ns |     203.875 ns |     190.705 ns |  1.00 |    0.00 |  3.5400 |  0.1221 |       - |   16768 B |
-            |      ImMap_V1_EnumerateToArray |   1000 |     22,641.28 ns |     182.790 ns |     170.982 ns |  1.53 |    0.02 |  3.5400 |  0.1526 |       - |   16776 B |
-            |              ImMap_FoldToArray |   1000 |      9,762.56 ns |     194.758 ns |     216.473 ns |  0.66 |    0.02 |  5.2490 |  0.2899 |       - |   24712 B |
-            |         ImMapSlots_FoldToArray |   1000 |      8,726.37 ns |      34.284 ns |      30.391 ns |  0.59 |    0.01 |  5.2338 |  0.3052 |       - |   24680 B |
-            | ImMap_Experimental_FoldToArray |   1000 |     11,778.07 ns |     158.037 ns |     147.828 ns |  0.80 |    0.02 |  5.2490 |  0.2899 |       - |   24712 B |
-            |               DictSlim_ToArray |   1000 |     16,176.66 ns |     178.605 ns |     167.067 ns |  1.09 |    0.02 |  6.9580 |  0.6104 |       - |   32880 B |
-            |                   Dict_ToArray |   1000 |      3,589.94 ns |      60.187 ns |      53.355 ns |  0.24 |    0.00 |  3.3875 |  0.1869 |       - |   16024 B |
-            |         ConcurrentDict_ToArray |   1000 |     16,127.76 ns |      66.325 ns |      62.040 ns |  1.09 |    0.02 |  3.3875 |  0.1831 |       - |   16024 B |
-            |          ImmutableDict_ToArray |   1000 |    147,352.40 ns |     361.145 ns |     320.145 ns |  9.96 |    0.14 |  3.1738 |       - |       - |   16024 B |
-            |                                |        |                  |                |                |       |         |         |         |         |           |
-            |         ImMap_EnumerateToArray |  10000 |    164,603.12 ns |     852.060 ns |     797.017 ns |  1.00 |    0.00 | 44.6777 | 14.8926 |       - |  211928 B |
-            |      ImMap_V1_EnumerateToArray |  10000 |    239,139.72 ns |     491.672 ns |     459.910 ns |  1.45 |    0.01 | 44.6777 | 14.8926 |       - |  211936 B |
-            |              ImMap_FoldToArray |  10000 |    240,178.70 ns |     490.201 ns |     458.534 ns |  1.46 |    0.01 | 60.0586 | 29.5410 | 15.3809 |  342658 B |
-            |         ImMapSlots_FoldToArray |  10000 |    240,304.50 ns |     408.461 ns |     382.075 ns |  1.46 |    0.01 | 60.0586 | 29.2969 | 15.3809 |  342617 B |
-            | ImMap_Experimental_FoldToArray |  10000 |    240,461.36 ns |     574.004 ns |     536.924 ns |  1.46 |    0.01 | 60.0586 | 29.5410 | 15.3809 |  342656 B |
-            |               DictSlim_ToArray |  10000 |    206,822.71 ns |   3,423.543 ns |   2,858.814 ns |  1.26 |    0.02 | 49.8047 | 27.8320 | 22.2168 |  422933 B |
-            |                   Dict_ToArray |  10000 |     70,304.48 ns |   1,282.667 ns |   1,137.051 ns |  0.43 |    0.01 |  0.8545 |  0.8545 |  0.8545 |  160017 B |
-            |         ConcurrentDict_ToArray |  10000 |     74,605.83 ns |   1,478.227 ns |   2,428.770 ns |  0.45 |    0.02 |  7.9346 |  7.9346 |  7.9346 |  160011 B |
-            |          ImmutableDict_ToArray |  10000 |  1,501,992.49 ns |   5,199.549 ns |   4,609.265 ns |  9.12 |    0.05 | 25.3906 | 25.3906 | 25.3906 |  160025 B |
-            |                                |        |                  |                |                |       |         |         |         |         |           |
-            |         ImMap_EnumerateToArray | 100000 |  2,310,086.97 ns |  33,245.043 ns |  29,470.865 ns |  1.00 |    0.00 | 46.8750 | 27.3438 | 19.5313 | 1849629 B |
-            |      ImMap_V1_EnumerateToArray | 100000 |  3,084,042.88 ns |  61,066.506 ns |  72,695.332 ns |  1.33 |    0.04 | 50.7813 | 27.3438 | 23.4375 | 1849542 B |
-            |              ImMap_FoldToArray | 100000 |  2,438,813.90 ns |  48,758.488 ns | 117,757.230 ns |  1.05 |    0.04 | 50.7813 | 23.4375 | 23.4375 | 2897738 B |
-            |         ImMapSlots_FoldToArray | 100000 |  2,508,368.33 ns |  49,968.017 ns |  82,098.885 ns |  1.08 |    0.04 | 54.6875 | 27.3438 | 27.3438 | 2897702 B |
-            | ImMap_Experimental_FoldToArray | 100000 |  2,559,333.72 ns |  50,061.766 ns |  71,797.088 ns |  1.10 |    0.03 | 54.6875 | 27.3438 | 27.3438 | 2897730 B |
-            |               DictSlim_ToArray | 100000 |  2,485,378.79 ns |  49,660.073 ns | 133,408.560 ns |  1.08 |    0.07 | 54.6875 | 35.1563 | 27.3438 | 3698046 B |
-            |                   Dict_ToArray | 100000 |    719,827.15 ns |  18,714.741 ns |  55,180.837 ns |  0.29 |    0.03 |  6.8359 |  6.8359 |  6.8359 | 1600012 B |
-            |         ConcurrentDict_ToArray | 100000 |    807,512.24 ns |  16,052.575 ns |  45,798.901 ns |  0.35 |    0.02 |  7.8125 |  7.8125 |  7.8125 | 1600013 B |
-            |          ImmutableDict_ToArray | 100000 | 15,956,568.54 ns | 166,283.019 ns | 155,541.239 ns |  6.91 |    0.11 |       - |       - |       - | 1600024 B |
-
-            ## Experimental 2
-
-                            |                          Method | Count |         Mean |     Error |    StdDev | Ratio | RatioSD |  Gen 0 |  Gen 1 | Gen 2 | Allocated |
-            |-------------------------------- |------ |-------------:|----------:|----------:|------:|--------:|-------:|-------:|------:|----------:|
-            |  ImMap_Experimental_FoldToArray |     1 |     38.01 ns |  0.062 ns |  0.052 ns |  1.00 |    0.00 | 0.0255 |      - |     - |     120 B |
-            | ImMap_Experimental2_FoldToArray |     1 |     39.51 ns |  0.142 ns |  0.133 ns |  1.04 |    0.00 | 0.0255 |      - |     - |     120 B |
-            |                                 |       |              |           |           |       |         |        |        |       |           |
-            |  ImMap_Experimental_FoldToArray |    10 |    196.41 ns |  0.833 ns |  0.779 ns |  1.00 |    0.00 | 0.1001 |      - |     - |     472 B |
-            | ImMap_Experimental2_FoldToArray |    10 |    192.33 ns |  4.324 ns |  4.440 ns |  0.98 |    0.03 | 0.1001 |      - |     - |     472 B |
-            |                                 |       |              |           |           |       |         |        |        |       |           |
-            |  ImMap_Experimental_FoldToArray |   100 |  1,300.47 ns |  7.344 ns |  6.133 ns |  1.00 |    0.00 | 0.6542 | 0.0038 |     - |    3080 B |
-            | ImMap_Experimental2_FoldToArray |   100 |  1,233.16 ns | 24.844 ns | 25.513 ns |  0.94 |    0.01 | 0.6542 | 0.0038 |     - |    3080 B |
-            |                                 |       |              |           |           |       |         |        |        |       |           |
-            |  ImMap_Experimental_FoldToArray |  1000 | 12,803.84 ns | 67.065 ns | 62.732 ns |  1.00 |    0.00 | 5.2490 | 0.2899 |     - |   24712 B |
-            | ImMap_Experimental2_FoldToArray |  1000 | 11,432.12 ns | 27.862 ns | 26.062 ns |  0.89 |    0.00 | 5.2490 | 0.2899 |     - |   24712 B |
-
+|                              Method | Count |            Mean |        Error |       StdDev | Ratio | RatioSD |   Gen 0 |   Gen 1 |   Gen 2 | Allocated |
+|------------------------------------ |------ |----------------:|-------------:|-------------:|------:|--------:|--------:|--------:|--------:|----------:|
+|              ImMap_EnumerateToArray |     1 |       113.84 ns |     0.679 ns |     0.601 ns |  1.00 |    0.00 |  0.0339 |       - |       - |     160 B |
+|           ImMap_V1_EnumerateToArray |     1 |       128.37 ns |     0.917 ns |     0.858 ns |  1.13 |    0.01 |  0.0391 |       - |       - |     184 B |
+|                   ImMap_FoldToArray |     1 |        35.70 ns |     0.159 ns |     0.141 ns |  0.31 |    0.00 |  0.0255 |       - |       - |     120 B |
+| ImMap_FoldToArray_FoldReducerStruct |     1 |        35.56 ns |     0.402 ns |     0.376 ns |  0.31 |    0.00 |  0.0255 |       - |       - |     120 B |
+|      Experimental_ImMap_FoldToArray |     1 |        39.61 ns |     0.104 ns |     0.092 ns |  0.35 |    0.00 |  0.0255 |       - |       - |     120 B |
+|              ImMapSlots_FoldToArray |     1 |        57.53 ns |     0.276 ns |     0.245 ns |  0.51 |    0.00 |  0.0254 |       - |       - |     120 B |
+| Experimental_ImMapSlots_FoldToArray |     1 |       145.28 ns |     0.606 ns |     0.537 ns |  1.28 |    0.01 |  0.0253 |       - |       - |     120 B |
+|                    DictSlim_ToArray |     1 |       118.92 ns |     0.579 ns |     0.542 ns |  1.04 |    0.01 |  0.0372 |       - |       - |     176 B |
+|                        Dict_ToArray |     1 |        32.38 ns |     0.158 ns |     0.148 ns |  0.28 |    0.00 |  0.0085 |       - |       - |      40 B |
+|              ConcurrentDict_ToArray |     1 |       227.97 ns |     0.472 ns |     0.418 ns |  2.00 |    0.01 |  0.0083 |       - |       - |      40 B |
+|               ImmutableDict_ToArray |     1 |       450.59 ns |     1.847 ns |     1.728 ns |  3.96 |    0.02 |  0.0081 |       - |       - |      40 B |
+|                                     |       |                 |              |              |       |         |         |         |         |           |
+|              ImMap_EnumerateToArray |    10 |       293.09 ns |     1.773 ns |     1.480 ns |  1.00 |    0.00 |  0.0949 |       - |       - |     448 B |
+|           ImMap_V1_EnumerateToArray |    10 |       372.15 ns |     1.139 ns |     1.065 ns |  1.27 |    0.01 |  0.0968 |       - |       - |     456 B |
+|                   ImMap_FoldToArray |    10 |       168.56 ns |     0.528 ns |     0.441 ns |  0.58 |    0.00 |  0.1001 |       - |       - |     472 B |
+| ImMap_FoldToArray_FoldReducerStruct |    10 |       150.27 ns |     0.882 ns |     0.825 ns |  0.51 |    0.00 |  0.1001 |       - |       - |     472 B |
+|      Experimental_ImMap_FoldToArray |    10 |       175.04 ns |     0.689 ns |     0.645 ns |  0.60 |    0.00 |  0.1001 |       - |       - |     472 B |
+|              ImMapSlots_FoldToArray |    10 |       174.57 ns |     0.929 ns |     0.869 ns |  0.60 |    0.00 |  0.0918 |       - |       - |     432 B |
+| Experimental_ImMapSlots_FoldToArray |    10 |       257.28 ns |     1.481 ns |     1.386 ns |  0.88 |    0.01 |  0.0916 |       - |       - |     432 B |
+|                    DictSlim_ToArray |    10 |       350.21 ns |     1.909 ns |     1.785 ns |  1.20 |    0.01 |  0.1326 |       - |       - |     624 B |
+|                        Dict_ToArray |    10 |        65.00 ns |     0.399 ns |     0.354 ns |  0.22 |    0.00 |  0.0391 |       - |       - |     184 B |
+|              ConcurrentDict_ToArray |    10 |       255.37 ns |     1.077 ns |     1.008 ns |  0.87 |    0.01 |  0.0391 |       - |       - |     184 B |
+|               ImmutableDict_ToArray |    10 |     1,807.03 ns |     2.889 ns |     2.561 ns |  6.17 |    0.03 |  0.0381 |       - |       - |     184 B |
+|                                     |       |                 |              |              |       |         |         |         |         |           |
+|              ImMap_EnumerateToArray |   100 |     1,607.53 ns |     3.545 ns |     3.316 ns |  1.00 |    0.00 |  0.4692 |  0.0019 |       - |    2216 B |
+|           ImMap_V1_EnumerateToArray |   100 |     2,336.81 ns |     8.279 ns |     7.744 ns |  1.45 |    0.01 |  0.4692 |       - |       - |    2224 B |
+|                   ImMap_FoldToArray |   100 |     1,010.82 ns |     3.517 ns |     3.289 ns |  0.63 |    0.00 |  0.6542 |  0.0038 |       - |    3080 B |
+| ImMap_FoldToArray_FoldReducerStruct |   100 |       835.10 ns |     3.830 ns |     3.583 ns |  0.52 |    0.00 |  0.6542 |  0.0048 |       - |    3080 B |
+|      Experimental_ImMap_FoldToArray |   100 |     1,054.71 ns |     3.587 ns |     3.355 ns |  0.66 |    0.00 |  0.6542 |  0.0038 |       - |    3080 B |
+|              ImMapSlots_FoldToArray |   100 |       964.39 ns |     4.664 ns |     4.363 ns |  0.60 |    0.00 |  0.6466 |  0.0038 |       - |    3048 B |
+| Experimental_ImMapSlots_FoldToArray |   100 |              NA |           NA |           NA |     ? |       ? |       - |       - |       - |         - |
+|                    DictSlim_ToArray |   100 |     1,999.81 ns |     9.269 ns |     8.670 ns |  1.24 |    0.01 |  0.8430 |  0.0076 |       - |    3984 B |
+|                        Dict_ToArray |   100 |       396.93 ns |     1.480 ns |     1.384 ns |  0.25 |    0.00 |  0.3448 |  0.0019 |       - |    1624 B |
+|              ConcurrentDict_ToArray |   100 |     2,020.79 ns |     6.383 ns |     5.659 ns |  1.26 |    0.00 |  0.3433 |       - |       - |    1624 B |
+|               ImmutableDict_ToArray |   100 |    15,481.98 ns |    75.213 ns |    70.354 ns |  9.63 |    0.05 |  0.3357 |       - |       - |    1624 B |
+|                                     |       |                 |              |              |       |         |         |         |         |           |
+|              ImMap_EnumerateToArray |  1000 |    14,629.46 ns |    31.910 ns |    28.288 ns |  1.00 |    0.00 |  3.5553 |  0.1221 |       - |   16768 B |
+|           ImMap_V1_EnumerateToArray |  1000 |    23,123.61 ns |    60.733 ns |    50.715 ns |  1.58 |    0.00 |  3.5400 |  0.1526 |       - |   16776 B |
+|                   ImMap_FoldToArray |  1000 |     9,736.90 ns |    28.136 ns |    24.942 ns |  0.67 |    0.00 |  5.2490 |  0.2899 |       - |   24712 B |
+| ImMap_FoldToArray_FoldReducerStruct |  1000 |     7,257.50 ns |    31.930 ns |    29.867 ns |  0.50 |    0.00 |  5.2490 |  0.2899 |       - |   24712 B |
+|      Experimental_ImMap_FoldToArray |  1000 |     9,832.73 ns |    46.538 ns |    43.532 ns |  0.67 |    0.00 |  5.2490 |  0.2899 |       - |   24712 B |
+|              ImMapSlots_FoldToArray |  1000 |     9,552.41 ns |    41.909 ns |    39.202 ns |  0.65 |    0.00 |  5.2338 |  0.3052 |       - |   24680 B |
+| Experimental_ImMapSlots_FoldToArray |  1000 |              NA |           NA |           NA |     ? |       ? |       - |       - |       - |         - |
+|                    DictSlim_ToArray |  1000 |    17,003.48 ns |    68.655 ns |    64.220 ns |  1.16 |    0.00 |  6.9580 |  0.6104 |       - |   32880 B |
+|                        Dict_ToArray |  1000 |     3,638.25 ns |    21.158 ns |    19.791 ns |  0.25 |    0.00 |  3.3875 |  0.1869 |       - |   16024 B |
+|              ConcurrentDict_ToArray |  1000 |    16,556.81 ns |    55.562 ns |    51.973 ns |  1.13 |    0.00 |  3.3875 |  0.1831 |       - |   16024 B |
+|               ImmutableDict_ToArray |  1000 |   160,341.92 ns | 3,142.766 ns | 3,227.389 ns | 10.97 |    0.21 |  3.1738 |       - |       - |   16024 B |
+|                                     |       |                 |              |              |       |         |         |         |         |           |
+|              ImMap_EnumerateToArray | 10000 |   161,462.94 ns | 1,159.463 ns | 1,027.833 ns |  1.00 |    0.00 | 44.6777 | 14.8926 |       - |  211928 B |
+|           ImMap_V1_EnumerateToArray | 10000 |   249,036.45 ns | 1,346.823 ns | 1,259.819 ns |  1.54 |    0.01 | 44.4336 | 14.6484 |       - |  211937 B |
+|                   ImMap_FoldToArray | 10000 |   187,090.76 ns | 1,091.411 ns | 1,020.906 ns |  1.16 |    0.01 | 60.0586 | 29.2969 | 15.3809 |  342658 B |
+| ImMap_FoldToArray_FoldReducerStruct | 10000 |   153,420.06 ns |   726.403 ns |   643.938 ns |  0.95 |    0.01 | 60.0586 | 29.2969 | 15.3809 |  342657 B |
+|      Experimental_ImMap_FoldToArray | 10000 |   186,208.51 ns | 2,068.482 ns | 1,934.859 ns |  1.15 |    0.02 | 60.0586 | 29.5410 | 15.3809 |  342653 B |
+|              ImMapSlots_FoldToArray | 10000 |   196,075.27 ns | 1,544.471 ns | 1,444.699 ns |  1.21 |    0.01 | 60.0586 | 29.7852 | 15.3809 |  342622 B |
+| Experimental_ImMapSlots_FoldToArray | 10000 |              NA |           NA |           NA |     ? |       ? |       - |       - |       - |         - |
+|                    DictSlim_ToArray | 10000 |   219,731.52 ns |   707.237 ns |   661.550 ns |  1.36 |    0.01 | 50.7813 | 27.8320 | 23.1934 |  422961 B |
+|                        Dict_ToArray | 10000 |    72,796.03 ns | 1,444.978 ns | 1,351.633 ns |  0.45 |    0.01 |  0.8545 |  0.8545 |  0.8545 |  160018 B |
+|              ConcurrentDict_ToArray | 10000 |    72,828.46 ns |   858.590 ns |   803.125 ns |  0.45 |    0.00 |  6.7139 |  6.7139 |  6.7139 |  160012 B |
+|               ImmutableDict_ToArray | 10000 | 1,559,332.41 ns | 3,151.574 ns | 2,947.985 ns |  9.66 |    0.07 | 25.3906 | 25.3906 | 25.3906 |  160024 B |
             */
 
             #region Populate
