@@ -3871,6 +3871,7 @@ namespace ImTools
             newLeftTree.Right = new ImHashMap<K, V>(Entry, leftRight, Right, leftRightHeight + 1);
             newLeftTree.Height = leftRightHeight + 2;
             return newLeftTree;
+
             //return new ImHashMap<K, V>(newLeftTree.Entry,
             //    leftLeft, new ImHashMap<K, V>(Entry, leftRight, Right));
         }
@@ -3894,6 +3895,7 @@ namespace ImTools
                     // Left should be >= rightLeft.Left because it maybe rightLeft.Right which defines rl height
                     new ImHashMap<K, V>(Entry, Left, rightLeft.Left, height:Left.Height + 1),
                     newRightTree, rightRightHeight + 2);
+
                 //return new ImHashMap<K, V>(rightLeft.Entry,
                 //    new ImHashMap<K, V>(Entry, Left, rightLeft.Left),
                 //    new ImHashMap<K, V>(newRightTree.Entry, rightLeft.Right, rightRight));
@@ -3904,6 +3906,7 @@ namespace ImTools
             // if rr was > rl by 1 than new rl+1 should be equal height to rr now, if rr was == rl than new rl wins anyway
             newRightTree.Height = rightLeftHeight + 2;
             return newRightTree;
+
             //return new ImHashMap<K, V>(newRightTree.Entry, new ImHashMap<K, V>(Entry, Left, rightLeft), rightRight);
         }
 

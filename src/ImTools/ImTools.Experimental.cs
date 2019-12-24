@@ -519,20 +519,27 @@ namespace ImTools.Experimental
             var rightHeight = (Right as ImMapTree<V>)?.TreeHeight ?? 2;
             if (newLeftTree.TreeHeight - 1 > rightHeight)
             {
-                var leftLeftHeight = (newLeftTree.Left as ImMapTree<V>)?.TreeHeight ?? 2;
+                var leftLeftHeight  = (newLeftTree.Left  as ImMapTree<V>)?.TreeHeight ?? 2;
                 var leftRightHeight = (newLeftTree.Right as ImMapTree<V>)?.TreeHeight ?? 2;
-                if (leftLeftHeight >= leftRightHeight)
+                if (leftLeftHeight < leftRightHeight)
                 {
-                    var newLeftRightTree = new ImMapTree<V>(Entry, newLeftTree.Right, Right, leftRightHeight + 1);
-                    newLeftTree.Right = newLeftRightTree;
-                    newLeftTree.TreeHeight = 1 + (leftLeftHeight >= newLeftRightTree.TreeHeight ? leftLeftHeight : newLeftRightTree.TreeHeight);
-                    return newLeftTree;
+                    var leftRightTree = (ImMapTree<V>)newLeftTree.Right;
+
+                    newLeftTree.Right = leftRightTree.Left;
+                    newLeftTree.TreeHeight = leftLeftHeight + 1;
+                    return new ImMapTree<V>(leftRightTree.Entry,
+                        newLeftTree,
+                        new ImMapTree<V>(Entry, leftRightTree.Right, Right, rightHeight + 1),
+                        leftLeftHeight + 2);
+
+                    //return new ImMapTree<V>(leftRightTree.Entry,
+                    //    new ImMapTree<V>(newLeftTree.Entry, leftLeftHeight, newLeftTree.Left, leftRightTree.Left),
+                    //    new ImMapTree<V>(Entry, leftRightTree.Right, rightHeight, Right));
                 }
 
-                var leftRightTree = (ImMapTree<V>)newLeftTree.Right;
-                return new ImMapTree<V>(leftRightTree.Entry,
-                    new ImMapTree<V>(newLeftTree.Entry, leftLeftHeight, newLeftTree.Left, leftRightTree.Left),
-                    new ImMapTree<V>(Entry, leftRightTree.Right, rightHeight, Right));
+                newLeftTree.Right = new ImMapTree<V>(Entry, newLeftTree.Right, Right, leftRightHeight + 1);
+                newLeftTree.TreeHeight = leftRightHeight + 2;
+                return newLeftTree;
             }
 
             return new ImMapTree<V>(Entry, newLeftTree.TreeHeight, newLeftTree, rightHeight, Right);
@@ -566,20 +573,32 @@ namespace ImTools.Experimental
             if (newRightTree.TreeHeight > leftHeight + 1)
             {
                 var rightRightHeight = (newRightTree.Right as ImMapTree<V>)?.TreeHeight ?? 2;
-                var rightLeftHeight = (newRightTree.Left as ImMapTree<V>)?.TreeHeight ?? 2;
-                if (rightRightHeight >= rightLeftHeight)
+                var rightLeftHeight  = (newRightTree.Left  as ImMapTree<V>)?.TreeHeight ?? 2;
+                if (rightRightHeight < rightLeftHeight)
                 {
-                    Debug.Assert(rightLeftHeight >= leftHeight, "The whole rightHeight > leftHeight by 2, and rightRight >= leftHeight but not more than by 2");
-                    var newRightLeftTree = new ImMapTree<V>(Entry, Left, newRightTree.Left, rightLeftHeight + 1);
-                    newRightTree.Left = newRightLeftTree;
-                    newRightTree.TreeHeight = 1 + (rightRightHeight >= newRightLeftTree.TreeHeight ? rightRightHeight : newRightLeftTree.TreeHeight);
-                    return newRightTree;
+                    var rightLeftTree = (ImMapTree<V>)newRightTree.Left;
+                    newRightTree.Left = rightLeftTree.Right;
+                    // the height now should be defined by rr - because left now is shorter by 1
+                    newRightTree.TreeHeight = rightRightHeight + 1;
+                    // the whole height consequentially can be defined by `newRightTree` (rr+1) because left is consist of short Left and -2 rl.Left
+                    return new ImMapTree<V>(rightLeftTree.Entry,
+                        // Left should be >= rightLeft.Left because it maybe rightLeft.Right which defines rl height
+                        new ImMapTree<V>(Entry, Left, rightLeftTree.Left, height: leftHeight + 1),
+                        newRightTree, 
+                        rightRightHeight + 2);
+
+                    //return new ImMapTree<V>(rightLeftTree.Entry,
+                    //    new ImMapTree<V>(Entry, leftHeight, Left, rightLeftTree.Left),
+                    //    new ImMapTree<V>(newRightTree.Entry, rightLeftTree.Right, rightRightHeight, newRightTree.Right));
                 }
 
-                var rightLeftTree = (ImMapTree<V>)newRightTree.Left;
-                return new ImMapTree<V>(rightLeftTree.Entry,
-                    new ImMapTree<V>(Entry, leftHeight, Left, rightLeftTree.Left),
-                    new ImMapTree<V>(newRightTree.Entry, rightLeftTree.Right, rightRightHeight, newRightTree.Right));
+                Debug.Assert(rightLeftHeight >= leftHeight, "The whole rightHeight > leftHeight by 2, and rightRight >= leftHeight but not more than by 2");
+
+                // we may decide on the height because the Left smaller by 2
+                newRightTree.Left = new ImMapTree<V>(Entry, Left, newRightTree.Left, rightLeftHeight + 1);
+                // if rr was > rl by 1 than new rl+1 should be equal height to rr now, if rr was == rl than new rl wins anyway
+                newRightTree.TreeHeight = rightLeftHeight + 2;
+                return newRightTree;
             }
 
             return new ImMapTree<V>(Entry, leftHeight, Left, newRightTree.TreeHeight, newRightTree);
