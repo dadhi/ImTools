@@ -857,12 +857,12 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
             public ImmutableDictionary<Type, string> ImmutableDict()
             {
-                var map = ImmutableDictionary<Type, string>.Empty;
+                var builder = ImmutableDictionary.CreateBuilder<Type, string>();
 
                 foreach (var key in _keys.Take(Count))
-                    map = map.Add(key, "a");
-
-                return map.Add(typeof(ImHashMapBenchmarks), "!");
+                    builder.Add(key, "a");
+                builder.Add(typeof(ImHashMapBenchmarks), "!");
+                return builder.ToImmutable();
             }
 
             private ImmutableDictionary<Type, string> _immutableDict;
@@ -1085,12 +1085,12 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
             public ImmutableDictionary<Type, string> ImmutableDict()
             {
-                var map = ImmutableDictionary<Type, string>.Empty;
+                var builder = ImmutableDictionary.CreateBuilder<Type, string>();
 
                 foreach (var key in _keys.Take(Count))
-                    map = map.Add(key, "a");
-
-                return map.Add(typeof(ImHashMapBenchmarks), "!");
+                    builder.Add(key, "a");
+                builder.Add(typeof(ImHashMapBenchmarks), "!");
+                return builder.ToImmutable();
             }
 
             private ImmutableDictionary<Type, string> _immutableDict;
