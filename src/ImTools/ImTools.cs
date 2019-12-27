@@ -4066,24 +4066,24 @@ namespace ImTools
 
         /// Adds a new value for the specified key or keeps the existing map if the key is already in the map.
         [MethodImpl((MethodImplOptions)256)]
-        public ImHashMap<K, V> AddEntryOrKeep(int hash, K key) =>
+        public ImHashMap<K, V> AddOrKeep(int hash, K key) =>
             Height == 0 ? new ImHashMap<K, V>(hash, key)
             : hash == Hash ? KeepValueOrAddConflict(hash, key)
             : AddOrKeepLeftOrRight(hash, key);
 
         /// Adds a new value for the specified key or keeps the existing map if the key is already in the map.
         [MethodImpl((MethodImplOptions)256)]
-        public ImHashMap<K, V> AddEntryOrKeep(K key) =>
-            AddEntryOrKeep(key.GetHashCode(), key);
+        public ImHashMap<K, V> AddOrKeep(K key) =>
+            AddOrKeep(key.GetHashCode(), key);
 
         private ImHashMap<K, V> KeepValueOrAddConflict(int hash, K key)
         {
             var conflictsData = Entry as ImHashMapConflicts<K, V>;
-            return conflictsData == null && (ReferenceEquals(Key, key) || Key.Equals(key)) ? this
-                : AddEntryOrKeepConflict(conflictsData, hash, key);
+            return conflictsData == null && (ReferenceEquals(Key, key) || Key.Equals(key)) 
+                ? this : AddOrKeepConflict(conflictsData, hash, key);
         }
 
-        private ImHashMap<K, V> AddEntryOrKeepConflict(ImHashMapConflicts<K, V> conflictsData, int hash, K key)
+        private ImHashMap<K, V> AddOrKeepConflict(ImHashMapConflicts<K, V> conflictsData, int hash, K key)
         {
             if (conflictsData == null)
                 return new ImHashMap<K, V>(

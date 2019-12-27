@@ -384,7 +384,7 @@ namespace ImTools.Experimental
         }
 
         /// <summary>Adds to the left or right branch, or keeps the un-modified map</summary>
-        public ImMapTree<V> AddEntryOrKeepLeftOrRight(int key)
+        public ImMapTree<V> AddOrKeepLeftOrRight(int key)
         {
             if (key < Entry.Key)
             {
@@ -394,7 +394,7 @@ namespace ImTools.Experimental
                     if (key == leftTree.Entry.Key)
                         return this;
 
-                    var newLeftTree = leftTree.AddEntryOrKeepLeftOrRight(key);
+                    var newLeftTree = leftTree.AddOrKeepLeftOrRight(key);
                     return newLeftTree == leftTree ? this
                         : newLeftTree.TreeHeight == leftTree.TreeHeight
                             ? new ImMapTree<V>(Entry, newLeftTree, Right, TreeHeight)
@@ -447,7 +447,7 @@ namespace ImTools.Experimental
                         return this;
 
                     // note: tree always contains left and right (for the missing leaf we have a Branch)
-                    var newRightTree = rightTree.AddEntryOrKeepLeftOrRight(key);
+                    var newRightTree = rightTree.AddOrKeepLeftOrRight(key);
                     return newRightTree == rightTree ? this
                         : newRightTree.TreeHeight == rightTree.TreeHeight
                             ? new ImMapTree<V>(Entry, Left, newRightTree, TreeHeight)
@@ -681,9 +681,9 @@ namespace ImTools.Experimental
                 : map;
         }
 
-        /// <summary> Adds the entry with default value for the or returns the un-modified map if key is already present </summary>
+        /// <summary> Adds the entry with default value for the key or returns the un-modified map if key is already present </summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImMap<V> AddEntryOrKeep<V>(this ImMap<V> map, int key)
+        public static ImMap<V> AddOrKeep<V>(this ImMap<V> map, int key)
         {
             if (map == ImMap<V>.Empty)
                 return new ImMapEntry<V>(key);
@@ -708,7 +708,7 @@ namespace ImTools.Experimental
             }
 
             var tree = (ImMapTree<V>)map;
-            return key != tree.Entry.Key  ? tree.AddEntryOrKeepLeftOrRight(key) : map;
+            return key != tree.Entry.Key  ? tree.AddOrKeepLeftOrRight(key) : map;
         }
 
         ///<summary>Returns the new map with the updated value for the key, or the same map if the key was not found.</summary>
@@ -1133,17 +1133,17 @@ namespace ImTools.Experimental
 
         /// Adds a default value entry for the specified key or keeps the existing map if the key is already in the map.
         [MethodImpl((MethodImplOptions)256)]
-        public static void AddEntryOrKeep<V>(this ImMap<V>[] slots, int key, int keyMaskToFindSlot = KEY_MASK_TO_FIND_SLOT)
+        public static void AddOrKeep<V>(this ImMap<V>[] slots, int key, int keyMaskToFindSlot = KEY_MASK_TO_FIND_SLOT)
         {
             ref var slot = ref slots[key & keyMaskToFindSlot];
             var copy = slot;
-            if (Interlocked.CompareExchange(ref slot, copy.AddEntryOrKeep(key), copy) != copy)
-                RefAddEntryOrKeepSlot(ref slot, key);
+            if (Interlocked.CompareExchange(ref slot, copy.AddOrKeep(key), copy) != copy)
+                RefAddOrKeepSlot(ref slot, key);
         }
 
         /// Update the ref to the slot with the new version - retry if the someone changed the slot in between
-        public static void RefAddEntryOrKeepSlot<V>(ref ImMap<V> slot, int key) =>
-            Ref.Swap(ref slot, key, (s, k) => s.AddEntryOrKeep(k));
+        public static void RefAddOrKeepSlot<V>(ref ImMap<V> slot, int key) =>
+            Ref.Swap(ref slot, key, (s, k) => s.AddOrKeep(k));
 
         /// <summary> Folds all map nodes without the order </summary>
         public static S Fold<V, S>(this ImMap<V>[] slots, S state, Func<ImMapEntry<V>, S, S> reduce)
@@ -1297,7 +1297,7 @@ namespace ImTools.Experimental
             if (entry == null)
             {
                 // add new entry
-                map = map.AddEntryOrKeep(hash); // todo: add pure Add method
+                map = map.AddOrKeep(hash); // todo: add pure Add method
                 entry = map.GetEntryOrDefault(hash);
                 entry.Value.Key = key;
                 entry.Value.Value = value;
