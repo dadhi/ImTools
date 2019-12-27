@@ -3578,7 +3578,7 @@ namespace ImTools
         }
     }
 
-    /// Wraps the stored data
+    /// <summary>Wraps the stored data with "fixed" reference semantics - when added to the tree it did not change or reconstructed in memory</summary>
     public class ImHashMapEntry<K, V>
     {
         /// Empty thingy
@@ -3730,7 +3730,7 @@ namespace ImTools
             + ", "     + (Right.Height == 0 ? "empty" : Right.Entry + " of height " + Right.Height)
             + ")";
 
-        /// Uses the user provided hash and adds and updates the tree with passed key-value. Returns a new tree.
+        /// <summary>Uses the user provided hash and adds and updates the tree with passed key-value. Returns a new tree.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public ImHashMap<K, V> AddOrUpdate(int hash, K key, V value) =>
             Height == 0 ? new ImHashMap<K, V>(hash, key, value)
@@ -4630,6 +4630,7 @@ namespace ImTools
             return false;
         }
 
+        // todo: implement in terms of BalanceNewLeftTree | BalanceNewRightTree
         private static ImHashMap<K, V> Balance(ImHashMapEntry<K, V> entry, ImHashMap<K, V> left, ImHashMap<K, V> right)
         {
             var delta = left.Height - right.Height;
