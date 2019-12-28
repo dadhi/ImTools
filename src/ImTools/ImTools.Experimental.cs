@@ -673,7 +673,7 @@ namespace ImTools.Experimental
     {
         /// <summary> Adds or updates the value by key in the map, always returns a modified map </summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImMap<V> AddOrUpdate<V>(this ImMap<V> map, ImMapEntry<V> entry)
+        public static ImMap<V> AddOrUpdateEntry<V>(this ImMap<V> map, ImMapEntry<V> entry)
         {
             if (map == ImMap<V>.Empty)
                 return entry;
@@ -713,11 +713,11 @@ namespace ImTools.Experimental
         /// <summary> Adds or updates the value by key in the map, always returns a modified map </summary>
         [MethodImpl((MethodImplOptions) 256)]
         public static ImMap<V> AddOrUpdate<V>(this ImMap<V> map, int key, V value) =>
-            map.AddOrUpdate(new ImMapEntry<V>(key, value));
+            map.AddOrUpdateEntry(new ImMapEntry<V>(key, value));
 
         /// <summary> Adds the value by key in the map - ASSUMES that the key is not in the map, always returns a modified map </summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImMap<V> AddUnsafe<V>(this ImMap<V> map, ImMapEntry<V> entry)
+        public static ImMap<V> AddEntryUnsafe<V>(this ImMap<V> map, ImMapEntry<V> entry)
         {
             if (map == ImMap<V>.Empty)
                 return entry;
@@ -810,7 +810,7 @@ namespace ImTools.Experimental
 
         ///<summary>Returns the new map with the updated value for the key, ASSUMES that the key is not in the map.</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImMap<V> UpdateUnsafe<V>(this ImMap<V> map, ImMapEntry<V> entry) => 
+        public static ImMap<V> UpdateEntryUnsafe<V>(this ImMap<V> map, ImMapEntry<V> entry) => 
             map.UpdateImpl(entry.Key, entry);
 
         internal static ImMap<V> UpdateImpl<V>(this ImMap<V> map, int key, ImMapEntry<V> entry)
@@ -1191,68 +1191,45 @@ namespace ImTools.Experimental
             var oldEntry = map.GetEntryOrDefault(hash);
             if (oldEntry == null)
             {
-                var entry = new ImMapEntry<KVEntry<Type>>(hash);
-                entry.Value.Key = key;
-                entry.Value.Value = value;
-                return map.AddUnsafe(entry);
+                var newEntry = new ImMapEntry<KVEntry<Type>>(hash);
+                newEntry.Value.Key = key;
+                newEntry.Value.Value = value;
+                return map.AddEntryUnsafe(newEntry);
             }
 
-            //return map.UpdateUnsafe(hash, newEntry);
+            var oldEntryKey = oldEntry.Value.Key;
+
+            // update
+            if (key == oldEntryKey)
+            {
+                var newEntry = new ImMapEntry<KVEntry<Type>>(hash);
+                newEntry.Value.Key = key;
+                newEntry.Value.Value = value;
+                return map.UpdateEntryUnsafe(newEntry);
+            }
+
+            // add a new conflicting key value
+            if (oldEntryKey != null)
+            {
+                var conflicts = new KVEntry<Type>[2];
+
+                ref var newVal = ref conflicts[0];
+                newVal.Key = key;
+                newVal.Value = value;
+
+                ref var oldVal = ref conflicts[1];
+                oldVal.Key = oldEntryKey;
+                oldVal.Value = oldEntry.Value;
+
+                var newEntry = new ImMapEntry<KVEntry<Type>>(hash);
+                // keep the `null` for the key of the conflicted entry
+                newEntry.Value.Value = conflicts;
+                return map.UpdateEntryUnsafe(newEntry);
+            }
+
+            // todo: entry is already containing the conflicted pairs
             return map;
-
-            //var entry = map.GetEntryOrDefault(hash);
-            //if (entry == null)
-            //{
-            //    // add new entry
-            //    map = map.AddOrKeep(hash); // todo: add pure Add method
-            //    entry = map.GetEntryOrDefault(hash);
-            //    entry.Value.Key = key;
-            //    entry.Value.Value = value;
-            //}
-            //else
-            //{
-            //    // update or add a new conflicting key value
-            //    map = UpdateOrAddConflictedKeyValue(map, hash, key, value, entry);
-            //}
-
-            //return map;
         }
-
-        //private static ImMap<KVEntry<Type>> UpdateOrAddConflictedKeyValue<V>(
-        //    ImMap<KVEntry<Type>> map, int hash, Type key, V value, ImMapEntry<KVEntry<Type>> entry) where V : class
-        //{
-        //    var entryKey = entry.Value.Key;
-        //    if (key == entryKey)
-        //    {
-        //        // update
-        //        map = map.UpdateToDefault(hash);
-        //        entry = map.GetEntryOrDefault(hash); // todo: maybe better to have a `Update(.., Entry e)` so we don't need the `GetEntryOrDefault`
-        //        entry.Value.Value = value;
-        //    }
-        //    else if (entryKey != null)
-        //    {
-        //        // we need to add conflicted pair
-        //        var conflictedEntries = new KVEntry<Type>[2];
-
-        //        ref var newVal = ref conflictedEntries[0];
-        //        newVal.Key = key;
-        //        newVal.Value = value;
-
-        //        ref var oldVal = ref conflictedEntries[1];
-        //        oldVal.Key = entryKey;
-        //        oldVal.Value = entry.Value;
-
-        //        map = map.UpdateToDefault(hash);
-        //        var newEntry = map.GetEntryOrDefault(hash); // todo: maybe better to have a `Update(.., Entry e)` so we don't need the `GetEntryOrDefault`
-        //        newEntry.Value.Value = conflictedEntries;
-        //    }
-        //    else
-        //    {
-        //        // entry is already containing the conflicted pairs
-        //    }
-
-        //    return map;
-        //}
     }
 
     /// <summary>
