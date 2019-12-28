@@ -163,7 +163,7 @@ namespace ImTools.Experimental
                 + ")";
 
         /// <summary>Adds or updates the left or right branch</summary>
-        public ImMapTree<V> AddOrUpdateLeftOrRight(int key, V value)
+        public ImMapTree<V> AddOrUpdateLeftOrRight(int key, ImMapEntry<V> entry)
         {
             if (key < Entry.Key)
             {
@@ -172,10 +172,10 @@ namespace ImTools.Experimental
                 {
                     if (key == leftTree.Entry.Key)
                         return new ImMapTree<V>(Entry,
-                            new ImMapTree<V>(new ImMapEntry<V>(key, value), leftTree.Left, leftTree.Right, leftTree.TreeHeight),
+                            new ImMapTree<V>(entry, leftTree.Left, leftTree.Right, leftTree.TreeHeight),
                             Right, TreeHeight);
 
-                    var newLeftTree = leftTree.AddOrUpdateLeftOrRight(key, value);
+                    var newLeftTree = leftTree.AddOrUpdateLeftOrRight(key, entry);
                     return newLeftTree.TreeHeight == leftTree.TreeHeight 
                         ? new ImMapTree<V>(Entry, newLeftTree, Right, TreeHeight) 
                         : BalanceNewLeftTree(newLeftTree);
@@ -185,7 +185,7 @@ namespace ImTools.Experimental
                 {
                     if (key < leftBranch.Entry.Key)
                         return new ImMapTree<V>(Entry,
-                            new ImMapTree<V>(leftBranch.Entry, new ImMapEntry<V>(key, value), leftBranch.RightEntry),
+                            new ImMapTree<V>(leftBranch.Entry, entry, leftBranch.RightEntry),
                             Right, TreeHeight);
 
                     if (key > leftBranch.Entry.Key)
@@ -195,29 +195,25 @@ namespace ImTools.Experimental
                             //       2        ?  =>             3        ?
                             //         3                      2   4
                             //          4
-                            key > leftBranch.RightEntry.Key
-                                ? new ImMapTree<V>(leftBranch.RightEntry, leftBranch.Entry, new ImMapEntry<V>(key, value))
+                            key > leftBranch.RightEntry.Key ? new ImMapTree<V>(leftBranch.RightEntry, leftBranch.Entry, entry)
                                 //            5                         5
                                 //      2          ?  =>            2.5        ?
                                 //          3                      2   3
                                 //       2.5  
-                                : key < leftBranch.RightEntry.Key
-                                    ? new ImMapTree<V>(new ImMapEntry<V>(key, value), leftBranch.Entry, leftBranch.RightEntry)
-                                : (ImMap<V>)new ImMapBranch<V>(leftBranch.Entry, new ImMapEntry<V>(key, value));
+                            : key < leftBranch.RightEntry.Key ? new ImMapTree<V>(entry, leftBranch.Entry, leftBranch.RightEntry)
+                            : (ImMap<V>)new ImMapBranch<V>(leftBranch.Entry, entry);
 
                         return new ImMapTree<V>(Entry, newLeft, Right, TreeHeight);
                     }
 
                     return new ImMapTree<V>(Entry, 
-                        new ImMapBranch<V>(new ImMapEntry<V>(key, value), leftBranch.RightEntry), Right, TreeHeight);
+                        new ImMapBranch<V>(entry, leftBranch.RightEntry), Right, TreeHeight);
                 }
 
                 var leftLeaf = (ImMapEntry<V>)left;
-                return key > leftLeaf.Key
-                        ? new ImMapTree<V>(Entry, new ImMapBranch<V>(leftLeaf, new ImMapEntry<V>(key, value)), Right, 3)
-                    : key < leftLeaf.Key
-                        ? new ImMapTree<V>(Entry, new ImMapBranch<V>(new ImMapEntry<V>(key, value), leftLeaf), Right, 3)
-                    : new ImMapTree<V>(Entry, new ImMapEntry<V>(key, value), Right, TreeHeight);
+                return key > leftLeaf.Key ? new ImMapTree<V>(Entry, new ImMapBranch<V>(leftLeaf, entry), Right, 3)
+                    :  key < leftLeaf.Key ? new ImMapTree<V>(Entry, new ImMapBranch<V>(entry, leftLeaf), Right, 3)
+                    : new ImMapTree<V>(Entry, entry, Right, TreeHeight);
             }
             else
             {
@@ -226,10 +222,10 @@ namespace ImTools.Experimental
                 {
                     if (key == rightTree.Entry.Key)
                         return new ImMapTree<V>(Entry, Left,
-                            new ImMapTree<V>(new ImMapEntry<V>(key, value), rightTree.Left, rightTree.Right, rightTree.TreeHeight),
+                            new ImMapTree<V>(entry, rightTree.Left, rightTree.Right, rightTree.TreeHeight),
                             TreeHeight);
 
-                    var newRightTree = rightTree.AddOrUpdateLeftOrRight(key, value);
+                    var newRightTree = rightTree.AddOrUpdateLeftOrRight(key, entry);
                     return newRightTree.TreeHeight == rightTree.TreeHeight 
                         ? new ImMapTree<V>(Entry, Left, newRightTree, TreeHeight) 
                         : BalanceNewRightTree(newRightTree);
@@ -244,33 +240,98 @@ namespace ImTools.Experimental
                             //  ?       6    =>  ?       8  
                             //            8            6   !
                             //              !               
-                            key > rightBranch.RightEntry.Key
-                                ? new ImMapTree<V>(rightBranch.RightEntry, rightBranch.Entry, new ImMapEntry<V>(key, value))
+                            key > rightBranch.RightEntry.Key ? new ImMapTree<V>(rightBranch.RightEntry, rightBranch.Entry, entry)
                             //      5                 5      
                             //  ?       6     =>  ?       7  
                             //              8            6  8
                             //            7               
-                            : key < rightBranch.RightEntry.Key
-                                ? new ImMapTree<V>(new ImMapEntry<V>(key, value), rightBranch.Entry, rightBranch.RightEntry)
-                            : (ImMap<V>)new ImMapBranch<V>(rightBranch.Entry, new ImMapEntry<V>(key, value));
+                            : key < rightBranch.RightEntry.Key ? new ImMapTree<V>(entry, rightBranch.Entry, rightBranch.RightEntry)
+                            : (ImMap<V>)new ImMapBranch<V>(rightBranch.Entry, entry);
 
                         return new ImMapTree<V>(Entry, Left, newRight, TreeHeight);
                     }
 
                     if (key < rightBranch.Entry.Key)
                         return new ImMapTree<V>(Entry, Left,
-                            new ImMapTree<V>(rightBranch.Entry, new ImMapEntry<V>(key, value), rightBranch.RightEntry),
+                            new ImMapTree<V>(rightBranch.Entry, entry, rightBranch.RightEntry),
                             TreeHeight);
 
-                    return new ImMapTree<V>(Entry, Left, new ImMapBranch<V>(new ImMapEntry<V>(key, value), rightBranch.RightEntry), TreeHeight);
+                    return new ImMapTree<V>(Entry, Left, new ImMapBranch<V>(entry, rightBranch.RightEntry), TreeHeight);
                 }
 
                 var rightLeaf = (ImMapEntry<V>)right;
                 return key > rightLeaf.Key
-                        ? new ImMapTree<V>(Entry, Left, new ImMapBranch<V>(rightLeaf, new ImMapEntry<V>(key, value)), 3)
+                        ? new ImMapTree<V>(Entry, Left, new ImMapBranch<V>(rightLeaf, entry), 3)
                     : key < rightLeaf.Key
-                        ? new ImMapTree<V>(Entry, Left, new ImMapBranch<V>(new ImMapEntry<V>(key, value), rightLeaf), 3)
-                        : new ImMapTree<V>(Entry, Left, new ImMapEntry<V>(key, value), TreeHeight);
+                        ? new ImMapTree<V>(Entry, Left, new ImMapBranch<V>(entry, rightLeaf), 3)
+                        : new ImMapTree<V>(Entry, Left, entry, TreeHeight);
+            }
+        }
+
+        /// <summary>Adds the left or right branch</summary>
+        public ImMapTree<V> AddUnsafeLeftOrRight(int key, ImMapEntry<V> entry)
+        {
+            if (key < Entry.Key)
+            {
+                var left = Left;
+                if (left is ImMapTree<V> leftTree)
+                {
+                    var newLeftTree = leftTree.AddUnsafeLeftOrRight(key, entry);
+                    return newLeftTree.TreeHeight == leftTree.TreeHeight
+                        ? new ImMapTree<V>(Entry, newLeftTree, Right, TreeHeight)
+                        : BalanceNewLeftTree(newLeftTree);
+                }
+
+                if (left is ImMapBranch<V> leftBranch)
+                {
+                    if (key < leftBranch.Entry.Key)
+                        return new ImMapTree<V>(Entry,
+                            new ImMapTree<V>(leftBranch.Entry, entry, leftBranch.RightEntry),
+                            Right, TreeHeight);
+
+                    var newLeft = key > leftBranch.RightEntry.Key
+                            ? new ImMapTree<V>(leftBranch.RightEntry, leftBranch.Entry, entry)
+                            : new ImMapTree<V>(entry, leftBranch.Entry, leftBranch.RightEntry);
+
+                    return new ImMapTree<V>(Entry, newLeft, Right, TreeHeight);
+                }
+
+                var leftLeaf = (ImMapEntry<V>)left;
+                return key > leftLeaf.Key
+                    ? new ImMapTree<V>(Entry, new ImMapBranch<V>(leftLeaf, entry), Right, 3)
+                    : new ImMapTree<V>(Entry, new ImMapBranch<V>(entry, leftLeaf), Right, 3);
+            }
+            else
+            {
+                var right = Right;
+                if (right is ImMapTree<V> rightTree)
+                {
+                    var newRightTree = rightTree.AddUnsafeLeftOrRight(key, entry);
+                    return newRightTree.TreeHeight == rightTree.TreeHeight
+                        ? new ImMapTree<V>(Entry, Left, newRightTree, TreeHeight)
+                        : BalanceNewRightTree(newRightTree);
+                }
+
+                if (right is ImMapBranch<V> rightBranch)
+                {
+                    if (key > rightBranch.Entry.Key)
+                    {
+                        var newRight = key > rightBranch.RightEntry.Key
+                            ? new ImMapTree<V>(rightBranch.RightEntry, rightBranch.Entry, entry)
+                            : new ImMapTree<V>(entry, rightBranch.Entry, rightBranch.RightEntry);
+
+                        return new ImMapTree<V>(Entry, Left, newRight, TreeHeight);
+                    }
+
+                    return new ImMapTree<V>(Entry, Left,
+                        new ImMapTree<V>(rightBranch.Entry, entry, rightBranch.RightEntry),
+                        TreeHeight);
+                }
+
+                var rightLeaf = (ImMapEntry<V>)right;
+                return key > rightLeaf.Key
+                    ? new ImMapTree<V>(Entry, Left, new ImMapBranch<V>(rightLeaf, entry), 3)
+                    : new ImMapTree<V>(Entry, Left, new ImMapBranch<V>(entry, rightLeaf), 3);
             }
         }
 
@@ -497,23 +558,24 @@ namespace ImTools.Experimental
             Debug.Assert(newLeftTree.TreeHeight >= 3, "It cannot be a 2 level tree because, 2 level trees a created here on the caller side");
             if (Right is ImMapEntry<V> rightLeaf)
             {
+                // todo: optimize the same way as below
                 Debug.Assert(newLeftTree.TreeHeight == 3, "Otherwise it is too un-balanced");
-                if (newLeftTree.Left is ImMapEntry<V> == false)
+                if (newLeftTree.Left is ImMapEntry<V> leftLeftLeaf)
                 {
-                    newLeftTree.Right = new ImMapTree<V>(Entry, newLeftTree.Right, rightLeaf, 2);
-                    newLeftTree.TreeHeight = 3;
-                    return newLeftTree;
+                    if (newLeftTree.Right is ImMapTree<V> leftRightTree)
+                        return new ImMapTree<V>(leftRightTree.Entry,
+                            new ImMapTree<V>(newLeftTree.Entry, 1, leftLeftLeaf, leftRightTree.Left),
+                            new ImMapTree<V>(Entry, leftRightTree.Right, 1, rightLeaf));
+
+                    var leftRightBranch = (ImMapBranch<V>) newLeftTree.Right;
+                    return new ImMapTree<V>(leftRightBranch.Entry,
+                        2, ImMapBranch<V>.CreateNormalized(newLeftTree.Entry, leftLeftLeaf),
+                        new ImMapTree<V>(Entry, leftRightBranch.RightEntry, rightLeaf));
                 }
 
-                if (newLeftTree.Right is ImMapTree<V> leftRightTree)
-                    return new ImMapTree<V>(leftRightTree.Entry,
-                        new ImMapTree<V>(newLeftTree.Entry, 1, newLeftTree.Left, leftRightTree.Left),
-                        new ImMapTree<V>(Entry, leftRightTree.Right, 1, rightLeaf));
-
-                var leftRightBranch = (ImMapBranch<V>)newLeftTree.Right;
-                return new ImMapTree<V>(leftRightBranch.Entry,
-                    2, ImMapBranch<V>.CreateNormalized(newLeftTree.Entry, (ImMapEntry<V>)newLeftTree.Left),
-                    new ImMapTree<V>(Entry, leftRightBranch.RightEntry, rightLeaf));
+                newLeftTree.Right = new ImMapTree<V>(Entry, newLeftTree.Right, rightLeaf, 2);
+                newLeftTree.TreeHeight = 3;
+                return newLeftTree;
             }
 
             var rightHeight = (Right as ImMapTree<V>)?.TreeHeight ?? 2;
@@ -611,17 +673,16 @@ namespace ImTools.Experimental
     {
         /// <summary> Adds or updates the value by key in the map, always returns a modified map </summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImMap<V> AddOrUpdate<V>(this ImMap<V> map, int key, V value)
+        public static ImMap<V> AddOrUpdate<V>(this ImMap<V> map, ImMapEntry<V> entry)
         {
             if (map == ImMap<V>.Empty)
-                return new ImMapEntry<V>(key, value);
+                return entry;
 
+            var key = entry.Key;
             if (map is ImMapEntry<V> leaf)
-                return key > leaf.Key
-                    ? new ImMapBranch<V>(leaf, new ImMapEntry<V>(key, value))
-                    : key < leaf.Key
-                        ? new ImMapBranch<V>(new ImMapEntry<V>(key, value), leaf)
-                    : (ImMap<V>)new ImMapEntry<V>(key, value);
+                return key > leaf.Key ? new ImMapBranch<V>(leaf, entry)
+                    :  key < leaf.Key ? new ImMapBranch<V>(entry, leaf)
+                    : (ImMap<V>)entry;
 
             if (map is ImMapBranch<V> branch)
             {
@@ -630,23 +691,54 @@ namespace ImTools.Experimental
                         //        10     =>  5     11
                         //           11           
                     return key > branch.RightEntry.Key
-                        ? new ImMapTree<V>(branch.RightEntry, branch.Entry, new ImMapEntry<V>(key, value))
+                        ? new ImMapTree<V>(branch.RightEntry, branch.Entry, entry)
                         //   5               7
                         //        10  =>  5     10
                         //      7           
                         : key < branch.RightEntry.Key // rotate if right
-                            ? new ImMapTree<V>(new ImMapEntry<V>(key, value), branch.Entry, branch.RightEntry)
-                            : (ImMap<V>)new ImMapBranch<V>(branch.Entry, new ImMapEntry<V>(key, value));
+                            ? new ImMapTree<V>(entry, branch.Entry, branch.RightEntry)
+                            : (ImMap<V>)new ImMapBranch<V>(branch.Entry, entry);
 
                 return key < branch.Entry.Key
-                    ? new ImMapTree<V>(branch.Entry, new ImMapEntry<V>(key, value), branch.RightEntry)
-                    : (ImMap<V>)new ImMapBranch<V>(new ImMapEntry<V>(key, value), branch.RightEntry);
+                    ? new ImMapTree<V>(branch.Entry, entry, branch.RightEntry)
+                    : (ImMap<V>)new ImMapBranch<V>(entry, branch.RightEntry);
             }
 
             var tree = (ImMapTree<V>)map;
             return key == tree.Entry.Key
-                ? new ImMapTree<V>(new ImMapEntry<V>(key, value), tree.Left, tree.Right, tree.TreeHeight)
-                : tree.AddOrUpdateLeftOrRight(key, value);
+                ? new ImMapTree<V>(entry, tree.Left, tree.Right, tree.TreeHeight)
+                : tree.AddOrUpdateLeftOrRight(key, entry);
+        }
+
+        /// <summary> Adds or updates the value by key in the map, always returns a modified map </summary>
+        [MethodImpl((MethodImplOptions) 256)]
+        public static ImMap<V> AddOrUpdate<V>(this ImMap<V> map, int key, V value) =>
+            map.AddOrUpdate(new ImMapEntry<V>(key, value));
+
+        /// <summary> Adds the value by key in the map - ASSUMES that the key is not in the map, always returns a modified map </summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMap<V> AddUnsafe<V>(this ImMap<V> map, ImMapEntry<V> entry)
+        {
+            if (map == ImMap<V>.Empty)
+                return entry;
+
+            var key = entry.Key;
+            if (map is ImMapEntry<V> leaf)
+                return key > leaf.Key 
+                    ? new ImMapBranch<V>(leaf, entry) 
+                    : new ImMapBranch<V>(entry, leaf);
+
+            if (map is ImMapBranch<V> branch)
+            {
+                if (key > branch.Entry.Key)
+                    return key > branch.RightEntry.Key
+                        ? new ImMapTree<V>(branch.RightEntry, branch.Entry, entry)
+                        : new ImMapTree<V>(entry, branch.Entry, branch.RightEntry);
+
+                return new ImMapTree<V>(branch.Entry, entry, branch.RightEntry);
+            }
+
+            return ((ImMapTree<V>)map).AddUnsafeLeftOrRight(key, entry);
         }
 
         /// <summary> Adds the value for the key or returns the un-modified map if key is already present </summary>
@@ -714,24 +806,27 @@ namespace ImTools.Experimental
         ///<summary>Returns the new map with the updated value for the key, or the same map if the key was not found.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImMap<V> Update<V>(this ImMap<V> map, int key, V value) =>
-            map.Contains(key) ? map.UpdateImpl(key, value) : map;
+            map.Contains(key) ? map.UpdateImpl(key, new ImMapEntry<V>(key, value)) : map;
 
-        internal static ImMap<V> UpdateImpl<V>(this ImMap<V> map, int key, V value)
+        ///<summary>Returns the new map with the updated value for the key, ASSUMES that the key is not in the map.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMap<V> UpdateUnsafe<V>(this ImMap<V> map, ImMapEntry<V> entry) => 
+            map.UpdateImpl(entry.Key, entry);
+
+        internal static ImMap<V> UpdateImpl<V>(this ImMap<V> map, int key, ImMapEntry<V> entry)
         {
             if (map is ImMapTree<V> tree)
-                return key > tree.Entry.Key 
-                        ? new ImMapTree<V>(tree.Entry, tree.Left, tree.Right.UpdateImpl(key, value), tree.TreeHeight)
-                    : key < tree.Entry.Key 
-                        ? new ImMapTree<V>(tree.Entry, tree.Left.UpdateImpl(key, value), tree.Right, tree.TreeHeight)
-                    : new ImMapTree<V>(new ImMapEntry<V>(key, value), tree.Left, tree.Right, tree.TreeHeight);
+                return key > tree.Entry.Key ? new ImMapTree<V>(tree.Entry, tree.Left, tree.Right.UpdateImpl(key, entry), tree.TreeHeight)
+                    :  key < tree.Entry.Key ? new ImMapTree<V>(tree.Entry, tree.Left.UpdateImpl(key, entry), tree.Right, tree.TreeHeight)
+                    : new ImMapTree<V>(entry, tree.Left, tree.Right, tree.TreeHeight);
 
             // the key was found - so it should be either entry or right entry
             if (map is ImMapBranch<V> branch)
                 return key == branch.Entry.Key
-                    ? new ImMapBranch<V>(new ImMapEntry<V>(key, value), branch.RightEntry)
-                    : new ImMapBranch<V>(branch.Entry, new ImMapEntry<V>(key, value));
+                    ? new ImMapBranch<V>(entry, branch.RightEntry)
+                    : new ImMapBranch<V>(branch.Entry, entry);
 
-            return new ImMapEntry<V>(key, value);
+            return entry;
         }
 
         ///<summary>Returns the new map with the value set to default, or the same map if the key was not found.</summary>
@@ -1079,6 +1174,85 @@ namespace ImTools.Experimental
                 }
             }
         }
+
+        /// <summary>A</summary>
+        public struct KVEntry<K>
+        {
+            /// <summary>B</summary>
+            public K Key;
+            /// <summary>Value</summary>
+            public object Value;
+        }
+
+        /// <summary>Uses the user provided hash and adds and updates the tree with passed key-value. Returns a new tree.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMap<KVEntry<Type>> AddOrUpdate(this ImMap<KVEntry<Type>> map, int hash, Type key, object value)
+        {
+            var oldEntry = map.GetEntryOrDefault(hash);
+            if (oldEntry == null)
+            {
+                var entry = new ImMapEntry<KVEntry<Type>>(hash);
+                entry.Value.Key = key;
+                entry.Value.Value = value;
+                return map.AddUnsafe(entry);
+            }
+
+            //return map.UpdateUnsafe(hash, newEntry);
+            return map;
+
+            //var entry = map.GetEntryOrDefault(hash);
+            //if (entry == null)
+            //{
+            //    // add new entry
+            //    map = map.AddOrKeep(hash); // todo: add pure Add method
+            //    entry = map.GetEntryOrDefault(hash);
+            //    entry.Value.Key = key;
+            //    entry.Value.Value = value;
+            //}
+            //else
+            //{
+            //    // update or add a new conflicting key value
+            //    map = UpdateOrAddConflictedKeyValue(map, hash, key, value, entry);
+            //}
+
+            //return map;
+        }
+
+        //private static ImMap<KVEntry<Type>> UpdateOrAddConflictedKeyValue<V>(
+        //    ImMap<KVEntry<Type>> map, int hash, Type key, V value, ImMapEntry<KVEntry<Type>> entry) where V : class
+        //{
+        //    var entryKey = entry.Value.Key;
+        //    if (key == entryKey)
+        //    {
+        //        // update
+        //        map = map.UpdateToDefault(hash);
+        //        entry = map.GetEntryOrDefault(hash); // todo: maybe better to have a `Update(.., Entry e)` so we don't need the `GetEntryOrDefault`
+        //        entry.Value.Value = value;
+        //    }
+        //    else if (entryKey != null)
+        //    {
+        //        // we need to add conflicted pair
+        //        var conflictedEntries = new KVEntry<Type>[2];
+
+        //        ref var newVal = ref conflictedEntries[0];
+        //        newVal.Key = key;
+        //        newVal.Value = value;
+
+        //        ref var oldVal = ref conflictedEntries[1];
+        //        oldVal.Key = entryKey;
+        //        oldVal.Value = entry.Value;
+
+        //        map = map.UpdateToDefault(hash);
+        //        var newEntry = map.GetEntryOrDefault(hash); // todo: maybe better to have a `Update(.., Entry e)` so we don't need the `GetEntryOrDefault`
+        //        newEntry.Value.Value = conflictedEntries;
+        //    }
+        //    else
+        //    {
+        //        // entry is already containing the conflicted pairs
+        //    }
+
+        //    return map;
+        //}
     }
 
     /// <summary>
@@ -1265,86 +1439,6 @@ namespace ImTools.Experimental
             //}
 
             //return state;
-        }
-    }
-
-    /// <summary>Map methods</summary>
-    public static class ImHashMap
-    {
-        /// <summary>A</summary>
-        public struct KeyValueEntry<K, V>
-        {
-            /// <summary>B</summary>
-            public K Key;
-            /// <summary>Value</summary>
-            public V Value;
-        }
-
-        /// <summary>Uses the user provided hash and adds and updates the tree with passed key-value. Returns a new tree.</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static ImMap<KeyValueEntry<Type, object>> AddOrUpdate<V>(this ImMap<KeyValueEntry<Type, object>> map, int hash, Type key, V value) where V : class
-        {
-            var oldEntry = map.GetEntryOrDefault(hash);
-            if (oldEntry == null)
-            {
-                //return map.AddEntry(hash, newEntry);
-            }
-
-            // todo: do stuff for update and conflicts
-            //return map.UpdateEntry(hash, newEntry);
-
-            var entry = map.GetEntryOrDefault(hash);
-            if (entry == null)
-            {
-                // add new entry
-                map = map.AddOrKeep(hash); // todo: add pure Add method
-                entry = map.GetEntryOrDefault(hash);
-                entry.Value.Key = key;
-                entry.Value.Value = value;
-            }
-            else
-            {
-                // update or add a new conflicting key value
-                map = UpdateOrAddConflictedKeyValue(map, hash, key, value, entry);
-            }
-
-            return map;
-        }
-
-        private static ImMap<KeyValueEntry<Type, object>> UpdateOrAddConflictedKeyValue<V>(
-            ImMap<KeyValueEntry<Type, object>> map, int hash, Type key, V value, ImMapEntry<KeyValueEntry<Type, object>> entry) where V : class
-        {
-            var entryKey = entry.Value.Key;
-            if (key == entryKey)
-            {
-                // update
-                map = map.UpdateToDefault(hash);
-                entry = map.GetEntryOrDefault(hash); // todo: maybe better to have a `Update(.., Entry e)` so we don't need the `GetEntryOrDefault`
-                entry.Value.Value = value;
-            }
-            else if (entryKey != null)
-            {
-                // we need to add conflicted pair
-                var conflictedEntries = new KeyValueEntry<Type, object>[2];
-                
-                ref var newVal = ref conflictedEntries[0];
-                newVal.Key = key;
-                newVal.Value = value;
-
-                ref var oldVal = ref conflictedEntries[1];
-                oldVal.Key = entryKey;
-                oldVal.Value = entry.Value;
-                
-                map = map.UpdateToDefault(hash);
-                var newEntry =  map.GetEntryOrDefault(hash); // todo: maybe better to have a `Update(.., Entry e)` so we don't need the `GetEntryOrDefault`
-                newEntry.Value.Value = conflictedEntries;
-            }
-            else
-            {
-                // entry is already containing the conflicted pairs
-            }
-
-            return map;
         }
     }
 }

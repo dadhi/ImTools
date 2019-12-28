@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -330,19 +329,19 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
   [Host]     : .NET Core 3.1.0 (CoreCLR 4.700.19.56402, CoreFX 4.700.19.56404), X64 RyuJIT
   DefaultJob : .NET Core 3.1.0 (CoreCLR 4.700.19.56402, CoreFX 4.700.19.56404), X64 RyuJIT
 
-|                             Method | Count |         Mean |       Error |    StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
-|----------------------------------- |------ |-------------:|------------:|----------:|------:|--------:|---------:|--------:|------:|----------:|
-|              ImHashMap_AddOrUpdate |     1 |     123.8 ns |     1.03 ns |   0.91 ns |  1.00 |    0.00 |   0.0577 |       - |     - |     272 B |
-| Experimental_ImHashMap_AddOrUpdate |     1 |     103.1 ns |     0.18 ns |   0.16 ns |  0.83 |    0.01 |   0.0340 |       - |     - |     160 B |
-|                                    |       |              |             |           |       |         |          |         |       |           |
-|              ImHashMap_AddOrUpdate |    10 |     802.0 ns |     1.92 ns |   1.50 ns |  1.00 |    0.00 |   0.4911 |  0.0029 |     - |    2312 B |
-| Experimental_ImHashMap_AddOrUpdate |    10 |     708.1 ns |     3.61 ns |   3.38 ns |  0.88 |    0.00 |   0.3176 |  0.0010 |     - |    1496 B |
-|                                    |       |              |             |           |       |         |          |         |       |           |
-|              ImHashMap_AddOrUpdate |   100 |  12,468.5 ns |   239.78 ns | 224.29 ns |  1.00 |    0.00 |   7.4005 |  0.3510 |     - |   34856 B |
-| Experimental_ImHashMap_AddOrUpdate |   100 |  12,065.8 ns |   342.28 ns | 320.16 ns |  0.97 |    0.02 |   5.9357 |  0.2136 |     - |   27928 B |
-|                                    |       |              |             |           |       |         |          |         |       |           |
-|              ImHashMap_AddOrUpdate |  1000 | 265,935.2 ns | 1,117.36 ns | 990.51 ns |  1.00 |    0.00 | 108.3984 | 30.7617 |     - |  511209 B |
-| Experimental_ImHashMap_AddOrUpdate |  1000 | 324,626.6 ns |   938.24 ns | 783.47 ns |  1.22 |    0.01 |  93.2617 | 22.9492 |     - |  440794 B |
+|                             Method | Count |          Mean |        Error |       StdDev | Ratio |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
+|----------------------------------- |------ |--------------:|-------------:|-------------:|------:|---------:|--------:|------:|----------:|
+|              ImHashMap_AddOrUpdate |     1 |     120.84 ns |     0.627 ns |     0.587 ns |  1.00 |   0.0577 |       - |     - |     272 B |
+| Experimental_ImHashMap_AddOrUpdate |     1 |      96.60 ns |     0.419 ns |     0.371 ns |  0.80 |   0.0340 |       - |     - |     160 B |
+|                                    |       |               |              |              |       |          |         |       |           |
+|              ImHashMap_AddOrUpdate |    10 |     815.81 ns |     1.800 ns |     1.595 ns |  1.00 |   0.4911 |  0.0029 |     - |    2312 B |
+| Experimental_ImHashMap_AddOrUpdate |    10 |     629.69 ns |     3.127 ns |     2.611 ns |  0.77 |   0.3176 |  0.0010 |     - |    1496 B |
+|                                    |       |               |              |              |       |          |         |       |           |
+|              ImHashMap_AddOrUpdate |   100 |  12,553.33 ns |    70.898 ns |    62.849 ns |  1.00 |   7.4005 |  0.3510 |     - |   34856 B |
+| Experimental_ImHashMap_AddOrUpdate |   100 |  10,790.33 ns |    43.193 ns |    40.402 ns |  0.86 |   5.9357 |  0.2136 |     - |   27928 B |
+|                                    |       |               |              |              |       |          |         |       |           |
+|              ImHashMap_AddOrUpdate |  1000 | 267,387.63 ns | 1,329.595 ns | 1,243.704 ns |  1.00 | 108.3984 | 30.7617 |     - |  511209 B |
+| Experimental_ImHashMap_AddOrUpdate |  1000 | 277,088.03 ns | 1,052.088 ns |   932.649 ns |  1.04 |  93.2617 | 22.9492 |     - |  440795 B |
 
  */
             [Params(1, 10, 100, 1_000)]
@@ -360,14 +359,14 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             }
 
             [Benchmark]
-            public ImTools.Experimental.ImMap<ImTools.Experimental.ImHashMap.KeyValueEntry<Type, object>> Experimental_ImHashMap_AddOrUpdate()
+            public ImTools.Experimental.ImMap<ImTools.Experimental.ImMap.KVEntry<Type>> Experimental_ImHashMap_AddOrUpdate()
             {
-                var map = ImTools.Experimental.ImMap<ImTools.Experimental.ImHashMap.KeyValueEntry<Type, object>>.Empty;
+                var map = ImTools.Experimental.ImMap<ImTools.Experimental.ImMap.KVEntry<Type>>.Empty;
 
                 foreach (var key in _keys.Take(Count))
-                    map = ImTools.Experimental.ImHashMap.AddOrUpdate(map, key.GetHashCode(), key, "a");
+                    map = ImTools.Experimental.ImMap.AddOrUpdate(map, key.GetHashCode(), key, "a");
 
-                return ImTools.Experimental.ImHashMap.AddOrUpdate(map, typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
+                return ImTools.Experimental.ImMap.AddOrUpdate(map, typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
             }
 
             //[Benchmark]
