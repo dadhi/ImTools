@@ -344,7 +344,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 | Experimental_ImHashMap_AddOrUpdate |  1000 | 277,088.03 ns | 1,052.088 ns |   932.649 ns |  1.04 |  93.2617 | 22.9492 |     - |  440795 B |
 
  */
-            [Params(1, 10, 100, 1_000)]
+            [Params(1, 10)]//, 100, 1_000)]
             public int Count;
 
             [Benchmark(Baseline = true)]

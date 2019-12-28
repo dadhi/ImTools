@@ -1185,50 +1185,66 @@ namespace ImTools.Experimental
         }
 
         /// <summary>Uses the user provided hash and adds and updates the tree with passed key-value. Returns a new tree.</summary>
+        [MethodImpl((MethodImplOptions) 256)]
+        public static ImMap<KVEntry<K>> AddOrUpdate<K>(this ImMap<KVEntry<K>> map, int hash, K key, object value)
+        {
+            var newEntry = new ImMapEntry<KVEntry<K>>(hash);
+            newEntry.Value.Key   = key;
+            newEntry.Value.Value = value;
+            return map.AddOrUpdate(hash, newEntry);
+        }
+
+        /// <summary>Uses the user provided hash and adds and updates the tree with passed key-value. Returns a new tree.</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImMap<KVEntry<Type>> AddOrUpdate(this ImMap<KVEntry<Type>> map, int hash, Type key, object value)
+        public static ImMap<KVEntry<K>> AddOrUpdate<K>(this ImMap<KVEntry<K>> map, int hash, ImMapEntry<KVEntry<K>> entry)
         {
             var oldEntry = map.GetEntryOrDefault(hash);
-            if (oldEntry == null)
-            {
-                var newEntry = new ImMapEntry<KVEntry<Type>>(hash);
-                newEntry.Value.Key = key;
-                newEntry.Value.Value = value;
-                return map.AddEntryUnsafe(newEntry);
-            }
+            return oldEntry == null
+                ? map.AddEntryUnsafe(entry) 
+                : UpdateEntryUnsafe(map, hash, oldEntry, entry);
+        }
 
-            var oldEntryKey = oldEntry.Value.Key;
-
-            // update
-            if (key == oldEntryKey)
-            {
-                var newEntry = new ImMapEntry<KVEntry<Type>>(hash);
-                newEntry.Value.Key = key;
-                newEntry.Value.Value = value;
+        private static ImMap<KVEntry<K>> UpdateEntryUnsafe<K>(ImMap<KVEntry<K>> map, int hash, 
+            ImMapEntry<KVEntry<K>> oldEntry, ImMapEntry<KVEntry<K>> newEntry)
+        {
+            var key = newEntry.Value.Key;
+            if (key.Equals(oldEntry.Value.Key))
                 return map.UpdateEntryUnsafe(newEntry);
-            }
 
             // add a new conflicting key value
-            if (oldEntryKey != null)
+            ImMapEntry<KVEntry<K>>[] newConflicts;
+            if (oldEntry.Value.Key != null)
             {
-                var conflicts = new KVEntry<Type>[2];
+                newConflicts = new[] {newEntry, oldEntry};
+            }
+            else
+            {
+                // entry is already containing the conflicted entries
+                var conflicts = (ImMapEntry<KVEntry<Type>>[]) oldEntry.Value.Value;
+                var conflictCount = conflicts.Length;
+                var conflictIndex = conflictCount - 1;
+                while (conflictIndex != -1 && !key.Equals(conflicts[conflictIndex].Value.Key))
+                    --conflictIndex;
 
-                ref var newVal = ref conflicts[0];
-                newVal.Key = key;
-                newVal.Value = value;
-
-                ref var oldVal = ref conflicts[1];
-                oldVal.Key = oldEntryKey;
-                oldVal.Value = oldEntry.Value;
-
-                var newEntry = new ImMapEntry<KVEntry<Type>>(hash);
-                // keep the `null` for the key of the conflicted entry
-                newEntry.Value.Value = conflicts;
-                return map.UpdateEntryUnsafe(newEntry);
+                if (conflictIndex != -1)
+                {
+                    // update the existing conflict
+                    newConflicts = new ImMapEntry<KVEntry<K>>[conflictCount];
+                    Array.Copy(conflicts, 0, newConflicts, 0, conflictCount);
+                    newConflicts[conflictIndex] = newEntry;
+                }
+                else
+                {
+                    // add the new conflicting value
+                    newConflicts = new ImMapEntry<KVEntry<K>>[conflictCount + 1];
+                    Array.Copy(conflicts, 0, newConflicts, 0, conflictCount);
+                    newConflicts[conflictCount] = newEntry;
+                }
             }
 
-            // todo: entry is already containing the conflicted pairs
-            return map;
+            var conflictsEntry = new ImMapEntry<KVEntry<K>>(hash);
+            conflictsEntry.Value.Value = newConflicts;
+            return map.UpdateEntryUnsafe(conflictsEntry);
         }
     }
 
