@@ -4572,27 +4572,21 @@ namespace ImTools
             {
                 var conflicts = Conflicts;
                 for (var i = 0; i < conflicts.Length; ++i)
-                {
-                    var data = conflicts[i];
-                    if (key.Equals(data.Key))
+                    if (key.Equals(conflicts[i].Key))
                         return true;
-                }
             }
             return false;
         }
 
         /// <summary> Searches for the key in the node conflicts </summary>
-        public ImHashMapEntry<K, V> GetConflictedDataOrDefault(K key)
+        public ImHashMapEntry<K, V> GetConflictedEntryOrDefault(K key)
         {
             if (Conflicts != null)
             {
                 var conflicts = Conflicts;
                 for (var i = 0; i < conflicts.Length; ++i)
-                {
-                    var data = conflicts[i];
-                    if (key.Equals(data.Key))
-                        return data;
-                }
+                    if (key.Equals(conflicts[i].Key))
+                        return conflicts[i];
             }
             return null;
         }
@@ -4604,11 +4598,8 @@ namespace ImTools
             {
                 var conflicts = Conflicts;
                 for (var i = 0; i < conflicts.Length; ++i)
-                {
-                    var conflict = conflicts[i];
-                    if (key.Equals(conflict.Key))
-                        return conflict.Value;
-                }
+                    if (key.Equals(conflicts[i].Key))
+                        return conflicts[i].Value;
             }
             return defaultValue;
         }
@@ -4720,7 +4711,7 @@ namespace ImTools
 
             return map.Height == 0 ? null : 
                 key.Equals(map.Key) ? map.Entry : 
-                map.GetConflictedDataOrDefault(key);
+                map.GetConflictedEntryOrDefault(key);
         }
 
         /// <summary> Looks for key in a tree and returns the Data object if found or `null` otherwise. </summary> 
@@ -4739,7 +4730,7 @@ namespace ImTools
                     return null;
             }
 
-            return key.Equals(map.Key) ? map.Entry : map.GetConflictedDataOrDefault(key);
+            return key.Equals(map.Key) ? map.Entry : map.GetConflictedEntryOrDefault(key);
         }
 
         /// Looks for key in a tree and returns the key value if found, or <paramref name="defaultValue"/> otherwise.

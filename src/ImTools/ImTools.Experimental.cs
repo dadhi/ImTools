@@ -1246,6 +1246,31 @@ namespace ImTools.Experimental
             conflictsEntry.Value.Value = newConflicts;
             return map.UpdateEntryUnsafe(conflictsEntry);
         }
+
+        /// <summary> Returns the value if key is found or default value otherwise. </summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static object GetValueOrDefault(this ImMap<KVEntry<Type>> map, int hash, Type typeKey)
+        {
+            var entry = map.GetEntryOrDefault(hash);
+            if (entry != null)
+            {
+                if (typeKey == entry.Value.Key && typeKey != null)
+                    return entry.Value.Value;
+                if (entry.Value.Key == null)
+                    return GetConflictedEntryOrDefault(entry, typeKey).Value.Value;
+            }
+
+            return null;
+        }
+
+        internal static ImMapEntry<KVEntry<K>> GetConflictedEntryOrDefault<K>(ImMapEntry<KVEntry<K>> conflictedEntry, K key)
+        {
+            var conflicts = (ImMapEntry<KVEntry<K>>[])conflictedEntry.Value.Value;
+            for (var i = 0; i < conflicts.Length; ++i)
+                if (key.Equals(conflicts[i].Value.Key))
+                    return conflicts[i];
+            return null;
+        }
     }
 
     /// <summary>

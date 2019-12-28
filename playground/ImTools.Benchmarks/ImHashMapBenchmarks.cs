@@ -777,8 +777,17 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |           Dictionary_TryGetValue |  1000 | 16.848 ns | 0.0593 ns | 0.0526 ns |  1.32 |    0.01 |     - |     - |     - |         - |
 | ConcurrentDictionary_TryGetValue |  1000 | 15.684 ns | 0.0695 ns | 0.0650 ns |  1.23 |    0.01 |     - |     - |     - |         - |
 |             ImmutableDict_TryGet |  1000 | 33.579 ns | 0.1077 ns | 0.0955 ns |  2.64 |    0.01 |     - |     - |     - |         - |
+
+|                                   Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|----------------------------------------- |------ |---------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+|                        ImHashMap_TryFind |     1 | 2.556 ns | 0.0262 ns | 0.0245 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| Experimental_ImHashMap_GetValueOrDefault |     1 | 4.567 ns | 0.0432 ns | 0.0404 ns |  1.79 |    0.03 |     - |     - |     - |         - |
+|                                          |       |          |           |           |       |         |       |       |       |           |
+|                        ImHashMap_TryFind |    10 | 6.149 ns | 0.0534 ns | 0.0500 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| Experimental_ImHashMap_GetValueOrDefault |    10 | 9.313 ns | 0.0504 ns | 0.0471 ns |  1.51 |    0.01 |     - |     - |     - |         - |
+
 */
-            [Params(1, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
+            [Params(1, 10)]//, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             public int Count;
 
             [GlobalSetup]
@@ -786,7 +795,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             {
                 _map = AddOrUpdate();
                 _mapV1 = AddOrUpdate_v1();
-                _mapRtHlp = AddOrUpdate_RuntimeHelpersGetHashCode();
+                _mapExp = Experimental_ImHashMap_AddOrUpdate();
                 _mapSlots = ImHashMapSlots_AddOrUpdate();
                 _dict = Dict();
                 _dictSlim = DictSlim();
@@ -809,18 +818,6 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             
             private ImHashMap<Type, string> _map;
 
-            public ImHashMap<Type, string> AddOrUpdate_RuntimeHelpersGetHashCode()
-            {
-                var map = ImHashMap<Type, string>.Empty;
-
-                foreach (var key in _keys.Take(Count))
-                    map = map.AddOrUpdate(RuntimeHelpers.GetHashCode(key), key, "a");
-
-                return map.AddOrUpdate(RuntimeHelpers.GetHashCode(typeof(ImHashMapBenchmarks)), typeof(ImHashMapBenchmarks), "!");
-            }
-
-            private ImHashMap<Type, string> _mapRtHlp;
-
             public ImTools.OldVersions.V1.ImHashMap<Type, string> AddOrUpdate_v1()
             {
                 var map = ImTools.OldVersions.V1.ImHashMap<Type, string>.Empty;
@@ -833,6 +830,18 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             }
 
             private ImTools.OldVersions.V1.ImHashMap<Type, string> _mapV1;
+
+            public ImTools.Experimental.ImMap<ImTools.Experimental.ImMap.KVEntry<Type>> Experimental_ImHashMap_AddOrUpdate()
+            {
+                var map = ImTools.Experimental.ImMap<ImTools.Experimental.ImMap.KVEntry<Type>>.Empty;
+
+                foreach (var key in _keys.Take(Count))
+                    map = ImTools.Experimental.ImMap.AddOrUpdate(map, key.GetHashCode(), key, "a");
+
+                return ImTools.Experimental.ImMap.AddOrUpdate(map, typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
+            }
+
+            private ImTools.Experimental.ImMap<ImTools.Experimental.ImMap.KVEntry<Type>> _mapExp;
 
             public ImHashMap<Type, string>[] ImHashMapSlots_AddOrUpdate()
             {
@@ -906,11 +915,12 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             [Benchmark(Baseline = true)]
             public string ImHashMap_TryFind()
             {
-                _map.TryFind(LookupKey, out var result);
-                return result;
+                return _map.GetValueOrDefault(LookupKey);
+                //_map.TryFind(LookupKey, out var result);
+                //return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string ImHashMap_TryFind_V1()
             {
                 _mapV1.TryFind(LookupKey, out var result);
@@ -918,13 +928,6 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             }
 
             //[Benchmark]
-            public string ImHashMap_TryFind_RuntimeHelpersGetHashCode()
-            {
-                _mapRtHlp.TryFind(RuntimeHelpers.GetHashCode(LookupKey), LookupKey, out var result);
-                return result;
-            }
-
-            [Benchmark]
             public string ImHashMapSlots_TryFind()
             {
                 var hash = LookupKey.GetHashCode();
@@ -932,36 +935,36 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return result;
             }
 
-            //[Benchmark]
-            public string ImHashMap_GetValueOrDefault() => 
-                _map.GetValueOrDefault(LookupKey);
+            [Benchmark]
+            public string Experimental_ImHashMap_GetValueOrDefault() => 
+                (string)ImTools.Experimental.ImMap.GetValueOrDefault(_mapExp, LookupKey.GetHashCode(), LookupKey);
 
             //[Benchmark]
             public string ImHashMap_GetValueOrDefault_V1() =>
                 _mapV1.GetValueOrDefault(LookupKey);
 
-            [Benchmark]
+            //[Benchmark]
             public string DictionarySlim_TryGetValue()
             {
                 _dictSlim.TryGetValue(LookupKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string Dictionary_TryGetValue()
             {
                 _dict.TryGetValue(LookupKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string ConcurrentDictionary_TryGetValue()
             {
                 _concurrentDict.TryGetValue(LookupKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string ImmutableDict_TryGet()
             {
                 _immutableDict.TryGetValue(LookupKey, out var result);
