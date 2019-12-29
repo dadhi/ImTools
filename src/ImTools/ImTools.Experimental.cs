@@ -729,14 +729,11 @@ namespace ImTools.Experimental
                     : new ImMapBranch<V>(entry, leaf);
 
             if (map is ImMapBranch<V> branch)
-            {
-                if (key > branch.Entry.Key)
-                    return key > branch.RightEntry.Key
+                return key > branch.Entry.Key
+                    ? key > branch.RightEntry.Key
                         ? new ImMapTree<V>(branch.RightEntry, branch.Entry, entry)
-                        : new ImMapTree<V>(entry, branch.Entry, branch.RightEntry);
-
-                return new ImMapTree<V>(branch.Entry, entry, branch.RightEntry);
-            }
+                        : new ImMapTree<V>(entry, branch.Entry, branch.RightEntry)
+                    : new ImMapTree<V>(branch.Entry, entry, branch.RightEntry);
 
             return ((ImMapTree<V>)map).AddUnsafeLeftOrRight(key, entry);
         }
@@ -1184,17 +1181,82 @@ namespace ImTools.Experimental
             public object Value;
         }
 
-        /// <summary>Uses the user provided hash and adds and updates the tree with passed key-value. Returns a new tree.</summary>
+        /// <summary>Uses the user provided hash and adds or updates the tree with passed key-value. Returns a new tree.</summary>
         [MethodImpl((MethodImplOptions) 256)]
-        public static ImMap<KVEntry<K>> AddOrUpdate<K>(this ImMap<KVEntry<K>> map, int hash, K key, object value)
+        public static ImMap<KVEntry<K>> AddOrUpdate<K>(this ImMap<KVEntry<K>> map, int hash, K key, object value, Update<K, object> update)
         {
-            var newEntry = new ImMapEntry<KVEntry<K>>(hash);
-            newEntry.Value.Key   = key;
-            newEntry.Value.Value = value;
-            return map.AddOrUpdate(hash, newEntry);
+            var oldEntry = map.GetEntryOrDefault(hash);
+            return oldEntry == null 
+                ? map.AddEntryUnsafe(CreateNewEntry(hash, key, value)) 
+                : UpdateEntryUnsafe(map, hash, oldEntry, key, value, update);
         }
 
-        /// <summary>Uses the user provided hash and adds and updates the tree with passed key-value. Returns a new tree.</summary>
+        private static ImMap<KVEntry<K>> UpdateEntryUnsafe<K>(ImMap<KVEntry<K>> map, int hash,
+            ImMapEntry<KVEntry<K>> oldEntry, K key, object value, Update<K, object> update)
+        {
+            if (key.Equals(oldEntry.Value.Key))
+            {
+                value = update(key, oldEntry.Value.Value, value);
+                return map.UpdateEntryUnsafe(CreateNewEntry(hash, key, value));
+            }
+
+            // add a new conflicting key value
+            ImMapEntry<KVEntry<K>>[] newConflicts;
+            if (oldEntry.Value.Key != null)
+            {
+                newConflicts = new[] { oldEntry, CreateNewEntry(hash, key, value) };
+            }
+            else
+            {
+                // entry is already containing the conflicted entries
+                var conflicts = (ImMapEntry<KVEntry<Type>>[])oldEntry.Value.Value;
+                var conflictCount = conflicts.Length;
+                var conflictIndex = conflictCount - 1;
+                while (conflictIndex != -1 && !key.Equals(conflicts[conflictIndex].Value.Key))
+                    --conflictIndex;
+
+                if (conflictIndex != -1)
+                {
+                    // update the existing conflict
+                    newConflicts = new ImMapEntry<KVEntry<K>>[conflictCount];
+                    Array.Copy(conflicts, 0, newConflicts, 0, conflictCount);
+                    value = update(key, conflicts[conflictIndex].Value.Value, value);
+                    newConflicts[conflictIndex] = CreateNewEntry(hash, key, value);
+                }
+                else
+                {
+                    // add the new conflicting value
+                    newConflicts = new ImMapEntry<KVEntry<K>>[conflictCount + 1];
+                    Array.Copy(conflicts, 0, newConflicts, 0, conflictCount);
+                    newConflicts[conflictCount] = CreateNewEntry(hash, key, value);
+                }
+            }
+
+            var conflictsEntry = new ImMapEntry<KVEntry<K>>(hash);
+            conflictsEntry.Value.Value = newConflicts;
+            return map.UpdateEntryUnsafe(conflictsEntry);
+        }
+
+        [MethodImpl((MethodImplOptions)256)]
+        private static ImMapEntry<KVEntry<K>> CreateNewEntry<K>(int hash, K key, object value)
+        {
+            var newEntry = new ImMapEntry<KVEntry<K>>(hash);
+            newEntry.Value.Key = key;
+            newEntry.Value.Value = value;
+            return newEntry;
+        }
+
+        /// <summary>Uses the user provided hash and adds or updates the tree with passed key-value. Returns a new tree.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMap<KVEntry<K>> AddOrUpdate<K>(this ImMap<KVEntry<K>> map, int hash, K key, object value) => 
+            map.AddOrUpdate(hash, CreateNewEntry(hash, key, value));
+
+        /// <summary>Adds or updates the tree with passed key-value. Returns a new tree.</summary>
+        [MethodImpl((MethodImplOptions) 256)]
+        public static ImMap<KVEntry<K>> AddOrUpdate<K>(this ImMap<KVEntry<K>> map, K key, object value) =>
+            map.AddOrUpdate(key.GetHashCode(), key, value);
+
+        /// <summary>Uses the user provided hash and adds or updates the tree with passed key-value. Returns a new tree.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImMap<KVEntry<K>> AddOrUpdate<K>(this ImMap<KVEntry<K>> map, int hash, ImMapEntry<KVEntry<K>> entry)
         {
@@ -1215,7 +1277,7 @@ namespace ImTools.Experimental
             ImMapEntry<KVEntry<K>>[] newConflicts;
             if (oldEntry.Value.Key != null)
             {
-                newConflicts = new[] {newEntry, oldEntry};
+                newConflicts = new[] { oldEntry, newEntry };
             }
             else
             {
