@@ -179,7 +179,7 @@ namespace ImTools.Experimental.UnitTests
             //   3     7    12      20     =>  3     7    12       23    =>  3     7    12       23    =>  3     7       12          23     =>    5      11    15        23
             //                          25                      20    25                  15   21   25                 11   15      21   25     3   7            17    21   25
             //                        23!                         21!                                                        17!                                   
-            var t = ImMap<ImMap.KVEntry<int>>.Empty
+            var t = ImMap<ImMap.KValue<int>>.Empty
                 .AddOrUpdate(10, "10")
 
                 .AddOrUpdate(15, "15")
@@ -196,21 +196,21 @@ namespace ImTools.Experimental.UnitTests
 
                 .AddOrUpdate(11, "11")
                 .AddOrUpdate(17, "17") // boom again - on the global scale!
-                .To<ImMapTree<ImMap.KVEntry<int>>>();
+                .To<ImMapTree<ImMap.KValue<int>>>();
 
             Assert.AreEqual(12, t.Entry.Key);
 
-            Assert.AreEqual(10, t.Left. To<ImMapTree<ImMap.KVEntry<int>>>().Entry.Key);
-            Assert.AreEqual(5,  t.Left. To<ImMapTree<ImMap.KVEntry<int>>>().Left .To<ImMapTree<ImMap.KVEntry<int>>>().Entry.Key);
-            Assert.AreEqual(3,  t.Left. To<ImMapTree<ImMap.KVEntry<int>>>().Left .To<ImMapTree<ImMap.KVEntry<int>>>().Left .To<ImMapEntry<ImMap.KVEntry<int>>>().Key);
-            Assert.AreEqual(7,  t.Left. To<ImMapTree<ImMap.KVEntry<int>>>().Left .To<ImMapTree<ImMap.KVEntry<int>>>().Right.To<ImMapEntry<ImMap.KVEntry<int>>>().Key);
-            Assert.AreEqual(11, t.Left. To<ImMapTree<ImMap.KVEntry<int>>>().Right.To<ImMapEntry<ImMap.KVEntry<int>>>().Key);
-            Assert.AreEqual(20, t.Right.To<ImMapTree<ImMap.KVEntry<int>>>().Entry.Key);
-            Assert.AreEqual(15, t.Right.To<ImMapTree<ImMap.KVEntry<int>>>().Left.To<ImMapBranch<ImMap.KVEntry<int>>>().Entry.Key);
-            Assert.AreEqual(17, t.Right.To<ImMapTree<ImMap.KVEntry<int>>>().Left.To<ImMapBranch<ImMap.KVEntry<int>>>().RightEntry.Key);
-            Assert.AreEqual(23, t.Right.To<ImMapTree<ImMap.KVEntry<int>>>().Right.To<ImMapTree<ImMap.KVEntry<int>>>().Entry.Key);
-            Assert.AreEqual(21, t.Right.To<ImMapTree<ImMap.KVEntry<int>>>().Right.To<ImMapTree<ImMap.KVEntry<int>>>().Left .To<ImMapEntry<ImMap.KVEntry<int>>>().Key);
-            Assert.AreEqual(25, t.Right.To<ImMapTree<ImMap.KVEntry<int>>>().Right.To<ImMapTree<ImMap.KVEntry<int>>>().Right.To<ImMapEntry<ImMap.KVEntry<int>>>().Key);
+            Assert.AreEqual(10, t.Left. To<ImMapTree<ImMap.KValue<int>>>().Entry.Key);
+            Assert.AreEqual(5,  t.Left. To<ImMapTree<ImMap.KValue<int>>>().Left .To<ImMapTree<ImMap.KValue<int>>>().Entry.Key);
+            Assert.AreEqual(3,  t.Left. To<ImMapTree<ImMap.KValue<int>>>().Left .To<ImMapTree<ImMap.KValue<int>>>().Left .To<ImMapEntry<ImMap.KValue<int>>>().Key);
+            Assert.AreEqual(7,  t.Left. To<ImMapTree<ImMap.KValue<int>>>().Left .To<ImMapTree<ImMap.KValue<int>>>().Right.To<ImMapEntry<ImMap.KValue<int>>>().Key);
+            Assert.AreEqual(11, t.Left. To<ImMapTree<ImMap.KValue<int>>>().Right.To<ImMapEntry<ImMap.KValue<int>>>().Key);
+            Assert.AreEqual(20, t.Right.To<ImMapTree<ImMap.KValue<int>>>().Entry.Key);
+            Assert.AreEqual(15, t.Right.To<ImMapTree<ImMap.KValue<int>>>().Left.To<ImMapBranch<ImMap.KValue<int>>>().Entry.Key);
+            Assert.AreEqual(17, t.Right.To<ImMapTree<ImMap.KValue<int>>>().Left.To<ImMapBranch<ImMap.KValue<int>>>().RightEntry.Key);
+            Assert.AreEqual(23, t.Right.To<ImMapTree<ImMap.KValue<int>>>().Right.To<ImMapTree<ImMap.KValue<int>>>().Entry.Key);
+            Assert.AreEqual(21, t.Right.To<ImMapTree<ImMap.KValue<int>>>().Right.To<ImMapTree<ImMap.KValue<int>>>().Left .To<ImMapEntry<ImMap.KValue<int>>>().Key);
+            Assert.AreEqual(25, t.Right.To<ImMapTree<ImMap.KValue<int>>>().Right.To<ImMapTree<ImMap.KValue<int>>>().Right.To<ImMapEntry<ImMap.KValue<int>>>().Key);
         }
 
         [Test]

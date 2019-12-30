@@ -361,9 +361,9 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             }
 
             [Benchmark]
-            public ImTools.Experimental.ImMap<ImTools.Experimental.ImMap.KVEntry<Type>> Experimental_ImHashMap_AddOrUpdate()
+            public ImTools.Experimental.ImMap<ImTools.Experimental.ImMap.KValue<Type>> Experimental_ImHashMap_AddOrUpdate()
             {
-                var map = ImTools.Experimental.ImMap<ImTools.Experimental.ImMap.KVEntry<Type>>.Empty;
+                var map = ImTools.Experimental.ImMap<ImTools.Experimental.ImMap.KValue<Type>>.Empty;
 
                 foreach (var key in _keys.Take(Count))
                     map = ImTools.Experimental.ImMap.AddOrUpdate(map, key.GetHashCode(), key, "a");
@@ -840,9 +840,9 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
             private ImTools.OldVersions.V1.ImHashMap<Type, string> _mapV1;
 
-            public ImTools.Experimental.ImMap<ImTools.Experimental.ImMap.KVEntry<Type>> Experimental_ImHashMap_AddOrUpdate()
+            public ImTools.Experimental.ImMap<ImTools.Experimental.ImMap.KValue<Type>> Experimental_ImHashMap_AddOrUpdate()
             {
-                var map = ImTools.Experimental.ImMap<ImTools.Experimental.ImMap.KVEntry<Type>>.Empty;
+                var map = ImTools.Experimental.ImMap<ImTools.Experimental.ImMap.KValue<Type>>.Empty;
 
                 foreach (var key in _keys.Take(Count))
                     map = map.AddOrUpdate(key.GetHashCode(), key, "a");
@@ -850,7 +850,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
             }
 
-            private ImTools.Experimental.ImMap<ImTools.Experimental.ImMap.KVEntry<Type>> _mapExp;
+            private ImTools.Experimental.ImMap<ImTools.Experimental.ImMap.KValue<Type>> _mapExp;
 
             public ImHashMap<Type, string>[] ImHashMapSlots_AddOrUpdate()
             {
@@ -1103,11 +1103,11 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            private ImTools.Experimental.ImMap<ImTools.Experimental.ImMap.KVEntry<Type>> _mapExp;
+            private ImTools.Experimental.ImMap<ImTools.Experimental.ImMap.KValue<Type>> _mapExp;
 
-            public ImTools.Experimental.ImMap<ImTools.Experimental.ImMap.KVEntry<Type>> Experimental_ImHashMap_AddOrUpdate()
+            public ImTools.Experimental.ImMap<ImTools.Experimental.ImMap.KValue<Type>> Experimental_ImHashMap_AddOrUpdate()
             {
-                var map = ImTools.Experimental.ImMap<ImTools.Experimental.ImMap.KVEntry<Type>>.Empty;
+                var map = ImTools.Experimental.ImMap<ImTools.Experimental.ImMap.KValue<Type>>.Empty;
 
                 foreach (var key in _keys.Take(Count))
                     map = map.AddOrUpdate(key.GetHashCode(), key, "a");
@@ -1185,7 +1185,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
             [Benchmark]
             public object Experimental_ImHashMap_FoldToArray() =>
-                _mapExp.Fold(new List<ImMapEntry<ImMap.KVEntry<Type>>>(), (entry, list) =>
+                _mapExp.Fold(new List<ImMapEntry<ImMap.KValue<Type>>>(), (entry, list) =>
                     {
                         list.Add(entry);
                         return list;
