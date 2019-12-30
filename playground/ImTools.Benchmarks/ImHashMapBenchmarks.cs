@@ -8,6 +8,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using ImTools.Experimental;
+using ImMap = ImTools.Experimental.ImMap;
 
 namespace Playground
 {
@@ -779,6 +780,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 | ConcurrentDictionary_TryGetValue |  1000 | 15.684 ns | 0.0695 ns | 0.0650 ns |  1.23 |    0.01 |     - |     - |     - |         - |
 |             ImmutableDict_TryGet |  1000 | 33.579 ns | 0.1077 ns | 0.0955 ns |  2.64 |    0.01 |     - |     - |     - |         - |
 
+
 |                                   Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
 |----------------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
 |                        ImHashMap_TryFind |     1 |  4.024 ns | 0.0437 ns | 0.0341 ns |  1.00 |    0.00 |     - |     - |     - |         - |
@@ -843,9 +845,9 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 var map = ImTools.Experimental.ImMap<ImTools.Experimental.ImMap.KVEntry<Type>>.Empty;
 
                 foreach (var key in _keys.Take(Count))
-                    map = ImTools.Experimental.ImMap.AddOrUpdate(map, key.GetHashCode(), key, "a");
+                    map = map.AddOrUpdate(key.GetHashCode(), key, "a");
 
-                return ImTools.Experimental.ImMap.AddOrUpdate(map, typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
+                return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
             }
 
             private ImTools.Experimental.ImMap<ImTools.Experimental.ImMap.KVEntry<Type>> _mapExp;
@@ -1030,6 +1032,21 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |            Dictionary_ToArray |  1000 |   4,997.89 ns |  20.869 ns |  18.500 ns |  0.20 |    0.00 |  3.3951 | 0.1831 |     - |   16040 B |
 |  ConcurrentDictionary_ToArray |  1000 |  36,859.40 ns | 193.536 ns | 181.034 ns |  1.44 |    0.04 |  3.3569 | 0.1831 |     - |   16040 B |
 |         ImmutableDict_ToArray |  1000 | 155,798.41 ns | 484.101 ns | 452.828 ns |  6.08 |    0.14 |  3.1738 |      - |     - |   16040 B |
+
+|                             Method | Count |         Mean |      Error |     StdDev | Ratio |  Gen 0 |  Gen 1 | Gen 2 | Allocated |
+|----------------------------------- |------ |-------------:|-----------:|-----------:|------:|-------:|-------:|------:|----------:|
+|         ImHashMap_EnumerateToArray |     1 |    153.03 ns |   0.774 ns |   0.686 ns |  1.00 | 0.0441 |      - |     - |     208 B |
+| Experimental_ImHashMap_FoldToArray |     1 |     62.26 ns |   0.180 ns |   0.159 ns |  0.41 | 0.0271 |      - |     - |     128 B |
+|                                    |       |              |            |            |       |        |        |       |           |
+|         ImHashMap_EnumerateToArray |    10 |    417.19 ns |   4.075 ns |   3.403 ns |  1.00 | 0.1001 |      - |     - |     472 B |
+| Experimental_ImHashMap_FoldToArray |    10 |    237.62 ns |   1.079 ns |   1.009 ns |  0.57 | 0.1016 |      - |     - |     480 B |
+|                                    |       |              |            |            |       |        |        |       |           |
+|         ImHashMap_EnumerateToArray |   100 |  2,693.86 ns |   7.426 ns |   6.946 ns |  1.00 | 0.4768 |      - |     - |    2248 B |
+| Experimental_ImHashMap_FoldToArray |   100 |  1,517.72 ns |   6.061 ns |   5.669 ns |  0.56 | 0.6561 | 0.0038 |     - |    3096 B |
+|                                    |       |              |            |            |       |        |        |       |           |
+|         ImHashMap_EnumerateToArray |  1000 | 26,018.52 ns | 175.262 ns | 146.352 ns |  1.00 | 3.5706 | 0.1831 |     - |   16808 B |
+| Experimental_ImHashMap_FoldToArray |  1000 | 15,321.95 ns |  69.421 ns |  64.937 ns |  0.59 | 5.2490 | 0.2747 |     - |   24736 B |
+
 */
             [Params(1, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             public int Count;
@@ -1039,6 +1056,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             {
                 _map = AddOrUpdate();
                 _mapV1 = AddOrUpdate_v1();
+                _mapExp = Experimental_ImHashMap_AddOrUpdate();
                 _mapSlots = ImHashMapSlots_AddOrUpdate();
                 _dict = Dict();
                 _dictSlim = DictSlim();
@@ -1083,6 +1101,18 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
                 map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
                 return map;
+            }
+
+            private ImTools.Experimental.ImMap<ImTools.Experimental.ImMap.KVEntry<Type>> _mapExp;
+
+            public ImTools.Experimental.ImMap<ImTools.Experimental.ImMap.KVEntry<Type>> Experimental_ImHashMap_AddOrUpdate()
+            {
+                var map = ImTools.Experimental.ImMap<ImTools.Experimental.ImMap.KVEntry<Type>>.Empty;
+
+                foreach (var key in _keys.Take(Count))
+                    map = map.AddOrUpdate(key.GetHashCode(), key, "a");
+
+                return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
             }
 
             private ImHashMap<Type, string>[] _mapSlots;
@@ -1145,31 +1175,40 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             public object ImHashMap_EnumerateToArray() =>
                 _map.Enumerate().ToArray();
 
-            [Benchmark]
+            //[Benchmark]
             public object ImHashMap_V1_EnumerateToArray() =>
                 _mapV1.Enumerate().ToArray();
 
             [Benchmark]
             public object ImHashMap_FoldToArray() =>
-                _map.Fold(new List<ImHashMapEntry<Type, string>>(), (data, list) => { list.Add(data); return list; }).ToArray();
+                _map.Fold(new List<ImHashMapEntry<Type, string>>(), (entry, list) => { list.Add(entry); return list; }).ToArray();
 
             [Benchmark]
+            public object Experimental_ImHashMap_FoldToArray() =>
+                _mapExp.Fold(new List<ImMapEntry<ImMap.KVEntry<Type>>>(), (entry, list) =>
+                    {
+                        list.Add(entry);
+                        return list;
+                    })
+                    .ToArray();
+
+            //[Benchmark]
             public object ImHashMapSlots_FoldToArray() =>
-                _mapSlots.Fold(new List<ImHashMapEntry<Type, string>>(), (data, list) => { list.Add(data); return list; }).ToArray();
+                _mapSlots.Fold(new List<ImHashMapEntry<Type, string>>(), (entry, list) => { list.Add(entry); return list; }).ToArray();
 
-            [Benchmark]
+            //[Benchmark]
             public object DictionarySlim_ToArray() =>
                 _dictSlim.ToArray();
 
-            [Benchmark]
+            //[Benchmark]
             public object Dictionary_ToArray() =>
                 _dict.ToArray();
 
-            [Benchmark]
+            //[Benchmark]
             public object ConcurrentDictionary_ToArray() =>
                 _concurrentDict.ToArray();
 
-            [Benchmark]
+            //[Benchmark]
             public object ImmutableDict_ToArray() =>
                 _immutableDict.ToArray();
         }
