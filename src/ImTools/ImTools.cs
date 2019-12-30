@@ -92,6 +92,13 @@ namespace ImTools
         public static R ToFunc<T, R>(this R result, T ignoredArg) => result;
     }
 
+    /// <summary>Helpers for lazy instantiations</summary>
+    public static class Lazy
+    {
+        /// <summary>Provides result type inference for creation of lazy.</summary>
+        public static Lazy<T> Of<T>(Func<T> valueFactory) => new Lazy<T>(valueFactory);
+    }
+
     /// Replacement for `Void` type which can be used as a type argument and value.
     /// In traditional functional languages this type is a singleton empty record type,
     /// e.g. `()` in Haskell https://en.wikipedia.org/wiki/Unit_type
@@ -3449,11 +3456,12 @@ namespace ImTools
                 state = reducer.Reduce(map.Right, state);
             return state;
         }
-
     }
 
+    /// <summary>
     /// The array of ImMap slots where the key first bits are used for FAST slot location
     /// and the slot is the reference to ImMap that can be swapped with its updated value
+    /// </summary>
     public static class ImMapSlots
     {
         /// Default number of slots
@@ -4911,8 +4919,10 @@ namespace ImTools
         }
     }
 
-    /// The array of ImMap slots where the key first bits are used for FAST slot location
-    /// and the slot is the reference to ImMap that can be swapped with its updated value
+    /// <summary>
+    /// The array of ImHashMap slots where the key first bits are used for FAST slot location
+    /// and the slot is the reference to ImHashMap that can be swapped with its updated value
+    /// </summary>
     public static class ImHashMapSlots
     {
         /// Default number of slots

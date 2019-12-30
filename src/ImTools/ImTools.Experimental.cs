@@ -1601,7 +1601,7 @@ namespace ImTools.Experimental
         /// <summary> Returns the value if key is found or default value otherwise. </summary>
         [MethodImpl((MethodImplOptions)256)]
         public static object GetValueOrDefault(this ImMap<KVEntry<Type>> map, int hash, Type typeKey) => 
-            map.GetEntryOrDefault(hash, typeKey).Value.Value;
+            map.GetEntryOrDefault(hash, typeKey)?.Value.Value;
 
         internal static ImMapEntry<KVEntry<K>> GetConflictedEntryOrDefault<K>(ImMapEntry<KVEntry<K>> conflictedEntry, K key)
         {
@@ -1826,50 +1826,6 @@ namespace ImTools.Experimental
             }
 
             return state;
-
-            //for (var i = 0; i < slots.Length; i++)
-            //{
-            //    var map = slots[i];
-            //    var height = map.Height;
-            //    if (height == 0)
-            //        continue;
-            //    if (height == 1)
-            //        state = reduce(map, state);
-            //    else if (height == 2)
-            //        state = map.ReduceTwoLevelTree(state, reduce);
-            //    else
-            //    {
-            //        if (parentStack.Length < height - 2)
-            //            parentStack = new ImMap<V>[height - 2];
-            //        var parentIndex = -1;
-            //        do
-            //        {
-            //            if (map.Height == 1)
-            //            {
-            //                state = reduce(map, state);
-            //                if (parentIndex == -1)
-            //                    break;
-            //                state = reduce(map = parentStack[parentIndex--], state);
-            //                map = map.Right;
-            //            }
-            //            else if (map.Height == 2)
-            //            {
-            //                state = map.ReduceTwoLevelTree(state, reduce);
-            //                if (parentIndex == -1)
-            //                    break;
-            //                state = reduce(map = parentStack[parentIndex--], state);
-            //                map = map.Right;
-            //            }
-            //            else
-            //            {
-            //                parentStack[++parentIndex] = map;
-            //                map = map.Left;
-            //            }
-            //        } while (map.Height != 0);
-            //    }
-            //}
-
-            //return state;
         }
     }
 }
