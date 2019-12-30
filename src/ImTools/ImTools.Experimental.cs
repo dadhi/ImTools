@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -1021,6 +1022,171 @@ namespace ImTools.Experimental
             return false;
         }
 
+        /// <summary> Finds the first entry matching the condition, returns `null` if not found </summary>
+        public static ImMapEntry<V> FindFirstOrDefault<V, A>(this ImMap<V> map, A a,
+            Func<ImMapEntry<V>, A, bool> condition, ImMapTree<V>[] parentStack = null)
+        {
+            if (map == ImMap<V>.Empty)
+                return null;
+
+            if (map is ImMapEntry<V> leaf)
+            {
+                if (condition(leaf, a))
+                    return leaf;
+            }
+            else if (map is ImMapBranch<V> branch)
+            {
+                if (condition(branch.Entry, a))
+                    return branch.Entry;
+                if (condition(branch.RightEntry, a))
+                    return branch.RightEntry;
+            }
+            else if (map is ImMapTree<V> tree)
+            {
+                if (tree.TreeHeight == 2)
+                {
+                    if (condition((ImMapEntry<V>)tree.Left, a))
+                        return (ImMapEntry<V>)tree.Left;
+                    if (condition(tree.Entry, a))
+                        return tree.Entry;
+                    if (condition((ImMapEntry<V>)tree.Right, a))
+                        return (ImMapEntry<V>)tree.Right;
+                }
+                else
+                {
+                    parentStack = parentStack ?? new ImMapTree<V>[tree.TreeHeight - 2];
+                    var parentIndex = -1;
+                    while (true)
+                    {
+                        if ((tree = map as ImMapTree<V>) != null)
+                        {
+                            if (tree.TreeHeight == 2)
+                            {
+                                if (condition((ImMapEntry<V>)tree.Left, a))
+                                    return (ImMapEntry<V>)tree.Left;
+                                if (condition(tree.Entry, a))
+                                    return tree.Entry;
+                                if (condition((ImMapEntry<V>)tree.Right, a))
+                                    return (ImMapEntry<V>)tree.Right;
+                                if (parentIndex == -1)
+                                    break;
+                                tree = parentStack[parentIndex--];
+                                if (condition(tree.Entry, a))
+                                    return tree.Entry;
+                                map = tree.Right;
+                            }
+                            else
+                            {
+                                parentStack[++parentIndex] = tree;
+                                map = tree.Left;
+                            }
+                        }
+                        else if ((branch = map as ImMapBranch<V>) != null)
+                        {
+                            if (condition(branch.Entry, a))
+                                return branch.Entry;
+                            if (condition(branch.RightEntry, a))
+                                return branch.RightEntry;
+                            if (parentIndex == -1)
+                                break;
+                            tree = parentStack[parentIndex--];
+                            if (condition(tree.Entry, a))
+                                return tree.Entry;
+                            map = tree.Right;
+                        }
+                        else
+                        {
+                            if (condition((ImMapEntry<V>)map, a))
+                                return (ImMapEntry<V>)map;
+                            if (parentIndex == -1)
+                                break;
+                            tree = parentStack[parentIndex--];
+                            if (condition(tree.Entry, a))
+                                return tree.Entry;
+                            map = tree.Right;
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Enumerates all the map nodes from the left to the right and from the bottom to top
+        /// You may pass `parentStacks` to reuse the array memory.
+        /// NOTE: the length of `parentStack` should be at least of map (height - 2) - the stack want be used for 0, 1, 2 height maps,
+        /// the content of the stack is not important and could be erased.
+        /// </summary>
+        public static IEnumerable<ImMapEntry<V>> Enumerate<V>(this ImMap<V> map, ImMapTree<V>[] parentStack = null)
+        {
+            if (map == ImMap<V>.Empty)
+                yield break;
+
+            if (map is ImMapEntry<V> leaf)
+                yield return leaf;
+            else if (map is ImMapBranch<V> branch)
+            {
+                yield return branch.Entry;
+                yield return branch.RightEntry;
+            }
+            else if (map is ImMapTree<V> tree)
+            {
+                if (tree.TreeHeight == 2)
+                {
+                    yield return (ImMapEntry<V>)tree.Left;
+                    yield return tree.Entry;
+                    yield return (ImMapEntry<V>)tree.Right;
+                }
+                else
+                {
+                    parentStack = parentStack ?? new ImMapTree<V>[tree.TreeHeight - 2];
+                    var parentIndex = -1;
+                    while (true)
+                    {
+                        if ((tree = map as ImMapTree<V>) != null)
+                        {
+                            if (tree.TreeHeight == 2)
+                            {
+                                yield return (ImMapEntry<V>)tree.Left;
+                                yield return tree.Entry;
+                                yield return (ImMapEntry<V>)tree.Right;
+                                if (parentIndex == -1)
+                                    break;
+                                tree = parentStack[parentIndex--];
+                                yield return tree.Entry;
+                                map = tree.Right;
+                            }
+                            else
+                            {
+                                parentStack[++parentIndex] = tree;
+                                map = tree.Left;
+                            }
+                        }
+                        else if ((branch = map as ImMapBranch<V>) != null)
+                        {
+                            yield return branch.Entry;
+                            yield return branch.RightEntry;
+                            if (parentIndex == -1)
+                                break;
+                            tree = parentStack[parentIndex--];
+                            yield return tree.Entry;
+                            map = tree.Right;
+                        }
+                        else
+                        {
+                            yield return (ImMapEntry<V>)map;
+                            if (parentIndex == -1)
+                                break;
+                            tree = parentStack[parentIndex--];
+                            yield return tree.Entry;
+                            map = tree.Right;
+                        }
+                    }
+                }
+            }
+        }
+
         /// <summary>
         /// Folds all the map nodes with the state from left to right and from the bottom to top
         /// You may pass `parentStacks` to reuse the array memory.
@@ -1089,6 +1255,83 @@ namespace ImTools.Experimental
                                 break;
                             tree = parentStack[parentIndex--];
                             state = reduce(tree.Entry, state);
+                            map = tree.Right;
+                        }
+                    }
+                }
+            }
+
+            return state;
+        }
+
+        /// <summary>
+        /// Folds all the map nodes with the state from left to right and from the bottom to top
+        /// You may pass `parentStacks` to reuse the array memory.
+        /// NOTE: the length of `parentStack` should be at least of map (height - 2) - the stack want be used for 0, 1, 2 height maps,
+        /// the content of the stack is not important and could be erased.
+        /// </summary>
+        public static S Fold<V, S, A>(this ImMap<V> map, S state, A a, Func<ImMapEntry<V>, S, A, S> reduce, ImMapTree<V>[] parentStack = null)
+        {
+            if (map == ImMap<V>.Empty)
+                return state;
+
+            if (map is ImMapEntry<V> leaf)
+                state = reduce(leaf, state, a);
+            else if (map is ImMapBranch<V> branch)
+            {
+                state = reduce(branch.Entry,      state, a);
+                state = reduce(branch.RightEntry, state, a);
+            }
+            else if (map is ImMapTree<V> tree)
+            {
+                if (tree.TreeHeight == 2)
+                {
+                    state = reduce((ImMapEntry<V>)tree.Left,  state, a);
+                    state = reduce(tree.Entry,                state, a);
+                    state = reduce((ImMapEntry<V>)tree.Right, state, a);
+                }
+                else
+                {
+                    parentStack = parentStack ?? new ImMapTree<V>[tree.TreeHeight - 2];
+                    var parentIndex = -1;
+                    while (true)
+                    {
+                        if ((tree = map as ImMapTree<V>) != null)
+                        {
+                            if (tree.TreeHeight == 2)
+                            {
+                                state = reduce((ImMapEntry<V>)tree.Left,  state, a);
+                                state = reduce(tree.Entry,                state, a);
+                                state = reduce((ImMapEntry<V>)tree.Right, state, a);
+                                if (parentIndex == -1)
+                                    break;
+                                tree = parentStack[parentIndex--];
+                                state = reduce(tree.Entry, state, a);
+                                map = tree.Right;
+                            }
+                            else
+                            {
+                                parentStack[++parentIndex] = tree;
+                                map = tree.Left;
+                            }
+                        }
+                        else if ((branch = map as ImMapBranch<V>) != null)
+                        {
+                            state = reduce(branch.Entry,      state, a);
+                            state = reduce(branch.RightEntry, state, a);
+                            if (parentIndex == -1)
+                                break;
+                            tree = parentStack[parentIndex--];
+                            state = reduce(tree.Entry, state, a);
+                            map = tree.Right;
+                        }
+                        else
+                        {
+                            state = reduce((ImMapEntry<V>)map, state, a);
+                            if (parentIndex == -1)
+                                break;
+                            tree = parentStack[parentIndex--];
+                            state = reduce(tree.Entry, state, a);
                             map = tree.Right;
                         }
                     }
@@ -1366,6 +1609,79 @@ namespace ImTools.Experimental
                     return conflicts[i];
             return null;
         }
+
+        /// <summary>
+        /// Depth-first in-order traversal as described in http://en.wikipedia.org/wiki/Tree_traversal
+        /// The only difference is using fixed size array instead of stack for speed-up.
+        /// </summary>
+        public static IEnumerable<ImMapEntry<KVEntry<K>>> Enumerate<K>(this ImMap<KVEntry<K>> map)
+        {
+            foreach (var entry in map.Enumerate(null))
+            {
+                if (entry.Value.Value is ImMapEntry<KVEntry<K>>[] conflicts)
+                    for (var i = 0; i < conflicts.Length; i++)
+                        yield return conflicts[i];
+                else
+                    yield return entry;
+            }
+        }
+
+        /// <summary>
+        /// Depth-first in-order traversal as described in http://en.wikipedia.org/wiki/Tree_traversal
+        /// The only difference is using fixed size array instead of stack for speed-up.
+        /// Note: By passing <paramref name="parentsStack"/> you may reuse the stack array between different method calls,
+        /// but it should be at least <see cref="ImHashMap{K,V}.Height"/> length. The contents of array are not important.
+        /// </summary>
+        public static S Fold<K, S>(this ImMap<KVEntry<K>> map,
+            S state, Func<ImMapEntry<KVEntry<K>>, S, S> reduce, ImMapTree<KVEntry<K>>[] parentsStack = null) =>
+                map.Fold(state, reduce, (entry, s, r) =>
+                {
+                    if (entry.Value.Value is ImMapEntry<KVEntry<K>>[] conflicts)
+                        for (var i = 0; i < conflicts.Length; i++)
+                            s = r(conflicts[i], s);
+                    else
+                        s = r(entry, s);
+                    return s;
+                }, 
+                parentsStack);
+
+        /// <summary>
+        /// Depth-first in-order traversal as described in http://en.wikipedia.org/wiki/Tree_traversal
+        /// The only difference is using fixed size array instead of stack for speed-up.
+        /// Note: By passing <paramref name="parentsStack"/> you may reuse the stack array between different method calls,
+        /// but it should be at least <see cref="ImHashMap{K,V}.Height"/> length. The contents of array are not important.
+        /// </summary>
+        public static S Visit<K, S>(this ImMap<KVEntry<K>> map, 
+            S state, Action<ImMapEntry<KVEntry<K>>, S> effect, ImMapTree<KVEntry<K>>[] parentsStack = null) =>
+            map.Fold(state, effect, (entry, s, eff) =>
+            {
+                if (entry.Value.Value is ImMapEntry<KVEntry<K>>[] conflicts)
+                    for (var i = 0; i<conflicts.Length; i++)
+                        eff(conflicts[i], s);
+                else
+                    eff(entry, s);
+                return s;
+            }, 
+            parentsStack);
+
+        /// <summary>
+        /// Depth-first in-order traversal as described in http://en.wikipedia.org/wiki/Tree_traversal
+        /// The only difference is using fixed size array instead of stack for speed-up.
+        /// Note: By passing <paramref name="parentsStack"/> you may reuse the stack array between different method calls,
+        /// but it should be at least <see cref="ImHashMap{K,V}.Height"/> length. The contents of array are not important.
+        /// </summary>
+        public static void Visit<K>(this ImMap<KVEntry<K>> map, 
+            Action<ImMapEntry<KVEntry<K>>> effect, ImMapTree<KVEntry<K>>[] parentsStack = null) =>
+            map.Fold(false, effect, (entry, s, eff) =>
+            {
+                if (entry.Value.Value is ImMapEntry<KVEntry<K>>[] conflicts)
+                    for (var i = 0; i<conflicts.Length; i++)
+                        eff(conflicts[i]);
+                else
+                    eff(entry);
+                return false;
+            }, 
+            parentsStack);
     }
 
     /// <summary>

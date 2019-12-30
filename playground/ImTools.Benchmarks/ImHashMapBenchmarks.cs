@@ -1,12 +1,13 @@
+using BenchmarkDotNet.Attributes;
+using ImTools;
+using Microsoft.Collections.Extensions;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using BenchmarkDotNet.Attributes;
-using ImTools;
-using Microsoft.Collections.Extensions;
+using ImTools.Experimental;
 
 namespace Playground
 {
@@ -778,16 +779,22 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 | ConcurrentDictionary_TryGetValue |  1000 | 15.684 ns | 0.0695 ns | 0.0650 ns |  1.23 |    0.01 |     - |     - |     - |         - |
 |             ImmutableDict_TryGet |  1000 | 33.579 ns | 0.1077 ns | 0.0955 ns |  2.64 |    0.01 |     - |     - |     - |         - |
 
-|                                   Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
-|----------------------------------------- |------ |---------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
-|                        ImHashMap_TryFind |     1 | 2.556 ns | 0.0262 ns | 0.0245 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| Experimental_ImHashMap_GetValueOrDefault |     1 | 4.567 ns | 0.0432 ns | 0.0404 ns |  1.79 |    0.03 |     - |     - |     - |         - |
-|                                          |       |          |           |           |       |         |       |       |       |           |
-|                        ImHashMap_TryFind |    10 | 6.149 ns | 0.0534 ns | 0.0500 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| Experimental_ImHashMap_GetValueOrDefault |    10 | 9.313 ns | 0.0504 ns | 0.0471 ns |  1.51 |    0.01 |     - |     - |     - |         - |
+|                                   Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|----------------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+|                        ImHashMap_TryFind |     1 |  4.024 ns | 0.0437 ns | 0.0341 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| Experimental_ImHashMap_GetValueOrDefault |     1 |  4.884 ns | 0.0703 ns | 0.0623 ns |  1.22 |    0.02 |     - |     - |     - |         - |
+|                                          |       |           |           |           |       |         |       |       |       |           |
+|                        ImHashMap_TryFind |    10 |  6.614 ns | 0.0405 ns | 0.0359 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| Experimental_ImHashMap_GetValueOrDefault |    10 |  8.691 ns | 0.0548 ns | 0.0513 ns |  1.31 |    0.01 |     - |     - |     - |         - |
+|                                          |       |           |           |           |       |         |       |       |       |           |
+|                        ImHashMap_TryFind |   100 |  9.361 ns | 0.0570 ns | 0.0505 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| Experimental_ImHashMap_GetValueOrDefault |   100 | 12.108 ns | 0.0770 ns | 0.0720 ns |  1.29 |    0.01 |     - |     - |     - |         - |
+|                                          |       |           |           |           |       |         |       |       |       |           |
+|                        ImHashMap_TryFind |  1000 | 12.773 ns | 0.0858 ns | 0.0760 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| Experimental_ImHashMap_GetValueOrDefault |  1000 | 17.925 ns | 0.0528 ns | 0.0468 ns |  1.40 |    0.01 |     - |     - |     - |         - |
 
 */
-            [Params(1, 10)]//, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
+            [Params(1, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             public int Count;
 
             [GlobalSetup]
@@ -815,7 +822,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 map = map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
                 return map;
             }
-            
+
             private ImHashMap<Type, string> _map;
 
             public ImTools.OldVersions.V1.ImHashMap<Type, string> AddOrUpdate_v1()
@@ -915,9 +922,8 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             [Benchmark(Baseline = true)]
             public string ImHashMap_TryFind()
             {
-                return _map.GetValueOrDefault(LookupKey);
-                //_map.TryFind(LookupKey, out var result);
-                //return result;
+                _map.TryFind(LookupKey, out var result);
+                return result;
             }
 
             //[Benchmark]
@@ -936,8 +942,11 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             }
 
             [Benchmark]
-            public string Experimental_ImHashMap_GetValueOrDefault() => 
-                (string)ImTools.Experimental.ImMap.GetValueOrDefault(_mapExp, LookupKey.GetHashCode(), LookupKey);
+            public string Experimental_ImHashMap_GetValueOrDefault()
+            {
+                _mapExp.TryFind(LookupKey.GetHashCode(), LookupKey, out var result);
+                return (string)result;
+            }
 
             //[Benchmark]
             public string ImHashMap_GetValueOrDefault_V1() =>
@@ -1133,11 +1142,11 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             #endregion
 
             [Benchmark(Baseline = true)]
-            public object ImHashMap_EnumerateToArray() => 
+            public object ImHashMap_EnumerateToArray() =>
                 _map.Enumerate().ToArray();
 
             [Benchmark]
-            public object ImHashMap_V1_EnumerateToArray() => 
+            public object ImHashMap_V1_EnumerateToArray() =>
                 _mapV1.Enumerate().ToArray();
 
             [Benchmark]
@@ -1145,23 +1154,23 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 _map.Fold(new List<ImHashMapEntry<Type, string>>(), (data, list) => { list.Add(data); return list; }).ToArray();
 
             [Benchmark]
-            public object ImHashMapSlots_FoldToArray() => 
+            public object ImHashMapSlots_FoldToArray() =>
                 _mapSlots.Fold(new List<ImHashMapEntry<Type, string>>(), (data, list) => { list.Add(data); return list; }).ToArray();
 
             [Benchmark]
-            public object DictionarySlim_ToArray() => 
+            public object DictionarySlim_ToArray() =>
                 _dictSlim.ToArray();
 
             [Benchmark]
-            public object Dictionary_ToArray() => 
+            public object Dictionary_ToArray() =>
                 _dict.ToArray();
 
             [Benchmark]
-            public object ConcurrentDictionary_ToArray() => 
+            public object ConcurrentDictionary_ToArray() =>
                 _concurrentDict.ToArray();
 
             [Benchmark]
-            public object ImmutableDict_ToArray() => 
+            public object ImmutableDict_ToArray() =>
                 _immutableDict.ToArray();
         }
     }
