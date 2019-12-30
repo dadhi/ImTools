@@ -1554,22 +1554,20 @@ namespace ImTools.Experimental
             return map.UpdateEntryUnsafe(conflictsEntry);
         }
 
-        /// <summary> Returns the entry if key is found or default value otherwise. </summary>
+        /// <summary> Returns the entry if key is found or `null` otherwise. </summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImMapEntry<KVEntry<K>> GetEntryOrDefault<K>(this ImMap<KVEntry<K>> map, int hash, K key)
         {
             var entry = map.GetEntryOrDefault(hash);
             return entry != null
-                ? key.Equals(entry.Value.Key) ? entry
-                : entry.Value.Key == null ? GetConflictedEntryOrDefault(entry, key)
-                : null
+                ? key.Equals(entry.Value.Key) ? entry : GetConflictedEntryOrDefault(entry, key)
                 : null;
         }
 
         /// <summary> Returns the value if key is found or default value otherwise. </summary>
         [MethodImpl((MethodImplOptions)256)]
         public static object GetValueOrDefault<K>(this ImMap<KVEntry<K>> map, int hash, K key) =>
-            map.GetEntryOrDefault(hash, key).Value.Value;
+            map.GetEntryOrDefault(hash, key)?.Value.Value;
 
         /// <summary> Sets the value if key is found or returns false otherwise. </summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -1588,27 +1586,25 @@ namespace ImTools.Experimental
 
         /// <summary> Returns the entry if key is found or default value otherwise. </summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImMapEntry<KVEntry<Type>> GetEntryOrDefault(this ImMap<KVEntry<Type>> map, int hash, Type typeKey)
+        public static ImMapEntry<KVEntry<Type>> GetEntryOrDefault(this ImMap<KVEntry<Type>> map, int hash, Type type)
         {
             var entry = map.GetEntryOrDefault(hash);
             return entry != null
-                ? entry.Value.Key == typeKey ? entry
-                : entry.Value.Key == null ? GetConflictedEntryOrDefault(entry, typeKey)
-                : null
+                ? entry.Value.Key == type ? entry : GetConflictedEntryOrDefault(entry, type)
                 : null;
         }
 
         /// <summary> Returns the value if key is found or default value otherwise. </summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static object GetValueOrDefault(this ImMap<KVEntry<Type>> map, int hash, Type typeKey) => 
+        public static object GetValueOrDefault(this ImMap<KVEntry<Type>> map, int hash, Type typeKey) =>
             map.GetEntryOrDefault(hash, typeKey)?.Value.Value;
 
-        internal static ImMapEntry<KVEntry<K>> GetConflictedEntryOrDefault<K>(ImMapEntry<KVEntry<K>> conflictedEntry, K key)
+        internal static ImMapEntry<KVEntry<K>> GetConflictedEntryOrDefault<K>(ImMapEntry<KVEntry<K>> entry, K key)
         {
-            var conflicts = (ImMapEntry<KVEntry<K>>[])conflictedEntry.Value.Value;
-            for (var i = 0; i < conflicts.Length; ++i)
-                if (key.Equals(conflicts[i].Value.Key))
-                    return conflicts[i];
+            if (entry.Value.Value is ImMapEntry<KVEntry<K>>[] conflicts)
+                for (var i = 0; i < conflicts.Length; ++i)
+                    if (key.Equals(conflicts[i].Value.Key))
+                        return conflicts[i];
             return null;
         }
 
