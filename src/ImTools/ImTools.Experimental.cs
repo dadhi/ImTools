@@ -1325,12 +1325,12 @@ namespace ImTools.Experimental
             }
         }
 
-        /// <summary>A</summary>
+        /// <summary>Wraps Key and Value payload to store inside ImMapEntry</summary>
         public struct KValue<K>
         {
-            /// <summary>B</summary>
+            /// <summary>The key</summary>
             public K Key;
-            /// <summary>Value</summary>
+            /// <summary>The value</summary>
             public object Value;
         }
 
