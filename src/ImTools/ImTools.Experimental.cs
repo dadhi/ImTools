@@ -563,15 +563,30 @@ namespace ImTools.Experimental
                 Debug.Assert(newLeftTree.TreeHeight == 3, "Otherwise it is too un-balanced");
                 if (newLeftTree.Left is ImMapEntry<V> leftLeftLeaf)
                 {
+                    //            30                    15
+                    //    10            40 =>    10           20
+                    //  5     15               5    12     30    40
+                    //     12   20                     
                     if (newLeftTree.Right is ImMapTree<V> leftRightTree)
+                    {
+                        newLeftTree.Right = leftRightTree.Left;
+                        newLeftTree.TreeHeight = 2;
                         return new ImMapTree<V>(leftRightTree.Entry,
-                            new ImMapTree<V>(newLeftTree.Entry, 1, leftLeftLeaf, leftRightTree.Left),
-                            new ImMapTree<V>(Entry, leftRightTree.Right, 1, rightLeaf));
+                            newLeftTree,
+                            new ImMapTree<V>(Entry, leftRightTree.Right, rightLeaf, 2),
+                            3);
+                    }
 
-                    var leftRightBranch = (ImMapBranch<V>) newLeftTree.Right;
+                    // we cannot reuse the new left tree here because it is reduced into the branch
+                    //           30                     15
+                    //    10            40 =>    5           20
+                    //  5    15                    10     30    40
+                    //         20                     
+                    var leftRightBranch = (ImMapBranch<V>)newLeftTree.Right;
                     return new ImMapTree<V>(leftRightBranch.Entry,
-                        2, ImMapBranch<V>.CreateNormalized(newLeftTree.Entry, leftLeftLeaf),
-                        new ImMapTree<V>(Entry, leftRightBranch.RightEntry, rightLeaf));
+                        new ImMapBranch<V>(leftLeftLeaf, newLeftTree.Entry), 
+                        new ImMapTree<V>(Entry, leftRightBranch.RightEntry, rightLeaf),
+                        3);
                 }
 
                 newLeftTree.Right = new ImMapTree<V>(Entry, newLeftTree.Right, rightLeaf, 2);
@@ -582,7 +597,7 @@ namespace ImTools.Experimental
             var rightHeight = (Right as ImMapTree<V>)?.TreeHeight ?? 2;
             if (newLeftTree.TreeHeight - 1 > rightHeight)
             {
-                var leftLeftHeight  = (newLeftTree.Left  as ImMapTree<V>)?.TreeHeight ?? 2;
+                var leftLeftHeight = (newLeftTree.Left as ImMapTree<V>)?.TreeHeight ?? 2;
                 var leftRightHeight = (newLeftTree.Right as ImMapTree<V>)?.TreeHeight ?? 2;
                 if (leftLeftHeight < leftRightHeight)
                 {
@@ -621,23 +636,36 @@ namespace ImTools.Experimental
                     return newRightTree;
                 }
 
-                // todo: optimize this the same as below
+                //        20                        30       
+                // 10             40     =>    20        40  
+                //            30      50     10  25    35  50
+                //          25  35                           
                 if (newRightTree.Left is ImMapTree<V> rightLeftTree)
+                {
+                    newRightTree.Left = rightLeftTree.Right;
+                    newRightTree.TreeHeight = 2;
                     return new ImMapTree<V>(rightLeftTree.Entry,
-                        new ImMapTree<V>(Entry, 1, leftLeaf, rightLeftTree.Left),
-                        new ImMapTree<V>(newRightTree.Entry, rightLeftTree.Right, 1, newRightTree.Right));
+                        new ImMapTree<V>(Entry, leftLeaf, rightLeftTree.Left, 2),
+                        newRightTree, 3);
+                }
 
+                //        20                        30       
+                // 10             40     =>    10        40  
+                //            30      50         20    35  50
+                //              35                           
                 var rightLeftBranch = (ImMapBranch<V>)newRightTree.Left;
+                newRightTree.Left = rightLeftBranch.RightEntry;
+                newRightTree.TreeHeight = 2;
                 return new ImMapTree<V>(rightLeftBranch.Entry,
-                    2, ImMapBranch<V>.CreateNormalized(Entry, leftLeaf),
-                    new ImMapTree<V>(newRightTree.Entry, rightLeftBranch.RightEntry, (ImMapEntry<V>)newRightTree.Right));
+                    new ImMapBranch<V>(leftLeaf, Entry),
+                    newRightTree, 3);
             }
 
             var leftHeight = (Left as ImMapTree<V>)?.TreeHeight ?? 2;
             if (newRightTree.TreeHeight > leftHeight + 1)
             {
                 var rightRightHeight = (newRightTree.Right as ImMapTree<V>)?.TreeHeight ?? 2;
-                var rightLeftHeight  = (newRightTree.Left  as ImMapTree<V>)?.TreeHeight ?? 2;
+                var rightLeftHeight = (newRightTree.Left as ImMapTree<V>)?.TreeHeight ?? 2;
                 if (rightRightHeight < rightLeftHeight)
                 {
                     var rightLeftTree = (ImMapTree<V>)newRightTree.Left;
@@ -648,7 +676,7 @@ namespace ImTools.Experimental
                     return new ImMapTree<V>(rightLeftTree.Entry,
                         // Left should be >= rightLeft.Left because it maybe rightLeft.Right which defines rl height
                         new ImMapTree<V>(Entry, Left, rightLeftTree.Left, height: leftHeight + 1),
-                        newRightTree, 
+                        newRightTree,
                         rightRightHeight + 2);
 
                     //return new ImMapTree<V>(rightLeftTree.Entry,
