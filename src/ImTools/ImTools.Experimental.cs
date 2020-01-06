@@ -1360,6 +1360,13 @@ namespace ImTools.Experimental
             public K Key;
             /// <summary>The value</summary>
             public object Value;
+
+            /// <summary>Constructs a pair</summary>
+            public KValue(K key, object value)
+            {
+                Key = key;
+                Value = value;
+            }
         }
 
         /// <summary>Uses the user provided hash and adds or updates the tree with passed key-value. Returns a new tree.</summary>
