@@ -810,9 +810,11 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             public void Populate()
             {
                 _map = AddOrUpdate();
+                _mapSlots = ImHashMapSlots_AddOrUpdate();
                 _mapV1 = AddOrUpdate_v1();
                 _mapExp = Experimental_ImHashMap_AddOrUpdate();
-                _mapSlots = ImHashMapSlots_AddOrUpdate();
+                _mapSlotsExp32 = Experimental_ImHashMapSlots32_AddOrUpdate();
+                _mapSlotsExp64 = Experimental_ImHashMapSlots64_AddOrUpdate();
                 _dict = Dict();
                 _dictSlim = DictSlim();
                 _concurrentDict = ConcurrentDict();
@@ -834,6 +836,19 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
             private ImHashMap<Type, string> _map;
 
+            public ImHashMap<Type, string>[] ImHashMapSlots_AddOrUpdate()
+            {
+                var map = ImHashMapSlots.CreateWithEmpty<Type, string>();
+
+                foreach (var key in _keys.Take(Count))
+                    map.AddOrUpdate(key, "a");
+
+                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+                return map;
+            }
+
+            private ImHashMap<Type, string>[] _mapSlots;
+
             public ImTools.OldVersions.V1.ImHashMap<Type, string> AddOrUpdate_v1()
             {
                 var map = ImTools.OldVersions.V1.ImHashMap<Type, string>.Empty;
@@ -847,9 +862,9 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
             private ImTools.OldVersions.V1.ImHashMap<Type, string> _mapV1;
 
-            public ImTools.Experimental.ImMap<ImTools.Experimental.ImMap.KValue<Type>> Experimental_ImHashMap_AddOrUpdate()
+            public ImTools.Experimental.ImMap<ImMap.KValue<Type>> Experimental_ImHashMap_AddOrUpdate()
             {
-                var map = ImTools.Experimental.ImMap<ImTools.Experimental.ImMap.KValue<Type>>.Empty;
+                var map = ImTools.Experimental.ImMap<ImMap.KValue<Type>>.Empty;
 
                 foreach (var key in _keys.Take(Count))
                     map = map.AddOrUpdate(key.GetHashCode(), key, "a");
@@ -857,20 +872,33 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
             }
 
-            private ImTools.Experimental.ImMap<ImTools.Experimental.ImMap.KValue<Type>> _mapExp;
+            private ImTools.Experimental.ImMap<ImMap.KValue<Type>> _mapExp;
 
-            public ImHashMap<Type, string>[] ImHashMapSlots_AddOrUpdate()
+            public ImTools.Experimental.ImMap<ImMap.KValue<Type>>[] Experimental_ImHashMapSlots32_AddOrUpdate()
             {
-                var map = ImHashMapSlots.CreateWithEmpty<Type, string>();
+                var map = ImTools.Experimental.ImMapSlots.CreateWithEmpty<ImMap.KValue<Type>>();
 
                 foreach (var key in _keys.Take(Count))
-                    map.AddOrUpdate(key, "a");
+                    map.AddOrUpdate(key.GetHashCode(), new ImMap.KValue<Type>(key, "a"));
 
-                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+                map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), new ImMap.KValue<Type>(typeof(ImHashMapBenchmarks), "!"));
                 return map;
             }
 
-            private ImHashMap<Type, string>[] _mapSlots;
+            private ImTools.Experimental.ImMap<ImMap.KValue<Type>>[] _mapSlotsExp32;
+
+            public ImTools.Experimental.ImMap<ImMap.KValue<Type>>[] Experimental_ImHashMapSlots64_AddOrUpdate()
+            {
+                var map = ImTools.Experimental.ImMapSlots.CreateWithEmpty<ImMap.KValue<Type>>(64);
+
+                foreach (var key in _keys.Take(Count))
+                    map.AddOrUpdate(key.GetHashCode(), new ImMap.KValue<Type>(key, "a"), 63);
+
+                map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), new ImMap.KValue<Type>(typeof(ImHashMapBenchmarks), "!"), 63);
+                return map;
+            }
+
+            private ImTools.Experimental.ImMap<ImMap.KValue<Type>>[] _mapSlotsExp64;
 
             public Dictionary<Type, string> Dict()
             {
@@ -935,15 +963,8 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return result;
             }
 
-            //[Benchmark]
-            public string ImHashMap_TryFind_V1()
-            {
-                _mapV1.TryFind(LookupKey, out var result);
-                return result;
-            }
-
-            //[Benchmark]
-            public string ImHashMapSlots_TryFind()
+            [Benchmark]
+            public string ImHashMapSlots32_TryFind()
             {
                 var hash = LookupKey.GetHashCode();
                 _mapSlots[hash & ImHashMapSlots.HASH_MASK_TO_FIND_SLOT].TryFind(hash, LookupKey, out var result);
@@ -951,38 +972,57 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             }
 
             [Benchmark]
-            public string Experimental_ImHashMap_GetValueOrDefault()
+            public string ImHashMap_TryFind_V1()
+            {
+                _mapV1.TryFind(LookupKey, out var result);
+                return result;
+            }
+
+            [Benchmark]
+            public string Experimental_ImHashMap_TryFind()
             {
                 _mapExp.TryFind(LookupKey.GetHashCode(), LookupKey, out var result);
                 return (string)result;
             }
 
-            //[Benchmark]
-            public string ImHashMap_GetValueOrDefault_V1() =>
-                _mapV1.GetValueOrDefault(LookupKey);
+            [Benchmark]
+            public string Experimental_ImHashMapSlots32_TryFind()
+            {
+                var hash = LookupKey.GetHashCode();
+                _mapSlotsExp32[hash & ImHashMapSlots.HASH_MASK_TO_FIND_SLOT].TryFind(hash, LookupKey, out var result);
+                return (string)result;
+            }
 
-            //[Benchmark]
+            [Benchmark]
+            public string Experimental_ImHashMapSlots64_TryFind()
+            {
+                var hash = LookupKey.GetHashCode();
+                _mapSlotsExp64[hash & 63].TryFind(hash, LookupKey, out var result);
+                return (string)result;
+            }
+
+            [Benchmark]
             public string DictionarySlim_TryGetValue()
             {
                 _dictSlim.TryGetValue(LookupKey, out var result);
                 return result;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public string Dictionary_TryGetValue()
             {
                 _dict.TryGetValue(LookupKey, out var result);
                 return result;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public string ConcurrentDictionary_TryGetValue()
             {
                 _concurrentDict.TryGetValue(LookupKey, out var result);
                 return result;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public string ImmutableDict_TryGet()
             {
                 _immutableDict.TryGetValue(LookupKey, out var result);

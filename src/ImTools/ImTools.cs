@@ -29,6 +29,10 @@ THE SOFTWARE.
 #define SUPPORTS_SPIN_WAIT
 #endif
 
+#if !NET35 && !PCL
+#define SUPPORTS_LAZY
+#endif
+
 namespace ImTools
 {
     using System;
@@ -92,12 +96,14 @@ namespace ImTools
         public static R ToFunc<T, R>(this R result, T ignoredArg) => result;
     }
 
+#if SUPPORTS_LAZY
     /// <summary>Helpers for lazy instantiations</summary>
     public static class Lazy
     {
         /// <summary>Provides result type inference for creation of lazy.</summary>
         public static Lazy<T> Of<T>(Func<T> valueFactory) => new Lazy<T>(valueFactory);
     }
+#endif
 
     /// Replacement for `Void` type which can be used as a type argument and value.
     /// In traditional functional languages this type is a singleton empty record type,
