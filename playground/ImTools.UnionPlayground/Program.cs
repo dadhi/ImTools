@@ -1,4 +1,4 @@
-// MIT licensed to Maksim Volkau 2018-2019
+// MIT licensed to Maksim Volkau 2018-2020
 
 using System;
 using static System.Console;

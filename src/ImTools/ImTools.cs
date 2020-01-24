@@ -2,7 +2,7 @@
 /*
 The MIT License (MIT)
 
-Copyright (c) 2016-2019 Maksim Volkau
+Copyright (c) 2016-2020 Maksim Volkau
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -188,7 +188,7 @@ namespace ImTools
     public abstract class Item<TItem> where TItem : Item<TItem>
     {
         /// Single item value
-        public static readonly item Single = new item();
+        public static readonly item Value = new item();
 
         /// Nested structure that hosts a value.
         /// All nested types by convention here are lowercase
