@@ -8,7 +8,7 @@
 - Lib package: [![NuGet Badge](https://buildstats.info/nuget/ImTools.dll)](https://www.nuget.org/packages/ImTools.dll)
 - Code package: [![NuGet Badge](https://buildstats.info/nuget/ImTools)](https://www.nuget.org/packages/ImTools)
 
-Fast immutable persistent collections and helper data structures 
+Fast immutable persistent collections and other data structures 
 with focus on thread-safety without locks.
 
 Split from [DryIoc](https://github.com/dadhi/dryioc).
