@@ -157,7 +157,7 @@ namespace ImTools.Experimental.Tree234
                         //                                                   =>          [4]
                         //     [2, 4]                   [2, 4]  ->  [6]             [2]         [6]
                         // [1]   [3]  [5, 6, 7] =>  [1]   [3]    [5]   [7, 8]    [1]   [3]   [5]   [7,8]
-                        // and adding 8,
+                        // and adding 8
 
                         var newBranch = br3.Branch2.AddOrUpdateBranch(key, entry, 
                             out var popEntry, out var popRight);
@@ -167,7 +167,7 @@ namespace ImTools.Experimental.Tree234
                                 new ImMapBranch2<V>(br3.Entry0, br3.Branch0, br3.Branch1),
                                 new ImMapBranch2<V>(popEntry, newBranch, popRight));
 
-                        return new ImMapBranch3<V>(br3.Entry0, br3.Branch0, br3.Branch0, br3.Entry1, newBranch);
+                        return new ImMapBranch3<V>(br3.Entry0, br3.Branch0, br3.Branch1, br3.Entry1, newBranch);
                     }
 
                     if (key < br3.Entry0.Key)
@@ -188,8 +188,28 @@ namespace ImTools.Experimental.Tree234
                         return new ImMapBranch3<V>(br3.Entry0, newBranch, br3.Branch1, br3.Entry1, br3.Branch2);
                     }
 
-                    // todo: @incomplete other cases
-                    return map; // remove
+                    if (key > br3.Entry0.Key && key < br3.Entry1.Key)
+                    {
+                        //                              [4]
+                        //       [2, 7]            [2]         [7]
+                        // [1]  [3,4,5]  [8] => [1]  [3]  [5,6]    [8]
+                        // and adding 6
+
+                        var newBranch = br3.Branch1.AddOrUpdateBranch(key, entry, 
+                            out var popEntry, out var popRight);
+
+                        if (popEntry != null)
+                            return new ImMapBranch2<V>(popEntry,
+                                new ImMapBranch2<V>(br3.Entry0, br3.Branch0, newBranch),
+                                new ImMapBranch2<V>(br3.Entry1, popRight, br3.Branch2));
+
+                        return new ImMapBranch3<V>(br3.Entry0, br3.Branch0, newBranch, br3.Entry1, br3.Branch2);
+                    }
+
+                    // update
+                    return key == br3.Entry0.Key
+                        ? new ImMapBranch3<V>(entry, br3.Branch0, br3.Branch1, br3.Entry1, br3.Branch2)
+                        : new ImMapBranch3<V>(br3.Entry0, br3.Branch0, br3.Branch1, entry, br3.Branch2);
                 }
 
                 if (key > br2.Entry0.Key)
@@ -310,8 +330,7 @@ namespace ImTools.Experimental.Tree234
                             return new ImMapBranch2<V>(br3.Entry0, br3.Branch0, br3.Branch1);
                         }
 
-                        return new ImMapBranch3<V>(br3.Entry0, br3.Branch0, br3.Branch1,
-                            br3.Entry1, newBranch);
+                        return new ImMapBranch3<V>(br3.Entry0, br3.Branch0, br3.Branch1, br3.Entry1, newBranch);
                     }
 
                     // todo: @remove
