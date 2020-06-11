@@ -121,7 +121,7 @@ namespace ImTools.Experimental.Tree234
                     :  key == leaf2.Entry0.Key ? new ImMapLeafs2<V>(entry, leaf2.Entry1)
                     :  new ImMapLeafs2<V>(leaf2.Entry0, entry);
 
-            // we need to split
+            // we May need to split
             if (map is ImMapLeafs3<V> leaf3) 
             {
                 // [1 3 5]  and we are adding 7
@@ -149,6 +149,15 @@ namespace ImTools.Experimental.Tree234
                     :  key == leaf3.Entry1.Key ? new ImMapLeafs3<V>(leaf3.Entry0, entry, leaf3.Entry2)
                     :  new ImMapLeafs3<V>(leaf3.Entry0, leaf3.Entry1, entry);
             }
+
+            // adding to branch2 should not require to split the branch itself!
+            if (map is ImMapBranch2<V> branch2) 
+            {
+                //      [3]
+                // [1]       [5, 7]
+                // and adding 4
+            }
+
 
             // todo: @incomplete add to branches
             return map;
