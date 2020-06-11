@@ -152,7 +152,7 @@ namespace ImTools.Experimental.Tree234
             {
                 if (br2 is ImMapBranch3<V> br3) 
                 {
-                    if (key > br2.Entry0.Key)
+                    if (key > br3.Entry1.Key)
                     {
                         //                                                   =>          [4]
                         //     [2, 4]                   [2, 4]  ->  [6]             [2]         [6]
@@ -170,8 +170,9 @@ namespace ImTools.Experimental.Tree234
                         return new ImMapBranch3<V>(br3.Entry0, br3.Branch0, br3.Branch0,
                             br3.Entry1, newBranch);
                     }
-                    
-                    return map;
+
+                    // todo: @incomplete other cases
+                    return map; // remove
                 }
 
                 if (key > br2.Entry0.Key)
@@ -190,6 +191,8 @@ namespace ImTools.Experimental.Tree234
 
                     return new ImMapBranch2<V>(br2.Entry0, br2.Branch0, newBranch);
                 }
+
+                // todo: @incomplete other cases
             }
 
             // todo: @incomplete add to branches
@@ -205,7 +208,7 @@ namespace ImTools.Experimental.Tree234
 
             if (map is ImMapEntry<V> leaf)
                 return key > leaf.Key ? new ImMapLeafs2<V>(leaf, entry)
-                    : key < leaf.Key ? new ImMapLeafs2<V>(entry, leaf)
+                    :  key < leaf.Key ? new ImMapLeafs2<V>(entry, leaf)
                     : (ImMap<V>)entry;
 
             if (map is ImMapLeafs2<V> leaf2)
@@ -260,17 +263,33 @@ namespace ImTools.Experimental.Tree234
             {
                 if (br2 is ImMapBranch3<V> br3) 
                 {
-                    // todo: @incomplete
+                    if (key > br3.Entry1.Key)
+                    {
+                        //                                                   =>          [4]
+                        //     [2, 4]                   [2, 4]  ->  [6]             [2]         [6]
+                        // [1]   [3]  [5, 6, 7] =>  [1]   [3]    [5]   [7, 8]    [1]   [3]   [5]   [7,8]
+                        // and adding 8,
+
+                        var newBranch = br3.Branch2.AddOrUpdateBranch(key, entry, 
+                            out var popEntry1, out var popRight1);
+
+                        if (popEntry1 != null) 
+                        {
+                            
+                        }
+
+                    }
+
+                    // todo: @remove
                     return map;
                 }
 
-                // todo: @perf we will destruct and trash the returned branch anyway - so we need to find a way to avoid it
                 if (key > br2.Entry0.Key)
                 {
                     var newBranch = br2.Branch1.AddOrUpdateBranch(key, entry, 
                         out var popEntry1, out var popRight1);
 
-                    if (popEntry != null)
+                    if (popEntry1 != null)
                         return new ImMapBranch3<V>(br2.Entry0, br2.Branch0, 
                             newBranch, popEntry1, popRight1);
 
