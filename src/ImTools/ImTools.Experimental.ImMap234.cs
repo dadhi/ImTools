@@ -107,6 +107,20 @@ namespace ImTools.Experimental.Tree234
     /// <summary>ImMap methods</summary>
     public static class ImMap
     {
+        /// <summary>Lookup</summary>
+        public static V GetValueOrDefault<V>(this ImMap<V> map, int key) 
+        {
+            if (map == ImMap<V>.Empty)
+                return default(V);
+
+            if (map is ImMapEntry<V> leaf)
+                return key == leaf.Key ? leaf.Value : default(V);
+
+            // todo: @incomplete
+
+            return default(V);
+        }
+
         /// <summary> Adds or updates the value by key in the map, always returns a modified map </summary>
         public static ImMap<V> AddOrUpdateEntry<V>(this ImMap<V> map, ImMapEntry<V> entry)
         {
