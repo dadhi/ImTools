@@ -125,7 +125,7 @@ namespace ImTools.Experimental.Tree234
                         return new ImMapBranch2<V>(leaf3.Entry1,
                             new ImMapLeafs2<V>(entry, leaf3.Entry0), leaf3.Entry2);
 
-                    if (key < leaf3.Entry2.Key && key > leaf3.Entry1.Key)
+                    if (key > leaf3.Entry1.Key && key < leaf3.Entry2.Key)
                         return new ImMapBranch2<V>(leaf3.Entry1,
                             leaf3.Entry0, new ImMapLeafs2<V>(entry, leaf3.Entry2));
 
@@ -167,8 +167,25 @@ namespace ImTools.Experimental.Tree234
                                 new ImMapBranch2<V>(br3.Entry0, br3.Branch0, br3.Branch1),
                                 new ImMapBranch2<V>(popEntry, newBranch, popRight));
 
-                        return new ImMapBranch3<V>(br3.Entry0, br3.Branch0, br3.Branch0,
-                            br3.Entry1, newBranch);
+                        return new ImMapBranch3<V>(br3.Entry0, br3.Branch0, br3.Branch0, br3.Entry1, newBranch);
+                    }
+
+                    if (key < br3.Entry0.Key)
+                    {
+                        //                                  [4]
+                        //         [4,6]      =>       [2]        [6]
+                        // [1,2,3]   [5]  [7]      [0,1]  [3]   [5]   [7]
+                        // and adding 0
+
+                        var newBranch = br3.Branch0.AddOrUpdateBranch(key, entry, 
+                            out var popEntry, out var popRight);
+
+                        if (popEntry != null)
+                            return new ImMapBranch2<V>(br3.Entry0,
+                                new ImMapBranch2<V>(popEntry, newBranch, popRight),
+                                new ImMapBranch2<V>(br3.Entry1, br3.Branch1, br3.Branch2));
+
+                        return new ImMapBranch3<V>(br3.Entry0, newBranch, br3.Branch1, br3.Entry1, br3.Branch2);
                     }
 
                     // todo: @incomplete other cases
@@ -179,23 +196,36 @@ namespace ImTools.Experimental.Tree234
                 {
                     //      [3]                     [3]    ->  [6]                [3, 6]
                     // [1]       [5, 6, 7] =>  [1]       [4,5]     [7] =>  [1]   [4, 5]   [7]
-                    // and adding 4,
-                    // so we are merging the branches
+                    // and adding 4, so we are merging the branches
 
                     var newBranch = br2.Branch1.AddOrUpdateBranch(key, entry, 
                         out var popEntry, out var popRight);
 
                     if (popEntry != null)
-                        return new ImMapBranch3<V>(br2.Entry0, br2.Branch0, 
-                            newBranch, popEntry, popRight);
+                        return new ImMapBranch3<V>(br2.Entry0, br2.Branch0, newBranch, popEntry, popRight);
 
                     return new ImMapBranch2<V>(br2.Entry0, br2.Branch0, newBranch);
                 }
 
-                // todo: @incomplete other cases
+                if (key < br2.Entry0.Key) 
+                {
+                    //           [4]                [2]  <-  [4]
+                    // [1, 2, 3]      [5] =>  [0, 1]    [3]      [5]  =>
+                    // and adding 0, so we are merging the branches
+
+                    var newBranch = br2.Branch0.AddOrUpdateBranch(key, entry, 
+                        out var popEntry, out var popRight);
+
+                    if (popEntry != null)
+                        return new ImMapBranch3<V>(popEntry, newBranch, popRight, br2.Entry0, br2.Branch1);
+
+                    return new ImMapBranch2<V>(br2.Entry0, newBranch, br2.Branch1);
+                }
+
+                // update
+                return new ImMapBranch2<V>(entry, br2.Branch0, br2.Branch1);
             }
 
-            // todo: @incomplete add to branches
             return map;
         }
 
@@ -280,6 +310,8 @@ namespace ImTools.Experimental.Tree234
                             return new ImMapBranch2<V>(br3.Entry0, br3.Branch0, br3.Branch1);
                         }
 
+                        return new ImMapBranch3<V>(br3.Entry0, br3.Branch0, br3.Branch1,
+                            br3.Entry1, newBranch);
                     }
 
                     // todo: @remove
