@@ -275,7 +275,9 @@ namespace ImTools.Experimental.Tree234
 
                         if (popEntry1 != null) 
                         {
-                            
+                            popEntry = br3.Entry1;
+                            popRight = new ImMapBranch2<V>(popEntry1, newBranch, popRight1);
+                            return new ImMapBranch2<V>(br3.Entry0, br3.Branch0, br3.Branch1);
                         }
 
                     }
