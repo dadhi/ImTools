@@ -118,7 +118,8 @@ namespace ImTools.Experimental.Tree234
                 return key > leaf2.Entry1.Key ? new ImMapLeafs3<V>(leaf2.Entry0, leaf2.Entry1, entry)
                     :  key < leaf2.Entry0.Key ? new ImMapLeafs3<V>(entry, leaf2.Entry0, leaf2.Entry1)
                     :  key > leaf2.Entry0.Key && key < leaf2.Entry1.Key ? new ImMapLeafs3<V>(leaf2.Entry0, entry, leaf2.Entry1)
-                    : (ImMap<V>)entry;
+                    :  key == leaf2.Entry0.Key ? new ImMapLeafs2<V>(entry, leaf2.Entry1)
+                    :  new ImMapLeafs2<V>(leaf2.Entry0, entry);
 
             // we need to split
             if (map is ImMapLeafs3<V> leaf3) 
@@ -144,7 +145,9 @@ namespace ImTools.Experimental.Tree234
                     return new ImMapBranch2<V>(leaf3.Entry1,
                         new ImMapLeafs2<V>(leaf3.Entry0, entry), leaf3.Entry2);
 
-                return entry;
+                return key == leaf3.Entry0.Key ? new ImMapLeafs3<V>(entry, leaf3.Entry1, leaf3.Entry2)
+                    :  key == leaf3.Entry1.Key ? new ImMapLeafs3<V>(leaf3.Entry0, entry, leaf3.Entry2)
+                    :  new ImMapLeafs3<V>(leaf3.Entry0, leaf3.Entry1, entry);
             }
 
             // todo: @incomplete add to branches
