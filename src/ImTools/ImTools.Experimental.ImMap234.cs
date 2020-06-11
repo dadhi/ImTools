@@ -343,15 +343,30 @@ namespace ImTools.Experimental.Tree234
                         out var popEntry1, out var popRight1);
 
                     if (popEntry1 != null)
-                        return new ImMapBranch3<V>(br2.Entry0, br2.Branch0, 
-                            newBranch, popEntry1, popRight1);
+                        return new ImMapBranch3<V>(br2.Entry0, br2.Branch0, newBranch, popEntry1, popRight1);
 
                     return new ImMapBranch2<V>(br2.Entry0, br2.Branch0, newBranch);
                 }
+
+                if (key < br2.Entry0.Key) 
+                {
+                    //           [4]                [2]  <-  [4]
+                    // [1, 2, 3]      [5] =>  [0, 1]    [3]      [5]  =>
+                    // and adding 0, so we are merging the branches
+
+                    var newBranch = br2.Branch0.AddOrUpdateBranch(key, entry, 
+                        out var popEntry1, out var popRight1);
+
+                    if (popEntry1 != null)
+                        return new ImMapBranch3<V>(popEntry1, newBranch, popRight1, br2.Entry0, br2.Branch1);
+
+                    return new ImMapBranch2<V>(br2.Entry0, newBranch, br2.Branch1);
+                }
+
+                // update
+                return new ImMapBranch2<V>(entry, br2.Branch0, br2.Branch1);
             }
 
-
-            // todo: @incomplete add to branches
             return map;
         }
 
