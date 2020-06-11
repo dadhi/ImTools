@@ -152,15 +152,32 @@ namespace ImTools.Experimental.Tree234
             {
                 if (br2 is ImMapBranch3<V> br3) 
                 {
-                    // todo: @incomplete
+                    if (key > br2.Entry0.Key)
+                    {
+                        //                                                   =>          [4]
+                        //     [2, 4]                   [2, 4]  ->  [6]             [2]         [6]
+                        // [1]   [3]  [5, 6, 7] =>  [1]   [3]    [5]   [7, 8]    [1]   [3]   [5]   [7,8]
+                        // and adding 8,
+
+                        var newBranch = br3.Branch2.AddOrUpdateBranch(key, entry, 
+                            out var popEntry, out var popRight);
+
+                        if (popEntry != null)
+                            return new ImMapBranch2<V>(br3.Entry1,
+                                new ImMapBranch2<V>(br3.Entry0, br3.Branch0, br3.Branch1),
+                                new ImMapBranch2<V>(popEntry, newBranch, popRight));
+
+                        return new ImMapBranch3<V>(br3.Entry0, br3.Branch0, br3.Branch0,
+                            br3.Entry1, newBranch);
+                    }
+                    
                     return map;
                 }
 
-                // todo: @perf we will destruct and trash the returned branch anyway - so we need to find a way to avoid it
                 if (key > br2.Entry0.Key)
                 {
                     //      [3]                     [3]    ->  [6]                [3, 6]
-                    // [1]       [5, 6, 7] =>  [1]       [4, 5]     [7] =>  [1]   [4, 5]   [7]
+                    // [1]       [5, 6, 7] =>  [1]       [4,5]     [7] =>  [1]   [4, 5]   [7]
                     // and adding 4,
                     // so we are merging the branches
 
