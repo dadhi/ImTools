@@ -333,8 +333,50 @@ namespace ImTools.Experimental.Tree234
                         return new ImMapBranch3<V>(br3.Entry0, br3.Branch0, br3.Branch1, br3.Entry1, newBranch);
                     }
 
-                    // todo: @remove
-                    return map;
+                    if (key < br3.Entry0.Key)
+                    {
+                        //                                  [4]
+                        //         [4,6]      =>       [2]        [6]
+                        // [1,2,3]   [5]  [7]      [0,1]  [3]   [5]   [7]
+                        // and adding 0
+
+                        var newBranch = br3.Branch0.AddOrUpdateBranch(key, entry, 
+                            out var popEntry1, out var popRight1);
+
+                        if (popEntry1 != null)
+                        {
+                            popEntry = br3.Entry0;
+                            popRight = new ImMapBranch2<V>(br3.Entry1, br3.Branch1, br3.Branch2);
+                            return new ImMapBranch2<V>(popEntry1, newBranch, popRight1);
+                        }
+
+                        return new ImMapBranch3<V>(br3.Entry0, newBranch, br3.Branch1, br3.Entry1, br3.Branch2);
+                    }
+
+                    if (key > br3.Entry0.Key && key < br3.Entry1.Key)
+                    {
+                        //                              [4]
+                        //       [2, 7]            [2]         [7]
+                        // [1]  [3,4,5]  [8] => [1]  [3]  [5,6]    [8]
+                        // and adding 6
+
+                        var newBranch = br3.Branch1.AddOrUpdateBranch(key, entry, 
+                            out var popEntry1, out var popRight1);
+
+                        if (popEntry1 != null)
+                        {
+                            popEntry = popEntry1;
+                            popRight = new ImMapBranch2<V>(br3.Entry1, popRight1, br3.Branch2);
+                            return new ImMapBranch2<V>(br3.Entry0, br3.Branch0, newBranch);
+                        }
+
+                        return new ImMapBranch3<V>(br3.Entry0, br3.Branch0, newBranch, br3.Entry1, br3.Branch2);
+                    }
+
+                    // update
+                    return key == br3.Entry0.Key
+                        ? new ImMapBranch3<V>(entry, br3.Branch0, br3.Branch1, br3.Entry1, br3.Branch2)
+                        : new ImMapBranch3<V>(br3.Entry0, br3.Branch0, br3.Branch1, entry, br3.Branch2);
                 }
 
                 if (key > br2.Entry0.Key)
