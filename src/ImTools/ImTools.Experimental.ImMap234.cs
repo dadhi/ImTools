@@ -34,7 +34,7 @@ namespace ImTools.Experimental.Tree234
         public override string ToString() => Key + ":" + Value;
     }
 
-    /// <summary></summary>
+    /// <summary>2 leafs</summary>
     public class ImMapLeafs2<V> : ImMap<V>
     {
         /// <summary>Left entry</summary>
@@ -43,6 +43,7 @@ namespace ImTools.Experimental.Tree234
         /// <summary>Right entry</summary>
         public readonly ImMapEntry<V> Entry1;
 
+        /// <summary>Constructs 2 leafs</summary>
         public ImMapLeafs2(ImMapEntry<V> entry0, ImMapEntry<V> entry1)
         {
             Entry0 = entry0;
@@ -50,11 +51,13 @@ namespace ImTools.Experimental.Tree234
         }
     }
 
+    /// <summary>3 leafs</summary>
     public sealed class ImMapLeafs3<V> : ImMapLeafs2<V>
     {
-        /// <summary></summary>
+        /// <summary>Rightmost leaf</summary>
         public readonly ImMapEntry<V> Entry2;
 
+        /// <summary>Constructs a tree leaf</summary>
         public ImMapLeafs3(ImMapEntry<V> entry0, ImMapEntry<V> entry1, ImMapEntry<V> entry2)
             : base(entry0, entry1)
         {
@@ -62,16 +65,19 @@ namespace ImTools.Experimental.Tree234
         }
     }
 
+    /// <summary>2 branches</summary>
     public class ImMapBranch2<V> : ImMap<V>
     {
+        /// <summary>The only entry</summary>
         public readonly ImMapEntry<V> Entry0;
 
-        /// <summary></summary>
+        /// <summary>Left branch</summary>
         public readonly ImMap<V> Branch0; // can be Branchs | Entry | Leaf2 | Leaf3, if it is an Entry then other Tree cannot be an Entry
 
-        /// <summary></summary>
+        /// <summary>Right branch</summary>
         public readonly ImMap<V> Branch1;
 
+        /// <summary>Constructs</summary>
         public ImMapBranch2(ImMapEntry<V> entry0, ImMap<V> branch0, ImMap<V> branch1)
         {
             Entry0 = entry0;
@@ -80,13 +86,16 @@ namespace ImTools.Experimental.Tree234
         }
     }
 
+    /// <summary>3 branches</summary>
     public sealed class ImMapBranch3<V> : ImMapBranch2<V>
     {
+        /// <summary>Right entry</summary>
         public readonly ImMapEntry<V> Entry1;
 
-        /// <summary></summary>
+        /// <summary>Rightmost branch</summary>
         public readonly ImMap<V> Branch2;
 
+        /// <summary>Constructs</summary>
         public ImMapBranch3(ImMapEntry<V> entry0, ImMap<V> branch0, ImMap<V> branch1,
             ImMapEntry<V> entry1, ImMap<V> branch2) : base(entry0, branch0, branch1)
         {
