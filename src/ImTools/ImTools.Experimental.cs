@@ -8,11 +8,14 @@ namespace ImTools.Experimental
 {
     /// <summary>
     /// Immutable http://en.wikipedia.org/wiki/AVL_tree with integer keys and <typeparamref name="V"/> values.
+    /// The base class for tree leafs and branches, defines the Empty tree.
     /// </summary>
     public class ImMap<V>
     {
         /// <summary>Empty tree to start with.</summary>
         public static readonly ImMap<V> Empty = new ImMap<V>();
+        
+        /// <summary>Hide the constructor to prevent the multiple Empty trees creation</summary>
         protected ImMap() { }
 
         /// <summary>Height of the longest sub-tree/branch - 0 for the empty tree</summary>

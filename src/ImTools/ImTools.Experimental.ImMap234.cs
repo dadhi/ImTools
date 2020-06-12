@@ -2,11 +2,13 @@ using System.Runtime.CompilerServices;
 
 namespace ImTools.Experimental.Tree234
 {
-    /// <summary>Represents an empty map</summary>
+    /// <summary>The base class for tree leafs and branches, defines the Empty tree</summary>
     public class ImMap<V>
     {
         /// <summary>Empty tree to start with.</summary>
         public static readonly ImMap<V> Empty = new ImMap<V>();
+
+        /// <summary>Hide the constructor to prevent the multiple Empty trees creation</summary>
         protected ImMap() { }
     }
 
