@@ -474,6 +474,6 @@ namespace ImTools.Experimental.Tree234
         /// <summary>Adds or updates the value by key in the map, always returns a modified map.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImMap<V> AddOrUpdate<V>(this ImMap<V> map, int key, V value) =>
-            map.AddOrUpdateEntry(new ImMapEntry<V>(key, value));
+            map.AddOrUpdateEntry(new ImMapEntry<V>(key, value)); // todo: @perf pass the key as a separate parameter
     }
 }

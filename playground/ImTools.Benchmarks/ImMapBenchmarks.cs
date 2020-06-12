@@ -161,6 +161,17 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             }
 
             // [Benchmark]
+            public ImTools.Experimental.Tree234.ImMap<string> Experimental_ImMap234_AddOrUpdate()
+            {
+                var map = ImTools.Experimental.Tree234.ImMap<string>.Empty;
+
+                for (var i = 0; i < Count; i++)
+                    map = ImTools.Experimental.Tree234.ImMap.AddOrUpdate(map, i, i.ToString());
+
+                return map;
+            }
+
+            // [Benchmark]
             public ImTools.OldVersions.V1.ImMap<string> ImMap_V1_AddOrUpdate()
             {
                 var map = ImTools.OldVersions.V1.ImMap<string>.Empty;
@@ -171,7 +182,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImTools.Experimental.ImMap<string> Experimental_ImMap_AddOrUpdate()
             {
                 var map = ImTools.Experimental.ImMap<string>.Empty;
@@ -204,7 +215,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return slots;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public DictionarySlim<int, string> DictSlim_GetOrAddValueRef()
             {
                 var map = new DictionarySlim<int, string>();
