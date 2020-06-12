@@ -118,26 +118,32 @@ namespace ImTools.Experimental.Tree234
             ImMapEntry<V> entry;
             while (map is ImMapBranch2<V> br2) 
             {
+                // The order of comparison is following because,
+                // if we have target in key in the branch then we will find it faster,
+                // if the target is in leaf then the order is does not matter (it is the same number of operation if reordered)
+                // Besides if the target in the first branch entry, there is no need to pay for the cast to Branch3.
                 entry = br2.Entry0;
-                if (key < entry.Key)
+                if (entry.Key == key)
+                    return entry.Value;
+
+                if (entry.Key > key)
                     map = br2.Branch0;
-                else if (key > entry.Key) 
+                else
                 {
                     if (br2 is ImMapBranch3<V> br3) 
                     {
                         entry = br3.Entry1;
-                        if (key < entry.Key)
-                            map = br3.Branch1;
-                        else if (key > entry.Key)
-                            map = br3.Branch2;
-                        else 
+                        if (entry.Key == key)
                             return entry.Value;
+                        
+                        if (entry.Key > key)
+                            map = br3.Branch1;
+                        else
+                            map = br3.Branch2;
                     }
-                    else 
+                    else
                         map = br2.Branch1;
                 }
-                else 
-                    return entry.Value;
             }
 
             entry = map as ImMapEntry<V>;
