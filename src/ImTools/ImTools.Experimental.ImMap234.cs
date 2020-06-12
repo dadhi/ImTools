@@ -115,10 +115,44 @@ namespace ImTools.Experimental.Tree234
             if (map == ImMap<V>.Empty)
                 return default(V);
 
-            if (map is ImMapEntry<V> leaf)
-                return key == leaf.Key ? leaf.Value : default(V);
+            ImMapEntry<V> entry;
+            while (map is ImMapBranch2<V> br2) 
+            {
+                entry = br2.Entry0;
+                if (key < entry.Key)
+                    map = br2.Branch0;
+                else if (key > entry.Key) 
+                {
+                    if (br2 is ImMapBranch3<V> br3) 
+                    {
+                        entry = br3.Entry1;
+                        if (key < entry.Key)
+                            map = br3.Branch1;
+                        else if (key > entry.Key)
+                            map = br3.Branch2;
+                        else 
+                            return entry.Value;
+                    }
+                    else 
+                        map = br2.Branch1;
+                }
+                else 
+                    return entry.Value;
+            }
 
-            // todo: @incomplete
+            entry = map as ImMapEntry<V>;
+            if (entry != null)
+                return key == entry.Key ? entry.Value : default(V);
+
+            if (map is ImMapLeafs2<V> leaf2) 
+            {
+                if (key == leaf2.Entry0.Key)
+                    return leaf2.Entry0.Value;
+                if (key == leaf2.Entry1.Key)
+                    return leaf2.Entry1.Value;
+                if (leaf2 is ImMapLeafs3<V> leaf3 && leaf3.Entry2.Key == key)
+                    return leaf3.Entry2.Value;
+            }
 
             return default(V);
         }
