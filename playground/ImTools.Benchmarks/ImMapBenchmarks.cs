@@ -144,7 +144,16 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |               ConcurrentDict_TryAdd | 10000 | 2,903,782.53 ns | 34,822.216 ns | 32,572.722 ns |  0.65 |    0.01 |  269.5313 | 121.0938 |  42.9688 | 1645253 B |
 |           ImmutableDict_Builder_Add | 10000 | 6,160,368.91 ns | 23,650.044 ns | 22,122.266 ns |  1.37 |    0.01 |  148.4375 |  70.3125 |        - |  959786 B |
 
+|                            Method | Count |      Mean |    Error |   StdDev | Ratio |  Gen 0 |  Gen 1 | Gen 2 | Allocated |
+|---------------------------------- |------ |----------:|---------:|---------:|------:|-------:|-------:|------:|----------:|
+|                 ImMap_AddOrUpdate |     1 |  22.97 ns | 0.100 ns | 0.093 ns |  1.00 | 0.0102 |      - |     - |      48 B |
+| Experimental_ImMap234_AddOrUpdate |     1 |  31.02 ns | 0.164 ns | 0.145 ns |  1.35 | 0.0068 |      - |     - |      32 B |
+|                                   |       |           |          |          |       |        |        |       |           |
+|                 ImMap_AddOrUpdate |    10 | 642.42 ns | 2.251 ns | 2.106 ns |  1.00 | 0.3767 | 0.0010 |     - |    1776 B |
+| Experimental_ImMap234_AddOrUpdate |    10 | 730.28 ns | 2.703 ns | 2.528 ns |  1.14 | 0.2394 |      - |     - |    1128 B |
+
 */
+
 
             [Params(1, 10)]//, 100, 1_000, 10_000)]
             public int Count;
@@ -160,7 +169,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            // [Benchmark]
+            [Benchmark]
             public ImTools.Experimental.Tree234.ImMap<string> Experimental_ImMap234_AddOrUpdate()
             {
                 var map = ImTools.Experimental.Tree234.ImMap<string>.Empty;
