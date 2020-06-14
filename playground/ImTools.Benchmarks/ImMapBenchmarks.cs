@@ -162,21 +162,16 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |                 ImMap_AddOrUpdate |    10 | 635.04 ns | 3.276 ns | 3.065 ns |  1.00 | 0.3767 | 0.0010 |     - |    1776 B |
 | Experimental_ImMap234_AddOrUpdate |    10 | 749.54 ns | 1.489 ns | 1.320 ns |  1.18 | 0.2394 |      - |     - |    1128 B |
 
+            ## virtualizing things 
+
+|                            Method | Count |     Mean |    Error |   StdDev |   Median | Ratio | RatioSD |  Gen 0 |  Gen 1 | Gen 2 | Allocated |
+|---------------------------------- |------ |---------:|---------:|---------:|---------:|------:|--------:|-------:|-------:|------:|----------:|
+| Experimental_ImMap234_AddOrUpdate |    10 | 684.3 ns | 15.91 ns | 24.78 ns | 671.9 ns |  1.06 |    0.04 | 0.2365 |      - |     - |    1.1 KB |
+|                 ImMap_AddOrUpdate |    10 | 664.3 ns |  3.34 ns |  3.13 ns | 663.8 ns |  1.00 |    0.00 | 0.3767 | 0.0010 |     - |   1.73 KB |
 
 */
-            [Params(1, 10)]//, 100, 1_000, 10_000)]
+            [Params(10)]//, 100, 1_000, 10_000)]
             public int Count;
-
-            [Benchmark(Baseline = true)]
-            public ImTools.ImMap<string> ImMap_AddOrUpdate()
-            {
-                var map = ImTools.ImMap<string>.Empty;
-
-                for (var i = 0; i < Count; i++)
-                    map = map.AddOrUpdate(i, i.ToString());
-
-                return map;
-            }
 
             [Benchmark]
             public ImTools.Experimental.Tree234.ImMap<string> Experimental_ImMap234_AddOrUpdate()
@@ -185,6 +180,17 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
                 for (var i = 0; i < Count; i++)
                     map = ImTools.Experimental.Tree234.ImMap.AddOrUpdate(map, i, i.ToString());
+
+                return map;
+            }
+
+            [Benchmark(Baseline = true)]
+            public ImTools.ImMap<string> ImMap_AddOrUpdate()
+            {
+                var map = ImTools.ImMap<string>.Empty;
+
+                for (var i = 0; i < Count; i++)
+                    map = map.AddOrUpdate(i, i.ToString());
 
                 return map;
             }

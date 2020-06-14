@@ -10,6 +10,9 @@ namespace ImTools.Experimental.Tree234
 
         /// <summary>Hide the constructor to prevent the multiple Empty trees creation</summary>
         protected ImMap() { }
+
+        /// <summary>Produces the new or updated map</summary>
+        public virtual ImMap<V> AddOrUpdateEntry(ImMapEntry<V> entry) => entry;
     }
 
     /// <summary>Wraps the stored data with "fixed" reference semantics - 
@@ -34,6 +37,12 @@ namespace ImTools.Experimental.Tree234
 
         /// Prints the key value pair
         public override string ToString() => Key + ":" + Value;
+
+        /// <summary>Produces the new or updated map</summary>
+        public override ImMap<V> AddOrUpdateEntry(ImMapEntry<V> entry) =>
+            entry.Key > Key ? new ImMapLeafs2<V>(this, entry) : 
+            entry.Key < Key ? new ImMapLeafs2<V>(entry, this) : 
+            (ImMap<V>)entry;
     }
 
     /// <summary>2 leafs</summary>
@@ -51,6 +60,17 @@ namespace ImTools.Experimental.Tree234
             Entry0 = entry0;
             Entry1 = entry1;
         }
+
+        /// Prints the key value pair
+        public override string ToString() => Entry0 + ";" + Entry1;
+
+        /// <summary>Produces the new or updated map</summary>
+        public override ImMap<V> AddOrUpdateEntry(ImMapEntry<V> entry) =>
+            entry.Key > Entry1.Key ? new ImMapLeafs3<V>(Entry0, Entry1, entry) :
+            entry.Key < Entry0.Key ? new ImMapLeafs3<V>(entry, Entry0, Entry1) :
+            entry.Key > Entry0.Key && entry.Key < Entry1.Key ? new ImMapLeafs3<V>(Entry0, entry, Entry1) :
+            entry.Key == Entry0.Key ? new ImMapLeafs2<V>(entry, Entry1) : 
+            new ImMapLeafs2<V>(Entry0, entry);
     }
 
     /// <summary>3 leafs</summary>
@@ -61,9 +81,34 @@ namespace ImTools.Experimental.Tree234
 
         /// <summary>Constructs a tree leaf</summary>
         public ImMapLeafs3(ImMapEntry<V> entry0, ImMapEntry<V> entry1, ImMapEntry<V> entry2)
-            : base(entry0, entry1)
-        {
+            : base(entry0, entry1) =>
             Entry2 = entry2;
+
+        /// Prints the key value pair
+        public override string ToString() => Entry0 + ";" + Entry1 + ";" + Entry2;
+
+        /// <summary>Produces the new or updated map</summary>
+        public override ImMap<V> AddOrUpdateEntry(ImMapEntry<V> entry)
+        {
+            var key = entry.Key;
+
+            // [1 3 5]  =>      [3]
+            // adding 7     [1]     [5, 7]
+            if (key > Entry2.Key)
+                return new ImMapBranch2<V>(Entry1, Entry0, new ImMapLeafs2<V>(Entry2, entry));
+
+            if (key < Entry0.Key)
+                return new ImMapBranch2<V>(Entry1, new ImMapLeafs2<V>(entry, Entry0), Entry2);
+
+            if (key > Entry1.Key && key < Entry2.Key)
+                return new ImMapBranch2<V>(Entry1, Entry0, new ImMapLeafs2<V>(entry, Entry2));
+
+            if (key > Entry0.Key && key < Entry1.Key)
+                return new ImMapBranch2<V>(Entry1, new ImMapLeafs2<V>(Entry0, entry), Entry2);
+
+            return key == Entry0.Key ? new ImMapLeafs3<V>(entry, Entry1, Entry2)
+                : key == Entry1.Key ? new ImMapLeafs3<V>(Entry0, entry, Entry2)
+                : new ImMapLeafs3<V>(Entry0, Entry1, entry);
         }
     }
 
@@ -166,49 +211,56 @@ namespace ImTools.Experimental.Tree234
         /// <summary> Adds or updates the value by key in the map, always returns a modified map </summary>
         public static ImMap<V> AddOrUpdateEntry<V>(this ImMap<V> map, ImMapEntry<V> entry)
         {
-            if (map == ImMap<V>.Empty) // todo: @perf this is probably a required double check
-                return entry;
+            //if (map == ImMap<V>.Empty) // todo: @perf this is probably a required double check
+            //    return entry;
 
-            var key = entry.Key;
-            if (map is ImMapEntry<V> leaf)
-                return leaf.AddToEntry(entry, key);
+            //var key = entry.Key;
+            //if (map is ImMapEntry<V> leaf)
+            //    return key > leaf.Key ? new ImMapLeafs2<V>(leaf, entry)
+            //        : key < leaf.Key ? new ImMapLeafs2<V>(entry, leaf)
+            //        : (ImMap<V>)entry;
 
-            if (map is ImMapLeafs2<V> leaf2)
-            {
-                // we May need to split
-                if (leaf2 is ImMapLeafs3<V> leaf3)
-                {
-                    // [1 3 5]  =>      [3]
-                    // adding 7     [1]     [5, 7]
-                    if (key > leaf3.Entry2.Key)
-                        return new ImMapBranch2<V>(leaf3.Entry1,
-                            leaf3.Entry0, new ImMapLeafs2<V>(leaf3.Entry2, entry));
+            //if (map is ImMapLeafs2<V> leaf2)
+            //{
+            //    // we May need to split
+            //    if (leaf2 is ImMapLeafs3<V> leaf3)
+            //    {
+            //        // [1 3 5]  =>      [3]
+            //        // adding 7     [1]     [5, 7]
+            //        if (key > leaf3.Entry2.Key)
+            //            return new ImMapBranch2<V>(leaf3.Entry1,
+            //                leaf3.Entry0, new ImMapLeafs2<V>(leaf3.Entry2, entry));
 
-                    if (key < leaf3.Entry0.Key)
-                        return new ImMapBranch2<V>(leaf3.Entry1,
-                            new ImMapLeafs2<V>(entry, leaf3.Entry0), leaf3.Entry2);
+            //        if (key < leaf3.Entry0.Key)
+            //            return new ImMapBranch2<V>(leaf3.Entry1,
+            //                new ImMapLeafs2<V>(entry, leaf3.Entry0), leaf3.Entry2);
 
-                    if (key > leaf3.Entry1.Key && key < leaf3.Entry2.Key)
-                        return new ImMapBranch2<V>(leaf3.Entry1,
-                            leaf3.Entry0, new ImMapLeafs2<V>(entry, leaf3.Entry2));
+            //        if (key > leaf3.Entry1.Key && key < leaf3.Entry2.Key)
+            //            return new ImMapBranch2<V>(leaf3.Entry1,
+            //                leaf3.Entry0, new ImMapLeafs2<V>(entry, leaf3.Entry2));
 
-                    if (key > leaf3.Entry0.Key && key < leaf3.Entry1.Key)
-                        return new ImMapBranch2<V>(leaf3.Entry1,
-                            new ImMapLeafs2<V>(leaf3.Entry0, entry), leaf3.Entry2);
+            //        if (key > leaf3.Entry0.Key && key < leaf3.Entry1.Key)
+            //            return new ImMapBranch2<V>(leaf3.Entry1,
+            //                new ImMapLeafs2<V>(leaf3.Entry0, entry), leaf3.Entry2);
 
-                    return key == leaf3.Entry0.Key ? new ImMapLeafs3<V>(entry, leaf3.Entry1, leaf3.Entry2)
-                        : key == leaf3.Entry1.Key ? new ImMapLeafs3<V>(leaf3.Entry0, entry, leaf3.Entry2)
-                        : new ImMapLeafs3<V>(leaf3.Entry0, leaf3.Entry1, entry);
-                }
+            //        return key == leaf3.Entry0.Key ? new ImMapLeafs3<V>(entry, leaf3.Entry1, leaf3.Entry2)
+            //            : key == leaf3.Entry1.Key ? new ImMapLeafs3<V>(leaf3.Entry0, entry, leaf3.Entry2)
+            //            : new ImMapLeafs3<V>(leaf3.Entry0, leaf3.Entry1, entry);
+            //    }
 
-                return leaf2.AddToLeafs2(entry, key);
-            }
+            //    return key > leaf2.Entry1.Key ? new ImMapLeafs3<V>(leaf2.Entry0, leaf2.Entry1, entry)
+            //        : key < leaf2.Entry0.Key ? new ImMapLeafs3<V>(entry, leaf2.Entry0, leaf2.Entry1)
+            //        : key > leaf2.Entry0.Key && key < leaf2.Entry1.Key ? new ImMapLeafs3<V>(leaf2.Entry0, entry, leaf2.Entry1)
+            //        : key == leaf2.Entry0.Key ? new ImMapLeafs2<V>(entry, leaf2.Entry1)
+            //        : new ImMapLeafs2<V>(leaf2.Entry0, entry);
+            //}
 
             // - Adding to branch2 should not require to split the branch itself!
             // - The only result of split could be other Branch2 - because we are splitting only Leaf3 
             // - We cannot have a result of Branch2 for non-splitting addition
             if (map is ImMapBranch2<V> br2)
             {
+                var key = entry.Key;
                 if (br2 is ImMapBranch3<V> br3) 
                 {
                     if (key > br3.Entry1.Key)
@@ -317,7 +369,7 @@ namespace ImTools.Experimental.Tree234
                 return new ImMapBranch2<V>(entry, br2.Branch0, br2.Branch1);
             }
 
-            return map;
+            return map.AddOrUpdateEntry(entry);
         }
 
         [MethodImpl((MethodImplOptions)256)]
@@ -509,7 +561,7 @@ namespace ImTools.Experimental.Tree234
         {
             if (map == ImMap<V>.Empty)
                 return new ImMapEntry<V>(key, value);
-            return map.AddOrUpdateEntry(new ImMapEntry<V>(key, value));
+            return AddOrUpdateEntry(map, new ImMapEntry<V>(key, value));
         }
     }
 }
