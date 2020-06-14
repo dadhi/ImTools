@@ -16,6 +16,25 @@ namespace ImTools.Experimental.Tree234
 
         /// <summary>Produces the new or updated map</summary>
         public virtual ImMap<V> AddOrUpdateEntry(int key, ImMapEntry<V> entry) => entry;
+
+        /// <summary>Produces the new or updated map</summary>
+        public virtual ImMap<V> AddOrUpdateEntry(int key, ImMapEntry<V> entry, 
+            out ImMapEntry<V> popEntry, out ImMap<V> popRight)
+        {
+            popEntry = null;
+            popRight = null;
+            return entry;
+        }
+
+        /// 
+        public virtual ImMap<V> AddOrUpdateX(int key, ref ImMapEntry<V> entry, out ImMap<V> popRight)
+        {
+            popRight = null;
+            return entry;
+        }
+
+        /// 
+        public virtual ImMap<V> AddOrUpdateX(int key, ImMapEntry<V> entry) => entry;
     }
 
     /// <summary>Wraps the stored data with "fixed" reference semantics - 
@@ -120,7 +139,7 @@ namespace ImTools.Experimental.Tree234
         public readonly ImMapEntry<V> Entry0;
 
         /// <summary>Left branch</summary>
-        public ImMap<V> Branch0; // can be Branchs | Entry | Leaf2 | Leaf3, if it is an Entry then other Tree cannot be an Entry
+        public ImMap<V> Branch0; // can be Branches | Entry | Leaf2 | Leaf3, if it is an Entry then other Tree cannot be an Entry
 
         /// <summary>Right branch</summary>
         public ImMap<V> Branch1;
@@ -138,6 +157,25 @@ namespace ImTools.Experimental.Tree234
             (Branch0 is ImMapBranch2<V> ? Branch0.GetType().Name : Branch0.ToString()) + 
             " <- " + Entry0 + " -> " +
             (Branch1 is ImMapBranch2<V> ? Branch1.GetType().Name : Branch1.ToString());
+
+        /// <summary>Produces the new or updated map</summary>
+        public override ImMap<V> AddOrUpdateEntry(int key, ImMapEntry<V> entry,
+            out ImMapEntry<V> popEntry, out ImMap<V> popRight)
+        {
+            popEntry = null;
+            popRight = null;
+            return entry;
+        }
+
+        /// 
+        public override ImMap<V> AddOrUpdateX(int key, ref ImMapEntry<V> entry, out ImMap<V> popRight)
+        {
+            popRight = null;
+            return entry;
+        }
+
+        /// 
+        public override ImMap<V> AddOrUpdateX(int key, ImMapEntry<V> entry) => entry;
 
         /// <summary>Produces the new or updated map</summary>
         public override ImMap<V> AddOrUpdateEntry(int key, ImMapEntry<V> entry)
@@ -221,6 +259,15 @@ namespace ImTools.Experimental.Tree234
             (Branch1 is ImMapBranch2<V> ? Branch1.GetType().Name : Branch1.ToString()) +
             " <- " + Entry0 + " -> " +
             (Branch2 is ImMapBranch2<V> ? Branch2.GetType().Name.TrimEnd('<', '>', '`', 'V') : Branch2.ToString());
+
+        /// <summary>Produces the new or updated map</summary>
+        public override ImMap<V> AddOrUpdateEntry(int key, ImMapEntry<V> entry,
+            out ImMapEntry<V> popEntry, out ImMap<V> popRight)
+        {
+            popEntry = null;
+            popRight = null;
+            return entry;
+        }
 
         /// <summary>Produces the new or updated map</summary>
         public override ImMap<V> AddOrUpdateEntry(int key, ImMapEntry<V> entry)

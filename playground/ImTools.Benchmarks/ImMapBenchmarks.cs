@@ -205,8 +205,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 var map = ImTools.Experimental.Tree234.ImMap<string>.Empty;
 
                 for (var i = 0; i < Count; i++)
-                    map = map.AddOrUpdateEntry(i, new ImTools.Experimental.Tree234.ImMapEntry<string>(i, i.ToString()));
-                    //map = ImTools.Experimental.Tree234.ImMap.AddOrUpdate(map, i, i.ToString());
+                    map = ImTools.Experimental.Tree234.ImMap.AddOrUpdate(map, i, i.ToString());
 
                 return map;
             }

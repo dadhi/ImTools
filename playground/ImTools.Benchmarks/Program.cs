@@ -1,4 +1,5 @@
 using BenchmarkDotNet.Running;
+using ImTools.Experimental.Tree234;
 using Playground;
 
 namespace ImTools.Benchmarks
@@ -13,7 +14,7 @@ namespace ImTools.Benchmarks
             //var b = new ImMapBenchmarks.Populate { Count = 10 };
             //b.ImMap_FixedData4();
 
-            BenchmarkRunner.Run<ImMapBenchmarks.Populate>();
+            //BenchmarkRunner.Run<ImMapBenchmarks.Populate>();
             //BenchmarkRunner.Run<ImMapBenchmarks.Lookup>();
             //BenchmarkRunner.Run<ImMapBenchmarks.Enumerate>();
 
@@ -24,7 +25,7 @@ namespace ImTools.Benchmarks
             //BenchmarkRunner.Run<ImHashMapBenchmarks_StringString.Populate>();
             //BenchmarkRunner.Run<ImHashMapBenchmarks_StringString.Lookup>();
 
-            //BenchmarkRunner.Run<CustomEqualityComparerBenchmarks>();
+            BenchmarkRunner.Run<ReturnFromMethodWays>();
         }
     }
 }
