@@ -211,50 +211,6 @@ namespace ImTools.Experimental.Tree234
         /// <summary> Adds or updates the value by key in the map, always returns a modified map </summary>
         public static ImMap<V> AddOrUpdateEntry<V>(this ImMap<V> map, ImMapEntry<V> entry)
         {
-            //if (map == ImMap<V>.Empty) // todo: @perf this is probably a required double check
-            //    return entry;
-
-            //var key = entry.Key;
-            //if (map is ImMapEntry<V> leaf)
-            //    return key > leaf.Key ? new ImMapLeafs2<V>(leaf, entry)
-            //        : key < leaf.Key ? new ImMapLeafs2<V>(entry, leaf)
-            //        : (ImMap<V>)entry;
-
-            //if (map is ImMapLeafs2<V> leaf2)
-            //{
-            //    // we May need to split
-            //    if (leaf2 is ImMapLeafs3<V> leaf3)
-            //    {
-            //        // [1 3 5]  =>      [3]
-            //        // adding 7     [1]     [5, 7]
-            //        if (key > leaf3.Entry2.Key)
-            //            return new ImMapBranch2<V>(leaf3.Entry1,
-            //                leaf3.Entry0, new ImMapLeafs2<V>(leaf3.Entry2, entry));
-
-            //        if (key < leaf3.Entry0.Key)
-            //            return new ImMapBranch2<V>(leaf3.Entry1,
-            //                new ImMapLeafs2<V>(entry, leaf3.Entry0), leaf3.Entry2);
-
-            //        if (key > leaf3.Entry1.Key && key < leaf3.Entry2.Key)
-            //            return new ImMapBranch2<V>(leaf3.Entry1,
-            //                leaf3.Entry0, new ImMapLeafs2<V>(entry, leaf3.Entry2));
-
-            //        if (key > leaf3.Entry0.Key && key < leaf3.Entry1.Key)
-            //            return new ImMapBranch2<V>(leaf3.Entry1,
-            //                new ImMapLeafs2<V>(leaf3.Entry0, entry), leaf3.Entry2);
-
-            //        return key == leaf3.Entry0.Key ? new ImMapLeafs3<V>(entry, leaf3.Entry1, leaf3.Entry2)
-            //            : key == leaf3.Entry1.Key ? new ImMapLeafs3<V>(leaf3.Entry0, entry, leaf3.Entry2)
-            //            : new ImMapLeafs3<V>(leaf3.Entry0, leaf3.Entry1, entry);
-            //    }
-
-            //    return key > leaf2.Entry1.Key ? new ImMapLeafs3<V>(leaf2.Entry0, leaf2.Entry1, entry)
-            //        : key < leaf2.Entry0.Key ? new ImMapLeafs3<V>(entry, leaf2.Entry0, leaf2.Entry1)
-            //        : key > leaf2.Entry0.Key && key < leaf2.Entry1.Key ? new ImMapLeafs3<V>(leaf2.Entry0, entry, leaf2.Entry1)
-            //        : key == leaf2.Entry0.Key ? new ImMapLeafs2<V>(entry, leaf2.Entry1)
-            //        : new ImMapLeafs2<V>(leaf2.Entry0, entry);
-            //}
-
             // - Adding to branch2 should not require to split the branch itself!
             // - The only result of split could be other Branch2 - because we are splitting only Leaf3 
             // - We cannot have a result of Branch2 for non-splitting addition
@@ -272,11 +228,11 @@ namespace ImTools.Experimental.Tree234
 
                         if (br3.Branch2 is ImMapEntry<V> entryBranch)
                             return new ImMapBranch3<V>(br3.Entry0, br3.Branch0, br3.Branch1,
-                                br3.Entry1, entryBranch.AddToEntry(entry, key));
+                                br3.Entry1, entryBranch.AddOrUpdateEntry(entry));
 
                         if (br3.Branch2 is ImMapLeafs2<V> entryLeafs2 && br3.Branch2 is ImMapLeafs3<V> == false)
                             return new ImMapBranch3<V>(br3.Entry0, br3.Branch0, br3.Branch1,
-                                br3.Entry1, entryLeafs2.AddToLeafs2(entry, key));
+                                br3.Entry1, entryLeafs2.AddOrUpdateEntry(entry));
 
                         var newBranch = br3.Branch2.AddOrUpdateBranch(key, entry, 
                             out var popEntry, out var popRight);
@@ -338,10 +294,10 @@ namespace ImTools.Experimental.Tree234
                     // and adding 4, so we are merging the branches
 
                     if (br2.Branch1 is ImMapEntry<V> entryBranch)
-                        return new ImMapBranch2<V>(br2.Entry0, br2.Branch0, entryBranch.AddToEntry(entry, key));
+                        return new ImMapBranch2<V>(br2.Entry0, br2.Branch0, entryBranch.AddOrUpdateEntry(entry));
 
                     if (br2.Branch1 is ImMapLeafs2<V> entryLeafs2 && br2.Branch1 is ImMapLeafs3<V> == false)
-                        return new ImMapBranch2<V>(br2.Entry0, br2.Branch0, entryLeafs2.AddToLeafs2(entry, key));
+                        return new ImMapBranch2<V>(br2.Entry0, br2.Branch0, entryLeafs2.AddOrUpdateEntry(entry));
 
                     var newBranch = br2.Branch1.AddOrUpdateBranch(key, entry, out var popEntry, out var popRight);
                     if (popEntry != null)
@@ -372,20 +328,6 @@ namespace ImTools.Experimental.Tree234
             return map.AddOrUpdateEntry(entry);
         }
 
-        [MethodImpl((MethodImplOptions)256)]
-        private static ImMap<V> AddToEntry<V>(this ImMapEntry<V> leaf, ImMapEntry<V> entry, int key) =>
-            key > leaf.Key ? new ImMapLeafs2<V>(leaf, entry)
-            : key < leaf.Key ? new ImMapLeafs2<V>(entry, leaf)
-            : (ImMap<V>)entry;
-
-        [MethodImpl((MethodImplOptions)256)]
-        private static ImMapLeafs2<V> AddToLeafs2<V>(this ImMapLeafs2<V> leaf2, ImMapEntry<V> entry, int key) =>
-            key > leaf2.Entry1.Key ? new ImMapLeafs3<V>(leaf2.Entry0, leaf2.Entry1, entry)
-            : key < leaf2.Entry0.Key ? new ImMapLeafs3<V>(entry, leaf2.Entry0, leaf2.Entry1)
-            : key > leaf2.Entry0.Key && key < leaf2.Entry1.Key ? new ImMapLeafs3<V>(leaf2.Entry0, entry, leaf2.Entry1)
-            : key == leaf2.Entry0.Key ? new ImMapLeafs2<V>(entry, leaf2.Entry1)
-            : new ImMapLeafs2<V>(leaf2.Entry0, entry);
-
         /// <summary> Adds or updates the value by key in the map, always returns a modified map </summary>
         internal static ImMap<V> AddOrUpdateBranch<V>(this ImMap<V> map, int key, ImMapEntry<V> entry, 
             out ImMapEntry<V> popEntry, out ImMap<V> popRight)
@@ -393,14 +335,7 @@ namespace ImTools.Experimental.Tree234
             popEntry = null;
             popRight = null;
 
-            //if (map is ImMapEntry<V> leaf)
-            //    return key > leaf.Key ? new ImMapLeafs2<V>(leaf, entry)
-            //        :  key < leaf.Key ? new ImMapLeafs2<V>(entry, leaf)
-            //        : (ImMap<V>)entry;
-
-            //if (map is ImMapLeafs2<V> leaf2)
-            //{
-                // Need to split for the Add, keep the leaf for the Update
+            // Need to split for the Add, keep the leaf for the Update
             if (map is ImMapLeafs3<V> leaf3)
             {
                 // [1 3 5]  =>      [3]
@@ -435,13 +370,6 @@ namespace ImTools.Experimental.Tree234
                     : key == leaf3.Entry1.Key ? new ImMapLeafs3<V>(leaf3.Entry0, entry, leaf3.Entry2)
                     : new ImMapLeafs3<V>(leaf3.Entry0, leaf3.Entry1, entry);
             }
-
-            //    return key > leaf2.Entry1.Key ? new ImMapLeafs3<V>(leaf2.Entry0, leaf2.Entry1, entry)
-            //        : key < leaf2.Entry0.Key ? new ImMapLeafs3<V>(entry, leaf2.Entry0, leaf2.Entry1)
-            //        : key > leaf2.Entry0.Key && key < leaf2.Entry1.Key ? new ImMapLeafs3<V>(leaf2.Entry0, entry, leaf2.Entry1)
-            //        : key == leaf2.Entry0.Key ? new ImMapLeafs2<V>(entry, leaf2.Entry1)
-            //        : new ImMapLeafs2<V>(leaf2.Entry0, entry);
-            //}
 
             // - Adding to branch2 should not require to split the branch itself!
             // - The only result of split could be other Branch2 - because we are splitting only Leaf3 
@@ -519,10 +447,10 @@ namespace ImTools.Experimental.Tree234
                 if (key > br2.Entry0.Key)
                 {
                     if (br2.Branch1 is ImMapEntry<V> entryBranch)
-                        return new ImMapBranch2<V>(br2.Entry0, br2.Branch0, entryBranch.AddToEntry(entry, key));
+                        return new ImMapBranch2<V>(br2.Entry0, br2.Branch0, entryBranch.AddOrUpdateEntry(entry));
 
                     if (br2.Branch1 is ImMapLeafs2<V> entryLeafs2 && br2.Branch1 is ImMapLeafs3<V> == false)
-                        return new ImMapBranch2<V>(br2.Entry0, br2.Branch0, entryLeafs2.AddToLeafs2(entry, key));
+                        return new ImMapBranch2<V>(br2.Entry0, br2.Branch0, entryLeafs2.AddOrUpdateEntry(entry));
 
                     var newBranch = br2.Branch1.AddOrUpdateBranch(key, entry, 
                         out var popEntry1, out var popRight1);

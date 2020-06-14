@@ -173,17 +173,6 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             [Params(10)]//, 100, 1_000, 10_000)]
             public int Count;
 
-            [Benchmark]
-            public ImTools.Experimental.Tree234.ImMap<string> Experimental_ImMap234_AddOrUpdate()
-            {
-                var map = ImTools.Experimental.Tree234.ImMap<string>.Empty;
-
-                for (var i = 0; i < Count; i++)
-                    map = ImTools.Experimental.Tree234.ImMap.AddOrUpdate(map, i, i.ToString());
-
-                return map;
-            }
-
             [Benchmark(Baseline = true)]
             public ImTools.ImMap<string> ImMap_AddOrUpdate()
             {
@@ -191,6 +180,17 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
                 for (var i = 0; i < Count; i++)
                     map = map.AddOrUpdate(i, i.ToString());
+
+                return map;
+            }
+
+            [Benchmark]
+            public ImTools.Experimental.Tree234.ImMap<string> Experimental_ImMap234_AddOrUpdate()
+            {
+                var map = ImTools.Experimental.Tree234.ImMap<string>.Empty;
+
+                for (var i = 0; i < Count; i++)
+                    map = ImTools.Experimental.Tree234.ImMap.AddOrUpdate(map, i, i.ToString());
 
                 return map;
             }
