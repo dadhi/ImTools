@@ -61,7 +61,7 @@ namespace ImTools.Experimental.Tree234
             Entry1 = entry1;
         }
 
-        /// Prints the key value pair
+        /// Pretty-print
         public override string ToString() => Entry0 + ";" + Entry1;
 
         /// <summary>Produces the new or updated map</summary>
@@ -84,7 +84,7 @@ namespace ImTools.Experimental.Tree234
             : base(entry0, entry1) =>
             Entry2 = entry2;
 
-        /// Prints the key value pair
+        /// Pretty-print
         public override string ToString() => Entry0 + ";" + Entry1 + ";" + Entry2;
 
         /// <summary>Produces the new or updated map</summary>
@@ -130,6 +130,65 @@ namespace ImTools.Experimental.Tree234
             Entry0 = entry0;
             Branch0 = branch0;
             Branch1 = branch1;
+        }
+
+        /// Pretty-print
+        public override string ToString() =>
+            (Branch0 is ImMapBranch2<V> ? Branch0.GetType().Name : Branch0.ToString()) + 
+            " <- " + Entry0 + " -> " +
+            (Branch1 is ImMapBranch2<V> ? Branch1.GetType().Name : Branch1.ToString());
+
+        /// <summary>Produces the new or updated map</summary>
+        public override ImMap<V> AddOrUpdateEntry(ImMapEntry<V> entry)
+        {
+            if (entry.Key > Entry0.Key)
+            {
+                //      [3]                     [3]    ->  [6]                [3, 6]
+                // [1]       [5, 6, 7] =>  [1]       [4,5]     [7] =>  [1]   [4, 5]   [7]
+                // adding 4, so we are merging the branches
+
+                //         [4]
+                //    [2]        [6]
+                // [1]   [3]   [5]   [7, 8, 9?]
+                // adding 9 - no need to merge
+
+                //         [4]
+                //    [2]         [6, 8]
+                // [1]   [3]   [5]  [7]  [9, 10, 11] 12?
+                // adding 12
+
+                // How to find a split !!!
+                // 1. The branch was Leaf3
+                // 2. The branch was Branch2
+
+                // todo: @incomplete
+                var branchSplitOrNot = Branch1.AddOrUpdateEntry(entry);
+
+
+                var newBranch = Branch1.AddOrUpdateBranch(entry.Key, entry, out var popEntry, out var popRight);
+                if (popEntry != null)
+                    return new ImMapBranch3<V>(Entry0, Branch0, newBranch, popEntry, popRight);
+
+                return new ImMapBranch2<V>(Entry0, Branch0, newBranch);
+            }
+
+            if (entry.Key < Entry0.Key)
+            {
+                //           [4]                [2]  <-  [4]
+                // [1, 2, 3]      [5] =>  [0, 1]    [3]      [5]  =>
+                // and adding 0, so we are merging the branches
+
+                var newBranch = Branch0.AddOrUpdateBranch(entry.Key, entry,
+                    out var popEntry, out var popRight);
+
+                if (popEntry != null)
+                    return new ImMapBranch3<V>(popEntry, newBranch, popRight, Entry0, Branch1);
+
+                return new ImMapBranch2<V>(Entry0, newBranch, Branch1);
+            }
+
+            // update
+            return new ImMapBranch2<V>(entry, Branch0, Branch1);
         }
     }
 
