@@ -152,9 +152,18 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |                 ImMap_AddOrUpdate |    10 | 642.42 ns | 2.251 ns | 2.106 ns |  1.00 | 0.3767 | 0.0010 |     - |    1776 B |
 | Experimental_ImMap234_AddOrUpdate |    10 | 730.28 ns | 2.703 ns | 2.528 ns |  1.14 | 0.2394 |      - |     - |    1128 B |
 
+            ### faster first addition
+
+|                            Method | Count |      Mean |    Error |   StdDev | Ratio |  Gen 0 |  Gen 1 | Gen 2 | Allocated |
+|---------------------------------- |------ |----------:|---------:|---------:|------:|-------:|-------:|------:|----------:|
+|                 ImMap_AddOrUpdate |     1 |  23.12 ns | 0.051 ns | 0.048 ns |  1.00 | 0.0102 |      - |     - |      48 B |
+| Experimental_ImMap234_AddOrUpdate |     1 |  19.24 ns | 0.066 ns | 0.062 ns |  0.83 | 0.0068 |      - |     - |      32 B |
+|                                   |       |           |          |          |       |        |        |       |           |
+|                 ImMap_AddOrUpdate |    10 | 635.04 ns | 3.276 ns | 3.065 ns |  1.00 | 0.3767 | 0.0010 |     - |    1776 B |
+| Experimental_ImMap234_AddOrUpdate |    10 | 749.54 ns | 1.489 ns | 1.320 ns |  1.18 | 0.2394 |      - |     - |    1128 B |
+
+
 */
-
-
             [Params(1, 10)]//, 100, 1_000, 10_000)]
             public int Count;
 
