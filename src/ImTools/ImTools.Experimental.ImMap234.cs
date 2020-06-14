@@ -166,7 +166,7 @@ namespace ImTools.Experimental.Tree234
         /// <summary> Adds or updates the value by key in the map, always returns a modified map </summary>
         public static ImMap<V> AddOrUpdateEntry<V>(this ImMap<V> map, ImMapEntry<V> entry)
         {
-            if (map == ImMap<V>.Empty)
+            if (map == ImMap<V>.Empty) // todo: @perf this is probably a required double check
                 return entry;
 
             var key = entry.Key;
