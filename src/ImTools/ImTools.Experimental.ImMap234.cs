@@ -313,11 +313,9 @@ namespace ImTools.Experimental.Tree234
     public static class ImMap
     {
         /// <summary>Lookup</summary>
+        [MethodImpl((MethodImplOptions)256)]
         public static V GetValueOrDefault<V>(this ImMap<V> map, int key) 
         {
-            if (map == ImMap<V>.Empty)
-                return default(V);
-
             ImMapEntry<V> entry;
             while (map is ImMapBranch2<V> br2) 
             {
@@ -331,29 +329,22 @@ namespace ImTools.Experimental.Tree234
 
                 if (entry.Key > key)
                     map = br2.Branch0;
-                else
+                else if (br2 is ImMapBranch3<V> br3) 
                 {
-                    if (br2 is ImMapBranch3<V> br3) 
-                    {
-                        entry = br3.Entry1;
-                        if (entry.Key == key)
-                            return entry.Value;
-                        
-                        if (entry.Key > key)
-                            map = br3.Branch1;
-                        else
-                            map = br3.Branch2;
-                    }
-                    else
-                        map = br2.Branch1;
+                    entry = br3.Entry1;
+                    if (entry.Key == key)
+                        return entry.Value;
+                    map = entry.Key > key ? br3.Branch1 : br3.Branch2;
                 }
+                else
+                    map = br2.Branch1;
             }
 
             entry = map as ImMapEntry<V>;
             if (entry != null)
                 return key == entry.Key ? entry.Value : default(V);
 
-            if (map is ImMapLeaf2<V> leaf2) 
+            if (map is ImMapLeaf2<V> leaf2)
             {
                 if (key == leaf2.Entry0.Key)
                     return leaf2.Entry0.Value;
