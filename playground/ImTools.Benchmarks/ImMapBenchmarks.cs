@@ -184,28 +184,36 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |    Experimental_ImMap_AddOrUpdate |   100 | 10,264.56 ns |  28.523 ns |  23.818 ns |  0.81 |    0.00 | 6.4545 | 0.2747 |     - |   30432 B |
 
 
+## This is ImMap234 preliminary results
+
+|                            Method | Count |            Mean |         Error |        StdDev | Ratio |    Gen 0 |    Gen 1 |    Gen 2 | Allocated |
+|---------------------------------- |------ |----------------:|--------------:|--------------:|------:|---------:|---------:|---------:|----------:|
+|    Experimental_ImMap_AddOrUpdate |     1 |        18.06 ns |      0.173 ns |      0.145 ns |  1.00 |   0.0068 |        - |        - |      32 B |
+| Experimental_ImMap234_AddOrUpdate |     1 |        19.35 ns |      0.089 ns |      0.074 ns |  1.07 |   0.0068 |        - |        - |      32 B |
+|                                   |       |                 |               |               |       |          |          |          |           |
+|    Experimental_ImMap_AddOrUpdate |    10 |       423.92 ns |      1.520 ns |      1.269 ns |  1.00 |   0.2651 |   0.0005 |        - |    1248 B |
+| Experimental_ImMap234_AddOrUpdate |    10 |       426.65 ns |      2.632 ns |      2.198 ns |  1.01 |   0.2394 |   0.0005 |        - |    1128 B |
+|                                   |       |                 |               |               |       |          |          |          |           |
+|    Experimental_ImMap_AddOrUpdate |   100 |     9,533.63 ns |     40.998 ns |     36.344 ns |  1.00 |   6.4545 |   0.2899 |        - |   30432 B |
+| Experimental_ImMap234_AddOrUpdate |   100 |    10,596.05 ns |     43.444 ns |     38.512 ns |  1.11 |   6.2103 |   0.2747 |        - |   29280 B |
+|                                   |       |                 |               |               |       |          |          |          |           |
+|    Experimental_ImMap_AddOrUpdate |  1000 |   163,314.40 ns |    688.569 ns |    574.986 ns |  1.00 |  98.1445 |   0.2441 |        - |  462624 B |
+| Experimental_ImMap234_AddOrUpdate |  1000 |   183,165.14 ns |  1,100.392 ns |    918.877 ns |  1.12 |  96.1914 |   0.7324 |        - |  453624 B |
+|                                   |       |                 |               |               |       |          |          |          |           |
+|    Experimental_ImMap_AddOrUpdate | 10000 | 4,212,728.96 ns | 40,065.197 ns | 35,516.754 ns |  1.00 | 992.1875 | 335.9375 | 101.5625 | 6253344 B |
+| Experimental_ImMap234_AddOrUpdate | 10000 | 4,562,499.55 ns | 37,482.081 ns | 33,226.889 ns |  1.08 | 976.5625 | 351.5625 | 132.8125 | 6138069 B |
+
 */
-            [Params(1, 10, 100)]//, 100, 1_000, 10_000)]
+            [Params(1, 10, 100, 1_000, 10_000)]
             public int Count;
 
-            [Benchmark(Baseline = true)]
+            //[Benchmark(Baseline = true)]
             public ImTools.ImMap<string> ImMap_AddOrUpdate()
             {
                 var map = ImTools.ImMap<string>.Empty;
 
                 for (var i = 0; i < Count; i++)
                     map = map.AddOrUpdate(i, i.ToString());
-
-                return map;
-            }
-
-            [Benchmark]
-            public ImTools.Experimental.Tree234.ImMap<string> Experimental_ImMap234_AddOrUpdate()
-            {
-                var map = ImTools.Experimental.Tree234.ImMap<string>.Empty;
-
-                for (var i = 0; i < Count; i++)
-                    map = ImTools.Experimental.Tree234.ImMap.AddOrUpdate(map, i, i.ToString());
 
                 return map;
             }
@@ -222,12 +230,24 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             }
 
             // [Benchmark]
+            [Benchmark(Baseline = true)]
             public ImTools.Experimental.ImMap<string> Experimental_ImMap_AddOrUpdate()
             {
                 var map = ImTools.Experimental.ImMap<string>.Empty;
 
                 for (var i = 0; i < Count; i++)
                     map = map.AddOrUpdate(i, i.ToString());
+
+                return map;
+            }
+
+            [Benchmark]
+            public ImTools.Experimental.Tree234.ImMap<string> Experimental_ImMap234_AddOrUpdate()
+            {
+                var map = ImTools.Experimental.Tree234.ImMap<string>.Empty;
+
+                for (var i = 0; i < Count; i++)
+                    map = ImTools.Experimental.Tree234.ImMap.AddOrUpdate(map, i, i.ToString());
 
                 return map;
             }

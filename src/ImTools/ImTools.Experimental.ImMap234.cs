@@ -15,26 +15,11 @@ namespace ImTools.Experimental.Tree234
         public override string ToString() => "empty";
 
         /// <summary>Produces the new or updated map</summary>
-        public virtual ImMap<V> AddOrUpdateEntry(int key, ImMapEntry<V> entry) => entry;
-
-        /// <summary>Produces the new or updated map</summary>
-        public virtual ImMap<V> AddOrUpdateEntry(int key, ImMapEntry<V> entry, 
-            out ImMapEntry<V> popEntry, out ImMap<V> popRight)
-        {
-            popEntry = null;
-            popRight = null;
-            return entry;
-        }
-
-        /// 
-        public virtual ImMap<V> AddOrUpdateX(int key, ref ImMapEntry<V> entry, out ImMap<V> popRight)
+        public virtual ImMap<V> AddOrUpdateEntry(int key, ref ImMapEntry<V> entry, out ImMap<V> popRight)
         {
             popRight = null;
             return entry;
         }
-
-        /// 
-        public virtual ImMap<V> AddOrUpdateX(int key, ImMapEntry<V> entry) => entry;
     }
 
     /// <summary>Wraps the stored data with "fixed" reference semantics - 
@@ -61,10 +46,13 @@ namespace ImTools.Experimental.Tree234
         public override string ToString() => Key + ":" + Value;
 
         /// <summary>Produces the new or updated map</summary>
-        public override ImMap<V> AddOrUpdateEntry(int key, ImMapEntry<V> entry) =>
-            key > Key ? new ImMapLeaf2<V>(this, entry) :
-            key < Key ? new ImMapLeaf2<V>(entry, this) : 
-            (ImMap<V>)entry;
+        public override ImMap<V> AddOrUpdateEntry(int key, ref ImMapEntry<V> entry, out ImMap<V> popRight)
+        {
+            popRight = null;
+            return key > Key ? new ImMapLeaf2<V>(this, entry) :
+                key < Key ? new ImMapLeaf2<V>(entry, this) :
+                (ImMap<V>)entry;
+        }
     }
 
     /// <summary>2 leafs</summary>
@@ -87,12 +75,15 @@ namespace ImTools.Experimental.Tree234
         public override string ToString() => Entry0 + ";" + Entry1;
 
         /// <summary>Produces the new or updated map</summary>
-        public override ImMap<V> AddOrUpdateEntry(int key, ImMapEntry<V> entry) =>
-            key > Entry1.Key ? new ImMapLeaf3<V>(Entry0, Entry1, entry) :
-            key < Entry0.Key ? new ImMapLeaf3<V>(entry, Entry0, Entry1) :
-            key > Entry0.Key && entry.Key < Entry1.Key ? new ImMapLeaf3<V>(Entry0, entry, Entry1) :
-            key == Entry0.Key ? new ImMapLeaf2<V>(entry, Entry1) : 
-            new ImMapLeaf2<V>(Entry0, entry);
+        public override ImMap<V> AddOrUpdateEntry(int key, ref ImMapEntry<V> entry, out ImMap<V> popRight)
+        {
+            popRight = null;
+            return key > Entry1.Key ? new ImMapLeaf3<V>(Entry0, Entry1, entry) :
+                key < Entry0.Key ? new ImMapLeaf3<V>(entry, Entry0, Entry1) :
+                key > Entry0.Key && entry.Key < Entry1.Key ? new ImMapLeaf3<V>(Entry0, entry, Entry1) :
+                key == Entry0.Key ? new ImMapLeaf2<V>(entry, Entry1) :
+                new ImMapLeaf2<V>(Entry0, entry);
+        }
     }
 
     /// <summary>3 leafs</summary>
@@ -110,25 +101,45 @@ namespace ImTools.Experimental.Tree234
         public override string ToString() => Entry0 + ";" + Entry1 + ";" + Entry2;
 
         /// <summary>Produces the new or updated map</summary>
-        public override ImMap<V> AddOrUpdateEntry(int key, ImMapEntry<V> entry)
+        public override ImMap<V> AddOrUpdateEntry(int key, ref ImMapEntry<V> entry, out ImMap<V> popRight)
         {
+
             // [1 3 5]  =>      [3]
             // adding 7     [1]     [5, 7]
             if (key > Entry2.Key)
-                return new ImMapBranch2<V>(Entry1, Entry0, new ImMapLeaf2<V>(Entry2, entry));
+            {
+                popRight = new ImMapLeaf2<V>(Entry2, entry);
+                entry = Entry1;
+                return Entry0;
+            }
 
             if (key < Entry0.Key)
-                return new ImMapBranch2<V>(Entry1, new ImMapLeaf2<V>(entry, Entry0), Entry2);
+            {
+                popRight = Entry2;
+                var left = new ImMapLeaf2<V>(entry, Entry0);
+                entry = Entry1;
+                return left;
+            }
 
             if (key > Entry1.Key && key < Entry2.Key)
-                return new ImMapBranch2<V>(Entry1, Entry0, new ImMapLeaf2<V>(entry, Entry2));
+            {
+                popRight = new ImMapLeaf2<V>(entry, Entry2);
+                entry = Entry1;
+                return Entry0;
+            }
 
             if (key > Entry0.Key && key < Entry1.Key)
-                return new ImMapBranch2<V>(Entry1, new ImMapLeaf2<V>(Entry0, entry), Entry2);
+            {
+                popRight = Entry2;
+                var left = new ImMapLeaf2<V>(Entry0, entry);
+                entry = Entry1;
+                return left;
+            }
 
+            popRight = null;
             return key == Entry0.Key ? new ImMapLeaf3<V>(entry, Entry1, Entry2)
-                : key == Entry1.Key ? new ImMapLeaf3<V>(Entry0, entry, Entry2)
-                : new ImMapLeaf3<V>(Entry0, Entry1, entry);
+                :  key == Entry1.Key ? new ImMapLeaf3<V>(Entry0, entry, Entry2)
+                :  new ImMapLeaf3<V>(Entry0, Entry1, entry);
         }
     }
 
@@ -159,27 +170,9 @@ namespace ImTools.Experimental.Tree234
             (Branch1 is ImMapBranch2<V> ? Branch1.GetType().Name : Branch1.ToString());
 
         /// <summary>Produces the new or updated map</summary>
-        public override ImMap<V> AddOrUpdateEntry(int key, ImMapEntry<V> entry,
-            out ImMapEntry<V> popEntry, out ImMap<V> popRight)
-        {
-            popEntry = null;
-            popRight = null;
-            return entry;
-        }
-
-        /// 
-        public override ImMap<V> AddOrUpdateX(int key, ref ImMapEntry<V> entry, out ImMap<V> popRight)
+        public override ImMap<V> AddOrUpdateEntry(int key, ref ImMapEntry<V> entry, out ImMap<V> popRight)
         {
             popRight = null;
-            return entry;
-        }
-
-        /// 
-        public override ImMap<V> AddOrUpdateX(int key, ImMapEntry<V> entry) => entry;
-
-        /// <summary>Produces the new or updated map</summary>
-        public override ImMap<V> AddOrUpdateEntry(int key, ImMapEntry<V> entry)
-        {
             if (key > Entry0.Key)
             {
                 //      [3]                     [3]    ->  [6]                [3, 6]
@@ -200,15 +193,9 @@ namespace ImTools.Experimental.Tree234
                 // 1. The branch was Leaf3
                 // 2. The branch was Branch3 but now is not Branch3 - so it is split
 
-                var newBranch = Branch1.AddOrUpdateEntry(key, entry);
-
-                if (Branch1 is ImMapLeaf3<V> ||
-                    Branch1 is ImMapBranch3<V> && newBranch is ImMapBranch3<V> == false)
-                {
-                    // todo: @perf the new branch is destructed and memory wasted - maybe we may construct Branch3 directly out of
-                    var br2 = (ImMapBranch2<V>)newBranch;
-                    return new ImMapBranch3<V>(Entry0, Branch0, br2.Branch0, br2.Entry0, br2.Branch1);
-                }
+                var newBranch = Branch1.AddOrUpdateEntry(key, ref entry, out var popRightBelow);
+                if (popRightBelow != null)
+                    return new ImMapBranch3<V>(Entry0, Branch0, newBranch, entry, popRightBelow);
 
                 return new ImMapBranch2<V>(Entry0, Branch0, newBranch);
             }
@@ -219,13 +206,9 @@ namespace ImTools.Experimental.Tree234
                 // [1, 2, 3]      [5] =>  [0, 1]    [3]      [5]  =>
                 // and adding 0, so we are merging the branches
 
-                var newBranch = Branch0.AddOrUpdateEntry(key, entry);
-                if (Branch0 is ImMapLeaf3<V> ||
-                    Branch0 is ImMapBranch3<V> && newBranch is ImMapBranch3<V> == false)
-                {
-                    var br2 = (ImMapBranch2<V>)newBranch;
-                    return new ImMapBranch3<V>(br2.Entry0, br2.Branch0, br2.Branch1, Entry0, Branch1);
-                }
+                var newBranch = Branch0.AddOrUpdateEntry(key, ref entry, out var popRightBelow);
+                if (popRightBelow != null)
+                    return new ImMapBranch3<V>(entry, newBranch, popRightBelow, Entry0, Branch1);
 
                 return new ImMapBranch2<V>(Entry0, newBranch, Branch1);
             }
@@ -261,17 +244,9 @@ namespace ImTools.Experimental.Tree234
             (Branch2 is ImMapBranch2<V> ? Branch2.GetType().Name.TrimEnd('<', '>', '`', 'V') : Branch2.ToString());
 
         /// <summary>Produces the new or updated map</summary>
-        public override ImMap<V> AddOrUpdateEntry(int key, ImMapEntry<V> entry,
-            out ImMapEntry<V> popEntry, out ImMap<V> popRight)
+        public override ImMap<V> AddOrUpdateEntry(int key, ref ImMapEntry<V> entry, out ImMap<V> popRight)
         {
-            popEntry = null;
             popRight = null;
-            return entry;
-        }
-
-        /// <summary>Produces the new or updated map</summary>
-        public override ImMap<V> AddOrUpdateEntry(int key, ImMapEntry<V> entry)
-        {
             if (key > Entry1.Key)
             {
                 //                                                   =>          [4]
@@ -279,12 +254,13 @@ namespace ImTools.Experimental.Tree234
                 // [1]   [3]  [5, 6, 7] =>  [1]   [3]    [5]   [7, 8]    [1]   [3]   [5]   [7,8]
                 // and adding 8
 
-                var newBranch = Branch2.AddOrUpdateEntry(key, entry);
-                if (Branch2 is ImMapLeaf3<V> ||
-                    Branch2 is ImMapBranch3<V> && newBranch is ImMapBranch3<V> == false)
-                    return new ImMapBranch2<V>(Entry1,
-                        new ImMapBranch2<V>(Entry0, Branch0, Branch1),
-                        newBranch);
+                var newBranch = Branch2.AddOrUpdateEntry(key, ref entry, out var popRightBelow);
+                if (popRightBelow != null)
+                {
+                    popRight = new ImMapBranch2<V>(entry, newBranch, popRightBelow);
+                    entry = Entry1;
+                    return new ImMapBranch2<V>(Entry0, Branch0, Branch1);
+                }
 
                 return new ImMapBranch3<V>(Entry0, Branch0, Branch1, Entry1, newBranch);
             }
@@ -296,13 +272,15 @@ namespace ImTools.Experimental.Tree234
                 // [1,2,3]   [5]  [7]      [0,1]  [3]   [5]   [7]
                 // and adding 0
 
-                var newBranch = Branch0.AddOrUpdateEntry(key, entry);
+                var newBranch = Branch0.AddOrUpdateEntry(key, ref entry, out var popRightBelow);
+                if (popRightBelow != null)
+                {
+                    var popLeft = new ImMapBranch2<V>(entry, newBranch, popRightBelow);
+                    entry = Entry0;
+                    popRight = new ImMapBranch2<V>(Entry1, Branch1, Branch2);
+                    return popLeft;
 
-                if (Branch0 is ImMapLeaf3<V> ||
-                    Branch0 is ImMapBranch3<V> && newBranch is ImMapBranch3<V> == false)
-                    return new ImMapBranch2<V>(Entry0,
-                        newBranch,
-                        new ImMapBranch2<V>(Entry1, Branch1, Branch2));
+                }
 
                 return new ImMapBranch3<V>(Entry0, newBranch, Branch1, Entry1, Branch2);
             }
@@ -314,13 +292,11 @@ namespace ImTools.Experimental.Tree234
                 // [1]  [3,4,5]  [8] => [1]  [3]  [5,6]    [8]
                 // and adding 6
 
-                var newBranch = Branch1.AddOrUpdateEntry(key, entry);
-                if (Branch1 is ImMapLeaf3<V> ||
-                    Branch1 is ImMapBranch3<V> && newBranch is ImMapBranch3<V> == false)
+                var newBranch = Branch1.AddOrUpdateEntry(key, ref entry, out var popRightBelow);
+                if (popRightBelow != null)
                 {
-                    var br2 = (ImMapBranch2<V>)newBranch;
-                    br2.Branch0 = new ImMapBranch2<V>(Entry0, Branch0, br2.Branch0);
-                    br2.Branch1 = new ImMapBranch2<V>(Entry1, br2.Branch1, Branch2);
+                    popRight = new ImMapBranch2<V>(Entry1, popRightBelow, Branch2);
+                    return new ImMapBranch2<V>(Entry0, Branch0, newBranch);
                 }
 
                 return new ImMapBranch3<V>(Entry0, Branch0, newBranch, Entry1, Branch2);
@@ -396,7 +372,9 @@ namespace ImTools.Experimental.Tree234
         {
             if (map == ImMap<V>.Empty)
                 return new ImMapEntry<V>(key, value);
-            return map.AddOrUpdateEntry(key, new ImMapEntry<V>(key, value));
+            var entry = new ImMapEntry<V>(key, value);
+            var newMap = map.AddOrUpdateEntry(key, ref entry, out var popRight);
+            return popRight == null ? newMap : new ImMapBranch2<V>(entry, newMap, popRight);
         }
     }
 }
