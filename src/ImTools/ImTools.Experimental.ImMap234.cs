@@ -16,6 +16,9 @@ namespace ImTools.Experimental.Tree234
 
         /// <summary>Produces the new or updated map</summary>
         public virtual ImMap<V> AddOrUpdateEntry(int key, ImMapEntry<V> entry) => entry;
+
+        /// <summary>Lookup</summary>
+        public virtual V GetValueOrDefault(int key) => default(V);
     }
 
     /// <summary>Wraps the stored data with "fixed" reference semantics - 
@@ -46,6 +49,9 @@ namespace ImTools.Experimental.Tree234
             key > Key ? new ImMapLeaf2<V>(this, entry) :
             key < Key ? new ImMapLeaf2<V>(entry, this) : 
             (ImMap<V>)entry;
+
+        /// <summary>Lookup</summary>
+        public override V GetValueOrDefault(int key) => key == Key ? Value : default(V);
     }
 
     /// <summary>2 leafs</summary>
@@ -74,6 +80,12 @@ namespace ImTools.Experimental.Tree234
             key > Entry0.Key && entry.Key < Entry1.Key ? new ImMapLeaf3<V>(Entry0, entry, Entry1) :
             key == Entry0.Key ? new ImMapLeaf2<V>(entry, Entry1) : 
             new ImMapLeaf2<V>(Entry0, entry);
+
+        /// <summary>Lookup</summary>
+        public override V GetValueOrDefault(int key) => 
+            key == Entry0.Key ? Entry0.Value : 
+            key == Entry1.Key ? Entry1.Value :
+            default(V);
     }
 
     /// <summary>3 leafs</summary>
@@ -152,6 +164,13 @@ namespace ImTools.Experimental.Tree234
                 : key == Entry1.Key ? new ImMapLeaf3<V>(Entry0, entry, Entry2)
                 : new ImMapLeaf3<V>(Entry0, Entry1, entry);
         }
+
+        /// <summary>Lookup</summary>
+        public override V GetValueOrDefault(int key) =>
+            key == Entry0.Key ? Entry0.Value :
+            key == Entry1.Key ? Entry1.Value :
+            key == Entry2.Key ? Entry2.Value :
+            default(V);
     }
 
     /// <summary>2 branches</summary>
@@ -278,6 +297,12 @@ namespace ImTools.Experimental.Tree234
             // update
             return new ImMapBranch2<V>(entry, Branch0, Branch1);
         }
+
+        /// <summary>Lookup</summary>
+        public override V GetValueOrDefault(int key) =>
+            key > Entry0.Key ? Branch1.GetValueOrDefault(key) :
+            key < Entry0.Key ? Branch0.GetValueOrDefault(key) :
+            key == Entry0.Key ? Entry0.Value : default(V);
     }
 
     /// <summary>3 branches</summary>
@@ -474,11 +499,21 @@ namespace ImTools.Experimental.Tree234
                 ? new ImMapBranch3<V>(entry, Branch0, Branch1, Entry1, Branch2)
                 : new ImMapBranch3<V>(Entry0, Branch0, Branch1, entry, Branch2);
         }
+
+        /// <summary>Lookup</summary>
+        public override V GetValueOrDefault(int key) =>
+            key > Entry1.Key ? Branch2.GetValueOrDefault(key) :
+            key < Entry0.Key ? Branch0.GetValueOrDefault(key) :
+            key > Entry0.Key && key < Entry1.Key ? Branch1.GetValueOrDefault(key) :
+            key == Entry0.Key ? Entry0.Value : 
+            key == Entry1.Key ? Entry1.Value : 
+            default(V);
     }
 
     /// <summary>ImMap methods</summary>
     public static class ImMap
     {
+        // todo: @remove
         /// <summary>Lookup</summary>
         public static V GetValueOrDefault<V>(this ImMap<V> map, int key) 
         {
