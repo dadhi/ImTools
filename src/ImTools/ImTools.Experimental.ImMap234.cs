@@ -513,25 +513,21 @@ namespace ImTools.Experimental.Tree234
     /// <summary>ImMap methods</summary>
     public static class ImMap
     {
-        // todo: @remove
         /// <summary>Lookup</summary>
+        [MethodImpl((MethodImplOptions)256)]
         public static V GetValueOrDefault<V>(this ImMap<V> map, int key) 
         {
-            if (map == ImMap<V>.Empty)
-                return default(V);
-
-            ImMapEntry<V> entry;
             while (map is ImMapBranch2<V> br2) 
             {
                 // The order of comparison is following because,
                 // if we have target in key in the branch then we will find it faster,
                 // if the target is in leaf then the order is does not matter (it is the same number of operation if reordered)
                 // Besides if the target in the first branch entry, there is no need to pay for the cast to Branch3.
-                entry = br2.Entry0;
-                if (entry.Key == key)
+                var entry = br2.Entry0;
+                if (key == entry.Key)
                     return entry.Value;
 
-                if (entry.Key > key)
+                if (key < entry.Key)
                     map = br2.Branch0;
                 else
                 {
@@ -540,32 +536,30 @@ namespace ImTools.Experimental.Tree234
                         entry = br3.Entry1;
                         if (entry.Key == key)
                             return entry.Value;
-                        
-                        if (entry.Key > key)
-                            map = br3.Branch1;
-                        else
-                            map = br3.Branch2;
+                        map = key < entry.Key ? br3.Branch1 : br3.Branch2;
                     }
                     else
                         map = br2.Branch1;
                 }
             }
 
-            entry = map as ImMapEntry<V>;
-            if (entry != null)
-                return key == entry.Key ? entry.Value : default(V);
+            return map.GetValueOrDefault(key);
 
-            if (map is ImMapLeaf2<V> leaf2) 
-            {
-                if (key == leaf2.Entry0.Key)
-                    return leaf2.Entry0.Value;
-                if (key == leaf2.Entry1.Key)
-                    return leaf2.Entry1.Value;
-                if (leaf2 is ImMapLeaf3<V> leaf3 && leaf3.Entry2.Key == key)
-                    return leaf3.Entry2.Value;
-            }
+            //entry = map as ImMapEntry<V>;
+            //if (entry != null)
+            //    return key == entry.Key ? entry.Value : default(V);
 
-            return default(V);
+            //if (map is ImMapLeaf2<V> leaf2) 
+            //{
+            //    if (key == leaf2.Entry0.Key)
+            //        return leaf2.Entry0.Value;
+            //    if (key == leaf2.Entry1.Key)
+            //        return leaf2.Entry1.Value;
+            //    if (leaf2 is ImMapLeaf3<V> leaf3 && leaf3.Entry2.Key == key)
+            //        return leaf3.Entry2.Value;
+            //}
+
+            //return default(V);
         }
 
         /// <summary>Adds or updates the value by key in the map, always returns a modified map.</summary>

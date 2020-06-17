@@ -241,7 +241,6 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
                 for (var i = 0; i < Count; i++)
                     map = map.AddOrUpdateEntry(i, new ImTools.Experimental.Tree234.ImMapEntry<string>(i, i.ToString()));
-                //map = ImTools.Experimental.Tree234.ImMap.AddOrUpdate(map, i, i.ToString());
 
                 return map;
             }
@@ -504,6 +503,26 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |                Dict_TryGetValue | 10000 |  7.8740 ns | 0.0192 ns | 0.0160 ns |  0.70 |    0.01 |     - |     - |     - |         - |
 |      ConcurrentDict_TryGetValue | 10000 |  9.8747 ns | 0.0218 ns | 0.0193 ns |  0.88 |    0.01 |     - |     - |     - |         - |
 |       ImmutableDict_TryGetValue | 10000 | 30.7783 ns | 0.1466 ns | 0.1372 ns |  2.74 |    0.03 |     - |     - |     - |         - |
+
+## fully virtual joke
+
+|                                        Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|---------------------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+|          ImMap_Experimental_GetValueOrDefault |     1 |  1.514 ns | 0.0159 ns | 0.0141 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| ImMap_Experimental_ImMap234_GetValueOrDefault |     1 |  1.171 ns | 0.0405 ns | 0.0359 ns |  0.77 |    0.03 |     - |     - |     - |         - |
+|                                               |       |           |           |           |       |         |       |       |       |           |
+|          ImMap_Experimental_GetValueOrDefault |    10 |  3.796 ns | 0.1295 ns | 0.1212 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| ImMap_Experimental_ImMap234_GetValueOrDefault |    10 |  3.450 ns | 0.0202 ns | 0.0189 ns |  0.91 |    0.03 |     - |     - |     - |         - |
+|                                               |       |           |           |           |       |         |       |       |       |           |
+|          ImMap_Experimental_GetValueOrDefault |   100 |  4.775 ns | 0.0616 ns | 0.0546 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| ImMap_Experimental_ImMap234_GetValueOrDefault |   100 |  9.655 ns | 0.2295 ns | 0.2147 ns |  2.03 |    0.06 |     - |     - |     - |         - |
+|                                               |       |           |           |           |       |         |       |       |       |           |
+|          ImMap_Experimental_GetValueOrDefault |  1000 |  8.422 ns | 0.1000 ns | 0.0936 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| ImMap_Experimental_ImMap234_GetValueOrDefault |  1000 | 13.924 ns | 0.0914 ns | 0.0810 ns |  1.65 |    0.02 |     - |     - |     - |         - |
+|                                               |       |           |           |           |       |         |       |       |       |           |
+|          ImMap_Experimental_GetValueOrDefault | 10000 | 12.572 ns | 0.0666 ns | 0.0623 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| ImMap_Experimental_ImMap234_GetValueOrDefault | 10000 | 23.307 ns | 0.0805 ns | 0.0672 ns |  1.85 |    0.01 |     - |     - |     - |         - |
+
  */
             private ImTools.ImMap<string> _map;
             public ImTools.ImMap<string> AddOrUpdate()
@@ -538,6 +557,16 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
+            private ImTools.Experimental.Tree234.ImMap<string> _map234;
+            public ImTools.Experimental.Tree234.ImMap<string> AddOrUpdate_Exp_ImMap234()
+            {
+                var map = ImTools.Experimental.Tree234.ImMap<string>.Empty;
+
+                for (var i = 0; i < Count; i++)
+                    map = map.AddOrUpdateEntry(i, new ImTools.Experimental.Tree234.ImMapEntry<string>(i, i.ToString()));
+
+                return map;
+            }
 
             private ImTools.ImMap<string>[] _mapSlots;
             public ImTools.ImMap<string>[] AddOrUpdate_ImMapSlots()
@@ -618,6 +647,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 _map = AddOrUpdate();
                 _mapV1 = AddOrUpdate_V1();
                 _mapExp = AddOrUpdate_Exp();
+                _map234 = AddOrUpdate_Exp_ImMap234();
                 _mapSlots = AddOrUpdate_ImMapSlots();
                 _mapSlotsExp = AddOrUpdate_ImMapSlots_Exp();
                 _dictSlim = DictSlim();
@@ -626,63 +656,72 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 _immutableDict = ImmutableDict();
             }
 
-            [Benchmark(Baseline = true)]
+            //[Benchmark(Baseline = true)]
             public string ImMap_TryFind()
             {
                 _map.TryFind(LookupMaxKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string ImMap_V1_TryFind()
             {
                 _mapV1.TryFind(LookupMaxKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string ImMap_Experimental_TryFind()
             {
                 _mapExp.TryFind(LookupMaxKey, out var result);
                 return result;
             }
 
+            [Benchmark(Baseline = true)]
+            public string ImMap_Experimental_GetValueOrDefault() =>
+                _mapExp.GetValueOrDefault(LookupMaxKey);
+
             [Benchmark]
+            public string ImMap_Experimental_ImMap234_GetValueOrDefault() =>
+                _map234.GetValueOrDefault(LookupMaxKey);
+                //ImTools.Experimental.Tree234.ImMap.GetValueOrDefault(_map234, LookupMaxKey);
+
+            //[Benchmark]
             public string ImMapSlots_TryFind()
             {
                 _mapSlots[LookupMaxKey & ImMapSlots.KEY_MASK_TO_FIND_SLOT].TryFind(LookupMaxKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string ImMapSlots_Experimental_TryFind()
             {
                 _mapSlotsExp[LookupMaxKey & ImTools.Experimental.ImMapSlots.KEY_MASK_TO_FIND_SLOT].TryFind(LookupMaxKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string DictSlim_TryGetValue()
             {
                 _dictSlim.TryGetValue(LookupMaxKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string Dict_TryGetValue()
             {
                 _dict.TryGetValue(LookupMaxKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string ConcurrentDict_TryGetValue()
             {
                 _concurDict.TryGetValue(LookupMaxKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public string ImmutableDict_TryGetValue()
             {
                 _immutableDict.TryGetValue(LookupMaxKey, out var result);
