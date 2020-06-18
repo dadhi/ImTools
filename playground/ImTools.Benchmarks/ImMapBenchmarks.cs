@@ -531,6 +531,27 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |          ImMap_Experimental_GetValueOrDefault | 10000 | 12.572 ns | 0.0666 ns | 0.0623 ns |  1.00 |    0.00 |     - |     - |     - |         - |
 | ImMap_Experimental_ImMap234_GetValueOrDefault | 10000 | 23.307 ns | 0.0805 ns | 0.0672 ns |  1.85 |    0.01 |     - |     - |     - |         - |
 
+## the results are wrong probably
+
+
+|                                        Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|---------------------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+|          ImMap_Experimental_GetValueOrDefault |     1 |  1.303 ns | 0.0245 ns | 0.0217 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| ImMap_Experimental_ImMap234_GetValueOrDefault |     1 |  1.369 ns | 0.0158 ns | 0.0148 ns |  1.05 |    0.02 |     - |     - |     - |         - |
+|                                               |       |           |           |           |       |         |       |       |       |           |
+|          ImMap_Experimental_GetValueOrDefault |    10 |  4.104 ns | 0.0183 ns | 0.0171 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| ImMap_Experimental_ImMap234_GetValueOrDefault |    10 |  3.344 ns | 0.0250 ns | 0.0234 ns |  0.81 |    0.01 |     - |     - |     - |         - |
+|                                               |       |           |           |           |       |         |       |       |       |           |
+|          ImMap_Experimental_GetValueOrDefault |   100 |  6.201 ns | 0.0427 ns | 0.0399 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| ImMap_Experimental_ImMap234_GetValueOrDefault |   100 |  3.351 ns | 0.0086 ns | 0.0076 ns |  0.54 |    0.00 |     - |     - |     - |         - |
+|                                               |       |           |           |           |       |         |       |       |       |           |
+|          ImMap_Experimental_GetValueOrDefault |  1000 |  8.549 ns | 0.0527 ns | 0.0493 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| ImMap_Experimental_ImMap234_GetValueOrDefault |  1000 |  2.850 ns | 0.0103 ns | 0.0097 ns |  0.33 |    0.00 |     - |     - |     - |         - |
+|                                               |       |           |           |           |       |         |       |       |       |           |
+|          ImMap_Experimental_GetValueOrDefault | 10000 | 13.014 ns | 0.0628 ns | 0.0588 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| ImMap_Experimental_ImMap234_GetValueOrDefault | 10000 |  3.346 ns | 0.0151 ns | 0.0141 ns |  0.26 |    0.00 |     - |     - |     - |         - |
+
+
  */
             private ImTools.ImMap<string> _map;
             public ImTools.ImMap<string> AddOrUpdate()
