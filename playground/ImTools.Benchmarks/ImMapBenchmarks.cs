@@ -199,13 +199,25 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
 ## leaf4,5
 
-|                            Method | Count |     Mean |   Error |  StdDev | Ratio |  Gen 0 |  Gen 1 | Gen 2 | Allocated |
-|---------------------------------- |------ |---------:|--------:|--------:|------:|-------:|-------:|------:|----------:|
-|    Experimental_ImMap_AddOrUpdate |    10 | 436.9 ns | 3.38 ns | 3.16 ns |  1.00 | 0.2651 |      - |     - |   1.22 KB |
-| Experimental_ImMap234_AddOrUpdate |    10 | 381.9 ns | 1.56 ns | 1.39 ns |  0.87 | 0.2227 | 0.0005 |     - |   1.02 KB |
+|                            Method | Count |            Mean |         Error |        StdDev | Ratio | RatioSD |    Gen 0 |    Gen 1 |    Gen 2 | Allocated |
+|---------------------------------- |------ |----------------:|--------------:|--------------:|------:|--------:|---------:|---------:|---------:|----------:|
+|    Experimental_ImMap_AddOrUpdate |     1 |        19.70 ns |      0.049 ns |      0.046 ns |  1.00 |    0.00 |   0.0068 |        - |        - |      32 B |
+| Experimental_ImMap234_AddOrUpdate |     1 |        18.76 ns |      0.184 ns |      0.172 ns |  0.95 |    0.01 |   0.0068 |        - |        - |      32 B |
+|                                   |       |                 |               |               |       |         |          |          |          |           |
+|    Experimental_ImMap_AddOrUpdate |    10 |       451.79 ns |      1.102 ns |      0.977 ns |  1.00 |    0.00 |   0.2651 |   0.0005 |        - |    1248 B |
+| Experimental_ImMap234_AddOrUpdate |    10 |       389.35 ns |      2.471 ns |      2.190 ns |  0.86 |    0.01 |   0.2174 |   0.0005 |        - |    1024 B |
+|                                   |       |                 |               |               |       |         |          |          |          |           |
+|    Experimental_ImMap_AddOrUpdate |   100 |    10,440.63 ns |    163.548 ns |    152.983 ns |  1.00 |    0.00 |   6.4545 |   0.2899 |        - |   30432 B |
+| Experimental_ImMap234_AddOrUpdate |   100 |    11,082.56 ns |    100.140 ns |     83.621 ns |  1.06 |    0.02 |   5.9509 |   0.2747 |        - |   28016 B |
+|                                   |       |                 |               |               |       |         |          |          |          |           |
+|    Experimental_ImMap_AddOrUpdate |  1000 |   181,419.93 ns |  3,555.435 ns |  3,651.170 ns |  1.00 |    0.00 |  98.1445 |   0.2441 |        - |  462624 B |
+| Experimental_ImMap234_AddOrUpdate |  1000 |   218,422.92 ns |  1,206.272 ns |    941.778 ns |  1.20 |    0.03 |  93.7500 |   0.2441 |        - |  442088 B |
+|                                   |       |                 |               |               |       |         |          |          |          |           |
+|    Experimental_ImMap_AddOrUpdate | 10000 | 4,388,043.97 ns | 23,756.491 ns | 21,059.511 ns |  1.00 |    0.00 | 992.1875 | 328.1250 | 109.3750 | 6253354 B |
+| Experimental_ImMap234_AddOrUpdate | 10000 | 5,143,523.21 ns | 29,696.995 ns | 26,325.612 ns |  1.17 |    0.01 | 960.9375 | 351.5625 | 132.8125 | 6018603 B |
 
 */
-            [Params(10)]//, 100)]//, 100, 1_000, 10_000)]
+            [Params(1, 10, 100, 1_000, 10_000)]
             public int Count;
 
             //[Benchmark(Baseline = true)]
