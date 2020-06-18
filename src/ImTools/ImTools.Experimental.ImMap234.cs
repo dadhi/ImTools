@@ -116,58 +116,17 @@ namespace ImTools.Experimental.Tree234
                 // [1 3 5]  =>      [3]
                 // adding 7     [1]     [5, 7]
                 if (key > Entry2.Key)
-                    return new Branch2(Entry1, Entry0, new Leaf2(Entry2, entry));
+                    return new Leaf4(Entry0, Entry1, Entry2, entry);
 
                 if (key < Entry0.Key)
-                    return new Branch2(Entry1, new Leaf2(entry, Entry0), Entry2);
-
-                if (key > Entry1.Key && key < Entry2.Key)
-                    return new Branch2(Entry1, Entry0, new Leaf2(entry, Entry2));
+                    return new Leaf4(entry, Entry0, Entry1, Entry2);
 
                 if (key > Entry0.Key && key < Entry1.Key)
-                    return new Branch2(Entry1, new Leaf2(Entry0, entry), Entry2);
-
-                return key == Entry0.Key ? new Leaf3(entry, Entry1, Entry2)
-                    :  key == Entry1.Key ? new Leaf3(Entry0, entry, Entry2)
-                    :  new Leaf3(Entry0, Entry1, entry);
-            }
-
-            /// <summary>Produces the new or updated map</summary>
-            public ImMap<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap<V> popRight)
-            {
-                // [1 3 5]  =>      [3]
-                // adding 7     [1]     [5, 7]
-                if (key > Entry2.Key)
-                {
-                    popRight = new Leaf2(Entry2, entry);
-                    entry = Entry1;
-                    return Entry0;
-                }
-
-                if (key < Entry0.Key)
-                {
-                    popRight = Entry2;
-                    var left = new Leaf2(entry, Entry0);
-                    entry = Entry1;
-                    return left;
-                }
+                    return new Leaf4(Entry0, entry, Entry1, Entry2);
 
                 if (key > Entry1.Key && key < Entry2.Key)
-                {
-                    popRight = new Leaf2(entry, Entry2);
-                    entry = Entry1;
-                    return Entry0;
-                }
+                    return new Leaf4(Entry0, Entry1, entry, Entry2);
 
-                if (key > Entry0.Key && key < Entry1.Key)
-                {
-                    popRight = Entry2;
-                    var left = new Leaf2(Entry0, entry);
-                    entry = Entry1;
-                    return left;
-                }
-
-                popRight = null;
                 return key == Entry0.Key ? new Leaf3(entry, Entry1, Entry2)
                     :  key == Entry1.Key ? new Leaf3(Entry0, entry, Entry2)
                     :  new Leaf3(Entry0, Entry1, entry);
@@ -180,7 +139,200 @@ namespace ImTools.Experimental.Tree234
                 key == Entry2.Key ? Entry2.Value :
                 default(V);
         }
-        /// <summary>2 branches</summary>
+
+        /// <summary>3 leafs</summary>
+        public sealed class Leaf4 : ImMap<V>
+        {
+            /// <summary>Left entry</summary>
+            public readonly Entry Entry0;
+
+            /// <summary>Middle</summary>
+            public readonly Entry Entry1;
+
+            /// <summary>Right 0</summary>
+            public readonly Entry Entry2;
+
+            /// <summary>Right 1</summary>
+            public readonly Entry Entry3;
+
+            /// <summary>Constructs a tree leaf</summary>
+            public Leaf4(Entry entry0, Entry entry1, Entry entry2, Entry entry3)
+            {
+                Entry0 = entry0;
+                Entry1 = entry1;
+                Entry2 = entry2;
+                Entry3 = entry3;
+            }
+
+            /// Pretty-print
+            public override string ToString() => Entry0 + " <- " + Entry1 + " -> " + Entry2 + ", " + Entry3;
+
+            /// <summary>Produces the new or updated map</summary>
+            public override ImMap<V> AddOrUpdateEntry(int key, Entry entry)
+            {
+                // [1 3 5]  =>      [3]
+                // adding 7     [1]     [5, 7]
+                if (key > Entry3.Key)
+                    return new Leaf5(Entry0, Entry1, Entry2, Entry3, entry);
+
+                if (key < Entry0.Key)
+                    return new Leaf5(entry, Entry0, Entry1, Entry2, Entry3);
+
+                if (key > Entry0.Key && key < Entry1.Key)
+                    return new Leaf5(Entry0, entry, Entry1, Entry2, Entry3);
+
+                if (key > Entry1.Key && key < Entry2.Key)
+                    return new Leaf5(Entry0, Entry1, entry, Entry2, Entry3);
+
+                if (key > Entry2.Key && key < Entry3.Key)
+                    return new Leaf5(Entry0, Entry1, Entry2, entry, Entry3);
+
+                return key == Entry0.Key ? new Leaf4(entry, Entry1, Entry2, Entry3)
+                    :  key == Entry1.Key ? new Leaf4(Entry0, entry, Entry2, Entry3)
+                    :  key == Entry2.Key ? new Leaf4(Entry0, Entry1, entry, Entry3)
+                    :                      new Leaf4(Entry0, Entry1, Entry2, entry);
+            }
+
+            /// <summary>Lookup</summary>
+            public override V GetValueOrDefault(int key) =>
+                key == Entry0.Key ? Entry0.Value :
+                key == Entry1.Key ? Entry1.Value :
+                key == Entry2.Key ? Entry2.Value :
+                key == Entry3.Key ? Entry3.Value :
+                default(V);
+        }
+
+        /// <summary>3 leafs</summary>
+        public sealed class Leaf5 : ImMap<V>
+        {
+            /// <summary>Left entry</summary>
+            public readonly Entry Entry0;
+
+            /// <summary>Middle</summary>
+            public readonly Entry Entry1;
+
+            /// <summary>Middle</summary>
+            public readonly Entry Entry2;
+
+            /// <summary>Right 1</summary>
+            public readonly Entry Entry3;
+
+            /// <summary>Right 2</summary>
+            public readonly Entry Entry4;
+
+            /// <summary>Constructs a tree leaf</summary>
+            public Leaf5(Entry entry0, Entry entry1, Entry entry2, Entry entry3, Entry entry4)
+            {
+                Entry0 = entry0;
+                Entry1 = entry1;
+                Entry2 = entry2;
+                Entry3 = entry3;
+                Entry4 = entry4;
+            }
+
+            /// Pretty-print
+            public override string ToString() => Entry0 + "," + Entry1 + " <- " + Entry2 + " -> " + Entry3 + "," + Entry4;
+
+            /// <summary>Produces the new or updated map</summary>
+            public override ImMap<V> AddOrUpdateEntry(int key, Entry entry)
+            {
+                // [1 3 5]  =>      [3]
+                // adding 7     [1]     [5, 7]
+                if (key > Entry4.Key)
+                    return new Branch2(Entry2, new Leaf2(Entry0, Entry1), new Leaf3(Entry3, Entry4, entry));
+
+                if (key < Entry0.Key)
+                    return new Branch2(Entry2, new Leaf3(entry, Entry0, Entry1), new Leaf2(Entry3, Entry4));
+
+                // todo: @perf consider always produce the right-leaning Branch2
+                if (key > Entry0.Key && key < Entry1.Key)
+                    return new Branch2(Entry2, new Leaf3(Entry0, entry, Entry1), new Leaf2(Entry3, Entry4));
+
+                if (key > Entry1.Key && key < Entry2.Key)
+                    return new Branch2(Entry2, new Leaf3(Entry0, Entry1, entry), new Leaf2(Entry3, Entry4));
+
+                if (key > Entry2.Key && key < Entry3.Key)
+                    return new Branch2(Entry2, new Leaf2(Entry0, Entry1), new Leaf3(entry, Entry3, Entry4));
+
+                if (key > Entry3.Key && key < Entry4.Key)
+                    return new Branch2(Entry2, new Leaf2(Entry0, Entry1), new Leaf3(Entry3, entry, Entry4));
+
+                return key == Entry0.Key ? new Leaf5(entry, Entry1, Entry2, Entry3, Entry4)
+                    :  key == Entry1.Key ? new Leaf5(Entry0, entry, Entry2, Entry3, Entry4)
+                    :  key == Entry2.Key ? new Leaf5(Entry0, Entry1, entry, Entry3, Entry4)
+                    :  key == Entry3.Key ? new Leaf5(Entry0, Entry1, Entry2, entry, Entry4)
+                    :                      new Leaf5(Entry0, Entry1, Entry2, Entry3, entry);
+            }
+
+            // todo: @incomplete or remove
+            /// <summary>Produces the new or updated map</summary>
+            public ImMap<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap<V> popRight)
+            {
+                // [1 3 5]  =>      [3]
+                // adding 7     [1]     [5, 7]
+                if (key > Entry4.Key)
+                {
+                    popRight = new Leaf3(Entry3, Entry4, entry);
+                    entry = Entry2;
+                    return new Leaf2(Entry0, Entry1);
+                }
+
+                if (key < Entry0.Key)
+                {
+                    popRight = new Leaf2(Entry3, Entry4);
+                    var left = new Leaf3(entry, Entry0, Entry1);
+                    entry = Entry2;
+                    return left;
+                }
+
+                if (key > Entry0.Key && key < Entry1.Key)
+                {
+                    popRight = new Leaf2(Entry3, Entry4);
+                    var left = new Leaf3(Entry0, entry, Entry1);
+                    entry = Entry2;
+                    return left;
+                }
+
+                if (key > Entry1.Key && key < Entry2.Key)
+                {
+                    popRight = new Leaf2(Entry3, Entry4);
+                    entry = Entry2;
+                    return new Leaf3(Entry0, Entry1, entry);
+                }
+
+                if (key > Entry2.Key && key < Entry3.Key)
+                {
+                    popRight = new Leaf3(entry, Entry3, Entry4);
+                    entry = Entry2;
+                    return new Leaf2(Entry0, Entry1);
+                }
+
+                if (key > Entry3.Key && key < Entry4.Key)
+                {
+                    popRight = new Leaf3(Entry3, entry, Entry4);
+                    entry = Entry2;
+                    return new Leaf2(Entry0, Entry1);
+                }
+
+                popRight = null;
+                return key == Entry0.Key ? new Leaf5(entry, Entry1, Entry2, Entry3, Entry4)
+                    :  key == Entry1.Key ? new Leaf5(Entry0, entry, Entry2, Entry3, Entry4)
+                    :  key == Entry2.Key ? new Leaf5(Entry0, Entry1, entry, Entry3, Entry4)
+                    :  key == Entry3.Key ? new Leaf5(Entry0, Entry1, Entry2, entry, Entry4)
+                    :                      new Leaf5(Entry0, Entry1, Entry2, Entry3, entry);
+            }
+
+            /// <summary>Lookup</summary>
+            public override V GetValueOrDefault(int key) =>
+                key == Entry0.Key ? Entry0.Value :
+                key == Entry1.Key ? Entry1.Value :
+                key == Entry2.Key ? Entry2.Value :
+                key == Entry3.Key ? Entry3.Value :
+                key == Entry4.Key ? Entry4.Value :
+                default(V);
+        }
+
+        /// <summary>2 branches - it is never split itself, but may produce Branch3 if the lower branches are split</summary>
         public class Branch2 : ImMap<V>
         {
             /// <summary>The only entry</summary>
@@ -229,26 +381,40 @@ namespace ImTools.Experimental.Tree234
                     // 1. The branch is Leaf3 - because we still will be checking on that, let's just check beforehand and do an addition 
                     // 2. The branch is Branch3 but now is not Branch3 - so it is split
 
-                    if (Br1 is Leaf3 lf3)
+                    if (Br1 is Leaf5 lf5)
                     {
                         // [1 3 5]  =>      [3]
                         // adding 7     [1]     [5, 7]
-                        if (key > lf3.Entry2.Key)
-                            return new Branch3(Entry0, Br0, lf3.Entry0, lf3.Entry1, new Leaf2(lf3.Entry2, entry));
+                        if (key > lf5.Entry4.Key)
+                            return new Branch3(Entry0, Br0, 
+                                new Leaf2(lf5.Entry0, lf5.Entry1), lf5.Entry2, new Leaf3(lf5.Entry3, lf5.Entry4, entry));
 
-                        if (key < lf3.Entry0.Key)
-                            return new Branch3(Entry0, Br0, new Leaf2(entry, lf3.Entry0), lf3.Entry1, lf3.Entry2);
+                        if (key < lf5.Entry0.Key)
+                            return new Branch3(Entry0, Br0, 
+                                new Leaf3(entry, lf5.Entry0, lf5.Entry1), lf5.Entry2, new Leaf2(lf5.Entry3, lf5.Entry4));
 
-                        if (key > lf3.Entry1.Key && key < lf3.Entry2.Key)
-                            return new Branch3(Entry0, Br0, lf3.Entry0, lf3.Entry1, new Leaf2(entry, lf3.Entry2));
+                        if (key > lf5.Entry0.Key && key < lf5.Entry1.Key)
+                            return new Branch3(Entry0, Br0, 
+                                new Leaf3(lf5.Entry0, entry, lf5.Entry1), lf5.Entry2, new Leaf2(lf5.Entry3, lf5.Entry4));
 
-                        if (key > lf3.Entry0.Key && key < lf3.Entry1.Key)
-                            return new Branch3(Entry0, Br0, new Leaf2(lf3.Entry0, entry), lf3.Entry1, lf3.Entry2);
+                        if (key > lf5.Entry1.Key && key < lf5.Entry2.Key)
+                            return new Branch3(Entry0, Br0,
+                                new Leaf3(lf5.Entry0, lf5.Entry1, entry), lf5.Entry2, new Leaf2(lf5.Entry3, lf5.Entry4));
+
+                        if (key > lf5.Entry2.Key && key < lf5.Entry3.Key)
+                            return new Branch3(Entry0, Br0,
+                                new Leaf2(lf5.Entry0, lf5.Entry1), lf5.Entry2, new Leaf3(entry, lf5.Entry3, lf5.Entry4));
+
+                        if (key > lf5.Entry3.Key && key < lf5.Entry4.Key)
+                            return new Branch3(Entry0, Br0,
+                                new Leaf2(lf5.Entry0, lf5.Entry1), lf5.Entry2, new Leaf3(lf5.Entry3, entry, lf5.Entry4));
 
                         return new Branch2(Entry0, Br0,
-                            key == lf3.Entry0.Key ? new Leaf3(entry, lf3.Entry1, lf3.Entry2)
-                            : key == lf3.Entry1.Key ? new Leaf3(lf3.Entry0, entry, lf3.Entry2)
-                            : new Leaf3(lf3.Entry0, lf3.Entry1, entry));
+                            key == lf5.Entry0.Key ? new Leaf5(entry, lf5.Entry1, lf5.Entry2, lf5.Entry3, lf5.Entry4)
+                            : key == lf5.Entry1.Key  ? new Leaf5(lf5.Entry0, entry, lf5.Entry2, lf5.Entry3, lf5.Entry4)
+                            : key == lf5.Entry2.Key  ? new Leaf5(lf5.Entry0, lf5.Entry1, entry, lf5.Entry3, lf5.Entry4)
+                            : key == lf5.Entry3.Key  ? new Leaf5(lf5.Entry0, lf5.Entry1, lf5.Entry2, entry, lf5.Entry4)
+                            : new Leaf5(Entry0, lf5.Entry1, lf5.Entry2, lf5.Entry3, entry));
                     }
 
                     if (Br1 is Branch3 br3)
@@ -267,26 +433,40 @@ namespace ImTools.Experimental.Tree234
                     //           [4]                [2]  <-  [4]
                     // [1, 2, 3]      [5] =>  [0, 1]    [3]      [5]  =>
                     // and adding 0, so we are merging the branches
-                    if (Br0 is Leaf3 lf3)
+                    if (Br0 is Leaf5 lf5)
                     {
                         // [1 3 5]  =>      [3]
                         // adding 7     [1]     [5, 7]
-                        if (key > lf3.Entry2.Key)
-                            return new Branch3(lf3.Entry1, lf3.Entry0, new Leaf2(lf3.Entry2, entry), Entry0, Br1);
+                        if (key > lf5.Entry4.Key)
+                            return new Branch3(lf5.Entry2, new Leaf2(lf5.Entry0, lf5.Entry1), new Leaf3(lf5.Entry3, lf5.Entry4, entry), 
+                                Entry0, Br1);
 
-                        if (key < lf3.Entry0.Key)
-                            return new Branch3(lf3.Entry1, new Leaf2(entry, lf3.Entry0), lf3.Entry2, Entry0, Br1);
+                        if (key < lf5.Entry0.Key)
+                            return new Branch3(lf5.Entry2, new Leaf3(entry, lf5.Entry0, lf5.Entry1), new Leaf2(lf5.Entry3, lf5.Entry4), 
+                                Entry0, Br1);
 
-                        if (key > lf3.Entry1.Key && key < lf3.Entry2.Key)
-                            return new Branch3(lf3.Entry1, lf3.Entry0, new Leaf2(entry, lf3.Entry2), Entry0, Br1);
+                        if (key > lf5.Entry0.Key && key < lf5.Entry1.Key)
+                            return new Branch3(lf5.Entry2, new Leaf3(lf5.Entry0, entry, lf5.Entry1), new Leaf2(lf5.Entry3, lf5.Entry4), 
+                                Entry0, Br1);
 
-                        if (key > lf3.Entry0.Key && key < lf3.Entry1.Key)
-                            return new Branch3(lf3.Entry1, new Leaf2(lf3.Entry0, entry), lf3.Entry2, Entry0, Br1);
+                        if (key > lf5.Entry1.Key && key < lf5.Entry2.Key)
+                            return new Branch3(lf5.Entry2, new Leaf3(lf5.Entry0, lf5.Entry1, entry), new Leaf2(lf5.Entry3, lf5.Entry4), 
+                                Entry0, Br1);
+
+                        if (key > lf5.Entry2.Key && key < lf5.Entry3.Key)
+                            return new Branch3(lf5.Entry2, new Leaf2(lf5.Entry0, lf5.Entry1), new Leaf3(entry, lf5.Entry3, lf5.Entry4),
+                                Entry0, Br1);
+
+                        if (key > lf5.Entry3.Key && key < lf5.Entry4.Key)
+                            return new Branch3(lf5.Entry2, new Leaf2(lf5.Entry0, lf5.Entry1), new Leaf3(lf5.Entry3, entry, lf5.Entry4),
+                                Entry0, Br1);
 
                         return new Branch2(Entry0,
-                            key == lf3.Entry0.Key ? new Leaf3(entry, lf3.Entry1, lf3.Entry2)
-                            : key == lf3.Entry1.Key ? new Leaf3(lf3.Entry0, entry, lf3.Entry2)
-                            : new Leaf3(lf3.Entry0, lf3.Entry1, entry),
+                            key == lf5.Entry0.Key ? new Leaf5(entry, lf5.Entry1, lf5.Entry2, lf5.Entry3, lf5.Entry4)
+                            : key == lf5.Entry1.Key ? new Leaf5(lf5.Entry0, entry, lf5.Entry2, lf5.Entry3, lf5.Entry4)
+                            : key == lf5.Entry2.Key ? new Leaf5(lf5.Entry0, lf5.Entry1, entry, lf5.Entry3, lf5.Entry4)
+                            : key == lf5.Entry3.Key ? new Leaf5(lf5.Entry0, lf5.Entry1, lf5.Entry2, entry, lf5.Entry4)
+                            : new Leaf5(Entry0, lf5.Entry1, lf5.Entry2, lf5.Entry3, entry),
                             Br1);
                     }
 
@@ -312,6 +492,7 @@ namespace ImTools.Experimental.Tree234
                 key == Entry0.Key ? Entry0.Value : default(V);
         }
 
+        // todo: @perf inherit directly from ImMap, for the future (Br2 -> Br2) it maybe not need - but let's simplify for now
         /// <summary>3 branches</summary>
         public sealed class Branch3 : Branch2
         {
@@ -406,15 +587,16 @@ namespace ImTools.Experimental.Tree234
             {
                 popRight = null;
                 ImMap<V> newBranch;
+
                 if (key > Entry1.Key)
                 {
                     //                                                   =>          [4]
                     //     [2, 4]                   [2, 4]  ->  [6]             [2]         [6]
                     // [1]   [3]  [5, 6, 7] =>  [1]   [3]    [5]   [7, 8]    [1]   [3]   [5]   [7,8]
                     // and adding 8
-                    if (Br2 is Leaf3 lf3)
+                    if (Br2 is Leaf5 lf5)
                     {
-                        newBranch = lf3.AddOrUpdateOrSplitEntry(key, ref entry, out var popRightBelow);
+                        newBranch = lf5.AddOrUpdateOrSplitEntry(key, ref entry, out var popRightBelow);
                         if (popRightBelow != null)
                         {
                             popRight = new Branch2(entry, newBranch, popRightBelow);
@@ -444,9 +626,9 @@ namespace ImTools.Experimental.Tree234
                     //         [4,6]      =>       [2]        [6]
                     // [1,2,3]   [5]  [7]      [0,1]  [3]   [5]   [7]
                     // and adding 0
-                    if (Br0 is Leaf3 lf3)
+                    if (Br0 is Leaf5 lf5)
                     {
-                        newBranch = lf3.AddOrUpdateOrSplitEntry(key, ref entry, out var popRightBelow);
+                        newBranch = lf5.AddOrUpdateOrSplitEntry(key, ref entry, out var popRightBelow);
                         if (popRightBelow != null)
                         {
                             newBranch = new Branch2(entry, newBranch, popRightBelow);
@@ -477,9 +659,9 @@ namespace ImTools.Experimental.Tree234
                     //       [2, 7]            [2]         [7]
                     // [1]  [3,4,5]  [8] => [1]  [3]  [5,6]    [8]
                     // and adding 6
-                    if (Br1 is Leaf3 lf3)
+                    if (Br1 is Leaf5 lf5)
                     {
-                        newBranch = lf3.AddOrUpdateOrSplitEntry(key, ref entry, out var popRightBelow);
+                        newBranch = lf5.AddOrUpdateOrSplitEntry(key, ref entry, out var popRightBelow);
                         if (popRightBelow != null)
                         {
                             popRight = new Branch2(Entry1, popRightBelow, Br2);

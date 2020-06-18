@@ -197,8 +197,15 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |    Experimental_ImMap_AddOrUpdate |   100 | 10,198.82 ns | 35.998 ns | 33.673 ns |  1.00 | 6.4545 | 0.2899 |     - |   30432 B |
 | Experimental_ImMap234_AddOrUpdate |   100 | 11,106.80 ns | 48.036 ns | 44.933 ns |  1.09 | 6.2103 | 0.2747 |     - |   29280 B |
 
+## leaf4,5
+
+|                            Method | Count |     Mean |   Error |  StdDev | Ratio |  Gen 0 |  Gen 1 | Gen 2 | Allocated |
+|---------------------------------- |------ |---------:|--------:|--------:|------:|-------:|-------:|------:|----------:|
+|    Experimental_ImMap_AddOrUpdate |    10 | 436.9 ns | 3.38 ns | 3.16 ns |  1.00 | 0.2651 |      - |     - |   1.22 KB |
+| Experimental_ImMap234_AddOrUpdate |    10 | 381.9 ns | 1.56 ns | 1.39 ns |  0.87 | 0.2227 | 0.0005 |     - |   1.02 KB |
+
 */
-            [Params(1, 10, 100)]//, 100, 1_000, 10_000)]
+            [Params(10)]//, 100)]//, 100, 1_000, 10_000)]
             public int Count;
 
             //[Benchmark(Baseline = true)]
