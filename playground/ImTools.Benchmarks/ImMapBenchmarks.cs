@@ -165,7 +165,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |    Experimental_ImMap_AddOrUpdate | 10000 | 4,388,043.97 ns | 23,756.491 ns | 21,059.511 ns |  1.00 |    0.00 | 992.1875 | 328.1250 | 109.3750 | 6253354 B |
 | Experimental_ImMap234_AddOrUpdate | 10000 | 5,143,523.21 ns | 29,696.995 ns | 26,325.612 ns |  1.17 |    0.01 | 960.9375 | 351.5625 | 132.8125 | 6018603 B |
 
-## No hierarchy
+### No hierarchy
 
 |                            Method | Count |         Mean |     Error |    StdDev | Ratio |  Gen 0 |  Gen 1 | Gen 2 | Allocated |
 |---------------------------------- |------ |-------------:|----------:|----------:|------:|-------:|-------:|------:|----------:|
@@ -178,9 +178,18 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |    Experimental_ImMap_AddOrUpdate |   100 |  9,920.71 ns | 70.337 ns | 65.794 ns |  1.00 | 6.4545 | 0.2899 |     - |   30432 B |
 | Experimental_ImMap234_AddOrUpdate |   100 | 10,626.03 ns | 70.899 ns | 66.319 ns |  1.07 | 5.9509 | 0.2747 |     - |   28016 B |
 
+### Re-balancing nodes differently
+
+|                            Method | Count |       Mean |    Error |   StdDev | Ratio |  Gen 0 |  Gen 1 | Gen 2 | Allocated |
+|---------------------------------- |------ |-----------:|---------:|---------:|------:|-------:|-------:|------:|----------:|
+|    Experimental_ImMap_AddOrUpdate |    10 |   442.1 ns |  2.06 ns |  1.93 ns |  1.00 | 0.2651 | 0.0005 |     - |    1248 B |
+| Experimental_ImMap234_AddOrUpdate |    10 |   376.1 ns |  1.47 ns |  1.30 ns |  0.85 | 0.2122 | 0.0005 |     - |    1000 B |
+|                                   |       |            |          |          |       |        |        |       |           |
+|    Experimental_ImMap_AddOrUpdate |   100 | 9,807.2 ns | 80.54 ns | 75.34 ns |  1.00 | 6.4545 | 0.2899 |     - |   30432 B |
+| Experimental_ImMap234_AddOrUpdate |   100 | 9,761.4 ns | 64.96 ns | 57.59 ns |  1.00 | 5.4779 | 0.2289 |     - |   25800 B |
 
 */
-            [Params(1, 10, 100)]//, 1_000, 10_000)]
+            [Params(10, 100)]//, 1_000, 10_000)]
             public int Count;
 
             //[Benchmark(Baseline = true)]
