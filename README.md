@@ -8,7 +8,8 @@
 - Lib package: [![NuGet Badge](https://buildstats.info/nuget/ImTools.dll)](https://www.nuget.org/packages/ImTools.dll)
 - Code package: [![NuGet Badge](https://buildstats.info/nuget/ImTools)](https://www.nuget.org/packages/ImTools)
 
-Immutable persistent collections, Ref, and Array helpers designed for performance.
+Fast immutable persistent collections and other data structures 
+with focus on thread-safety without locks.
 
 Split from [DryIoc](https://github.com/dadhi/dryioc).
 
@@ -40,7 +41,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
 #### ImMap Population
 
-[The benchmark](https://github.com/dadhi/ImTools/blob/master/playground/ImTools.Benchmarks/ImMapBenchmarks.cs) inserts from 10 to 100 000 `Count` of items into the `ImMap<string>`, 
+[The benchmark](https://github.com/dadhi/ImTools/blob/master/playground/ImTools.Benchmarks/ImMapBenchmarks.cs) inserts from 10 to 10 000 `Count` of items into the `ImMap<string>`, 
 where value is `i.ToString()`:
 
 ```md

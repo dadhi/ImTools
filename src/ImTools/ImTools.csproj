@@ -6,7 +6,7 @@
 
         <Product>ImTools</Product>
         <VersionPrefix>2.0.0</VersionPrefix>
-        <VersionSuffix>preview-01</VersionSuffix>
+        <VersionSuffix></VersionSuffix>
 
         <AssemblyName>$(Product)</AssemblyName>
         <AssemblyTitle>$(AssemblyName) $(TargetFramework)</AssemblyTitle>
@@ -15,27 +15,25 @@
         <Title>$(Product).dll</Title>
         <Description>
 <![CDATA[
-            Immutable persistent collections, algebraic sum-type aka descriminated union, Ref type and supportive extensions for performant functional programming in C#.
-            Split from the DryIoc: https://github.com/dadhi/DryIoc
+        Immutable persistent collections, algebraic sum-type aka descriminated union, Ref type and supportive extensions for performant functional programming in C#.
+        Split from the DryIoc: https://github.com/dadhi/DryIoc
 ]]>
         </Description>
         <PackageTags>FP Performance Simple Functional Immutable Persistent Map Avl Balanced Tree Dictionary Thread-safe Functional Atomic Ref Algebraic Discriminated Union SumType</PackageTags>
         <PackageReleaseNotes>
 <![CDATA[
-        ## v2.0.0 Release notes:
-        
-        ### Features
-        
+        ## v2.0.0 Major feature release
+
+        ### Highlights
+
         - Faster and less allocative ImMap and ImHashMap with more methods (plus bucketed ImMapSlots and ImHashMapSlots variants)
         - Algebraic sum-type aka descriminated union and one-liner records - Union<TUnion, T1..N>, Box<TBox, T>, Item<TItem, T>
         - GrowingList<T>, ImZipper<T>, StackPool<T>, Unit, Fun extensions with forward pipe operators
         - Ref.Swap now accepts state to use closure-less lambdas with less allocations
-        - likely more
-        
-        ## Fixes
+
+        ### Details
             
-        - fixed: wrong KV<K,V> ToString output
-        - fixed: likely more
+        https://github.com/dadhi/ImTools/milestone/2
 ]]>
     </PackageReleaseNotes>
     </PropertyGroup>

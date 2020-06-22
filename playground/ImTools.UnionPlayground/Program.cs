@@ -1,4 +1,4 @@
-// MIT licensed to Maksim Volkau 2018-2019
+// MIT licensed to Maksim Volkau 2018-2020
 
 using System;
 using static System.Console;
@@ -17,11 +17,11 @@ namespace ImTools.UnionPlayground
             WriteLine(i);
             WriteLine(s);
 
-            // You may create the union case directly via constructor, helpful for cases like `U<A, A>` or `U<string, string>`
-            var s2 = new U<int, string>.case1(24);
+            // You may create the union case directly via constructor, helpful for the cases like `U<A, A>` or `U<string, string>`
+            var s2 = new U<string, string>.case1("hsss");
             WriteLine(s2);
 
-            // Typed union, the type is different from U<int, string>, e.g. `s = name;` won't compile
+            // Typed union (check the definition below) is different from the unnamed `U<int, string>`, e.g. `s = name;` won't compile
             var name = BoolOrString.Of("Bob");
             var flag = BoolOrString.Of(false);
 
@@ -29,7 +29,7 @@ namespace ImTools.UnionPlayground
             WriteLine(SwitchOnCases(flag));
             WriteLine(name.Match(f => "" + f, n => n));
 
-            // Typed union with Typed cases, so you can pattern match on `case Is<Name> name` or `Is<Flag> flag`
+            // Typed union with the Typed cases so you can pattern match on `case I<Name> name` or `I<Flag> flag`
             var name2 = FlagOrName.Of(Name.Of("Alice"));
             var flag2 = FlagOrName.Of(Flag.Of(true));
 
@@ -37,24 +37,24 @@ namespace ImTools.UnionPlayground
             WriteLine(SwitchOnTypedItems(flag2));
             WriteLine(flag2.Match(f => "" + f.Value, n => n.Value));
 
-            // Option (MayBe) type defined as `sealed class Option<T> : Union<Option<T>, Empty, T> { ... }`.
-            WriteLine(Some.Of(42));
+            // Option (MayBe) type defined as `sealed class Option<T> : Union<Option<T>, Unit, T> { ... }`.
+            WriteLine(Some.Of(42)); // the helper accessors maybe defined for the often use-cases
             WriteLine(None.Of<int>());
 
-            // Examples of recursive types: linked List and binary Tree, see below on how.
+            // Examples of the recursive types defined as Union - the linked List and thw Binary Tree.
             WriteLine(MyList<int>.Empty.Push(3).Push(2).Push(1));
 
             WriteLine(MyTree.Of(MyTree.Leaf("a"), "b", MyTree.Leaf("c")));
         }
     }
 
-    // One line named union definition
+    // One-liner named union definition
     public sealed class BoolOrString : Union<BoolOrString, bool, string> { }
 
     // A different type from the NamedBoolOrString
     public sealed class OtherBoolOrString : Union<OtherBoolOrString, bool, string> { }
 
-    // Typed union with a typed cases! Now you can pattern match via `I<Flag>` and `I<Name>`
+    // Typed union with the typed cases - now you can pattern match via `I<Flag>` and `I<Name>`
     public sealed class FlagOrName : Union<FlagOrName, Flag.item, Name.item> { }
     public sealed class Flag : Item<Flag, bool>   { }
     public sealed class Name : Item<Name, string> { }
