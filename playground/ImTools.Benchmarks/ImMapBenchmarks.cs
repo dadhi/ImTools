@@ -144,60 +144,9 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |               ConcurrentDict_TryAdd | 10000 | 2,903,782.53 ns | 34,822.216 ns | 32,572.722 ns |  0.65 |    0.01 |  269.5313 | 121.0938 |  42.9688 | 1645253 B |
 |           ImmutableDict_Builder_Add | 10000 | 6,160,368.91 ns | 23,650.044 ns | 22,122.266 ns |  1.37 |    0.01 |  148.4375 |  70.3125 |        - |  959786 B |
 
-|                            Method | Count |      Mean |    Error |   StdDev | Ratio |  Gen 0 |  Gen 1 | Gen 2 | Allocated |
-|---------------------------------- |------ |----------:|---------:|---------:|------:|-------:|-------:|------:|----------:|
-|                 ImMap_AddOrUpdate |     1 |  22.97 ns | 0.100 ns | 0.093 ns |  1.00 | 0.0102 |      - |     - |      48 B |
-| Experimental_ImMap234_AddOrUpdate |     1 |  31.02 ns | 0.164 ns | 0.145 ns |  1.35 | 0.0068 |      - |     - |      32 B |
-|                                   |       |           |          |          |       |        |        |       |           |
-|                 ImMap_AddOrUpdate |    10 | 642.42 ns | 2.251 ns | 2.106 ns |  1.00 | 0.3767 | 0.0010 |     - |    1776 B |
-| Experimental_ImMap234_AddOrUpdate |    10 | 730.28 ns | 2.703 ns | 2.528 ns |  1.14 | 0.2394 |      - |     - |    1128 B |
-
-### faster first addition
-
-|                            Method | Count |      Mean |    Error |   StdDev | Ratio |  Gen 0 |  Gen 1 | Gen 2 | Allocated |
-|---------------------------------- |------ |----------:|---------:|---------:|------:|-------:|-------:|------:|----------:|
-|                 ImMap_AddOrUpdate |     1 |  23.12 ns | 0.051 ns | 0.048 ns |  1.00 | 0.0102 |      - |     - |      48 B |
-| Experimental_ImMap234_AddOrUpdate |     1 |  19.24 ns | 0.066 ns | 0.062 ns |  0.83 | 0.0068 |      - |     - |      32 B |
-|                                   |       |           |          |          |       |        |        |       |           |
-|                 ImMap_AddOrUpdate |    10 | 635.04 ns | 3.276 ns | 3.065 ns |  1.00 | 0.3767 | 0.0010 |     - |    1776 B |
-| Experimental_ImMap234_AddOrUpdate |    10 | 749.54 ns | 1.489 ns | 1.320 ns |  1.18 | 0.2394 |      - |     - |    1128 B |
-
-### virtualizing things 
-
-|                            Method | Count |     Mean |    Error |   StdDev |   Median | Ratio | RatioSD |  Gen 0 |  Gen 1 | Gen 2 | Allocated |
-|---------------------------------- |------ |---------:|---------:|---------:|---------:|------:|--------:|-------:|-------:|------:|----------:|
-| Experimental_ImMap234_AddOrUpdate |    10 | 684.3 ns | 15.91 ns | 24.78 ns | 671.9 ns |  1.06 |    0.04 | 0.2365 |      - |     - |    1.1 KB |
-|                 ImMap_AddOrUpdate |    10 | 664.3 ns |  3.34 ns |  3.13 ns | 663.8 ns |  1.00 |    0.00 | 0.3767 | 0.0010 |     - |   1.73 KB |
-
-### all virtual
-
-|                            Method | Count |         Mean |      Error |     StdDev | Ratio | RatioSD |  Gen 0 |  Gen 1 | Gen 2 | Allocated |
-|---------------------------------- |------ |-------------:|-----------:|-----------:|------:|--------:|-------:|-------:|------:|----------:|
-|                 ImMap_AddOrUpdate |     1 |     23.89 ns |   0.328 ns |   0.291 ns |  1.00 |    0.00 | 0.0102 |      - |     - |      48 B |
-| Experimental_ImMap234_AddOrUpdate |     1 |     21.11 ns |   0.243 ns |   0.203 ns |  0.89 |    0.01 | 0.0068 |      - |     - |      32 B |
-|                                   |       |              |            |            |       |         |        |        |       |           |
-|                 ImMap_AddOrUpdate |    10 |    666.66 ns |  13.229 ns |  16.246 ns |  1.00 |    0.00 | 0.3767 | 0.0010 |     - |    1776 B |
-| Experimental_ImMap234_AddOrUpdate |    10 |    498.75 ns |   3.669 ns |   3.252 ns |  0.75 |    0.02 | 0.2565 |      - |     - |    1208 B |
-|                                   |       |              |            |            |       |         |        |        |       |           |
-|                 ImMap_AddOrUpdate |   100 | 12,923.10 ns | 252.825 ns | 310.492 ns |  1.00 |    0.00 | 7.9193 | 0.3204 |     - |   37296 B |
-| Experimental_ImMap234_AddOrUpdate |   100 | 12,998.71 ns |  55.856 ns |  49.515 ns |  1.01 |    0.02 | 6.5918 | 0.2899 |     - |   31040 B |
-|    Experimental_ImMap_AddOrUpdate |   100 | 10,264.56 ns |  28.523 ns |  23.818 ns |  0.81 |    0.00 | 6.4545 | 0.2747 |     - |   30432 B |
 
 ## specialized virtual calls to get back to original memory usage
 
-
-|                            Method | Count |         Mean |     Error |    StdDev | Ratio |  Gen 0 |  Gen 1 | Gen 2 | Allocated |
-|---------------------------------- |------ |-------------:|----------:|----------:|------:|-------:|-------:|------:|----------:|
-|    Experimental_ImMap_AddOrUpdate |     1 |     18.79 ns |  0.083 ns |  0.069 ns |  1.00 | 0.0068 |      - |     - |      32 B |
-| Experimental_ImMap234_AddOrUpdate |     1 |     19.36 ns |  0.085 ns |  0.071 ns |  1.03 | 0.0068 |      - |     - |      32 B |
-|                                   |       |              |           |           |       |        |        |       |           |
-|    Experimental_ImMap_AddOrUpdate |    10 |    447.05 ns |  0.809 ns |  0.717 ns |  1.00 | 0.2651 | 0.0005 |     - |    1248 B |
-| Experimental_ImMap234_AddOrUpdate |    10 |    415.18 ns |  1.418 ns |  1.257 ns |  0.93 | 0.2394 | 0.0005 |     - |    1128 B |
-|                                   |       |              |           |           |       |        |        |       |           |
-|    Experimental_ImMap_AddOrUpdate |   100 | 10,198.82 ns | 35.998 ns | 33.673 ns |  1.00 | 6.4545 | 0.2899 |     - |   30432 B |
-| Experimental_ImMap234_AddOrUpdate |   100 | 11,106.80 ns | 48.036 ns | 44.933 ns |  1.09 | 6.2103 | 0.2747 |     - |   29280 B |
-
-## leaf4,5
 
 |                            Method | Count |            Mean |         Error |        StdDev | Ratio | RatioSD |    Gen 0 |    Gen 1 |    Gen 2 | Allocated |
 |---------------------------------- |------ |----------------:|--------------:|--------------:|------:|--------:|---------:|---------:|---------:|----------:|
@@ -217,7 +166,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 | Experimental_ImMap234_AddOrUpdate | 10000 | 5,143,523.21 ns | 29,696.995 ns | 26,325.612 ns |  1.17 |    0.01 | 960.9375 | 351.5625 | 132.8125 | 6018603 B |
 
 */
-            [Params(1, 10, 100, 1_000, 10_000)]
+            [Params(1, 10, 100)]//, 1_000, 10_000)]
             public int Count;
 
             //[Benchmark(Baseline = true)]
