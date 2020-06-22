@@ -38,16 +38,14 @@ namespace ImTools.Experimental.Tree234.UnitTests
 
             m = m.AddOrUpdate(6, 6);
             Assert.IsInstanceOf<ImMap<int>.Branch2>(m);
-            Assert.IsNotInstanceOf<ImMap<int>.Branch3>(m);
-            Assert.IsInstanceOf<ImMap<int>.Leaf2>(((ImMap<int>.Branch2)m).Br0);
-            Assert.IsInstanceOf<ImMap<int>.Leaf3>(((ImMap<int>.Branch2)m).Br1);
+            Assert.IsInstanceOf<ImMap<int>.Leaf2>(((ImMap<int>.Branch2)m).Left);
+            Assert.IsInstanceOf<ImMap<int>.Leaf3>(((ImMap<int>.Branch2)m).Right);
             Assert.AreEqual(3, m.GetValueOrDefault(3));
             Assert.AreEqual(5, m.GetValueOrDefault(5));
             Assert.AreEqual(6, m.GetValueOrDefault(6));
 
             m = m.AddOrUpdate(7, 7);
             Assert.IsInstanceOf<ImMap<int>.Branch2>(m);
-            Assert.IsNotInstanceOf<ImMap<int>.Branch3>(m);
             Assert.AreEqual(7, m.GetValueOrDefault(7));
 
             m = m.AddOrUpdate(8, 8);
