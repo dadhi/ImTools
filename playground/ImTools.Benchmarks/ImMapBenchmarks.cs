@@ -876,6 +876,31 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |                        Dict_ToArray | 10000 |    75,081.85 ns | 1,492.327 ns | 1,596.774 ns |  0.47 |    0.01 |  0.8545 |  0.8545 |  0.8545 |  160018 B |
 |              ConcurrentDict_ToArray | 10000 |    76,812.19 ns |   472.741 ns |   442.202 ns |  0.48 |    0.00 |  7.3242 |  7.3242 |  7.3242 |  160013 B |
 |               ImmutableDict_ToArray | 10000 | 1,567,955.86 ns | 3,414.536 ns | 3,193.959 ns |  9.88 |    0.03 | 25.3906 | 25.3906 | 25.3906 |  160041 B |
+
+## ImMap234
+
+BenchmarkDotNet=v0.12.0, OS=Windows 10.0.18363
+Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+.NET Core SDK=3.1.301
+  [Host]     : .NET Core 3.1.5 (CoreCLR 4.700.20.26901, CoreFX 4.700.20.27001), X64 RyuJIT
+  DefaultJob : .NET Core 3.1.5 (CoreCLR 4.700.20.26901, CoreFX 4.700.20.27001), X64 RyuJIT
+
+|                            Method | Count |          Mean |      Error |     StdDev | Ratio |   Gen 0 |   Gen 1 |   Gen 2 | Allocated |
+|---------------------------------- |------ |--------------:|-----------:|-----------:|------:|--------:|--------:|--------:|----------:|
+|    Experimental_ImMap_FoldToArray |     1 |      40.36 ns |   0.198 ns |   0.185 ns |  1.00 |  0.0255 |       - |       - |     120 B |
+| Experimental_ImMap234_FoldToArray |     1 |      49.45 ns |   0.429 ns |   0.402 ns |  1.23 |  0.0255 |       - |       - |     120 B |
+|                                   |       |               |            |            |       |         |         |         |           |
+|    Experimental_ImMap_FoldToArray |    10 |     179.89 ns |   1.357 ns |   1.269 ns |  1.00 |  0.1001 |       - |       - |     472 B |
+| Experimental_ImMap234_FoldToArray |    10 |     178.30 ns |   0.976 ns |   0.913 ns |  0.99 |  0.0918 |       - |       - |     432 B |
+|                                   |       |               |            |            |       |         |         |         |           |
+|    Experimental_ImMap_FoldToArray |   100 |     995.43 ns |   3.059 ns |   2.862 ns |  1.00 |  0.6542 |  0.0038 |       - |    3080 B |
+| Experimental_ImMap234_FoldToArray |   100 |   1,345.21 ns |   5.558 ns |   5.199 ns |  1.35 |  0.6409 |  0.0038 |       - |    3016 B |
+|                                   |       |               |            |            |       |         |         |         |           |
+|    Experimental_ImMap_FoldToArray |  1000 |   9,375.63 ns |  39.679 ns |  37.116 ns |  1.00 |  5.2490 |  0.2899 |       - |   24712 B |
+| Experimental_ImMap234_FoldToArray |  1000 |  13,205.79 ns |  35.177 ns |  32.904 ns |  1.41 |  5.2338 |  0.2899 |       - |   24624 B |
+|                                   |       |               |            |            |       |         |         |         |           |
+|    Experimental_ImMap_FoldToArray | 10000 | 175,884.86 ns | 976.719 ns | 913.624 ns |  1.00 | 58.5938 | 27.8320 | 13.9160 |  342657 B |
+| Experimental_ImMap234_FoldToArray | 10000 | 205,580.33 ns | 822.305 ns | 769.185 ns |  1.17 | 58.5938 | 27.8320 | 13.9160 |  342539 B |
 */
 
             #region Populate
@@ -1042,7 +1067,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
             [Benchmark]
             public object Experimental_ImMap234_FoldToArray() =>
-                _mapExp234.Fold(new List<ImMapEntry<string>>(), (item, list) => { list.Add(item); return list; }).ToArray();
+                _mapExp234.Fold(new List<ImTools.Experimental.Tree234.ImMap<string>.Entry>(), (item, list) => { list.Add(item); return list; }).ToArray();
 
             //[Benchmark]
             public object ImMapSlots_FoldToArray() => 

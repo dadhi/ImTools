@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.CompilerServices;
 
 namespace ImTools.Experimental.Tree234
@@ -19,6 +20,11 @@ namespace ImTools.Experimental.Tree234
 
         /// <summary>Lookup</summary>
         public virtual V GetValueOrDefault(int key) => default(V);
+
+        /// <summary>Folds</summary>
+        public virtual S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap<V>[] parentStack = null) => state;
+
+        // todo: @feature add SoftRemove
 
         /// <summary>Wraps the stored data with "fixed" reference semantics - 
         /// when added to the tree it won't be changed or reconstructed in memory</summary>
@@ -51,6 +57,9 @@ namespace ImTools.Experimental.Tree234
 
             /// <summary>Lookup</summary>
             public override V GetValueOrDefault(int key) => key == Key ? Value : default(V);
+
+            /// <inheritdoc />
+            public override S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap<V>[] parentStack = null) => reduce(this, state);
         }
 
         /// <summary>2 leafs</summary>
@@ -85,6 +94,10 @@ namespace ImTools.Experimental.Tree234
                 key == Entry0.Key ? Entry0.Value :
                 key == Entry1.Key ? Entry1.Value :
                 default(V);
+
+            /// <inheritdoc />
+            public override S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap<V>[] parentStack = null) => 
+                reduce(Entry1, reduce(Entry0, state));
         }
 
         /// <summary>3 leafs</summary>
@@ -138,6 +151,10 @@ namespace ImTools.Experimental.Tree234
                 key == Entry1.Key ? Entry1.Value :
                 key == Entry2.Key ? Entry2.Value :
                 default(V);
+
+            /// <inheritdoc />
+            public override S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap<V>[] parentStack = null) =>
+                reduce(Entry2, reduce(Entry1, reduce(Entry0, state)));
         }
 
         /// <summary>3 leafs</summary>
@@ -200,6 +217,10 @@ namespace ImTools.Experimental.Tree234
                 key == Entry2.Key ? Entry2.Value :
                 key == Entry3.Key ? Entry3.Value :
                 default(V);
+
+            /// <inheritdoc />
+            public override S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap<V>[] parentStack = null) =>
+                reduce(Entry3, reduce(Entry2, reduce(Entry1, reduce(Entry0, state))));
         }
 
         /// <summary>3 leafs</summary>
@@ -329,6 +350,10 @@ namespace ImTools.Experimental.Tree234
                 key == Entry3.Key ? Entry3.Value :
                 key == Entry4.Key ? Entry4.Value :
                 default(V);
+
+            /// <inheritdoc />
+            public override S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap<V>[] parentStack = null) =>
+                reduce(Entry4, reduce(Entry3, reduce(Entry2, reduce(Entry1, reduce(Entry0, state)))));
         }
 
         /// <summary>2 branches - it is never split itself, but may produce Branch3 if the lower branches are split</summary>
@@ -482,11 +507,16 @@ namespace ImTools.Experimental.Tree234
                 return new Branch2(Left, entry, Right);
             }
 
+            // todo: @perf how to get rid of nested GetValueOrDefault call if branches are leafs
             /// <summary>Lookup</summary>
             public override V GetValueOrDefault(int key) =>
                 key > Entry0.Key ? Right.GetValueOrDefault(key) :
                 key < Entry0.Key ? Left.GetValueOrDefault(key) :
                 key == Entry0.Key ? Entry0.Value : default(V);
+
+            /// <inheritdoc />
+            public override S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap<V>[] parentStack = null) => 
+                Right.Fold(reduce(Entry0, Left.Fold(state, reduce)), reduce);
         }
 
         /// <summary>3 branches</summary>
@@ -651,6 +681,11 @@ namespace ImTools.Experimental.Tree234
                 {
                     if (Right is Leaf5 lf)
                     {
+                        // for example:
+                        //                                             [5]
+                        //        [2,5]                =>      [2]               [9]
+                        // [0,1]  [3,4]  [6,7,8,9,10]    [0,1]    [3,4]   [6,7,8]   [10,11]
+                        // and adding 11
                         newBranch = lf.AddOrUpdateOrSplitEntry(key, ref entry, out var popRightBelow);
                         if (popRightBelow != null)
                         {
@@ -658,67 +693,6 @@ namespace ImTools.Experimental.Tree234
                             entry = Entry1;
                             return new Branch2(Left, Entry0, Middle);
                         }
-                        ////                                             [5]
-                        ////        [2,5]                =>      [2]               [9]
-                        //// [0,1]  [3,4]  [6,7,8,9,10]    [0,1]    [3,4]   [6,7,8]   [10,11]
-                        //// and adding 11
-                        //var e4 = lf.Entry4;
-                        //if (key > e4.Key)
-                        //{
-                        //    popRight = new Branch2(new Leaf3(lf.Entry0, lf.Entry1, lf.Entry2), lf.Entry3, new Leaf2(e4, entry));
-                        //    entry = Entry1;
-                        //    return new Branch2(Left, Entry0, Middle);
-                        //}
-
-                        ////                                             [5]
-                        ////        [2,5]                =>      [2]               [8]
-                        //// [0,1]  [3,4]  [7,8,9,10,11]    [0,1]    [3,4]   [6,7]     [9,10,11]
-                        //// and adding 6
-                        //var e0 = lf.Entry0;
-                        //if (key < e0.Key)
-                        //{
-                        //    popRight = new Branch2(new Leaf2(entry, e0), lf.Entry1, new Leaf3(lf.Entry2, lf.Entry3, e4));
-                        //    entry = Entry1;
-                        //    return new Branch2(Left, Entry0, Middle);
-                        //}
-
-                        //var e1 = lf.Entry1;
-                        //if (key > e0.Key && key < e1.Key)
-                        //{
-                        //    popRight = new Branch2(new Leaf2(e0, entry), lf.Entry1, new Leaf3(lf.Entry2, lf.Entry3, e4));
-                        //    entry = Entry1;
-                        //    return new Branch2(Left, Entry0, Middle);
-                        //}
-
-                        //var e2 = lf.Entry2;
-                        //if (key > e1.Key && key < e2.Key)
-                        //{
-                        //    popRight = new Branch2(new Leaf2(e0, e1), entry, new Leaf3(e2, lf.Entry3, e4));
-                        //    entry = Entry1;
-                        //    return new Branch2(Left, Entry0, Middle);
-                        //}
-
-                        //var e3 = lf.Entry3;
-                        //if (key > e2.Key && key < e3.Key)
-                        //{
-                        //    popRight = new Branch2(new Leaf3(e0, e1, e2), entry, new Leaf2(e3, e4));
-                        //    entry = Entry1;
-                        //    return new Branch2(Left, Entry0, Middle);
-                        //}
-
-                        //if (key > e3.Key && key < e4.Key)
-                        //{
-                        //    popRight = new Branch2(new Leaf3(e0, e1, e2), e3, new Leaf2(entry, e4));
-                        //    entry = Entry1;
-                        //    return new Branch2(Left, Entry0, Middle);
-                        //}
-
-                        //newBranch =
-                        //    key == e0.Key ? new Leaf5(entry, e1, e2, e3, e4) :
-                        //    key == e1.Key ? new Leaf5(e0, entry, e2, e3, e4) :
-                        //    key == e2.Key ? new Leaf5(e0, e1, entry, e3, e4) :
-                        //    key == e3.Key ? new Leaf5(e0, e1, e2, entry, e4) :
-                        //    new Leaf5(e0, e1, e2, e3, entry);
                     }
                     else if (Right is Branch3 br3)
                     {
@@ -814,6 +788,10 @@ namespace ImTools.Experimental.Tree234
                 key == Entry0.Key ? Entry0.Value :
                 key == Entry1.Key ? Entry1.Value :
                 default(V);
+
+            /// <inheritdoc />
+            public override S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap<V>[] parentStack = null) =>
+                Right.Fold(reduce(Entry1, Middle.Fold(reduce(Entry0, Left.Fold(state, reduce)), reduce)), reduce);
         }
     }
 
