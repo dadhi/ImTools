@@ -570,7 +570,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 var map = ImMap234<string>.Empty;
 
                 for (var i = 0; i < Count; i++)
-                    map = ImMap234.AddOrUpdate(map, i, i.ToString());
+                    map = map.AddOrUpdate(i, i.ToString());
 
                 return map;
             }
@@ -590,6 +590,17 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             public ImTools.Experimental.ImMap<string>[] AddOrUpdate_ImMapSlots_Exp()
             {
                 var slots = ImTools.Experimental.ImMapSlots.CreateWithEmpty<string>();
+
+                for (var i = 0; i < Count; i++)
+                    slots.AddOrUpdate(i, i.ToString());
+
+                return slots;
+            }
+
+            private ImTools.Experimental.ImMap234<string>[] _mapSlots234;
+            public ImTools.Experimental.ImMap234<string>[] AddOrUpdate_ImMap234Slots_Exp()
+            {
+                var slots = ImTools.Experimental.ImMap234.CreateWithEmpty<string>();
 
                 for (var i = 0; i < Count; i++)
                     slots.AddOrUpdate(i, i.ToString());
@@ -657,6 +668,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 _map234 = AddOrUpdate_Exp_ImMap234();
                 _mapSlots = AddOrUpdate_ImMapSlots();
                 _mapSlotsExp = AddOrUpdate_ImMapSlots_Exp();
+                _mapSlots234 = AddOrUpdate_ImMap234Slots_Exp();
                 _dictSlim = DictSlim();
                 _dict = Dict();
                 _concurDict = ConcurrentDict();
@@ -678,17 +690,39 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             }
 
             //[Benchmark]
-            public string ImMap_Experimental_TryFind()
+            [Benchmark(Baseline = true)]
+            public string Experimental_ImMap_TryFind()
             {
                 _mapExp.TryFind(LookupMaxKey, out var result);
                 return result;
             }
 
-            [Benchmark(Baseline = true)]
+            [Benchmark]
+            public string Experimental_ImMapSlots_TryFind()
+            {
+                _mapSlotsExp[LookupMaxKey & ImTools.Experimental.ImMapSlots.KEY_MASK_TO_FIND_SLOT].TryFind(LookupMaxKey, out var result);
+                return result;
+            }
+
+            [Benchmark]
+            public string Experimental_ImMap234_TryFind()
+            {
+                _map234.TryFind(LookupMaxKey, out var result);
+                return result;
+            }
+
+            [Benchmark]
+            public string Experimental_ImMap234Slots_TryFind()
+            {
+                _mapSlots234[LookupMaxKey & ImTools.Experimental.ImMapSlots.KEY_MASK_TO_FIND_SLOT].TryFind(LookupMaxKey, out var result);
+                return result;
+            }
+
+            //[Benchmark(Baseline = true)]
             public string ImMap_Experimental_GetValueOrDefault() =>
                 _mapExp.GetValueOrDefault(LookupMaxKey);
 
-            [Benchmark]
+            //[Benchmark]
             public string ImMap_Experimental_ImMap234_GetValueOrDefault() =>
                 _map234.GetValueOrDefault(LookupMaxKey);
 
@@ -696,13 +730,6 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             public string ImMapSlots_TryFind()
             {
                 _mapSlots[LookupMaxKey & ImMapSlots.KEY_MASK_TO_FIND_SLOT].TryFind(LookupMaxKey, out var result);
-                return result;
-            }
-
-            //[Benchmark]
-            public string ImMapSlots_Experimental_TryFind()
-            {
-                _mapSlotsExp[LookupMaxKey & ImTools.Experimental.ImMapSlots.KEY_MASK_TO_FIND_SLOT].TryFind(LookupMaxKey, out var result);
                 return result;
             }
 
@@ -720,14 +747,14 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return result;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public string ConcurrentDict_TryGetValue()
             {
                 _concurDict.TryGetValue(LookupMaxKey, out var result);
                 return result;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public string ImmutableDict_TryGetValue()
             {
                 _immutableDict.TryGetValue(LookupMaxKey, out var result);
