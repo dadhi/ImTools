@@ -18,6 +18,10 @@ namespace ImTools.Experimental.Tree234
         /// <summary>Produces the new or updated map</summary>
         public virtual ImMap<V> AddOrUpdateEntry(int key, Entry entry) => entry;
 
+        /// <summary>As the empty cannot be a leaf - so no chance to call it</summary>
+        protected virtual ImMap<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap<V> popRight) => 
+            throw new NotSupportedException();
+
         /// <summary>Lookup</summary>
         public virtual V GetValueOrDefault(int key) => default(V);
 
@@ -55,6 +59,10 @@ namespace ImTools.Experimental.Tree234
                 key < Key ? new Leaf2(entry, this) :
                 (ImMap<V>)entry;
 
+            /// <summary>As the single entry cannot be a leaf - so no way to call it</summary>
+            protected override ImMap<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap<V> popRight) =>
+                throw new NotSupportedException();
+
             /// <summary>Lookup</summary>
             public override V GetValueOrDefault(int key) => key == Key ? Value : default(V);
 
@@ -88,6 +96,17 @@ namespace ImTools.Experimental.Tree234
                 key > Entry0.Key && entry.Key < Entry1.Key ? new Leaf3(Entry0, entry, Entry1) :
                 key == Entry0.Key ? new Leaf2(entry, Entry1) :
                 (ImMap<V>)new Leaf2(Entry0, entry);
+
+            /// <summary>Produces the new or updated leaf</summary>
+            protected override ImMap<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap<V> popRight)
+            {
+                popRight = null;
+                return key > Entry1.Key ? new Leaf3(Entry0, Entry1, entry) :
+                    key < Entry0.Key ? new Leaf3(entry, Entry0, Entry1) :
+                    key > Entry0.Key && entry.Key < Entry1.Key ? new Leaf3(Entry0, entry, Entry1) :
+                    key == Entry0.Key ? new Leaf2(entry, Entry1) :
+                    (ImMap<V>)new Leaf2(Entry0, entry);
+            }
 
             /// <summary>Lookup</summary>
             public override V GetValueOrDefault(int key) =>
@@ -124,23 +143,24 @@ namespace ImTools.Experimental.Tree234
             public override string ToString() => Entry0 + "|" + Entry1 + "|" + Entry2;
 
             /// <summary>Produces the new or updated map</summary>
-            public override ImMap<V> AddOrUpdateEntry(int key, Entry entry)
+            public override ImMap<V> AddOrUpdateEntry(int key, Entry entry) =>
+                key > Entry2.Key ? new Leaf4(Entry0, Entry1, Entry2, entry)
+                : key < Entry0.Key ? new Leaf4(entry, Entry0, Entry1, Entry2)
+                : key > Entry0.Key && key < Entry1.Key ? new Leaf4(Entry0, entry, Entry1, Entry2)
+                : key > Entry1.Key && key < Entry2.Key ? (ImMap<V>) new Leaf4(Entry0, Entry1, entry, Entry2)
+                : key == Entry0.Key ? new Leaf3(entry, Entry1, Entry2)
+                : key == Entry1.Key ? new Leaf3(Entry0, entry, Entry2)
+                : new Leaf3(Entry0, Entry1, entry);
+
+            /// <summary>Produces the new or updated leaf</summary>
+            protected override ImMap<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap<V> popRight)
             {
-                // [1 3 5]  =>      [3]
-                // adding 7     [1]     [5, 7]
-                if (key > Entry2.Key)
-                    return new Leaf4(Entry0, Entry1, Entry2, entry);
-
-                if (key < Entry0.Key)
-                    return new Leaf4(entry, Entry0, Entry1, Entry2);
-
-                if (key > Entry0.Key && key < Entry1.Key)
-                    return new Leaf4(Entry0, entry, Entry1, Entry2);
-
-                if (key > Entry1.Key && key < Entry2.Key)
-                    return new Leaf4(Entry0, Entry1, entry, Entry2);
-
-                return key == Entry0.Key ? new Leaf3(entry, Entry1, Entry2)
+                popRight = null;
+                return key > Entry2.Key ? new Leaf4(Entry0, Entry1, Entry2, entry)
+                    :  key < Entry0.Key ? new Leaf4(entry, Entry0, Entry1, Entry2)
+                    :  key > Entry0.Key && key < Entry1.Key ? new Leaf4(Entry0, entry, Entry1, Entry2)
+                    :  key > Entry1.Key && key < Entry2.Key ? (ImMap<V>)new Leaf4(Entry0, Entry1, entry, Entry2)
+                    :  key == Entry0.Key ? new Leaf3(entry, Entry1, Entry2)
                     :  key == Entry1.Key ? new Leaf3(Entry0, entry, Entry2)
                     :  new Leaf3(Entry0, Entry1, entry);
             }
@@ -187,8 +207,6 @@ namespace ImTools.Experimental.Tree234
             /// <summary>Produces the new or updated map</summary>
             public override ImMap<V> AddOrUpdateEntry(int key, Entry entry)
             {
-                // [1 3 5]  =>      [3]
-                // adding 7     [1]     [5, 7]
                 if (key > Entry3.Key)
                     return new Leaf5(Entry0, Entry1, Entry2, Entry3, entry);
 
@@ -208,6 +226,31 @@ namespace ImTools.Experimental.Tree234
                     :  key == Entry1.Key ? new Leaf4(Entry0, entry, Entry2, Entry3)
                     :  key == Entry2.Key ? new Leaf4(Entry0, Entry1, entry, Entry3)
                     :                      new Leaf4(Entry0, Entry1, Entry2, entry);
+            }
+
+            /// <summary>Produces the new or updated leaf</summary>
+            protected override ImMap<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap<V> popRight)
+            {
+                popRight = null;
+                if (key > Entry3.Key)
+                    return new Leaf5(Entry0, Entry1, Entry2, Entry3, entry);
+
+                if (key < Entry0.Key)
+                    return new Leaf5(entry, Entry0, Entry1, Entry2, Entry3);
+
+                if (key > Entry0.Key && key < Entry1.Key)
+                    return new Leaf5(Entry0, entry, Entry1, Entry2, Entry3);
+
+                if (key > Entry1.Key && key < Entry2.Key)
+                    return new Leaf5(Entry0, Entry1, entry, Entry2, Entry3);
+
+                if (key > Entry2.Key && key < Entry3.Key)
+                    return new Leaf5(Entry0, Entry1, Entry2, entry, Entry3);
+
+                return key == Entry0.Key ? new Leaf4(entry, Entry1, Entry2, Entry3)
+                    : key == Entry1.Key ? new Leaf4(Entry0, entry, Entry2, Entry3)
+                    : key == Entry2.Key ? new Leaf4(Entry0, Entry1, entry, Entry3)
+                    : new Leaf4(Entry0, Entry1, Entry2, entry);
             }
 
             /// <summary>Lookup</summary>
@@ -284,8 +327,9 @@ namespace ImTools.Experimental.Tree234
                     :                      new Leaf5(Entry0, Entry1, Entry2, Entry3, entry);
             }
 
-            /// <summary>Produces the new or updated map</summary>
-            public ImMap<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap<V> popRight)
+            /// <summary>Produces the new or updated leaf or
+            /// the split Branch2 nodes: returns the left branch, entry is changed to the Branch Entry0, popRight is the right branch</summary>
+            protected override ImMap<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap<V> popRight)
             {
                 // [1 3 5]  =>      [3]
                 // adding 7     [1]     [5, 7]
@@ -432,10 +476,10 @@ namespace ImTools.Experimental.Tree234
                         if (key > e3.Key && key < e4.Key)
                             return new Branch3(Left, Entry0, new Leaf3(e0, e1, e2), e3, new Leaf2(entry, e4));
 
-                        return new Branch2(Left, Entry0, 
-                            key == e0.Key ? new Leaf5(entry, e1, e2, e3, e4) : 
-                            key == e1.Key ? new Leaf5(e0, entry, e2, e3, e4) : 
-                            key == e2.Key ? new Leaf5(e0, e1, entry, e3, e4) : 
+                        return new Branch2(Left, Entry0,
+                            key == e0.Key ? new Leaf5(entry, e1, e2, e3, e4) :
+                            key == e1.Key ? new Leaf5(e0, entry, e2, e3, e4) :
+                            key == e2.Key ? new Leaf5(e0, e1, entry, e3, e4) :
                             key == e3.Key ? new Leaf5(e0, e1, e2, entry, e4) :
                                             new Leaf5(e0, e1, e2, e3, entry));
                     }
@@ -671,9 +715,9 @@ namespace ImTools.Experimental.Tree234
                     : new Branch3(Left, Entry0, Middle, entry, Right);
             }
 
-            // todo: @perf move it to a static method in ImMap if it speeds-up things?
-            /// <summary>Produces the new or updated map</summary>
-            public ImMap<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap<V> popRight)
+            /// <summary>Produces the new or updated leaf or
+            /// the split Branch2 nodes: returns the left branch, entry is changed to the Branch Entry0, popRight is the right branch</summary>
+            protected override ImMap<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap<V> popRight)
             {
                 popRight = null;
                 ImMap<V> newBranch;
