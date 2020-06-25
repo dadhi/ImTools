@@ -431,120 +431,42 @@ namespace ImTools.Experimental.Tree234
             {
                 if (key > Entry0.Key)
                 {
-                    //      [3]                     [3]    ->  [6]                [3, 6]
-                    // [1]       [5, 6, 7] =>  [1]       [4,5]     [7] =>  [1]   [4, 5]   [7]
-                    // adding 4, so we are merging the branches
-
-                    //         [4]
-                    //    [2]        [6]
-                    // [1]   [3]   [5]   [7, 8, 9?]
-                    // adding 9 - no need to merge
-
-                    //         [4]
-                    //    [2]         [6, 8]
-                    // [1]   [3]   [5]  [7]  [9, 10, 11] 12?
-                    // adding 12
-
-                    // How to detect a split !!!
-                    // 1. The branch is Leaf3 - because we still will be checking on that, let's just check beforehand and do an addition 
-                    // 2. The branch is Branch3 but now is not Branch3 - so it is split
-                    //
-                    // we are splitting the Leaf in a way to provide more free room on the side of newly added entry
-                    //
-                    if (Right is Leaf5 lf)
-                    {
-                        var e4 = lf.Entry4;
-                        if (key > e4.Key)
-                            return new Branch3(Left, Entry0, new Leaf3(lf.Entry0, lf.Entry1, lf.Entry2), lf.Entry3, new Leaf2(e4, entry));
-
-                        var e0 = lf.Entry0;
-                        if (key < e0.Key)
-                            return new Branch3(Left, Entry0, new Leaf2(entry, e0), lf.Entry1, new Leaf3(lf.Entry2, lf.Entry3, e4));
-
-                        var e1 = lf.Entry1;
-                        if (key > e0.Key && key < e1.Key)
-                            return new Branch3(Left, Entry0, new Leaf2(e0, entry), e1, new Leaf3(lf.Entry2, lf.Entry3, e4));
-
-                        var e2 = lf.Entry2;
-                        if (key > e1.Key && key < e2.Key)
-                            return new Branch3(Left, Entry0, new Leaf2(e0, e1), entry, new Leaf3(e2, lf.Entry3, e4));
-
-                        var e3 = lf.Entry3;
-                        if (key > e2.Key && key < e3.Key)
-                            return new Branch3(Left, Entry0, new Leaf3(e0, e1, e2), entry, new Leaf2(e3, e4));
-
-                        if (key > e3.Key && key < e4.Key)
-                            return new Branch3(Left, Entry0, new Leaf3(e0, e1, e2), e3, new Leaf2(entry, e4));
-
-                        return new Branch2(Left, Entry0,
-                            key == e0.Key ? new Leaf5(entry, e1, e2, e3, e4) :
-                            key == e1.Key ? new Leaf5(e0, entry, e2, e3, e4) :
-                            key == e2.Key ? new Leaf5(e0, e1, entry, e3, e4) :
-                            key == e3.Key ? new Leaf5(e0, e1, e2, entry, e4) :
-                                            new Leaf5(e0, e1, e2, e3, entry));
-                    }
-
-                    if (Right is Branch3 br3)
-                    {
-                        var newBranch = br3.AddOrUpdateOrSplitEntry(key, ref entry, out var popRight);
-                        if (popRight != null)
-                            return new Branch3(Left, Entry0, newBranch, entry, popRight);
-                        return new Branch2(Left, Entry0, newBranch);
-                    }
-
-                    return new Branch2(Left, Entry0, Right.AddOrUpdateEntry(key, entry));
+                    var newBranch = Right.AddOrUpdateOrSplitEntry(key, ref entry, out var popRight);
+                    if (popRight != null)
+                        return new Branch3(Left, Entry0, newBranch, entry, popRight);
+                    return new Branch2(Left, Entry0, newBranch);
                 }
 
                 if (key < Entry0.Key)
                 {
-                    //           [4]                [2]  <-  [4]
-                    // [1, 2, 3]      [5] =>  [0, 1]    [3]      [5]  =>
-                    // and adding 0, so we are merging the branches
-                    if (Left is Leaf5 lf)
-                    {
-                        // [1 3 5]  =>      [3]
-                        // adding 7     [1]     [5, 7]
-                        var e4 = lf.Entry4;
-                        if (key > e4.Key)
-                            return new Branch3(new Leaf3(lf.Entry0, lf.Entry1, lf.Entry2), lf.Entry3, new Leaf2(e4, entry), Entry0, Right);
+                    var newBranch = Left.AddOrUpdateOrSplitEntry(key, ref entry, out var popRight);
+                    if (popRight != null)
+                        return new Branch3(newBranch, entry, popRight, Entry0, Right);
+                    return new Branch2(newBranch, Entry0, Right);
+                }
 
-                        var e0 = lf.Entry0;
-                        if (key < e0.Key)
-                            return new Branch3(new Leaf2(entry, e0), lf.Entry1, new Leaf3(lf.Entry2, lf.Entry3, e4), Entry0, Right);
+                // update
+                return new Branch2(Left, entry, Right);
+            }
 
-                        var e1 = lf.Entry1;
-                        if (key > e0.Key && key < e1.Key)
-                            return new Branch3(new Leaf2(e0, entry), e1, new Leaf3(lf.Entry2, lf.Entry3, e4), Entry0, Right);
+            /// <summary>Produces the new or updated branch</summary>
+            protected override ImMap<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap<V> popRight)
+            {
+                popRight = null;
+                if (key > Entry0.Key)
+                {
+                    var newBranch = Right.AddOrUpdateOrSplitEntry(key, ref entry, out var popRightBelow);
+                    if (popRightBelow != null)
+                        return new Branch3(Left, Entry0, newBranch, entry, popRightBelow);
+                    return new Branch2(Left, Entry0, newBranch);
+                }
 
-                        var e2 = lf.Entry2;
-                        if (key > e1.Key && key < e2.Key)
-                            return new Branch3(new Leaf2(e0, e1), entry, new Leaf3(e2, lf.Entry3, e4), Entry0, Right);
-
-                        var e3 = lf.Entry3;
-                        if (key > e2.Key && key < e3.Key)
-                            return new Branch3(new Leaf3(e0, e1, e2), entry, new Leaf2(e3, e4), Entry0, Right);
-
-                        if (key > e3.Key && key < e4.Key)
-                            return new Branch3(new Leaf3(e0, e1, e2), e3, new Leaf2(entry, e4), Entry0, Right);
-
-                        return new Branch2(
-                            key == e0.Key ? new Leaf5(entry, e1, e2, e3, e4) : 
-                            key == e1.Key ? new Leaf5(e0, entry, e2, e3, e4) : 
-                            key == e2.Key ? new Leaf5(e0, e1, entry, e3, e4) : 
-                            key == e3.Key ? new Leaf5(e0, e1, e2, entry, e4) :
-                                            new Leaf5(e0, e1, e2, e3, entry),
-                            Entry0, Right);
-                    }
-
-                    if (Left is Branch3 br3)
-                    {
-                        var newLeft = br3.AddOrUpdateOrSplitEntry(key, ref entry, out var popRight);
-                        if (popRight != null)
-                            return new Branch3(newLeft, entry, popRight, Entry0, Right);
-                        return new Branch2(newLeft, Entry0, Right);
-                    }
-
-                    return new Branch2(Left.AddOrUpdateEntry(key, entry), Entry0, Right);
+                if (key < Entry0.Key)
+                {
+                    var newBranch = Left.AddOrUpdateOrSplitEntry(key, ref entry, out var popRightBelow);
+                    if (popRightBelow != null)
+                        return new Branch3(newBranch, entry, popRightBelow, Entry0, Right);
+                    return new Branch2(newBranch, Entry0, Right);
                 }
 
                 // update
@@ -609,104 +531,26 @@ namespace ImTools.Experimental.Tree234
                     // [1]   [3]  [5, 6, 7] =>  [1]   [3]    [5]   [7, 8]    [1]   [3]   [5]   [7,8]
                     // and adding 8
 
-                    var newRight = Right.AddOrUpdateEntry(key, entry);
-                    if (Right is Leaf5   && newRight is Leaf5   == false ||
-                        Right is Branch3 && newRight is Branch3 == false)
-                        return new Branch2(new Branch2(Left, Entry0, Middle), Entry1, newRight);
-
-                    return new Branch3(Left, Entry0, Middle, Entry1, newRight);
+                    var newBranch = Right.AddOrUpdateOrSplitEntry(key, ref entry, out var popRightBelow);
+                    if (popRightBelow != null)
+                        return new Branch2(new Branch2(Left, Entry0, Middle), Entry1, new Branch2(newBranch, entry, popRightBelow));
+                    return new Branch3(Left, Entry0, Middle, Entry1, newBranch);
                 }
 
                 if (key < Entry0.Key)
                 {
-                    //                                  [4]
-                    //         [4,6]      =>       [2]        [6]
-                    // [1,2,3]   [5]  [7]      [0,1]  [3]   [5]   [7]
-                    // and adding 0
-
-                    var newLeft = Left.AddOrUpdateEntry(key, entry);
-                    if (Left is Leaf5   && newLeft is Leaf5   == false ||
-                        Left is Branch3 && newLeft is Branch3 == false)
-                        return new Branch2(newLeft, Entry0, new Branch2(Middle, Entry1, Right));
-
-                    return new Branch3(newLeft, Entry0, Middle, Entry1, Right);
+                    var newBranch = Left.AddOrUpdateOrSplitEntry(key, ref entry, out var popRightBelow);
+                    if (popRightBelow != null)
+                        return new Branch2(new Branch2(newBranch, entry, popRightBelow), Entry0, new Branch2(Middle, Entry1, Right));
+                    return new Branch3(newBranch, Entry0, Middle, Entry1, Right);
                 }
 
                 if (key > Entry0.Key && key < Entry1.Key)
                 {
-                    if (Middle is Leaf5 lf)
-                    {
-                        //                                      [6]
-                        //        [2, 9]                [2]              [9]
-                        // [1]  [3,4,5,6,7]  [10] => [1]  [3,4,5]   [7,8]    [10]
-                        // and adding 8
-                        var e4 = lf.Entry4;
-                        if (key > e4.Key)
-                            return new Branch2(new Branch2(Left, Entry0, new Leaf3(lf.Entry0, lf.Entry1, lf.Entry2)), 
-                                lf.Entry3, new Branch2(new Leaf2(e4, entry), Entry1, Right));
-
-                        //                                     [4]
-                        //        [1, 9]                [1]              [9]
-                        // [0]  [3,4,5,6,7]  [10] => [0]  [2,3]   [5,6,7]    [10]
-                        // and adding 2
-                        var e0 = lf.Entry0;
-                        if (key < e0.Key)
-                            return new Branch2(new Branch2(Left, Entry0, new Leaf2(entry, e0)), 
-                                lf.Entry1, new Branch2(new Leaf3(lf.Entry2, lf.Entry3, e4), Entry1, Right));
-
-                        //                                     [4]
-                        //        [1, 9]                [1]              [9]
-                        // [0]  [2,4,5,6,7]  [10] => [0]  [2,3]   [5,6,7]    [10]
-                        // and adding 3
-                        var e1 = lf.Entry1;
-                        if (key > e0.Key && key < e1.Key)
-                            return new Branch2(new Branch2(Left, Entry0, new Leaf2(e0, entry)),
-                                e1, new Branch2(new Leaf3(lf.Entry2, lf.Entry3, e4), Entry1, Right));
-
-                        //                                     [4]
-                        //        [1, 9]                [1]              [9]
-                        // [0]  [2,3,5,6,7]  [10] => [0]  [2,3]   [5,6,7]    [10]
-                        // and adding 4
-                        var e2 = lf.Entry2;
-                        if (key > e1.Key && key < e2.Key)
-                            return new Branch2(new Branch2(Left, Entry0, new Leaf2(e0, e1)),
-                                entry, new Branch2(new Leaf3(e2, lf.Entry3, e4), Entry1, Right));
-
-                        //                                       [5]
-                        //        [1, 9]                [1]              [9]
-                        // [0]  [2,3,4,6,7]  [10] => [0]  [2,3,4]   [6,7]    [10]
-                        // and adding 5
-                        var e3 = lf.Entry3;
-                        if (key > e2.Key && key < e3.Key)
-                            return new Branch2(new Branch2(Left, Entry0, new Leaf3(e0, e1, e2)),
-                                entry, new Branch2(new Leaf2(e3, e4), Entry1, Right));
-
-                        //                                       [5]
-                        //        [1, 9]                [1]              [9]
-                        // [0]  [2,3,4,5,7]  [10] => [0]  [2,3,4]   [6,7]    [10]
-                        // and adding 6
-                        if (key > e3.Key && key < e4.Key)
-                            return new Branch2(new Branch2(Left, Entry0, new Leaf3(e0, e1, e2)),
-                                e3, new Branch2(new Leaf2(entry, e4), Entry1, Right));
-
-                        return new Branch3(Left, Entry0,
-                            key == e0.Key ? new Leaf5(entry, e1, e2, e3, e4) : 
-                            key == e1.Key ? new Leaf5(e0, entry, e2, e3, e4) : 
-                            key == e2.Key ? new Leaf5(e0, e1, entry, e3, e4) : 
-                            key == e3.Key ? new Leaf5(e0, e1, e2, entry, e4) : 
-                                            new Leaf5(e0, e1, e2, e3, entry), 
-                            Entry1, Right);
-                    }
-
-                    if (Middle is Branch3 br3)
-                    {
-                        var newLeft = br3.AddOrUpdateOrSplitEntry(key, ref entry, out var popRight);
-                        if (popRight != null)
-                            return new Branch2(new Branch2(Left, Entry0, newLeft), entry, new Branch2(popRight, Entry1, Right));
-                        return new Branch3(Left, Entry0, newLeft, Entry1, Right);
-                    }
-
-                    return new Branch3(Left, Entry0, Middle.AddOrUpdateEntry(key, entry), Entry1, Right);
+                    var newLeft = Middle.AddOrUpdateOrSplitEntry(key, ref entry, out var popRight);
+                    if (popRight != null)
+                        return new Branch2(new Branch2(Left, Entry0, newLeft), entry, new Branch2(popRight, Entry1, Right));
+                    return new Branch3(Left, Entry0, newLeft, Entry1, Right);
                 }
 
                 // update
@@ -720,71 +564,33 @@ namespace ImTools.Experimental.Tree234
             protected override ImMap<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap<V> popRight)
             {
                 popRight = null;
-                ImMap<V> newBranch;
                 if (key > Entry1.Key)
                 {
-                    if (Right is Leaf5 lf)
+                    // for example:
+                    //                                             [5]
+                    //        [2,5]                =>      [2]               [9]
+                    // [0,1]  [3,4]  [6,7,8,9,10]    [0,1]    [3,4]   [6,7,8]   [10,11]
+                    // and adding 11
+                    var newBranch = Right.AddOrUpdateOrSplitEntry(key, ref entry, out var popRightBelow);
+                    if (popRightBelow != null)
                     {
-                        // for example:
-                        //                                             [5]
-                        //        [2,5]                =>      [2]               [9]
-                        // [0,1]  [3,4]  [6,7,8,9,10]    [0,1]    [3,4]   [6,7,8]   [10,11]
-                        // and adding 11
-                        newBranch = lf.AddOrUpdateOrSplitEntry(key, ref entry, out var popRightBelow);
-                        if (popRightBelow != null)
-                        {
-                            popRight = new Branch2(newBranch, entry, popRightBelow);
-                            entry = Entry1;
-                            return new Branch2(Left, Entry0, Middle);
-                        }
+                        popRight = new Branch2(newBranch, entry, popRightBelow);
+                        entry = Entry1;
+                        return new Branch2(Left, Entry0, Middle);
                     }
-                    else if (Right is Branch3 br3)
-                    {
-                        newBranch = br3.AddOrUpdateOrSplitEntry(key, ref entry, out var popRightBelow);
-                        if (popRightBelow != null)
-                        {
-                            popRight = new Branch2(newBranch, entry, popRightBelow);
-                            entry = Entry1;
-                            return new Branch2(Left, Entry0, Middle);
-                        }
-                    }
-                    else
-                        newBranch = Right.AddOrUpdateEntry(key, entry);
-
                     return new Branch3(Left, Entry0, Middle, Entry1, newBranch);
                 }
 
                 if (key < Entry0.Key)
                 {
-                    //                                  [4]
-                    //         [4,6]      =>       [2]        [6]
-                    // [1,2,3]   [5]  [7]      [0,1]  [3]   [5]   [7]
-                    // and adding 0
-
-                    if (Left is Leaf5 lf5)
+                    var newBranch = Left.AddOrUpdateOrSplitEntry(key, ref entry, out var popRightBelow);
+                    if (popRightBelow != null)
                     {
-                        newBranch = lf5.AddOrUpdateOrSplitEntry(key, ref entry, out var popRightBelow);
-                        if (popRightBelow != null)
-                        {
-                            newBranch = new Branch2(newBranch, entry, popRightBelow);
-                            entry = Entry0;
-                            popRight = new Branch2(Middle, Entry1, Right);
-                            return newBranch;
-                        }
+                        newBranch = new Branch2(newBranch, entry, popRightBelow);
+                        entry = Entry0;
+                        popRight = new Branch2(Middle, Entry1, Right);
+                        return newBranch;
                     }
-                    else if (Left is Branch3 br3)
-                    {
-                        newBranch = br3.AddOrUpdateOrSplitEntry(key, ref entry, out var popRightBelow);
-                        if (popRightBelow != null)
-                        {
-                            newBranch = new Branch2(newBranch, entry, popRightBelow);
-                            entry = Entry0;
-                            popRight = new Branch2(Middle, Entry1, Right);
-                            return newBranch;
-                        }
-                    }
-                    else
-                        newBranch = Left.AddOrUpdateEntry(key, entry);
                     return new Branch3(newBranch, Entry0, Middle, Entry1, Right);
                 }
 
@@ -794,27 +600,12 @@ namespace ImTools.Experimental.Tree234
                     //       [2, 7]            [2]         [7]
                     // [1]  [3,4,5]  [8] => [1]  [3]  [5,6]    [8]
                     // and adding 6
-                    if (Middle is Leaf5 lf5)
+                    var newBranch = Middle.AddOrUpdateOrSplitEntry(key, ref entry, out var popRightBelow);
+                    if (popRightBelow != null)
                     {
-                        newBranch = lf5.AddOrUpdateOrSplitEntry(key, ref entry, out var popRightBelow);
-                        if (popRightBelow != null)
-                        {
-                            popRight = new Branch2(popRightBelow, Entry1, Right);
-                            return new Branch2(Left, Entry0, newBranch);
-                        }
+                        popRight = new Branch2(popRightBelow, Entry1, Right);
+                        return new Branch2(Left, Entry0, newBranch);
                     }
-                    else if (Middle is Branch3 br3)
-                    {
-                        newBranch = br3.AddOrUpdateOrSplitEntry(key, ref entry, out var popRightBelow);
-                        if (popRightBelow != null)
-                        {
-                            popRight = new Branch2(popRightBelow, Entry1, Right);
-                            return new Branch2(Left, Entry0, newBranch);
-                        }
-                    }
-                    else
-                        newBranch = Middle.AddOrUpdateEntry(key, entry);
-
                     return new Branch3(Left, Entry0, newBranch, Entry1, Right);
                 }
 
