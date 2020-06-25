@@ -1,7 +1,7 @@
 using System;
 using NUnit.Framework;
 
-namespace ImTools.Experimental.Tree234.UnitTests
+namespace ImTools.Experimental.UnitTests
 {
     [TestFixture]
     public class ImMap234Tests
@@ -9,47 +9,47 @@ namespace ImTools.Experimental.Tree234.UnitTests
         [Test]
         public void Adding_keys_from_1_to_10_and_checking_the_tree_shape_on_each_addition()
         {
-            var m = ImMap<int>.Empty;
+            var m = ImMap234<int>.Empty;
             Assert.AreEqual(default(int), m.GetValueOrDefault(0));
             Assert.AreEqual(default(int), m.GetValueOrDefault(13));
 
             m = m.AddOrUpdate(1, 1);
-            Assert.IsInstanceOf<ImMap<int>.Entry>(m);
+            Assert.IsInstanceOf<ImMap234<int>.Entry>(m);
             Assert.AreEqual(1, m.GetValueOrDefault(1));
 
             m = m.AddOrUpdate(2, 2);
-            Assert.IsInstanceOf<ImMap<int>.Leaf2>(m);
+            Assert.IsInstanceOf<ImMap234<int>.Leaf2>(m);
             Assert.AreEqual(2, m.GetValueOrDefault(2));
 
             m = m.AddOrUpdate(3, 3);
-            Assert.IsInstanceOf<ImMap<int>.Leaf3>(m);
+            Assert.IsInstanceOf<ImMap234<int>.Leaf3>(m);
             Assert.AreEqual(3, m.GetValueOrDefault(3));
 
             m = m.AddOrUpdate(4, 4);
-            Assert.IsInstanceOf<ImMap<int>.Leaf4>(m);
+            Assert.IsInstanceOf<ImMap234<int>.Leaf4>(m);
             Assert.AreEqual(4, m.GetValueOrDefault(4));
             Assert.AreEqual(3, m.GetValueOrDefault(3));
             Assert.AreEqual(2, m.GetValueOrDefault(2));
             Assert.AreEqual(1, m.GetValueOrDefault(1));
 
             m = m.AddOrUpdate(5, 5);
-            Assert.IsInstanceOf<ImMap<int>.Leaf5>(m);
+            Assert.IsInstanceOf<ImMap234<int>.Leaf5>(m);
             Assert.AreEqual(5, m.GetValueOrDefault(5));
 
             m = m.AddOrUpdate(6, 6);
-            Assert.IsInstanceOf<ImMap<int>.Branch2>(m);
-            Assert.IsInstanceOf<ImMap<int>.Leaf3>(((ImMap<int>.Branch2)m).Left);
-            Assert.IsInstanceOf<ImMap<int>.Leaf2>(((ImMap<int>.Branch2)m).Right);
+            Assert.IsInstanceOf<ImMap234<int>.Branch2>(m);
+            Assert.IsInstanceOf<ImMap234<int>.Leaf3>(((ImMap234<int>.Branch2)m).Left);
+            Assert.IsInstanceOf<ImMap234<int>.Leaf2>(((ImMap234<int>.Branch2)m).Right);
             Assert.AreEqual(3, m.GetValueOrDefault(3));
             Assert.AreEqual(5, m.GetValueOrDefault(5));
             Assert.AreEqual(6, m.GetValueOrDefault(6));
 
             m = m.AddOrUpdate(7, 7);
-            Assert.IsInstanceOf<ImMap<int>.Branch2>(m);
+            Assert.IsInstanceOf<ImMap234<int>.Branch2>(m);
             Assert.AreEqual(7, m.GetValueOrDefault(7));
 
             m = m.AddOrUpdate(8, 8);
-            Assert.IsInstanceOf<ImMap<int>.Branch2>(m);
+            Assert.IsInstanceOf<ImMap234<int>.Branch2>(m);
             Assert.AreEqual(8, m.GetValueOrDefault(8));
 
             m = m.AddOrUpdate(9, 9);
@@ -62,7 +62,7 @@ namespace ImTools.Experimental.Tree234.UnitTests
         [Test]
         public void Adding_1000_keys_and_randomly_checking()
         {
-            var m = ImMap<int>.Empty;
+            var m = ImMap234<int>.Empty;
             for (var i = 0; i < 1000; i++)
             {
                 m = m.AddOrUpdate(i, i);
@@ -84,7 +84,7 @@ namespace ImTools.Experimental.Tree234.UnitTests
         [Test]
         public void Adding_1000_keys_descending_and_randomly_checking()
         {
-            var m = ImMap<int>.Empty;
+            var m = ImMap234<int>.Empty;
             for (var i = 1000 - 1; i >= 0; i--)
             {
                 m = m.AddOrUpdate(i, i);
@@ -108,7 +108,7 @@ namespace ImTools.Experimental.Tree234.UnitTests
         {
             var rnd = new Random();
 
-            var m = ImMap<int>.Empty;
+            var m = ImMap234<int>.Empty;
             for (var i = 0; i < 100; i++)
             {
                 var n = rnd.Next(0, 1000);
