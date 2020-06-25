@@ -8,6 +8,7 @@ namespace ImTools.Experimental
 {
     /// <summary>
     /// Immutable http://en.wikipedia.org/wiki/AVL_tree with integer keys and <typeparamref name="V"/> values.
+    /// The base class for tree leafs and branches, defines the Empty tree.
     /// </summary>
     public class ImMap<V>
     {
@@ -16,8 +17,8 @@ namespace ImTools.Experimental
 
         /// <summary>Returns true if tree is empty.</summary>
         public bool IsEmpty => this == Empty;
-
-        /// Prevents multiple creation of an empty tree
+        
+        /// <summary>Hide the constructor to prevent the multiple Empty trees creation</summary>
         protected ImMap() { }
 
         /// <summary>Height of the longest sub-tree/branch - 0 for the empty tree</summary>
@@ -27,7 +28,8 @@ namespace ImTools.Experimental
         public override string ToString() => "empty";
     }
 
-    /// <summary>Wraps the stored data with "fixed" reference semantics - when added to the tree it did not change or reconstructed in memory</summary>
+    /// <summary>Wraps the stored data with "fixed" reference semantics - 
+    /// when added to the tree it won't be changed or reconstructed in memory</summary>
     public sealed class ImMapEntry<V> : ImMap<V>
     {
         /// <inheritdoc />
@@ -64,7 +66,7 @@ namespace ImTools.Experimental
         /// Contains the once created data node
         public readonly ImMapEntry<V> Entry;
 
-        /// Left sub-tree/branch, or empty.
+        /// Right sub-tree/branch, or empty.
         public ImMapEntry<V> RightEntry;
 
         /// Constructor
@@ -95,7 +97,7 @@ namespace ImTools.Experimental
         /// Left sub-tree/branch, or empty.
         public ImMap<V> Left;
 
-        /// Right sub-tree/branch, or empty.md
+        /// Right sub-tree/branch, or empty
         public ImMap<V> Right;
 
         internal ImMapTree(ImMapEntry<V> entry, ImMap<V> left, ImMap<V> right, int height)
@@ -661,7 +663,7 @@ namespace ImTools.Experimental
             }
 
             var rightRightHeight = (newRightTree.Right as ImMapTree<V>)?.TreeHeight ?? 2;
-            var rightLeftHeight = (newRightTree.Left as ImMapTree<V>)?.TreeHeight ?? 2;
+            var rightLeftHeight =  (newRightTree.Left  as ImMapTree<V>)?.TreeHeight ?? 2;
             if (rightRightHeight < rightLeftHeight)
             {
                 var rightLeftTree = (ImMapTree<V>)newRightTree.Left;
@@ -733,7 +735,7 @@ namespace ImTools.Experimental
         }
 
         /// <summary> Adds or updates the value by key in the map, always returns a modified map </summary>
-        [MethodImpl((MethodImplOptions)256)]
+        [MethodImpl((MethodImplOptions) 256)]
         public static ImMap<V> AddOrUpdate<V>(this ImMap<V> map, int key, V value) =>
             map.AddOrUpdateEntry(new ImMapEntry<V>(key, value));
 
@@ -845,14 +847,14 @@ namespace ImTools.Experimental
 
         ///<summary>Returns the new map with the updated value for the key, ASSUMES that the key is not in the map.</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImMap<V> UpdateEntryUnsafe<V>(this ImMap<V> map, ImMapEntry<V> entry) =>
+        public static ImMap<V> UpdateEntryUnsafe<V>(this ImMap<V> map, ImMapEntry<V> entry) => 
             map.UpdateImpl(entry.Key, entry);
 
         internal static ImMap<V> UpdateImpl<V>(this ImMap<V> map, int key, ImMapEntry<V> entry)
         {
             if (map is ImMapTree<V> tree)
                 return key > tree.Entry.Key ? new ImMapTree<V>(tree.Entry, tree.Left, tree.Right.UpdateImpl(key, entry), tree.TreeHeight)
-                    : key < tree.Entry.Key ? new ImMapTree<V>(tree.Entry, tree.Left.UpdateImpl(key, entry), tree.Right, tree.TreeHeight)
+                    :  key < tree.Entry.Key ? new ImMapTree<V>(tree.Entry, tree.Left.UpdateImpl(key, entry), tree.Right, tree.TreeHeight)
                     : new ImMapTree<V>(entry, tree.Left, tree.Right, tree.TreeHeight);
 
             // the key was found - so it should be either entry or right entry
@@ -1226,15 +1228,15 @@ namespace ImTools.Experimental
                 state = reduce(leaf, state, a);
             else if (map is ImMapBranch<V> branch)
             {
-                state = reduce(branch.Entry, state, a);
+                state = reduce(branch.Entry,      state, a);
                 state = reduce(branch.RightEntry, state, a);
             }
             else if (map is ImMapTree<V> tree)
             {
                 if (tree.TreeHeight == 2)
                 {
-                    state = reduce((ImMapEntry<V>)tree.Left, state, a);
-                    state = reduce(tree.Entry, state, a);
+                    state = reduce((ImMapEntry<V>)tree.Left,  state, a);
+                    state = reduce(tree.Entry,                state, a);
                     state = reduce((ImMapEntry<V>)tree.Right, state, a);
                 }
                 else
@@ -1247,8 +1249,8 @@ namespace ImTools.Experimental
                         {
                             if (tree.TreeHeight == 2)
                             {
-                                state = reduce((ImMapEntry<V>)tree.Left, state, a);
-                                state = reduce(tree.Entry, state, a);
+                                state = reduce((ImMapEntry<V>)tree.Left,  state, a);
+                                state = reduce(tree.Entry,                state, a);
                                 state = reduce((ImMapEntry<V>)tree.Right, state, a);
                                 if (parentIndex == -1)
                                     break;
@@ -1264,7 +1266,7 @@ namespace ImTools.Experimental
                         }
                         else if ((branch = map as ImMapBranch<V>) != null)
                         {
-                            state = reduce(branch.Entry, state, a);
+                            state = reduce(branch.Entry,      state, a);
                             state = reduce(branch.RightEntry, state, a);
                             if (parentIndex == -1)
                                 break;
@@ -1459,7 +1461,7 @@ namespace ImTools.Experimental
             map.AddOrUpdate(RuntimeHelpers.GetHashCode(key), key, value);
 
         /// <summary>Adds or updates the tree with passed key-value. Returns a new tree.</summary>
-        [MethodImpl((MethodImplOptions)256)]
+        [MethodImpl((MethodImplOptions) 256)]
         public static ImMap<KValue<K>> AddOrUpdate<K>(this ImMap<KValue<K>> map, K key, object value) =>
             map.AddOrUpdate(key.GetHashCode(), key, value);
 
@@ -1513,58 +1515,6 @@ namespace ImTools.Experimental
             return map.UpdateEntryUnsafe(CreateConflictsKValueEntry(hash, newConflicts));
         }
 
-        /// <summary>Adds the new entry or keeps the current map if entry key is already present</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static ImMap<KValue<K>> AddOrKeep<K>(this ImMap<KValue<K>> map, int hash, K key)
-        {
-            var oldEntry = map.GetEntryOrDefault(hash);
-            return oldEntry == null
-                ? map.AddEntryUnsafe(CreateKValueEntry(hash, key))
-                : AddOrKeepConflict(map, hash, oldEntry, key);
-        }
-
-        /// <summary>Adds the new entry or keeps the current map if entry key is already present</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static ImMap<KValue<K>> AddOrKeep<K>(this ImMap<KValue<K>> map, int hash, K key, object value)
-        {
-            var oldEntry = map.GetEntryOrDefault(hash);
-            return oldEntry == null
-                ? map.AddEntryUnsafe(CreateKValueEntry(hash, key, value))
-                : AddOrKeepConflict(map, hash, oldEntry, key, value);
-        }
-
-        private static ImMap<KValue<K>> AddOrKeepConflict<K>(ImMap<KValue<K>> map, int hash,
-            ImMapEntry<KValue<K>> oldEntry, K key, object value = null)
-        {
-            if (key.Equals(oldEntry.Value.Key))
-                return map;
-
-            // add a new conflicting key value
-            ImMapEntry<KValue<K>>[] newConflicts;
-            if (oldEntry.Value.Value is ImMapEntry<KValue<Type>>[] conflicts)
-            {
-                // entry is already containing the conflicted entries
-                var conflictCount = conflicts.Length;
-                var conflictIndex = conflictCount - 1;
-                while (conflictIndex != -1 && !key.Equals(conflicts[conflictIndex].Value.Key))
-                    --conflictIndex;
-
-                if (conflictIndex != -1)
-                    return map;
-
-                // add the new conflicting value
-                newConflicts = new ImMapEntry<KValue<K>>[conflictCount + 1];
-                Array.Copy(conflicts, 0, newConflicts, 0, conflictCount);
-                newConflicts[conflictCount] = CreateKValueEntry(hash, key, value);
-            }
-            else
-            {
-                newConflicts = new[] { oldEntry, CreateKValueEntry(hash, key, value) };
-            }
-
-            return map.UpdateEntryUnsafe(CreateConflictsKValueEntry(hash, newConflicts));
-        }
-
         /// <summary>Updates the map with the new value if key is found, otherwise returns the same unchanged map.</summary>
         public static ImMap<KValue<K>> Update<K>(this ImMap<KValue<K>> map, int hash, K key, object value, Update<K, object> update = null)
         {
@@ -1606,6 +1556,58 @@ namespace ImTools.Experimental
             }
 
             return map.UpdateEntryUnsafe(CreateConflictsKValueEntry(hash, newConflicts));
+        }
+
+        /// <summary>Adds the new entry or keeps the current map if entry key is already present</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMap<KValue<K>> AddOrKeep<K>(this ImMap<KValue<K>> map, int hash, K key)
+        {
+            var oldEntry = map.GetEntryOrDefault(hash);
+            return oldEntry == null
+                ? map.AddEntryUnsafe(CreateKValueEntry(hash, key))
+                : AddOrKeepConflict(map, hash, oldEntry, key);
+        }
+
+        private static ImMap<KValue<K>> AddOrKeepConflict<K>(ImMap<KValue<K>> map, int hash,
+            ImMapEntry<KValue<K>> oldEntry, K key, object value = null)
+        {
+            if (key.Equals(oldEntry.Value.Key))
+                return map;
+
+            // add a new conflicting key value
+            ImMapEntry<KValue<K>>[] newConflicts;
+            if (oldEntry.Value.Value is ImMapEntry<KValue<Type>>[] conflicts)
+            {
+                // entry is already containing the conflicted entries
+                var conflictCount = conflicts.Length;
+                var conflictIndex = conflictCount - 1;
+                while (conflictIndex != -1 && !key.Equals(conflicts[conflictIndex].Value.Key))
+                    --conflictIndex;
+
+                if (conflictIndex != -1)
+                    return map;
+
+                // add the new conflicting value
+                newConflicts = new ImMapEntry<KValue<K>>[conflictCount + 1];
+                Array.Copy(conflicts, 0, newConflicts, 0, conflictCount);
+                newConflicts[conflictCount] = CreateKValueEntry(hash, key, value);
+            }
+            else
+            {
+                newConflicts = new[] { oldEntry, CreateKValueEntry(hash, key, value) };
+            }
+
+            return map.UpdateEntryUnsafe(CreateConflictsKValueEntry(hash, newConflicts));
+        }
+
+        /// <summary>Adds the new entry or keeps the current map if entry key is already present</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMap<KValue<K>> AddOrKeep<K>(this ImMap<KValue<K>> map, int hash, K key, object value)
+        {
+            var oldEntry = map.GetEntryOrDefault(hash);
+            return oldEntry == null
+                ? map.AddEntryUnsafe(CreateKValueEntry(hash, key, value))
+                : AddOrKeepConflict(map, hash, oldEntry, key, value);
         }
 
         /// <summary>Updates the map with the default value if the key is found, otherwise returns the same unchanged map.</summary>
@@ -1735,7 +1737,7 @@ namespace ImTools.Experimental
                     else
                         s = r(entry, s);
                     return s;
-                },
+                }, 
                 parentsStack);
 
         /// <summary>
@@ -1744,17 +1746,17 @@ namespace ImTools.Experimental
         /// Note: By passing <paramref name="parentsStack"/> you may reuse the stack array between different method calls,
         /// but it should be at least <see cref="ImHashMap{K,V}.Height"/> length. The contents of array are not important.
         /// </summary>
-        public static S Visit<K, S>(this ImMap<KValue<K>> map,
+        public static S Visit<K, S>(this ImMap<KValue<K>> map, 
             S state, Action<ImMapEntry<KValue<K>>, S> effect, ImMapTree<KValue<K>>[] parentsStack = null) =>
             map.Fold(state, effect, (entry, s, eff) =>
             {
                 if (entry.Value.Value is ImMapEntry<KValue<K>>[] conflicts)
-                    for (var i = 0; i < conflicts.Length; i++)
+                    for (var i = 0; i<conflicts.Length; i++)
                         eff(conflicts[i], s);
                 else
                     eff(entry, s);
                 return s;
-            },
+            }, 
             parentsStack);
 
         /// <summary>
@@ -1763,17 +1765,17 @@ namespace ImTools.Experimental
         /// Note: By passing <paramref name="parentsStack"/> you may reuse the stack array between different method calls,
         /// but it should be at least <see cref="ImHashMap{K,V}.Height"/> length. The contents of array are not important.
         /// </summary>
-        public static void Visit<K>(this ImMap<KValue<K>> map,
+        public static void Visit<K>(this ImMap<KValue<K>> map, 
             Action<ImMapEntry<KValue<K>>> effect, ImMapTree<KValue<K>>[] parentsStack = null) =>
             map.Fold(false, effect, (entry, s, eff) =>
             {
                 if (entry.Value.Value is ImMapEntry<KValue<K>>[] conflicts)
-                    for (var i = 0; i < conflicts.Length; i++)
+                    for (var i = 0; i<conflicts.Length; i++)
                         eff(conflicts[i]);
                 else
                     eff(entry);
                 return false;
-            },
+            }, 
             parentsStack);
     }
 
@@ -1855,16 +1857,16 @@ namespace ImTools.Experimental
                     state = reduce(leaf, state);
                 else if (map is ImMapBranch<V> branch)
                 {
-                    state = reduce(branch.Entry, state);
+                    state = reduce(branch.Entry,      state);
                     state = reduce(branch.RightEntry, state);
                 }
                 else if (map is ImMapTree<V> tree)
                 {
                     if (tree.TreeHeight == 2)
                     {
-                        state = reduce((ImMapEntry<V>)tree.Left, state);
+                        state = reduce((ImMapEntry<V>) tree.Left, state);
                         state = reduce(tree.Entry, state);
-                        state = reduce((ImMapEntry<V>)tree.Right, state);
+                        state = reduce((ImMapEntry<V>) tree.Right, state);
                     }
                     else
                     {
@@ -1904,7 +1906,7 @@ namespace ImTools.Experimental
                             }
                             else
                             {
-                                state = reduce((ImMapEntry<V>)map, state);
+                                state = reduce((ImMapEntry<V>) map, state);
                                 if (parentIndex == -1)
                                     break;
                                 tree = parentStack[parentIndex--];
@@ -1918,5 +1920,839 @@ namespace ImTools.Experimental
 
             return state;
         }
+    }
+
+    /// <summary>The base class for tree leafs and branches, also defines the Empty tree</summary>
+    public class ImMap234<V>
+    {
+        /// <summary>Empty tree to start with.</summary>
+        public static readonly ImMap234<V> Empty = new ImMap234<V>();
+
+        /// <summary>Hide the constructor to prevent the multiple Empty trees creation</summary>
+        protected ImMap234() { }
+
+        /// Pretty-prints
+        public override string ToString() => "empty";
+
+        /// <summary>Produces the new or updated map</summary>
+        public virtual ImMap234<V> AddOrUpdateEntry(int key, Entry entry) => entry;
+
+        /// <summary>As the empty cannot be a leaf - so no chance to call it</summary>
+        protected virtual ImMap234<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight) =>
+            throw new NotSupportedException();
+
+        /// <summary>Lookup</summary>
+        public virtual V GetValueOrDefault(int key) => default(V);
+
+        /// <summary>Lookup</summary>
+        public virtual bool TryFind(int key, out V value)
+        {
+            value = default(V);
+            return false;
+        }
+
+        /// <summary>Folds</summary>
+        public virtual S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap234<V>[] parentStack = null) => state;
+
+        // todo: @feature add SoftRemove
+
+        /// <summary>Wraps the stored data with "fixed" reference semantics - 
+        /// when added to the tree it won't be changed or reconstructed in memory</summary>
+        public sealed class Entry : ImMap234<V>
+        {
+            /// <summary>The Key is basically the hash, or the Height for ImMapTree</summary>
+            public readonly int Key;
+
+            /// <summary>The value - may be modified if you need a Ref{V} semantics</summary>
+            public V Value;
+
+            /// <summary>Constructs the entry with the default value</summary>
+            public Entry(int key) => Key = key;
+
+            /// <summary>Constructs the entry with the key and value</summary>
+            public Entry(int key, V value)
+            {
+                Key = key;
+                Value = value;
+            }
+
+            /// Pretty-prints
+            public override string ToString() => Key + ":" + Value;
+
+            /// <summary>Produces the new or updated map</summary>
+            public override ImMap234<V> AddOrUpdateEntry(int key, Entry entry) =>
+                key > Key ? new Leaf2(this, entry) :
+                key < Key ? new Leaf2(entry, this) :
+                (ImMap234<V>)entry;
+
+            /// <summary>As the single entry cannot be a leaf - so no way to call it</summary>
+            protected override ImMap234<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight) =>
+                throw new NotSupportedException();
+
+            /// <summary>Lookup</summary>
+            public override V GetValueOrDefault(int key) => key == Key ? Value : default(V);
+
+            /// <summary>Lookup</summary>
+            public override bool TryFind(int key, out V value)
+            {
+                if (key == Key)
+                {
+                    value = Value;
+                    return true;
+                }
+
+                value = default(V);
+                return false;
+            }
+
+            /// <inheritdoc />
+            public override S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap234<V>[] parentStack = null) => reduce(this, state);
+        }
+
+        /// <summary>2 leafs</summary>
+        public sealed class Leaf2 : ImMap234<V>
+        {
+            /// <summary>Left entry</summary>
+            public readonly Entry Entry0;
+
+            /// <summary>Right entry</summary>
+            public readonly Entry Entry1;
+
+            /// <summary>Constructs 2 leafs</summary>
+            public Leaf2(Entry entry0, Entry entry1)
+            {
+                Entry0 = entry0;
+                Entry1 = entry1;
+            }
+
+            /// Pretty-print
+            public override string ToString() => Entry0 + "|" + Entry1;
+
+            /// <summary>Produces the new or updated map</summary>
+            public override ImMap234<V> AddOrUpdateEntry(int key, Entry entry) =>
+                key > Entry1.Key ? new Leaf3(Entry0, Entry1, entry) :
+                key < Entry0.Key ? new Leaf3(entry, Entry0, Entry1) :
+                key > Entry0.Key && entry.Key < Entry1.Key ? new Leaf3(Entry0, entry, Entry1) :
+                key == Entry0.Key ? new Leaf2(entry, Entry1) :
+                (ImMap234<V>)new Leaf2(Entry0, entry);
+
+            /// <summary>Produces the new or updated leaf</summary>
+            protected override ImMap234<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight)
+            {
+                popRight = null;
+                return key > Entry1.Key ? new Leaf3(Entry0, Entry1, entry) :
+                    key < Entry0.Key ? new Leaf3(entry, Entry0, Entry1) :
+                    key > Entry0.Key && entry.Key < Entry1.Key ? new Leaf3(Entry0, entry, Entry1) :
+                    key == Entry0.Key ? new Leaf2(entry, Entry1) :
+                    (ImMap234<V>)new Leaf2(Entry0, entry);
+            }
+
+            /// <summary>Lookup</summary>
+            public override V GetValueOrDefault(int key) =>
+                key == Entry0.Key ? Entry0.Value :
+                key == Entry1.Key ? Entry1.Value :
+                default(V);
+
+            /// <summary>Lookup</summary>
+            public override bool TryFind(int key, out V value)
+            {
+                if (key == Entry0.Key)
+                {
+                    value = Entry0.Value;
+                    return true;
+                }
+
+                if (key == Entry1.Key)
+                {
+                    value = Entry1.Value;
+                    return true;
+                }
+
+                value = default(V);
+                return false;
+            }
+
+            /// <inheritdoc />
+            public override S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap234<V>[] parentStack = null) =>
+                reduce(Entry1, reduce(Entry0, state));
+        }
+
+        /// <summary>3 leafs</summary>
+        public sealed class Leaf3 : ImMap234<V>
+        {
+            /// <summary>Left entry</summary>
+            public readonly Entry Entry0;
+
+            /// <summary>Right entry</summary>
+            public readonly Entry Entry1;
+
+            /// <summary>Rightmost leaf</summary>
+            public readonly Entry Entry2;
+
+            /// <summary>Constructs a tree leaf</summary>
+            public Leaf3(Entry entry0, Entry entry1, Entry entry2)
+            {
+                Entry0 = entry0;
+                Entry1 = entry1;
+                Entry2 = entry2;
+            }
+
+            /// Pretty-print
+            public override string ToString() => Entry0 + "|" + Entry1 + "|" + Entry2;
+
+            /// <summary>Produces the new or updated map</summary>
+            public override ImMap234<V> AddOrUpdateEntry(int key, Entry entry) =>
+                key > Entry2.Key ? new Leaf4(Entry0, Entry1, Entry2, entry)
+                : key < Entry0.Key ? new Leaf4(entry, Entry0, Entry1, Entry2)
+                : key > Entry0.Key && key < Entry1.Key ? new Leaf4(Entry0, entry, Entry1, Entry2)
+                : key > Entry1.Key && key < Entry2.Key ? (ImMap234<V>)new Leaf4(Entry0, Entry1, entry, Entry2)
+                : key == Entry0.Key ? new Leaf3(entry, Entry1, Entry2)
+                : key == Entry1.Key ? new Leaf3(Entry0, entry, Entry2)
+                : new Leaf3(Entry0, Entry1, entry);
+
+            /// <summary>Produces the new or updated leaf</summary>
+            protected override ImMap234<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight)
+            {
+                popRight = null;
+                return key > Entry2.Key ? new Leaf4(Entry0, Entry1, Entry2, entry)
+                    : key < Entry0.Key ? new Leaf4(entry, Entry0, Entry1, Entry2)
+                    : key > Entry0.Key && key < Entry1.Key ? new Leaf4(Entry0, entry, Entry1, Entry2)
+                    : key > Entry1.Key && key < Entry2.Key ? (ImMap234<V>)new Leaf4(Entry0, Entry1, entry, Entry2)
+                    : key == Entry0.Key ? new Leaf3(entry, Entry1, Entry2)
+                    : key == Entry1.Key ? new Leaf3(Entry0, entry, Entry2)
+                    : new Leaf3(Entry0, Entry1, entry);
+            }
+
+            /// <summary>Lookup</summary>
+            public override V GetValueOrDefault(int key) =>
+                key == Entry0.Key ? Entry0.Value :
+                key == Entry1.Key ? Entry1.Value :
+                key == Entry2.Key ? Entry2.Value :
+                default(V);
+
+            /// <summary>Lookup</summary>
+            public override bool TryFind(int key, out V value)
+            {
+                if (key == Entry0.Key)
+                {
+                    value = Entry0.Value;
+                    return true;
+                }
+
+                if (key == Entry1.Key)
+                {
+                    value = Entry1.Value;
+                    return true;
+                }
+
+                if (key == Entry2.Key)
+                {
+                    value = Entry2.Value;
+                    return true;
+                }
+
+                value = default(V);
+                return false;
+            }
+
+            /// <inheritdoc />
+            public override S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap234<V>[] parentStack = null) =>
+                reduce(Entry2, reduce(Entry1, reduce(Entry0, state)));
+        }
+
+        /// <summary>3 leafs</summary>
+        public sealed class Leaf4 : ImMap234<V>
+        {
+            /// <summary>Left entry</summary>
+            public readonly Entry Entry0;
+
+            /// <summary>Middle</summary>
+            public readonly Entry Entry1;
+
+            /// <summary>Right 0</summary>
+            public readonly Entry Entry2;
+
+            /// <summary>Right 1</summary>
+            public readonly Entry Entry3;
+
+            /// <summary>Constructs a tree leaf</summary>
+            public Leaf4(Entry entry0, Entry entry1, Entry entry2, Entry entry3)
+            {
+                Entry0 = entry0;
+                Entry1 = entry1;
+                Entry2 = entry2;
+                Entry3 = entry3;
+            }
+
+            /// Pretty-print
+            public override string ToString() => Entry0 + "|" + Entry1 + "|" + Entry2 + "|" + Entry3;
+
+            /// <summary>Produces the new or updated map</summary>
+            public override ImMap234<V> AddOrUpdateEntry(int key, Entry entry)
+            {
+                if (key > Entry3.Key)
+                    return new Leaf5(Entry0, Entry1, Entry2, Entry3, entry);
+
+                if (key < Entry0.Key)
+                    return new Leaf5(entry, Entry0, Entry1, Entry2, Entry3);
+
+                if (key > Entry0.Key && key < Entry1.Key)
+                    return new Leaf5(Entry0, entry, Entry1, Entry2, Entry3);
+
+                if (key > Entry1.Key && key < Entry2.Key)
+                    return new Leaf5(Entry0, Entry1, entry, Entry2, Entry3);
+
+                if (key > Entry2.Key && key < Entry3.Key)
+                    return new Leaf5(Entry0, Entry1, Entry2, entry, Entry3);
+
+                return key == Entry0.Key ? new Leaf4(entry, Entry1, Entry2, Entry3)
+                    : key == Entry1.Key ? new Leaf4(Entry0, entry, Entry2, Entry3)
+                    : key == Entry2.Key ? new Leaf4(Entry0, Entry1, entry, Entry3)
+                    : new Leaf4(Entry0, Entry1, Entry2, entry);
+            }
+
+            /// <summary>Produces the new or updated leaf</summary>
+            protected override ImMap234<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight)
+            {
+                popRight = null;
+                if (key > Entry3.Key)
+                    return new Leaf5(Entry0, Entry1, Entry2, Entry3, entry);
+
+                if (key < Entry0.Key)
+                    return new Leaf5(entry, Entry0, Entry1, Entry2, Entry3);
+
+                if (key > Entry0.Key && key < Entry1.Key)
+                    return new Leaf5(Entry0, entry, Entry1, Entry2, Entry3);
+
+                if (key > Entry1.Key && key < Entry2.Key)
+                    return new Leaf5(Entry0, Entry1, entry, Entry2, Entry3);
+
+                if (key > Entry2.Key && key < Entry3.Key)
+                    return new Leaf5(Entry0, Entry1, Entry2, entry, Entry3);
+
+                return key == Entry0.Key ? new Leaf4(entry, Entry1, Entry2, Entry3)
+                    : key == Entry1.Key ? new Leaf4(Entry0, entry, Entry2, Entry3)
+                    : key == Entry2.Key ? new Leaf4(Entry0, Entry1, entry, Entry3)
+                    : new Leaf4(Entry0, Entry1, Entry2, entry);
+            }
+
+            /// <summary>Lookup</summary>
+            public override V GetValueOrDefault(int key) =>
+                key == Entry0.Key ? Entry0.Value :
+                key == Entry1.Key ? Entry1.Value :
+                key == Entry2.Key ? Entry2.Value :
+                key == Entry3.Key ? Entry3.Value :
+                default(V);
+
+            /// <summary>Lookup</summary>
+            public override bool TryFind(int key, out V value)
+            {
+                if (key == Entry0.Key)
+                {
+                    value = Entry0.Value;
+                    return true;
+                }
+
+                if (key == Entry1.Key)
+                {
+                    value = Entry1.Value;
+                    return true;
+                }
+
+                if (key == Entry2.Key)
+                {
+                    value = Entry2.Value;
+                    return true;
+                }
+
+                if (key == Entry3.Key)
+                {
+                    value = Entry3.Value;
+                    return true;
+                }
+
+                value = default(V);
+                return false;
+            }
+
+
+            /// <inheritdoc />
+            public override S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap234<V>[] parentStack = null) =>
+                reduce(Entry3, reduce(Entry2, reduce(Entry1, reduce(Entry0, state))));
+        }
+
+        /// <summary>3 leafs</summary>
+        public sealed class Leaf5 : ImMap234<V>
+        {
+            /// <summary>Left entry</summary>
+            public readonly Entry Entry0;
+
+            /// <summary>Middle</summary>
+            public readonly Entry Entry1;
+
+            /// <summary>Middle</summary>
+            public readonly Entry Entry2;
+
+            /// <summary>Right 1</summary>
+            public readonly Entry Entry3;
+
+            /// <summary>Right 2</summary>
+            public readonly Entry Entry4;
+
+            /// <summary>Constructs a tree leaf</summary>
+            public Leaf5(Entry entry0, Entry entry1, Entry entry2, Entry entry3, Entry entry4)
+            {
+                Entry0 = entry0;
+                Entry1 = entry1;
+                Entry2 = entry2;
+                Entry3 = entry3;
+                Entry4 = entry4;
+            }
+
+            /// Pretty-print
+            public override string ToString() => Entry0 + "," + Entry1 + " <- " + Entry2 + " -> " + Entry3 + "," + Entry4;
+
+            /// <summary>Produces the new or updated map</summary>
+            public override ImMap234<V> AddOrUpdateEntry(int key, Entry entry)
+            {
+                // [1 3 5]  =>      [3]
+                // adding 7     [1]     [5, 7]
+                if (key > Entry4.Key)
+                    return new Branch2(new Leaf3(Entry0, Entry1, Entry2), Entry3, new Leaf2(Entry4, entry));
+
+                if (key < Entry0.Key)
+                    return new Branch2(new Leaf3(entry, Entry0, Entry1), Entry2, new Leaf2(Entry3, Entry4));
+
+                if (key > Entry0.Key && key < Entry1.Key)
+                    return new Branch2(new Leaf3(Entry0, entry, Entry1), Entry2, new Leaf2(Entry3, Entry4));
+
+                if (key > Entry1.Key && key < Entry2.Key)
+                    return new Branch2(new Leaf3(Entry0, Entry1, entry), Entry2, new Leaf2(Entry3, Entry4));
+
+                if (key > Entry2.Key && key < Entry3.Key)
+                    return new Branch2(new Leaf2(Entry0, Entry1), Entry2, new Leaf3(entry, Entry3, Entry4));
+
+                if (key > Entry3.Key && key < Entry4.Key)
+                    return new Branch2(new Leaf2(Entry0, Entry1), Entry2, new Leaf3(Entry3, entry, Entry4));
+
+                return key == Entry0.Key ? new Leaf5(entry, Entry1, Entry2, Entry3, Entry4)
+                    : key == Entry1.Key ? new Leaf5(Entry0, entry, Entry2, Entry3, Entry4)
+                    : key == Entry2.Key ? new Leaf5(Entry0, Entry1, entry, Entry3, Entry4)
+                    : key == Entry3.Key ? new Leaf5(Entry0, Entry1, Entry2, entry, Entry4)
+                    : new Leaf5(Entry0, Entry1, Entry2, Entry3, entry);
+            }
+
+            /// <summary>Produces the new or updated leaf or
+            /// the split Branch2 nodes: returns the left branch, entry is changed to the Branch Entry0, popRight is the right branch</summary>
+            protected override ImMap234<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight)
+            {
+                // [1 3 5]  =>      [3]
+                // adding 7     [1]     [5, 7]
+                if (key > Entry4.Key)
+                {
+                    popRight = new Leaf2(Entry4, entry);
+                    entry = Entry3;
+                    return new Leaf3(Entry0, Entry1, Entry2);
+                }
+
+                if (key < Entry0.Key)
+                {
+                    popRight = new Leaf2(Entry3, Entry4);
+                    var left = new Leaf3(entry, Entry0, Entry1);
+                    entry = Entry2;
+                    return left;
+                }
+
+                if (key > Entry0.Key && key < Entry1.Key)
+                {
+                    popRight = new Leaf2(Entry3, Entry4);
+                    var left = new Leaf3(Entry0, entry, Entry1);
+                    entry = Entry2;
+                    return left;
+                }
+
+                if (key > Entry1.Key && key < Entry2.Key)
+                {
+                    popRight = new Leaf2(Entry3, Entry4);
+                    var left = new Leaf3(Entry0, Entry1, entry);
+                    entry = Entry2;
+                    return left;
+                }
+
+                if (key > Entry2.Key && key < Entry3.Key)
+                {
+                    popRight = new Leaf3(entry, Entry3, Entry4);
+                    entry = Entry2;
+                    return new Leaf2(Entry0, Entry1);
+                }
+
+                if (key > Entry3.Key && key < Entry4.Key)
+                {
+                    popRight = new Leaf3(Entry3, entry, Entry4);
+                    entry = Entry2;
+                    return new Leaf2(Entry0, Entry1);
+                }
+
+                popRight = null;
+                return key == Entry0.Key ? new Leaf5(entry, Entry1, Entry2, Entry3, Entry4)
+                    : key == Entry1.Key ? new Leaf5(Entry0, entry, Entry2, Entry3, Entry4)
+                    : key == Entry2.Key ? new Leaf5(Entry0, Entry1, entry, Entry3, Entry4)
+                    : key == Entry3.Key ? new Leaf5(Entry0, Entry1, Entry2, entry, Entry4)
+                    : new Leaf5(Entry0, Entry1, Entry2, Entry3, entry);
+            }
+
+            /// <summary>Lookup</summary>
+            public override V GetValueOrDefault(int key) =>
+                key == Entry0.Key ? Entry0.Value :
+                key == Entry1.Key ? Entry1.Value :
+                key == Entry2.Key ? Entry2.Value :
+                key == Entry3.Key ? Entry3.Value :
+                key == Entry4.Key ? Entry4.Value :
+                default(V);
+
+            /// <summary>Lookup</summary>
+            public override bool TryFind(int key, out V value)
+            {
+                if (key == Entry0.Key)
+                {
+                    value = Entry0.Value;
+                    return true;
+                }
+
+                if (key == Entry1.Key)
+                {
+                    value = Entry1.Value;
+                    return true;
+                }
+
+                if (key == Entry2.Key)
+                {
+                    value = Entry2.Value;
+                    return true;
+                }
+
+                if (key == Entry3.Key)
+                {
+                    value = Entry3.Value;
+                    return true;
+                }
+
+                if (key == Entry4.Key)
+                {
+                    value = Entry4.Value;
+                    return true;
+                }
+
+                value = default(V);
+                return false;
+            }
+
+            /// <inheritdoc />
+            public override S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap234<V>[] parentStack = null) =>
+                reduce(Entry4, reduce(Entry3, reduce(Entry2, reduce(Entry1, reduce(Entry0, state)))));
+        }
+
+        /// <summary>2 branches - it is never split itself, but may produce Branch3 if the lower branches are split</summary>
+        public sealed class Branch2 : ImMap234<V>
+        {
+            /// <summary>The only entry</summary>
+            public readonly Entry Entry0;
+
+            /// <summary>Left branch</summary>
+            public readonly ImMap234<V> Left;
+
+            /// <summary>Right branch</summary>
+            public readonly ImMap234<V> Right;
+
+            /// <summary>Constructs</summary>
+            public Branch2(ImMap234<V> left, Entry entry0, ImMap234<V> right)
+            {
+                Left = left;
+                Entry0 = entry0;
+                Right = right;
+            }
+
+            /// Pretty-print
+            public override string ToString() =>
+                (Left is Branch2 ? Left.GetType().Name : Left.ToString()) +
+                " <- " + Entry0 + " -> " +
+                (Right is Branch2 ? Right.GetType().Name : Right.ToString());
+
+            /// <summary>Produces the new or updated map</summary>
+            public override ImMap234<V> AddOrUpdateEntry(int key, Entry entry)
+            {
+                if (key > Entry0.Key)
+                {
+                    var newBranch = Right.AddOrUpdateOrSplitEntry(key, ref entry, out var popRight);
+                    if (popRight != null)
+                        return new Branch3(Left, Entry0, newBranch, entry, popRight);
+                    return new Branch2(Left, Entry0, newBranch);
+                }
+
+                if (key < Entry0.Key)
+                {
+                    var newBranch = Left.AddOrUpdateOrSplitEntry(key, ref entry, out var popRight);
+                    if (popRight != null)
+                        return new Branch3(newBranch, entry, popRight, Entry0, Right);
+                    return new Branch2(newBranch, Entry0, Right);
+                }
+
+                // update
+                return new Branch2(Left, entry, Right);
+            }
+
+            /// <summary>Produces the new or updated branch</summary>
+            protected override ImMap234<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight)
+            {
+                popRight = null;
+                if (key > Entry0.Key)
+                {
+                    var newBranch = Right.AddOrUpdateOrSplitEntry(key, ref entry, out var popRightBelow);
+                    if (popRightBelow != null)
+                        return new Branch3(Left, Entry0, newBranch, entry, popRightBelow);
+                    return new Branch2(Left, Entry0, newBranch);
+                }
+
+                if (key < Entry0.Key)
+                {
+                    var newBranch = Left.AddOrUpdateOrSplitEntry(key, ref entry, out var popRightBelow);
+                    if (popRightBelow != null)
+                        return new Branch3(newBranch, entry, popRightBelow, Entry0, Right);
+                    return new Branch2(newBranch, Entry0, Right);
+                }
+
+                // update
+                return new Branch2(Left, entry, Right);
+            }
+
+            // todo: @perf how to get rid of nested GetValueOrDefault call if branches are leafs
+            /// <summary>Lookup</summary>
+            public override V GetValueOrDefault(int key) =>
+                key > Entry0.Key ? Right.GetValueOrDefault(key) :
+                key < Entry0.Key ? Left.GetValueOrDefault(key) :
+                Entry0.Value;
+
+            /// <summary>Lookup</summary>
+            public override bool TryFind(int key, out V value)
+            {
+                if (key > Entry0.Key)
+                    return Right.TryFind(key, out value);
+
+                if (key < Entry0.Key)
+                    return Left.TryFind(key, out value);
+
+                value = Entry0.Value;
+                return true;
+            }
+
+            /// <inheritdoc />
+            public override S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap234<V>[] parentStack = null) =>
+                Right.Fold(reduce(Entry0, Left.Fold(state, reduce)), reduce);
+        }
+
+        /// <summary>3 branches</summary>
+        public sealed class Branch3 : ImMap234<V>
+        {
+            /// <summary>Left branch</summary>
+            public readonly ImMap234<V> Left;
+
+            /// <summary>The only entry</summary>
+            public readonly Entry Entry0;
+
+            /// <summary>Right branch</summary>
+            public readonly ImMap234<V> Middle;
+
+            /// <summary>Right entry</summary>
+            public readonly Entry Entry1;
+
+            /// <summary>Rightmost branch</summary>
+            public readonly ImMap234<V> Right;
+
+            /// <summary>Constructs</summary>
+            public Branch3(ImMap234<V> left, Entry entry0, ImMap234<V> middle, Entry entry1, ImMap234<V> right)
+            {
+                Left = left;
+                Entry0 = entry0;
+                Middle = middle;
+                Entry1 = entry1;
+                Right = right;
+            }
+
+            /// Pretty-print
+            public override string ToString() =>
+                (Left is Branch2 ? Left.GetType().Name : Left.ToString()) +
+                " <- " + Entry0 + " -> " +
+                (Middle is Branch2 ? Middle.GetType().Name : Middle.ToString()) +
+                " <- " + Entry0 + " -> " +
+                (Right is Branch2 ? Right.GetType().Name.TrimEnd('<', '>', '`', 'V') : Right.ToString());
+
+            /// <summary>Produces the new or updated map</summary>
+            public override ImMap234<V> AddOrUpdateEntry(int key, Entry entry)
+            {
+                if (key > Entry1.Key)
+                {
+                    //                                                   =>          [4]
+                    //     [2, 4]                   [2, 4]  ->  [6]             [2]         [6]
+                    // [1]   [3]  [5, 6, 7] =>  [1]   [3]    [5]   [7, 8]    [1]   [3]   [5]   [7,8]
+                    // and adding 8
+
+                    var newBranch = Right.AddOrUpdateOrSplitEntry(key, ref entry, out var popRightBelow);
+                    if (popRightBelow != null)
+                        return new Branch2(new Branch2(Left, Entry0, Middle), Entry1, new Branch2(newBranch, entry, popRightBelow));
+                    return new Branch3(Left, Entry0, Middle, Entry1, newBranch);
+                }
+
+                if (key < Entry0.Key)
+                {
+                    var newBranch = Left.AddOrUpdateOrSplitEntry(key, ref entry, out var popRightBelow);
+                    if (popRightBelow != null)
+                        return new Branch2(new Branch2(newBranch, entry, popRightBelow), Entry0, new Branch2(Middle, Entry1, Right));
+                    return new Branch3(newBranch, Entry0, Middle, Entry1, Right);
+                }
+
+                if (key > Entry0.Key && key < Entry1.Key)
+                {
+                    var newLeft = Middle.AddOrUpdateOrSplitEntry(key, ref entry, out var popRight);
+                    if (popRight != null)
+                        return new Branch2(new Branch2(Left, Entry0, newLeft), entry, new Branch2(popRight, Entry1, Right));
+                    return new Branch3(Left, Entry0, newLeft, Entry1, Right);
+                }
+
+                // update
+                return key == Entry0.Key
+                    ? new Branch3(Left, entry, Middle, Entry1, Right)
+                    : new Branch3(Left, Entry0, Middle, entry, Right);
+            }
+
+            /// <summary>Produces the new or updated leaf or
+            /// the split Branch2 nodes: returns the left branch, entry is changed to the Branch Entry0, popRight is the right branch</summary>
+            protected override ImMap234<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight)
+            {
+                popRight = null;
+                if (key > Entry1.Key)
+                {
+                    // for example:
+                    //                                             [5]
+                    //        [2,5]                =>      [2]               [9]
+                    // [0,1]  [3,4]  [6,7,8,9,10]    [0,1]    [3,4]   [6,7,8]   [10,11]
+                    // and adding 11
+                    var newBranch = Right.AddOrUpdateOrSplitEntry(key, ref entry, out var popRightBelow);
+                    if (popRightBelow != null)
+                    {
+                        popRight = new Branch2(newBranch, entry, popRightBelow);
+                        entry = Entry1;
+                        return new Branch2(Left, Entry0, Middle);
+                    }
+                    return new Branch3(Left, Entry0, Middle, Entry1, newBranch);
+                }
+
+                if (key < Entry0.Key)
+                {
+                    var newBranch = Left.AddOrUpdateOrSplitEntry(key, ref entry, out var popRightBelow);
+                    if (popRightBelow != null)
+                    {
+                        newBranch = new Branch2(newBranch, entry, popRightBelow);
+                        entry = Entry0;
+                        popRight = new Branch2(Middle, Entry1, Right);
+                        return newBranch;
+                    }
+                    return new Branch3(newBranch, Entry0, Middle, Entry1, Right);
+                }
+
+                if (key > Entry0.Key && key < Entry1.Key)
+                {
+                    //                              [4]
+                    //       [2, 7]            [2]         [7]
+                    // [1]  [3,4,5]  [8] => [1]  [3]  [5,6]    [8]
+                    // and adding 6
+                    var newBranch = Middle.AddOrUpdateOrSplitEntry(key, ref entry, out var popRightBelow);
+                    if (popRightBelow != null)
+                    {
+                        popRight = new Branch2(popRightBelow, Entry1, Right);
+                        return new Branch2(Left, Entry0, newBranch);
+                    }
+                    return new Branch3(Left, Entry0, newBranch, Entry1, Right);
+                }
+
+                // update
+                return key == Entry0.Key
+                    ? new Branch3(Left, entry, Middle, Entry1, Right)
+                    : new Branch3(Left, Entry0, Middle, entry, Right);
+            }
+
+            /// <summary>Lookup</summary>
+            public override V GetValueOrDefault(int key) =>
+                key > Entry1.Key ? Right.GetValueOrDefault(key) :
+                key < Entry0.Key ? Left.GetValueOrDefault(key) :
+                key > Entry0.Key && key < Entry1.Key ? Middle.GetValueOrDefault(key) :
+                key == Entry0.Key ? Entry0.Value : Entry1.Value;
+
+            /// <summary>Lookup</summary>
+            public override bool TryFind(int key, out V value)
+            {
+                if (key > Entry1.Key)
+                    return Right.TryFind(key, out value);
+
+                if (key < Entry0.Key)
+                    return Left.TryFind(key, out value);
+
+                if (key > Entry0.Key && key < Entry1.Key)
+                    return Middle.TryFind(key, out value);
+
+                if (key == Entry0.Key)
+                {
+                    value = Entry0.Value;
+                    return true;
+                }
+
+                value = Entry1.Value;
+                return true;
+            }
+
+            /// <inheritdoc />
+            public override S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap234<V>[] parentStack = null) =>
+                Right.Fold(reduce(Entry1, Middle.Fold(reduce(Entry0, Left.Fold(state, reduce)), reduce)), reduce);
+        }
+    }
+
+    /// <summary>ImMap methods</summary>
+    public static class ImMap234
+    {
+        /// <summary>Adds or updates the value by key in the map, always returns a modified map.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMap234<V> AddOrUpdate<V>(this ImMap234<V> map, int key, V value) =>
+            map == ImMap234<V>.Empty
+                ? new ImMap234<V>.Entry(key, value)
+                : map.AddOrUpdateEntry(key, new ImMap234<V>.Entry(key, value));
+
+        /// Default number of slots
+        public const int SLOT_COUNT_POWER_OF_TWO = 32;
+
+        /// The default mask to partition the key to the target slot
+        public const int KEY_MASK_TO_FIND_SLOT = SLOT_COUNT_POWER_OF_TWO - 1;
+
+        /// Creates the array with the empty slots
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMap234<V>[] CreateWithEmpty<V>(int slotCountPowerOfTwo = SLOT_COUNT_POWER_OF_TWO)
+        {
+            var slots = new ImMap234<V>[slotCountPowerOfTwo];
+            for (var i = 0; i < slots.Length; ++i)
+                slots[i] = ImMap234<V>.Empty;
+            return slots;
+        }
+
+        /// Returns a new tree with added or updated value for specified key.
+        [MethodImpl((MethodImplOptions)256)]
+        public static void AddOrUpdate<V>(this ImMap234<V>[] slots, int key, V value, int keyMaskToFindSlot = KEY_MASK_TO_FIND_SLOT)
+        {
+            ref var slot = ref slots[key & keyMaskToFindSlot];
+            var copy = slot;
+            if (Interlocked.CompareExchange(ref slot, copy.AddOrUpdate(key, value), copy) != copy)
+                RefAddOrUpdateSlot(ref slot, key, value);
+        }
+
+        /// Update the ref to the slot with the new version - retry if the someone changed the slot in between
+        public static void RefAddOrUpdateSlot<V>(ref ImMap234<V> slot, int key, V value) =>
+            Ref.Swap(ref slot, key, value, (x, k, v) => x.AddOrUpdate(k, v));
     }
 }
