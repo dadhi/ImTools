@@ -2560,8 +2560,11 @@ namespace ImTools.Experimental
 
         /// <summary>Lookup</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static V GetValueOrDefault<V>(this ImMap234<V> map, int key) where V : class => 
-            map.GetEntryOrDefault(key)?.Value;
+        public static V GetValueOrDefault<V>(this ImMap234<V> map, int key)
+        {
+            var entry = map.GetEntryOrDefault(key);
+            return entry != null ? entry.Value : default(V);
+        }
 
         /// <summary>Lookup</summary>
         [MethodImpl((MethodImplOptions) 256)]
