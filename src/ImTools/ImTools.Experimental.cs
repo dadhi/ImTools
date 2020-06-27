@@ -1941,15 +1941,8 @@ namespace ImTools.Experimental
         protected virtual ImMap234<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight) =>
             throw new NotSupportedException();
 
-        /// <summary>Lookup</summary>
-        public virtual V GetValueOrDefault(int key) => default(V);
-
-        /// <summary>Lookup</summary>
-        public virtual bool TryFind(int key, out V value)
-        {
-            value = default(V);
-            return false;
-        }
+        /// <summary>Lookup for the entry, if not found returns `null`. You can define other Lookup methods on top of it.</summary>
+        public virtual Entry GetEntryOrDefault(int key) => null;
 
         /// <summary>Folds</summary>
         public virtual S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap234<V>[] parentStack = null) => state;
@@ -1989,21 +1982,9 @@ namespace ImTools.Experimental
             protected override ImMap234<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight) =>
                 throw new NotSupportedException();
 
-            /// <summary>Lookup</summary>
-            public override V GetValueOrDefault(int key) => key == Key ? Value : default(V);
-
-            /// <summary>Lookup</summary>
-            public override bool TryFind(int key, out V value)
-            {
-                if (key == Key)
-                {
-                    value = Value;
-                    return true;
-                }
-
-                value = default(V);
-                return false;
-            }
+            /// <inheritdoc />
+            public override Entry GetEntryOrDefault(int key) =>
+                key == Key ? this : null;
 
             /// <inheritdoc />
             public override S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap234<V>[] parentStack = null) => reduce(this, state);
@@ -2047,30 +2028,11 @@ namespace ImTools.Experimental
                     (ImMap234<V>)new Leaf2(Entry0, entry);
             }
 
-            /// <summary>Lookup</summary>
-            public override V GetValueOrDefault(int key) =>
-                key == Entry0.Key ? Entry0.Value :
-                key == Entry1.Key ? Entry1.Value :
-                default(V);
-
-            /// <summary>Lookup</summary>
-            public override bool TryFind(int key, out V value)
-            {
-                if (key == Entry0.Key)
-                {
-                    value = Entry0.Value;
-                    return true;
-                }
-
-                if (key == Entry1.Key)
-                {
-                    value = Entry1.Value;
-                    return true;
-                }
-
-                value = default(V);
-                return false;
-            }
+            /// <inheritdoc />
+            public override Entry GetEntryOrDefault(int key) =>
+                key == Entry0.Key ? Entry0 :
+                key == Entry1.Key ? Entry1 :
+                null;
 
             /// <inheritdoc />
             public override S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap234<V>[] parentStack = null) =>
@@ -2123,37 +2085,12 @@ namespace ImTools.Experimental
                     : new Leaf3(Entry0, Entry1, entry);
             }
 
-            /// <summary>Lookup</summary>
-            public override V GetValueOrDefault(int key) =>
-                key == Entry0.Key ? Entry0.Value :
-                key == Entry1.Key ? Entry1.Value :
-                key == Entry2.Key ? Entry2.Value :
-                default(V);
-
-            /// <summary>Lookup</summary>
-            public override bool TryFind(int key, out V value)
-            {
-                if (key == Entry0.Key)
-                {
-                    value = Entry0.Value;
-                    return true;
-                }
-
-                if (key == Entry1.Key)
-                {
-                    value = Entry1.Value;
-                    return true;
-                }
-
-                if (key == Entry2.Key)
-                {
-                    value = Entry2.Value;
-                    return true;
-                }
-
-                value = default(V);
-                return false;
-            }
+            /// <inheritdoc />
+            public override Entry GetEntryOrDefault(int key) =>
+                key == Entry0.Key ? Entry0 :
+                key == Entry1.Key ? Entry1 :
+                key == Entry2.Key ? Entry2 :
+                null;
 
             /// <inheritdoc />
             public override S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap234<V>[] parentStack = null) =>
@@ -2236,45 +2173,13 @@ namespace ImTools.Experimental
                     : new Leaf4(Entry0, Entry1, Entry2, entry);
             }
 
-            /// <summary>Lookup</summary>
-            public override V GetValueOrDefault(int key) =>
-                key == Entry0.Key ? Entry0.Value :
-                key == Entry1.Key ? Entry1.Value :
-                key == Entry2.Key ? Entry2.Value :
-                key == Entry3.Key ? Entry3.Value :
-                default(V);
-
-            /// <summary>Lookup</summary>
-            public override bool TryFind(int key, out V value)
-            {
-                if (key == Entry0.Key)
-                {
-                    value = Entry0.Value;
-                    return true;
-                }
-
-                if (key == Entry1.Key)
-                {
-                    value = Entry1.Value;
-                    return true;
-                }
-
-                if (key == Entry2.Key)
-                {
-                    value = Entry2.Value;
-                    return true;
-                }
-
-                if (key == Entry3.Key)
-                {
-                    value = Entry3.Value;
-                    return true;
-                }
-
-                value = default(V);
-                return false;
-            }
-
+            /// <inheritdoc />
+            public override Entry GetEntryOrDefault(int key) =>
+                key == Entry0.Key ? Entry0 :
+                key == Entry1.Key ? Entry1 :
+                key == Entry2.Key ? Entry2 :
+                key == Entry3.Key ? Entry3 :
+                null;
 
             /// <inheritdoc />
             public override S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap234<V>[] parentStack = null) =>
@@ -2401,51 +2306,14 @@ namespace ImTools.Experimental
                     : new Leaf5(Entry0, Entry1, Entry2, Entry3, entry);
             }
 
-            /// <summary>Lookup</summary>
-            public override V GetValueOrDefault(int key) =>
-                key == Entry0.Key ? Entry0.Value :
-                key == Entry1.Key ? Entry1.Value :
-                key == Entry2.Key ? Entry2.Value :
-                key == Entry3.Key ? Entry3.Value :
-                key == Entry4.Key ? Entry4.Value :
-                default(V);
-
-            /// <summary>Lookup</summary>
-            public override bool TryFind(int key, out V value)
-            {
-                if (key == Entry0.Key)
-                {
-                    value = Entry0.Value;
-                    return true;
-                }
-
-                if (key == Entry1.Key)
-                {
-                    value = Entry1.Value;
-                    return true;
-                }
-
-                if (key == Entry2.Key)
-                {
-                    value = Entry2.Value;
-                    return true;
-                }
-
-                if (key == Entry3.Key)
-                {
-                    value = Entry3.Value;
-                    return true;
-                }
-
-                if (key == Entry4.Key)
-                {
-                    value = Entry4.Value;
-                    return true;
-                }
-
-                value = default(V);
-                return false;
-            }
+            /// <inheritdoc />
+            public override Entry GetEntryOrDefault(int key) =>
+                key == Entry0.Key ? Entry0 :
+                key == Entry1.Key ? Entry1 :
+                key == Entry2.Key ? Entry2 :
+                key == Entry3.Key ? Entry3 :
+                key == Entry4.Key ? Entry4 :
+                null;
 
             /// <inheritdoc />
             public override S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap234<V>[] parentStack = null) =>
@@ -2526,24 +2394,11 @@ namespace ImTools.Experimental
             }
 
             // todo: @perf how to get rid of nested GetValueOrDefault call if branches are leafs
-            /// <summary>Lookup</summary>
-            public override V GetValueOrDefault(int key) =>
-                key > Entry0.Key ? Right.GetValueOrDefault(key) :
-                key < Entry0.Key ? Left.GetValueOrDefault(key) :
-                Entry0.Value;
-
-            /// <summary>Lookup</summary>
-            public override bool TryFind(int key, out V value)
-            {
-                if (key > Entry0.Key)
-                    return Right.TryFind(key, out value);
-
-                if (key < Entry0.Key)
-                    return Left.TryFind(key, out value);
-
-                value = Entry0.Value;
-                return true;
-            }
+            /// <inheritdoc />
+            public override Entry GetEntryOrDefault(int key) =>
+                key > Entry0.Key ? Right.GetEntryOrDefault(key) :
+                key < Entry0.Key ? Left .GetEntryOrDefault(key) :
+                Entry0;
 
             /// <inheritdoc />
             public override S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap234<V>[] parentStack = null) =>
@@ -2680,34 +2535,12 @@ namespace ImTools.Experimental
                     : new Branch3(Left, Entry0, Middle, entry, Right);
             }
 
-            /// <summary>Lookup</summary>
-            public override V GetValueOrDefault(int key) =>
-                key > Entry1.Key ? Right.GetValueOrDefault(key) :
-                key < Entry0.Key ? Left.GetValueOrDefault(key) :
-                key > Entry0.Key && key < Entry1.Key ? Middle.GetValueOrDefault(key) :
-                key == Entry0.Key ? Entry0.Value : Entry1.Value;
-
-            /// <summary>Lookup</summary>
-            public override bool TryFind(int key, out V value)
-            {
-                if (key > Entry1.Key)
-                    return Right.TryFind(key, out value);
-
-                if (key < Entry0.Key)
-                    return Left.TryFind(key, out value);
-
-                if (key > Entry0.Key && key < Entry1.Key)
-                    return Middle.TryFind(key, out value);
-
-                if (key == Entry0.Key)
-                {
-                    value = Entry0.Value;
-                    return true;
-                }
-
-                value = Entry1.Value;
-                return true;
-            }
+            /// <inheritdoc />
+            public override Entry GetEntryOrDefault(int key) =>
+                key > Entry1.Key ? Right.GetEntryOrDefault(key) :
+                key < Entry0.Key ? Left .GetEntryOrDefault(key) :
+                key > Entry0.Key && key < Entry1.Key ? Middle.GetEntryOrDefault(key) :
+                key == Entry0.Key ? Entry0 : Entry1;
 
             /// <inheritdoc />
             public override S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap234<V>[] parentStack = null) =>
@@ -2724,6 +2557,26 @@ namespace ImTools.Experimental
             map == ImMap234<V>.Empty
                 ? new ImMap234<V>.Entry(key, value)
                 : map.AddOrUpdateEntry(key, new ImMap234<V>.Entry(key, value));
+
+        /// <summary>Lookup</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static V GetValueOrDefault<V>(this ImMap234<V> map, int key) where V : class => 
+            map.GetEntryOrDefault(key)?.Value;
+
+        /// <summary>Lookup</summary>
+        [MethodImpl((MethodImplOptions) 256)]
+        public static bool TryFind<V>(this ImMap234<V> map, int key, out V value)
+        {
+            var entry = map.GetEntryOrDefault(key);
+            if (entry != null)
+            {
+                value = entry.Value;
+                return true;
+            }
+
+            value = default(V);
+            return false;
+        }
 
         /// Default number of slots
         public const int SLOT_COUNT_POWER_OF_TWO = 32;
