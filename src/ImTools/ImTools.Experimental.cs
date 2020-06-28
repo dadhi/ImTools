@@ -2050,7 +2050,7 @@ namespace ImTools.Experimental
                 key > Entry1.Key ? new Leaf3(Entry0, Entry1, new Entry(key, value)) :
                 key < Entry0.Key ? new Leaf3(new Entry(key, value), Entry0, Entry1) :
                 key > Entry0.Key && key < Entry1.Key ? new Leaf3(Entry0, new Entry(key, value), Entry1) :
-                (ImMap234<V>) this;
+                (ImMap234<V>)this;
 
             /// <summary>Produces the new or updated leaf</summary>
             protected override ImMap234<V> AddOrKeepOrSplitEntry(int key, V value, out Entry popEntry, out ImMap234<V> popRight)
@@ -2544,9 +2544,9 @@ namespace ImTools.Experimental
                 if (key > Entry0.Key)
                 {
                     var newBranch = Right.AddOrKeepOrSplitEntry(key, value, out var popEntry, out var popRight);
-                    if (popRight != null)
-                        return new Branch3(Left, Entry0, newBranch, popEntry, popRight);
-                    return new Branch2(Left, Entry0, newBranch);
+                    return popRight != null ? new Branch3(Left, Entry0, newBranch, popEntry, popRight) 
+                        :  newBranch != Right ? new Branch2(Left, Entry0, newBranch) 
+                        : (ImMap234<V>)this;
                 }
 
                 if (key < Entry0.Key)
@@ -2554,7 +2554,9 @@ namespace ImTools.Experimental
                     var newBranch = Left.AddOrKeepOrSplitEntry(key, value, out var popEntry, out var popRight);
                     if (popRight != null)
                         return new Branch3(newBranch, popEntry, popRight, Entry0, Right);
-                    return new Branch2(newBranch, Entry0, Right);
+                    if (newBranch != Left)
+                        return new Branch2(newBranch, Entry0, Right);
+                    return this;
                 }
 
                 return this;
@@ -2570,7 +2572,9 @@ namespace ImTools.Experimental
                     var newBranch = Right.AddOrKeepOrSplitEntry(key, value, out var popEntryBelow, out var popRightBelow);
                     if (popRightBelow != null)
                         return new Branch3(Left, Entry0, newBranch, popEntryBelow, popRightBelow);
-                    return new Branch2(Left, Entry0, newBranch);
+                    if (newBranch != Right)
+                        return new Branch2(Left, Entry0, newBranch);
+                    return this;
                 }
 
                 if (key < Entry0.Key)
@@ -2578,7 +2582,9 @@ namespace ImTools.Experimental
                     var newBranch = Left.AddOrKeepOrSplitEntry(key, value, out var popEntryBelow, out var popRightBelow);
                     if (popRightBelow != null)
                         return new Branch3(newBranch, popEntryBelow, popRightBelow, Entry0, Right);
-                    return new Branch2(newBranch, Entry0, Right);
+                    if (newBranch != Left)
+                        return new Branch2(newBranch, Entry0, Right);
+                    return this;
                 }
 
                 return this;
@@ -2732,7 +2738,9 @@ namespace ImTools.Experimental
                     newBranch = Right.AddOrKeepOrSplitEntry(key, value, out var popEntry, out var popRight);
                     if (popRight != null)
                         return new Branch2(new Branch2(Left, Entry0, Middle), Entry1, new Branch2(newBranch, popEntry, popRight));
-                    return new Branch3(Left, Entry0, Middle, Entry1, newBranch);
+                    if (newBranch != Right)
+                        return new Branch3(Left, Entry0, Middle, Entry1, newBranch);
+                    return this;
                 }
 
                 if (key < Entry0.Key)
@@ -2740,7 +2748,9 @@ namespace ImTools.Experimental
                     newBranch = Left.AddOrKeepOrSplitEntry(key, value, out var popEntry, out var popRight);
                     if (popRight != null)
                         return new Branch2(new Branch2(newBranch, popEntry, popRight), Entry0, new Branch2(Middle, Entry1, Right));
-                    return new Branch3(newBranch, Entry0, Middle, Entry1, Right);
+                    if(newBranch != Left)
+                        return new Branch3(newBranch, Entry0, Middle, Entry1, Right);
+                    return this;
                 }
 
                 if (key > Entry0.Key && key < Entry1.Key)
@@ -2748,7 +2758,9 @@ namespace ImTools.Experimental
                     newBranch = Middle.AddOrKeepOrSplitEntry(key, value, out var popEntry, out var popRight);
                     if (popRight != null)
                         return new Branch2(new Branch2(Left, Entry0, newBranch), popEntry, new Branch2(popRight, Entry1, Right));
-                    return new Branch3(Left, Entry0, newBranch, Entry1, Right);
+                    if (newBranch != Middle)
+                        return new Branch3(Left, Entry0, newBranch, Entry1, Right);
+                    return this;
                 }
 
                 return this;
@@ -2775,7 +2787,10 @@ namespace ImTools.Experimental
                         popEntry = Entry1;
                         return new Branch2(Left, Entry0, Middle);
                     }
-                    return new Branch3(Left, Entry0, Middle, Entry1, newBranch);
+
+                    if (newBranch != Right)
+                        return new Branch3(Left, Entry0, Middle, Entry1, newBranch);
+                    return this;
                 }
 
                 if (key < Entry0.Key)
@@ -2787,7 +2802,9 @@ namespace ImTools.Experimental
                         popEntry = Entry0;
                         return new Branch2(newBranch, popEntryBelow, popRightBelow);
                     }
-                    return new Branch3(newBranch, Entry0, Middle, Entry1, Right);
+                    if (newBranch != Left)
+                        return new Branch3(newBranch, Entry0, Middle, Entry1, Right);
+                    return this;
                 }
 
                 if (key > Entry0.Key && key < Entry1.Key)
@@ -2803,7 +2820,9 @@ namespace ImTools.Experimental
                         popEntry = popEntryBelow;
                         return new Branch2(Left, Entry0, newBranch);
                     }
-                    return new Branch3(Left, Entry0, newBranch, Entry1, Right);
+                    if (newBranch != Middle)
+                        return new Branch3(Left, Entry0, newBranch, Entry1, Right);
+                    return this;
                 }
 
                 return this;

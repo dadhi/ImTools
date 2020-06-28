@@ -104,7 +104,7 @@ namespace ImTools.Experimental.UnitTests
         }
 
         [Test]
-        public void Adding_1000_keys_randomly_and_randomly_checking()
+        public void AddOrUpdate_100_keys_randomly_and_randomly_checking()
         {
             var rnd = new Random();
 
@@ -121,5 +121,22 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreEqual(0, m.GetValueOrDefault(-1));
         }
 
+        [Test]
+        public void AddOrKeep_100_keys_randomly_and_randomly_checking()
+        {
+            var rnd = new Random();
+
+            var m = ImMap234<int>.Empty;
+            for (var i = 0; i < 100; i++)
+            {
+                var n = rnd.Next(0, 1000);
+                m = m.AddOrUpdate(n, n);
+                Assert.AreEqual(n, m.GetValueOrDefault(n));
+            }
+
+            // non-existing keys 
+            Assert.AreEqual(0, m.GetValueOrDefault(1000));
+            Assert.AreEqual(0, m.GetValueOrDefault(-1));
+        }
     }
 }
