@@ -2038,14 +2038,6 @@ namespace ImTools.Experimental
                     (ImMap234<V>) new Leaf2(e0, entry);
             }
 
-            /// <summary>Produces the new or updated map</summary>
-            public ImMap234<V> AddOrUpdateEntry2(int key, Entry entry) =>
-                key > Entry1.Key ? new Leaf3(Entry0, Entry1, entry) :
-                key < Entry0.Key ? new Leaf3(entry, Entry0, Entry1) :
-                key > Entry0.Key && key < Entry1.Key ? new Leaf3(Entry0, entry, Entry1) :
-                key == Entry0.Key ? new Leaf2(entry, Entry1) :
-                (ImMap234<V>)new Leaf2(Entry0, entry);
-
             /// <summary>Produces the new or updated leaf</summary>
             protected override ImMap234<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight)
             {

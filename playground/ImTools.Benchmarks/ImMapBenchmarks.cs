@@ -190,10 +190,8 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 | Experimental_ImMap234Slots_AddOrUpdate | 10000 | 3,826,270.52 ns | 27,039.210 ns | 25,292.494 ns |  0.87 |    0.01 | 531.2500 | 242.1875 |  39.0625 | 3362691 B |
 |                  ConcurrentDict_TryAdd | 10000 | 2,992,046.02 ns | 25,592.476 ns | 23,939.218 ns |  0.68 |    0.01 | 273.4375 | 121.0938 |  42.9688 | 1645240 B |
 |              ImmutableDict_Builder_Add | 10000 | 6,083,897.19 ns | 15,221.664 ns | 14,238.354 ns |  1.38 |    0.01 | 148.4375 |  70.3125 |        - |  959776 B |
-
-
 */
-            [Params(10)]//, 100, 1_000, 10_000)]
+            [Params(10, 100)]//, 1_000, 10_000)]
             public int Count;
 
             //[Benchmark(Baseline = true)]
@@ -513,22 +511,42 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
 ## ImMap 234
 
-|                                        Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
-|---------------------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
-|          ImMap_Experimental_GetValueOrDefault |     1 |  1.548 ns | 0.0198 ns | 0.0185 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| ImMap_Experimental_ImMap234_GetValueOrDefault |     1 |  1.347 ns | 0.0145 ns | 0.0136 ns |  0.87 |    0.01 |     - |     - |     - |         - |
-|                                               |       |           |           |           |       |         |       |       |       |           |
-|          ImMap_Experimental_GetValueOrDefault |    10 |  4.356 ns | 0.0252 ns | 0.0223 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| ImMap_Experimental_ImMap234_GetValueOrDefault |    10 |  2.366 ns | 0.0166 ns | 0.0155 ns |  0.54 |    0.00 |     - |     - |     - |         - |
-|                                               |       |           |           |           |       |         |       |       |       |           |
-|          ImMap_Experimental_GetValueOrDefault |   100 |  6.278 ns | 0.0723 ns | 0.0565 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| ImMap_Experimental_ImMap234_GetValueOrDefault |   100 |  8.602 ns | 0.2042 ns | 0.1910 ns |  1.37 |    0.03 |     - |     - |     - |         - |
-|                                               |       |           |           |           |       |         |       |       |       |           |
-|          ImMap_Experimental_GetValueOrDefault |  1000 |  9.171 ns | 0.0105 ns | 0.0093 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| ImMap_Experimental_ImMap234_GetValueOrDefault |  1000 | 12.939 ns | 0.0650 ns | 0.0608 ns |  1.41 |    0.01 |     - |     - |     - |         - |
-|                                               |       |           |           |           |       |         |       |       |       |           |
-|          ImMap_Experimental_GetValueOrDefault | 10000 | 13.236 ns | 0.0636 ns | 0.0595 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| ImMap_Experimental_ImMap234_GetValueOrDefault | 10000 | 20.968 ns | 0.3254 ns | 0.3044 ns |  1.58 |    0.03 |     - |     - |     - |         - |
+|                             Method | Count |      Mean |     Error |    StdDev |    Median | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|----------------------------------- |------ |----------:|----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+|         Experimental_ImMap_TryFind |     1 |  1.606 ns | 0.1130 ns | 0.1656 ns |  1.534 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|    Experimental_ImMapSlots_TryFind |     1 |  1.585 ns | 0.0199 ns | 0.0186 ns |  1.585 ns |  0.95 |    0.10 |     - |     - |     - |         - |
+|      Experimental_ImMap234_TryFind |     1 |  2.058 ns | 0.0303 ns | 0.0253 ns |  2.057 ns |  1.22 |    0.14 |     - |     - |     - |         - |
+| Experimental_ImMap234Slots_TryFind |     1 |  1.797 ns | 0.0222 ns | 0.0208 ns |  1.806 ns |  1.08 |    0.12 |     - |     - |     - |         - |
+|         ConcurrentDict_TryGetValue |     1 | 10.715 ns | 0.0597 ns | 0.0559 ns | 10.725 ns |  6.43 |    0.72 |     - |     - |     - |         - |
+|          ImmutableDict_TryGetValue |     1 | 18.840 ns | 0.0648 ns | 0.0574 ns | 18.844 ns | 11.24 |    1.28 |     - |     - |     - |         - |
+|                                    |       |           |           |           |           |       |         |       |       |       |           |
+|         Experimental_ImMap_TryFind |    10 |  3.863 ns | 0.0320 ns | 0.0299 ns |  3.871 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|    Experimental_ImMapSlots_TryFind |    10 |  1.139 ns | 0.0298 ns | 0.0264 ns |  1.143 ns |  0.29 |    0.01 |     - |     - |     - |         - |
+|      Experimental_ImMap234_TryFind |    10 |  2.574 ns | 0.0158 ns | 0.0132 ns |  2.569 ns |  0.67 |    0.01 |     - |     - |     - |         - |
+| Experimental_ImMap234Slots_TryFind |    10 |  1.813 ns | 0.0344 ns | 0.0322 ns |  1.808 ns |  0.47 |    0.01 |     - |     - |     - |         - |
+|         ConcurrentDict_TryGetValue |    10 | 10.907 ns | 0.1146 ns | 0.1072 ns | 10.888 ns |  2.82 |    0.04 |     - |     - |     - |         - |
+|          ImmutableDict_TryGetValue |    10 | 21.074 ns | 0.1906 ns | 0.1783 ns | 21.051 ns |  5.46 |    0.06 |     - |     - |     - |         - |
+|                                    |       |           |           |           |           |       |         |       |       |       |           |
+|         Experimental_ImMap_TryFind |   100 |  4.756 ns | 0.0500 ns | 0.0468 ns |  4.741 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|    Experimental_ImMapSlots_TryFind |   100 |  2.374 ns | 0.0368 ns | 0.0345 ns |  2.389 ns |  0.50 |    0.01 |     - |     - |     - |         - |
+|      Experimental_ImMap234_TryFind |   100 |  7.512 ns | 0.0594 ns | 0.0526 ns |  7.508 ns |  1.58 |    0.01 |     - |     - |     - |         - |
+| Experimental_ImMap234Slots_TryFind |   100 |  3.415 ns | 0.0172 ns | 0.0152 ns |  3.419 ns |  0.72 |    0.01 |     - |     - |     - |         - |
+|         ConcurrentDict_TryGetValue |   100 | 10.750 ns | 0.0446 ns | 0.0417 ns | 10.748 ns |  2.26 |    0.03 |     - |     - |     - |         - |
+|          ImmutableDict_TryGetValue |   100 | 22.310 ns | 0.1163 ns | 0.1031 ns | 22.341 ns |  4.69 |    0.05 |     - |     - |     - |         - |
+|                                    |       |           |           |           |           |       |         |       |       |       |           |
+|         Experimental_ImMap_TryFind |  1000 |  8.383 ns | 0.0668 ns | 0.0592 ns |  8.389 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|    Experimental_ImMapSlots_TryFind |  1000 |  4.839 ns | 0.0600 ns | 0.0562 ns |  4.835 ns |  0.58 |    0.01 |     - |     - |     - |         - |
+|      Experimental_ImMap234_TryFind |  1000 | 11.147 ns | 0.3474 ns | 0.7479 ns | 11.033 ns |  1.37 |    0.17 |     - |     - |     - |         - |
+| Experimental_ImMap234Slots_TryFind |  1000 |  7.239 ns | 0.0668 ns | 0.0624 ns |  7.248 ns |  0.86 |    0.01 |     - |     - |     - |         - |
+|         ConcurrentDict_TryGetValue |  1000 | 11.118 ns | 0.4995 ns | 0.7923 ns | 10.723 ns |  1.40 |    0.11 |     - |     - |     - |         - |
+|          ImmutableDict_TryGetValue |  1000 | 25.766 ns | 0.1553 ns | 0.1453 ns | 25.812 ns |  3.07 |    0.03 |     - |     - |     - |         - |
+|                                    |       |           |           |           |           |       |         |       |       |       |           |
+|         Experimental_ImMap_TryFind | 10000 | 12.875 ns | 0.0846 ns | 0.0791 ns | 12.875 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|    Experimental_ImMapSlots_TryFind | 10000 |  8.495 ns | 0.0421 ns | 0.0394 ns |  8.487 ns |  0.66 |    0.01 |     - |     - |     - |         - |
+|      Experimental_ImMap234_TryFind | 10000 | 17.677 ns | 0.1464 ns | 0.1223 ns | 17.649 ns |  1.37 |    0.01 |     - |     - |     - |         - |
+| Experimental_ImMap234Slots_TryFind | 10000 | 12.191 ns | 0.1315 ns | 0.1230 ns | 12.180 ns |  0.95 |    0.01 |     - |     - |     - |         - |
+|         ConcurrentDict_TryGetValue | 10000 | 10.672 ns | 0.0488 ns | 0.0456 ns | 10.660 ns |  0.83 |    0.01 |     - |     - |     - |         - |
+|          ImmutableDict_TryGetValue | 10000 | 32.125 ns | 0.2142 ns | 0.2003 ns | 32.128 ns |  2.50 |    0.02 |     - |     - |     - |         - |
 
  */
             private ImTools.ImMap<string> _map;
