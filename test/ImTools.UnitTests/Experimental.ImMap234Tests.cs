@@ -130,7 +130,7 @@ namespace ImTools.Experimental.UnitTests
             for (var i = 0; i < 1000; i++)
             {
                 var n = rnd.Next(0, 10000);
-                m = m.AddOrUpdate(n, n);
+                m = m.AddOrKeep(n, n);
                 Assert.AreEqual(n, m.GetValueOrDefault(n));
             }
 

@@ -193,7 +193,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
 
 */
-            [Params(1, 10, 100, 1_000, 10_000)]
+            [Params(10)]//, 100, 1_000, 10_000)]
             public int Count;
 
             //[Benchmark(Baseline = true)]
@@ -230,7 +230,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public ImTools.Experimental.ImMap<string>[] Experimental_ImMapSlots_AddOrUpdate()
             {
                 var slots = ImTools.Experimental.ImMapSlots.CreateWithEmpty<string>();
@@ -252,7 +252,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public ImMap234<string>[] Experimental_ImMap234Slots_AddOrUpdate()
             {
                 var slots = ImMap234.CreateWithEmpty<string>();
@@ -296,7 +296,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public ConcurrentDictionary<int, string> ConcurrentDict_TryAdd()
             {
                 var map = new ConcurrentDictionary<int, string>();
@@ -307,7 +307,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            [Benchmark]
+            //[Benchmark]
             public ImmutableDictionary<int, string> ImmutableDict_Builder_Add()
             {
                 var builder = ImmutableDictionary.CreateBuilder<int, string>();

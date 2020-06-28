@@ -1942,10 +1942,10 @@ namespace ImTools.Experimental
             throw new NotSupportedException();
 
         /// <summary> Adds the value for the key or returns the non-modified map if the key is already present </summary>
-        public virtual ImMap234<V> AddOrKeep(int key, V value) => new Entry(key, value);
+        public virtual ImMap234<V> AddOrKeepEntry(int key, Entry entry) => entry;
 
         /// <summary>As the empty cannot be a leaf - so no chance to call it</summary>
-        protected virtual ImMap234<V> AddOrKeepOrSplitEntry(int key, V value, out Entry popEntry, out ImMap234<V> popRight) =>
+        protected virtual ImMap234<V> AddOrKeepOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight) =>
             throw new NotSupportedException();
 
         /// <summary>Lookup for the entry, if not found returns `null`. You can define other Lookup methods on top of it.</summary>
@@ -1990,13 +1990,13 @@ namespace ImTools.Experimental
                 throw new NotSupportedException();
 
             /// <inheritdoc />
-            public override ImMap234<V> AddOrKeep(int key, V value) =>
-                key > Key ? new Leaf2(this, new Entry(key, value)) :
-                key < Key ? new Leaf2(new Entry(key, value), this) :
+            public override ImMap234<V> AddOrKeepEntry(int key, Entry entry) =>
+                key > Key ? new Leaf2(this, entry) :
+                key < Key ? new Leaf2(entry, this) :
                 (ImMap234<V>)this;
 
             /// <summary>As the empty cannot be a leaf - so no chance to call it</summary>
-            protected override ImMap234<V> AddOrKeepOrSplitEntry(int key, V value, out Entry popEntry, out ImMap234<V> popRight) =>
+            protected override ImMap234<V> AddOrKeepOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight) =>
                 throw new NotSupportedException();
 
             /// <inheritdoc />
@@ -2027,7 +2027,19 @@ namespace ImTools.Experimental
             public override string ToString() => Entry0 + "|" + Entry1;
 
             /// <summary>Produces the new or updated map</summary>
-            public override ImMap234<V> AddOrUpdateEntry(int key, Entry entry) =>
+            public override ImMap234<V> AddOrUpdateEntry(int key, Entry entry)
+            {
+                var e1 = Entry1;
+                var e0 = Entry0;
+                return key > e1.Key ? new Leaf3(e0, e1, entry) :
+                    key < e0.Key ? new Leaf3(entry, e0, e1) :
+                    key > e0.Key && key < e1.Key ? new Leaf3(e0, entry, e1) :
+                    key == e0.Key ? new Leaf2(entry, e1) :
+                    (ImMap234<V>) new Leaf2(e0, entry);
+            }
+
+            /// <summary>Produces the new or updated map</summary>
+            public ImMap234<V> AddOrUpdateEntry2(int key, Entry entry) =>
                 key > Entry1.Key ? new Leaf3(Entry0, Entry1, entry) :
                 key < Entry0.Key ? new Leaf3(entry, Entry0, Entry1) :
                 key > Entry0.Key && key < Entry1.Key ? new Leaf3(Entry0, entry, Entry1) :
@@ -2046,20 +2058,19 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
-            public override ImMap234<V> AddOrKeep(int key, V value) =>
-                key > Entry1.Key ? new Leaf3(Entry0, Entry1, new Entry(key, value)) :
-                key < Entry0.Key ? new Leaf3(new Entry(key, value), Entry0, Entry1) :
-                key > Entry0.Key && key < Entry1.Key ? new Leaf3(Entry0, new Entry(key, value), Entry1) :
+            public override ImMap234<V> AddOrKeepEntry(int key, Entry entry) =>
+                key > Entry1.Key ? new Leaf3(Entry0, Entry1, entry) :
+                key < Entry0.Key ? new Leaf3(entry, Entry0, Entry1) :
+                key > Entry0.Key && key < Entry1.Key ? new Leaf3(Entry0, entry, Entry1) :
                 (ImMap234<V>)this;
 
             /// <summary>Produces the new or updated leaf</summary>
-            protected override ImMap234<V> AddOrKeepOrSplitEntry(int key, V value, out Entry popEntry, out ImMap234<V> popRight)
+            protected override ImMap234<V> AddOrKeepOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight)
             {
-                popEntry = null;
                 popRight = null;
-                return key > Entry1.Key ? new Leaf3(Entry0, Entry1, new Entry(key, value)) :
-                    key < Entry0.Key ? new Leaf3(new Entry(key, value), Entry0, Entry1) :
-                    key > Entry0.Key && key < Entry1.Key ? new Leaf3(Entry0, new Entry(key, value), Entry1) :
+                return key > Entry1.Key ? new Leaf3(Entry0, Entry1, entry) :
+                    key < Entry0.Key ? new Leaf3(entry, Entry0, Entry1) :
+                    key > Entry0.Key && key < Entry1.Key ? new Leaf3(Entry0, entry, Entry1) :
                     (ImMap234<V>)this;
             }
 
@@ -2121,22 +2132,21 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
-            public override ImMap234<V> AddOrKeep(int key, V value) =>
-                key > Entry2.Key ? new Leaf4(Entry0, Entry1, Entry2, new Entry(key, value))
-                : key < Entry0.Key ? new Leaf4(new Entry(key, value), Entry0, Entry1, Entry2)
-                : key > Entry0.Key && key < Entry1.Key ? new Leaf4(Entry0, new Entry(key, value), Entry1, Entry2)
-                : key > Entry1.Key && key < Entry2.Key ? new Leaf4(Entry0, Entry1, new Entry(key, value), Entry2)
+            public override ImMap234<V> AddOrKeepEntry(int key, Entry entry) =>
+                key > Entry2.Key ? new Leaf4(Entry0, Entry1, Entry2, entry)
+                : key < Entry0.Key ? new Leaf4(entry, Entry0, Entry1, Entry2)
+                : key > Entry0.Key && key < Entry1.Key ? new Leaf4(Entry0, entry, Entry1, Entry2)
+                : key > Entry1.Key && key < Entry2.Key ? new Leaf4(Entry0, Entry1, entry, Entry2)
                 : (ImMap234<V>)this;
 
             /// <summary>Produces the new or updated leaf</summary>
-            protected override ImMap234<V> AddOrKeepOrSplitEntry(int key, V value, out Entry popEntry, out ImMap234<V> popRight)
+            protected override ImMap234<V> AddOrKeepOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight)
             {
-                popEntry = null;
                 popRight = null;
-                return key > Entry2.Key ? new Leaf4(Entry0, Entry1, Entry2, new Entry(key, value))
-                    : key < Entry0.Key ? new Leaf4(new Entry(key, value), Entry0, Entry1, Entry2)
-                    : key > Entry0.Key && key < Entry1.Key ? new Leaf4(Entry0, new Entry(key, value), Entry1, Entry2)
-                    : key > Entry1.Key && key < Entry2.Key ? new Leaf4(Entry0, Entry1, new Entry(key, value), Entry2)
+                return key > Entry2.Key ? new Leaf4(Entry0, Entry1, Entry2, entry)
+                    : key < Entry0.Key ? new Leaf4(entry, Entry0, Entry1, Entry2)
+                    : key > Entry0.Key && key < Entry1.Key ? new Leaf4(Entry0, entry, Entry1, Entry2)
+                    : key > Entry1.Key && key < Entry2.Key ? new Leaf4(Entry0, Entry1, entry, Entry2)
                     : (ImMap234<V>)this;
             }
 
@@ -2229,24 +2239,23 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
-            public override ImMap234<V> AddOrKeep(int key, V value) =>
-                key > Entry3.Key ? new Leaf5(Entry0, Entry1, Entry2, Entry3, new Entry(key, value))
-                : key < Entry0.Key ? new Leaf5(new Entry(key, value), Entry0, Entry1, Entry2, Entry3)
-                : key > Entry0.Key && key < Entry1.Key ? new Leaf5(Entry0, new Entry(key, value), Entry1, Entry2, Entry3)
-                : key > Entry1.Key && key < Entry2.Key ? new Leaf5(Entry0, Entry1, new Entry(key, value), Entry2, Entry3)
-                : key > Entry2.Key && key < Entry3.Key ? new Leaf5(Entry0, Entry1, Entry2, new Entry(key, value), Entry3)
+            public override ImMap234<V> AddOrKeepEntry(int key, Entry entry) =>
+                key > Entry3.Key ? new Leaf5(Entry0, Entry1, Entry2, Entry3, entry)
+                : key < Entry0.Key ? new Leaf5(entry, Entry0, Entry1, Entry2, Entry3)
+                : key > Entry0.Key && key < Entry1.Key ? new Leaf5(Entry0, entry, Entry1, Entry2, Entry3)
+                : key > Entry1.Key && key < Entry2.Key ? new Leaf5(Entry0, Entry1, entry, Entry2, Entry3)
+                : key > Entry2.Key && key < Entry3.Key ? new Leaf5(Entry0, Entry1, Entry2, entry, Entry3)
                 : (ImMap234<V>)this;
 
             /// <summary>Produces the new or updated leaf</summary>
-            protected override ImMap234<V> AddOrKeepOrSplitEntry(int key, V value, out Entry popEntry, out ImMap234<V> popRight)
+            protected override ImMap234<V> AddOrKeepOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight)
             {
-                popEntry = null;
                 popRight = null;
-                return key > Entry3.Key ? new Leaf5(Entry0, Entry1, Entry2, Entry3, new Entry(key, value))
-                    : key < Entry0.Key ? new Leaf5(new Entry(key, value), Entry0, Entry1, Entry2, Entry3)
-                    : key > Entry0.Key && key < Entry1.Key ? new Leaf5(Entry0, new Entry(key, value), Entry1, Entry2, Entry3)
-                    : key > Entry1.Key && key < Entry2.Key ? new Leaf5(Entry0, Entry1, new Entry(key, value), Entry2, Entry3)
-                    : key > Entry2.Key && key < Entry3.Key ? new Leaf5(Entry0, Entry1, Entry2, new Entry(key, value), Entry3)
+                return key > Entry3.Key ? new Leaf5(Entry0, Entry1, Entry2, Entry3, entry)
+                    : key < Entry0.Key ? new Leaf5(entry, Entry0, Entry1, Entry2, Entry3)
+                    : key > Entry0.Key && key < Entry1.Key ? new Leaf5(Entry0, entry, Entry1, Entry2, Entry3)
+                    : key > Entry1.Key && key < Entry2.Key ? new Leaf5(Entry0, Entry1, entry, Entry2, Entry3)
+                    : key > Entry2.Key && key < Entry3.Key ? new Leaf5(Entry0, Entry1, Entry2, entry, Entry3)
                     : (ImMap234<V>)this;
             }
 
@@ -2379,75 +2388,74 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
-            public override ImMap234<V> AddOrKeep(int key, V value)
+            public override ImMap234<V> AddOrKeepEntry(int key, Entry entry)
             {
                 if (key > Entry4.Key)
-                    return new Branch2(new Leaf3(Entry0, Entry1, Entry2), Entry3, new Leaf2(Entry4, new Entry(key, value)));
+                    return new Branch2(new Leaf3(Entry0, Entry1, Entry2), Entry3, new Leaf2(Entry4, entry));
 
                 if (key < Entry0.Key)
-                    return new Branch2(new Leaf2(new Entry(key, value), Entry0), Entry1, new Leaf3(Entry2, Entry3, Entry4));
+                    return new Branch2(new Leaf2(entry, Entry0), Entry1, new Leaf3(Entry2, Entry3, Entry4));
 
                 if (key > Entry0.Key && key < Entry1.Key)
-                    return new Branch2(new Leaf2(Entry0, new Entry(key, value)), Entry1, new Leaf3(Entry2, Entry3, Entry4));
+                    return new Branch2(new Leaf2(Entry0, entry), Entry1, new Leaf3(Entry2, Entry3, Entry4));
 
                 if (key > Entry1.Key && key < Entry2.Key)
-                    return new Branch2(new Leaf2(Entry0, Entry1), new Entry(key, value), new Leaf3(Entry2, Entry3, Entry4));
+                    return new Branch2(new Leaf2(Entry0, Entry1), entry, new Leaf3(Entry2, Entry3, Entry4));
 
                 if (key > Entry2.Key && key < Entry3.Key)
-                    return new Branch2(new Leaf3(Entry0, Entry1, Entry2), new Entry(key, value), new Leaf2(Entry3, Entry4));
+                    return new Branch2(new Leaf3(Entry0, Entry1, Entry2), entry, new Leaf2(Entry3, Entry4));
 
                 if (key > Entry3.Key && key < Entry4.Key)
-                    return new Branch2(new Leaf3(Entry0, Entry1, Entry2), Entry3, new Leaf2(new Entry(key, value), Entry4));
+                    return new Branch2(new Leaf3(Entry0, Entry1, Entry2), Entry3, new Leaf2(entry, Entry4));
 
                 return this;
             }
 
             /// <summary>Produces the new or updated leaf</summary>
-            protected override ImMap234<V> AddOrKeepOrSplitEntry(int key, V value, out Entry popEntry, out ImMap234<V> popRight)
+            protected override ImMap234<V> AddOrKeepOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight)
             {
                 if (key > Entry4.Key)
                 {
-                    popRight = new Leaf2(Entry4, new Entry(key, value));
-                    popEntry = Entry3;
+                    popRight = new Leaf2(Entry4, entry);
+                    entry = Entry3;
                     return new Leaf3(Entry0, Entry1, Entry2);
                 }
 
                 if (key < Entry0.Key)
                 {
+                    var left = new Leaf2(entry, Entry0);
+                    entry = Entry1;
                     popRight = new Leaf3(Entry2, Entry3, Entry4);
-                    popEntry = Entry1;
-                    return new Leaf2(new Entry(key, value), Entry0);
+                    return left;
                 }
 
                 if (key > Entry0.Key && key < Entry1.Key)
                 {
+                    var left = new Leaf2(Entry0, entry);
+                    entry = Entry1;
                     popRight = new Leaf3(Entry2, Entry3, Entry4);
-                    popEntry = Entry1;
-                    return new Leaf2(Entry0, new Entry(key, value));
+                    return left;
                 }
 
                 if (key > Entry1.Key && key < Entry2.Key)
                 {
                     popRight = new Leaf3(Entry2, Entry3, Entry4);
-                    popEntry = new Entry(key, value);
                     return new Leaf2(Entry0, Entry1);
                 }
 
                 if (key > Entry2.Key && key < Entry3.Key)
                 {
                     popRight = new Leaf2(Entry3, Entry4);
-                    popEntry = new Entry(key, value);
                     return new Leaf3(Entry0, Entry1, Entry2);
                 }
 
                 if (key > Entry3.Key && key < Entry4.Key)
                 {
-                    popRight = new Leaf2(new Entry(key, value), Entry4);
-                    popEntry = Entry3;
+                    popRight = new Leaf2(entry, Entry4);
+                    entry = Entry3;
                     return new Leaf3(Entry0, Entry1, Entry2);
                 }
 
-                popEntry = null;
                 popRight = null; 
                 return this;
             }
@@ -2539,39 +2547,36 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
-            public override ImMap234<V> AddOrKeep(int key, V value)
+            public override ImMap234<V> AddOrKeepEntry(int key, Entry entry)
             {
                 if (key > Entry0.Key)
                 {
-                    var newBranch = Right.AddOrKeepOrSplitEntry(key, value, out var popEntry, out var popRight);
-                    return popRight != null ? new Branch3(Left, Entry0, newBranch, popEntry, popRight) 
-                        :  newBranch != Right ? new Branch2(Left, Entry0, newBranch) 
+                    var newBranch = Right.AddOrKeepOrSplitEntry(key, ref entry, out var popRight);
+                    return popRight != null ? new Branch3(Left, Entry0, newBranch, entry, popRight) 
+                        : newBranch != Right ? new Branch2(Left, Entry0, newBranch)
                         : (ImMap234<V>)this;
                 }
 
                 if (key < Entry0.Key)
                 {
-                    var newBranch = Left.AddOrKeepOrSplitEntry(key, value, out var popEntry, out var popRight);
-                    if (popRight != null)
-                        return new Branch3(newBranch, popEntry, popRight, Entry0, Right);
-                    if (newBranch != Left)
-                        return new Branch2(newBranch, Entry0, Right);
-                    return this;
+                    var newBranch = Left.AddOrKeepOrSplitEntry(key, ref entry, out var popRight);
+                    return popRight != null ? new Branch3(newBranch, entry, popRight, Entry0, Right)
+                        : newBranch != Left ? new Branch2(newBranch, Entry0, Right) 
+                        : (ImMap234<V>)this;
                 }
 
                 return this;
             }
 
             /// <summary>Produces the new or updated leaf</summary>
-            protected override ImMap234<V> AddOrKeepOrSplitEntry(int key, V value, out Entry popEntry, out ImMap234<V> popRight)
+            protected override ImMap234<V> AddOrKeepOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight)
             {
-                popEntry = null;
                 popRight = null;
                 if (key > Entry0.Key)
                 {
-                    var newBranch = Right.AddOrKeepOrSplitEntry(key, value, out var popEntryBelow, out var popRightBelow);
+                    var newBranch = Right.AddOrKeepOrSplitEntry(key, ref entry, out var popRightBelow);
                     if (popRightBelow != null)
-                        return new Branch3(Left, Entry0, newBranch, popEntryBelow, popRightBelow);
+                        return new Branch3(Left, Entry0, newBranch, entry, popRightBelow);
                     if (newBranch != Right)
                         return new Branch2(Left, Entry0, newBranch);
                     return this;
@@ -2579,9 +2584,9 @@ namespace ImTools.Experimental
 
                 if (key < Entry0.Key)
                 {
-                    var newBranch = Left.AddOrKeepOrSplitEntry(key, value, out var popEntryBelow, out var popRightBelow);
+                    var newBranch = Left.AddOrKeepOrSplitEntry(key, ref entry, out var popRightBelow);
                     if (popRightBelow != null)
-                        return new Branch3(newBranch, popEntryBelow, popRightBelow, Entry0, Right);
+                        return new Branch3(newBranch, entry, popRightBelow, Entry0, Right);
                     if (newBranch != Left)
                         return new Branch2(newBranch, Entry0, Right);
                     return this;
@@ -2730,48 +2735,40 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
-            public override ImMap234<V> AddOrKeep(int key, V value)
+            public override ImMap234<V> AddOrKeepEntry(int key, Entry entry)
             {
                 ImMap234<V> newBranch;
                 if (key > Entry1.Key)
                 {
-                    newBranch = Right.AddOrKeepOrSplitEntry(key, value, out var popEntry, out var popRight);
+                    newBranch = Right.AddOrKeepOrSplitEntry(key, ref entry, out var popRight);
                     if (popRight != null)
-                        return new Branch2(new Branch2(Left, Entry0, Middle), Entry1, new Branch2(newBranch, popEntry, popRight));
-                    if (newBranch != Right)
-                        return new Branch3(Left, Entry0, Middle, Entry1, newBranch);
-                    return this;
+                        return new Branch2(new Branch2(Left, Entry0, Middle), Entry1, new Branch2(newBranch, entry, popRight));
+                    return newBranch != Right ? new Branch3(Left, Entry0, Middle, Entry1, newBranch) : (ImMap234<V>)this;
                 }
 
                 if (key < Entry0.Key)
                 {
-                    newBranch = Left.AddOrKeepOrSplitEntry(key, value, out var popEntry, out var popRight);
+                    newBranch = Left.AddOrKeepOrSplitEntry(key, ref entry, out var popRight);
                     if (popRight != null)
-                        return new Branch2(new Branch2(newBranch, popEntry, popRight), Entry0, new Branch2(Middle, Entry1, Right));
-                    if(newBranch != Left)
-                        return new Branch3(newBranch, Entry0, Middle, Entry1, Right);
-                    return this;
+                        return new Branch2(new Branch2(newBranch, entry, popRight), Entry0, new Branch2(Middle, Entry1, Right));
+                    return newBranch != Left ? new Branch3(newBranch, Entry0, Middle, Entry1, Right) : this;
                 }
 
                 if (key > Entry0.Key && key < Entry1.Key)
                 {
-                    newBranch = Middle.AddOrKeepOrSplitEntry(key, value, out var popEntry, out var popRight);
+                    newBranch = Middle.AddOrKeepOrSplitEntry(key, ref entry, out var popRight);
                     if (popRight != null)
-                        return new Branch2(new Branch2(Left, Entry0, newBranch), popEntry, new Branch2(popRight, Entry1, Right));
-                    if (newBranch != Middle)
-                        return new Branch3(Left, Entry0, newBranch, Entry1, Right);
-                    return this;
+                        return new Branch2(new Branch2(Left, Entry0, newBranch), entry, new Branch2(popRight, Entry1, Right));
+                    return newBranch != Middle ? new Branch3(Left, Entry0, newBranch, Entry1, Right) : this;
                 }
 
                 return this;
             }
 
             /// <summary>Produces the new or updated leaf</summary>
-            protected override ImMap234<V> AddOrKeepOrSplitEntry(int key, V value, out Entry popEntry, out ImMap234<V> popRight)
+            protected override ImMap234<V> AddOrKeepOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight)
             {
-                popEntry = null;
                 popRight = null;
-
                 ImMap234<V> newBranch;
                 if (key > Entry1.Key)
                 {
@@ -2780,31 +2777,27 @@ namespace ImTools.Experimental
                     //        [2,5]                =>      [2]               [9]
                     // [0,1]  [3,4]  [6,7,8,9,10]    [0,1]    [3,4]   [6,7,8]   [10,11]
                     // and adding 11
-                    newBranch = Right.AddOrKeepOrSplitEntry(key, value, out var popEntryBelow, out var popRightBelow);
+                    newBranch = Right.AddOrKeepOrSplitEntry(key, ref entry, out var popRightBelow);
                     if (popRightBelow != null)
                     {
-                        popRight = new Branch2(newBranch, popEntryBelow, popRightBelow);
-                        popEntry = Entry1;
+                        popRight = new Branch2(newBranch, entry, popRightBelow);
+                        entry = Entry1;
                         return new Branch2(Left, Entry0, Middle);
                     }
-
-                    if (newBranch != Right)
-                        return new Branch3(Left, Entry0, Middle, Entry1, newBranch);
-                    return this;
+                    return newBranch != Right ? new Branch3(Left, Entry0, Middle, Entry1, newBranch) : this;
                 }
 
                 if (key < Entry0.Key)
                 {
-                    newBranch = Left.AddOrKeepOrSplitEntry(key, value, out var popEntryBelow, out var popRightBelow);
+                    newBranch = Left.AddOrKeepOrSplitEntry(key, ref entry, out var popRightBelow);
                     if (popRightBelow != null)
                     {
+                        var left = new Branch2(newBranch, entry, popRightBelow);
+                        entry = Entry0;
                         popRight = new Branch2(Middle, Entry1, Right);
-                        popEntry = Entry0;
-                        return new Branch2(newBranch, popEntryBelow, popRightBelow);
+                        return left;
                     }
-                    if (newBranch != Left)
-                        return new Branch3(newBranch, Entry0, Middle, Entry1, Right);
-                    return this;
+                    return newBranch != Left ? new Branch3(newBranch, Entry0, Middle, Entry1, Right) : this;
                 }
 
                 if (key > Entry0.Key && key < Entry1.Key)
@@ -2813,16 +2806,13 @@ namespace ImTools.Experimental
                     //       [2, 7]            [2]         [7]
                     // [1]  [3,4,5]  [8] => [1]  [3]  [5,6]    [8]
                     // and adding 6
-                    newBranch = Middle.AddOrKeepOrSplitEntry(key, value, out var popEntryBelow, out var popRightBelow);
+                    newBranch = Middle.AddOrKeepOrSplitEntry(key, ref entry, out var popRightBelow);
                     if (popRightBelow != null)
                     {
                         popRight = new Branch2(popRightBelow, Entry1, Right);
-                        popEntry = popEntryBelow;
                         return new Branch2(Left, Entry0, newBranch);
                     }
-                    if (newBranch != Middle)
-                        return new Branch3(Left, Entry0, newBranch, Entry1, Right);
-                    return this;
+                    return newBranch != Middle ? new Branch3(Left, Entry0, newBranch, Entry1, Right) : this;
                 }
 
                 return this;
@@ -2850,6 +2840,18 @@ namespace ImTools.Experimental
             map == ImMap234<V>.Empty
                 ? new ImMap234<V>.Entry(key, value)
                 : map.AddOrUpdateEntry(key, new ImMap234<V>.Entry(key, value));
+
+        /// <summary>Adds the entry or keeps the map intact.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMap234<V> AddOrKeep<V>(this ImMap234<V> map, int key, V value) =>
+            map == ImMap234<V>.Empty
+                ? new ImMap234<V>.Entry(key, value)
+                : map.AddOrKeepEntry(key, new ImMap234<V>.Entry(key, value));
+
+        /// <summary>Adds the entry or keeps the map intact.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMap234<V> AddOrKeep<V>(this ImMap234<V> map, ImMap234<V>.Entry entry) => 
+            map.AddOrKeepEntry(entry.Key, entry);
 
         /// <summary>Lookup</summary>
         [MethodImpl((MethodImplOptions)256)]
