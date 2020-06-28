@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
@@ -1951,8 +1952,11 @@ namespace ImTools.Experimental
         /// <summary>Lookup for the entry, if not found returns `null`. You can define other Lookup methods on top of it.</summary>
         public virtual Entry GetEntryOrDefault(int key) => null;
 
-        /// <summary>Folds</summary>
-        public virtual S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap234<V>[] parentStack = null) => state;
+        /// <summary>Fold to fold</summary>
+        public virtual S Fold<S>(S state, Func<Entry, S, S> reduce) => state;
+
+        /// <summary>Enumerable</summary>
+        public virtual IEnumerable<Entry> Enumerate() => Enumerable.Empty<Entry>();
 
         // todo: @feature add SoftRemove
 
@@ -2004,7 +2008,13 @@ namespace ImTools.Experimental
                 key == Key ? this : null;
 
             /// <inheritdoc />
-            public override S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap234<V>[] parentStack = null) => reduce(this, state);
+            public override S Fold<S>(S state, Func<Entry, S, S> reduce) => reduce(this, state);
+
+            /// <inheritdoc />
+            public override IEnumerable<Entry> Enumerate()
+            {
+                yield return this;
+            }
         }
 
         /// <summary>2 leafs</summary>
@@ -2073,8 +2083,15 @@ namespace ImTools.Experimental
                 null;
 
             /// <inheritdoc />
-            public override S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap234<V>[] parentStack = null) =>
+            public override S Fold<S>(S state, Func<Entry, S, S> reduce) =>
                 reduce(Entry1, reduce(Entry0, state));
+
+            /// <inheritdoc />
+            public override IEnumerable<Entry> Enumerate()
+            {
+                yield return Entry0;
+                yield return Entry1;
+            }
         }
 
         /// <summary>3 leafs</summary>
@@ -2150,8 +2167,16 @@ namespace ImTools.Experimental
                 null;
 
             /// <inheritdoc />
-            public override S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap234<V>[] parentStack = null) =>
+            public override S Fold<S>(S state, Func<Entry, S, S> reduce) =>
                 reduce(Entry2, reduce(Entry1, reduce(Entry0, state)));
+
+            /// <inheritdoc />
+            public override IEnumerable<Entry> Enumerate()
+            {
+                yield return Entry0;
+                yield return Entry1;
+                yield return Entry2;
+            }
         }
 
         /// <summary>3 leafs</summary>
@@ -2260,8 +2285,17 @@ namespace ImTools.Experimental
                 null;
 
             /// <inheritdoc />
-            public override S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap234<V>[] parentStack = null) =>
+            public override S Fold<S>(S state, Func<Entry, S, S> reduce) =>
                 reduce(Entry3, reduce(Entry2, reduce(Entry1, reduce(Entry0, state))));
+
+            /// <inheritdoc />
+            public override IEnumerable<Entry> Enumerate()
+            {
+                yield return Entry0;
+                yield return Entry1;
+                yield return Entry2;
+                yield return Entry3;
+            }
         }
 
         /// <summary>3 leafs</summary>
@@ -2462,8 +2496,18 @@ namespace ImTools.Experimental
                 null;
 
             /// <inheritdoc />
-            public override S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap234<V>[] parentStack = null) =>
+            public override S Fold<S>(S state, Func<Entry, S, S> reduce) =>
                 reduce(Entry4, reduce(Entry3, reduce(Entry2, reduce(Entry1, reduce(Entry0, state)))));
+
+            /// <inheritdoc />
+            public override IEnumerable<Entry> Enumerate()
+            {
+                yield return Entry0;
+                yield return Entry1;
+                yield return Entry2;
+                yield return Entry3;
+                yield return Entry4;
+            }
         }
 
         /// <summary>2 branches - it is never split itself, but may produce Branch3 if the lower branches are split</summary>
@@ -2595,8 +2639,18 @@ namespace ImTools.Experimental
                 Entry0;
 
             /// <inheritdoc />
-            public override S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap234<V>[] parentStack = null) =>
+            public override S Fold<S>(S state, Func<Entry, S, S> reduce) =>
                 Right.Fold(reduce(Entry0, Left.Fold(state, reduce)), reduce);
+
+            /// <inheritdoc />
+            public override IEnumerable<Entry> Enumerate()
+            {
+                foreach (var l in Left.Enumerate())
+                    yield return l;
+                yield return Entry0;
+                foreach (var r in Right.Enumerate())
+                    yield return r;
+            }
         }
 
         /// <summary>3 branches</summary>
@@ -2818,8 +2872,21 @@ namespace ImTools.Experimental
                 key == Entry0.Key ? Entry0 : Entry1;
 
             /// <inheritdoc />
-            public override S Fold<S>(S state, Func<Entry, S, S> reduce, ImMap234<V>[] parentStack = null) =>
+            public override S Fold<S>(S state, Func<Entry, S, S> reduce) =>
                 Right.Fold(reduce(Entry1, Middle.Fold(reduce(Entry0, Left.Fold(state, reduce)), reduce)), reduce);
+
+            /// <inheritdoc />
+            public override IEnumerable<Entry> Enumerate()
+            {
+                foreach (var l in Left.Enumerate())
+                    yield return l;
+                yield return Entry0;
+                foreach (var m in Middle.Enumerate())
+                    yield return m;
+                yield return Entry1;
+                foreach (var r in Right.Enumerate())
+                    yield return r;
+            }
         }
     }
 

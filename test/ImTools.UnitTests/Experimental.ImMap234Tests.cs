@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using NUnit.Framework;
 
 namespace ImTools.Experimental.UnitTests
@@ -44,6 +45,8 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreEqual(5, m.GetValueOrDefault(5));
             Assert.AreEqual(6, m.GetValueOrDefault(6));
 
+            CollectionAssert.AreEqual(Enumerable.Range(1, 6), m.Enumerate().Select(x => x.Value));
+
             m = m.AddOrUpdate(7, 7);
             Assert.IsInstanceOf<ImMap234<int>.Branch2>(m);
             Assert.AreEqual(7, m.GetValueOrDefault(7));
@@ -57,6 +60,8 @@ namespace ImTools.Experimental.UnitTests
 
             m = m.AddOrUpdate(10, 10);
             Assert.AreEqual(10, m.GetValueOrDefault(10));
+
+            CollectionAssert.AreEqual(Enumerable.Range(1, 10), m.Enumerate().Select(x => x.Value));
         }
 
         [Test]

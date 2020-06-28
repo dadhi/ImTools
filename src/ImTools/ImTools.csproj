@@ -22,22 +22,9 @@
         <PackageTags>FP Performance Simple Functional Immutable Persistent Map Avl 2-3-4 Self Balanced Tree Dictionary Thread-safe Functional Atomic Ref Algebraic Discriminated Union SumType</PackageTags>
         <PackageReleaseNotes>
 <![CDATA[
-        ## v2.1.0 Feature release
-        
-        - added: ImMap234 based on 2-3-4 tree #32
+## v2.1.0 Feature release
 
-        ## v2.0.0 Major feature release
-
-        ### Highlights
-
-        - Faster and less allocative ImMap and ImHashMap with more methods (plus bucketed ImMapSlots and ImHashMapSlots variants)
-        - Algebraic sum-type aka descriminated union and one-liner records - Union<TUnion, T1..N>, Box<TBox, T>, Item<TItem, T>
-        - GrowingList<T>, ImZipper<T>, StackPool<T>, Unit, Fun extensions with forward pipe operators
-        - Ref.Swap now accepts state to use closure-less lambdas with less allocations
-
-        ### Details
-            
-        https://github.com/dadhi/ImTools/milestone/2
+- Added fast and more memory efficient Experimental.ImMap234 implementing 2-3-4 tree (#32)
 ]]>
     </PackageReleaseNotes>
     </PropertyGroup>
