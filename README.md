@@ -8,11 +8,9 @@
 - Lib package: [![NuGet Badge](https://buildstats.info/nuget/ImTools.dll)](https://www.nuget.org/packages/ImTools.dll)
 - Code package: [![NuGet Badge](https://buildstats.info/nuget/ImTools)](https://www.nuget.org/packages/ImTools)
 
-Latest stable version is [v2.1.0](https://github.com/dadhi/ImTools/releases/tag/v2.1.0)
-
 Fast and memory-efficient immutable collections and helper data structures.
 
-Split from [DryIoc](https://github.com/dadhi/dryioc).
+Split from the [DryIoc](https://github.com/dadhi/dryioc).
 
 
 ## Benchmarks
