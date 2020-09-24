@@ -209,8 +209,8 @@ namespace ImTools
     }
 
     /// Wraps the `T` in a named `TBox` class in a one-line declaration,
-    /// so the <c><![CDATA[class Name : Data<Name, string>]]></c>
-    /// is different from the <c><![CDATA[class Address : Data<Address, string>]]></c> 
+    /// so the <c><![CDATA[class Name : Box<Name, string>]]></c>
+    /// is different from the <c><![CDATA[class Address : Box<Address, string>]]></c> 
     public abstract class Box<TBox, T> : I<T>, IEquatable<Box<TBox, T>>
         where TBox : Box<TBox, T>, new()
     {
@@ -232,7 +232,7 @@ namespace ImTools
         public override int GetHashCode() => EqualityComparer<T>.Default.GetHashCode(Value);
 
         /// <inheritdoc />
-        public override string ToString() => UnionTools.ToString<TBox, T>(Value, "data(");
+        public override string ToString() => UnionTools.ToString<TBox, T>(Value, "box(");
     }
 
     /// Unnamed discriminated union (with Empty name), shorter name for simplified inline usage
