@@ -1936,6 +1936,9 @@ namespace ImTools.Experimental
         /// Pretty-prints
         public override string ToString() => "empty";
 
+        /// <summary>Produces the new or updated map with the new entry</summary>
+        public virtual ImMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry) => entry;
+
         /// <summary>Lookup for the entry, if not found returns `null`</summary>
         public virtual Entry GetEntryOrDefault(int hash, K key) => null;
 
@@ -1949,7 +1952,10 @@ namespace ImTools.Experimental
             public readonly K Key;
 
             /// <summary>Constructs the entry</summary>
-            public Entry(int hash, K key) { Hash = hash; Key = key; }
+            protected Entry(int hash, K key) { Hash = hash; Key = key; }
+
+            /// <summary>Constructs the entry with the default Key</summary>
+            protected Entry(int hash) => Hash = hash;
         }
 
         /// <summary>Entry containing the Value</summary>
@@ -1966,16 +1972,24 @@ namespace ImTools.Experimental
 
             /// Pretty-prints
             public override string ToString() => "[" + Hash + "] " + Key + ": " + Value;
+
+            /// <summary>Produces the new or updated map</summary>
+            public override ImMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry) =>
+                // hash > Hash ? new Leaf2(this, entry) : // todo: @incomplete
+                // hash < Hash ? new Leaf2(entry, this) :
+                ReferenceEquals(Key, entry.Key) || Key.Equals(entry.Key) ? (ImMap234<K, V>)entry 
+                : new ConflictsEntry(hash, this, entry);
         }
 
-        /// <summary>Entry containing the Array of conflicting Value entries</summary>
+        /// <summary>Entry containing the Array of conflicting Value entries.
+        /// Note: The Key field is unused and always has a default value</summary>
         public sealed class ConflictsEntry : Entry
         {
             /// <summary>The 2 and more conflicts.</summary>
             public ValueEntry[] Conflicts;
 
             /// <summary>Constructs the entry with the key and value</summary>
-            public ConflictsEntry(int hash, K key, ValueEntry[] conflicts) : base(hash, key) => Conflicts = conflicts;
+            public ConflictsEntry(int hash, params ValueEntry[] conflicts) : base(hash) => Conflicts = conflicts;
 
             public override string ToString()
             {
@@ -1983,6 +1997,41 @@ namespace ImTools.Experimental
                 foreach (var x in Conflicts) 
                     sb.Append(x.ToString()).Append("; ");
                 return sb.ToString();
+            }
+
+            /// <summary>Produces the new or updated map</summary>
+            public override ImMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry) 
+            {
+                // todo: @incomplete
+                // if (hash > Hash) 
+                //     new Leaf2(this, entry);
+                
+                // if (hash < Hash) 
+                //     return new Leaf2(entry, this);
+
+                var key = entry.Key;
+
+                var conflicts = Conflicts;
+                var conflictCount = conflicts.Length;
+                var conflictIndex = conflictCount - 1;
+                while (conflictIndex != -1 && !key.Equals(conflicts[conflictIndex].Key))
+                    --conflictIndex;
+
+                ValueEntry[] newConflicts;
+                if (conflictIndex != -1) // update the found (existing) conflicted value
+                {
+                    newConflicts = new ValueEntry[conflictCount];
+                    Array.Copy(conflicts, 0, newConflicts, 0, conflictCount);
+                    newConflicts[conflictIndex] = entry;
+                }
+                else                      // add the new conflicting value
+                {
+                    newConflicts = new ValueEntry[conflictCount + 1];
+                    Array.Copy(conflicts, 0, newConflicts, 0, conflictCount);
+                    newConflicts[conflictCount] = entry;
+                }
+
+                return new ConflictsEntry(hash, newConflicts);
             }
         }
     }
