@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Threading;
 
 namespace ImTools.Experimental
@@ -1935,6 +1936,9 @@ namespace ImTools.Experimental
         /// Pretty-prints
         public override string ToString() => "empty";
 
+        /// <summary>Lookup for the entry, if not found returns `null`</summary>
+        public virtual Entry GetEntryOrDefault(int hash, K key) => null;
+
         /// <summary>The base entry for the Value and for the ConflictingValues entries, contains the Hash and Key</summary>
         public abstract class Entry : ImMap234<K, V>
         {
@@ -1959,6 +1963,9 @@ namespace ImTools.Experimental
 
             /// <summary>Constructs the entry with the key and value</summary>
             public ValueEntry(int hash, K key, V value) : base(hash, key) => Value = value;
+
+            /// Pretty-prints
+            public override string ToString() => "[" + Hash + "] " + Key + ": " + Value;
         }
 
         /// <summary>Entry containing the Array of conflicting Value entries</summary>
@@ -1969,6 +1976,14 @@ namespace ImTools.Experimental
 
             /// <summary>Constructs the entry with the key and value</summary>
             public ConflictsEntry(int hash, K key, ValueEntry[] conflicts) : base(hash, key) => Conflicts = conflicts;
+
+            public override string ToString()
+            {
+                var sb = new StringBuilder();
+                foreach (var x in Conflicts) 
+                    sb.Append(x.ToString()).Append("; ");
+                return sb.ToString();
+            }
         }
     }
 

@@ -4,7 +4,7 @@
         <OutputType>Exe</OutputType>
         <LangVersion />
         <TargetFramework>netcoreapp2.2</TargetFramework>
-        <TargetFramework Condition="'$(DevMode)'==true">netcoreapp3.0</TargetFramework>
+        <TargetFramework Condition="'$(DevMode)'==true">netcoreapp3.1</TargetFramework>
     </PropertyGroup>
 
     <ItemGroup>
