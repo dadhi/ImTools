@@ -1936,11 +1936,14 @@ namespace ImTools.Experimental
         /// Pretty-prints
         public override string ToString() => "empty";
 
+        /// <summary>Lookup for the entry, if not found returns `null`</summary>
+        public virtual ValueEntry GetEntryOrDefault(int hash, K key) => null;
+
         /// <summary>Produces the new or updated map with the new entry</summary>
         public virtual ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry) => entry;
 
-        /// <summary>Lookup for the entry, if not found returns `null`</summary>
-        public virtual ValueEntry GetEntryOrDefault(int hash, K key) => null;
+        /// <summary>Returns the map without the entry with the specified hash and key if it is found in the map</summary>
+        public virtual ImHashMap234<K, V> RemoveEntry(int hash, K key) => this;
 
         /// <summary>The base entry for the Value and for the ConflictingValues entries, contains the Hash and Key</summary>
         public abstract class Entry : ImHashMap234<K, V>
@@ -1983,6 +1986,10 @@ namespace ImTools.Experimental
                 // hash < Hash ? new Leaf2(entry, this) :
                 ReferenceEquals(Key, entry.Key) || Key.Equals(entry.Key) ? (ImHashMap234<K, V>)entry 
                 : new ConflictsEntry(hash, this, entry);
+
+            /// <inheritdoc />
+            public override ImHashMap234<K, V> RemoveEntry(int hash, K key) =>
+                hash == Hash && Key.Equals(key) ? Empty : this;
         }
 
         /// <summary>Entry containing the Array of conflicting Value entries.
@@ -2026,27 +2033,52 @@ namespace ImTools.Experimental
 
                 var key = entry.Key;
 
-                var conflicts = Conflicts;
-                var conflictCount = conflicts.Length;
-                var conflictIndex = conflictCount - 1;
-                while (conflictIndex != -1 && !key.Equals(conflicts[conflictIndex].Key))
-                    --conflictIndex;
+                var cs = Conflicts;
+                var n = cs.Length;
+                var i = n - 1;
+                while (i != -1 && !key.Equals(cs[i].Key)) --i;
 
                 ValueEntry[] newConflicts;
-                if (conflictIndex != -1) // update the found (existing) conflicted value
+                if (i != -1) // update the found (existing) conflicted value
                 {
-                    newConflicts = new ValueEntry[conflictCount];
-                    Array.Copy(conflicts, 0, newConflicts, 0, conflictCount);
-                    newConflicts[conflictIndex] = entry;
+                    newConflicts = new ValueEntry[n];
+                    Array.Copy(cs, 0, newConflicts, 0, n);
+                    newConflicts[i] = entry;
                 }
                 else                      // add the new conflicting value
                 {
-                    newConflicts = new ValueEntry[conflictCount + 1];
-                    Array.Copy(conflicts, 0, newConflicts, 0, conflictCount);
-                    newConflicts[conflictCount] = entry;
+                    newConflicts = new ValueEntry[n + 1];
+                    Array.Copy(cs, 0, newConflicts, 0, n);
+                    newConflicts[n] = entry;
                 }
 
                 return new ConflictsEntry(hash, newConflicts);
+            }
+
+            /// <inheritdoc />
+            public override ImHashMap234<K, V> RemoveEntry(int hash, K key)
+            {
+                if (hash != Hash)
+                    return this;
+
+                var cs = Conflicts;
+                var n = cs.Length;
+                var i = n - 1;
+                while (i != -1 && !key.Equals(cs[i].Key)) --i;
+                if (i != -1)
+                {
+                    if (n == 2)
+                        return i == 0 ? cs[1] : cs[0];
+
+                    var newConflicts = new ValueEntry[n -= 1]; // the new n is less by one
+                    if (i > 0) // copy the first part
+                        Array.Copy(cs, 0, newConflicts, 0, i);
+                    if (i < n) // copy the first part
+                        Array.Copy(cs, i + 1, newConflicts, i, n - i);
+
+                    return new ConflictsEntry(hash, newConflicts);
+                }
+                return this;
             }
         }
     }
@@ -2070,14 +2102,23 @@ namespace ImTools.Experimental
         /// <summary>Adds or updates the value by key in the map, always returning the modified map.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap234<K, V> AddOrUpdate<K, V>(this ImHashMap234<K, V> map, int hash, K key, V value) =>
-            map == ImHashMap234<K, V>.Empty
-                ? new ImHashMap234<K, V>.ValueEntry(hash, key, value)
-                : map.AddOrUpdateEntry(hash, new ImHashMap234<K, V>.ValueEntry(hash, key, value));
+            map == ImHashMap234<K, V>.Empty ? new ImHashMap234<K, V>.ValueEntry(hash, key, value) : 
+                map.AddOrUpdateEntry(hash, new ImHashMap234<K, V>.ValueEntry(hash, key, value));
 
         /// <summary>Adds or updates the value by key in the map, always returning the modified map.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap234<K, V> AddOrUpdate<K, V>(this ImHashMap234<K, V> map, K key, V value) =>
             map.AddOrUpdate(key.GetHashCode(), key, value);
+
+        /// <summary>Returns the map without the entry with the specified hash and key if it is found in the map.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap234<K, V> Remove<K, V>(this ImHashMap234<K, V> map, int hash, K key) =>
+            map == ImHashMap234<K, V>.Empty ? map : map.RemoveEntry(hash, key);
+
+        /// <summary>Returns the map without the entry with the specified hash and key if it is found in the map.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap234<K, V> Remove<K, V>(this ImHashMap234<K, V> map, K key) =>
+            map == ImHashMap234<K, V>.Empty ? map : map.RemoveEntry(key.GetHashCode(), key);
     }
 
     /// <summary>The base class for the tree leafs and branches, also defines the Empty tree</summary>
