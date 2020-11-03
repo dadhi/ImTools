@@ -1923,7 +1923,47 @@ namespace ImTools.Experimental
         }
     }
 
-    /// <summary>The base class for tree leafs and branches, also defines the Empty tree</summary>
+    /// <summary>The base class for the tree leafs and branches, also defines the Empty tree</summary>
+    public class ImMap234<K, V>
+    {
+        /// <summary>Empty tree to start with.</summary>
+        public static readonly ImMap234<K, V> Empty = new ImMap234<K, V>();
+
+        /// <summary>Hide the constructor to prevent the multiple Empty trees creation</summary>
+        protected ImMap234() { }
+
+        /// Pretty-prints
+        public override string ToString() => "empty";
+
+        /// <summary>The base entry for the Value and for the ConflictingValues entries, contains the Hash and Key</summary>
+        public abstract class Entry : ImMap234<K, V>
+        {
+            /// <summary>The Hash</summary>
+            public readonly int Hash;
+
+            /// <summary>The Key</summary>
+            public readonly K Key;
+
+            /// <summary>Constructs the entry</summary>
+            public Entry(int hash, K key) { Hash = hash; Key = key; }
+        }
+
+        /// <summary>Entry containing the Key and the Value</summary>
+        public sealed class ValueEntry : Entry
+        {
+            /// <summary>The value. May be modified if you need the Ref{V} semantics</summary>
+            public V Value;
+
+            /// <summary>Constructs the entry with the default value</summary>
+            public ValueEntry(int hash, K key) : base(hash, key) {}
+
+            /// <summary>Constructs the entry with the key and value</summary>
+            public ValueEntry(int hash, K key, V value) : base(hash, key) => Value = value;
+        }
+    }
+
+
+    /// <summary>The base class for the tree leafs and branches, also defines the Empty tree</summary>
     public class ImMap234<V>
     {
         /// <summary>Empty tree to start with.</summary>
@@ -1964,7 +2004,7 @@ namespace ImTools.Experimental
         /// when added to the tree it won't be changed or reconstructed in memory</summary>
         public sealed class Entry : ImMap234<V>
         {
-            /// <summary>The Key is basically the hash, or the Height for ImMapTree</summary>
+            /// <summary>The Key is basically the hash</summary>
             public readonly int Key;
 
             /// <summary>The value - may be modified if you need a Ref{V} semantics</summary>
