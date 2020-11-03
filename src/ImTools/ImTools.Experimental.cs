@@ -1995,7 +1995,7 @@ namespace ImTools.Experimental
             /// <summary>Constructs the entry with the key and value</summary>
             public ConflictsEntry(int hash, params ValueEntry[] conflicts) : base(hash) => Conflicts = conflicts;
 
-            /// Pretty-prints
+            /// <inheritdoc />
             public override string ToString()
             {
                 var sb = new StringBuilder();
@@ -2004,7 +2004,17 @@ namespace ImTools.Experimental
                 return sb.ToString();
             }
 
-            /// <summary>Produces the new or updated map</summary>
+            /// <inheritdoc />
+            public override ValueEntry GetEntryOrDefault(int hash, K key)
+            {
+                if (hash == Hash)
+                    foreach (var x in Conflicts)
+                        if (x.Key.Equals(key))
+                            return x;
+                return null;
+            }
+
+            /// <inheritdoc />
             public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry) 
             {
                 // todo: @incomplete

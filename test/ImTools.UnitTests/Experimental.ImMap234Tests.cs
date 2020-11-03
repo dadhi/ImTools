@@ -16,7 +16,8 @@ namespace ImTools.Experimental.UnitTests
 
             m = m.AddOrUpdate(1, "a");
             Assert.IsInstanceOf<ImHashMap234<int, string>.ValueEntry>(m);
-            Assert.AreEqual("a", m.GetValueOrDefault(1));
+            Assert.AreEqual("a",  m.GetValueOrDefault(1));
+            Assert.AreEqual(null, m.GetValueOrDefault(10));
         }
 
         [Test]
