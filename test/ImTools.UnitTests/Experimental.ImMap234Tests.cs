@@ -24,6 +24,11 @@ namespace ImTools.Experimental.UnitTests
         }
 
         [Test]
+        public void Adding_the_conflicting_keys_should_be_fun()
+        {
+        }
+
+        [Test]
         public void Adding_keys_from_1_to_10_and_checking_the_tree_shape_on_each_addition()
         {
             var m = ImMap234<int>.Empty;
