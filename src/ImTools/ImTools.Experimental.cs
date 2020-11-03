@@ -1940,7 +1940,7 @@ namespace ImTools.Experimental
         public virtual ImMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry) => entry;
 
         /// <summary>Lookup for the entry, if not found returns `null`</summary>
-        public virtual Entry GetEntryOrDefault(int hash, K key) => null;
+        public virtual ValueEntry GetEntryOrDefault(int hash, K key) => null;
 
         /// <summary>The base entry for the Value and for the ConflictingValues entries, contains the Hash and Key</summary>
         public abstract class Entry : ImMap234<K, V>
@@ -2037,6 +2037,17 @@ namespace ImTools.Experimental
         }
     }
 
+    /// <summary>ImMap methods</summary>
+    public static partial class ImMap234
+    {
+        /// <summary>Looks up for the key using its hash code and returns found value or the default value if not found</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static V GetValueOrDefault<K, V>(this ImMap234<K, V> map, K key)
+        {
+            var entry = map.GetEntryOrDefault(key.GetHashCode(), key);
+            return entry != null ? entry.Value : default(V);
+        }
+    }
 
     /// <summary>The base class for the tree leafs and branches, also defines the Empty tree</summary>
     public class ImMap234<V>
@@ -3006,7 +3017,7 @@ namespace ImTools.Experimental
     }
 
     /// <summary>ImMap methods</summary>
-    public static class ImMap234
+    public static partial class ImMap234
     {
         /// <summary>Adds or updates the value by key in the map, always returns a modified map.</summary>
         [MethodImpl((MethodImplOptions)256)]

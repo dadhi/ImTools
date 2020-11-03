@@ -8,6 +8,14 @@ namespace ImTools.Experimental.UnitTests
     public class ImMap234Tests
     {
         [Test]
+        public void Adding_hash_and_keys_from_1_to_10_and_checking_the_tree_shape_on_each_addition()
+        {
+            var m = ImMap234<int, string>.Empty;
+            Assert.AreEqual(null, m.GetValueOrDefault(0));
+            Assert.AreEqual(null, m.GetValueOrDefault(13));
+        }
+
+        [Test]
         public void Adding_keys_from_1_to_10_and_checking_the_tree_shape_on_each_addition()
         {
             var m = ImMap234<int>.Empty;
