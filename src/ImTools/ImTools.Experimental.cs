@@ -1991,6 +1991,7 @@ namespace ImTools.Experimental
             /// <summary>Constructs the entry with the key and value</summary>
             public ConflictsEntry(int hash, params ValueEntry[] conflicts) : base(hash) => Conflicts = conflicts;
 
+            /// Pretty-prints
             public override string ToString()
             {
                 var sb = new StringBuilder();
