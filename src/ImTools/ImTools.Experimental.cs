@@ -1948,7 +1948,7 @@ namespace ImTools.Experimental
             public Entry(int hash, K key) { Hash = hash; Key = key; }
         }
 
-        /// <summary>Entry containing the Key and the Value</summary>
+        /// <summary>Entry containing the Value</summary>
         public sealed class ValueEntry : Entry
         {
             /// <summary>The value. May be modified if you need the Ref{V} semantics</summary>
@@ -1959,6 +1959,16 @@ namespace ImTools.Experimental
 
             /// <summary>Constructs the entry with the key and value</summary>
             public ValueEntry(int hash, K key, V value) : base(hash, key) => Value = value;
+        }
+
+        /// <summary>Entry containing the Array of conflicting Value entries</summary>
+        public sealed class ConflictsEntry : Entry
+        {
+            /// <summary>The 2 and more conflicts.</summary>
+            public ValueEntry[] Conflicts;
+
+            /// <summary>Constructs the entry with the key and value</summary>
+            public ConflictsEntry(int hash, K key, ValueEntry[] conflicts) : base(hash, key) => Conflicts = conflicts;
         }
     }
 
