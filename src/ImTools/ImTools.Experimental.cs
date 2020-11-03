@@ -1925,25 +1925,25 @@ namespace ImTools.Experimental
     }
 
     /// <summary>The base class for the tree leafs and branches, also defines the Empty tree</summary>
-    public class ImMap234<K, V>
+    public class ImHashMap234<K, V>
     {
         /// <summary>Empty tree to start with.</summary>
-        public static readonly ImMap234<K, V> Empty = new ImMap234<K, V>();
+        public static readonly ImHashMap234<K, V> Empty = new ImHashMap234<K, V>();
 
         /// <summary>Hide the constructor to prevent the multiple Empty trees creation</summary>
-        protected ImMap234() { }
+        protected ImHashMap234() { }
 
         /// Pretty-prints
         public override string ToString() => "empty";
 
         /// <summary>Produces the new or updated map with the new entry</summary>
-        public virtual ImMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry) => entry;
+        public virtual ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry) => entry;
 
         /// <summary>Lookup for the entry, if not found returns `null`</summary>
         public virtual ValueEntry GetEntryOrDefault(int hash, K key) => null;
 
         /// <summary>The base entry for the Value and for the ConflictingValues entries, contains the Hash and Key</summary>
-        public abstract class Entry : ImMap234<K, V>
+        public abstract class Entry : ImHashMap234<K, V>
         {
             /// <summary>The Hash</summary>
             public readonly int Hash;
@@ -1970,14 +1970,18 @@ namespace ImTools.Experimental
             /// <summary>Constructs the entry with the key and value</summary>
             public ValueEntry(int hash, K key, V value) : base(hash, key) => Value = value;
 
-            /// Pretty-prints
+            /// <inheritdoc />
             public override string ToString() => "[" + Hash + "] " + Key + ": " + Value;
 
-            /// <summary>Produces the new or updated map</summary>
-            public override ImMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry) =>
+            /// <inheritdoc />
+            public override ValueEntry GetEntryOrDefault(int hash, K key) => 
+                hash == Hash && Key.Equals(key) ? this : null;
+
+            /// <inheritdoc />
+            public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry) =>
                 // hash > Hash ? new Leaf2(this, entry) : // todo: @incomplete
                 // hash < Hash ? new Leaf2(entry, this) :
-                ReferenceEquals(Key, entry.Key) || Key.Equals(entry.Key) ? (ImMap234<K, V>)entry 
+                ReferenceEquals(Key, entry.Key) || Key.Equals(entry.Key) ? (ImHashMap234<K, V>)entry 
                 : new ConflictsEntry(hash, this, entry);
         }
 
@@ -2001,7 +2005,7 @@ namespace ImTools.Experimental
             }
 
             /// <summary>Produces the new or updated map</summary>
-            public override ImMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry) 
+            public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry) 
             {
                 // todo: @incomplete
                 // if (hash > Hash) 
@@ -2038,15 +2042,32 @@ namespace ImTools.Experimental
     }
 
     /// <summary>ImMap methods</summary>
-    public static partial class ImMap234
+    public static class ImHashMap234
     {
         /// <summary>Looks up for the key using its hash code and returns found value or the default value if not found</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static V GetValueOrDefault<K, V>(this ImMap234<K, V> map, K key)
+        public static V GetValueOrDefault<K, V>(this ImHashMap234<K, V> map, int hash, K key)
         {
-            var entry = map.GetEntryOrDefault(key.GetHashCode(), key);
+            var entry = map.GetEntryOrDefault(hash, key);
             return entry != null ? entry.Value : default(V);
         }
+
+        /// <summary>Looks up for the key using its hash code and returns found value or the default value if not found</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static V GetValueOrDefault<K, V>(this ImHashMap234<K, V> map, K key) =>
+            map.GetValueOrDefault(key.GetHashCode(), key);
+
+        /// <summary>Adds or updates the value by key in the map, always returning the modified map.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap234<K, V> AddOrUpdate<K, V>(this ImHashMap234<K, V> map, int hash, K key, V value) =>
+            map == ImHashMap234<K, V>.Empty
+                ? new ImHashMap234<K, V>.ValueEntry(hash, key, value)
+                : map.AddOrUpdateEntry(hash, new ImHashMap234<K, V>.ValueEntry(hash, key, value));
+
+        /// <summary>Adds or updates the value by key in the map, always returning the modified map.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap234<K, V> AddOrUpdate<K, V>(this ImHashMap234<K, V> map, K key, V value) =>
+            map.AddOrUpdate(key.GetHashCode(), key, value);
     }
 
     /// <summary>The base class for the tree leafs and branches, also defines the Empty tree</summary>
@@ -3017,7 +3038,7 @@ namespace ImTools.Experimental
     }
 
     /// <summary>ImMap methods</summary>
-    public static partial class ImMap234
+    public static class ImMap234
     {
         /// <summary>Adds or updates the value by key in the map, always returns a modified map.</summary>
         [MethodImpl((MethodImplOptions)256)]

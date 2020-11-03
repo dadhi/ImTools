@@ -10,9 +10,13 @@ namespace ImTools.Experimental.UnitTests
         [Test]
         public void Adding_hash_and_keys_from_1_to_10_and_checking_the_tree_shape_on_each_addition()
         {
-            var m = ImMap234<int, string>.Empty;
+            var m = ImHashMap234<int, string>.Empty;
             Assert.AreEqual(null, m.GetValueOrDefault(0));
             Assert.AreEqual(null, m.GetValueOrDefault(13));
+
+            m = m.AddOrUpdate(1, "a");
+            Assert.IsInstanceOf<ImHashMap234<int, string>.ValueEntry>(m);
+            Assert.AreEqual("a", m.GetValueOrDefault(1));
         }
 
         [Test]
