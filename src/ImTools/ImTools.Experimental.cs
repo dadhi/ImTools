@@ -1934,7 +1934,7 @@ namespace ImTools.Experimental
         protected ImHashMap234() { }
 
         /// Pretty-prints
-        public override string ToString() => "empty";
+        public override string ToString() => "empty " + typeof(ImHashMap234<K, V>).Name;
 
         /// <summary>Lookup for the entry, if not found returns `null`</summary>
         public virtual ValueEntry GetEntryOrDefault(int hash, K key) => null;

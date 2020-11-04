@@ -23,9 +23,30 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreSame(ImHashMap234<int, string>.Empty, mr);
         }
 
+        public class XKey<K> 
+        {
+            public K Key;
+            public XKey(K k) => Key = k;
+            public override int GetHashCode() => 1;
+            public override bool Equals(object o) => o is XKey<K> x && Key.Equals(x.Key);
+        }
+
+        public static XKey<K> Xk<K>(K key) => new XKey<K>(key);
+
         [Test]
         public void Adding_the_conflicting_keys_should_be_fun()
         {
+            var m = ImHashMap234<XKey<int>, string>.Empty;
+            Assert.AreEqual(null, m.GetValueOrDefault(Xk(0)));
+            Assert.AreEqual(null, m.GetValueOrDefault(Xk(13)));
+
+            m = m.AddOrUpdate(Xk(1), "a");
+            Assert.IsInstanceOf<ImHashMap234<XKey<int>, string>.ValueEntry>(m);
+            Assert.AreEqual("a",  m.GetValueOrDefault(Xk(1)));
+            Assert.AreEqual(null, m.GetValueOrDefault(Xk(10)));
+
+            var mr = m.Remove(Xk(1));
+            Assert.AreSame(ImHashMap234<XKey<int>, string>.Empty, mr);
         }
 
         [Test]
