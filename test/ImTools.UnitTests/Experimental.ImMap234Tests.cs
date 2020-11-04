@@ -41,12 +41,24 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreEqual(null, m.GetValueOrDefault(Xk(13)));
 
             m = m.AddOrUpdate(Xk(1), "a");
-            Assert.IsInstanceOf<ImHashMap234<XKey<int>, string>.ValueEntry>(m);
+            m = m.AddOrUpdate(Xk(2), "b");
+            
+            Assert.IsInstanceOf<ImHashMap234<XKey<int>, string>.ConflictsEntry>(m);
             Assert.AreEqual("a",  m.GetValueOrDefault(Xk(1)));
+            Assert.AreEqual("b",  m.GetValueOrDefault(Xk(2)));
             Assert.AreEqual(null, m.GetValueOrDefault(Xk(10)));
 
             var mr = m.Remove(Xk(1));
-            Assert.AreSame(ImHashMap234<XKey<int>, string>.Empty, mr);
+            Assert.IsInstanceOf<ImHashMap234<XKey<int>, string>.ValueEntry>(mr);
+            Assert.AreEqual(null, mr.GetValueOrDefault(Xk(1)));
+            Assert.AreEqual("b",  mr.GetValueOrDefault(Xk(2)));
+
+            m = m.AddOrUpdate(Xk(3), "c");
+            mr = m.Remove(Xk(2));
+            Assert.IsInstanceOf<ImHashMap234<XKey<int>, string>.ConflictsEntry>(mr);
+            Assert.AreEqual("a",  mr.GetValueOrDefault(Xk(1)));
+            Assert.AreEqual(null, mr.GetValueOrDefault(Xk(2)));
+            Assert.AreEqual("c",  mr.GetValueOrDefault(Xk(3)));
         }
 
         [Test]

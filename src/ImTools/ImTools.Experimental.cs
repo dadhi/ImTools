@@ -2070,9 +2070,9 @@ namespace ImTools.Experimental
                             return i == 0 ? cs[1] : cs[0];
 
                         var newConflicts = new ValueEntry[n -= 1]; // the new n is less by one
-                        if (i > 0) // copy the first part
+                        if (i > 0) // copy the 1st part
                             Array.Copy(cs, 0, newConflicts, 0, i);
-                        if (i < n) // copy the first part
+                        if (i < n) // copy the 2nd part
                             Array.Copy(cs, i + 1, newConflicts, i, n - i);
 
                         return new ConflictsEntry(hash, newConflicts);
