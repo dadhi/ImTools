@@ -1945,6 +1945,10 @@ namespace ImTools.Experimental
         /// <summary>Returns the map without the entry with the specified hash and key if it is found in the map</summary>
         public virtual ImHashMap234<K, V> RemoveEntry(int hash, K key) => this;
 
+        // todo: @perf
+        /// <summary>Enumerates the entries</summary>
+        public virtual IEnumerable<ValueEntry> Enumerate() => Enumerable.Empty<Entry>();
+
         /// <summary>The base entry for the Value and for the ConflictingValues entries, contains the Hash and Key</summary>
         public abstract class Entry : ImHashMap234<K, V>
         {
@@ -1990,6 +1994,12 @@ namespace ImTools.Experimental
             /// <inheritdoc />
             public override ImHashMap234<K, V> RemoveEntry(int hash, K key) =>
                 hash == Hash && Key.Equals(key) ? Empty : this;
+
+            /// <inheritdoc />
+            public override IEnumerable<ValueEntry> Enumerate() 
+            {
+                yield return this;
+            }
         }
 
         /// <summary>Entry containing the Array of conflicting Value entries.
@@ -2080,6 +2090,9 @@ namespace ImTools.Experimental
                 }
                 return this;
             }
+
+            /// <inheritdoc />
+            public override IEnumerable<ValueEntry> Enumerate() => Conflicts;
         }
     }
 
