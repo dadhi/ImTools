@@ -2058,25 +2058,25 @@ namespace ImTools.Experimental
             /// <inheritdoc />
             public override ImHashMap234<K, V> RemoveEntry(int hash, K key)
             {
-                if (hash != Hash)
-                    return this;
-
-                var cs = Conflicts;
-                var n = cs.Length;
-                var i = n - 1;
-                while (i != -1 && !key.Equals(cs[i].Key)) --i;
-                if (i != -1)
+                if (hash == Hash) 
                 {
-                    if (n == 2)
-                        return i == 0 ? cs[1] : cs[0];
+                    var cs = Conflicts;
+                    var n = cs.Length;
+                    var i = n - 1;
+                    while (i != -1 && !key.Equals(cs[i].Key)) --i;
+                    if (i != -1)
+                    {
+                        if (n == 2)
+                            return i == 0 ? cs[1] : cs[0];
 
-                    var newConflicts = new ValueEntry[n -= 1]; // the new n is less by one
-                    if (i > 0) // copy the first part
-                        Array.Copy(cs, 0, newConflicts, 0, i);
-                    if (i < n) // copy the first part
-                        Array.Copy(cs, i + 1, newConflicts, i, n - i);
+                        var newConflicts = new ValueEntry[n -= 1]; // the new n is less by one
+                        if (i > 0) // copy the first part
+                            Array.Copy(cs, 0, newConflicts, 0, i);
+                        if (i < n) // copy the first part
+                            Array.Copy(cs, i + 1, newConflicts, i, n - i);
 
-                    return new ConflictsEntry(hash, newConflicts);
+                        return new ConflictsEntry(hash, newConflicts);
+                    }
                 }
                 return this;
             }
