@@ -1942,12 +1942,15 @@ namespace ImTools.Experimental
         /// <summary>Produces the new or updated map with the new entry</summary>
         public virtual ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry) => entry;
 
+        /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
+        public virtual ImHashMap234<K, V> AddOrKeepEntry(int hash, ValueEntry entry) => entry;
+
         /// <summary>Returns the map without the entry with the specified hash and key if it is found in the map</summary>
         public virtual ImHashMap234<K, V> RemoveEntry(int hash, K key) => this;
 
         // todo: @perf
         /// <summary>Enumerates the entries</summary>
-        public virtual IEnumerable<ValueEntry> Enumerate() => Enumerable.Empty<Entry>();
+        public virtual IEnumerable<ValueEntry> Enumerate() => Enumerable.Empty<ValueEntry>();
 
         /// <summary>The base entry for the Value and for the ConflictingValues entries, contains the Hash and Key</summary>
         public abstract class Entry : ImHashMap234<K, V>
@@ -1988,8 +1991,15 @@ namespace ImTools.Experimental
             public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry) =>
                 // hash > Hash ? new Leaf2(this, entry) : // todo: @incomplete
                 // hash < Hash ? new Leaf2(entry, this) :
-                ReferenceEquals(Key, entry.Key) || Key.Equals(entry.Key) ? (ImHashMap234<K, V>)entry 
-                : new ConflictsEntry(hash, this, entry);
+                ReferenceEquals(Key, entry.Key) || Key.Equals(entry.Key) ? entry 
+                : (ImHashMap234<K, V>)new ConflictsEntry(hash, this, entry);
+
+            /// <inheritdoc />
+            public override ImHashMap234<K, V> AddOrKeepEntry(int hash, ValueEntry entry) =>
+                // hash > Hash ? new Leaf2(this, entry) : // todo: @incomplete
+                // hash < Hash ? new Leaf2(entry, this) :
+                ReferenceEquals(Key, entry.Key) || Key.Equals(entry.Key) ? this 
+                : (ImHashMap234<K, V>)new ConflictsEntry(hash, this, entry);
 
             /// <inheritdoc />
             public override ImHashMap234<K, V> RemoveEntry(int hash, K key) =>
@@ -2061,6 +2071,34 @@ namespace ImTools.Experimental
                     Array.Copy(cs, 0, newConflicts, 0, n);
                     newConflicts[n] = entry;
                 }
+
+                return new ConflictsEntry(hash, newConflicts);
+            }
+
+            /// <inheritdoc />
+            public override ImHashMap234<K, V> AddOrKeepEntry(int hash, ValueEntry entry) 
+            {
+                // todo: @incomplete
+                // if (hash > Hash) 
+                //     new Leaf2(this, entry);
+                
+                // if (hash < Hash) 
+                //     return new Leaf2(entry, this);
+
+                var key = entry.Key;
+
+                var cs = Conflicts;
+                var n = cs.Length;
+                var i = n - 1;
+                while (i != -1 && !key.Equals(cs[i].Key)) --i;
+
+                ValueEntry[] newConflicts;
+                if (i != -1) // return existing map
+                    return this;
+
+                newConflicts = new ValueEntry[n + 1];
+                Array.Copy(cs, 0, newConflicts, 0, n);
+                newConflicts[n] = entry;
 
                 return new ConflictsEntry(hash, newConflicts);
             }
