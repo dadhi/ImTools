@@ -2208,8 +2208,8 @@ namespace ImTools.Experimental
                     // hash > e1.Hash ? new Leaf3(e0, e1, entry) :
                     // hash < e0.Hash ? new Leaf3(entry, e0, e1) :
                     // hash > e0.Hash && hash < e1.Hash ? new Leaf3(e0, entry, e1) :
-                    hash == e0.Hash   ? new Leaf2(e0.KeepEntry(entry), e1) :
-                    (ImHashMap234<K, V>)new Leaf2(e0, e1.KeepEntry(entry));
+                    hash == e0.Hash ?   ((e0 = e0.KeepEntry(entry)) == Entry0 ? this : new Leaf2(e0, e1)) :
+                    (ImHashMap234<K, V>)((e1 = e1.KeepEntry(entry)) == Entry1 ? this : new Leaf2(e0, e1));
             }
 
             // /// <summary>Produces the new or updated leaf</summary>
@@ -2280,6 +2280,17 @@ namespace ImTools.Experimental
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap234<K, V> AddOrUpdate<K, V>(this ImHashMap234<K, V> map, K key, V value) =>
             map.AddOrUpdate(key.GetHashCode(), key, value);
+
+        /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap234<K, V> AddOrKeep<K, V>(this ImHashMap234<K, V> map, int hash, K key, V value) =>
+            map == ImHashMap234<K, V>.Empty ? new ImHashMap234<K, V>.ValueEntry(hash, key, value) : 
+                map.AddOrKeepEntry(hash, new ImHashMap234<K, V>.ValueEntry(hash, key, value));
+
+        /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap234<K, V> AddOrKeep<K, V>(this ImHashMap234<K, V> map, K key, V value) =>
+            map.AddOrKeep(key.GetHashCode(), key, value);
 
         /// <summary>Returns the map without the entry with the specified hash and key if it is found in the map.</summary>
         [MethodImpl((MethodImplOptions)256)]
