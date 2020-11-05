@@ -4,8 +4,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using ImTools;
+using ImTools.UnitTests.Playground;
 
-namespace Playground
+namespace ImTools.Benchmarks
 {
     public static class TreeBenchmarks
     {

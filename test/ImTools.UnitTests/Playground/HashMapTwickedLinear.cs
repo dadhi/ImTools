@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace ImTools
+namespace ImTools.UnitTests.Playground
 {
     /// <summary>The concurrent HashTable.</summary>
     /// <typeparam name="K">Type of the key</typeparam> <typeparam name="V">Type of the value</typeparam>
@@ -11,8 +11,8 @@ namespace ImTools
     {
         internal class KeyValue
         {
-            public readonly K Key;
-            public readonly V Value;
+            public K Key;
+            public V Value;
 
             public KeyValue(K key, V value)
             {
@@ -75,9 +75,9 @@ namespace ImTools
             for (var step = 0; step < bits; ++step)
             {
                 var slot = slots[(hash + step) & bits];
-                if (slot.KeyHash == hash && _equalityComparer.Equals(slot.Key, key))
+                if (slot.KeyHash == hash && _equalityComparer.Equals(slot.KeyValue.Key, key))
                 {
-                    value = slot.Value;
+                    value = slot.KeyValue.Value;
                     return true;
                 }
 
@@ -106,9 +106,9 @@ namespace ImTools
             for (var step = 0; step < bits; ++step)
             {
                 ref var slot = ref slots[(hash + step) & bits];
-                if (slot.KeyHash == hash && _equalityComparer.Equals(slot.Key, key))
+                if (slot.KeyHash == hash && _equalityComparer.Equals(slot.KeyValue.Key, key))
                 {
-                    value = slot.Value;
+                    value = slot.KeyValue.Value;
                     return true;
                 }
 
@@ -137,8 +137,8 @@ namespace ImTools
             for (var step = 0; step < bits; ++step)
             {
                 var slot = slots[(hash + step) & bits];
-                if (slot.KeyHash == hash && _equalityComparer.Equals(slot.Key, key))
-                    return slot.Value;
+                if (slot.KeyHash == hash && _equalityComparer.Equals(slot.KeyValue.Key, key))
+                    return slot.KeyValue.Value;
                 if (slot.KeyHash == 0)
                     break;
             }
@@ -183,8 +183,8 @@ namespace ImTools
                     if (Interlocked.CompareExchange(ref slots[index].KeyHash, hash, 0) == 0 ||
                         Interlocked.CompareExchange(ref slots[index].KeyHash, hash, HashOfRemoved) == HashOfRemoved)
                     {
-                        slots[index].Key = key;
-                        slots[index].Value = value;
+                        slots[index].KeyValue.Key   = key;
+                        slots[index].KeyValue.Value = value;
 
                         // ensure that we operate on the same slots: either re-populating or the stable one
                         if (slots != _newSlots && slots != _slots)
@@ -195,9 +195,9 @@ namespace ImTools
                     }
 
                     // Then check for updating the slot
-                    if (slots[index].KeyHash == hash && _equalityComparer.Equals(slots[index].Key, key))
+                    if (slots[index].KeyHash == hash && _equalityComparer.Equals(slots[index].KeyValue.Key, key))
                     {
-                        slots[index].Value = value;
+                        slots[index].KeyValue.Value = value;
 
                         // ensure that we operate on the same slots: either re-populating or the stable one
                         if (slots != _newSlots && slots != _slots)
@@ -230,8 +230,8 @@ namespace ImTools
                     var index = (hash + step) & newBits;
                     if (Interlocked.CompareExchange(ref newSlots[index].KeyHash, hash, 0) == 0)
                     {
-                        newSlots[index].Key = slot.Key;
-                        newSlots[index].Value = slot.Value;
+                        newSlots[index].KeyValue.Key   = slot.KeyValue.Key;
+                        newSlots[index].KeyValue.Value = slot.KeyValue.Value;
                         break;
                     }
                 }
@@ -259,7 +259,7 @@ namespace ImTools
             {
                 var index = (hash + step) & bits;
                 var slot = slots[index];
-                if (slot.KeyHash == hash && key.Equals(slot.Key))
+                if (slot.KeyHash == hash && key.Equals(slot.KeyValue.Key))
                 {
                     // Mark as removed
                     if (Interlocked.CompareExchange(ref slots[index].KeyHash, HashOfRemoved, hash) == hash)

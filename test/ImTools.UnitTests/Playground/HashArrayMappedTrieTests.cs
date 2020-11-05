@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using ImTools;
 using NUnit.Framework;
 
-namespace Playground
+namespace ImTools.UnitTests.Playground
 {
     [TestFixture]
     [Explicit]

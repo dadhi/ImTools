@@ -2191,12 +2191,25 @@ namespace ImTools.Experimental
             {
                 var e0 = Entry0;
                 var e1 = Entry1;
-                return
+                return // todo: @incomplete
                     // hash > e1.Hash ? new Leaf3(e0, e1, entry) :
                     // hash < e0.Hash ? new Leaf3(entry, e0, e1) :
                     // hash > e0.Hash && hash < e1.Hash ? new Leaf3(e0, entry, e1) :
                     hash == e0.Hash   ? new Leaf2(e0.UpdateEntry(entry), e1) :
                     (ImHashMap234<K, V>)new Leaf2(e0, e1.UpdateEntry(entry));
+            }
+
+            /// <inheritdoc />
+            public override ImHashMap234<K, V> AddOrKeepEntry(int hash, ValueEntry entry)
+            {
+                var e0 = Entry0;
+                var e1 = Entry1;
+                return // todo: @incomplete
+                    // hash > e1.Hash ? new Leaf3(e0, e1, entry) :
+                    // hash < e0.Hash ? new Leaf3(entry, e0, e1) :
+                    // hash > e0.Hash && hash < e1.Hash ? new Leaf3(e0, entry, e1) :
+                    hash == e0.Hash   ? new Leaf2(e0.KeepEntry(entry), e1) :
+                    (ImHashMap234<K, V>)new Leaf2(e0, e1.KeepEntry(entry));
             }
 
             // /// <summary>Produces the new or updated leaf</summary>
@@ -2210,12 +2223,6 @@ namespace ImTools.Experimental
             //         (ImMap234<V>)new Leaf2(Entry0, entry);
             // }
 
-            // /// <inheritdoc />
-            // public override ImMap234<V> AddOrKeepEntry(int key, Entry entry) =>
-            //     key > Entry1.Key ? new Leaf3(Entry0, Entry1, entry) :
-            //     key < Entry0.Key ? new Leaf3(entry, Entry0, Entry1) :
-            //     key > Entry0.Key && key < Entry1.Key ? new Leaf3(Entry0, entry, Entry1) :
-            //     (ImMap234<V>)this;
 
             // /// <summary>Produces the new or updated leaf</summary>
             // protected override ImMap234<V> AddOrKeepOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight)

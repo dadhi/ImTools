@@ -5,26 +5,22 @@ echo:## Starting: RESTORE and BUILD...
 echo: 
 
 dotnet clean -v:m
-dotnet build -c:Release -v:m -p:DevMode=false;LocalBuild=true
+dotnet build -c:Release -v:m -p:DevMode=false
 if %ERRORLEVEL% neq 0 goto :error
 
+echo:
 echo:## Finished: RESTORE and BUILD
+
 echo: 
 echo:## Starting: TESTS...
 echo: 
 
-dotnet test -c:Release -p:GeneratePackageOnBuild=false;DevMode=false;LocalBuild=true
-
+dotnet test --no-build -c Release -p:DevMode=false test/ImTools.UnitTests/ImTools.UnitTests.csproj
 if %ERRORLEVEL% neq 0 goto :error
-echo:## Finished: TESTS
 
-echo: 
-echo:## Finished: TESTS
-echo: 
-call build\NugetPack.bat
-if %ERRORLEVEL% neq 0 goto :error
 echo:
-echo:## Finished: PACKAGING ##
+echo:## Finished: TESTS
+
 echo: 
 echo:## Finished: ALL ##
 echo:

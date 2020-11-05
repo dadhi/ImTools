@@ -26,6 +26,14 @@ namespace ImTools.Benchmarks
             //BenchmarkRunner.Run<ImHashMapBenchmarks_StringString.Lookup>();
 
             //BenchmarkRunner.Run<CustomEqualityComparerBenchmarks>();
+
+            // BenchmarkRunner.Run<ObjectPoolComparison_RentReturnAndRentPrefilledPool>();
+            //BenchmarkRunner.Run<ObjectPoolComparison_RentPrefilledPool>();
+
+            //BenchmarkRunner.Run<ObjectPoolComparison>();
+            //BenchmarkRunner.Run<DelegateVsInterfaceStruct.MapArray>();
+            //BenchmarkRunner.Run<DelegateVsInterfaceStruct.MapEnumerableRange>();
+            //BenchmarkRunner.Run<CustomEqualityComparerBenchmarks>();
         }
     }
 }

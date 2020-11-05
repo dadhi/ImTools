@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
     <metadata minClientVersion="3.3.0">
         <id>ImTools</id>
-        <version>2.1.0</version>
+        <version>3.0.0-preview-01</version>
         <authors>Maksim Volkau</authors>
         <copyright>Copyright © 2016-2020 Maksim Volkau</copyright>
         <projectUrl>https://github.com/dadhi/ImTools</projectUrl>
@@ -17,9 +17,9 @@
         <tags>FP Performance Simple Functional Immutable Persistent Map Avl 2-3-4 Self Balanced Tree Dictionary Thread-safe Functional Atomic Ref Algebraic Discriminated Union SumType</tags>
         <releaseNotes>
 <![CDATA[
-## v2.1.0 Feature release
+## v3.0.0 Major feature release
 
-- Added fast and more memory efficient Experimental.ImMap234 implementing 2-3-4 tree (#32)
+- Added fast and more memory efficient ImMap and ImHashMap based on 2-3-4 tree (#32, #35)
 
 ]]>
         </releaseNotes>

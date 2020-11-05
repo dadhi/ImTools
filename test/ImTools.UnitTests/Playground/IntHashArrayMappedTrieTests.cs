@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using ImTools;
 
-namespace Playground
+namespace ImTools.UnitTests.Playground
 {
     public sealed class IntHashTrie<V>
     {
