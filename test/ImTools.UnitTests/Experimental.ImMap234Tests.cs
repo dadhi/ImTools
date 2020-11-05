@@ -36,6 +36,20 @@ namespace ImTools.Experimental.UnitTests
             mr = m.Remove(2);
             Assert.IsInstanceOf<ImHashMap234<int, string>.ValueEntry>(mr);
             Assert.AreEqual("a", mr.GetValueOrDefault(1));
+
+            m = m.AddOrUpdate(3, "c");
+            Assert.IsInstanceOf<ImHashMap234<int, string>.Leaf3>(m);
+            Assert.AreEqual("c",  m.GetValueOrDefault(3));
+            Assert.AreEqual("b",  m.GetValueOrDefault(2));
+            Assert.AreEqual("a",  m.GetValueOrDefault(1));
+            Assert.AreEqual(null, m.GetValueOrDefault(10));
+
+            Assert.AreSame(m, m.AddOrKeep(3, "aa").AddOrKeep(2, "bb").AddOrKeep(1, "cc"));
+            Assert.AreSame(m, m.Remove(0));
+            mr = m.Remove(2);
+            Assert.IsInstanceOf<ImHashMap234<int, string>.Leaf2>(mr);
+            Assert.AreEqual("a", mr.GetValueOrDefault(1));
+            Assert.AreEqual("c", mr.GetValueOrDefault(3));
         }
 
         public class XKey<K> 
