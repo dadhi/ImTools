@@ -49,6 +49,29 @@ namespace ImTools.Experimental.UnitTests
             Assert.IsInstanceOf<ImHashMap234<int, string>.Leaf2>(mr);
             Assert.AreEqual("a", mr.GetValueOrDefault(1));
             Assert.AreEqual("c", mr.GetValueOrDefault(3));
+
+            m = m.AddOrUpdate(4, "d");
+            Assert.IsInstanceOf<ImHashMap234<int, string>.Leaf4>(m);
+            Assert.AreEqual("c",  m.GetValueOrDefault(3));
+            Assert.AreEqual("b",  m.GetValueOrDefault(2));
+            Assert.AreEqual("a",  m.GetValueOrDefault(1));
+            Assert.AreEqual("d",  m.GetValueOrDefault(4));
+            Assert.AreEqual(null, m.GetValueOrDefault(10));
+
+            Assert.AreSame(m, m.AddOrKeep(3, "aa").AddOrKeep(2, "bb").AddOrKeep(1, "cc"));
+            Assert.AreSame(m, m.Remove(0));
+
+            m = m.AddOrUpdate(5, "e");
+            Assert.IsInstanceOf<ImHashMap234<int, string>.Leaf5>(m);
+            Assert.AreEqual("c",  m.GetValueOrDefault(3));
+            Assert.AreEqual("b",  m.GetValueOrDefault(2));
+            Assert.AreEqual("a",  m.GetValueOrDefault(1));
+            Assert.AreEqual("d",  m.GetValueOrDefault(4));
+            Assert.AreEqual("e",  m.GetValueOrDefault(5));
+            Assert.AreEqual(null, m.GetValueOrDefault(10));
+
+            Assert.AreSame(m, m.AddOrKeep(3, "aa").AddOrKeep(2, "bb").AddOrKeep(1, "cc"));
+            Assert.AreSame(m, m.Remove(0));
         }
 
         public class XKey<K> 
