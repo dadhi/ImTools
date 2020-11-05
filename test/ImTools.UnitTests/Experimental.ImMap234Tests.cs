@@ -32,7 +32,6 @@ namespace ImTools.Experimental.UnitTests
 
             Assert.AreSame(m, m.AddOrKeep(1, "aa").AddOrKeep(2, "bb"));
             Assert.AreSame(m, m.Remove(0));
-
             mr = m.Remove(2);
             Assert.IsInstanceOf<ImHashMap234<int, string>.ValueEntry>(mr);
             Assert.AreEqual("a", mr.GetValueOrDefault(1));
