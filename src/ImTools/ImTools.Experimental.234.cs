@@ -279,10 +279,10 @@ namespace ImTools.Experimental
             {
                 var e0 = Entry0;
                 var e1 = Entry1;
-                return // todo: @incomplete
-                    // hash > e1.Hash ? new Leaf3(e0, e1, entry) :
-                    // hash < e0.Hash ? new Leaf3(entry, e0, e1) :
-                    // hash > e0.Hash && hash < e1.Hash ? new Leaf3(e0, entry, e1) :
+                return
+                    hash > e1.Hash ? new Leaf3(e0, e1, entry) :
+                    hash < e0.Hash ? new Leaf3(entry, e0, e1) :
+                    hash > e0.Hash && hash < e1.Hash ? new Leaf3(e0, entry, e1) :
                     hash == e0.Hash   ? new Leaf2(e0.Update(entry), e1) :
                     (ImHashMap234<K, V>)new Leaf2(e0, e1.Update(entry));
             }
@@ -292,10 +292,10 @@ namespace ImTools.Experimental
             {
                 var e0 = Entry0;
                 var e1 = Entry1;
-                return // todo: @incomplete
-                    // hash > e1.Hash ? new Leaf3(e0, e1, entry) :
-                    // hash < e0.Hash ? new Leaf3(entry, e0, e1) :
-                    // hash > e0.Hash && hash < e1.Hash ? new Leaf3(e0, entry, e1) :
+                return
+                    hash > e1.Hash ? new Leaf3(e0, e1, entry) :
+                    hash < e0.Hash ? new Leaf3(entry, e0, e1) :
+                    hash > e0.Hash && hash < e1.Hash ? new Leaf3(e0, entry, e1) :
                     hash == e0.Hash ?   ((e0 = e0.Keep(entry)) == Entry0 ? this : new Leaf2(e0, e1)) :
                     (ImHashMap234<K, V>)((e1 = e1.Keep(entry)) == Entry1 ? this : new Leaf2(e0, e1));
             }
@@ -332,10 +332,111 @@ namespace ImTools.Experimental
             //         (ImMap234<V>)this;
             // }
 
+            /// <inheritdoc />
+            public override IEnumerable<ValueEntry> Enumerate()
+            {
+                if (Entry0 is ValueEntry v0)
+                    yield return v0;
+                else foreach (var x in ((ConflictsEntry)Entry0).Conflicts)
+                    yield return x;
+                if (Entry1 is ValueEntry v1)
+                    yield return v1;
+                else foreach (var x in ((ConflictsEntry)Entry1).Conflicts)
+                    yield return x;
+            }
+        }
 
-            // /// <inheritdoc />
-            // public override S Fold<S>(S state, Func<Entry, S, S> reduce) =>
-            //     reduce(Entry1, reduce(Entry0, state));
+        /// <summary>Leaf with 2 entries</summary>
+        public sealed class Leaf3 : ImHashMap234<K, V>
+        {
+            /// <summary>Left entry</summary>
+            public readonly Entry Entry0;
+            /// <summary>Middle entry</summary>
+            public readonly Entry Entry1;
+            /// <summary>Right entry</summary>
+            public readonly Entry Entry2;
+
+            /// <summary>Constructs the leaf</summary>
+            public Leaf3(Entry entry0, Entry entry1, Entry entry2)
+            {
+                Entry0 = entry0;
+                Entry1 = entry1;
+                Entry2 = entry2;
+            }
+
+            /// <inheritdoc />
+            public override string ToString() => Entry0 + " | " + Entry1 + " | " + Entry2;
+
+            /// <inheritdoc />
+            public override ValueEntry GetEntryOrDefault(int hash, K key) =>
+                hash == Entry0.Hash ? GetEntryOrDefault(Entry0, key) :
+                hash == Entry1.Hash ? GetEntryOrDefault(Entry1, key) :
+                hash == Entry2.Hash ? GetEntryOrDefault(Entry2, key) :
+                null;
+
+            /// <inheritdoc />
+            public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry)
+            {
+                var e0 = Entry0;
+                var e1 = Entry1;
+                var e2 = Entry2;
+                return // todo: @incomplete
+                    // hash > e1.Hash ? new Leaf3(e0, e1, entry) :
+                    // hash < e0.Hash ? new Leaf3(entry, e0, e1) :
+                    // hash > e0.Hash && hash < e1.Hash ? new Leaf3(e0, entry, e1) :
+                    hash == e0.Hash   ? new Leaf3(e0.Update(entry), e1, e2) :
+                    hash == e1.Hash   ? new Leaf3(e0, e1.Update(entry), e2) :
+                    (ImHashMap234<K, V>)new Leaf3(e0, e1, e2.Update(entry));
+            }
+
+            /// <inheritdoc />
+            public override ImHashMap234<K, V> AddOrKeepEntry(int hash, ValueEntry entry)
+            {
+                var e0 = Entry0;
+                var e1 = Entry1;
+                var e2 = Entry2;
+                return // todo: @incomplete
+                    // hash > e1.Hash ? new Leaf3(e0, e1, entry) :
+                    // hash < e0.Hash ? new Leaf3(entry, e0, e1) :
+                    // hash > e0.Hash && hash < e1.Hash ? new Leaf3(e0, entry, e1) :
+                    hash == e0.Hash ?   ((e0 = e0.Keep(entry)) == Entry0 ? this : new Leaf3(e0, e1, e2)) :
+                    hash == e1.Hash ?   ((e1 = e1.Keep(entry)) == Entry1 ? this : new Leaf3(e0, e1, e2)) :
+                    (ImHashMap234<K, V>)((e2 = e2.Keep(entry)) == Entry2 ? this : new Leaf3(e0, e1, e2));
+            }
+
+            /// <inheritdoc />
+            public override ImHashMap234<K, V> RemoveEntry(int hash, K key)
+            {
+                if (hash == Entry0.Hash)
+                    return Entry0.Remove(key) == Entry0 ? this : (ImHashMap234<K, V>)new Leaf2(Entry1, Entry2);
+                if (hash == Entry1.Hash)
+                    return Entry1.Remove(key) == Entry1 ? this : (ImHashMap234<K, V>)new Leaf2(Entry0, Entry2);
+                if (hash == Entry2.Hash)
+                    return Entry2.Remove(key) == Entry2 ? this : (ImHashMap234<K, V>)new Leaf2(Entry0, Entry1);
+                return this;
+            }
+
+            // /// <summary>Produces the new or updated leaf</summary>
+            // protected override ImMap234<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight)
+            // {
+            //     popRight = null;
+            //     return key > Entry1.Key ? new Leaf3(Entry0, Entry1, entry) :
+            //         key < Entry0.Key ? new Leaf3(entry, Entry0, Entry1) :
+            //         key > Entry0.Key && key < Entry1.Key ? new Leaf3(Entry0, entry, Entry1) :
+            //         key == Entry0.Key ? new Leaf2(entry, Entry1) :
+            //         (ImMap234<V>)new Leaf2(Entry0, entry);
+            // }
+
+
+            // /// <summary>Produces the new or updated leaf</summary>
+            // protected override ImMap234<V> AddOrKeepOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight)
+            // {
+            //     popRight = null;
+            //     return key > Entry1.Key ? new Leaf3(Entry0, Entry1, entry) :
+            //         key < Entry0.Key ? new Leaf3(entry, Entry0, Entry1) :
+            //         key > Entry0.Key && key < Entry1.Key ? new Leaf3(Entry0, entry, Entry1) :
+            //         (ImMap234<V>)this;
+            // }
 
             /// <inheritdoc />
             public override IEnumerable<ValueEntry> Enumerate()
@@ -347,6 +448,10 @@ namespace ImTools.Experimental
                 if (Entry1 is ValueEntry v1)
                     yield return v1;
                 else foreach (var x in ((ConflictsEntry)Entry1).Conflicts)
+                    yield return x;
+                if (Entry2 is ValueEntry v2)
+                    yield return v2;
+                else foreach (var x in ((ConflictsEntry)Entry2).Conflicts)
                     yield return x;
             }
         }
