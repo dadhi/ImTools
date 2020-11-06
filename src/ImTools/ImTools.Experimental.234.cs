@@ -822,6 +822,12 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
+            public override ValueEntry GetEntryOrDefault(int hash, K key) =>
+                hash > Entry0.Hash ? Right.GetEntryOrDefault(hash, key) :
+                hash < Entry0.Hash ?  Left.GetEntryOrDefault(hash, key) :
+                GetEntryOrDefault(Entry0, key);
+
+            /// <inheritdoc />
             public override string ToString() =>
                 (Left is Branch ? Left.GetType().Name : Left.ToString()) +
                 " <- " + Entry0 + " -> " +

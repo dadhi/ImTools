@@ -72,6 +72,15 @@ namespace ImTools.Experimental.UnitTests
 
             Assert.AreSame(m, m.AddOrKeep(3, "aa").AddOrKeep(2, "bb").AddOrKeep(1, "cc"));
             Assert.AreSame(m, m.Remove(0));
+
+            m = m.AddOrUpdate(6, "6");
+            Assert.AreEqual("6",  m.GetValueOrDefault(6));
+            Assert.AreEqual("e",  m.GetValueOrDefault(5));
+            Assert.AreEqual("d",  m.GetValueOrDefault(4));
+            Assert.AreEqual("c",  m.GetValueOrDefault(3));
+            Assert.AreEqual("b",  m.GetValueOrDefault(2));
+            Assert.AreEqual("a",  m.GetValueOrDefault(1));
+            Assert.AreEqual(null, m.GetValueOrDefault(10));
         }
 
         public class XKey<K> 
