@@ -19,6 +19,7 @@ namespace ImTools.Experimental
         /// Pretty-prints
         public override string ToString() => "empty " + typeof(ImHashMap234<K, V>).Name;
 
+        // todo: @perf it is probably better to dumb-dawn the method by checking only for the hash (and remove the key) and delegate the Value or Conflicts entry check to the consuming side.
         /// <summary>Lookup for the entry, if not found returns `null`</summary>
         public virtual ValueEntry GetEntryOrDefault(int hash, K key) => null;
 
@@ -232,6 +233,7 @@ namespace ImTools.Experimental
             public override IEnumerable<ValueEntry> Enumerate() => Conflicts;
         }
 
+        // todo: @perf it maybe better to move this functionality out to the static extension methods to work with the result instead of doing it down the stack
         // todo: @perf check if virtual call to Value or Conflicts entry is faster
         [MethodImpl((MethodImplOptions)256)]
         private static ValueEntry GetEntryOrDefault(Entry e, K key) 
@@ -595,7 +597,8 @@ namespace ImTools.Experimental
             /// The same as `AddOrUpdateEntry` but instead of constructing the new map it returns the parts: return value is the Left node, 
             /// `ref Entry entry` (always passed as ValueEntry) will be set to the middle entry, and `popRight` is the right node.
             /// </summary>
-            internal ImHashMap234<K, V> AddOrUpdateOrSplitEntry(int hash, ref Entry entry, out ImHashMap234<K, V> popRight)
+            internal ImHashMap234<K, V> AddOrUpdateOrSplitEntry(int hash, ValueEntry entry,
+                out Entry popEntry, out ImHashMap234<K, V> popRight)
             {
                 var e0 = Entry0;
                 var e1 = Entry1;
@@ -605,55 +608,54 @@ namespace ImTools.Experimental
 
                 if (hash > e4.Hash)
                 {
+                    popEntry = e3; // todo: @perf look at what the results popEntry is set to and may be use the popEntry instead of the one of the vars above, then don't forget to use popRight on the consumer side, and remove the `popEntry = null` below
                     popRight = new Leaf2(e4, entry);
-                    entry = e3;
                     return new Leaf3(e0, e1, e2);
                 }
 
                 if (hash < e0.Hash)
                 {
-                    var left = new Leaf2(entry, e0);
-                    entry = e1;
+                    popEntry = e1;
                     popRight = new Leaf3(e2, e3, e4);
-                    return left;
+                    return new Leaf2(entry, e0);
                 }
 
                 if (hash > e0.Hash && hash < e1.Hash)
                 {
-                    var left = new Leaf2(e0, entry);
-                    entry = e1;
+                    popEntry = e1;
                     popRight = new Leaf3(e2, e3, e4);
-                    return left;
+                    return new Leaf2(e0, entry);
                 }
 
                 if (hash > e1.Hash && hash < e2.Hash)
                 {
-                    // the entry is kept as-is
+                    popEntry = entry;
                     popRight = new Leaf3(e2, e3, e4);
                     return new Leaf2(e0, e1);
                 }
 
                 if (hash > e2.Hash && hash < e3.Hash)
                 {
-                    // the entry is kept as-is
+                    popEntry = entry;
                     popRight = new Leaf2(e3, e4);
                     return new Leaf3(e0, e1, e2);
                 }
 
                 if (hash > e3.Hash && hash < e4.Hash)
                 {
+                    popEntry = e3;
                     popRight = new Leaf2(entry, e4);
-                    entry = e3;
                     return new Leaf3(e0, e1, e2);
                 }
 
+                popEntry = null;
                 popRight = null;
                 return
-                    hash == e0.Hash   ? new Leaf5(e0.Update((ValueEntry)entry), e1, e2, e3, e4) :
-                    hash == e1.Hash   ? new Leaf5(e0, e1.Update((ValueEntry)entry), e2, e3, e4) :
-                    hash == e2.Hash   ? new Leaf5(e0, e1, e2.Update((ValueEntry)entry), e3, e4) :
-                    hash == e3.Hash   ? new Leaf5(e0, e1, e3, e2.Update((ValueEntry)entry), e4) :
-                    (ImHashMap234<K, V>)new Leaf5(e0, e1, e2, e3, e4.Update((ValueEntry)entry));
+                    hash == e0.Hash   ? new Leaf5(e0.Update((ValueEntry)popEntry), e1, e2, e3, e4) :
+                    hash == e1.Hash   ? new Leaf5(e0, e1.Update((ValueEntry)popEntry), e2, e3, e4) :
+                    hash == e2.Hash   ? new Leaf5(e0, e1, e2.Update((ValueEntry)popEntry), e3, e4) :
+                    hash == e3.Hash   ? new Leaf5(e0, e1, e3, e2.Update((ValueEntry)popEntry), e4) :
+                    (ImHashMap234<K, V>)new Leaf5(e0, e1, e2, e3, e4.Update((ValueEntry)popEntry));
             }
 
             /// <inheritdoc />
@@ -822,16 +824,68 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
+            public override string ToString() =>
+                (Left is Branch ? Left.GetType().Name : Left.ToString()) +
+                " <- " + Entry0 + " -> " +
+                (Right is Branch ? Right.GetType().Name : Right.ToString());
+
+            /// <inheritdoc />
             public override ValueEntry GetEntryOrDefault(int hash, K key) =>
                 hash > Entry0.Hash ? Right.GetEntryOrDefault(hash, key) :
                 hash < Entry0.Hash ?  Left.GetEntryOrDefault(hash, key) :
                 GetEntryOrDefault(Entry0, key);
 
             /// <inheritdoc />
-            public override string ToString() =>
-                (Left is Branch ? Left.GetType().Name : Left.ToString()) +
-                " <- " + Entry0 + " -> " +
-                (Right is Branch ? Right.GetType().Name : Right.ToString());
+            public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry)
+            {
+                var e0 = Entry0;
+                if (hash > e0.Hash)
+                {
+                    // The only two cases where to expect the split: Leaf5 or Branch3
+                    if (Right is Leaf5 l5)
+                    {
+                        var leafOrBranch = l5.AddOrUpdateOrSplitEntry(hash, entry, out var popEntry, out var popRight);
+                        if (popRight != null)
+                            return new Branch3(Left, e0, leafOrBranch, popEntry, popRight);
+                        return new Branch2(Left, e0, leafOrBranch);
+                    }
+
+                    // todo: @incomplete
+                    // if (Right is Branch3 b3)
+                    // {
+                    //     var branch3Or2 = b3.AddOrUpdateOrSplitEntry(hash, entry, out var popEntry, out var popRight);
+                    //     if (popRight != null)
+                    //         return new Branch3(Left, e0, branch3Or2, popEntry, popRight);
+                    //     return new Branch2(Left, e0, branch3Or2);
+                    // }
+
+                    return new Branch2(Left, e0, Right.AddOrUpdateEntry(hash, entry));
+                }
+
+                if (hash < e0.Hash)
+                {
+                    if (Left is Leaf5 l5)
+                    {
+                        var leafOrBranch = l5.AddOrUpdateOrSplitEntry(hash, entry, out var popEntry, out var popRight);
+                        if (popRight != null)
+                            return new Branch3(leafOrBranch, popEntry, popRight, e0, Right);
+                        return new Branch2(leafOrBranch, e0, Right);
+                    }
+
+                    // todo: @incomplete
+                    // if (Left is Branch3 b3)
+                    // {
+                    //     var branch3Or2 = b3.AddOrUpdateOrSplitEntry(hash, entry, out var popEntry, out var popRight);
+                    //     if (popRight != null)
+                    //         return new Branch3(branch3Or2, popEntry, popRight, e0, Right);
+                    //     return new Branch2(branch3Or2, e0, Right);
+                    // }
+
+                    return new Branch2(Left.AddOrUpdateEntry(hash, entry), e0, Right);
+                }
+
+                return new Branch2(Left, e0.Update(entry), Right);
+            }
         }
 
         /// <summary>Branch of 3 branches and two entries</summary>
@@ -882,39 +936,47 @@ namespace ImTools.Experimental
 
         /// <summary>Looks up for the key using its hash code and returns found value or the default value if not found</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static V GetValueOrDefault<K, V>(this ImHashMap234<K, V> map, K key) =>
-            map.GetValueOrDefault(key.GetHashCode(), key);
+        public static V GetValueOrDefault<K, V>(this ImHashMap234<K, V> map, K key)
+        {
+            var entry = map.GetEntryOrDefault(key.GetHashCode(), key);
+            return entry != null ? entry.Value : default(V);
+        }
 
         /// <summary>Adds or updates the value by key in the map, always returning the modified map.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap234<K, V> AddOrUpdate<K, V>(this ImHashMap234<K, V> map, int hash, K key, V value) =>
-            map == ImHashMap234<K, V>.Empty ? new ImHashMap234<K, V>.ValueEntry(hash, key, value) : 
-                map.AddOrUpdateEntry(hash, new ImHashMap234<K, V>.ValueEntry(hash, key, value));
+            map.AddOrUpdateEntry(hash, new ImHashMap234<K, V>.ValueEntry(hash, key, value));
 
         /// <summary>Adds or updates the value by key in the map, always returning the modified map.</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap234<K, V> AddOrUpdate<K, V>(this ImHashMap234<K, V> map, K key, V value) =>
-            map.AddOrUpdate(key.GetHashCode(), key, value);
+        public static ImHashMap234<K, V> AddOrUpdate<K, V>(this ImHashMap234<K, V> map, K key, V value)
+        {
+            var hash = key.GetHashCode();
+            return map.AddOrUpdateEntry(hash, new ImHashMap234<K, V>.ValueEntry(hash, key, value));
+        }
 
         /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap234<K, V> AddOrKeep<K, V>(this ImHashMap234<K, V> map, int hash, K key, V value) =>
-            map == ImHashMap234<K, V>.Empty ? new ImHashMap234<K, V>.ValueEntry(hash, key, value) : 
-                map.AddOrKeepEntry(hash, new ImHashMap234<K, V>.ValueEntry(hash, key, value));
+            map.AddOrKeepEntry(hash, new ImHashMap234<K, V>.ValueEntry(hash, key, value));
 
         /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap234<K, V> AddOrKeep<K, V>(this ImHashMap234<K, V> map, K key, V value) =>
-            map.AddOrKeep(key.GetHashCode(), key, value);
+        public static ImHashMap234<K, V> AddOrKeep<K, V>(this ImHashMap234<K, V> map, K key, V value)
+        {
+            var hash = key.GetHashCode();
+            return map.AddOrKeepEntry(hash, new ImHashMap234<K, V>.ValueEntry(hash, key, value));
+        }
 
         /// <summary>Returns the map without the entry with the specified hash and key if it is found in the map.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap234<K, V> Remove<K, V>(this ImHashMap234<K, V> map, int hash, K key) =>
-            map == ImHashMap234<K, V>.Empty ? map : map.RemoveEntry(hash, key);
+            map.RemoveEntry(hash, key);
 
         /// <summary>Returns the map without the entry with the specified hash and key if it is found in the map.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap234<K, V> Remove<K, V>(this ImHashMap234<K, V> map, K key) =>
+            // it make sense to have the condition here to prevent the probably costly `GetHashCode()` for the empty map.
             map == ImHashMap234<K, V>.Empty ? map : map.RemoveEntry(key.GetHashCode(), key);
     }
 

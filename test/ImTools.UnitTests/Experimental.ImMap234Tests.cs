@@ -74,6 +74,7 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreSame(m, m.Remove(0));
 
             m = m.AddOrUpdate(6, "6");
+            Assert.IsInstanceOf<ImHashMap234<int, string>.Branch2>(m);
             Assert.AreEqual("6",  m.GetValueOrDefault(6));
             Assert.AreEqual("e",  m.GetValueOrDefault(5));
             Assert.AreEqual("d",  m.GetValueOrDefault(4));
@@ -81,6 +82,9 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreEqual("b",  m.GetValueOrDefault(2));
             Assert.AreEqual("a",  m.GetValueOrDefault(1));
             Assert.AreEqual(null, m.GetValueOrDefault(10));
+
+            m = m.AddOrUpdate(7, "7");
+            Assert.AreEqual("7",  m.GetValueOrDefault(7));
         }
 
         public class XKey<K> 
