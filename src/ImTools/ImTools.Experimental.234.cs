@@ -1009,6 +1009,38 @@ namespace ImTools.Experimental
         public static V GetValueOrDefault<K, V>(this ImHashMap234<K, V> map, K key) =>
             map.GetValueOrDefault(key.GetHashCode(), key);
 
+        /// <summary>Looks up for the key using its hash code and returns the `true` and the found value or `false`</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static bool TryFind<K, V>(this ImHashMap234<K, V> map, int hash, K key, out V value)
+        {
+            var e = map.GetEntryOrDefault(hash);
+            if (e is ImHashMap234<K, V>.ValueEntry v)
+            {
+                if (e.Key.Equals(key))
+                {
+                    value = v.Value;
+                    return true;
+                }
+            }
+            else if (e is ImHashMap234<K, V>.ConflictsEntry c)
+            {
+                foreach (var x in c.Conflicts) 
+                    if (x.Key.Equals(key)) 
+                    {
+                        value = x.Value;
+                        return true;
+                    }
+            }
+
+            value = default(V);
+            return false;
+        }
+
+        /// <summary>Looks up for the key using its hash code and returns the `true` and the found value or `false`</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static bool TryFind<K, V>(this ImHashMap234<K, V> map, K key, out V value) =>
+            map.TryFind(key.GetHashCode(), key, out value);
+
         /// <summary>Adds or updates the value by key in the map, always returning the modified map.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap234<K, V> AddOrUpdate<K, V>(this ImHashMap234<K, V> map, int hash, K key, V value) =>
