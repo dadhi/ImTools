@@ -1036,6 +1036,12 @@ namespace ImTools.Experimental
             /// <inheritdoc />
             public override string ToString() =>
                 Left.GetType().Name + " <- " + Entry0 + " -> " + Right.GetType().Name;
+
+            /// <inheritdoc />
+            public override Entry GetEntryOrDefault(int hash) =>
+                hash > Entry0.Hash ? Right.GetEntryOrDefault(hash) :
+                hash < Entry0.Hash ? Left .GetEntryOrDefault(hash) :
+                Entry0;
         }
 
         /// <summary>Branch of 3 branches and two entries</summary>
@@ -1067,6 +1073,19 @@ namespace ImTools.Experimental
             public override string ToString() =>
                 Left.GetType().Name + " <- " + Entry0 + " -> " + 
                 Middle.GetType().Name + " <- " + Entry1 + " -> " + Right.GetType().Name;
+
+            /// <inheritdoc />
+            public override Entry GetEntryOrDefault(int hash)
+            {
+                var e0 = Entry0;
+                var e1 = Entry1;
+                return
+                    hash == e0.Hash ? e0 : 
+                    hash == e1.Hash ? e1 : 
+                    hash > e1.Hash ? Right.GetEntryOrDefault(hash) :
+                    hash < e0.Hash ? Left .GetEntryOrDefault(hash) :
+                    Middle.GetEntryOrDefault(hash);
+            }
         }
     }
 

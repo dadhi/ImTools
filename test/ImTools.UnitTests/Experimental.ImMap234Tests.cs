@@ -104,8 +104,18 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreEqual("b",  m.GetValueOrDefault(2));
             Assert.AreEqual("a",  m.GetValueOrDefault(1));
             Assert.AreEqual(null, m.GetValueOrDefault(11));
-
             Assert.AreSame(m, m.AddOrKeep(8, "8!").AddOrKeep(5, "5!").AddOrKeep(3, "aa").AddOrKeep(2, "bb").AddOrKeep(1, "cc"));
+
+            m = m.AddOrUpdate(11, "11");
+            m = m.AddOrUpdate(12, "12");
+            m = m.AddOrUpdate(13, "13");
+            Assert.AreEqual("11",  m.GetValueOrDefault(11));
+            Assert.AreEqual("12",  m.GetValueOrDefault(12));
+            Assert.AreEqual("13",  m.GetValueOrDefault(13));
+
+            m = m.AddOrUpdate(14, "14");
+            Assert.IsInstanceOf<ImHashMap234<int, string>.Branch2Branches>(m);
+            Assert.AreEqual("14",  m.GetValueOrDefault(14));
         }
 
         public class XKey<K> 
