@@ -339,9 +339,26 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |                 ImmutableDict_Builder_Add |  1000 |   515,561.1 ns | 1,244.32 ns | 1,163.94 ns |  1.96 |    0.01 |  12.6953 |  2.9297 |     - |   64209 B |
 |                         ImmutableDict_Add |  1000 | 1,013,851.3 ns | 4,173.47 ns | 3,903.87 ns |  3.86 |    0.02 | 140.6250 | 33.2031 |     - |  662171 B |
 
+## v3 - baseline
 
- */
-            [Params(1, 10, 100, 1_000)]
+BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19041.572 (2004/?/20H1)
+Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical cores
+.NET Core SDK=3.1.403
+  [Host]     : .NET Core 3.1.9 (CoreCLR 4.700.20.47201, CoreFX 4.700.20.47203), X64 RyuJIT
+  DefaultJob : .NET Core 3.1.9 (CoreCLR 4.700.20.47201, CoreFX 4.700.20.47203), X64 RyuJIT
+
+|                             Method | Count |       Mean |    Error |   StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|----------------------------------- |------ |-----------:|---------:|---------:|------:|--------:|-------:|------:|------:|----------:|
+|              ImHashMap_AddOrUpdate |     1 |   229.6 ns |  4.59 ns | 13.17 ns |  1.00 |    0.00 | 0.0648 |     - |     - |     272 B |
+| Experimental_ImHashMap_AddOrUpdate |     1 |   184.8 ns |  3.64 ns |  8.51 ns |  0.81 |    0.07 | 0.0381 |     - |     - |     160 B |
+|           ImHashMap234_AddOrUpdate |     1 |   174.9 ns |  3.29 ns |  6.35 ns |  0.77 |    0.05 | 0.0381 |     - |     - |     160 B |
+|                                    |       |            |          |          |       |         |        |       |       |           |
+|              ImHashMap_AddOrUpdate |    10 | 1,454.7 ns | 28.43 ns | 46.72 ns |  1.00 |    0.00 | 0.5512 |     - |     - |    2312 B |
+| Experimental_ImHashMap_AddOrUpdate |    10 | 1,190.4 ns | 23.71 ns | 69.55 ns |  0.80 |    0.04 | 0.3567 |     - |     - |    1496 B |
+|           ImHashMap234_AddOrUpdate |    10 | 1,111.4 ns | 22.04 ns | 58.82 ns |  0.77 |    0.05 | 0.2995 |     - |     - |    1256 B |
+
+*/
+            [Params(1, 10)]//, 100, 1_000)]
             public int Count;
 
             [Benchmark(Baseline = true)]
@@ -355,7 +372,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImHashMap<Type, string>[] ImHashMapSlots32_AddOrUpdate()
             {
                 var map = ImHashMapSlots.CreateWithEmpty<Type, string>();
@@ -367,7 +384,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImTools.OldVersions.V1.ImHashMap<Type, string> ImHashMap_V1_AddOrUpdate()
             {
                 var map = ImTools.OldVersions.V1.ImHashMap<Type, string>.Empty;
@@ -390,6 +407,17 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             }
 
             [Benchmark]
+            public ImTools.Experimental.ImHashMap234<Type, string> ImHashMap234_AddOrUpdate()
+            {
+                var map = ImTools.Experimental.ImHashMap234<Type, string>.Empty;
+
+                foreach (var key in _keys.Take(Count))
+                    map = map.AddOrUpdate(key.GetHashCode(), key, "a");
+
+                return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
+            }
+
+            // [Benchmark]
             public ImTools.Experimental.ImMap<ImMap.KValue<Type>>[] Experimental_ImHashMapSlots32_AddOrUpdate()
             {
                 var map = ImTools.Experimental.ImMapSlots.CreateWithEmpty<ImMap.KValue<Type>>();
@@ -401,7 +429,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImTools.Experimental.ImMap<ImMap.KValue<Type>>[] Experimental_ImHashMapSlots64_AddOrUpdate()
             {
                 var map = ImTools.Experimental.ImMapSlots.CreateWithEmpty<ImMap.KValue<Type>>(64);
@@ -413,7 +441,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public DictionarySlim<TypeVal, string> DictSlim_TryAdd()
             {
                 var map = new DictionarySlim<TypeVal, string>();
@@ -425,7 +453,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public Dictionary<Type, string> Dict_TryAdd()
             {
                 var map = new Dictionary<Type, string>();
@@ -437,7 +465,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ConcurrentDictionary<Type, string> ConcurrentDict_TryAdd()
             {
                 var map = new ConcurrentDictionary<Type, string>();
@@ -449,7 +477,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImmutableDictionary<Type, string> ImmutableDict_Builder_Add()
             {
                 var builder = ImmutableDictionary.CreateBuilder<Type, string>();
@@ -460,7 +488,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return builder.ToImmutable();
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImmutableDictionary<Type, string> ImmutableDict_Add()
             {
                 var map = ImmutableDictionary<Type, string>.Empty;
