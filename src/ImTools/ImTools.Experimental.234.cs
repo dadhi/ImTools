@@ -964,6 +964,54 @@ namespace ImTools.Experimental
                     ? new Branch3Leafs(Left, e0.Update(entry), Middle, e1, Right)
                     : new Branch3Leafs(Left, e0, Middle, e1.Update(entry), Right);
             }
+
+            /// <inheritdoc />
+            public override ImHashMap234<K, V> AddOrKeepEntry(int hash, ValueEntry entry)
+            {
+                var e0 = Entry0;
+                var e1 = Entry1;
+
+                if (hash > e1.Hash)
+                {
+                    var newRight = Right.AddOrKeepEntry(hash, entry);
+                    if (newRight == Right)
+                        return this;
+                     // It may be only the result of the Leaf5 split, and no need to call the Split method because we won't destruct the result branch
+                    if (newRight is Branch2Leafs br) 
+                        return new Branch2Branches(new Branch2Leafs(Left, e0, Middle), e1, br);
+                    return new Branch3Leafs(Left, e0, Middle, e1, (Leaf)newRight);
+                }
+
+                if (hash < e0.Hash)
+                {
+                    var newLeft = Left.AddOrKeepEntry(hash, entry);
+                    if (newLeft == Left)
+                        return this;
+                    if (newLeft is Branch2Leafs br) 
+                        return new Branch2Branches(br, e0, new Branch2Leafs(Middle, e1, Right));
+                    return new Branch3Leafs((Leaf)newLeft, e0, Middle, e1, Right);
+                }
+
+                if (hash > e0.Hash && hash < e1.Hash)
+                {
+                    if (Middle is Leaf5 l5)
+                    {
+                        var newMiddle = l5.AddOrKeepOrSplitEntry(hash, entry, out var popEntry, out var popRight);
+                        if (newMiddle == l5)
+                            return this;
+                        if (popRight != null) 
+                            return new Branch2Branches(new Branch2Leafs(Left, e0, newMiddle), popEntry, new Branch2Leafs(popRight, e1, Right));
+                        return new Branch3Leafs(Left, e0, newMiddle, e1, Right);
+                    }
+
+                    var newLeaf = (Leaf)Middle.AddOrKeepEntry(hash, entry);
+                    return newLeaf == Middle ? this : new Branch3Leafs(Left, e0, newLeaf, e1, Right);
+                }
+
+                return hash == e0.Hash
+                    ? ((e0 = e0.Keep(entry)) == Entry0 ? this : new Branch3Leafs(Left, e0, Middle, e1, Right))
+                    : ((e1 = e1.Keep(entry)) == Entry1 ? this : new Branch3Leafs(Left, e0, Middle, e1, Right));
+            }
         }
 
         /// <summary>Branch of 2 branches</summary>
