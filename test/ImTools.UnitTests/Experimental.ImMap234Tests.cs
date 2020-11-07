@@ -74,7 +74,7 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreSame(m, m.Remove(0));
 
             m = m.AddOrUpdate(6, "6");
-            Assert.IsInstanceOf<ImHashMap234<int, string>.Branch2>(m);
+            Assert.IsInstanceOf<ImHashMap234<int, string>.Branch2Leafs>(m);
             Assert.AreEqual("6",  m.GetValueOrDefault(6));
             Assert.AreEqual("e",  m.GetValueOrDefault(5));
             Assert.AreEqual("d",  m.GetValueOrDefault(4));
