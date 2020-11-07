@@ -82,6 +82,7 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreEqual("b",  m.GetValueOrDefault(2));
             Assert.AreEqual("a",  m.GetValueOrDefault(1));
             Assert.AreEqual(null, m.GetValueOrDefault(10));
+            Assert.AreSame(m, m.AddOrKeep(3, "aa").AddOrKeep(2, "bb").AddOrKeep(1, "cc"));
 
             m = m.AddOrUpdate(7, "7");
             Assert.AreEqual("7",  m.GetValueOrDefault(7));

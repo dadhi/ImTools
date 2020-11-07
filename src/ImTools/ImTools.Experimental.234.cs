@@ -625,11 +625,11 @@ namespace ImTools.Experimental
                 popEntry = null;
                 popRight = null;
                 return
-                    hash == e0.Hash   ? new Leaf5(e0.Update(entry), e1, e2, e3, e4) :
-                    hash == e1.Hash   ? new Leaf5(e0, e1.Update(entry), e2, e3, e4) :
-                    hash == e2.Hash   ? new Leaf5(e0, e1, e2.Update(entry), e3, e4) :
-                    hash == e3.Hash   ? new Leaf5(e0, e1, e3, e2.Update(entry), e4) :
-                                        new Leaf5(e0, e1, e2, e3, e4.Update(entry));
+                    hash == e0.Hash ? new Leaf5(e0.Update(entry), e1, e2, e3, e4) :
+                    hash == e1.Hash ? new Leaf5(e0, e1.Update(entry), e2, e3, e4) :
+                    hash == e2.Hash ? new Leaf5(e0, e1, e2.Update(entry), e3, e4) :
+                    hash == e3.Hash ? new Leaf5(e0, e1, e3, e2.Update(entry), e4) :
+                                      new Leaf5(e0, e1, e2, e3, e4.Update(entry));
             }
 
             /// <inheritdoc />
@@ -671,7 +671,7 @@ namespace ImTools.Experimental
             /// The same as `AddOrKeepEntry` but instead of constructing the new map it returns the parts: return value is the Left node, 
             /// `ref Entry entry` (always passed as ValueEntry) will be set to the middle entry, and `popRight` is the right node.
             /// </summary>
-            internal Leaf AddOrKeepOrSplitEntry(int hash, ref Entry entry, out Leaf popRight)
+            internal Leaf AddOrKeepOrSplitEntry(int hash, ValueEntry entry, out Entry popEntry, out Leaf popRight)
             {
                 var e0 = Entry0;
                 var e1 = Entry1;
@@ -681,55 +681,54 @@ namespace ImTools.Experimental
 
                 if (hash > e4.Hash)
                 {
+                    popEntry = e3;
                     popRight = new Leaf2(e4, entry);
-                    entry = e3;
                     return new Leaf3(e0, e1, e2);
                 }
 
                 if (hash < e0.Hash)
                 {
-                    var left = new Leaf2(entry, e0);
-                    entry = e1;
+                    popEntry = e1;
                     popRight = new Leaf3(e2, e3, e4);
-                    return left;
+                    return new Leaf2(entry, e0);
                 }
 
                 if (hash > e0.Hash && hash < e1.Hash)
                 {
-                    var left = new Leaf2(e0, entry);
-                    entry = e1;
+                    popEntry = e1;
                     popRight = new Leaf3(e2, e3, e4);
-                    return left;
+                    return new Leaf2(e0, entry);
                 }
 
                 if (hash > e1.Hash && hash < e2.Hash)
                 {
-                    // the entry is kept as-is
+                    popEntry = entry;
                     popRight = new Leaf3(e2, e3, e4);
                     return new Leaf2(e0, e1);
                 }
 
                 if (hash > e2.Hash && hash < e3.Hash)
                 {
-                    // the entry is kept as-is
+                    popEntry = entry;
                     popRight = new Leaf2(e3, e4);
                     return new Leaf3(e0, e1, e2);
                 }
 
                 if (hash > e3.Hash && hash < e4.Hash)
                 {
+                    popEntry = e3;
                     popRight = new Leaf2(entry, e4);
-                    entry = e3;
                     return new Leaf3(e0, e1, e2);
                 }
 
+                popEntry = null;
                 popRight = null;
                 return
-                    hash == e0.Hash ?   ((e0 = e0.Keep((ValueEntry)entry)) == Entry0 ? this : new Leaf5(e0, e1, e2, e3, e4)) :
-                    hash == e1.Hash ?   ((e1 = e1.Keep((ValueEntry)entry)) == Entry1 ? this : new Leaf5(e0, e1, e2, e3, e4)) :
-                    hash == e2.Hash ?   ((e2 = e2.Keep((ValueEntry)entry)) == Entry2 ? this : new Leaf5(e0, e1, e2, e3, e4)) :
-                    hash == e3.Hash ?   ((e3 = e3.Keep((ValueEntry)entry)) == Entry3 ? this : new Leaf5(e0, e1, e2, e3, e4)) :
-                                        ((e4 = e4.Keep((ValueEntry)entry)) == Entry4 ? this : new Leaf5(e0, e1, e2, e3, e4));
+                    hash == e0.Hash ? ((e0 = e0.Keep(entry)) == Entry0 ? this : new Leaf5(e0, e1, e2, e3, e4)) :
+                    hash == e1.Hash ? ((e1 = e1.Keep(entry)) == Entry1 ? this : new Leaf5(e0, e1, e2, e3, e4)) :
+                    hash == e2.Hash ? ((e2 = e2.Keep(entry)) == Entry2 ? this : new Leaf5(e0, e1, e2, e3, e4)) :
+                    hash == e3.Hash ? ((e3 = e3.Keep(entry)) == Entry3 ? this : new Leaf5(e0, e1, e2, e3, e4)) :
+                                      ((e4 = e4.Keep(entry)) == Entry4 ? this : new Leaf5(e0, e1, e2, e3, e4));
             }
 
             /// <inheritdoc />
@@ -840,11 +839,52 @@ namespace ImTools.Experimental
 
                 return new Branch2Leafs(Left, e0.Update(entry), Right);
             }
+
+            /// <inheritdoc />
+            public override ImHashMap234<K, V> AddOrKeepEntry(int hash, ValueEntry entry)
+            {
+                var e0 = Entry0;
+                if (hash > e0.Hash)
+                {
+                    Leaf newRight;
+                    if (Right is Leaf5 l5)
+                    {
+                        newRight = l5.AddOrKeepOrSplitEntry(hash, entry, out var popEntry, out var popRight);
+                        if (newRight == l5)
+                            return this;
+                        if (popRight != null)
+                            return new Branch3Leafs(Left, e0, newRight, popEntry, popRight);
+                        return new Branch2Leafs(Left, e0, newRight);
+                    }
+
+                    newRight = (Leaf)Right.AddOrKeepEntry(hash, entry);
+                    return newRight == Right ? this : new Branch2Leafs(Left, e0, newRight);
+                }
+
+                if (hash < e0.Hash)
+                {
+                    Leaf newLeft;
+                    if (Left is Leaf5 l5)
+                    {
+                        newLeft = l5.AddOrUpdateOrSplitEntry(hash, entry, out var popEntry, out var popRight);
+                        if (newLeft == l5)
+                            return this;
+                        if (popRight != null)
+                            return new Branch3Leafs(newLeft, popEntry, popRight, e0, Right);
+                        return new Branch2Leafs(newLeft, e0, Right);
+                    }
+
+                    newLeft = (Leaf)Left.AddOrKeepEntry(hash, entry);
+                    return newLeft == Left ? this : new Branch2Leafs(newLeft, e0, Right);
+                }
+
+                return (e0 = e0.Keep(entry)) == Entry0 ? this : new Branch2Leafs(Left, e0, Right);
+            }
         }
 
         /// <summary>Branch of 3 leafs and two entries</summary>
         public sealed class Branch3Leafs : Branch
-        {
+        { 
             /// <summary>Left entry</summary>
             public readonly Entry Entry0;
             /// <summary>Right entry</summary>
@@ -985,7 +1025,8 @@ namespace ImTools.Experimental
     /// <summary>ImMap methods</summary>
     public static class ImHashMap234
     {
-        /// <summary>Looks up for the key using its hash code and returns found value or the default value if not found</summary>
+        /// <summary>Looks up for the key using its hash code and checking the key with `object.Equals` for equality,
+        ///  returns found value or the default value if not found</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static V GetValueOrDefault<K, V>(this ImHashMap234<K, V> map, int hash, K key)
         {
@@ -1004,12 +1045,34 @@ namespace ImTools.Experimental
             return default(V);
         }
 
-        /// <summary>Looks up for the key using its hash code and returns found value or the default value if not found</summary>
+        /// <summary>Looks up for the key using its hash code and checking the key with `object.Equals` for equality,
+        /// returns found value or the default value if not found</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static V GetValueOrDefault<K, V>(this ImHashMap234<K, V> map, K key) =>
             map.GetValueOrDefault(key.GetHashCode(), key);
 
-        /// <summary>Looks up for the key using its hash code and returns the `true` and the found value or `false`</summary>
+        /// <summary>Looks up for the key using its hash code and checking the key with `object.ReferenceEquals` for equality,
+        ///  returns found value or the default value if not found</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static V GetValueOrDefaultReferenceEqual<K, V>(this ImHashMap234<K, V> map, int hash, K key) where K : class
+        {
+            var e = map.GetEntryOrDefault(hash);
+            if (e is ImHashMap234<K, V>.ValueEntry v)
+            {
+                if (e.Key == key)
+                    return v.Value;
+            }
+            else if (e is ImHashMap234<K, V>.ConflictsEntry c)
+            {
+                foreach (var x in c.Conflicts) 
+                    if (x.Key == key)
+                        return x.Value;
+            }
+            return default(V);
+        }
+
+        /// <summary>Looks up for the key using its hash code and checking the key with `object.Equals` for equality,
+        /// returns the `true` and the found value or `false`</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static bool TryFind<K, V>(this ImHashMap234<K, V> map, int hash, K key, out V value)
         {
@@ -1036,7 +1099,8 @@ namespace ImTools.Experimental
             return false;
         }
 
-        /// <summary>Looks up for the key using its hash code and returns the `true` and the found value or `false`</summary>
+        /// <summary>Looks up for the key using its hash code and checking the key equality with the `ReferenceEquals`, 
+        /// returns the `true` and the found value or `false`</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static bool TryFindReferenceEqual<K, V>(this ImHashMap234<K, V> map, int hash, K key, out V value) where K : class
         {
@@ -1063,7 +1127,6 @@ namespace ImTools.Experimental
             value = default(V);
             return false;
         }
-
 
         /// <summary>Looks up for the key using its hash code and returns the `true` and the found value or `false`</summary>
         [MethodImpl((MethodImplOptions)256)]

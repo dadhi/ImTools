@@ -880,13 +880,13 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 
 |                         Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
 |------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
-|              ImHashMap_TryFind |     1 |  7.741 ns | 0.3234 ns | 0.9435 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| Experimental_ImHashMap_TryFind |     1 |  9.964 ns | 0.3488 ns | 0.9370 ns |  1.31 |    0.20 |     - |     - |     - |         - |
-|           ImHashMap234_TryFind |     1 |  7.620 ns | 0.3250 ns | 0.9376 ns |  1.00 |    0.18 |     - |     - |     - |         - |
+|              ImHashMap_TryFind |     1 |  5.329 ns | 0.1344 ns | 0.1122 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| Experimental_ImHashMap_TryFind |     1 |  6.736 ns | 0.0890 ns | 0.0832 ns |  1.26 |    0.04 |     - |     - |     - |         - |
+|           ImHashMap234_TryFind |     1 |  4.877 ns | 0.0959 ns | 0.0850 ns |  0.92 |    0.03 |     - |     - |     - |         - |
 |                                |       |           |           |           |       |         |       |       |       |           |
-|              ImHashMap_TryFind |    10 | 11.255 ns | 0.3801 ns | 0.9813 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| Experimental_ImHashMap_TryFind |    10 | 15.733 ns | 0.4537 ns | 1.1129 ns |  1.41 |    0.16 |     - |     - |     - |         - |
-|           ImHashMap234_TryFind |    10 | 10.676 ns | 0.3391 ns | 0.9167 ns |  0.96 |    0.12 |     - |     - |     - |         - |
+|              ImHashMap_TryFind |    10 |  8.150 ns | 0.1318 ns | 0.1233 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| Experimental_ImHashMap_TryFind |    10 | 11.704 ns | 0.2382 ns | 0.2229 ns |  1.44 |    0.03 |     - |     - |     - |         - |
+|           ImHashMap234_TryFind |    10 |  6.332 ns | 0.0824 ns | 0.0730 ns |  0.78 |    0.01 |     - |     - |     - |         - |
 
 */
             [Params(1, 10)]//, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
