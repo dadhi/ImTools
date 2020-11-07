@@ -19,9 +19,8 @@ namespace ImTools.Experimental
         /// Pretty-prints
         public override string ToString() => "empty " + typeof(ImHashMap234<K, V>).Name;
 
-        // todo: @perf it is probably better to dumb-dawn the method by checking only for the hash (and remove the key) and delegate the Value or Conflicts entry check to the consuming side.
         /// <summary>Lookup for the entry, if not found returns `null`</summary>
-        public virtual ValueEntry GetEntryOrDefault(int hash, K key) => null;
+        public virtual Entry GetEntryOrDefault(int hash) => null;
 
         /// <summary>Produces the new or updated map with the new entry</summary>
         public virtual ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry) => entry;
@@ -32,7 +31,7 @@ namespace ImTools.Experimental
         /// <summary>Returns the map without the entry with the specified hash and key if it is found in the map</summary>
         public virtual ImHashMap234<K, V> RemoveEntry(int hash, K key) => this;
 
-        // todo: @perf
+        // todo: @perf - optimize
         /// <summary>Enumerates the entries</summary>
         public virtual IEnumerable<ValueEntry> Enumerate() => Enumerable.Empty<ValueEntry>();
 
@@ -50,6 +49,9 @@ namespace ImTools.Experimental
 
             /// <summary>Constructs the entry with the default Key</summary>
             protected Entry(int hash) => Hash = hash;
+
+            /// <inheritdoc />
+            public sealed override Entry GetEntryOrDefault(int hash) => hash == Hash ? this : null;
 
             internal abstract Entry Update(ValueEntry entry);
             internal abstract Entry Keep(ValueEntry entry);
@@ -70,10 +72,6 @@ namespace ImTools.Experimental
 
             /// <inheritdoc />
             public override string ToString() => "[" + Hash + "] " + Key + ": " + Value;
-
-            /// <inheritdoc />
-            public override ValueEntry GetEntryOrDefault(int hash, K key) => 
-                hash == Hash && Key.Equals(key) ? this : null;
 
             internal override Entry Update(ValueEntry entry) => 
                 Key.Equals(entry.Key) ? entry : (Entry)new ConflictsEntry(Hash, this, entry);
@@ -124,16 +122,6 @@ namespace ImTools.Experimental
                 foreach (var x in Conflicts) 
                     sb.Append(x.ToString()).Append("; ");
                 return sb.ToString();
-            }
-
-            /// <inheritdoc />
-            public override ValueEntry GetEntryOrDefault(int hash, K key)
-            {
-                if (hash == Hash)
-                    foreach (var x in Conflicts)
-                        if (x.Key.Equals(key))
-                            return x;
-                return null;
             }
 
             internal override Entry Update(ValueEntry entry) 
@@ -233,25 +221,6 @@ namespace ImTools.Experimental
             public override IEnumerable<ValueEntry> Enumerate() => Conflicts;
         }
 
-        // todo: @perf it maybe better to move this functionality out to the static extension methods to work with the result instead of doing it down the stack
-        // todo: @perf check if virtual call to Value or Conflicts entry is faster
-        [MethodImpl((MethodImplOptions)256)]
-        private static ValueEntry GetEntryOrDefault(Entry e, K key) 
-        {
-            if (e is ValueEntry v)
-            {
-                if (e.Key.Equals(key))
-                    return v;
-            }
-            else
-            {
-                foreach (var x in ((ConflictsEntry)e).Conflicts) 
-                    if (x.Key.Equals(key))
-                        return x;
-            }
-            return null;
-        }
-
         /// <summary>Leaf with 2 entries</summary>
         public sealed class Leaf2 : ImHashMap234<K, V>
         {
@@ -271,9 +240,9 @@ namespace ImTools.Experimental
             public override string ToString() => "leaf2>> " + Entry0 + " | " + Entry1;
 
             /// <inheritdoc />
-            public override ValueEntry GetEntryOrDefault(int hash, K key) =>
-                hash == Entry0.Hash  ? GetEntryOrDefault(Entry0, key) :
-                hash == Entry1.Hash  ? GetEntryOrDefault(Entry1, key) :
+            public override Entry GetEntryOrDefault(int hash) =>
+                hash == Entry0.Hash  ? Entry0 :
+                hash == Entry1.Hash  ? Entry1 :
                 null;
 
             /// <inheritdoc />
@@ -348,10 +317,10 @@ namespace ImTools.Experimental
             public override string ToString() => "leaf3>> " + Entry0 + " | " + Entry1 + " | " + Entry2;
 
             /// <inheritdoc />
-            public override ValueEntry GetEntryOrDefault(int hash, K key) =>
-                hash == Entry0.Hash  ? GetEntryOrDefault(Entry0, key) :
-                hash == Entry1.Hash  ? GetEntryOrDefault(Entry1, key) :
-                hash == Entry2.Hash  ? GetEntryOrDefault(Entry2, key) :
+            public override Entry GetEntryOrDefault(int hash) =>
+                hash == Entry0.Hash  ? Entry0 :
+                hash == Entry1.Hash  ? Entry1 :
+                hash == Entry2.Hash  ? Entry2 :
                 null;
 
             /// <inheritdoc />
@@ -441,11 +410,11 @@ namespace ImTools.Experimental
             public override string ToString() => "leaf4>> " + Entry0 + " | " + Entry1 + " | " + Entry2 + " | " + Entry3;
 
             /// <inheritdoc />
-            public override ValueEntry GetEntryOrDefault(int hash, K key) =>
-                hash == Entry0.Hash  ? GetEntryOrDefault(Entry0, key) :
-                hash == Entry1.Hash  ? GetEntryOrDefault(Entry1, key) :
-                hash == Entry2.Hash  ? GetEntryOrDefault(Entry2, key) :
-                hash == Entry3.Hash  ? GetEntryOrDefault(Entry3, key) :
+            public override Entry GetEntryOrDefault(int hash) =>
+                hash == Entry0.Hash ? Entry0 :
+                hash == Entry1.Hash ? Entry1 :
+                hash == Entry2.Hash ? Entry2 :
+                hash == Entry3.Hash ? Entry3 :
                 null;
 
             /// <inheritdoc />
@@ -550,12 +519,12 @@ namespace ImTools.Experimental
             public override string ToString() => "leaf5>> " + Entry0 + " | " + Entry1 + " | " + Entry2 + " | " + Entry3 + " | " + Entry4;
 
             /// <inheritdoc />
-            public override ValueEntry GetEntryOrDefault(int hash, K key) =>
-                hash == Entry0.Hash  ? GetEntryOrDefault(Entry0, key) :
-                hash == Entry1.Hash  ? GetEntryOrDefault(Entry1, key) :
-                hash == Entry2.Hash  ? GetEntryOrDefault(Entry2, key) :
-                hash == Entry3.Hash  ? GetEntryOrDefault(Entry3, key) :
-                hash == Entry4.Hash  ? GetEntryOrDefault(Entry4, key) :
+            public override Entry GetEntryOrDefault(int hash) =>
+                hash == Entry0.Hash ? Entry0 :
+                hash == Entry1.Hash ? Entry1 :
+                hash == Entry2.Hash ? Entry2 :
+                hash == Entry3.Hash ? Entry3 :
+                hash == Entry4.Hash ? Entry4 :
                 null;
 
             /// <inheritdoc />
@@ -830,10 +799,10 @@ namespace ImTools.Experimental
                 (Right is Branch ? Right.GetType().Name : Right.ToString());
 
             /// <inheritdoc />
-            public override ValueEntry GetEntryOrDefault(int hash, K key) =>
-                hash > Entry0.Hash ? Right.GetEntryOrDefault(hash, key) :
-                hash < Entry0.Hash ?  Left.GetEntryOrDefault(hash, key) :
-                GetEntryOrDefault(Entry0, key);
+            public override Entry GetEntryOrDefault(int hash) =>
+                hash > Entry0.Hash ? Right.GetEntryOrDefault(hash) :
+                hash < Entry0.Hash ?  Left.GetEntryOrDefault(hash) :
+                Entry0;
 
             /// <inheritdoc />
             public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry)
@@ -930,17 +899,25 @@ namespace ImTools.Experimental
         [MethodImpl((MethodImplOptions)256)]
         public static V GetValueOrDefault<K, V>(this ImHashMap234<K, V> map, int hash, K key)
         {
-            var entry = map.GetEntryOrDefault(hash, key);
-            return entry != null ? entry.Value : default(V);
+            var e = map.GetEntryOrDefault(hash);
+            if (e is ImHashMap234<K, V>.ValueEntry v)
+            {
+                if (e.Key.Equals(key))
+                    return v.Value;
+            }
+            else if (e is ImHashMap234<K, V>.ConflictsEntry c)
+            {
+                foreach (var x in c.Conflicts) 
+                    if (x.Key.Equals(key))
+                        return x.Value;
+            }
+            return default(V);
         }
 
         /// <summary>Looks up for the key using its hash code and returns found value or the default value if not found</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static V GetValueOrDefault<K, V>(this ImHashMap234<K, V> map, K key)
-        {
-            var entry = map.GetEntryOrDefault(key.GetHashCode(), key);
-            return entry != null ? entry.Value : default(V);
-        }
+        public static V GetValueOrDefault<K, V>(this ImHashMap234<K, V> map, K key) =>
+            map.GetValueOrDefault(key.GetHashCode(), key);
 
         /// <summary>Adds or updates the value by key in the map, always returning the modified map.</summary>
         [MethodImpl((MethodImplOptions)256)]
