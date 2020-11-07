@@ -1038,6 +1038,35 @@ namespace ImTools.Experimental
 
         /// <summary>Looks up for the key using its hash code and returns the `true` and the found value or `false`</summary>
         [MethodImpl((MethodImplOptions)256)]
+        public static bool TryFindReferenceEqual<K, V>(this ImHashMap234<K, V> map, int hash, K key, out V value) where K : class
+        {
+            var e = map.GetEntryOrDefault(hash);
+
+            if (e is ImHashMap234<K, V>.ValueEntry v)
+            {
+                if (e.Key == key)
+                {
+                    value = v.Value;
+                    return true;
+                }
+            }
+            else if (e is ImHashMap234<K, V>.ConflictsEntry c)
+            {
+                foreach (var x in c.Conflicts) 
+                    if (x.Key == key) 
+                    {
+                        value = x.Value;
+                        return true;
+                    }
+            }
+
+            value = default(V);
+            return false;
+        }
+
+
+        /// <summary>Looks up for the key using its hash code and returns the `true` and the found value or `false`</summary>
+        [MethodImpl((MethodImplOptions)256)]
         public static bool TryFind<K, V>(this ImHashMap234<K, V> map, K key, out V value) =>
             map.TryFind(key.GetHashCode(), key, out value);
 

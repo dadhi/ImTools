@@ -880,13 +880,13 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 
 |                         Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
 |------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
-|              ImHashMap_TryFind |     1 |  7.569 ns | 0.2924 ns | 0.7117 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| Experimental_ImHashMap_TryFind |     1 |  9.887 ns | 0.3380 ns | 0.7900 ns |  1.32 |    0.17 |     - |     - |     - |         - |
-|           ImHashMap234_TryFind |     1 |  8.864 ns | 0.3180 ns | 0.7557 ns |  1.18 |    0.16 |     - |     - |     - |         - |
+|              ImHashMap_TryFind |     1 |  7.741 ns | 0.3234 ns | 0.9435 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| Experimental_ImHashMap_TryFind |     1 |  9.964 ns | 0.3488 ns | 0.9370 ns |  1.31 |    0.20 |     - |     - |     - |         - |
+|           ImHashMap234_TryFind |     1 |  7.620 ns | 0.3250 ns | 0.9376 ns |  1.00 |    0.18 |     - |     - |     - |         - |
 |                                |       |           |           |           |       |         |       |       |       |           |
-|              ImHashMap_TryFind |    10 | 10.840 ns | 0.3560 ns | 0.8866 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| Experimental_ImHashMap_TryFind |    10 | 15.429 ns | 0.3848 ns | 0.3214 ns |  1.41 |    0.13 |     - |     - |     - |         - |
-|           ImHashMap234_TryFind |    10 | 12.232 ns | 0.3887 ns | 0.9894 ns |  1.13 |    0.14 |     - |     - |     - |         - |
+|              ImHashMap_TryFind |    10 | 11.255 ns | 0.3801 ns | 0.9813 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| Experimental_ImHashMap_TryFind |    10 | 15.733 ns | 0.4537 ns | 1.1129 ns |  1.41 |    0.16 |     - |     - |     - |         - |
+|           ImHashMap234_TryFind |    10 | 10.676 ns | 0.3391 ns | 0.9167 ns |  0.96 |    0.12 |     - |     - |     - |         - |
 
 */
             [Params(1, 10)]//, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
@@ -1086,7 +1086,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             [Benchmark]
             public string ImHashMap234_TryFind()
             {
-                _map234.TryFind(LookupKey.GetHashCode(), LookupKey, out var result);
+                _map234.TryFindReferenceEqual(LookupKey.GetHashCode(), LookupKey, out var result);
                 return (string)result;
             }
 
