@@ -42,12 +42,6 @@ namespace ImTools.Experimental
             /// <summary>The Hash</summary>
             public readonly int Hash;
 
-            /// <summary>The Key</summary>
-            public readonly K Key;
-
-            /// <summary>Constructs the entry</summary>
-            protected Entry(int hash, K key) { Hash = hash; Key = key; }
-
             /// <summary>Constructs the entry with the default Key</summary>
             protected Entry(int hash) => Hash = hash;
 
@@ -62,17 +56,24 @@ namespace ImTools.Experimental
         /// <summary>Entry containing the Value</summary>
         public sealed class ValueEntry : Entry
         {
+            /// <summary>The Key</summary>
+            public readonly K Key;
+
             /// <summary>The value. May be modified if you need the Ref{V} semantics</summary>
             public V Value;
 
             /// <summary>Constructs the entry with the default value</summary>
-            public ValueEntry(int hash, K key) : base(hash, key) {}
+            public ValueEntry(int hash, K key) : base(hash) => Key = key;
 
             /// <summary>Constructs the entry with the key and value</summary>
-            public ValueEntry(int hash, K key, V value) : base(hash, key) => Value = value;
+            public ValueEntry(int hash, K key, V value) : base(hash) 
+            { 
+                Key   = key;
+                Value = value;
+            }
 
             /// <inheritdoc />
-            public override string ToString() => "[" + Hash + "] " + Key + ": " + Value;
+            public override string ToString() => "[" + Hash + "]" + Key + ": " + Value;
 
             internal override Entry Update(ValueEntry entry) => 
                 Key.Equals(entry.Key) ? entry : (Entry)new ConflictsEntry(Hash, this, entry);
@@ -1157,7 +1158,7 @@ namespace ImTools.Experimental
             var e = map.GetEntryOrDefault(hash);
             if (e is ImHashMap234<K, V>.ValueEntry v)
             {
-                if (e.Key.Equals(key))
+                if (v.Key.Equals(key))
                     return v.Value;
             }
             else if (e is ImHashMap234<K, V>.ConflictsEntry c)
@@ -1183,7 +1184,7 @@ namespace ImTools.Experimental
             var e = map.GetEntryOrDefault(hash);
             if (e is ImHashMap234<K, V>.ValueEntry v)
             {
-                if (e.Key == key)
+                if (v.Key == key)
                     return v.Value;
             }
             else if (e is ImHashMap234<K, V>.ConflictsEntry c)
@@ -1203,7 +1204,7 @@ namespace ImTools.Experimental
             var e = map.GetEntryOrDefault(hash);
             if (e is ImHashMap234<K, V>.ValueEntry v)
             {
-                if (e.Key.Equals(key))
+                if (v.Key.Equals(key))
                 {
                     value = v.Value;
                     return true;
@@ -1232,7 +1233,7 @@ namespace ImTools.Experimental
 
             if (e is ImHashMap234<K, V>.ValueEntry v)
             {
-                if (e.Key == key)
+                if (v.Key == key)
                 {
                     value = v.Value;
                     return true;
@@ -1329,8 +1330,6 @@ namespace ImTools.Experimental
 
         /// <summary>Enumerable</summary>
         public virtual IEnumerable<Entry> Enumerate() => Enumerable.Empty<Entry>();
-
-        // todo: @feature add SoftRemove
 
         /// <summary>Wraps the stored data with "fixed" reference semantics - 
         /// when added to the tree it won't be changed or reconstructed in memory</summary>
