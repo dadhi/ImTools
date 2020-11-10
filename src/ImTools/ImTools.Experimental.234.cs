@@ -887,6 +887,81 @@ namespace ImTools.Experimental
 
                 return (e0 = e0.Keep(entry)) == Entry0 ? this : new Branch2(Left, e0, Right);
             }
+
+            /// <inheritdoc />
+            public override ImHashMap234<K, V> RemoveEntry(int hash, K key) // todo: @wip remove the key
+            {
+                var e0 = Entry0;
+                if (hash > e0.Hash) 
+                {
+                    //        4
+                    //      /   \
+                    //  1 2 3   5 [6]
+
+                    var newRight = Right.Remove(hash, key);
+                    if (newRight == Right)
+                        return this;
+
+                    if (newRight is Entry re) 
+                    {
+                        // If the Left is not a Leaf2, move its one entry to the Right
+                        if (Left is Leaf3 l3)
+                            return new Branch2(new Leaf2(l3.Entry0, l3.Entry1), l3.Entry2, new Leaf2(e0, re)); 
+                        if (Left is Leaf4 l4)
+                            return new Branch2(new Leaf3(l4.Entry0, l4.Entry1, l4.Entry2), l4.Entry3, new Leaf2(e0, re)); 
+                        if (Left is Leaf5 l5)
+                            return new Branch2(new Leaf4(l5.Entry0, l5.Entry1, l5.Entry2, l5.Entry3), l5.Entry4, new Leaf2(e0, re));
+
+                        // Case #1
+                        // If the Left is Leaf2 -> reduce the whole branch to the Leaf4 and rely on the upper branch (if any) to balance itself,
+                        // see this case handled below..
+                        var l2 = (Leaf2)Left;
+                        return new Leaf4(l2.Entry0, l2.Entry1, e0, re);
+                    }
+
+                    // Handling Case #1
+                    if (newRight is Leaf4 && Right is Branch2) // no need to check for the Branch3 because there is no way that Leaf4 will be the result of deleting one element from it 
+                    {
+                        //             7                       4     7 
+                        //          /      \                 /    |     \
+                        //        4      8 9 10 11  =>   1 2 3   5 6   8 9 10 11
+                        //      /   \                    
+                        //   1 2 3   5 6                  
+
+                        // Case #2
+                        // The result tree height is decreased, so we should not forget to rebalance with the other part of the tree on the upper level
+                        // see the case handled below...
+                        if (Left is Branch2 lb2)
+                            return new Branch3(lb2.Left, lb2.Entry0, lb2.Right, e0, newRight);
+
+                        //                     10                            7
+                        //              /           \                     /     \
+                        //        4      7        11 12 13 14 =>       4          10
+                        //      /     |    \                         /    \     /    \
+                        //   1 2 3   5 6    8 9                   1 2 3   5 6|8 9   11 12 13 14
+
+                        if (Left is Branch3 lb3) // the result tree height is the same - no  need to rebalance
+                            return new Branch2(new Branch2(lb3.Left, lb3.Entry0, lb3.Middle), lb3.Entry1, new Branch2(lb3.Right, e0, newRight));
+                    }
+
+                    // Handling the Case #2
+                    if (newRight is Branch3 && Right is Branch2)
+                    {
+                        // todo: @wip
+                    } 
+
+                    return new Branch2(Left, e0, newRight);
+                }
+
+                if (hash < e0.Hash) 
+                {
+
+                }
+
+                
+                // todo: @wip remove the e0 and try to keep the branch until its possible
+                return this;
+            }
         }
 
         /// <summary>Branch of 3 leafs or branches and two entries</summary>
