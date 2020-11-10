@@ -898,7 +898,7 @@ namespace ImTools.Experimental
                     //      /   \
                     //  1 2 3   5 [6]
 
-                    var newRight = Right.Remove(hash, key);
+                    var newRight = Right.RemoveEntry(hash, key);
                     if (newRight == Right)
                         return this;
 
