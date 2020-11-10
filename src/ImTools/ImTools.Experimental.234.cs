@@ -922,15 +922,15 @@ namespace ImTools.Experimental
                     // Handling Case #1
                     if (newRight is Leaf4 && Right is Branch2) // no need to check for the Branch3 because there is no way that Leaf4 will be the result of deleting one element from it 
                     {
+                        // Case #2
                         //             7                       4     7 
                         //          /      \                 /    |     \
                         //        4      8 9 10 11  =>   1 2 3   5 6   8 9 10 11
                         //      /   \                    
                         //   1 2 3   5 6                  
-
-                        // Case #2
                         // The result tree height is decreased, so we should not forget to rebalance with the other part of the tree on the upper level
                         // see the case handled below...
+
                         if (Left is Branch2 lb2)
                             return new Branch3(lb2.Left, lb2.Entry0, lb2.Right, e0, newRight);
 
@@ -940,15 +940,40 @@ namespace ImTools.Experimental
                         //      /     |    \                         /    \     /    \
                         //   1 2 3   5 6    8 9                   1 2 3   5 6|8 9   11 12 13 14
 
-                        if (Left is Branch3 lb3) // the result tree height is the same - no  need to rebalance
+                        if (Left is Branch3 lb3) // the result tree height is the same - no need to rebalance
                             return new Branch2(new Branch2(lb3.Left, lb3.Entry0, lb3.Middle), lb3.Entry1, new Branch2(lb3.Right, e0, newRight));
                     }
 
                     // Handling the Case #2
-                    if (newRight is Branch3 && Right is Branch2)
+                    if (newRight is Branch3 rb3 && Right is Branch2)
                     {
-                        // todo: @wip
-                    } 
+                        //         0                                  -10            0  
+                        //       /         \                          /       |           \                 
+                        //   -10           4     7                  ?         ?          4     7           
+                        //  /   \        /    |     \               |         |        /    |     \        
+                        // ?     ?    1 2 3   5 6   8 9 10 11   => ...       ...      1 2 3   5 6  8 9 10 11
+                        // |     |
+                        //...   ...
+
+                        if (Left is Branch2 lb2) 
+                            return new Branch3(lb2.Left, lb2.Entry0, lb2.Right, e0, newRight);
+
+                        //              0                                        -5         4
+                        //       /              \                              /       |        \
+                        //   -10  -5            4   7                        -10       0            7             
+                        //  /   |   \          /    |     \                 /    \   /    \       /     \       
+                        // ?    ?    ?   1 2 3     5 6   8 9 10 11   =>    ?      ? ?    1 2 3  5 6   8 9 10 11
+                        // |    |    |
+                        //...   ..  ...
+
+                        if (Left is Branch3 lb3)
+                            return new Branch3(
+                                new Branch2(lb3.Left, lb3.Entry0, lb3.Middle), 
+                                lb3.Entry1,
+                                new Branch2(lb3.Right, e0, rb3.Left),
+                                rb3.Entry0,
+                                new Branch2(rb3.Middle, rb3.Entry1, rb3.Right));
+                    }
 
                     return new Branch2(Left, e0, newRight);
                 }
