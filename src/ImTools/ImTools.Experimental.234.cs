@@ -243,15 +243,15 @@ namespace ImTools.Experimental
 
             /// <inheritdoc />
             public override Entry GetEntryOrDefault(int hash) =>
-                hash == Entry0.Hash  ? Entry0 :
-                hash == Entry1.Hash  ? Entry1 :
+                hash == Entry0.Hash ? Entry0 :
+                hash == Entry1.Hash ? Entry1 :
                 null;
 
             /// <inheritdoc />
             public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry)
             {
-                var e0 = Entry0;
                 var e1 = Entry1;
+                var e0 = Entry0;
                 return
                     hash > e1.Hash                   ? new Leaf3(e0, e1, entry) :
                     hash < e0.Hash                   ? new Leaf3(entry, e0, e1) :
@@ -263,8 +263,8 @@ namespace ImTools.Experimental
             /// <inheritdoc />
             public override ImHashMap234<K, V> AddOrKeepEntry(int hash, ValueEntry entry)
             {
-                var e0 = Entry0;
                 var e1 = Entry1;
+                var e0 = Entry0;
                 return
                     hash > e1.Hash                   ? new Leaf3(e0, e1, entry) :
                     hash < e0.Hash                   ? new Leaf3(entry, e0, e1) :
