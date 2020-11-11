@@ -50,7 +50,8 @@ namespace ImTools.Experimental
 
             internal abstract Entry Update(ValueEntry entry);
             internal abstract Entry Keep(ValueEntry entry);
-            internal abstract ImHashMap234<K, V> Remove(K key);
+            /// <summary>returns null if entry is removed completely or modified entry, or the original entry if nothing is removed </summary>
+            internal abstract Entry TryRemove<T>(T key);
         }
 
         /// <summary>Entry containing the Value</summary>
@@ -81,8 +82,8 @@ namespace ImTools.Experimental
             internal override Entry Keep(ValueEntry entry) => 
                 Key.Equals(entry.Key) ? this : (Entry)new ConflictsEntry(Hash, this, entry);
 
-            internal override ImHashMap234<K, V> Remove(K key) => 
-                Key.Equals(key) ? Empty : this;
+            internal override Entry TryRemove<T>(T key) => 
+                Key.Equals(key) ? null : this;
 
             /// <inheritdoc />
             public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry) =>
@@ -98,7 +99,7 @@ namespace ImTools.Experimental
 
             /// <inheritdoc />
             public override ImHashMap234<K, V> RemoveEntry(int hash, K key) =>
-                hash == Hash ? Remove(key) : this;
+                hash == Hash ? TryRemove(key) ?? Empty : this;
 
             /// <inheritdoc />
             public override IEnumerable<ValueEntry> Enumerate() 
@@ -172,7 +173,7 @@ namespace ImTools.Experimental
                 return new ConflictsEntry(Hash, newConflicts);
             }
 
-            internal override ImHashMap234<K, V> Remove(K key) 
+            internal override Entry TryRemove<T>(T key) 
             {
                 var cs = Conflicts;
                 var n = cs.Length;
@@ -217,7 +218,7 @@ namespace ImTools.Experimental
 
             /// <inheritdoc />
             public override ImHashMap234<K, V> RemoveEntry(int hash, K key) =>
-                hash == Hash ? Remove(key) : this;
+                hash == Hash ? TryRemove(key) : this;
 
             /// <inheritdoc />
             public override IEnumerable<ValueEntry> Enumerate() => Conflicts;
@@ -276,10 +277,12 @@ namespace ImTools.Experimental
             /// <inheritdoc />
             public override ImHashMap234<K, V> RemoveEntry(int hash, K key)
             {
-                if (hash == Entry0.Hash)
-                    return Entry0.Remove(key) == Entry0 ? this : (ImHashMap234<K, V>)Entry1;
-                if (hash == Entry1.Hash)
-                    return Entry1.Remove(key) == Entry1 ? this : (ImHashMap234<K, V>)Entry0;
+                var e0 = Entry0;
+                var e1 = Entry1;
+                if (hash == e0.Hash)
+                    return (e0 = e0.TryRemove(key)) == Entry0 ? this : e0 == null ? e1 : (ImHashMap234<K, V>)new Leaf2(e0, e1);
+                if (hash == e1.Hash)
+                    return (e1 = e1.TryRemove(key)) == Entry1 ? this : e1 == null ? e0 : (ImHashMap234<K, V>)new Leaf2(e0, e1);
                 return this;
             }
 
@@ -360,12 +363,15 @@ namespace ImTools.Experimental
             /// <inheritdoc />
             public override ImHashMap234<K, V> RemoveEntry(int hash, K key)
             {
-                if (hash == Entry0.Hash)
-                    return Entry0.Remove(key) == Entry0 ? this : (ImHashMap234<K, V>)new Leaf2(Entry1, Entry2);
-                if (hash == Entry1.Hash)
-                    return Entry1.Remove(key) == Entry1 ? this : (ImHashMap234<K, V>)new Leaf2(Entry0, Entry2);
-                if (hash == Entry2.Hash)
-                    return Entry2.Remove(key) == Entry2 ? this : (ImHashMap234<K, V>)new Leaf2(Entry0, Entry1);
+                var e0 = Entry0;
+                var e1 = Entry1;
+                var e2 = Entry2;
+                if (hash == e0.Hash)
+                    return (e0 = e0.TryRemove(key)) == Entry0 ? this : e0 == null ? new Leaf2(e1, e2) : (ImHashMap234<K, V>)new Leaf3(e0, e1, e2);
+                if (hash == e1.Hash)
+                    return (e1 = e1.TryRemove(key)) == Entry1 ? this : e1 == null ? new Leaf2(e0, e2) : (ImHashMap234<K, V>)new Leaf3(e0, e1, e2);
+                if (hash == e2.Hash)
+                    return (e2 = e2.TryRemove(key)) == Entry2 ? this : e2 == null ? new Leaf2(e0, e1) : (ImHashMap234<K, V>)new Leaf3(e0, e1, e2);
                 return this;
             }
 
@@ -460,14 +466,18 @@ namespace ImTools.Experimental
             /// <inheritdoc />
             public override ImHashMap234<K, V> RemoveEntry(int hash, K key)
             {
-                if (hash == Entry0.Hash)
-                    return Entry0.Remove(key) == Entry0 ? this : (ImHashMap234<K, V>)new Leaf3(Entry1, Entry2, Entry3);
-                if (hash == Entry1.Hash)
-                    return Entry1.Remove(key) == Entry1 ? this : (ImHashMap234<K, V>)new Leaf3(Entry0, Entry2, Entry3);
-                if (hash == Entry2.Hash)
-                    return Entry2.Remove(key) == Entry2 ? this : (ImHashMap234<K, V>)new Leaf3(Entry0, Entry1, Entry3);
-                if (hash == Entry3.Hash)
-                    return Entry3.Remove(key) == Entry3 ? this : (ImHashMap234<K, V>)new Leaf3(Entry0, Entry1, Entry2);
+                var e0 = Entry0;
+                var e1 = Entry1;
+                var e2 = Entry2;
+                var e3 = Entry3;
+                if (hash == e0.Hash)
+                    return (e0 = e0.TryRemove(key)) == Entry0 ? this : e0 == null ? new Leaf3(e1, e2, e3) : (ImHashMap234<K, V>)new Leaf4(e0, e1, e2, e3);
+                if (hash == e1.Hash)
+                    return (e1 = e1.TryRemove(key)) == Entry1 ? this : e1 == null ? new Leaf3(e0, e2, e3) : (ImHashMap234<K, V>)new Leaf4(e0, e1, e2, e3);
+                if (hash == e2.Hash)
+                    return (e2 = e2.TryRemove(key)) == Entry2 ? this : e2 == null ? new Leaf3(e0, e1, e3) : (ImHashMap234<K, V>)new Leaf4(e0, e1, e2, e3);
+                if (hash == e3.Hash)
+                    return (e3 = e3.TryRemove(key)) == Entry3 ? this : e3 == null ? new Leaf3(e0, e1, e2) : (ImHashMap234<K, V>)new Leaf4(e0, e1, e2, e3);
                 return this;
             }
 
@@ -743,16 +753,21 @@ namespace ImTools.Experimental
             /// <inheritdoc />
             public override ImHashMap234<K, V> RemoveEntry(int hash, K key)
             {
-                if (hash == Entry0.Hash)
-                    return Entry0.Remove(key) == Entry0 ? this : (ImHashMap234<K, V>)new Leaf4(Entry1, Entry2, Entry3, Entry4);
-                if (hash == Entry1.Hash)
-                    return Entry1.Remove(key) == Entry1 ? this : (ImHashMap234<K, V>)new Leaf4(Entry0, Entry2, Entry3, Entry4);
-                if (hash == Entry2.Hash)
-                    return Entry2.Remove(key) == Entry2 ? this : (ImHashMap234<K, V>)new Leaf4(Entry0, Entry1, Entry3, Entry4);
-                if (hash == Entry3.Hash)
-                    return Entry3.Remove(key) == Entry3 ? this : (ImHashMap234<K, V>)new Leaf4(Entry0, Entry1, Entry2, Entry4);
-                if (hash == Entry4.Hash)
-                    return Entry4.Remove(key) == Entry4 ? this : (ImHashMap234<K, V>)new Leaf4(Entry0, Entry1, Entry2, Entry3);
+                var e0 = Entry0;
+                var e1 = Entry1;
+                var e2 = Entry2;
+                var e3 = Entry3;
+                var e4 = Entry4;
+                if (hash == e0.Hash)
+                    return (e0 = e0.TryRemove(key)) == Entry0 ? this : e0 == null ? new Leaf4(e1, e2, e3, e4) : (ImHashMap234<K, V>)new Leaf5(e0, e1, e2, e3, e4);
+                if (hash == e1.Hash)
+                    return (e1 = e1.TryRemove(key)) == Entry1 ? this : e1 == null ? new Leaf4(e0, e2, e3, e4) : (ImHashMap234<K, V>)new Leaf5(e0, e1, e2, e3, e4);
+                if (hash == e2.Hash)
+                    return (e2 = e2.TryRemove(key)) == Entry2 ? this : e2 == null ? new Leaf4(e0, e1, e3, e4) : (ImHashMap234<K, V>)new Leaf5(e0, e1, e2, e3, e4);
+                if (hash == e3.Hash)
+                    return (e3 = e3.TryRemove(key)) == Entry3 ? this : e3 == null ? new Leaf4(e0, e1, e2, e4) : (ImHashMap234<K, V>)new Leaf5(e0, e1, e2, e3, e4);
+                if (hash == e4.Hash)
+                    return (e4 = e4.TryRemove(key)) == Entry4 ? this : e4 == null ? new Leaf4(e0, e1, e2, e3) : (ImHashMap234<K, V>)new Leaf5(e0, e1, e2, e3, e4);
                 return this;
             }
 
