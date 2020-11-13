@@ -347,40 +347,24 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
   [Host]     : .NET Core 3.1.9 (CoreCLR 4.700.20.47201, CoreFX 4.700.20.47203), X64 RyuJIT
   DefaultJob : .NET Core 3.1.9 (CoreCLR 4.700.20.47201, CoreFX 4.700.20.47203), X64 RyuJIT
 
-|                             Method | Count |         Mean |       Error |       StdDev |       Median | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
-|----------------------------------- |------ |-------------:|------------:|-------------:|-------------:|------:|--------:|---------:|--------:|------:|----------:|
-|              ImHashMap_AddOrUpdate |     1 |     133.9 ns |     1.61 ns |      1.86 ns |     133.2 ns |  1.00 |    0.00 |   0.0650 |       - |    
- - |     272 B |
-| Experimental_ImHashMap_AddOrUpdate |     1 |     110.5 ns |     1.02 ns |      0.95 ns |     110.4 ns |  0.82 |    0.01 |   0.0381 |       - |    
- - |     160 B |
-|           ImHashMap234_AddOrUpdate |     1 |     106.0 ns |     0.89 ns |      0.83 ns |     105.6 ns |  0.79 |    0.01 |   0.0381 |       - |    
- - |     160 B |
-|                                    |       |              |             |              |              |       |         |          |         |    
-   |           |
-|              ImHashMap_AddOrUpdate |    10 |     893.8 ns |     9.09 ns |      8.06 ns |     891.5 ns |  1.00 |    0.00 |   0.5522 |       - |    
- - |    2312 B |
-| Experimental_ImHashMap_AddOrUpdate |    10 |     714.2 ns |    14.08 ns |     12.48 ns |     712.3 ns |  0.80 |    0.01 |   0.3576 |       - |    
- - |    1496 B |
-|           ImHashMap234_AddOrUpdate |    10 |     652.7 ns |     5.59 ns |      5.23 ns |     651.3 ns |  0.73 |    0.01 |   0.2995 |       - |    
- - |    1256 B |
-|                                    |       |              |             |              |              |       |         |          |         |    
-   |           |
-|              ImHashMap_AddOrUpdate |   100 |  13,806.7 ns |    98.78 ns |     87.56 ns |  13,794.7 ns |  1.00 |    0.00 |   8.3313 |       - |    
- - |   34856 B |
-| Experimental_ImHashMap_AddOrUpdate |   100 |  11,593.7 ns |   152.27 ns |    142.44 ns |  11,592.9 ns |  0.84 |    0.01 |   6.6528 |       - |    
- - |   27880 B |
-|           ImHashMap234_AddOrUpdate |   100 |  11,915.1 ns |   471.65 ns |  1,390.67 ns |  11,004.9 ns |  0.87 |    0.10 |   5.3406 |       - |    
- - |   22384 B |
-|                                    |       |              |             |              |              |       |         |          |         |    
-   |           |
-|              ImHashMap_AddOrUpdate |  1000 | 316,615.5 ns | 6,266.87 ns | 13,218.96 ns | 311,412.7 ns |  1.00 |    0.00 | 122.0703 |  3.4180 |    
- - |  511208 B |
-| Experimental_ImHashMap_AddOrUpdate |  1000 | 308,928.3 ns | 2,504.89 ns |  2,343.08 ns | 309,024.1 ns |  0.96 |    0.04 | 104.9805 | 25.8789 |    
- - |  439977 B |
-|           ImHashMap234_AddOrUpdate |  1000 | 229,637.9 ns | 1,701.04 ns |  1,591.15 ns | 229,589.1 ns |  0.72 |    0.03 |  82.2754 | 18.5547 |    
- - |  344592 B |
+|                             Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
+|----------------------------------- |------ |-------------:|------------:|------------:|------:|--------:|---------:|--------:|------:|----------:|
+|              ImHashMap_AddOrUpdate |     1 |     141.3 ns |     2.51 ns |     2.68 ns |  1.00 |    0.00 |   0.0648 |       - |     - |     272 B |
+| Experimental_ImHashMap_AddOrUpdate |     1 |     116.8 ns |     1.00 ns |     0.89 ns |  0.83 |    0.01 |   0.0381 |       - |     - |     160 B |
+|           ImHashMap234_AddOrUpdate |     1 |     102.9 ns |     2.04 ns |     1.70 ns |  0.73 |    0.01 |   0.0381 |       - |     - |     160 B |
+|                                    |       |              |             |             |       |         |          |         |       |           |
+|              ImHashMap_AddOrUpdate |    10 |     938.8 ns |    15.31 ns |    12.78 ns |  1.00 |    0.00 |   0.5512 |       - |     - |    2312 B |
+| Experimental_ImHashMap_AddOrUpdate |    10 |     708.0 ns |     6.11 ns |     5.72 ns |  0.75 |    0.01 |   0.3576 |       - |     - |    1496 B |
+|           ImHashMap234_AddOrUpdate |    10 |     678.9 ns |    10.68 ns |     9.47 ns |  0.72 |    0.02 |   0.2995 |       - |     - |    1256 B |
+|                                    |       |              |             |             |       |         |          |         |       |           |
+|              ImHashMap_AddOrUpdate |   100 |  14,155.3 ns |   124.99 ns |   116.92 ns |  1.00 |    0.00 |   8.3313 |       - |     - |   34856 B |
+| Experimental_ImHashMap_AddOrUpdate |   100 |  11,756.1 ns |   104.34 ns |    87.13 ns |  0.83 |    0.01 |   6.6528 |       - |     - |   27880 B |
+|           ImHashMap234_AddOrUpdate |   100 |  10,581.4 ns |   106.89 ns |    94.76 ns |  0.75 |    0.01 |   5.3406 |       - |     - |   22384 B |
+|                                    |       |              |             |             |       |         |          |         |       |           |
+|              ImHashMap_AddOrUpdate |  1000 | 308,506.7 ns | 3,081.93 ns | 2,882.84 ns |  1.00 |    0.00 | 122.0703 |  3.4180 |     - |  511209 B |
+| Experimental_ImHashMap_AddOrUpdate |  1000 | 309,012.9 ns | 1,882.16 ns | 1,760.57 ns |  1.00 |    0.01 | 104.9805 | 25.8789 |     - |  439977 B |
+|           ImHashMap234_AddOrUpdate |  1000 | 231,146.4 ns | 1,493.09 ns | 1,323.58 ns |  0.75 |    0.01 |  82.2754 | 18.0664 |     - |  344593 B |
 
-// * Warnings *
 */
             [Params(1, 10, 100, 1_000)]
             public int Count;
