@@ -365,6 +365,23 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 | Experimental_ImHashMap_AddOrUpdate |  1000 | 309,012.9 ns | 1,882.16 ns | 1,760.57 ns |  1.00 |    0.01 | 104.9805 | 25.8789 |     - |  439977 B |
 |           ImHashMap234_AddOrUpdate |  1000 | 231,146.4 ns | 1,493.09 ns | 1,323.58 ns |  0.75 |    0.01 |  82.2754 | 18.0664 |     - |  344593 B |
 
+|                             Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
+|----------------------------------- |------ |-------------:|------------:|------------:|------:|--------:|---------:|--------:|------:|----------:|
+|              ImHashMap_AddOrUpdate |     1 |     132.5 ns |     2.24 ns |     2.09 ns |  1.00 |    0.00 |   0.0648 |       - |     - |     272 B |
+| Experimental_ImHashMap_AddOrUpdate |     1 |     109.5 ns |     1.69 ns |     1.41 ns |  0.83 |    0.02 |   0.0381 |       - |     - |     160 B |
+|           ImHashMap234_AddOrUpdate |     1 |     102.3 ns |     1.21 ns |     1.13 ns |  0.77 |    0.02 |   0.0381 |       - |     - |     160 B |
+|                                    |       |              |             |             |       |         |          |         |       |           |
+|              ImHashMap_AddOrUpdate |    10 |     897.3 ns |    15.51 ns |    12.96 ns |  1.00 |    0.00 |   0.5522 |       - |     - |    2312 B |
+| Experimental_ImHashMap_AddOrUpdate |    10 |     703.9 ns |     6.53 ns |     5.45 ns |  0.78 |    0.02 |   0.3576 |       - |     - |    1496 B |
+|           ImHashMap234_AddOrUpdate |    10 |     633.4 ns |     8.66 ns |     8.10 ns |  0.70 |    0.01 |   0.2880 |       - |     - |    1208 B |
+|                                    |       |              |             |             |       |         |          |         |       |           |
+|              ImHashMap_AddOrUpdate |   100 |  13,834.5 ns |   135.18 ns |   126.45 ns |  1.00 |    0.00 |   8.3313 |       - |     - |   34856 B |
+| Experimental_ImHashMap_AddOrUpdate |   100 |  11,653.9 ns |   173.16 ns |   144.60 ns |  0.84 |    0.01 |   6.6528 |       - |     - |   27880 B |
+|           ImHashMap234_AddOrUpdate |   100 |  10,100.4 ns |   103.72 ns |    97.02 ns |  0.73 |    0.01 |   5.2185 |       - |     - |   21856 B |
+|                                    |       |              |             |             |       |         |          |         |       |           |
+|              ImHashMap_AddOrUpdate |  1000 | 303,169.9 ns | 3,114.01 ns | 2,600.34 ns |  1.00 |    0.00 | 122.0703 |  3.4180 |     - |  511209 B |
+| Experimental_ImHashMap_AddOrUpdate |  1000 | 304,592.2 ns | 4,624.16 ns | 4,325.44 ns |  1.00 |    0.02 | 104.9805 | 25.8789 |     - |  439976 B |
+|           ImHashMap234_AddOrUpdate |  1000 | 226,901.5 ns | 4,024.60 ns | 3,360.72 ns |  0.75 |    0.01 |  81.0547 |  1.4648 |     - |  339345 B |
 */
             [Params(1, 10, 100, 1_000)]
             public int Count;
@@ -905,6 +922,24 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 |              ImHashMap_TryFind |  1000 | 14.397 ns | 0.2039 ns | 0.1907 ns | 14.369 ns |  1.00 |    0.00 |     - |     - |     - |         - |
 | Experimental_ImHashMap_TryFind |  1000 | 30.810 ns | 1.0842 ns | 2.9681 ns | 29.878 ns |  2.25 |    0.38 |     - |     - |     - |         - |    
 |           ImHashMap234_TryFind |  1000 | 19.953 ns | 0.4996 ns | 0.4429 ns | 19.772 ns |  1.39 |    0.03 |     - |     - |     - |         - |    
+
+|                         Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+|              ImHashMap_TryFind |     1 |  5.611 ns | 0.1067 ns | 0.0998 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| Experimental_ImHashMap_TryFind |     1 |  6.348 ns | 0.2010 ns | 0.2150 ns |  1.14 |    0.05 |     - |     - |     - |         - |
+|           ImHashMap234_TryFind |     1 |  4.572 ns | 0.0966 ns | 0.0904 ns |  0.82 |    0.02 |     - |     - |     - |         - |
+|                                |       |           |           |           |       |         |       |       |       |           |
+|              ImHashMap_TryFind |    10 |  7.582 ns | 0.0703 ns | 0.0587 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| Experimental_ImHashMap_TryFind |    10 | 10.133 ns | 0.1315 ns | 0.1098 ns |  1.34 |    0.02 |     - |     - |     - |         - |
+|           ImHashMap234_TryFind |    10 |  5.763 ns | 0.0670 ns | 0.0594 ns |  0.76 |    0.01 |     - |     - |     - |         - |
+|                                |       |           |           |           |       |         |       |       |       |           |
+|              ImHashMap_TryFind |   100 | 10.642 ns | 0.2276 ns | 0.1901 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| Experimental_ImHashMap_TryFind |   100 | 13.526 ns | 0.1563 ns | 0.1385 ns |  1.27 |    0.03 |     - |     - |     - |         - |
+|           ImHashMap234_TryFind |   100 |  9.271 ns | 0.1695 ns | 0.1503 ns |  0.87 |    0.02 |     - |     - |     - |         - |
+|                                |       |           |           |           |       |         |       |       |       |           |
+|              ImHashMap_TryFind |  1000 | 14.909 ns | 0.2118 ns | 0.1981 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| Experimental_ImHashMap_TryFind |  1000 | 37.315 ns | 1.4352 ns | 4.2316 ns |  2.76 |    0.21 |     - |     - |     - |         - |
+|           ImHashMap234_TryFind |  1000 | 24.536 ns | 0.6190 ns | 0.7602 ns |  1.66 |    0.06 |     - |     - |     - |         - |
 
 
 */
