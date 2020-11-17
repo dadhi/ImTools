@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
-using System.Threading;
 
 namespace ImTools.Experimental
 {
@@ -793,7 +792,7 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
-            public override string ToString() => "leaf5>> " + Entry0 + "; " + Entry1 + "; " + Entry2 + "; " + Entry3 + "; " + Entry4;
+            public override string ToString() => "leaf5{" + Entry0 + "; " + Entry1 + "; " + Entry2 + "; " + Entry3 + "; " + Entry4 + "}";
 
             /// <inheritdoc />
             public override Entry GetEntryOrDefault(int hash) =>
@@ -1048,6 +1047,537 @@ namespace ImTools.Experimental
                     yield return v4;
                 else foreach (var x in ((ConflictsEntry)Entry4).Conflicts)
                     yield return x;
+            }
+        }
+
+        /// <summary>Leaf with 5 entries</summary>
+        public sealed class Leaf5plus1 : Leaf5OrBranch3
+        {
+            /// <summary>Plus entry</summary>
+            public readonly Entry Plus;
+            /// <summary>Middle Left entry</summary>
+            public readonly Leaf5 L5;
+
+            /// <summary>Constructs the leaf</summary>
+            public Leaf5plus1(Entry plus, Leaf5 l5)
+            {
+                Plus = plus;
+                L5   = l5;
+            }
+
+            /// <inheritdoc />
+            public override string ToString() => Plus + "++" + L5;
+
+            /// <inheritdoc />
+            public override Entry GetEntryOrDefault(int hash)
+            {
+                if (hash == Plus.Hash) 
+                    return Plus; 
+                var l5 = L5;
+                return 
+                    hash == l5.Entry0.Hash ? l5.Entry0 :
+                    hash == l5.Entry1.Hash ? l5.Entry1 :
+                    hash == l5.Entry2.Hash ? l5.Entry2 :
+                    hash == l5.Entry3.Hash ? l5.Entry3 :
+                    hash == l5.Entry4.Hash ? l5.Entry4 :
+                    null;
+            }
+
+            /// <inheritdoc />
+            public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry)
+            {
+                var p = Plus;
+                var ph = p.Hash;
+                if (ph == hash)
+                    return new Leaf5plus1(p.Update(entry), L5);
+
+                var l5 = L5;
+                var e0 = l5.Entry0;
+                var e1 = l5.Entry1;
+                var e2 = l5.Entry2;
+                var e3 = l5.Entry3;
+                var e4 = l5.Entry4;
+ 
+                if (hash > e4.Hash)
+                {
+                    if (ph < e0.Hash)
+                        return new Branch2(new Leaf3(p, e0, e1), e2, new Leaf3(e3, e4, entry));
+                    if (ph < e1.Hash)
+                        return new Branch2(new Leaf3(e0, p, e1), e2, new Leaf3(e3, e4, entry));
+                    if (ph < e2.Hash)
+                        return new Branch2(new Leaf3(e0, e1, p), e2, new Leaf3(e3, e4, entry));
+                    if (ph < e3.Hash)
+                        return new Branch2(new Leaf3(e0, e1, e2), p, new Leaf3(e3, e4, entry));
+                    if (ph < e4.Hash)
+                        return new Branch2(new Leaf3(e0, e1, e2), e3, new Leaf3(p, e4, entry));
+                    if (ph < hash)
+                        return new Branch2(new Leaf3(e0, e1, e2), e3, new Leaf3(e4, p, entry));
+                    return new Branch2(new Leaf3(e0, e1, e2), e3, new Leaf3(e4, entry, p));
+                }
+
+                if (hash < e0.Hash)
+                {
+                    if (ph < hash)
+                        return new Branch2(new Leaf3(p, entry, e0), e1, new Leaf3(e2, e3, e4));
+                    if (ph < e0.Hash)
+                        return new Branch2(new Leaf3(entry, p, e0), e1, new Leaf3(e2, e3, e4));
+                    if (ph < e1.Hash)
+                        return new Branch2(new Leaf3(entry, e0, p), e1, new Leaf3(e2, e3, e4));
+                    if (ph < e2.Hash)
+                        return new Branch2(new Leaf3(entry, e0, e1), p, new Leaf3(e2, e3, e4));
+                    if (ph < e3.Hash)
+                        return new Branch2(new Leaf3(entry, e0, e1), e2, new Leaf3(p, e3, e4));
+                    if (ph < e4.Hash)
+                        return new Branch2(new Leaf3(entry, e0, e1), e2, new Leaf3(e3, p, e4));
+                    return new Branch2(new Leaf3(entry, e0, e1), e2, new Leaf3(e3, e4, p));
+                }
+
+                if (hash > e0.Hash && hash < e1.Hash)
+                {
+                    if (ph < e0.Hash)
+                        return new Branch2(new Leaf3(p, e0, entry), e1, new Leaf3(e2, e3, e4));
+                    if (ph < hash)
+                        return new Branch2(new Leaf3(e0, p, entry), e1, new Leaf3(e2, e3, e4));
+                    if (ph < e1.Hash)
+                        return new Branch2(new Leaf3(e0, entry, p), e1, new Leaf3(e2, e3, e4));
+                    if (ph < e2.Hash)
+                        return new Branch2(new Leaf3(e0, entry, e1), p, new Leaf3(e2, e3, e4));
+                    if (ph < e3.Hash)
+                        return new Branch2(new Leaf3(e0, entry, e1), e2, new Leaf3(p, e3, e4));
+                    if (ph < e4.Hash)
+                        return new Branch2(new Leaf3(e0, entry, e1), e2, new Leaf3(e3, p, e4));
+                    return new Branch2(new Leaf3(e0, entry, e1), e2, new Leaf3(e3, e4, p));
+                }
+
+                if (hash > e1.Hash && hash < e2.Hash)
+                {
+                    if (ph < e0.Hash)
+                        return new Branch2(new Leaf3(p, e0, e1), entry, new Leaf3(e2, e3, e4));
+                    if (ph < e1.Hash)
+                        return new Branch2(new Leaf3(e0, p, e1), entry, new Leaf3(e2, e3, e4));
+                    if (ph < hash)
+                        return new Branch2(new Leaf3(e0, e1, p), entry, new Leaf3(e2, e3, e4));
+                    if (ph < e2.Hash)
+                        return new Branch2(new Leaf3(e0, e1, entry), p, new Leaf3(e2, e3, e4));
+                    if (ph < e3.Hash)
+                        return new Branch2(new Leaf3(e0, e1, entry), e2, new Leaf3(p, e3, e4));
+                    if (ph < e4.Hash)
+                        return new Branch2(new Leaf3(e0, e1, entry), e2, new Leaf3(e3, p, e4));
+                    return new Branch2(new Leaf3(e0, e1, entry), e2, new Leaf3(e3, e4, p));
+                }
+
+                if (hash > e2.Hash && hash < e3.Hash)
+                {
+                    if (ph < e0.Hash)
+                        return new Branch2(new Leaf3(p, e0, e1), e2, new Leaf3(entry, e3, e4));
+                    if (ph < e1.Hash)
+                        return new Branch2(new Leaf3(e0, p, e1), e2, new Leaf3(entry, e3, e4));
+                    if (ph < e2.Hash)
+                        return new Branch2(new Leaf3(e0, e1, p), e2, new Leaf3(entry, e3, e4));
+                    if (ph < hash)
+                        return new Branch2(new Leaf3(e0, e1, e2), p, new Leaf3(entry, e3, e4));
+                    if (ph < e3.Hash)
+                        return new Branch2(new Leaf3(e0, e1, e2), entry, new Leaf3(p, e3, e4));
+                    if (ph < e4.Hash)
+                        return new Branch2(new Leaf3(e0, e1, e2), entry, new Leaf3(e3, p, e4));
+                    return new Branch2(new Leaf3(e0, e1, e2), entry, new Leaf3(e3, e4, p));
+                }
+
+                if (hash > e3.Hash && hash < e4.Hash)
+                {
+                    if (ph < e0.Hash)
+                        return new Branch2(new Leaf3(p, e0, e1), e2, new Leaf3(e3, entry, e4));
+                    if (ph < e1.Hash)
+                        return new Branch2(new Leaf3(e0, p, e1), e2, new Leaf3(e3, entry, e4));
+                    if (ph < e2.Hash)
+                        return new Branch2(new Leaf3(e0, e1, p), e2, new Leaf3(e3, entry, e4));
+                    if (ph < e3.Hash)
+                        return new Branch2(new Leaf3(e0, e1, e2), p, new Leaf3(e3, entry, e4));
+                    if (ph < hash)
+                        return new Branch2(new Leaf3(e0, e1, e2), e3, new Leaf3(p, entry, e4));
+                    if (ph < e4.Hash)
+                        return new Branch2(new Leaf3(e0, e1, e2), e3, new Leaf3(entry, p, e4));
+                    return new Branch2(new Leaf3(e0, e1, e2), e3, new Leaf3(entry, e4, p));
+                }
+
+                return
+                    hash == e0.Hash   ? new Leaf5plus1(p, new Leaf5(e0.Update(entry), e1, e2, e3, e4)) :
+                    hash == e1.Hash   ? new Leaf5plus1(p, new Leaf5(e0, e1.Update(entry), e2, e3, e4)) :
+                    hash == e2.Hash   ? new Leaf5plus1(p, new Leaf5(e0, e1, e2.Update(entry), e3, e4)) :
+                    hash == e3.Hash   ? new Leaf5plus1(p, new Leaf5(e0, e1, e3, e2.Update(entry), e4)) :
+                    (ImHashMap234<K, V>)new Leaf5plus1(p, new Leaf5(e0, e1, e2, e3, e4.Update(entry)));
+            }
+
+            /// <summary>
+            /// The same as `AddOrUpdateEntry` but instead of constructing the new map it returns the parts: return value is the Left node, 
+            /// `ref Entry entry` (always passed as ValueEntry) will be set to the middle entry, and `popRight` is the right node.
+            /// </summary>
+            internal override ImHashMap234<K, V> AddOrUpdateOrSplitEntry(int hash, ValueEntry entry, 
+                out Entry popEntry, out ImHashMap234<K, V> popRight)
+            {
+                // todo: @perf look at what the results popEntry is set to and may be use the popEntry instead of the one of the vars above, then don't forget to use popRight on the consumer side, and remove the `popEntry = null` below
+                popEntry = null; // todo: @perf use popEntry as a p variable
+                popRight = null;
+
+                var p = Plus;
+                var ph = p.Hash;
+                if (ph == hash)
+                    return new Leaf5plus1(p.Update(entry), L5);
+
+                var l5 = L5;
+                var e0 = l5.Entry0;
+                var e1 = l5.Entry1;
+                var e2 = l5.Entry2;
+                var e3 = l5.Entry3;
+                var e4 = l5.Entry4;
+
+                if (hash > e4.Hash)
+                {
+                    if (ph < e2.Hash) 
+                    {
+                        popEntry = e2;
+                        popRight = new Leaf3(e3, e4, entry);
+                        if (ph < e0.Hash)
+                            return new Leaf3(p, e0, e1);
+                        if (ph < e1.Hash)
+                            return new Leaf3(e0, p, e1);
+                        return new Leaf3(e0, e1, p);
+                    }
+                    if (ph < e3.Hash)
+                    {
+                        popEntry = p;
+                        popRight = new Leaf3(e3, e4, entry);
+                        return new Leaf3(e0, e1, e2);
+                    }
+                    popEntry = e3;
+                    if (ph < e4.Hash)
+                        popRight = new Leaf3(p, e4, entry);
+                    else if (ph < hash)
+                        popRight = new Leaf3(e4, p, entry);
+                    else
+                        popRight = new Leaf3(e4, entry, p);
+                    return new Leaf3(e0, e1, e2);
+                }
+
+                if (hash < e0.Hash)
+                {
+                    if (ph < e1.Hash) 
+                    {
+                        popEntry = e1;
+                        popRight = new Leaf3(e2, e3, e4);
+                        if (ph < hash)
+                            return new Leaf3(p, entry, e0);
+                        if (ph < e0.Hash)
+                            return new Leaf3(entry, p, e0);
+                        return new Leaf3(entry, e0, p);
+                    }
+                    if (ph < e2.Hash)
+                    {
+                        popEntry = p;
+                        popRight = new Leaf3(e2, e3, e4);
+                        return new Leaf3(entry, e0, e1);
+                    }
+                    popEntry = e2;
+                    if (ph < e3.Hash)
+                        popRight = new Leaf3(p, e3, e4);
+                    else if (ph < e4.Hash)
+                        popRight = new Leaf3(e3, p, e4);
+                    else
+                        popRight = new Leaf3(e3, e4, p);
+                    return new Leaf3(entry, e0, e1);
+                }
+
+                if (hash > e0.Hash && hash < e1.Hash)
+                {
+                    if (ph < e1.Hash)
+                    {
+                        popEntry = e1;
+                        popRight = new Leaf3(e2, e3, e4);
+                        if (ph < e0.Hash)
+                            return new Leaf3(p, e0, entry);
+                        if (ph < hash)
+                            return new Leaf3(e0, p, entry);
+                        return new Leaf3(e0, entry, p);
+                    }
+                    if (ph < e2.Hash)
+                    {
+                        popEntry = p;
+                        popRight = new Leaf3(e2, e3, e4);
+                        return new Leaf3(e0, entry, e1);
+                    }
+                    popEntry = e2;
+                    if (ph < e3.Hash)
+                        popRight = new Leaf3(p, e3, e4);
+                    else if (ph < e4.Hash)
+                        popRight = new Leaf3(e3, p, e4);
+                    popRight = new Leaf3(e3, e4, p);
+                    return new Leaf3(e0, entry, e1);
+                }
+
+                if (hash > e1.Hash && hash < e2.Hash)
+                {
+                    if (ph < hash)
+                    {
+                        popEntry = entry;
+                        popRight = new Leaf3(e2, e3, e4);
+                        if (ph < e0.Hash)
+                            return new Leaf3(p, e0, e1);
+                        if (ph < e1.Hash)
+                            return new Leaf3(e0, p, e1);
+                        return new Leaf3(e0, e1, p);
+                    }
+                    if (ph < e2.Hash)
+                    {
+                        popEntry = p;
+                        popRight = new Leaf3(e2, e3, e4);
+                        return new Leaf3(e0, e1, entry);
+                    }
+                    popEntry = e2;
+                    if (ph < e3.Hash)
+                        popRight = new Leaf3(p, e3, e4);
+                    else if (ph < e4.Hash)
+                        popRight = new Leaf3(e3, p, e4);
+                    else
+                        popRight = new Leaf3(e3, e4, p);
+                    return new Leaf3(e0, e1, entry);
+                }
+
+                if (hash > e2.Hash && hash < e3.Hash)
+                {
+                    if (ph < e2.Hash) 
+                    {
+                        popEntry = e2;
+                        popRight = new Leaf3(entry, e3, e4);
+                        if (ph < e0.Hash)
+                            return new Leaf3(p, e0, e1);
+                        if (ph < e1.Hash)
+                            return new Leaf3(e0, p, e1);
+                        return new Leaf3(e0, e1, p);
+                    }
+                    if (ph < hash) 
+                    {
+                        popEntry = p;
+                        popRight = new Leaf3(entry, e3, e4);
+                        return new Leaf3(e0, e1, e2);
+                    }
+                    popEntry = entry;
+                    if (ph < e3.Hash) 
+                        popRight = new Leaf3(p, e3, e4);
+                    else if (ph < e4.Hash) 
+                        popRight = new Leaf3(e3, p, e4);
+                    else
+                        popRight = new Leaf3(e3, e4, p);
+                    return new Leaf3(e0, e1, e2);
+                }
+
+                if (hash > e3.Hash && hash < e4.Hash)
+                {
+                    if (ph < e2.Hash) 
+                    {
+                        popEntry = e2;
+                        popRight = new Leaf3(e3, entry, e4);
+                        if (ph < e0.Hash)
+                            return new Leaf3(p, e0, e1);
+                        if (ph < e1.Hash)
+                            return new Leaf3(e0, p, e1);
+                        return new Leaf3(e0, e1, p);
+                    }
+                    if (ph < e3.Hash) 
+                    {
+                        popEntry = p;
+                        popRight = new Leaf3(e3, entry, e4);
+                        return new Leaf3(e0, e1, e2);
+                    }
+                    popEntry = e3;
+                    if (ph < hash) 
+                        popRight = new Leaf3(p, entry, e4);
+                    else if (ph < e4.Hash) 
+                        popRight = new Leaf3(entry, p, e4);
+                    else
+                        popRight = new Leaf3(entry, e4, p);
+                    return new Leaf3(e0, e1, e2);
+                }
+
+                return
+                    hash == e0.Hash ? new Leaf5(e0.Update(entry), e1, e2, e3, e4) :
+                    hash == e1.Hash ? new Leaf5(e0, e1.Update(entry), e2, e3, e4) :
+                    hash == e2.Hash ? new Leaf5(e0, e1, e2.Update(entry), e3, e4) :
+                    hash == e3.Hash ? new Leaf5(e0, e1, e3, e2.Update(entry), e4) :
+                                      new Leaf5(e0, e1, e2, e3, e4.Update(entry));
+            }
+
+            /// <inheritdoc />
+            public override ImHashMap234<K, V> AddOrKeepEntry(int hash, ValueEntry entry)
+            {
+                var p = Plus;
+                if (p.Hash == hash)
+                    return (p = p.Keep(entry)) == Plus ? this : (ImHashMap234<K, V>)new Leaf5plus1(p, L5);
+
+                var l5 = L5;
+                var e0 = l5.Entry0;
+                var e1 = l5.Entry1;
+                var e2 = l5.Entry2;
+                var e3 = l5.Entry3;
+                var e4 = l5.Entry4;
+
+                // todo: @wip not implemented
+
+                // if (hash > e4.Hash)
+                //     return new Branch2(new Leaf3(e0, e1, e2), e3, new Leaf2(e4, entry));
+
+                // if (hash < e0.Hash)
+                //     return new Branch2(new Leaf2(entry, e0), e1, new Leaf3(e2, e3, e4));
+
+                // if (hash > e0.Hash && hash < e1.Hash)
+                //     return new Branch2(new Leaf2(e0, entry), e1, new Leaf3(e2, e3, e4));
+
+                // if (hash > e1.Hash && hash < e2.Hash)
+                //     return new Branch2(new Leaf2(e0, e1), entry, new Leaf3(e2, e3, e4));
+
+                // if (hash > e2.Hash && hash < e3.Hash)
+                //     return new Branch2(new Leaf3(e0, e1, e2), entry, new Leaf2(e3, e4));
+
+                // if (hash > e3.Hash && hash < e4.Hash)
+                //     return new Branch2(new Leaf3(e0, e1, e2), e3, new Leaf2(entry, e4));
+
+                return
+                    hash == e0.Hash ?   ((e0 = e0.Keep(entry)) == l5.Entry0 ? this : new Leaf5plus1(p, new Leaf5(e0, e1, e2, e3, e4))) :
+                    hash == e1.Hash ?   ((e1 = e1.Keep(entry)) == l5.Entry1 ? this : new Leaf5plus1(p, new Leaf5(e0, e1, e2, e3, e4))) :
+                    hash == e2.Hash ?   ((e2 = e2.Keep(entry)) == l5.Entry2 ? this : new Leaf5plus1(p, new Leaf5(e0, e1, e2, e3, e4))) :
+                    hash == e3.Hash ?   ((e3 = e3.Keep(entry)) == l5.Entry3 ? this : new Leaf5plus1(p, new Leaf5(e0, e1, e2, e3, e4))) :
+                    (ImHashMap234<K, V>)((e4 = e4.Keep(entry)) == l5.Entry4 ? this : new Leaf5plus1(p, new Leaf5(e0, e1, e2, e3, e4)));
+            }
+
+            /// <summary>
+            /// The same as `AddOrKeepEntry` but instead of constructing the new map it returns the parts: return value is the Left node, 
+            /// `ref Entry entry` (always passed as ValueEntry) will be set to the middle entry, and `popRight` is the right node.
+            /// </summary>
+            internal override ImHashMap234<K, V> AddOrKeepOrSplitEntry(int hash, ValueEntry entry, 
+                out Entry popEntry, out ImHashMap234<K, V> popRight)
+            {
+                popEntry = null;
+                popRight = null;
+
+                var p = Plus;
+                if (p.Hash == hash)
+                    return (p = p.Keep(entry)) == Plus ? this : (ImHashMap234<K, V>)new Leaf5plus1(p, L5);
+
+                var l5 = L5;
+                var e0 = l5.Entry0;
+                var e1 = l5.Entry1;
+                var e2 = l5.Entry2;
+                var e3 = l5.Entry3;
+                var e4 = l5.Entry4;
+
+                // todo: @wip not implemented
+
+                // if (hash > e4.Hash)
+                // {
+                //     popEntry = e3;
+                //     popRight = new Leaf2(e4, entry);
+                //     return new Leaf3(e0, e1, e2);
+                // }
+
+                // if (hash < e0.Hash)
+                // {
+                //     popEntry = e1;
+                //     popRight = new Leaf3(e2, e3, e4);
+                //     return new Leaf2(entry, e0);
+                // }
+
+                // if (hash > e0.Hash && hash < e1.Hash)
+                // {
+                //     popEntry = e1;
+                //     popRight = new Leaf3(e2, e3, e4);
+                //     return new Leaf2(e0, entry);
+                // }
+
+                // if (hash > e1.Hash && hash < e2.Hash)
+                // {
+                //     popEntry = entry;
+                //     popRight = new Leaf3(e2, e3, e4);
+                //     return new Leaf2(e0, e1);
+                // }
+
+                // if (hash > e2.Hash && hash < e3.Hash)
+                // {
+                //     popEntry = entry;
+                //     popRight = new Leaf2(e3, e4);
+                //     return new Leaf3(e0, e1, e2);
+                // }
+
+                // if (hash > e3.Hash && hash < e4.Hash)
+                // {
+                //     popEntry = e3;
+                //     popRight = new Leaf2(entry, e4);
+                //     return new Leaf3(e0, e1, e2);
+                // }
+
+                return
+                    hash == e0.Hash ?   ((e0 = e0.Keep(entry)) == l5.Entry0 ? this : new Leaf5plus1(p, new Leaf5(e0, e1, e2, e3, e4))) :
+                    hash == e1.Hash ?   ((e1 = e1.Keep(entry)) == l5.Entry1 ? this : new Leaf5plus1(p, new Leaf5(e0, e1, e2, e3, e4))) :
+                    hash == e2.Hash ?   ((e2 = e2.Keep(entry)) == l5.Entry2 ? this : new Leaf5plus1(p, new Leaf5(e0, e1, e2, e3, e4))) :
+                    hash == e3.Hash ?   ((e3 = e3.Keep(entry)) == l5.Entry3 ? this : new Leaf5plus1(p, new Leaf5(e0, e1, e2, e3, e4))) :
+                    (ImHashMap234<K, V>)((e4 = e4.Keep(entry)) == l5.Entry4 ? this : new Leaf5plus1(p, new Leaf5(e0, e1, e2, e3, e4)));
+            }
+
+            /// <inheritdoc />
+            public override ImHashMap234<K, V> RemoveEntry(int hash, K key)
+            {
+                var p  = Plus;
+                if (hash == p.Hash)
+                    return (p = p.TryRemove(key)) == Plus ? this : p == null ? L5 : (ImHashMap234<K, V>)new Leaf5plus1(p, L5);
+
+                // todo: @wip not implemented
+                // var l5 = L5;
+                // var e0 = l5.Entry0;
+                // var e1 = l5.Entry1;
+                // var e2 = l5.Entry2;
+                // var e3 = l5.Entry3;
+                // var e4 = l5.Entry4;
+
+                // if (hash == e0.Hash)
+                //     return (e0 = e0.TryRemove(key)) == l5.Entry0 ? this : e0 == null ? new Leaf4_0(e1, new Leaf3(e2, e3, e4)) : (ImHashMap234<K, V>)new Leaf5(e0, e1, e2, e3, e4);
+                // if (hash == e1.Hash)
+                //     return (e1 = e1.TryRemove(key)) == l5.Entry1 ? this : e1 == null ? new Leaf4_0(e0, new Leaf3(e2, e3, e4)) : (ImHashMap234<K, V>)new Leaf5(e0, e1, e2, e3, e4);
+                // if (hash == e2.Hash)
+                //     return (e2 = e2.TryRemove(key)) == l5.Entry2 ? this : e2 == null ? new Leaf4_0(e0, new Leaf3(e1, e3, e4)) : (ImHashMap234<K, V>)new Leaf5(e0, e1, e2, e3, e4);
+                // if (hash == e3.Hash)
+                //     return (e3 = e3.TryRemove(key)) == l5.Entry3 ? this : e3 == null ? new Leaf4_0(e0, new Leaf3(e1, e2, e4)) : (ImHashMap234<K, V>)new Leaf5(e0, e1, e2, e3, e4);
+                // if (hash == e4.Hash)
+                //     return (e4 = e4.TryRemove(key)) == l5.Entry4 ? this : e4 == null ? new Leaf4_0(e0, new Leaf3(e1, e2, e3)) : (ImHashMap234<K, V>)new Leaf5(e0, e1, e2, e3, e4);
+                return this;
+            }
+
+            /// <inheritdoc />
+            public override IEnumerable<ValueEntry> Enumerate()
+            {
+                var p  = Plus;
+                var ph = p.Hash;
+
+                var l5 = L5;
+                var e0 = l5.Entry0;
+                var e1 = l5.Entry1;
+                var e2 = l5.Entry2;
+                var e3 = l5.Entry3;
+                var e4 = l5.Entry4;
+
+                if (ph < e0.Hash) 
+                {
+                    if (p is ValueEntry pv)
+                        yield return pv;
+                    else foreach (var x in ((ConflictsEntry)p).Conflicts)
+                        yield return x;
+                }
+                else 
+                {
+                    if (e0 is ValueEntry v0)
+                        yield return v0;
+                    else foreach (var x in ((ConflictsEntry)e0).Conflicts)
+                        yield return x;
+                }
+
+                // todo: @wip do for the rest
             }
         }
 
