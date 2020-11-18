@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using NUnit.Framework;
 
 namespace ImTools.Experimental.UnitTests
@@ -216,13 +218,19 @@ namespace ImTools.Experimental.UnitTests
             var savedSeed = new Random().Next(0, upperBound);
             var rnd = new Random(savedSeed);
 
+            var expected = new List<int>(5000);
+
             var m = ImHashMap234<int, int>.Empty;
             for (var i = 0; i < 5000; i++)
             {
                 var n = rnd.Next(0, upperBound);
                 m = m.AddOrUpdate(n, n);
-                Assert.AreEqual(n, m.GetValueOrDefault(n), $"Failed for random seed '{savedSeed}' to find the '{n}'");
+                expected.Add(n);
             }
+
+            var j = 0;
+            foreach (var e in expected)
+                Assert.AreEqual(e, m.GetValueOrDefault(e), $"Failed for random seed '{savedSeed}' to find the '{e}' at index '{j++}'");
 
             // non-existing keys 
             Assert.AreEqual(0, m.GetValueOrDefault(upperBound + 1));
@@ -236,13 +244,19 @@ namespace ImTools.Experimental.UnitTests
             var savedSeed = new Random().Next(0, upperBound);
             var rnd = new Random(savedSeed);
 
+            var expected = new List<int>(5000);
+
             var m = ImHashMap234<int, int>.Empty;
             for (var i = 0; i < 5000; i++)
             {
                 var n = rnd.Next(0, upperBound);
                 m = m.AddOrKeep(n, n);
-                Assert.AreEqual(n, m.GetValueOrDefault(n), $"Failed for random seed '{savedSeed}' to find the '{n}'");
+                expected.Add(n);
             }
+
+            var j = 0;
+            foreach (var e in expected)
+                Assert.AreEqual(e, m.GetValueOrDefault(e), $"Failed for random seed '{savedSeed}' to find the '{e}' at index '{j++}'");
 
             // non-existing keys 
             Assert.AreEqual(0, m.GetValueOrDefault(upperBound + 1));

@@ -1,6 +1,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -310,11 +311,13 @@ namespace ImTools.Experimental
             public readonly Entry Entry2;
 
             /// <summary>Constructs the leaf</summary>
-            public Leaf3(Entry entry0, Entry entry1, Entry entry2)
+            public Leaf3(Entry e0, Entry e1, Entry e2)
             {
-                Entry0 = entry0;
-                Entry1 = entry1;
-                Entry2 = entry2;
+                Debug.Assert(e0.Hash < e1.Hash);
+                Debug.Assert(e1.Hash < e2.Hash);
+                Entry0 = e0;
+                Entry1 = e1;
+                Entry2 = e2;
             }
 
             /// <inheritdoc />
@@ -322,9 +325,9 @@ namespace ImTools.Experimental
 
             /// <inheritdoc />
             public override Entry GetEntryOrDefault(int hash) =>
-                hash == Entry0.Hash  ? Entry0 :
-                hash == Entry1.Hash  ? Entry1 :
-                hash == Entry2.Hash  ? Entry2 :
+                hash == Entry0.Hash ? Entry0 :
+                hash == Entry1.Hash ? Entry1 :
+                hash == Entry2.Hash ? Entry2 :
                 null;
 
             /// <inheritdoc />
@@ -670,13 +673,17 @@ namespace ImTools.Experimental
             public readonly Entry Entry4;
 
             /// <summary>Constructs the leaf</summary>
-            public Leaf5(Entry entry0, Entry entry1, Entry entry2, Entry entry3, Entry entry4)
+            public Leaf5(Entry e0, Entry e1, Entry e2, Entry e3, Entry e4)
             {
-                Entry0 = entry0;
-                Entry1 = entry1;
-                Entry2 = entry2;
-                Entry3 = entry3;
-                Entry4 = entry4;
+                Debug.Assert(e0.Hash < e1.Hash);
+                Debug.Assert(e1.Hash < e2.Hash);
+                Debug.Assert(e2.Hash < e3.Hash);
+                Debug.Assert(e3.Hash < e4.Hash);
+                Entry0 = e0;
+                Entry1 = e1;
+                Entry2 = e2;
+                Entry3 = e3;
+                Entry4 = e4;
             }
 
             /// <inheritdoc />
@@ -703,7 +710,7 @@ namespace ImTools.Experimental
                     hash == e0.Hash ? new Leaf5(e0.Update(entry), e1, e2, e3, e4) :
                     hash == e1.Hash ? new Leaf5(e0, e1.Update(entry), e2, e3, e4) :
                     hash == e2.Hash ? new Leaf5(e0, e1, e2.Update(entry), e3, e4) :
-                    hash == e3.Hash ? new Leaf5(e0, e1, e3, e2.Update(entry), e4) :
+                    hash == e3.Hash ? new Leaf5(e0, e1, e2, e3.Update(entry), e4) :
                     hash == e4.Hash ? new Leaf5(e0, e1, e2, e3, e4.Update(entry)) :
                     (ImHashMap234<K, V>)new Leaf5Plus1(entry, this);
             }
@@ -937,7 +944,7 @@ namespace ImTools.Experimental
                     hash == e0.Hash   ? new Leaf5Plus1(p, new Leaf5(e0.Update(entry), e1, e2, e3, e4)) :
                     hash == e1.Hash   ? new Leaf5Plus1(p, new Leaf5(e0, e1.Update(entry), e2, e3, e4)) :
                     hash == e2.Hash   ? new Leaf5Plus1(p, new Leaf5(e0, e1, e2.Update(entry), e3, e4)) :
-                    hash == e3.Hash   ? new Leaf5Plus1(p, new Leaf5(e0, e1, e3, e2.Update(entry), e4)) :
+                    hash == e3.Hash   ? new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3.Update(entry), e4)) :
                     (ImHashMap234<K, V>)new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3, e4.Update(entry)));
             }
 
@@ -1102,7 +1109,7 @@ namespace ImTools.Experimental
                     hash == e0.Hash ? new Leaf5(e0.Update(entry), e1, e2, e3, e4) :
                     hash == e1.Hash ? new Leaf5(e0, e1.Update(entry), e2, e3, e4) :
                     hash == e2.Hash ? new Leaf5(e0, e1, e2.Update(entry), e3, e4) :
-                    hash == e3.Hash ? new Leaf5(e0, e1, e3, e2.Update(entry), e4) :
+                    hash == e3.Hash ? new Leaf5(e0, e1, e2, e3.Update(entry), e4) :
                                       new Leaf5(e0, e1, e2, e3, e4.Update(entry));
             }
 
@@ -1541,8 +1548,7 @@ namespace ImTools.Experimental
             }
         }
 
-        /// <summary>Branch of 2 leafs or branches - 
-        /// it will never split itself but may produce the Branch of 3 if the lower branches are split</summary>
+        /// <summary>Branch of 2 leafs or branches</summary>
         public sealed class Branch2 : ImHashMap234<K, V>
         {
             /// <summary>Entry in the middle</summary>
@@ -1554,9 +1560,9 @@ namespace ImTools.Experimental
             public readonly ImHashMap234<K, V> Right;
 
             /// <summary>Constructs</summary>
-            public Branch2(ImHashMap234<K, V> left, Entry entry0, ImHashMap234<K, V> right)
+            public Branch2(ImHashMap234<K, V> left, Entry e, ImHashMap234<K, V> right)
             {
-                Entry0 = entry0;
+                Entry0 = e;
                 Left   = left;
                 Right  = right;
             }
@@ -1578,13 +1584,12 @@ namespace ImTools.Experimental
                 var e0 = Entry0;
                 if (hash > e0.Hash)
                 {
-                    // The only two cases where to expect the split: Leaf5 or Branch3
                     if (Right is Leaf5Plus1OrBranch3 x)
                     {
-                        var newRight = x.AddOrUpdateOrSplitEntry(hash, entry, out var popEntry, out var popRight);
+                        var newBranch = x.AddOrUpdateOrSplitEntry(hash, entry, out var popEntry, out var popRight);
                         if (popRight != null)
-                            return new Branch3(Left, e0, newRight, popEntry, popRight);
-                        return new Branch2(Left, e0, newRight);
+                            return new Branch3(Left, e0, newBranch, popEntry, popRight);
+                        return new Branch2(Left, e0, newBranch);
                     }
 
                     return new Branch2(Left, e0, Right.AddOrUpdateEntry(hash, entry));
@@ -1594,10 +1599,10 @@ namespace ImTools.Experimental
                 {
                     if (Left is Leaf5Plus1OrBranch3 x)
                     {
-                        var newLeft = x.AddOrUpdateOrSplitEntry(hash, entry, out var popEntry, out var popRight);
+                        var newBranch = x.AddOrUpdateOrSplitEntry(hash, entry, out var popEntry, out var popRight);
                         if (popRight != null)
-                            return new Branch3(newLeft, popEntry, popRight, e0, Right);
-                        return new Branch2(newLeft, e0, Right);
+                            return new Branch3(newBranch, popEntry, popRight, e0, Right);
+                        return new Branch2(newBranch, e0, Right);
                     }
 
                     return new Branch2(Left.AddOrUpdateEntry(hash, entry), e0, Right);
@@ -1612,36 +1617,36 @@ namespace ImTools.Experimental
                 var e0 = Entry0;
                 if (hash > e0.Hash)
                 {
-                    ImHashMap234<K, V> newRight;
+                    ImHashMap234<K, V> newBranch;
                     if (Right is Leaf5Plus1OrBranch3 x)
                     {
-                        newRight = x.AddOrKeepOrSplitEntry(hash, entry, out var popEntry, out var popRight);
-                        if (newRight == x)
+                        newBranch = x.AddOrKeepOrSplitEntry(hash, entry, out var popEntry, out var popRight);
+                        if (newBranch == x)
                             return this;
                         if (popRight != null)
-                            return new Branch3(Left, e0, newRight, popEntry, popRight);
-                        return new Branch2(Left, e0, newRight);
+                            return new Branch3(Left, e0, newBranch, popEntry, popRight);
+                        return new Branch2(Left, e0, newBranch);
                     }
 
-                    newRight = Right.AddOrKeepEntry(hash, entry);
-                    return newRight == Right ? this : new Branch2(Left, e0, newRight);
+                    newBranch = Right.AddOrKeepEntry(hash, entry);
+                    return newBranch == Right ? this : new Branch2(Left, e0, newBranch);
                 }
 
                 if (hash < e0.Hash)
                 {
-                    ImHashMap234<K, V> newLeft;
+                    ImHashMap234<K, V> newBranch;
                     if (Left is Leaf5Plus1OrBranch3 x)
                     {
-                        newLeft = x.AddOrUpdateOrSplitEntry(hash, entry, out var popEntry, out var popRight);
-                        if (newLeft == x)
+                        newBranch = x.AddOrUpdateOrSplitEntry(hash, entry, out var popEntry, out var popRight);
+                        if (newBranch == x)
                             return this;
                         if (popRight != null)
-                            return new Branch3(newLeft, popEntry, popRight, e0, Right);
-                        return new Branch2(newLeft, e0, Right);
+                            return new Branch3(newBranch, popEntry, popRight, e0, Right);
+                        return new Branch2(newBranch, e0, Right);
                     }
 
-                    newLeft = Left.AddOrKeepEntry(hash, entry);
-                    return newLeft == Left ? this : new Branch2(newLeft, e0, Right);
+                    newBranch = Left.AddOrKeepEntry(hash, entry);
+                    return newBranch == Left ? this : new Branch2(newBranch, e0, Right);
                 }
 
                 return (e0 = e0.Keep(entry)) == Entry0 ? this : new Branch2(Left, e0, Right);
@@ -1823,10 +1828,10 @@ namespace ImTools.Experimental
                 var e0 = Entry0;
                 var e1 = Entry1;
                 return
-                    hash == e0.Hash ? e0 : 
-                    hash == e1.Hash ? e1 : 
                     hash > e1.Hash ? Right.GetEntryOrDefault(hash) :
                     hash < e0.Hash ? Left .GetEntryOrDefault(hash) :
+                    hash == e0.Hash ? e0 : 
+                    hash == e1.Hash ? e1 : 
                     Middle.GetEntryOrDefault(hash);
             }
 
@@ -1839,18 +1844,18 @@ namespace ImTools.Experimental
                 if (hash > e1.Hash)
                 {
                      // No need to call the Split method because we won't destruct the result branch
-                    var newRight = Right.AddOrUpdateEntry(hash, entry);
-                    if (newRight is Branch2 && Right is Leaf5Plus1OrBranch3)
-                        return new Branch2(new Branch2(Left, e0, Middle), e1, newRight);
-                    return new Branch3(Left, e0, Middle, e1, newRight);
+                    var newBranch = Right.AddOrUpdateEntry(hash, entry);
+                    if (newBranch is Branch2 && Right is Leaf5Plus1OrBranch3)
+                        return new Branch2(new Branch2(Left, e0, Middle), e1, newBranch);
+                    return new Branch3(Left, e0, Middle, e1, newBranch);
                 }
 
                 if (hash < e0.Hash)
                 {
-                    var newLeft = Left.AddOrUpdateEntry(hash, entry);
-                    if (newLeft is Branch2 && Left is Leaf5Plus1OrBranch3) 
-                        return new Branch2(newLeft, e0, new Branch2(Middle, e1, Right));
-                    return new Branch3(newLeft, e0, Middle, e1, Right);
+                    var newBranch = Left.AddOrUpdateEntry(hash, entry);
+                    if (newBranch is Branch2 && Left is Leaf5Plus1OrBranch3) 
+                        return new Branch2(newBranch, e0, new Branch2(Middle, e1, Right));
+                    return new Branch3(newBranch, e0, Middle, e1, Right);
                 }
 
                 if (hash > e0.Hash && hash < e1.Hash)
@@ -1937,22 +1942,22 @@ namespace ImTools.Experimental
 
                 if (hash > e1.Hash)
                 {
-                    var newRight = Right.AddOrKeepEntry(hash, entry);
-                    if (newRight == Right)
+                    var newBranch = Right.AddOrKeepEntry(hash, entry);
+                    if (newBranch == Right)
                         return this;
-                    if (newRight is Branch2 && Right is Leaf5Plus1OrBranch3) 
-                        return new Branch2(new Branch2(Left, e0, Middle), e1, newRight);
-                    return new Branch3(Left, e0, Middle, e1, newRight);
+                    if (newBranch is Branch2 && Right is Leaf5Plus1OrBranch3) 
+                        return new Branch2(new Branch2(Left, e0, Middle), e1, newBranch);
+                    return new Branch3(Left, e0, Middle, e1, newBranch);
                 }
 
                 if (hash < e0.Hash)
                 {
-                    var newLeft = Left.AddOrKeepEntry(hash, entry);
-                    if (newLeft == Left)
+                    var newBranch = Left.AddOrKeepEntry(hash, entry);
+                    if (newBranch == Left)
                         return this;
-                    if (newLeft is Branch2 && Left is Leaf5Plus1OrBranch3) 
-                        return new Branch2(newLeft, e0, new Branch2(Middle, e1, Right));
-                    return new Branch3(newLeft, e0, Middle, e1, Right);
+                    if (newBranch is Branch2 && Left is Leaf5Plus1OrBranch3) 
+                        return new Branch2(newBranch, e0, new Branch2(Middle, e1, Right));
+                    return new Branch3(newBranch, e0, Middle, e1, Right);
                 }
 
                 if (hash > e0.Hash && hash < e1.Hash)
@@ -1988,30 +1993,30 @@ namespace ImTools.Experimental
 
                 if (hash > e1.Hash)
                 {
-                    var newRight = Right.AddOrKeepEntry(hash, entry);
-                    if (newRight == Right)
+                    var newBranch = Right.AddOrKeepEntry(hash, entry);
+                    if (newBranch == Right)
                         return this;
-                    if (newRight is Branch2 && Right is Leaf5Plus1OrBranch3)
+                    if (newBranch is Branch2 && Right is Leaf5Plus1OrBranch3)
                     {
                         popEntry = e1;
-                        popRight = newRight;
+                        popRight = newBranch;
                         return new Branch2(Left, e0, Middle);
                     }
-                    return new Branch3(Left, e0, Middle, e1, newRight);
+                    return new Branch3(Left, e0, Middle, e1, newBranch);
                 }
 
                 if (hash < e0.Hash)
                 {
-                    var newLeft = Left.AddOrKeepEntry(hash, entry);
-                    if (newLeft == Left)
+                    var newBranch = Left.AddOrKeepEntry(hash, entry);
+                    if (newBranch == Left)
                         return this;
-                    if (newLeft is Branch2 && Left is Leaf5Plus1OrBranch3)
+                    if (newBranch is Branch2 && Left is Leaf5Plus1OrBranch3)
                     {
                         popEntry = e0;
                         popRight = new Branch2(Middle, e1, Right);
-                        return newLeft;
+                        return newBranch;
                     }
-                    return new Branch3(newLeft, e0, Middle, e1, Right);
+                    return new Branch3(newBranch, e0, Middle, e1, Right);
                 }
 
                 if (hash > e0.Hash && hash < e1.Hash)
