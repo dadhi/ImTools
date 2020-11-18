@@ -50,7 +50,7 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreEqual("c", mr.GetValueOrDefault(3));
 
             m = m.AddOrUpdate(4, "d");
-            Assert.IsInstanceOf<ImHashMap234<int, string>.Leaf4Plus1>(m);
+            Assert.IsInstanceOf<ImHashMap234<int, string>.Leaf3Plus1>(m);
             Assert.AreEqual("c",  m.GetValueOrDefault(3));
             Assert.AreEqual("b",  m.GetValueOrDefault(2));
             Assert.AreEqual("a",  m.GetValueOrDefault(1));
@@ -81,7 +81,7 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreEqual("b",  m.GetValueOrDefault(2));
             Assert.AreEqual("a",  m.GetValueOrDefault(1));
             Assert.AreEqual(null, m.GetValueOrDefault(10));
-            // Assert.AreSame(m, m.AddOrKeep(3, "aa").AddOrKeep(2, "bb").AddOrKeep(1, "cc"));
+            Assert.AreSame(m, m.AddOrKeep(3, "aa").AddOrKeep(2, "bb").AddOrKeep(1, "cc"));
 
             m = m.AddOrUpdate(7, "7");
             Assert.AreEqual("7",  m.GetValueOrDefault(7));
