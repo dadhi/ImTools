@@ -169,7 +169,7 @@ namespace ImTools.Experimental.UnitTests
         public void Adding_1000_keys_and_randomly_checking()
         {
             var m = ImHashMap234<int, int>.Empty;
-            for (var i = 0; i < 1000; i++)
+            for (var i = 0; i < 5000; i++)
             {
                 m = m.AddOrUpdate(i, i);
             }
@@ -183,7 +183,7 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreEqual(999, m.GetValueOrDefault(999));
 
             // non-existing keys 
-            Assert.AreEqual(0, m.GetValueOrDefault(1000));
+            Assert.AreEqual(0, m.GetValueOrDefault(10000));
             Assert.AreEqual(0, m.GetValueOrDefault(-1));
         }
 
@@ -191,7 +191,7 @@ namespace ImTools.Experimental.UnitTests
         public void Adding_1000_keys_descending_and_randomly_checking()
         {
             var m = ImHashMap234<int, int>.Empty;
-            for (var i = 1000 - 1; i >= 0; i--)
+            for (var i = 5000 - 1; i >= 0; i--)
             {
                 m = m.AddOrUpdate(i, i);
             }
@@ -205,43 +205,47 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreEqual(999, m.GetValueOrDefault(999));
 
             // non-existing keys 
-            Assert.AreEqual(0, m.GetValueOrDefault(1000));
+            Assert.AreEqual(0, m.GetValueOrDefault(10000));
             Assert.AreEqual(0, m.GetValueOrDefault(-1));
         }
 
         [Test]
-        public void AddOrUpdate_1000_keys_randomly_and_randomly_checking()
+        public void AddOrUpdate_random_items_and_randomly_checking()
         {
-            var rnd = new Random();
+            const int upperBound = 100000;
+            var savedSeed = new Random().Next(0, upperBound);
+            var rnd = new Random(savedSeed);
 
             var m = ImHashMap234<int, int>.Empty;
-            for (var i = 0; i < 1000; i++)
+            for (var i = 0; i < 5000; i++)
             {
-                var n = rnd.Next(0, 10000);
+                var n = rnd.Next(0, upperBound);
                 m = m.AddOrUpdate(n, n);
-                Assert.AreEqual(n, m.GetValueOrDefault(n));
+                Assert.AreEqual(n, m.GetValueOrDefault(n), $"Failed for random seed '{savedSeed}' to find the '{n}'");
             }
 
             // non-existing keys 
-            Assert.AreEqual(0, m.GetValueOrDefault(10000));
+            Assert.AreEqual(0, m.GetValueOrDefault(upperBound + 1));
             Assert.AreEqual(0, m.GetValueOrDefault(-1));
         }
 
-        // [Test]
-        public void AddOrKeep_1000_keys_randomly_and_randomly_checking()
+        [Test]
+        public void AddOrKeep_random_items_and_randomly_checking()
         {
-            var rnd = new Random();
+            const int upperBound = 100000;
+            var savedSeed = new Random().Next(0, upperBound);
+            var rnd = new Random(savedSeed);
 
             var m = ImHashMap234<int, int>.Empty;
-            for (var i = 0; i < 1000; i++)
+            for (var i = 0; i < 5000; i++)
             {
-                var n = rnd.Next(0, 10000);
+                var n = rnd.Next(0, upperBound);
                 m = m.AddOrKeep(n, n);
-                Assert.AreEqual(n, m.GetValueOrDefault(n));
+                Assert.AreEqual(n, m.GetValueOrDefault(n), $"Failed for random seed '{savedSeed}' to find the '{n}'");
             }
 
             // non-existing keys 
-            Assert.AreEqual(0, m.GetValueOrDefault(10000));
+            Assert.AreEqual(0, m.GetValueOrDefault(upperBound + 1));
             Assert.AreEqual(0, m.GetValueOrDefault(-1));
         }
     }
