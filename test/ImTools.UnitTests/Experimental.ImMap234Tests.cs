@@ -68,7 +68,7 @@ namespace ImTools.Experimental.UnitTests
         [Test]
         public void Adding_1000_keys_and_randomly_checking()
         {
-            var m = ImHashMap234<int, int>.Empty;
+            var m = ImMap234<int>.Empty;
             for (var i = 0; i < 1000; i++)
             {
                 m = m.AddOrUpdate(i, i);
@@ -90,7 +90,7 @@ namespace ImTools.Experimental.UnitTests
         [Test]
         public void Adding_1000_keys_descending_and_randomly_checking()
         {
-            var m = ImHashMap234<int, int>.Empty;
+            var m = ImMap234<int>.Empty;
             for (var i = 1000 - 1; i >= 0; i--)
             {
                 m = m.AddOrUpdate(i, i);
@@ -114,7 +114,7 @@ namespace ImTools.Experimental.UnitTests
         {
             var rnd = new Random();
 
-            var m = ImHashMap234<int, int>.Empty;
+            var m = ImMap234<int>.Empty;
             for (var i = 0; i < 1000; i++)
             {
                 var n = rnd.Next(0, 10000);
@@ -132,7 +132,7 @@ namespace ImTools.Experimental.UnitTests
         {
             var rnd = new Random();
 
-            var m = ImHashMap234<int, int>.Empty;
+            var m = ImMap234<int>.Empty;
             for (var i = 0; i < 1000; i++)
             {
                 var n = rnd.Next(0, 10000);
