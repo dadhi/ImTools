@@ -382,8 +382,16 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 |              ImHashMap_AddOrUpdate |  1000 | 303,169.9 ns | 3,114.01 ns | 2,600.34 ns |  1.00 |    0.00 | 122.0703 |  3.4180 |     - |  511209 B |
 | Experimental_ImHashMap_AddOrUpdate |  1000 | 304,592.2 ns | 4,624.16 ns | 4,325.44 ns |  1.00 |    0.02 | 104.9805 | 25.8789 |     - |  439976 B |
 |           ImHashMap234_AddOrUpdate |  1000 | 226,901.5 ns | 4,024.60 ns | 3,360.72 ns |  0.75 |    0.01 |  81.0547 |  1.4648 |     - |  339345 B |
+
+|                   Method | Count |       Mean |    Error |    StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|------------------------- |------ |-----------:|---------:|----------:|------:|--------:|-------:|------:|------:|----------:|
+|    ImHashMap_AddOrUpdate |     1 |   221.5 ns |  4.07 ns |   7.94 ns |  1.00 |    0.00 | 0.0648 |     - |     - |     272 B |
+| ImHashMap234_AddOrUpdate |     1 |   174.8 ns |  3.45 ns |   7.51 ns |  0.79 |    0.05 | 0.0381 |     - |     - |     160 B |
+|                          |       |            |          |           |       |         |        |       |       |           |
+|    ImHashMap_AddOrUpdate |    10 | 1,523.2 ns | 42.33 ns | 124.15 ns |  1.00 |    0.00 | 0.5493 |     - |     - |    2312 B |
+| ImHashMap234_AddOrUpdate |    10 | 1,012.2 ns | 20.17 ns |  45.12 ns |  0.67 |    0.07 | 0.2708 |     - |     - |    1136 B |
 */
-            [Params(1, 10, 100, 1_000)]
+            [Params(1, 10)]//, 100, 1_000)]
             public int Count;
 
             [Benchmark(Baseline = true)]
@@ -420,7 +428,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 return map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImTools.Experimental.ImMap<ImMap.KValue<Type>> Experimental_ImHashMap_AddOrUpdate()
             {
                 var map = ImTools.Experimental.ImMap<ImMap.KValue<Type>>.Empty;
