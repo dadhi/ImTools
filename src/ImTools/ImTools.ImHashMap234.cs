@@ -318,7 +318,7 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
-            public override string ToString() => "leaf3>> " + Entry0 + "; " + Entry1 + "; " + Entry2;
+            public override string ToString() => "leaf3{" + Entry0 + "; " + Entry1 + "; " + Entry2 + "}";
 
             /// <inheritdoc />
             public override Entry GetEntryOrDefault(int hash) =>
@@ -333,7 +333,7 @@ namespace ImTools.Experimental
                 var e0 = Entry0;
                 var e1 = Entry1;
                 var e2 = Entry2;
-                return
+                return // todo: @rip remove the individual classes
                     hash > e2.Hash                   ? new Leaf4_3(entry, this) :
                     hash < e0.Hash                   ? new Leaf4_0(entry, this) :
                     hash > e0.Hash && hash < e1.Hash ? new Leaf4_1(entry, this) :
@@ -392,7 +392,7 @@ namespace ImTools.Experimental
             }
         }
         /// <summary>Leaf with 4 entries</summary>
-        public abstract class Leaf4 : ImHashMap234<K, V>
+        public abstract class Leaf4Plus1 : ImHashMap234<K, V>
         {
             /// <summary>Left entry</summary>
             public abstract Entry Entry0 { get; }
@@ -404,7 +404,7 @@ namespace ImTools.Experimental
             public abstract Entry Entry3 { get; }
 
             /// <inheritdoc />
-            public override string ToString() => "leaf4>> " + Entry0 + "; " + Entry1 + "; " + Entry2 + "; " + Entry3;
+            public override string ToString() => "leaf4{" + Entry0 + "; " + Entry1 + "; " + Entry2 + "; " + Entry3 + "}";
 
             /// <inheritdoc />
             public override IEnumerable<ValueEntry> Enumerate()
@@ -429,7 +429,7 @@ namespace ImTools.Experimental
         }
 
         /// <summary>Leaf with 4 entries</summary>
-        public sealed class Leaf4_0 : Leaf4
+        public sealed class Leaf4_0 : Leaf4Plus1
         {
             /// <summary>Left entry</summary>
             public override Entry Entry0 => _e0;
@@ -511,7 +511,7 @@ namespace ImTools.Experimental
         }
 
         /// <summary>Leaf with 4 entries</summary>
-        public sealed class Leaf4_1 : Leaf4
+        public sealed class Leaf4_1 : Leaf4Plus1
         {
             /// <summary>Left entry</summary>
             public override Entry Entry0 => _l3.Entry0;
@@ -593,7 +593,7 @@ namespace ImTools.Experimental
         }
 
         /// <summary>Leaf with 4 entries</summary>
-        public sealed class Leaf4_2 : Leaf4
+        public sealed class Leaf4_2 : Leaf4Plus1
         {
             /// <summary>Left entry</summary>
             public override Entry Entry0 => _l3.Entry0;
@@ -675,7 +675,7 @@ namespace ImTools.Experimental
         }
 
         /// <summary>Leaf with 4 entries</summary>
-        public sealed class Leaf4_3 : Leaf4
+        public sealed class Leaf4_3 : Leaf4Plus1
         {
             /// <summary>Left entry</summary>
             public override Entry Entry0 => _l3.Entry0;
@@ -907,13 +907,13 @@ namespace ImTools.Experimental
             {
                 if (hash == Plus.Hash) 
                     return Plus; 
-                var l5 = L5;
+                var l = L5;
                 return 
-                    hash == l5.Entry0.Hash ? l5.Entry0 :
-                    hash == l5.Entry1.Hash ? l5.Entry1 :
-                    hash == l5.Entry2.Hash ? l5.Entry2 :
-                    hash == l5.Entry3.Hash ? l5.Entry3 :
-                    hash == l5.Entry4.Hash ? l5.Entry4 :
+                    hash == l.Entry0.Hash ? l.Entry0 :
+                    hash == l.Entry1.Hash ? l.Entry1 :
+                    hash == l.Entry2.Hash ? l.Entry2 :
+                    hash == l.Entry3.Hash ? l.Entry3 :
+                    hash == l.Entry4.Hash ? l.Entry4 :
                     null;
             }
 
@@ -925,12 +925,12 @@ namespace ImTools.Experimental
                 if (ph == hash)
                     return new Leaf5Plus1(p.Update(entry), L5);
 
-                var l5 = L5;
-                var e0 = l5.Entry0;
-                var e1 = l5.Entry1;
-                var e2 = l5.Entry2;
-                var e3 = l5.Entry3;
-                var e4 = l5.Entry4;
+                var l = L5;
+                var e0 = l.Entry0;
+                var e1 = l.Entry1;
+                var e2 = l.Entry2;
+                var e3 = l.Entry3;
+                var e4 = l.Entry4;
  
                 if (hash > e4.Hash)
                 {
@@ -1216,7 +1216,7 @@ namespace ImTools.Experimental
                             return new Leaf3(e0, p, e1);
                         return new Leaf3(e0, e1, p);
                     }
-                    if (ph < e3.Hash) 
+                    if (ph < e3.Hash)
                     {
                         popEntry = p;
                         popRight = new Leaf3(e3, entry, e4);
@@ -1544,7 +1544,7 @@ namespace ImTools.Experimental
                         // If the Left is not a Leaf2, move its one entry to the Right
                         if (l is Leaf3 l3)
                             return new Branch2(new Leaf2(l3.Entry0, l3.Entry1), l3.Entry2, new Leaf2(e0, re)); 
-                        if (l is Leaf4 l4)
+                        if (l is Leaf4Plus1 l4)
                             return new Branch2(new Leaf3(l4.Entry0, l4.Entry1, l4.Entry2), l4.Entry3, new Leaf2(e0, re)); 
                         if (l is Leaf5 l5)
                             return new Branch2(new Leaf4_0(l5.Entry0, new Leaf3(l5.Entry1, l5.Entry2, l5.Entry3)), l5.Entry4, new Leaf2(e0, re));
@@ -1557,7 +1557,7 @@ namespace ImTools.Experimental
                     }
 
                     // Handling Case #1
-                    if (newRight is Leaf4 && Right is Branch2) // no need to check for the Branch3 because there is no way that Leaf4 will be the result of deleting one element from it 
+                    if (newRight is Leaf4Plus1 && Right is Branch2) // no need to check for the Branch3 because there is no way that Leaf4 will be the result of deleting one element from it 
                     {
                         // Case #2
                         //             7                       4     7 
@@ -1904,7 +1904,7 @@ namespace ImTools.Experimental
                             return new Branch2(Left, Entry0, new Leaf5(l3.Entry0, l3.Entry1, l3.Entry2, e1, re));
 
                         // Rebalance the entries from Middle to the Right
-                        if (m is Leaf4 l4)
+                        if (m is Leaf4Plus1 l4)
                             return new Branch3(Left, Entry0, new Leaf3(l4.Entry0, l4.Entry1, l4.Entry2), l4.Entry3, new Leaf2(e1, re));
                         
                         var l5 = (Leaf5)m;

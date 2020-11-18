@@ -383,15 +383,25 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 | Experimental_ImHashMap_AddOrUpdate |  1000 | 304,592.2 ns | 4,624.16 ns | 4,325.44 ns |  1.00 |    0.02 | 104.9805 | 25.8789 |     - |  439976 B |
 |           ImHashMap234_AddOrUpdate |  1000 | 226,901.5 ns | 4,024.60 ns | 3,360.72 ns |  0.75 |    0.01 |  81.0547 |  1.4648 |     - |  339345 B |
 
-|                   Method | Count |       Mean |    Error |    StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-|------------------------- |------ |-----------:|---------:|----------:|------:|--------:|-------:|------:|------:|----------:|
-|    ImHashMap_AddOrUpdate |     1 |   221.5 ns |  4.07 ns |   7.94 ns |  1.00 |    0.00 | 0.0648 |     - |     - |     272 B |
-| ImHashMap234_AddOrUpdate |     1 |   174.8 ns |  3.45 ns |   7.51 ns |  0.79 |    0.05 | 0.0381 |     - |     - |     160 B |
-|                          |       |            |          |           |       |         |        |       |       |           |
-|    ImHashMap_AddOrUpdate |    10 | 1,523.2 ns | 42.33 ns | 124.15 ns |  1.00 |    0.00 | 0.5493 |     - |     - |    2312 B |
-| ImHashMap234_AddOrUpdate |    10 | 1,012.2 ns | 20.17 ns |  45.12 ns |  0.67 |    0.07 | 0.2708 |     - |     - |    1136 B |
+|                             Method | Count |         Mean |        Error |       StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
+|----------------------------------- |------ |-------------:|-------------:|-------------:|------:|--------:|---------:|--------:|------:|----------:|
+|              ImHashMap_AddOrUpdate |     1 |     135.2 ns |      1.53 ns |      1.36 ns |  1.00 |    0.00 |   0.0648 |       - |     - |     272 B |
+| Experimental_ImHashMap_AddOrUpdate |     1 |     110.7 ns |      1.66 ns |      1.56 ns |  0.82 |    0.01 |   0.0381 |       - |     - |     160 B |
+|           ImHashMap234_AddOrUpdate |     1 |     103.9 ns |      1.88 ns |      2.24 ns |  0.77 |    0.02 |   0.0381 |       - |     - |     160 B |
+|                                    |       |              |              |              |       |         |          |         |       |           |
+|              ImHashMap_AddOrUpdate |    10 |     921.0 ns |     10.23 ns |      9.06 ns |  1.00 |    0.00 |   0.5522 |       - |     - |    2312 B |
+| Experimental_ImHashMap_AddOrUpdate |    10 |     721.9 ns |      6.94 ns |      5.79 ns |  0.78 |    0.01 |   0.3576 |       - |     - |    1496 B |
+|           ImHashMap234_AddOrUpdate |    10 |     613.3 ns |      7.54 ns |      7.05 ns |  0.67 |    0.01 |   0.2708 |       - |     - |    1136 B |
+|                                    |       |              |              |              |       |         |          |         |       |           |
+|              ImHashMap_AddOrUpdate |   100 |  14,187.8 ns |    161.72 ns |    135.05 ns |  1.00 |    0.00 |   8.3313 |       - |     - |   34856 B |
+| Experimental_ImHashMap_AddOrUpdate |   100 |  12,130.0 ns |    235.77 ns |    252.27 ns |  0.86 |    0.02 |   6.6528 |       - |     - |   27880 B |
+|           ImHashMap234_AddOrUpdate |   100 |  10,034.6 ns |    197.46 ns |    175.04 ns |  0.71 |    0.01 |   4.8676 |       - |     - |   20368 B |
+|                                    |       |              |              |              |       |         |          |         |       |           |
+|              ImHashMap_AddOrUpdate |  1000 | 308,958.5 ns |  3,840.48 ns |  3,404.49 ns |  1.00 |    0.00 | 122.0703 |  3.4180 |     - |  511210 B |
+| Experimental_ImHashMap_AddOrUpdate |  1000 | 313,480.9 ns |  4,198.58 ns |  3,277.97 ns |  1.01 |    0.01 | 104.9805 | 25.8789 |     - |  439977 B |
+|           ImHashMap234_AddOrUpdate |  1000 | 463,600.6 ns | 16,990.67 ns | 49,830.68 ns |  1.61 |    0.11 |  78.6133 |  3.9063 |     - |  330352 B |
 */
-            [Params(1, 10)]//, 100, 1_000)]
+            [Params(1, 10, 100, 1_000)]
             public int Count;
 
             [Benchmark(Baseline = true)]
@@ -428,7 +438,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 return map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
             }
 
-            // [Benchmark]
+            [Benchmark]
             public ImTools.Experimental.ImMap<ImMap.KValue<Type>> Experimental_ImHashMap_AddOrUpdate()
             {
                 var map = ImTools.Experimental.ImMap<ImMap.KValue<Type>>.Empty;

@@ -50,7 +50,7 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreEqual("c", mr.GetValueOrDefault(3));
 
             m = m.AddOrUpdate(4, "d");
-            Assert.IsInstanceOf<ImHashMap234<int, string>.Leaf4>(m);
+            Assert.IsInstanceOf<ImHashMap234<int, string>.Leaf4Plus1>(m);
             Assert.AreEqual("c",  m.GetValueOrDefault(3));
             Assert.AreEqual("b",  m.GetValueOrDefault(2));
             Assert.AreEqual("a",  m.GetValueOrDefault(1));
