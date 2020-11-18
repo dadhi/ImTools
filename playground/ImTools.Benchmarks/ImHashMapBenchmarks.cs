@@ -949,6 +949,8 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 | Experimental_ImHashMap_TryFind |  1000 | 30.810 ns | 1.0842 ns | 2.9681 ns | 29.878 ns |  2.25 |    0.38 |     - |     - |     - |         - |    
 |           ImHashMap234_TryFind |  1000 | 19.953 ns | 0.4996 ns | 0.4429 ns | 19.772 ns |  1.39 |    0.03 |     - |     - |     - |         - |    
 
+### Leaf3Plus1
+
 |                         Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
 |------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
 |              ImHashMap_TryFind |     1 |  5.611 ns | 0.1067 ns | 0.0998 ns |  1.00 |    0.00 |     - |     - |     - |         - |
@@ -967,25 +969,31 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 | Experimental_ImHashMap_TryFind |  1000 | 37.315 ns | 1.4352 ns | 4.2316 ns |  2.76 |    0.21 |     - |     - |     - |         - |
 |           ImHashMap234_TryFind |  1000 | 24.536 ns | 0.6190 ns | 0.7602 ns |  1.66 |    0.06 |     - |     - |     - |         - |
 
+### Leaf5Plus1 + Leaf3Plus1
+
 |                         Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
 |------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
-|              ImHashMap_TryFind |     1 |  5.098 ns | 0.1045 ns | 0.0927 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| Experimental_ImHashMap_TryFind |     1 |  6.793 ns | 0.1190 ns | 0.0929 ns |  1.33 |    0.03 |     - |     - |     - |         - |
-|           ImHashMap234_TryFind |     1 |  4.700 ns | 0.1391 ns | 0.1086 ns |  0.92 |    0.03 |     - |     - |     - |         - |
+|              ImHashMap_TryFind |     1 |  6.659 ns | 0.1975 ns | 0.1751 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| Experimental_ImHashMap_TryFind |     1 |  8.220 ns | 0.1876 ns | 0.1842 ns |  1.23 |    0.05 |     - |     - |     - |         - |
+|           ImHashMap234_TryFind |     1 |  5.644 ns | 0.1702 ns | 0.1592 ns |  0.85 |    0.03 |     - |     - |     - |         - |
 |                                |       |           |           |           |       |         |       |       |       |           |
-|              ImHashMap_TryFind |    10 |  7.111 ns | 0.0944 ns | 0.0837 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| Experimental_ImHashMap_TryFind |    10 | 11.214 ns | 0.2155 ns | 0.2306 ns |  1.58 |    0.04 |     - |     - |     - |         - |
-|           ImHashMap234_TryFind |    10 |  6.597 ns | 0.1476 ns | 0.1381 ns |  0.93 |    0.02 |     - |     - |     - |         - |
+|              ImHashMap_TryFind |     5 |  7.223 ns | 0.2332 ns | 0.2068 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| Experimental_ImHashMap_TryFind |     5 |  9.832 ns | 0.2499 ns | 0.2337 ns |  1.36 |    0.05 |     - |     - |     - |         - |
+|           ImHashMap234_TryFind |     5 |  5.353 ns | 0.1591 ns | 0.1410 ns |  0.74 |    0.04 |     - |     - |     - |         - |
 |                                |       |           |           |           |       |         |       |       |       |           |
-|              ImHashMap_TryFind |   100 | 10.767 ns | 0.2644 ns | 0.2064 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| Experimental_ImHashMap_TryFind |   100 | 15.453 ns | 0.3714 ns | 0.3292 ns |  1.44 |    0.03 |     - |     - |     - |         - |
-|           ImHashMap234_TryFind |   100 |  9.520 ns | 0.2271 ns | 0.2124 ns |  0.88 |    0.03 |     - |     - |     - |         - |
+|              ImHashMap_TryFind |    10 |  8.325 ns | 0.1680 ns | 0.1403 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| Experimental_ImHashMap_TryFind |    10 | 12.221 ns | 0.3406 ns | 0.5098 ns |  1.50 |    0.08 |     - |     - |     - |         - |
+|           ImHashMap234_TryFind |    10 |  7.012 ns | 0.2045 ns | 0.2273 ns |  0.85 |    0.03 |     - |     - |     - |         - |
 |                                |       |           |           |           |       |         |       |       |       |           |
-|              ImHashMap_TryFind |  1000 | 14.868 ns | 0.3443 ns | 0.3052 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| Experimental_ImHashMap_TryFind |  1000 | 21.860 ns | 0.3442 ns | 0.2874 ns |  1.47 |    0.04 |     - |     - |     - |         - |
-|           ImHashMap234_TryFind |  1000 | 11.902 ns | 0.3100 ns | 0.2748 ns |  0.80 |    0.02 |     - |     - |     - |         - |
+|              ImHashMap_TryFind |   100 | 12.118 ns | 0.3031 ns | 0.4629 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| Experimental_ImHashMap_TryFind |   100 | 18.145 ns | 0.4551 ns | 0.8321 ns |  1.50 |    0.08 |     - |     - |     - |         - |
+|           ImHashMap234_TryFind |   100 | 11.908 ns | 0.2829 ns | 0.3679 ns |  0.97 |    0.04 |     - |     - |     - |         - |
+|                                |       |           |           |           |       |         |       |       |       |           |
+|              ImHashMap_TryFind |  1000 | 17.113 ns | 0.3848 ns | 0.3411 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| Experimental_ImHashMap_TryFind |  1000 | 26.034 ns | 0.6183 ns | 0.8255 ns |  1.52 |    0.07 |     - |     - |     - |         - |
+|           ImHashMap234_TryFind |  1000 | 16.927 ns | 0.3743 ns | 0.5828 ns |  0.99 |    0.05 |     - |     - |     - |         - |
 */
-            [Params(1, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
+            [Params(1, 5, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             public int Count;
 
             [GlobalSetup]
