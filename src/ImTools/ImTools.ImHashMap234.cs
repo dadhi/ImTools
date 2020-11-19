@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 
 namespace ImTools.Experimental
 {
@@ -2336,5 +2337,50 @@ namespace ImTools.Experimental
         public static ImHashMap234<K, V> Remove<K, V>(this ImHashMap234<K, V> map, K key) =>
             // it make sense to have the condition here to prevent the probably costly `GetHashCode()` for the empty map.
             map == ImHashMap234<K, V>.Empty ? map : map.RemoveEntry(key.GetHashCode(), key);
+    }
+
+    /// <summary>
+    /// The fixed array of maps (partitions) where the first key bits are used to locate the partion to lookup into.
+    /// Note: The partition array is NOT immutable and operates by swapping the updated partition (map) with the new one.
+    /// The default partitions count it "carefully selected" to be 16:
+    /// - Not too big to waste the space for the small collection and to fit (hopefully) into the cache line (16 of 4 byte pointer = 64 bytes)
+    /// - Not too short to diminish the benifits of partioning
+    /// </summary>
+    public static class ImPartionedHashMap234
+    {
+        /// <summary>Default number of partions</summary>
+        public const int PART_COUNT_POWER_OF_TWO = 16;
+
+        /// <summary>The default mask to partition the key<summary>
+        public const int PART_HASH_MASK = PART_COUNT_POWER_OF_TWO - 1;
+
+        /// <summary>Creates the new collection with the empty partions</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap234<K, V>[] CreateEmpty<K, V>(int partCountPowerOfTwo = PART_COUNT_POWER_OF_TWO)
+        {
+            var parts = new ImHashMap234<K, V>[partCountPowerOfTwo];
+            for (var i = 0; i < parts.Length; ++i)
+                parts[i] = ImHashMap234<K, V>.Empty;
+            return parts;
+        }
+
+        /// <summary>Returns THE SAME partitioned map BUT with updated partion</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static void AddOrUpdate<K, V>(this ImHashMap234<K, V>[] parts, int hash, K key, V value, int partHashMask = PART_HASH_MASK)
+        {
+            ref var part = ref parts[hash & partHashMask];
+            var p = part;
+            if (Interlocked.CompareExchange(ref part, p.AddOrUpdate(hash, key, value), p) != p)
+                RefAddOrUpdatePart(ref part, hash, key, value);
+        }
+
+        /// <summary>Returns THE SAME partitioned map BUT with updated partion</summary>
+        [MethodImpl((MethodImplOptions) 256)]
+        public static void AddOrUpdate<K, V>(this ImHashMap234<K, V>[] parts, K key, V value, int partHashMask = PART_HASH_MASK) =>
+            parts.AddOrUpdate(key.GetHashCode(), key, value, partHashMask);
+
+        /// <summary>Updates the ref to the part with the new version and retries if the someone changed the part in between<summary>
+        public static void RefAddOrUpdatePart<K, V>(ref ImHashMap234<K, V> part, int hash, K key, V value) =>
+            Ref.Swap(ref part, hash, key, value, (x, h, k, v) => x.AddOrUpdate(h, k, v));
     }
 }
