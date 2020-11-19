@@ -2346,7 +2346,7 @@ namespace ImTools.Experimental
     /// - Not too big to waste the space for the small collection and to fit (hopefully) into the cache line (16 of 4 byte pointer = 64 bytes)
     /// - Not too short to diminish the benifits of partioning
     /// </summary>
-    public static class ImPartitionedHashMap234
+    public static class PartitionedHashMap234
     {
         /// <summary>Default number of partions</summary>
         public const int PART_COUNT_POWER_OF_TWO = 16;
