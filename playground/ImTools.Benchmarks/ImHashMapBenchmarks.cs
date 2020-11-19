@@ -411,32 +411,32 @@ Leaf4Plus1
 
 ## v3 candidate
 
-|                              Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
-|------------------------------------ |------ |-------------:|------------:|------------:|------:|--------:|---------:|--------:|------:|----------:|
-|               ImHashMap_AddOrUpdate |     1 |     155.9 ns |     1.78 ns |     1.58 ns |  1.00 |    0.00 |   0.0648 |       - |     - |     272 B |
-|  Experimental_ImHashMap_AddOrUpdate |     1 |     123.1 ns |     2.26 ns |     1.88 ns |  0.79 |    0.01 |   0.0381 |       - |     - |     160 B |
-|            ImHashMap234_AddOrUpdate |     1 |     122.5 ns |     2.18 ns |     2.04 ns |  0.79 |    0.02 |   0.0381 |       - |     - |     160 B |
-|   PartitionedHashMap234_AddOrUpdate |     1 |     185.8 ns |     1.99 ns |     1.76 ns |  1.19 |    0.02 |   0.0668 |       - |     - |     280 B |
-|                                     |       |              |             |             |       |         |          |         |       |           |
-|               ImHashMap_AddOrUpdate |     5 |     495.1 ns |     5.52 ns |     4.90 ns |  1.00 |    0.00 |   0.2632 |       - |     - |    1104 B |
-|  Experimental_ImHashMap_AddOrUpdate |     5 |     382.9 ns |     5.82 ns |    10.03 ns |  0.79 |    0.03 |   0.1602 |       - |     - |     672 B |
-|            ImHashMap234_AddOrUpdate |     5 |     317.2 ns |     3.33 ns |     2.95 ns |  0.64 |    0.01 |   0.1144 |       - |     - |     480 B |
-|   PartitionedHashMap234_AddOrUpdate |     5 |     342.5 ns |     4.24 ns |     3.76 ns |  0.69 |    0.01 |   0.1125 |       - |     - |     472 B |
-|                                     |       |              |             |             |       |         |          |         |       |           |
-|               ImHashMap_AddOrUpdate |    10 |   1,017.4 ns |     6.82 ns |     6.38 ns |  1.00 |    0.00 |   0.5512 |       - |     - |    2312 B |
-|  Experimental_ImHashMap_AddOrUpdate |    10 |     804.0 ns |     5.72 ns |     4.78 ns |  0.79 |    0.01 |   0.3576 |       - |     - |    1496 B |
-|            ImHashMap234_AddOrUpdate |    10 |     676.4 ns |     7.29 ns |     6.82 ns |  0.66 |    0.01 |   0.2708 |       - |     - |    1136 B |
-|   PartitionedHashMap234_AddOrUpdate |    10 |     583.1 ns |     3.79 ns |     3.36 ns |  0.57 |    0.00 |   0.1869 |       - |     - |     784 B |
-|                                     |       |              |             |             |       |         |          |         |       |           |
-|               ImHashMap_AddOrUpdate |   100 |  15,363.1 ns |   192.26 ns |   170.44 ns |  1.00 |    0.00 |   8.3313 |       - |     - |   34856 B |
-|  Experimental_ImHashMap_AddOrUpdate |   100 |  13,080.5 ns |   229.03 ns |   305.75 ns |  0.86 |    0.03 |   6.6528 |       - |     - |   27880 B |
-|            ImHashMap234_AddOrUpdate |   100 |  11,198.1 ns |   129.68 ns |   108.29 ns |  0.73 |    0.01 |   4.8523 |       - |     - |   20328 B |
-|   PartitionedHashMap234_AddOrUpdate |   100 |   6,450.8 ns |   128.49 ns |   329.38 ns |  0.43 |    0.04 |   1.9989 |  0.0076 |     - |    8376 B |
-|                                     |       |              |             |             |       |         |          |         |       |           |
-|               ImHashMap_AddOrUpdate |  1000 | 340,521.4 ns | 5,592.75 ns | 5,231.46 ns |  1.00 |    0.00 | 122.0703 |  3.4180 |     - |  511209 B |
-|  Experimental_ImHashMap_AddOrUpdate |  1000 | 338,591.6 ns | 3,026.13 ns | 2,682.59 ns |  0.99 |    0.01 | 104.9805 | 25.8789 |     - |  439976 B |
-|            ImHashMap234_AddOrUpdate |  1000 | 248,999.0 ns | 3,445.11 ns | 3,222.56 ns |  0.73 |    0.01 |  78.6133 |  1.4648 |     - |  330065 B |
-|   PartitionedHashMap234_AddOrUpdate |  1000 | 151,655.7 ns | 1,724.22 ns | 1,612.83 ns |  0.45 |    0.01 |  43.2129 | 10.7422 |     - |  181496 B |
+|                                      Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
+|-------------------------------------------- |------ |-------------:|------------:|------------:|------:|--------:|---------:|--------:|------:|----------:|
+|                V2_ImHashMap_AVL_AddOrUpdate |     1 |     155.9 ns |     1.78 ns |     1.58 ns |  1.00 |    0.00 |   0.0648 |       - |     - |     272 B |
+| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |     1 |     123.1 ns |     2.26 ns |     1.88 ns |  0.79 |    0.01 |   0.0381 |       - |     - |     160 B |
+|            V3_ImHashMap_234Tree_AddOrUpdate |     1 |     122.5 ns |     2.18 ns |     2.04 ns |  0.79 |    0.02 |   0.0381 |       - |     - |     160 B |
+|   V3_PartitionedHashMap_234Tree_AddOrUpdate |     1 |     185.8 ns |     1.99 ns |     1.76 ns |  1.19 |    0.02 |   0.0668 |       - |     - |     280 B |
+|                                             |       |              |             |             |       |         |          |         |       |           |
+|                V2_ImHashMap_AVL_AddOrUpdate |     5 |     495.1 ns |     5.52 ns |     4.90 ns |  1.00 |    0.00 |   0.2632 |       - |     - |    1104 B |
+| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |     5 |     382.9 ns |     5.82 ns |    10.03 ns |  0.79 |    0.03 |   0.1602 |       - |     - |     672 B |
+|            V3_ImHashMap_234Tree_AddOrUpdate |     5 |     317.2 ns |     3.33 ns |     2.95 ns |  0.64 |    0.01 |   0.1144 |       - |     - |     480 B |
+|   V3_PartitionedHashMap_234Tree_AddOrUpdate |     5 |     342.5 ns |     4.24 ns |     3.76 ns |  0.69 |    0.01 |   0.1125 |       - |     - |     472 B |
+|                                             |       |              |             |             |       |         |          |         |       |           |
+|                V2_ImHashMap_AVL_AddOrUpdate |    10 |   1,017.4 ns |     6.82 ns |     6.38 ns |  1.00 |    0.00 |   0.5512 |       - |     - |    2312 B |
+| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |    10 |     804.0 ns |     5.72 ns |     4.78 ns |  0.79 |    0.01 |   0.3576 |       - |     - |    1496 B |
+|            V3_ImHashMap_234Tree_AddOrUpdate |    10 |     676.4 ns |     7.29 ns |     6.82 ns |  0.66 |    0.01 |   0.2708 |       - |     - |    1136 B |
+|   V3_PartitionedHashMap_234Tree_AddOrUpdate |    10 |     583.1 ns |     3.79 ns |     3.36 ns |  0.57 |    0.00 |   0.1869 |       - |     - |     784 B |
+|                                             |       |              |             |             |       |         |          |         |       |           |
+|                V2_ImHashMap_AVL_AddOrUpdate |   100 |  15,363.1 ns |   192.26 ns |   170.44 ns |  1.00 |    0.00 |   8.3313 |       - |     - |   34856 B |
+| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |   100 |  13,080.5 ns |   229.03 ns |   305.75 ns |  0.86 |    0.03 |   6.6528 |       - |     - |   27880 B |
+|            V3_ImHashMap_234Tree_AddOrUpdate |   100 |  11,198.1 ns |   129.68 ns |   108.29 ns |  0.73 |    0.01 |   4.8523 |       - |     - |   20328 B |
+|   V3_PartitionedHashMap_234Tree_AddOrUpdate |   100 |   6,450.8 ns |   128.49 ns |   329.38 ns |  0.43 |    0.04 |   1.9989 |  0.0076 |     - |    8376 B |
+|                                             |       |              |             |             |       |         |          |         |       |           |
+|                V2_ImHashMap_AVL_AddOrUpdate |  1000 | 340,521.4 ns | 5,592.75 ns | 5,231.46 ns |  1.00 |    0.00 | 122.0703 |  3.4180 |     - |  511209 B |
+| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |  1000 | 338,591.6 ns | 3,026.13 ns | 2,682.59 ns |  0.99 |    0.01 | 104.9805 | 25.8789 |     - |  439976 B |
+|            V3_ImHashMap_234Tree_AddOrUpdate |  1000 | 248,999.0 ns | 3,445.11 ns | 3,222.56 ns |  0.73 |    0.01 |  78.6133 |  1.4648 |     - |  330065 B |
+|   V3_PartitionedHashMap_234Tree_AddOrUpdate |  1000 | 151,655.7 ns | 1,724.22 ns | 1,612.83 ns |  0.45 |    0.01 |  43.2129 | 10.7422 |     - |  181496 B |
 */
             [Params(1, 5, 10, 100, 1_000)]
             public int Count;
@@ -1395,6 +1395,22 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 |         ImHashMap_EnumerateToArray |  1000 | 26,018.52 ns | 175.262 ns | 146.352 ns |  1.00 | 3.5706 | 0.1831 |     - |   16808 B |
 | Experimental_ImHashMap_FoldToArray |  1000 | 15,321.95 ns |  69.421 ns |  64.937 ns |  0.59 | 5.2490 | 0.2747 |     - |   24736 B |
 
+## V3 candidate
+
+|                                   Method | Count |         Mean |     Error |    StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|----------------------------------------- |------ |-------------:|----------:|----------:|------:|--------:|-------:|------:|------:|----------:|
+|     V2_ImHashMap_AVL_EnumerateAndToArray |     1 |     198.4 ns |   3.64 ns |   3.04 ns |  1.00 |    0.00 | 0.0496 |     - |     - |     208 B |
+| V3_ImHashMap_234Tree_EnumerateAndToArray |     1 |     158.0 ns |   3.23 ns |   3.17 ns |  0.80 |    0.02 | 0.0362 |     - |     - |     152 B |
+|                                          |       |              |           |           |       |         |        |       |       |           |
+|     V2_ImHashMap_AVL_EnumerateAndToArray |    10 |     535.6 ns |   7.97 ns |   8.86 ns |  1.00 |    0.00 | 0.1125 |     - |     - |     472 B |
+| V3_ImHashMap_234Tree_EnumerateAndToArray |    10 |     558.9 ns |   5.35 ns |   5.25 ns |  1.04 |    0.02 | 0.1354 |     - |     - |     568 B |
+|                                          |       |              |           |           |       |         |        |       |       |           |
+|     V2_ImHashMap_AVL_EnumerateAndToArray |   100 |   3,601.3 ns |  54.44 ns |  50.92 ns |  1.00 |    0.00 | 0.5341 |     - |     - |    2248 B |
+| V3_ImHashMap_234Tree_EnumerateAndToArray |   100 |   9,800.0 ns | 110.20 ns |  97.69 ns |  2.72 |    0.04 | 1.0529 |     - |     - |    4424 B |
+|                                          |       |              |           |           |       |         |        |       |       |           |
+|     V2_ImHashMap_AVL_EnumerateAndToArray |  1000 |  34,261.7 ns | 371.47 ns | 310.20 ns |  1.00 |    0.00 | 3.9673 |     - |     - |   16808 B |
+| V3_ImHashMap_234Tree_EnumerateAndToArray |  1000 | 128,626.8 ns | 988.46 ns | 924.61 ns |  3.76 |    0.04 | 9.2773 |     - |     - |   38912 B |
+
 */
             [Params(1, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             public int Count;
@@ -1405,6 +1421,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 _map = AddOrUpdate();
                 _mapV1 = AddOrUpdate_v1();
                 _mapExp = Experimental_ImHashMap_AddOrUpdate();
+                _map234 = V3_ImHashMap_234Tree_AddOrUpdate();
                 _mapSlots = ImHashMapSlots_AddOrUpdate();
                 _dict = Dict();
                 _dictSlim = DictSlim();
@@ -1456,6 +1473,18 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             public ImTools.Experimental.ImMap<ImTools.Experimental.ImMap.KValue<Type>> Experimental_ImHashMap_AddOrUpdate()
             {
                 var map = ImTools.Experimental.ImMap<ImTools.Experimental.ImMap.KValue<Type>>.Empty;
+
+                foreach (var key in _keys.Take(Count))
+                    map = map.AddOrUpdate(key.GetHashCode(), key, "a");
+
+                return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
+            }
+
+            private ImTools.Experimental.ImHashMap234<Type, string> _map234;
+
+            public ImTools.Experimental.ImHashMap234<Type, string> V3_ImHashMap_234Tree_AddOrUpdate()
+            {
+                var map = ImTools.Experimental.ImHashMap234<Type, string>.Empty;
 
                 foreach (var key in _keys.Take(Count))
                     map = map.AddOrUpdate(key.GetHashCode(), key, "a");
@@ -1520,18 +1549,22 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             #endregion
 
             [Benchmark(Baseline = true)]
-            public object ImHashMap_EnumerateToArray() =>
+            public object V2_ImHashMap_AVL_EnumerateAndToArray() =>
                 _map.Enumerate().ToArray();
+
+            [Benchmark]
+            public object V3_ImHashMap_234Tree_EnumerateAndToArray() =>
+                _map234.Enumerate().ToArray();
 
             //[Benchmark]
             public object ImHashMap_V1_EnumerateToArray() =>
                 _mapV1.Enumerate().ToArray();
 
-            [Benchmark]
+            // [Benchmark]
             public object ImHashMap_FoldToArray() =>
                 _map.Fold(new List<ImHashMapEntry<Type, string>>(), (entry, list) => { list.Add(entry); return list; }).ToArray();
 
-            [Benchmark]
+            // [Benchmark]
             public object Experimental_ImHashMap_FoldToArray() =>
                 _mapExp.Fold(new List<ImMapEntry<ImMap.KValue<Type>>>(), (entry, list) =>
                     {

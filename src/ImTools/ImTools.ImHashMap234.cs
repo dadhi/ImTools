@@ -1587,6 +1587,21 @@ namespace ImTools.Experimental
                 Entry0;
 
             /// <inheritdoc />
+            public override IEnumerable<ValueEntry> Enumerate()
+            {
+                foreach (var x in Left.Enumerate())
+                    yield return x;
+
+                if (Entry0 is ValueEntry v)
+                    yield return v;
+                else foreach (var x in ((ConflictsEntry)Entry0).Conflicts)
+                    yield return x;
+
+                foreach (var x in Right.Enumerate())
+                    yield return x;
+            }
+
+            /// <inheritdoc />
             public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry)
             {
                 var e0 = Entry0;
@@ -1841,6 +1856,29 @@ namespace ImTools.Experimental
                     hash == h0 ? Entry0 :
                     hash == h1 ? Entry1 :
                     Middle.GetEntryOrDefault(hash);
+            }
+
+            /// <inheritdoc />
+            public override IEnumerable<ValueEntry> Enumerate()
+            {
+                foreach (var x in Left.Enumerate())
+                    yield return x;
+
+                if (Entry0 is ValueEntry v0)
+                    yield return v0;
+                else foreach (var x in ((ConflictsEntry)Entry0).Conflicts)
+                    yield return x;
+                
+                foreach (var x in Middle.Enumerate())
+                    yield return x;
+
+                if (Entry1 is ValueEntry v1)
+                    yield return v1;
+                else foreach (var x in ((ConflictsEntry)Entry1).Conflicts)
+                    yield return x;
+
+                foreach (var x in Right.Enumerate())
+                    yield return x;
             }
 
             /// <inheritdoc />

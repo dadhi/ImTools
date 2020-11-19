@@ -18,9 +18,9 @@ namespace ImTools.Benchmarks
             //BenchmarkRunner.Run<ImMapBenchmarks.LookupMissing>();
             //BenchmarkRunner.Run<ImMapBenchmarks.Enumerate>();
 
-            BenchmarkRunner.Run<ImHashMapBenchmarks.Populate>();
+            // BenchmarkRunner.Run<ImHashMapBenchmarks.Populate>();
             // BenchmarkRunner.Run<ImHashMapBenchmarks.Lookup>();
-            // BenchmarkRunner.Run<ImHashMapBenchmarks.Enumerate>();
+            BenchmarkRunner.Run<ImHashMapBenchmarks.Enumerate>();
 
             //BenchmarkRunner.Run<ImHashMapBenchmarks_StringString.Populate>();
             //BenchmarkRunner.Run<ImHashMapBenchmarks_StringString.Lookup>();
