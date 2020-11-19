@@ -1395,7 +1395,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 |         ImHashMap_EnumerateToArray |  1000 | 26,018.52 ns | 175.262 ns | 146.352 ns |  1.00 | 3.5706 | 0.1831 |     - |   16808 B |
 | Experimental_ImHashMap_FoldToArray |  1000 | 15,321.95 ns |  69.421 ns |  64.937 ns |  0.59 | 5.2490 | 0.2747 |     - |   24736 B |
 
-## V3 candidate
+## V3 baseline
 
 |                                   Method | Count |         Mean |     Error |    StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
 |----------------------------------------- |------ |-------------:|----------:|----------:|------:|--------:|-------:|------:|------:|----------:|
@@ -1411,8 +1411,18 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 |     V2_ImHashMap_AVL_EnumerateAndToArray |  1000 |  34,261.7 ns | 371.47 ns | 310.20 ns |  1.00 |    0.00 | 3.9673 |     - |     - |   16808 B |
 | V3_ImHashMap_234Tree_EnumerateAndToArray |  1000 | 128,626.8 ns | 988.46 ns | 924.61 ns |  3.76 |    0.04 | 9.2773 |     - |     - |   38912 B |
 
+### Static Enumerate - incomplete
+
+|                                   Method | Count |     Mean |   Error |  StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|----------------------------------------- |------ |---------:|--------:|--------:|------:|--------:|-------:|------:|------:|----------:|
+|     V2_ImHashMap_AVL_EnumerateAndToArray |     1 | 190.3 ns | 1.73 ns | 1.62 ns |  1.00 |    0.00 | 0.0496 |     - |     - |     208 B |
+| V3_ImHashMap_234Tree_EnumerateAndToArray |     1 | 185.1 ns | 3.75 ns | 4.47 ns |  0.97 |    0.02 | 0.0458 |     - |     - |     192 B |
+|                                          |       |          |         |         |       |         |        |       |       |           |
+|     V2_ImHashMap_AVL_EnumerateAndToArray |     5 | 332.5 ns | 6.36 ns | 7.07 ns |  1.00 |    0.00 | 0.0801 |     - |     - |     336 B |
+| V3_ImHashMap_234Tree_EnumerateAndToArray |     5 | 330.0 ns | 2.81 ns | 2.35 ns |  0.99 |    0.02 | 0.0744 |     - |     - |     312 B |
+
 */
-            [Params(1, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
+            [Params(1, 5)]//, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             public int Count;
 
             [GlobalSetup]
@@ -1554,7 +1564,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 
             [Benchmark]
             public object V3_ImHashMap_234Tree_EnumerateAndToArray() =>
-                _map234.Enumerate().ToArray();
+                ImHashMap234.Enumerate(_map234).ToArray();
 
             //[Benchmark]
             public object ImHashMap_V1_EnumerateToArray() =>

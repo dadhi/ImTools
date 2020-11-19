@@ -2375,6 +2375,130 @@ namespace ImTools.Experimental
         public static ImHashMap234<K, V> Remove<K, V>(this ImHashMap234<K, V> map, K key) =>
             // it make sense to have the condition here to prevent the probably costly `GetHashCode()` for the empty map.
             map == ImHashMap234<K, V>.Empty ? map : map.RemoveEntry(key.GetHashCode(), key);
+
+        // todo: @wip incomplete
+        /// <summary>
+        /// Enumerates all the map nodes from the left to the right and from the bottom to top
+        /// You may pass `parentStacks` to reuse the array memory.
+        /// NOTE: the length of `parentStack` should be at least of map (height - 2) - the stack want be used for 0, 1, 2 height maps,
+        /// the content of the stack is not important and could be erased.
+        /// </summary>
+        public static IEnumerable<ImHashMap234<K, V>.Entry> Enumerate<K, V>(this ImHashMap234<K, V> map, ImHashMap234<K, V>[] parentStack = null)
+        {
+            if (map == ImHashMap234<K, V>.Empty)
+                yield break;
+
+            if (map is ImHashMap234<K, V>.Entry e)
+            {
+                yield return e;
+                yield break;
+            }
+
+            if (map is ImHashMap234<K, V>.Leaf2 l2)
+            {
+                yield return l2.Entry0;
+                yield return l2.Entry1;
+                yield break;
+            }
+
+            if (map is ImHashMap234<K, V>.Leaf3 l3)
+            {
+                yield return l3.Entry0;
+                yield return l3.Entry1;
+                yield return l3.Entry2;
+                yield break;
+            }
+
+            if (map is ImHashMap234<K, V>.Leaf3Plus1 l31)
+            {
+                var p = l31.Plus;
+                var l = l31.L3;
+                yield return p.Hash < l.Entry0.Hash ? p : l.Entry0;
+                yield return p.Hash < l.Entry1.Hash ? p : l.Entry1;
+                yield return p.Hash < l.Entry2.Hash ? p : l.Entry2;
+                yield return p;
+                yield break;
+            }
+
+            if (map is ImHashMap234<K, V>.Leaf5 l5)
+            {
+                yield return l5.Entry0;
+                yield return l5.Entry1;
+                yield return l5.Entry2;
+                yield return l5.Entry3;
+                yield return l5.Entry4;
+                yield break;
+            }
+
+            if (map is ImHashMap234<K, V>.Leaf5Plus1 l51)
+            {
+                var p = l51.Plus;
+                var l = l51.L5;
+                yield return p.Hash < l.Entry0.Hash ? p : l.Entry0;
+                yield return p.Hash < l.Entry1.Hash ? p : l.Entry1;
+                yield return p.Hash < l.Entry2.Hash ? p : l.Entry2;
+                yield return p.Hash < l.Entry3.Hash ? p : l.Entry3;
+                yield return p.Hash < l.Entry4.Hash ? p : l.Entry4;
+                yield return p;
+                yield break;
+            }
+
+            if (map is ImHashMap234<K, V>.Branch2 b2)
+            {
+                // if (tree.TreeHeight == 2)
+                // {
+                //     yield return (ImMapEntry<V>)tree.Left;
+                //     yield return tree.Entry;
+                //     yield return (ImMapEntry<V>)tree.Right;
+                // }
+                // else
+                // {
+                //     parentStack = parentStack ?? new ImMapTree<V>[tree.TreeHeight - 2];
+                //     var parentIndex = -1;
+                //     while (true)
+                //     {
+                //         if ((tree = map as ImMapTree<V>) != null)
+                //         {
+                //             if (tree.TreeHeight == 2)
+                //             {
+                //                 yield return (ImMapEntry<V>)tree.Left;
+                //                 yield return tree.Entry;
+                //                 yield return (ImMapEntry<V>)tree.Right;
+                //                 if (parentIndex == -1)
+                //                     break;
+                //                 tree = parentStack[parentIndex--];
+                //                 yield return tree.Entry;
+                //                 map = tree.Right;
+                //             }
+                //             else
+                //             {
+                //                 parentStack[++parentIndex] = tree;
+                //                 map = tree.Left;
+                //             }
+                //         }
+                //         else if ((branch = map as ImMapBranch<V>) != null)
+                //         {
+                //             yield return branch.Entry;
+                //             yield return branch.RightEntry;
+                //             if (parentIndex == -1)
+                //                 break;
+                //             tree = parentStack[parentIndex--];
+                //             yield return tree.Entry;
+                //             map = tree.Right;
+                //         }
+                //         else
+                //         {
+                //             yield return (ImMapEntry<V>)map;
+                //             if (parentIndex == -1)
+                //                 break;
+                //             tree = parentStack[parentIndex--];
+                //             yield return tree.Entry;
+                //             map = tree.Right;
+                //         }
+                //     }
+                // }
+            }
+        }
     }
 
     /// <summary>
