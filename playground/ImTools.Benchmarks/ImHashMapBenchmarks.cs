@@ -468,6 +468,18 @@ Leaf4Plus1
                 return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
             }
 
+            [Benchmark]
+            public ImHashMap234<Type, string>[] ImPartitionedHashMap234_AddOrUpdate()
+            {
+                var map = ImPartitionedHashMap234.CreateEmpty<Type, string>();
+
+                foreach (var key in _keys.Take(Count))
+                    map.AddOrUpdate(key, "a");
+
+                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+                return map;
+            }
+
             // [Benchmark]
             public ImTools.Experimental.ImMap<ImMap.KValue<Type>>[] Experimental_ImHashMapSlots32_AddOrUpdate()
             {

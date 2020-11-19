@@ -2346,12 +2346,12 @@ namespace ImTools.Experimental
     /// - Not too big to waste the space for the small collection and to fit (hopefully) into the cache line (16 of 4 byte pointer = 64 bytes)
     /// - Not too short to diminish the benifits of partioning
     /// </summary>
-    public static class ImPartionedHashMap234
+    public static class ImPartitionedHashMap234
     {
         /// <summary>Default number of partions</summary>
         public const int PART_COUNT_POWER_OF_TWO = 16;
 
-        /// <summary>The default mask to partition the key<summary>
+        /// <summary>The default mask to partition the key</summary>
         public const int PART_HASH_MASK = PART_COUNT_POWER_OF_TWO - 1;
 
         /// <summary>Creates the new collection with the empty partions</summary>
@@ -2379,7 +2379,7 @@ namespace ImTools.Experimental
         public static void AddOrUpdate<K, V>(this ImHashMap234<K, V>[] parts, K key, V value, int partHashMask = PART_HASH_MASK) =>
             parts.AddOrUpdate(key.GetHashCode(), key, value, partHashMask);
 
-        /// <summary>Updates the ref to the part with the new version and retries if the someone changed the part in between<summary>
+        /// <summary>Updates the ref to the part with the new version and retries if the someone changed the part in between</summary>
         public static void RefAddOrUpdatePart<K, V>(ref ImHashMap234<K, V> part, int hash, K key, V value) =>
             Ref.Swap(ref part, hash, key, value, (x, h, k, v) => x.AddOrUpdate(h, k, v));
     }
