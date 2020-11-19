@@ -409,7 +409,7 @@ Leaf4Plus1
 | Experimental_ImHashMap_AddOrUpdate |  1000 | 346,010.8 ns | 4,381.04 ns | 3,658.37 ns |  1.01 |    0.02 | 104.9805 | 25.8789 |     - |  439977 B |
 |           ImHashMap234_AddOrUpdate |  1000 | 250,609.3 ns | 4,117.99 ns | 3,851.97 ns |  0.73 |    0.02 |  78.6133 |  1.4648 |     - |  330064 B |
 
-## v3 - candidate
+## v3 candidate
 
 |                              Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
 |------------------------------------ |------ |-------------:|------------:|------------:|------:|--------:|---------:|--------:|------:|----------:|
@@ -476,7 +476,7 @@ Leaf4Plus1
             }
 
             [Benchmark]
-            public ImTools.Experimental.ImMap<ImMap.KValue<Type>> V2_ImHashMap_OptimizedAVL_AddOrUpdate()
+            public ImTools.Experimental.ImMap<ImMap.KValue<Type>> V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate()
             {
                 var map = ImTools.Experimental.ImMap<ImMap.KValue<Type>>.Empty;
 
@@ -487,7 +487,7 @@ Leaf4Plus1
             }
 
             [Benchmark]
-            public ImTools.Experimental.ImHashMap234<Type, string> ImHashMap234_AddOrUpdate()
+            public ImTools.Experimental.ImHashMap234<Type, string> V3_ImHashMap_234Tree_AddOrUpdate()
             {
                 var map = ImTools.Experimental.ImHashMap234<Type, string>.Empty;
 
@@ -498,7 +498,7 @@ Leaf4Plus1
             }
 
             [Benchmark]
-            public ImHashMap234<Type, string>[] PartitionedHashMap234_AddOrUpdate()
+            public ImHashMap234<Type, string>[] V3_PartitionedHashMap_234Tree_AddOrUpdate()
             {
                 var map = PartitionedHashMap234.CreateEmpty<Type, string>();
 
@@ -1033,6 +1033,35 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 |              ImHashMap_TryFind |  1000 | 17.113 ns | 0.3848 ns | 0.3411 ns |  1.00 |    0.00 |     - |     - |     - |         - |
 | Experimental_ImHashMap_TryFind |  1000 | 26.034 ns | 0.6183 ns | 0.8255 ns |  1.52 |    0.07 |     - |     - |     - |         - |
 |           ImHashMap234_TryFind |  1000 | 16.927 ns | 0.3743 ns | 0.5828 ns |  0.99 |    0.05 |     - |     - |     - |         - |
+
+### V3 candidate
+
+|                                   Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|----------------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+|                 V2_ImHashMap_AVL_TryFind |     1 |  6.084 ns | 0.1295 ns | 0.1082 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V2_ImHashMap_AVLOptimizedForAdd_TryFind |     1 |  7.319 ns | 0.2009 ns | 0.1879 ns |  1.20 |    0.03 |     - |     - |     - |         - |
+|             V3_ImHashMap_234Tree_TryFind |     1 |  5.372 ns | 0.1142 ns | 0.0954 ns |  0.88 |    0.02 |     - |     - |     - |         - |
+|    V3_PartitionedHashMap_234Tree_TryFind |     1 |  6.578 ns | 0.1517 ns | 0.1345 ns |  1.08 |    0.03 |     - |     - |     - |         - |
+|                                          |       |           |           |           |       |         |       |       |       |           |
+|                 V2_ImHashMap_AVL_TryFind |     5 |  6.867 ns | 0.1035 ns | 0.0918 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V2_ImHashMap_AVLOptimizedForAdd_TryFind |     5 |  9.599 ns | 0.1509 ns | 0.1411 ns |  1.40 |    0.03 |     - |     - |     - |         - |
+|             V3_ImHashMap_234Tree_TryFind |     5 |  5.319 ns | 0.1028 ns | 0.1142 ns |  0.77 |    0.02 |     - |     - |     - |         - |
+|    V3_PartitionedHashMap_234Tree_TryFind |     5 |  6.550 ns | 0.0856 ns | 0.0801 ns |  0.95 |    0.01 |     - |     - |     - |         - |
+|                                          |       |           |           |           |       |         |       |       |       |           |
+|                 V2_ImHashMap_AVL_TryFind |    10 |  7.646 ns | 0.0905 ns | 0.0802 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V2_ImHashMap_AVLOptimizedForAdd_TryFind |    10 | 11.002 ns | 0.2011 ns | 0.1881 ns |  1.44 |    0.03 |     - |     - |     - |         - |
+|             V3_ImHashMap_234Tree_TryFind |    10 |  6.986 ns | 0.2160 ns | 0.2122 ns |  0.91 |    0.03 |     - |     - |     - |         - |
+|    V3_PartitionedHashMap_234Tree_TryFind |    10 |  6.714 ns | 0.2153 ns | 0.1798 ns |  0.88 |    0.03 |     - |     - |     - |         - |
+|                                          |       |           |           |           |       |         |       |       |       |           |
+|                 V2_ImHashMap_AVL_TryFind |   100 | 12.413 ns | 0.3100 ns | 0.2748 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V2_ImHashMap_AVLOptimizedForAdd_TryFind |   100 | 15.134 ns | 0.2375 ns | 0.2917 ns |  1.23 |    0.04 |     - |     - |     - |         - |
+|             V3_ImHashMap_234Tree_TryFind |   100 | 11.147 ns | 0.2990 ns | 0.3443 ns |  0.90 |    0.03 |     - |     - |     - |         - |
+|    V3_PartitionedHashMap_234Tree_TryFind |   100 |  8.245 ns | 0.1473 ns | 0.1150 ns |  0.67 |    0.01 |     - |     - |     - |         - |
+|                                          |       |           |           |           |       |         |       |       |       |           |
+|                 V2_ImHashMap_AVL_TryFind |  1000 | 16.528 ns | 0.1799 ns | 0.1502 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V2_ImHashMap_AVLOptimizedForAdd_TryFind |  1000 | 22.341 ns | 0.2584 ns | 0.2291 ns |  1.35 |    0.02 |     - |     - |     - |         - |
+|             V3_ImHashMap_234Tree_TryFind |  1000 | 13.178 ns | 0.2153 ns | 0.2014 ns |  0.80 |    0.01 |     - |     - |     - |         - |
+|    V3_PartitionedHashMap_234Tree_TryFind |  1000 | 11.198 ns | 0.2784 ns | 0.3094 ns |  0.68 |    0.02 |     - |     - |     - |         - |
 */
             [Params(1, 5, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             public int Count;
@@ -1044,7 +1073,8 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 _mapSlots = ImHashMapSlots_AddOrUpdate();
                 _mapV1 = AddOrUpdate_v1();
                 _mapExp = Experimental_ImHashMap_AddOrUpdate();
-                _map234 = ImHashMap234_AddOrUpdate();
+                _map234 = ImHashMap_234Tree_AddOrUpdate();
+                _partMap234 = PartitionedHashMap_234Tree_AddOrUpdate();
                 _mapExp = Experimental_ImHashMap_AddOrUpdate();
                 _mapSlotsExp32 = Experimental_ImHashMapSlots32_AddOrUpdate();
                 _mapSlotsExp64 = Experimental_ImHashMapSlots64_AddOrUpdate();
@@ -1106,7 +1136,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             }
             private ImTools.Experimental.ImMap<ImMap.KValue<Type>> _mapExp;
 
-            public ImTools.Experimental.ImHashMap234<Type, string> ImHashMap234_AddOrUpdate()
+            public ImTools.Experimental.ImHashMap234<Type, string> ImHashMap_234Tree_AddOrUpdate()
             {
                 var map = ImTools.Experimental.ImHashMap234<Type, string>.Empty;
 
@@ -1117,17 +1147,30 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             }
             private ImTools.Experimental.ImHashMap234<Type, string> _map234;
 
-            public ImTools.Experimental.ImMap<ImMap.KValue<Type>>[] Experimental_ImHashMapSlots32_AddOrUpdate()
+            public ImTools.Experimental.ImHashMap234<Type, string>[] PartitionedHashMap_234Tree_AddOrUpdate()
             {
-                var map = ImTools.Experimental.ImMapSlots.CreateWithEmpty<ImMap.KValue<Type>>();
+                var map = ImTools.Experimental.PartitionedHashMap234.CreateEmpty<Type, string>();
 
                 foreach (var key in _keys.Take(Count))
-                    map.AddOrUpdate(key.GetHashCode(), new ImMap.KValue<Type>(key, "a"));
+                    map.AddOrUpdate(key.GetHashCode(), key, "a");
 
-                map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), new ImMap.KValue<Type>(typeof(ImHashMapBenchmarks), "!"));
+                map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
                 return map;
             }
 
+            private ImTools.Experimental.ImHashMap234<Type, string>[] _partMap234;
+
+            public ImTools.Experimental.ImMap<ImMap.KValue<Type>>[] Experimental_ImHashMapSlots32_AddOrUpdate()
+            {
+                var map = ImTools.Experimental.ImMapSlots.CreateWithEmpty<ImMap.KValue<Type>>(32);
+
+                foreach (var key in _keys.Take(Count))
+                    map.AddOrUpdate(key.GetHashCode(), new ImMap.KValue<Type>(key, "a"), 31);
+
+                map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), new ImMap.KValue<Type>(typeof(ImHashMapBenchmarks), "!"), 31);
+                return map;
+            }
+            
             private ImTools.Experimental.ImMap<ImMap.KValue<Type>>[] _mapSlotsExp32;
 
             public ImTools.Experimental.ImMap<ImMap.KValue<Type>>[] Experimental_ImHashMapSlots64_AddOrUpdate()
@@ -1200,7 +1243,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             public static Type LookupKey = typeof(ImHashMapBenchmarks);
 
             [Benchmark(Baseline = true)]
-            public string ImHashMap_TryFind()
+            public string V2_ImHashMap_AVL_TryFind()
             {
                 _map.TryFind(LookupKey, out var result);
                 return result;
@@ -1222,17 +1265,25 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             }
 
             [Benchmark]
-            public string Experimental_ImHashMap_TryFind()
+            public string V2_ImHashMap_AVLOptimizedForAdd_TryFind()
             {
                 _mapExp.TryFind(LookupKey.GetHashCode(), LookupKey, out var result);
                 return (string)result;
             }
 
             [Benchmark]
-            public string ImHashMap234_TryFind()
+            public string V3_ImHashMap_234Tree_TryFind()
             {
                 _map234.TryFindReferenceEqual(LookupKey.GetHashCode(), LookupKey, out var result);
-                return (string)result;
+                return result;
+            }
+
+            [Benchmark]
+            public string V3_PartitionedHashMap_234Tree_TryFind()
+            {
+                var hash = LookupKey.GetHashCode();
+                _partMap234[hash & PartitionedHashMap234.PART_HASH_MASK].TryFind(hash, LookupKey, out var result);
+                return result;
             }
 
             // [Benchmark]
