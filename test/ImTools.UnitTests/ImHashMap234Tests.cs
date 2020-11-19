@@ -1,7 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.Diagnostics;
 using NUnit.Framework;
+using CsCheck;
 
 namespace ImTools.Experimental.UnitTests
 {
@@ -212,55 +211,113 @@ namespace ImTools.Experimental.UnitTests
         }
 
         [Test]
-        public void AddOrUpdate_random_items_and_randomly_checking()
+        public void AddOrUpdate_random_items_and_randomly_checking_CsCheck()
         {
             const int upperBound = 100000;
-            var savedSeed = new Random().Next(0, upperBound);
-            var rnd = new Random(savedSeed);
-
-            var expected = new List<int>(5000);
-
-            var m = ImHashMap234<int, int>.Empty;
-            for (var i = 0; i < 5000; i++)
+            Gen.Int[0, upperBound].Array.Sample(items =>
             {
-                var n = rnd.Next(0, upperBound);
-                m = m.AddOrUpdate(n, n);
-                expected.Add(n);
-            }
+                var m = ImHashMap234<int, int>.Empty;
+                foreach (int n in items)
+                {
+                    m = m.AddOrUpdate(n, n);
+                    Assert.AreEqual(n, m.GetValueOrDefault(n));
+                }
+                
+                foreach (int n in items)
+                    Assert.AreEqual(n, m.GetValueOrDefault(n));
 
-            var j = 0;
-            foreach (var e in expected)
-                Assert.AreEqual(e, m.GetValueOrDefault(e), $"Failed for random seed '{savedSeed}' to find the '{e}' at index '{j++}'");
-
-            // non-existing keys 
-            Assert.AreEqual(0, m.GetValueOrDefault(upperBound + 1));
-            Assert.AreEqual(0, m.GetValueOrDefault(-1));
+                // non-existing keys 
+                Assert.AreEqual(0, m.GetValueOrDefault(upperBound + 1));
+                Assert.AreEqual(0, m.GetValueOrDefault(-1));
+            }, 
+            size: 5000);
         }
 
         [Test]
-        public void AddOrKeep_random_items_and_randomly_checking()
+        public void AddOrUpdate_random_items_and_randomly_checking_CsCheck_shrinked()
         {
             const int upperBound = 100000;
-            var savedSeed = new Random().Next(0, upperBound);
-            var rnd = new Random(savedSeed);
+            Gen.Int[0, upperBound].Array.Sample(items =>
+            {
+                var m = ImHashMap234<int, int>.Empty;
+                foreach (int n in items)
+                {
+                    m = m.AddOrUpdate(n, n);
+                    Assert.AreEqual(n, m.GetValueOrDefault(n));
+                }
+                
+                for (int i = 0; i < items.Length; ++i)
+                {
+                    var n = items[i];
+                    var x = m.GetValueOrDefault(n);
+                    if (x != n)
+                    {
+                        if (i + 1 != items.Length) 
+                            Debug.WriteLine($"Not at end i = {i}");
+                        Debug.WriteLine($"Array = {string.Join(", ", items)}");
+                    }
+                    Assert.AreEqual(n, x);
+                }
 
-            var expected = new List<int>(5000);
+                // non-existing keys 
+                Assert.AreEqual(0, m.GetValueOrDefault(upperBound + 1));
+                Assert.AreEqual(0, m.GetValueOrDefault(-1));
+            }, 
+            size: 5000, seed: "0ZPySr9kwyWr");
+        }
+
+        [Test]
+        public void AddOrUpdate_problematic_shrinked_set_case1__repeated_item()
+        {
+            var items = new[] { 85213, 8184, 14819, 38204, 1738, 6752, 38204, 22310, 86961, 33016, 72555, 25102 };
 
             var m = ImHashMap234<int, int>.Empty;
-            for (var i = 0; i < 5000; i++)
+            foreach (var i in items)
+                m = m.AddOrUpdate(i, i);
+
+            foreach (var i in items)
+                Assert.AreEqual(i, m.GetValueOrDefault(i));
+        }
+
+        [Test]
+        public void AddOrUpdate_problematic_shrinked_set_case2__repeated_hash_erased()
+        {
+            var items = new[] {
+                45751, 6825, 44599, 79942, 73380, 8408, 34126, 51224, 14463, 71529, 46775, 74893, 80615, 78504, 29401, 60789, 14050, 
+                67780, 52369, 16486, 48124, 46939, 43229, 58359, 61378, 31969, 79905, 37405, 37259, 66683, 58359, 87401, 42175 };
+
+            var m = ImHashMap234<int, int>.Empty;
+            foreach (var i in items)
             {
-                var n = rnd.Next(0, upperBound);
-                m = m.AddOrKeep(n, n);
-                expected.Add(n);
+                m = m.AddOrUpdate(i, i);
+                Assert.AreEqual(i, m.GetValueOrDefault(i));
             }
 
-            var j = 0;
-            foreach (var e in expected)
-                Assert.AreEqual(e, m.GetValueOrDefault(e), $"Failed for random seed '{savedSeed}' to find the '{e}' at index '{j++}'");
+            foreach (var i in items)
+                Assert.AreEqual(i, m.GetValueOrDefault(i));
+        }
 
-            // non-existing keys 
-            Assert.AreEqual(0, m.GetValueOrDefault(upperBound + 1));
-            Assert.AreEqual(0, m.GetValueOrDefault(-1));
+        [Test]
+        public void AddOrKeep_random_items_and_randomly_checking_CsCheck()
+        {
+            const int upperBound = 100000;
+            Gen.Int[0, upperBound].Array.Sample(items =>
+            {
+                var m = ImHashMap234<int, int>.Empty;
+                foreach (int n in items)
+                {
+                    m = m.AddOrKeep(n, n);
+                    Assert.AreEqual(n, m.GetValueOrDefault(n));
+                }
+                
+                foreach (int n in items)
+                    Assert.AreEqual(n, m.GetValueOrDefault(n));
+
+                // non-existing keys 
+                Assert.AreEqual(0, m.GetValueOrDefault(upperBound + 1));
+                Assert.AreEqual(0, m.GetValueOrDefault(-1));
+            }, 
+            size: 5000);
         }
     }
 }
