@@ -33,10 +33,6 @@ namespace ImTools.Experimental
         /// <summary>Returns the map without the entry with the specified hash and key if it is found in the map</summary>
         public virtual ImHashMap234<K, V> RemoveEntry(int hash, K key) => this;
 
-        // todo: @perf - optimize
-        /// <summary>Enumerates the entries</summary>
-        public virtual IEnumerable<ValueEntry> Enumerate() => Enumerable.Empty<ValueEntry>();
-
         /// <summary>The base entry for the Value and for the ConflictingValues entries, contains the Hash and Key</summary>
         public abstract class Entry : ImHashMap234<K, V>
         {
@@ -101,12 +97,6 @@ namespace ImTools.Experimental
             /// <inheritdoc />
             public override ImHashMap234<K, V> RemoveEntry(int hash, K key) =>
                 hash == Hash ? TryRemove(key) ?? Empty : this;
-
-            /// <inheritdoc />
-            public override IEnumerable<ValueEntry> Enumerate() 
-            {
-                yield return this;
-            }
         }
 
         /// <summary>Entry containing the Array of conflicting Value entries.
@@ -220,9 +210,6 @@ namespace ImTools.Experimental
             /// <inheritdoc />
             public override ImHashMap234<K, V> RemoveEntry(int hash, K key) =>
                 hash == Hash ? TryRemove(key) : this;
-
-            /// <inheritdoc />
-            public override IEnumerable<ValueEntry> Enumerate() => Conflicts;
         }
 
         /// <summary>Leaf with 2 entries</summary>
@@ -286,19 +273,6 @@ namespace ImTools.Experimental
                 if (hash == e1.Hash)
                     return (e1 = e1.TryRemove(key)) == Entry1 ? this : e1 == null ? e0 : (ImHashMap234<K, V>)new Leaf2(e0, e1);
                 return this;
-            }
-
-            /// <inheritdoc />
-            public override IEnumerable<ValueEntry> Enumerate()
-            {
-                if (Entry0 is ValueEntry v0)
-                    yield return v0;
-                else foreach (var x in ((ConflictsEntry)Entry0).Conflicts)
-                    yield return x;
-                if (Entry1 is ValueEntry v1)
-                    yield return v1;
-                else foreach (var x in ((ConflictsEntry)Entry1).Conflicts)
-                    yield return x;
             }
         }
 
@@ -371,23 +345,6 @@ namespace ImTools.Experimental
                 if (hash == e2.Hash)
                     return (e2 = e2.TryRemove(key)) == Entry2 ? this : e2 == null ? new Leaf2(e0, e1) : (ImHashMap234<K, V>)new Leaf3(e0, e1, e2);
                 return this;
-            }
-
-            /// <inheritdoc />
-            public override IEnumerable<ValueEntry> Enumerate()
-            {
-                if (Entry0 is ValueEntry v0)
-                    yield return v0;
-                else foreach (var x in ((ConflictsEntry)Entry0).Conflicts)
-                    yield return x;
-                if (Entry1 is ValueEntry v1)
-                    yield return v1;
-                else foreach (var x in ((ConflictsEntry)Entry1).Conflicts)
-                    yield return x;
-                if (Entry2 is ValueEntry v2)
-                    yield return v2;
-                else foreach (var x in ((ConflictsEntry)Entry2).Conflicts)
-                    yield return x;
             }
         }
 
@@ -597,67 +554,6 @@ namespace ImTools.Experimental
                                        new Leaf3(e0, e1, p);
                 return this;
             }
-
-            /// <inheritdoc />
-            public override IEnumerable<ValueEntry> Enumerate()
-            {
-                var p = Plus;
-                var ph = p.Hash;
-                var l = L3;
-                var e0 = l.Entry0;
-                var e1 = l.Entry1;
-                var e2 = l.Entry2;
-
-                if (ph < e0.Hash)
-                {
-                    if (p is ValueEntry v)
-                        yield return v;
-                    else foreach (var x in ((ConflictsEntry)p).Conflicts)
-                        yield return x;
-                }
-                else 
-                {
-                    if (e0 is ValueEntry v)
-                        yield return v;
-                    else foreach (var x in ((ConflictsEntry)e0).Conflicts)
-                        yield return x;
-                }
-
-                if (ph < e1.Hash)
-                {
-                    if (p is ValueEntry v)
-                        yield return v;
-                    else foreach (var x in ((ConflictsEntry)p).Conflicts)
-                        yield return x;
-                }
-                else 
-                {
-                    if (e1 is ValueEntry v)
-                        yield return v;
-                    else foreach (var x in ((ConflictsEntry)e1).Conflicts)
-                        yield return x;
-                }
-
-                if (ph < e2.Hash)
-                {
-                    if (p is ValueEntry v)
-                        yield return v;
-                    else foreach (var x in ((ConflictsEntry)e2).Conflicts)
-                        yield return x;
-                }
-                else 
-                {
-                    if (e2 is ValueEntry v)
-                        yield return v;
-                    else foreach (var x in ((ConflictsEntry)e2).Conflicts)
-                        yield return x;
-
-                    if (p is ValueEntry pv)
-                        yield return pv;
-                    else foreach (var x in ((ConflictsEntry)p).Conflicts)
-                        yield return x;
-                }
-            }
         }
 
         /// <summary>Leaf with 5 entries</summary>
@@ -753,31 +649,6 @@ namespace ImTools.Experimental
                 if (hash == e4.Hash)
                     return (e4 = e4.TryRemove(key)) == Entry4 ? this : e4 == null ? new Leaf3Plus1(e3, new Leaf3(e0, e1, e2)) : (ImHashMap234<K, V>)new Leaf5(e0, e1, e2, e3, e4);
                 return this;
-            }
-
-            /// <inheritdoc />
-            public override IEnumerable<ValueEntry> Enumerate()
-            {
-                if (Entry0 is ValueEntry v0)
-                    yield return v0;
-                else foreach (var x in ((ConflictsEntry)Entry0).Conflicts)
-                    yield return x;
-                if (Entry1 is ValueEntry v1)
-                    yield return v1;
-                else foreach (var x in ((ConflictsEntry)Entry1).Conflicts)
-                    yield return x;
-                if (Entry2 is ValueEntry v2)
-                    yield return v2;
-                else foreach (var x in ((ConflictsEntry)Entry2).Conflicts)
-                    yield return x;
-                if (Entry3 is ValueEntry v3)
-                    yield return v3;
-                else foreach (var x in ((ConflictsEntry)Entry3).Conflicts)
-                    yield return x;
-                if (Entry4 is ValueEntry v4)
-                    yield return v4;
-                else foreach (var x in ((ConflictsEntry)Entry4).Conflicts)
-                    yield return x;
             }
         }
 
@@ -1460,116 +1331,22 @@ namespace ImTools.Experimental
 
                 return this;
             }
-
-            /// <inheritdoc />
-            public override IEnumerable<ValueEntry> Enumerate()
-            {
-                var p  = Plus;
-                var ph = p.Hash;
-
-                var l = L5;
-                var e0 = l.Entry0;
-                var e1 = l.Entry1;
-                var e2 = l.Entry2;
-                var e3 = l.Entry3;
-                var e4 = l.Entry4;
-
-                if (ph < e0.Hash) 
-                {
-                    if (p is ValueEntry v)
-                        yield return v;
-                    else foreach (var x in ((ConflictsEntry)p).Conflicts)
-                        yield return x;
-                }
-                else 
-                {
-                    if (e0 is ValueEntry v)
-                        yield return v;
-                    else foreach (var x in ((ConflictsEntry)e0).Conflicts)
-                        yield return x;
-                }
-
-                if (ph < e1.Hash) 
-                {
-                    if (p is ValueEntry v)
-                        yield return v;
-                    else foreach (var x in ((ConflictsEntry)p).Conflicts)
-                        yield return x;
-                }
-                else 
-                {
-                    if (e1 is ValueEntry v)
-                        yield return v;
-                    else foreach (var x in ((ConflictsEntry)e1).Conflicts)
-                        yield return x;
-                }
-
-                if (ph < e2.Hash) 
-                {
-                    if (p is ValueEntry v)
-                        yield return v;
-                    else foreach (var x in ((ConflictsEntry)p).Conflicts)
-                        yield return x;
-                }
-                else 
-                {
-                    if (e2 is ValueEntry v)
-                        yield return v;
-                    else foreach (var x in ((ConflictsEntry)e2).Conflicts)
-                        yield return x;
-                }
-
-                if (ph < e3.Hash) 
-                {
-                    if (p is ValueEntry v)
-                        yield return v;
-                    else foreach (var x in ((ConflictsEntry)p).Conflicts)
-                        yield return x;
-                }
-                else 
-                {
-                    if (e3 is ValueEntry v)
-                        yield return v;
-                    else foreach (var x in ((ConflictsEntry)e3).Conflicts)
-                        yield return x;
-                }
-
-                if (ph < e4.Hash) 
-                {
-                    if (p is ValueEntry v)
-                        yield return v;
-                    else foreach (var x in ((ConflictsEntry)p).Conflicts)
-                        yield return x;
-                }
-                else 
-                {
-                    if (e4 is ValueEntry v)
-                        yield return v;
-                    else foreach (var x in ((ConflictsEntry)e4).Conflicts)
-                        yield return x;
-
-                    if (p is ValueEntry pv)
-                        yield return pv;
-                    else foreach (var x in ((ConflictsEntry)p).Conflicts)
-                        yield return x;
-                }
-            }
         }
 
         /// <summary>Branch of 2 leafs or branches</summary>
         public sealed class Branch2 : ImHashMap234<K, V>
         {
-            /// <summary>Entry in the middle</summary>
-            public readonly Entry Entry0;
-
             /// <summary>Left branch</summary>
             public readonly ImHashMap234<K, V> Left;
+            /// <summary>Entry in the middle</summary>
+            public readonly Entry Entry0;
             /// <summary>Right branch</summary>
             public readonly ImHashMap234<K, V> Right;
 
             /// <summary>Constructs</summary>
             public Branch2(ImHashMap234<K, V> left, Entry e, ImHashMap234<K, V> right)
             {
+                // todo: @incomplete add invariant check for the left and right both are either leafs or branches and not empty or entries
                 Entry0 = e;
                 Left   = left;
                 Right  = right;
@@ -1585,21 +1362,6 @@ namespace ImTools.Experimental
                 hash > Entry0.Hash ? Right.GetEntryOrDefault(hash) :
                 hash < Entry0.Hash ? Left .GetEntryOrDefault(hash) :
                 Entry0;
-
-            /// <inheritdoc />
-            public override IEnumerable<ValueEntry> Enumerate()
-            {
-                foreach (var x in Left.Enumerate())
-                    yield return x;
-
-                if (Entry0 is ValueEntry v)
-                    yield return v;
-                else foreach (var x in ((ConflictsEntry)Entry0).Conflicts)
-                    yield return x;
-
-                foreach (var x in Right.Enumerate())
-                    yield return x;
-            }
 
             /// <inheritdoc />
             public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry)
@@ -1818,21 +1580,21 @@ namespace ImTools.Experimental
         /// <summary>Branch of 3 leafs or branches and two entries</summary>
         public sealed class Branch3 : Leaf5Plus1OrBranch3
         { 
-            /// <summary>Left entry</summary>
-            public readonly Entry Entry0;
-            /// <summary>Right entry</summary>
-            public readonly Entry Entry1;
-
             /// <summary>Left branch</summary>
             public readonly ImHashMap234<K, V> Left;
+            /// <summary>Left entry</summary>
+            public readonly Entry Entry0;
             /// <summary>Middle branch</summary>
             public readonly ImHashMap234<K, V> Middle;
+            /// <summary>Right entry</summary>
+            public readonly Entry Entry1;
             /// <summary>Rightmost branch</summary>
             public readonly ImHashMap234<K, V> Right;
 
             /// <summary>Constructs the branch</summary>
             public Branch3(ImHashMap234<K, V> left, Entry entry0, ImHashMap234<K, V> middle, Entry entry1, ImHashMap234<K, V> right)
             {
+                // todo: @incomplete add invariant check for the left and right both are either leafs or branches and not empty or entries
                 Entry0 = entry0;
                 Entry1 = entry1;
                 Left   = left;
@@ -1856,29 +1618,6 @@ namespace ImTools.Experimental
                     hash == h0 ? Entry0 :
                     hash == h1 ? Entry1 :
                     Middle.GetEntryOrDefault(hash);
-            }
-
-            /// <inheritdoc />
-            public override IEnumerable<ValueEntry> Enumerate()
-            {
-                foreach (var x in Left.Enumerate())
-                    yield return x;
-
-                if (Entry0 is ValueEntry v0)
-                    yield return v0;
-                else foreach (var x in ((ConflictsEntry)Entry0).Conflicts)
-                    yield return x;
-                
-                foreach (var x in Middle.Enumerate())
-                    yield return x;
-
-                if (Entry1 is ValueEntry v1)
-                    yield return v1;
-                else foreach (var x in ((ConflictsEntry)Entry1).Conflicts)
-                    yield return x;
-
-                foreach (var x in Right.Enumerate())
-                    yield return x;
             }
 
             /// <inheritdoc />
@@ -2376,127 +2115,284 @@ namespace ImTools.Experimental
             // it make sense to have the condition here to prevent the probably costly `GetHashCode()` for the empty map.
             map == ImHashMap234<K, V>.Empty ? map : map.RemoveEntry(key.GetHashCode(), key);
 
-        // todo: @wip incomplete
+        // todo: @wip incomplete, does not consider Conflicts yet
         /// <summary>
         /// Enumerates all the map nodes from the left to the right and from the bottom to top
         /// You may pass `parentStacks` to reuse the array memory.
         /// NOTE: the length of `parentStack` should be at least of map (height - 2) - the stack want be used for 0, 1, 2 height maps,
         /// the content of the stack is not important and could be erased.
         /// </summary>
-        public static IEnumerable<ImHashMap234<K, V>.Entry> Enumerate<K, V>(this ImHashMap234<K, V> map, ImHashMap234<K, V>[] parentStack = null)
+        public static IEnumerable<ImHashMap234<K, V>.ValueEntry> Enumerate<K, V>(this ImHashMap234<K, V> map, List<ImHashMap234<K, V>> parentStack = null)
         {
             if (map == ImHashMap234<K, V>.Empty)
                 yield break;
-
             if (map is ImHashMap234<K, V>.Entry e)
             {
-                yield return e;
+                if (e is ImHashMap234<K, V>.ValueEntry v) yield return v;
+                else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)e).Conflicts) yield return c;
                 yield break;
             }
-
-            if (map is ImHashMap234<K, V>.Leaf2 l2)
+            // todo: @perf add a single check for the branch to prevent multiple checks for the leafs in case of bug tree
             {
-                yield return l2.Entry0;
-                yield return l2.Entry1;
-                yield break;
+                if (map is ImHashMap234<K, V>.Leaf2 l2)
+                {
+                    if (l2.Entry0 is ImHashMap234<K, V>.ValueEntry v0) yield return v0;
+                    else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l2.Entry0).Conflicts) yield return c;
+                    if (l2.Entry1 is ImHashMap234<K, V>.ValueEntry v1) yield return v1;
+                    else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l2.Entry1).Conflicts) yield return c;
+                    yield break;
+                }
+                if (map is ImHashMap234<K, V>.Leaf3 l3)
+                {
+                    if (l3.Entry0 is ImHashMap234<K, V>.ValueEntry v0) yield return v0;
+                    else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l3.Entry0).Conflicts) yield return c;
+                    if (l3.Entry1 is ImHashMap234<K, V>.ValueEntry v1) yield return v1;
+                    else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l3.Entry1).Conflicts) yield return c;
+                    if (l3.Entry2 is ImHashMap234<K, V>.ValueEntry v2) yield return v2;
+                    else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l3.Entry2).Conflicts) yield return c;
+                    yield break;
+                }
+                if (map is ImHashMap234<K, V>.Leaf3Plus1 l31)
+                {
+                    var p = l31.Plus;
+                    var l = l31.L3;
+                    if (p.Hash < l.Entry0.Hash)
+                        if (p is ImHashMap234<K, V>.ValueEntry pv) yield return pv;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)p).Conflicts) yield return c;
+                    else
+                        if (l.Entry0 is ImHashMap234<K, V>.ValueEntry v) yield return v;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l.Entry0).Conflicts) yield return c;
+                    if (p.Hash < l.Entry1.Hash)
+                        if (p is ImHashMap234<K, V>.ValueEntry pv) yield return pv;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)p).Conflicts) yield return c;
+                    else
+                        if (l.Entry1 is ImHashMap234<K, V>.ValueEntry v) yield return v;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l.Entry1).Conflicts) yield return c;
+                    if (p.Hash < l.Entry2.Hash)
+                        if (p is ImHashMap234<K, V>.ValueEntry pv) yield return pv;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)p).Conflicts) yield return c;
+                    else
+                    {
+                        if (l.Entry2 is ImHashMap234<K, V>.ValueEntry v) yield return v;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l.Entry2).Conflicts) yield return c;
+                        if (p is ImHashMap234<K, V>.ValueEntry pv) yield return pv;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)p).Conflicts) yield return c;
+                    }
+                    yield break;
+                }
+                if (map is ImHashMap234<K, V>.Leaf5 l5)
+                {
+                    if (l5.Entry0 is ImHashMap234<K, V>.ValueEntry v0) yield return v0;
+                    else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l5.Entry0).Conflicts) yield return c;
+                    if (l5.Entry1 is ImHashMap234<K, V>.ValueEntry v1) yield return v1;
+                    else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l5.Entry1).Conflicts) yield return c;
+                    if (l5.Entry2 is ImHashMap234<K, V>.ValueEntry v2) yield return v2;
+                    else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l5.Entry2).Conflicts) yield return c;
+                    if (l5.Entry3 is ImHashMap234<K, V>.ValueEntry v3) yield return v3;
+                    else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l5.Entry3).Conflicts) yield return c;
+                    if (l5.Entry4 is ImHashMap234<K, V>.ValueEntry v4) yield return v4;
+                    else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l5.Entry4).Conflicts) yield return c;
+                    yield break;
+                }
+                if (map is ImHashMap234<K, V>.Leaf5Plus1 l51)
+                {
+                    var p = l51.Plus;
+                    var l = l51.L5;
+                    if (p.Hash < l.Entry0.Hash)
+                        if (p is ImHashMap234<K, V>.ValueEntry pv) yield return pv;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)p).Conflicts) yield return c;
+                    else
+                        if (l.Entry0 is ImHashMap234<K, V>.ValueEntry v) yield return v;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l.Entry0).Conflicts) yield return c;
+                    if (p.Hash < l.Entry1.Hash)
+                        if (p is ImHashMap234<K, V>.ValueEntry pv) yield return pv;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)p).Conflicts) yield return c;
+                    else
+                        if (l.Entry1 is ImHashMap234<K, V>.ValueEntry v) yield return v;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l.Entry1).Conflicts) yield return c;
+                    if (p.Hash < l.Entry2.Hash)
+                        if (p is ImHashMap234<K, V>.ValueEntry pv) yield return pv;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)p).Conflicts) yield return c;
+                    else
+                        if (l.Entry2 is ImHashMap234<K, V>.ValueEntry v) yield return v;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l.Entry2).Conflicts) yield return c;
+                    if (p.Hash < l.Entry3.Hash)
+                        if (p is ImHashMap234<K, V>.ValueEntry pv) yield return pv;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)p).Conflicts) yield return c;
+                    else
+                        if (l.Entry3 is ImHashMap234<K, V>.ValueEntry v) yield return v;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l.Entry3).Conflicts) yield return c;
+                    if (p.Hash < l.Entry4.Hash)
+                        if (p is ImHashMap234<K, V>.ValueEntry pv) yield return pv;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)p).Conflicts) yield return c;
+                    else
+                    {
+                        if (l.Entry4 is ImHashMap234<K, V>.ValueEntry v) yield return v;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l.Entry4).Conflicts) yield return c;
+                        if (p is ImHashMap234<K, V>.ValueEntry pv) yield return pv;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)p).Conflicts) yield return c;
+                    }
+                    yield break;
+                }
             }
-
-            if (map is ImHashMap234<K, V>.Leaf3 l3)
+            var parentIndex = -1;
+            while (true)
             {
-                yield return l3.Entry0;
-                yield return l3.Entry1;
-                yield return l3.Entry2;
-                yield break;
-            }
+                if (map is ImHashMap234<K, V>.Branch2 b2) 
+                {
+                    var lb = b2.Left;
+                    if (lb is ImHashMap234<K, V>.Branch2 || lb is ImHashMap234<K, V>.Branch3)
+                    {
+                        if (parentStack == null)
+                            parentStack = new List<ImHashMap234<K, V>>();
+                        if (parentStack.Count > ++parentIndex)
+                            parentStack[parentIndex] = map;
+                        else
+                            parentStack.Add(map);
+                        map = lb;
+                    }
+                }
+                else if (map is ImHashMap234<K, V>.Branch3 b3) 
+                {
+                    var lb = b3.Left;
+                    if (lb is ImHashMap234<K, V>.Branch2 || lb is ImHashMap234<K, V>.Branch3)
+                    {
+                        if (parentStack == null)
+                            parentStack = new List<ImHashMap234<K, V>>();
+                        if (parentStack.Count > ++parentIndex)
+                            parentStack[parentIndex] = map;
+                        else
+                            parentStack.Add(map);
+                        map = lb;
+                    }
+                }
 
-            if (map is ImHashMap234<K, V>.Leaf3Plus1 l31)
-            {
-                var p = l31.Plus;
-                var l = l31.L3;
-                yield return p.Hash < l.Entry0.Hash ? p : l.Entry0;
-                yield return p.Hash < l.Entry1.Hash ? p : l.Entry1;
-                yield return p.Hash < l.Entry2.Hash ? p : l.Entry2;
-                yield return p;
-                yield break;
-            }
+                if (map is ImHashMap234<K, V>.Leaf2 l2)
+                {
+                    if (l2.Entry0 is ImHashMap234<K, V>.ValueEntry v0) yield return v0;
+                    else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l2.Entry0).Conflicts) yield return c;
+                    if (l2.Entry1 is ImHashMap234<K, V>.ValueEntry v1) yield return v1;
+                    else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l2.Entry1).Conflicts) yield return c;
+                }
+                else if (map is ImHashMap234<K, V>.Leaf3 l3)
+                {
+                    if (l3.Entry0 is ImHashMap234<K, V>.ValueEntry v0) yield return v0;
+                    else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l3.Entry0).Conflicts) yield return c;
+                    if (l3.Entry1 is ImHashMap234<K, V>.ValueEntry v1) yield return v1;
+                    else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l3.Entry1).Conflicts) yield return c;
+                    if (l3.Entry2 is ImHashMap234<K, V>.ValueEntry v2) yield return v2;
+                    else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l3.Entry2).Conflicts) yield return c;
+                }
+                else if (map is ImHashMap234<K, V>.Leaf3Plus1 l31)
+                {
+                    var p = l31.Plus;
+                    var l = l31.L3;
+                    if (p.Hash < l.Entry0.Hash)
+                        if (p is ImHashMap234<K, V>.ValueEntry pv) yield return pv;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)p).Conflicts) yield return c;
+                    else
+                        if (l.Entry0 is ImHashMap234<K, V>.ValueEntry v) yield return v;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l.Entry0).Conflicts) yield return c;
+                    if (p.Hash < l.Entry1.Hash)
+                        if (p is ImHashMap234<K, V>.ValueEntry pv) yield return pv;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)p).Conflicts) yield return c;
+                    else
+                        if (l.Entry1 is ImHashMap234<K, V>.ValueEntry v) yield return v;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l.Entry1).Conflicts) yield return c;
+                    if (p.Hash < l.Entry2.Hash)
+                        if (p is ImHashMap234<K, V>.ValueEntry pv) yield return pv;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)p).Conflicts) yield return c;
+                    else
+                    {
+                        if (l.Entry2 is ImHashMap234<K, V>.ValueEntry v) yield return v;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l.Entry2).Conflicts) yield return c;
+                        if (p is ImHashMap234<K, V>.ValueEntry pv) yield return pv;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)p).Conflicts) yield return c;
+                    }
+                }
+                else if (map is ImHashMap234<K, V>.Leaf5 l5)
+                {
+                    if (l5.Entry0 is ImHashMap234<K, V>.ValueEntry v0) yield return v0;
+                    else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l5.Entry0).Conflicts) yield return c;
+                    if (l5.Entry1 is ImHashMap234<K, V>.ValueEntry v1) yield return v1;
+                    else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l5.Entry1).Conflicts) yield return c;
+                    if (l5.Entry2 is ImHashMap234<K, V>.ValueEntry v2) yield return v2;
+                    else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l5.Entry2).Conflicts) yield return c;
+                    if (l5.Entry3 is ImHashMap234<K, V>.ValueEntry v3) yield return v3;
+                    else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l5.Entry3).Conflicts) yield return c;
+                    if (l5.Entry4 is ImHashMap234<K, V>.ValueEntry v4) yield return v4;
+                    else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l5.Entry4).Conflicts) yield return c;
+                    yield break;
+                }
+                else if (map is ImHashMap234<K, V>.Leaf5Plus1 l51)
+                {
+                    var p = l51.Plus;
+                    var l = l51.L5;
+                    if (p.Hash < l.Entry0.Hash)
+                        if (p is ImHashMap234<K, V>.ValueEntry pv) yield return pv;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)p).Conflicts) yield return c;
+                    else
+                        if (l.Entry0 is ImHashMap234<K, V>.ValueEntry v) yield return v;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l.Entry0).Conflicts) yield return c;
+                    if (p.Hash < l.Entry1.Hash)
+                        if (p is ImHashMap234<K, V>.ValueEntry pv) yield return pv;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)p).Conflicts) yield return c;
+                    else
+                        if (l.Entry1 is ImHashMap234<K, V>.ValueEntry v) yield return v;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l.Entry1).Conflicts) yield return c;
+                    if (p.Hash < l.Entry2.Hash)
+                        if (p is ImHashMap234<K, V>.ValueEntry pv) yield return pv;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)p).Conflicts) yield return c;
+                    else
+                        if (l.Entry2 is ImHashMap234<K, V>.ValueEntry v) yield return v;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l.Entry2).Conflicts) yield return c;
+                    if (p.Hash < l.Entry3.Hash)
+                        if (p is ImHashMap234<K, V>.ValueEntry pv) yield return pv;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)p).Conflicts) yield return c;
+                    else
+                        if (l.Entry3 is ImHashMap234<K, V>.ValueEntry v) yield return v;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l.Entry3).Conflicts) yield return c;
+                    if (p.Hash < l.Entry4.Hash)
+                        if (p is ImHashMap234<K, V>.ValueEntry pv) yield return pv;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)p).Conflicts) yield return c;
+                    else
+                    {
+                        if (l.Entry4 is ImHashMap234<K, V>.ValueEntry v) yield return v;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l.Entry4).Conflicts) yield return c;
+                        if (p is ImHashMap234<K, V>.ValueEntry pv) yield return pv;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)p).Conflicts) yield return c;
+                    }
+                }
 
-            if (map is ImHashMap234<K, V>.Leaf5 l5)
-            {
-                yield return l5.Entry0;
-                yield return l5.Entry1;
-                yield return l5.Entry2;
-                yield return l5.Entry3;
-                yield return l5.Entry4;
-                yield break;
-            }
+                if (parentIndex == -1)
+                    break; // we yield the leaf and there is nothing in stack - we are done!
 
-            if (map is ImHashMap234<K, V>.Leaf5Plus1 l51)
-            {
-                var p = l51.Plus;
-                var l = l51.L5;
-                yield return p.Hash < l.Entry0.Hash ? p : l.Entry0;
-                yield return p.Hash < l.Entry1.Hash ? p : l.Entry1;
-                yield return p.Hash < l.Entry2.Hash ? p : l.Entry2;
-                yield return p.Hash < l.Entry3.Hash ? p : l.Entry3;
-                yield return p.Hash < l.Entry4.Hash ? p : l.Entry4;
-                yield return p;
-                yield break;
-            }
-
-            if (map is ImHashMap234<K, V>.Branch2 b2)
-            {
-                // if (tree.TreeHeight == 2)
-                // {
-                //     yield return (ImMapEntry<V>)tree.Left;
-                //     yield return tree.Entry;
-                //     yield return (ImMapEntry<V>)tree.Right;
-                // }
-                // else
-                // {
-                //     parentStack = parentStack ?? new ImMapTree<V>[tree.TreeHeight - 2];
-                //     var parentIndex = -1;
-                //     while (true)
-                //     {
-                //         if ((tree = map as ImMapTree<V>) != null)
-                //         {
-                //             if (tree.TreeHeight == 2)
-                //             {
-                //                 yield return (ImMapEntry<V>)tree.Left;
-                //                 yield return tree.Entry;
-                //                 yield return (ImMapEntry<V>)tree.Right;
-                //                 if (parentIndex == -1)
-                //                     break;
-                //                 tree = parentStack[parentIndex--];
-                //                 yield return tree.Entry;
-                //                 map = tree.Right;
-                //             }
-                //             else
-                //             {
-                //                 parentStack[++parentIndex] = tree;
-                //                 map = tree.Left;
-                //             }
-                //         }
-                //         else if ((branch = map as ImMapBranch<V>) != null)
-                //         {
-                //             yield return branch.Entry;
-                //             yield return branch.RightEntry;
-                //             if (parentIndex == -1)
-                //                 break;
-                //             tree = parentStack[parentIndex--];
-                //             yield return tree.Entry;
-                //             map = tree.Right;
-                //         }
-                //         else
-                //         {
-                //             yield return (ImMapEntry<V>)map;
-                //             if (parentIndex == -1)
-                //                 break;
-                //             tree = parentStack[parentIndex--];
-                //             yield return tree.Entry;
-                //             map = tree.Right;
-                //         }
-                //     }
-                // }
+                var child = map;
+                map = parentStack[parentIndex]; // otherwise get the parent
+                if (map is ImHashMap234<K, V>.Branch2 pb2) 
+                {
+                    if (pb2.Entry0 is ImHashMap234<K, V>.ValueEntry v) yield return v;
+                    else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)pb2.Entry0).Conflicts) yield return c;
+                    map = pb2.Right;
+                    --parentIndex; // we done with the this level handled the Left (previously) and the Right (now)
+                }
+                else 
+                {
+                    var pb3 = (ImHashMap234<K, V>.Branch3)map;
+                    if (child == pb3.Left)
+                    {
+                        if (pb3.Entry0 is ImHashMap234<K, V>.ValueEntry v) yield return v;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)pb3.Entry0).Conflicts) yield return c;
+                        map = pb3.Middle; // we don't modify parentIndex here because we are not done with this level yet - there is still a Right branch
+                    }
+                    else 
+                    {
+                        if (pb3.Entry1 is ImHashMap234<K, V>.ValueEntry v) yield return v;
+                        else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)pb3.Entry1).Conflicts) yield return c;
+                        map = pb3.Right;
+                        --parentIndex; // we done with the this level handled the Left and the Middle (previously) and the Right (now)
+                    }
+                }
             }
         }
     }

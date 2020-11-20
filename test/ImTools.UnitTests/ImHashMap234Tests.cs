@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Linq;
 using NUnit.Framework;
 using CsCheck;
 
@@ -13,11 +14,12 @@ namespace ImTools.Experimental.UnitTests
             var m = ImHashMap234<int, string>.Empty;
             Assert.AreEqual(null, m.GetValueOrDefault(0));
             Assert.AreEqual(null, m.GetValueOrDefault(13));
+            Assert.IsEmpty(m.Enumerate());
 
             m = m.AddOrUpdate(1, "a");
-            Assert.IsInstanceOf<ImHashMap234<int, string>.ValueEntry>(m);
             Assert.AreEqual("a",  m.GetValueOrDefault(1));
             Assert.AreEqual(null, m.GetValueOrDefault(10));
+            CollectionAssert.AreEquivalent(new[] { 1 }, m.Enumerate().Select(x => x.Key));
 
             Assert.AreSame(m, m.AddOrKeep(1, "aa"));
 
@@ -25,7 +27,6 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreSame(ImHashMap234<int, string>.Empty, mr);
 
             m = m.AddOrUpdate(2, "b");
-            Assert.IsInstanceOf<ImHashMap234<int, string>.Leaf2>(m);
             Assert.AreEqual("b",  m.GetValueOrDefault(2));
             Assert.AreEqual("a",  m.GetValueOrDefault(1));
             Assert.AreEqual(null, m.GetValueOrDefault(10));
@@ -33,11 +34,9 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreSame(m, m.AddOrKeep(1, "aa").AddOrKeep(2, "bb"));
             Assert.AreSame(m, m.Remove(0));
             mr = m.Remove(2);
-            Assert.IsInstanceOf<ImHashMap234<int, string>.ValueEntry>(mr);
             Assert.AreEqual("a", mr.GetValueOrDefault(1));
 
             m = m.AddOrUpdate(3, "c");
-            Assert.IsInstanceOf<ImHashMap234<int, string>.Leaf3>(m);
             Assert.AreEqual("c",  m.GetValueOrDefault(3));
             Assert.AreEqual("b",  m.GetValueOrDefault(2));
             Assert.AreEqual("a",  m.GetValueOrDefault(1));
@@ -46,12 +45,10 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreSame(m, m.AddOrKeep(3, "aa").AddOrKeep(2, "bb").AddOrKeep(1, "cc"));
             Assert.AreSame(m, m.Remove(0));
             mr = m.Remove(2);
-            Assert.IsInstanceOf<ImHashMap234<int, string>.Leaf2>(mr);
             Assert.AreEqual("a", mr.GetValueOrDefault(1));
             Assert.AreEqual("c", mr.GetValueOrDefault(3));
 
             m = m.AddOrUpdate(4, "d");
-            Assert.IsInstanceOf<ImHashMap234<int, string>.Leaf3Plus1>(m);
             Assert.AreEqual("c",  m.GetValueOrDefault(3));
             Assert.AreEqual("b",  m.GetValueOrDefault(2));
             Assert.AreEqual("a",  m.GetValueOrDefault(1));
@@ -62,7 +59,6 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreSame(m, m.Remove(0));
 
             m = m.AddOrUpdate(5, "e");
-            Assert.IsInstanceOf<ImHashMap234<int, string>.Leaf5>(m);
             Assert.AreEqual("c",  m.GetValueOrDefault(3));
             Assert.AreEqual("b",  m.GetValueOrDefault(2));
             Assert.AreEqual("a",  m.GetValueOrDefault(1));
@@ -74,7 +70,6 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreSame(m, m.Remove(0));
 
             m = m.AddOrUpdate(6, "6");
-            Assert.IsInstanceOf<ImHashMap234<int, string>.Leaf5Plus1>(m);
             Assert.AreEqual("6",  m.GetValueOrDefault(6));
             Assert.AreEqual("e",  m.GetValueOrDefault(5));
             Assert.AreEqual("d",  m.GetValueOrDefault(4));
@@ -92,7 +87,6 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreEqual("9",  m.GetValueOrDefault(9));
 
             m = m.AddOrUpdate(10, "10");
-            Assert.IsInstanceOf<ImHashMap234<int, string>.Branch2>(m);
             Assert.AreEqual("10", m.GetValueOrDefault(10));
             Assert.AreEqual("9",  m.GetValueOrDefault(9));
             Assert.AreEqual("8",  m.GetValueOrDefault(8));
@@ -114,7 +108,6 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreEqual("13",  m.GetValueOrDefault(13));
 
             m = m.AddOrUpdate(14, "14");
-            Assert.IsInstanceOf<ImHashMap234<int, string>.Branch3>(m);
             Assert.AreEqual("14",  m.GetValueOrDefault(14));
 
             m = m.AddOrUpdate(15, "15");
