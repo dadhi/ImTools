@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
@@ -2115,12 +2114,9 @@ namespace ImTools.Experimental
             // it make sense to have the condition here to prevent the probably costly `GetHashCode()` for the empty map.
             map == ImHashMap234<K, V>.Empty ? map : map.RemoveEntry(key.GetHashCode(), key);
 
-        // todo: @wip incomplete, does not consider Conflicts yet
         /// <summary>
-        /// Enumerates all the map nodes from the left to the right and from the bottom to top
-        /// You may pass `parentStacks` to reuse the array memory.
-        /// NOTE: the length of `parentStack` should be at least of map (height - 2) - the stack want be used for 0, 1, 2 height maps,
-        /// the content of the stack is not important and could be erased.
+        /// Enumerates all the map nodes from the left to the right and from the bottom to top.
+        /// You may pass `parentStack` to reuse the memory.
         /// </summary>
         public static IEnumerable<ImHashMap234<K, V>.ValueEntry> Enumerate<K, V>(this ImHashMap234<K, V> map, List<ImHashMap234<K, V>> parentStack = null)
         {
@@ -2235,36 +2231,30 @@ namespace ImTools.Experimental
                     yield break;
                 }
             }
+
+            // todo: @perf may be optimized by not using the stack for branch with the leafs
+            //  At this point we know that the map contains the branch, so we may need to use the stack to track the branch as a parent of leafs
+            if (parentStack == null)
+                parentStack = new List<ImHashMap234<K, V>>();
+
             var parentIndex = -1;
             while (true)
             {
                 if (map is ImHashMap234<K, V>.Branch2 b2) 
                 {
-                    var lb = b2.Left;
-                    if (lb is ImHashMap234<K, V>.Branch2 || lb is ImHashMap234<K, V>.Branch3)
-                    {
-                        if (parentStack == null)
-                            parentStack = new List<ImHashMap234<K, V>>();
-                        if (parentStack.Count > ++parentIndex)
-                            parentStack[parentIndex] = map;
-                        else
-                            parentStack.Add(map);
-                        map = lb;
-                    }
+                    if (parentStack.Count > ++parentIndex)
+                        parentStack[parentIndex] = map;
+                    else
+                        parentStack.Add(map);
+                    map = b2.Left;
                 }
                 else if (map is ImHashMap234<K, V>.Branch3 b3) 
                 {
-                    var lb = b3.Left;
-                    if (lb is ImHashMap234<K, V>.Branch2 || lb is ImHashMap234<K, V>.Branch3)
-                    {
-                        if (parentStack == null)
-                            parentStack = new List<ImHashMap234<K, V>>();
-                        if (parentStack.Count > ++parentIndex)
-                            parentStack[parentIndex] = map;
-                        else
-                            parentStack.Add(map);
-                        map = lb;
-                    }
+                    if (parentStack.Count > ++parentIndex)
+                        parentStack[parentIndex] = map;
+                    else
+                        parentStack.Add(map);
+                    map = b3.Left;
                 }
 
                 if (map is ImHashMap234<K, V>.Leaf2 l2)
@@ -2322,7 +2312,6 @@ namespace ImTools.Experimental
                     else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l5.Entry3).Conflicts) yield return c;
                     if (l5.Entry4 is ImHashMap234<K, V>.ValueEntry v4) yield return v4;
                     else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)l5.Entry4).Conflicts) yield return c;
-                    yield break;
                 }
                 else if (map is ImHashMap234<K, V>.Leaf5Plus1 l51)
                 {
