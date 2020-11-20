@@ -111,14 +111,42 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |     ConcurrentDictionary_TryAdd | 100000 | 116,861,845.3 ns |  1,873,445.76 ns |  1,752,422.33 ns |  0.60 |    0.01 |  5000.0000 | 2000.0000 |  600.0000 |  32124.31 KB |
 |         ImmutableDictionary_Add | 100000 | 342,100,076.5 ns | 17,599,591.32 ns | 18,073,484.53 ns |  1.75 |    0.10 | 20000.0000 | 5000.0000 |         - | 121783.33 KB |
 
-             */
+## V3
+
+BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19041.572 (2004/?/20H1)
+Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical cores
+.NET Core SDK=3.1.403
+  [Host]     : .NET Core 3.1.9 (CoreCLR 4.700.20.47201, CoreFX 4.700.20.47203), X64 RyuJIT
+  DefaultJob : .NET Core 3.1.9 (CoreCLR 4.700.20.47201, CoreFX 4.700.20.47203), X64 RyuJIT
+
+|                                    Method |  Count |       Mean |     Error |    StdDev | Ratio | RatioSD |      Gen 0 |     Gen 1 |    Gen 2 | Allocated |
+|------------------------------------------ |------- |-----------:|----------:|----------:|------:|--------:|-----------:|----------:|---------:|----------:|
+|              V2_ImHashMap_AVL_AddOrUpdate |  10000 |  12.255 ms | 0.1736 ms | 0.1539 ms |  1.00 |    0.00 |  1328.1250 |  343.7500 | 140.6250 |   7.89 MB |
+|          V3_ImHashMap_234Tree_AddOrUpdate |  10000 |   9.464 ms | 0.0964 ms | 0.0902 ms |  0.77 |    0.01 |   984.3750 |  375.0000 | 156.2500 |    5.8 MB |
+| V3_PartitionedHashMap_234Tree_AddOrUpdate |  10000 |   8.361 ms | 0.0299 ms | 0.0233 ms |  0.68 |    0.01 |   718.7500 |  281.2500 | 109.3750 |   4.35 MB |
+|               ConcurrentDictionary_TryAdd |  10000 |   8.299 ms | 0.1656 ms | 0.2478 ms |  0.67 |    0.02 |   546.8750 |  281.2500 | 125.0000 |   3.18 MB |
+|                                           |        |            |           |           |       |         |            |           |          |           |
+|              V2_ImHashMap_AVL_AddOrUpdate | 100000 | 227.280 ms | 3.8927 ms | 3.6412 ms |  1.00 |    0.00 | 16333.3333 | 4333.3333 | 666.6667 |  94.15 MB |
+|          V3_ImHashMap_234Tree_AddOrUpdate | 100000 | 180.789 ms | 2.1376 ms | 1.7850 ms |  0.79 |    0.01 | 12333.3333 | 3000.0000 | 666.6667 |  70.34 MB |
+| V3_PartitionedHashMap_234Tree_AddOrUpdate | 100000 | 175.898 ms | 3.5090 ms | 5.8628 ms |  0.79 |    0.03 | 10000.0000 | 3000.0000 | 666.6667 |  55.65 MB |
+|               ConcurrentDictionary_TryAdd | 100000 | 104.194 ms | 1.2147 ms | 1.0768 ms |  0.46 |    0.01 |  4200.0000 | 1600.0000 | 400.0000 |  25.09 MB |
+
+|                                            Method |  Count |       Mean |     Error |    StdDev | Ratio | RatioSD |     Gen 0 |     Gen 1 |    Gen 2 | Allocated |
+|-------------------------------------------------- |------- |-----------:|----------:|----------:|------:|--------:|----------:|----------:|---------:|----------:|
+| V3_PartitionedHashMap_64Parts_234Tree_AddOrUpdate |  10000 |   9.192 ms | 0.0974 ms | 0.0813 ms |  1.00 |    0.00 |  609.3750 |  265.6250 |  93.7500 |   3.63 MB |
+|                       ConcurrentDictionary_TryAdd |  10000 |   9.872 ms | 0.1674 ms | 0.1644 ms |  1.08 |    0.02 |  531.2500 |  265.6250 | 125.0000 |   3.16 MB |
+|                                                   |        |            |           |           |       |         |           |           |          |           |
+| V3_PartitionedHashMap_64Parts_234Tree_AddOrUpdate | 100000 | 206.237 ms | 4.1077 ms | 5.0446 ms |  1.00 |    0.00 | 8666.6667 | 2666.6667 | 666.6667 |  48.35 MB |
+|                       ConcurrentDictionary_TryAdd | 100000 | 130.479 ms | 2.5806 ms | 3.0720 ms |  0.63 |    0.02 | 4250.0000 | 1750.0000 | 500.0000 |  24.99 MB |
+
+*/
 
             private const string Seed = "hubba-bubba";
 
             [Params(10_000, 100_000)]
             public int Count;
 
-            [Benchmark(Baseline = true)]
+            // [Benchmark(Baseline = true)]
             public ImHashMap<string, string> V2_ImHashMap_AVL_AddOrUpdate()
             {
                 var map = ImHashMap<string, string>.Empty;
@@ -133,7 +161,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImTools.Experimental.ImHashMap234<string, string> V3_ImHashMap_234Tree_AddOrUpdate()
             {
                 var map = ImTools.Experimental.ImHashMap234<string, string>.Empty;
@@ -158,6 +186,51 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                     var a = i.ToString();
                     var v = a + Seed;
                     map.AddOrUpdate(v + a, v);
+                }
+
+                return map;
+            }
+
+            [Benchmark(Baseline = true)]
+            public ImTools.Experimental.ImHashMap234<string, string>[] V3_PartitionedHashMap_64Parts_234Tree_AddOrUpdate()
+            {
+                var map = ImTools.Experimental.PartitionedHashMap234.CreateEmpty<string, string>(64);
+
+                for (var i = 0; i < Count; ++i)
+                {
+                    var a = i.ToString();
+                    var v = a + Seed;
+                    map.AddOrUpdate(v + a, v, 63);
+                }
+
+                return map;
+            }
+
+            [Benchmark]
+            public ImTools.Experimental.ImHashMap234<string, string>[] V3_PartitionedHashMap_128Parts_234Tree_AddOrUpdate()
+            {
+                var map = ImTools.Experimental.PartitionedHashMap234.CreateEmpty<string, string>(128);
+
+                for (var i = 0; i < Count; ++i)
+                {
+                    var a = i.ToString();
+                    var v = a + Seed;
+                    map.AddOrUpdate(v + a, v, 127);
+                }
+
+                return map;
+            }
+
+            [Benchmark]
+            public ImTools.Experimental.ImHashMap234<string, string>[] V3_PartitionedHashMap_256Parts_234Tree_AddOrUpdate()
+            {
+                var map = ImTools.Experimental.PartitionedHashMap234.CreateEmpty<string, string>(256);
+
+                for (var i = 0; i < Count; ++i)
+                {
+                    var a = i.ToString();
+                    var v = a + Seed;
+                    map.AddOrUpdate(v + a, v, 255);
                 }
 
                 return map;
@@ -223,7 +296,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            // [Benchmark]
+            [Benchmark]
             public ConcurrentDictionary<string, string> ConcurrentDictionary_TryAdd()
             {
                 var map = new ConcurrentDictionary<string, string>();
@@ -348,10 +421,29 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 | ConcurrentDictionary_TryGetValue | 100000 |  36.75 ns | 0.116 ns | 0.109 ns |  1.09 |    0.00 |     - |     - |     - |         - |
 |       ImmutableDictionary_TryGet | 100000 | 122.55 ns | 0.353 ns | 0.330 ns |  3.62 |    0.01 |     - |     - |     - |         - |
 
+BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19041.572 (2004/?/20H1)
+Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical cores
+.NET Core SDK=3.1.403
+  [Host]     : .NET Core 3.1.9 (CoreCLR 4.700.20.47201, CoreFX 4.700.20.47203), X64 RyuJIT
+  DefaultJob : .NET Core 3.1.9 (CoreCLR 4.700.20.47201, CoreFX 4.700.20.47203), X64 RyuJIT
+
+
+|                                Method |  Count |     Mean |    Error |   StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|-------------------------------------- |------- |---------:|---------:|---------:|------:|--------:|------:|------:|------:|----------:|
+|              V2_ImHashMap_AVL_TryFind |  10000 | 35.19 ns | 0.400 ns | 0.355 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|          V3_ImHashMap_234Tree_TryFind |  10000 | 33.10 ns | 0.507 ns | 0.423 ns |  0.94 |    0.02 |     - |     - |     - |         - |
+| V3_PartitionedHashMap_234Tree_TryFind |  10000 | 34.72 ns | 0.278 ns | 0.232 ns |  0.99 |    0.01 |     - |     - |     - |         - |
+|      ConcurrentDictionary_TryGetValue |  10000 | 35.63 ns | 0.289 ns | 0.241 ns |  1.01 |    0.01 |     - |     - |     - |         - |
+|                                       |        |          |          |          |       |         |       |       |       |           |
+|              V2_ImHashMap_AVL_TryFind | 100000 | 38.50 ns | 0.451 ns | 0.377 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|          V3_ImHashMap_234Tree_TryFind | 100000 | 38.79 ns | 0.593 ns | 0.495 ns |  1.01 |    0.02 |     - |     - |     - |         - |
+| V3_PartitionedHashMap_234Tree_TryFind | 100000 | 47.47 ns | 0.394 ns | 0.369 ns |  1.24 |    0.01 |     - |     - |     - |         - |
+|      ConcurrentDictionary_TryGetValue | 100000 | 42.49 ns | 0.580 ns | 0.542 ns |  1.11 |    0.02 |     - |     - |     - |         - |
+
 */
             private const string Seed = "hubba-bubba";
 
-            [Params(10, 100, 1_000, 10_000, 100_000)]
+            [Params(10_000, 100_000)]
             public int Count;
 
             public string LookupKey;
@@ -363,6 +455,8 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 LookupKey = n + Seed + n; 
 
                 _map = ImMap_AddOrUpdate();
+                _map234 = V3_ImHashMap_234Tree_AddOrUpdate();
+                _partMap234 = V3_PartitionedHashMap_234Tree_AddOrUpdate();
                 _mapV1 = AddOrUpdate_V1_AddOrUpdate();
                 _mapSlots = ImHashMapSlots_AddOrUpdate();
                 _dictSlim = DictSlim_GetOrAddValueRef();
@@ -372,6 +466,8 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             }
 
             private ImHashMap<string, string> _map;
+            private ImTools.Experimental.ImHashMap234<string, string> _map234;
+            private ImTools.Experimental.ImHashMap234<string, string>[] _partMap234;
             private ImTools.OldVersions.V1.ImHashMap<string, string> _mapV1;
             private ImHashMap<string, string>[] _mapSlots;
             private Dictionary<string, string> _dict;
@@ -412,6 +508,34 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             public ImHashMap<string, string>[] ImHashMapSlots_AddOrUpdate()
             {
                 var map = ImHashMapSlots.CreateWithEmpty<string, string>();
+
+                for (var i = 0; i < Count; ++i)
+                {
+                    var a = i.ToString();
+                    var v = a + Seed;
+                    map.AddOrUpdate(v + a, v);
+                }
+
+                return map;
+            }
+
+            public ImTools.Experimental.ImHashMap234<string, string> V3_ImHashMap_234Tree_AddOrUpdate()
+            {
+                var map = ImTools.Experimental.ImHashMap234<string, string>.Empty;
+
+                for (var i = 0; i < Count; ++i)
+                {
+                    var a = i.ToString();
+                    var v = a + Seed;
+                    map = map.AddOrUpdate(v + a, v);
+                }
+
+                return map;
+            }
+
+            public ImTools.Experimental.ImHashMap234<string, string>[] V3_PartitionedHashMap_234Tree_AddOrUpdate()
+            {
+                var map = ImTools.Experimental.PartitionedHashMap234.CreateEmpty<string, string>();
 
                 for (var i = 0; i < Count; ++i)
                 {
@@ -482,20 +606,34 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             #endregion
 
             [Benchmark(Baseline = true)]
-            public string ImHashMap_TryFind()
+            public string V2_ImHashMap_AVL_TryFind()
             {
                 _map.TryFind(LookupKey, out var result);
                 return result;
             }
 
             [Benchmark]
+            public string V3_ImHashMap_234Tree_TryFind()
+            {
+                _map234.TryFind(LookupKey, out var result);
+                return result;
+            }
+
+            [Benchmark]
+            public string V3_PartitionedHashMap_234Tree_TryFind()
+            {
+                _partMap234.TryFind(LookupKey, out var result);
+                return result;
+            }
+
+            // [Benchmark]
             public string ImHashMap_V1_TryFind()
             {
                 _mapV1.TryFind(LookupKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public string ImHashMapSlots_TryFind()
             {
                 var hash = LookupKey.GetHashCode();
@@ -503,14 +641,14 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return result;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public string DictionarySlim_TryGetValue()
             {
                 _dictSlim.TryGetValue(LookupKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public string Dictionary_TryGetValue()
             {
                 _dict.TryGetValue(LookupKey, out var result);
@@ -524,7 +662,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return result;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public string ImmutableDictionary_TryGet()
             {
                 _immutableDict.TryGetValue(LookupKey, out var result);

@@ -2414,6 +2414,73 @@ namespace ImTools.Experimental
             return parts;
         }
 
+        /// <summary>Looks up for the key using its hash code and checking the key with `object.Equals` for equality,
+        /// returns the `true` and the found value or `false`</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static bool TryFind<K, V>(this ImHashMap234<K, V>[] parts, int hash, K key, out V value, int partHashMask = PART_HASH_MASK)
+        {
+            var p = parts[hash & partHashMask];
+            if (p != null) 
+                return p.TryFind(hash, key, out value);
+            value = default(V);
+            return false;
+        }
+
+        /// <summary>Looks up for the key using its hash code and checking the key with `object.Equals` for equality,
+        /// returns the `true` and the found value or `false`</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static bool TryFind<K, V>(this ImHashMap234<K, V>[] parts, K key, out V value, int partHashMask = PART_HASH_MASK) =>
+            parts.TryFind(key.GetHashCode(), key, out value, partHashMask);
+
+        /// <summary>Looks up for the key using its hash code and checking the key with `object.ReferenceEquals` for equality,
+        /// returns the `true` and the found value or `false`</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static bool TryFindReferenceEqual<K, V>(this ImHashMap234<K, V>[] parts, int hash, K key, out V value, int partHashMask = PART_HASH_MASK)
+            where K : class
+        {
+            var p = parts[hash & partHashMask];
+            if (p != null) 
+                return p.TryFindReferenceEqual(hash, key, out value);
+            value = default(V);
+            return false;
+        }
+
+        /// <summary>Looks up for the key using its hash code and checking the key with `object.ReferenceEquals` for equality,
+        /// returns the `true` and the found value or `false`</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static bool TryFindReferenceEqual<K, V>(this ImHashMap234<K, V>[] parts, K key, out V value, int partHashMask = PART_HASH_MASK)
+            where K : class => parts.TryFindReferenceEqual(key.GetHashCode(), key, out value, partHashMask);
+
+        /// <summary>Looks up for the key using its hash code and checking the key with `object.Equals` for equality,
+        ///  returns found value or the default value if not found</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static V GetValueOrDefault<K, V>(this ImHashMap234<K, V>[] parts, int hash, K key, int partHashMask = PART_HASH_MASK)
+        {
+            var p = parts[hash & partHashMask];
+            return p != null ? p.GetValueOrDefault(hash, key) : default(V);
+        }
+
+        /// <summary>Looks up for the key using its hash code and checking the key with `object.Equals` for equality,
+        /// returns found value or the default value if not found</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static V GetValueOrDefault<K, V>(this ImHashMap234<K, V>[] parts, K key, int partHashMask = PART_HASH_MASK) =>
+            parts.GetValueOrDefault(key.GetHashCode(), key, partHashMask);
+
+        /// <summary>Looks up for the key using its hash code and checking the key with `object.ReferenceEquals` for equality,
+        ///  returns found value or the default value if not found</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static V GetValueOrDefaultReferenceEqual<K, V>(this ImHashMap234<K, V>[] parts, int hash, K key, int partHashMask = PART_HASH_MASK) where K : class
+        {
+            var p = parts[hash & partHashMask];
+            return p != null ? p.GetValueOrDefaultReferenceEqual(hash, key) : default(V);
+        }
+
+        /// <summary>Looks up for the key using its hash code and checking the key with `object.ReferenceEquals` for equality,
+        ///  returns found value or the default value if not found</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static V GetValueOrDefaultReferenceEqual<K, V>(this ImHashMap234<K, V>[] parts, K key, int partHashMask = PART_HASH_MASK) where K : class => 
+            parts.GetValueOrDefaultReferenceEqual(key.GetHashCode(), key, partHashMask);
+
         /// <summary>Returns THE SAME partitioned map BUT with updated partion</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static void AddOrUpdate<K, V>(this ImHashMap234<K, V>[] parts, int hash, K key, V value, int partHashMask = PART_HASH_MASK)
