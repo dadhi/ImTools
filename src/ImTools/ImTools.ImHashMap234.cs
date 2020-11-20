@@ -1422,7 +1422,7 @@ namespace ImTools.Experimental
                     ImHashMap234<K, V> newBranch;
                     if (Left is Leaf5Plus1OrBranch3 x)
                     {
-                        newBranch = x.AddOrUpdateOrSplitEntry(hash, entry, out var popEntry, out var popRight);
+                        newBranch = x.AddOrKeepOrSplitEntry(hash, entry, out var popEntry, out var popRight);
                         if (newBranch == x)
                             return this;
                         if (popRight != null)
