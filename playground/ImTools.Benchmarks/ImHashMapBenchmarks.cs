@@ -387,30 +387,6 @@ Leaf4Plus1
 
 ### Leaf5Plus1 + Leaf4Plus1
 
-|                             Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
-|----------------------------------- |------ |-------------:|------------:|------------:|------:|--------:|---------:|--------:|------:|----------:|
-|              ImHashMap_AddOrUpdate |     1 |     167.2 ns |     1.86 ns |     1.65 ns |  1.00 |    0.00 |   0.0648 |       - |     - |     272 B |
-| Experimental_ImHashMap_AddOrUpdate |     1 |     128.4 ns |     1.39 ns |     1.16 ns |  0.77 |    0.01 |   0.0381 |       - |     - |     160 B |
-|           ImHashMap234_AddOrUpdate |     1 |     117.9 ns |     1.77 ns |     1.66 ns |  0.71 |    0.01 |   0.0381 |       - |     - |     160 B |
-|                                    |       |              |             |             |       |         |          |         |       |           |
-|              ImHashMap_AddOrUpdate |     5 |     545.5 ns |     8.89 ns |    10.58 ns |  1.00 |    0.00 |   0.2632 |       - |     - |    1104 B |
-| Experimental_ImHashMap_AddOrUpdate |     5 |     384.6 ns |     7.68 ns |    13.45 ns |  0.72 |    0.02 |   0.1602 |       - |     - |     672 B |
-|           ImHashMap234_AddOrUpdate |     5 |     319.3 ns |     3.65 ns |     3.04 ns |  0.59 |    0.01 |   0.1144 |       - |     - |     480 B |
-|                                    |       |              |             |             |       |         |          |         |       |           |
-|              ImHashMap_AddOrUpdate |    10 |   1,098.1 ns |    21.85 ns |    25.16 ns |  1.00 |    0.00 |   0.5512 |       - |     - |    2312 B |
-| Experimental_ImHashMap_AddOrUpdate |    10 |     803.3 ns |    10.48 ns |    15.36 ns |  0.74 |    0.02 |   0.3576 |       - |     - |    1496 B |
-|           ImHashMap234_AddOrUpdate |    10 |     696.7 ns |     7.46 ns |     6.61 ns |  0.63 |    0.02 |   0.2708 |       - |     - |    1136 B |
-|                                    |       |              |             |             |       |         |          |         |       |           |
-|              ImHashMap_AddOrUpdate |   100 |  16,193.6 ns |   288.80 ns |   423.33 ns |  1.00 |    0.00 |   8.3313 |       - |     - |   34856 B |
-| Experimental_ImHashMap_AddOrUpdate |   100 |  13,015.5 ns |   149.82 ns |   125.10 ns |  0.80 |    0.02 |   6.6528 |       - |     - |   27880 B |
-|           ImHashMap234_AddOrUpdate |   100 |  11,301.3 ns |   134.52 ns |   119.25 ns |  0.69 |    0.02 |   4.8523 |       - |     - |   20328 B |
-|                                    |       |              |             |             |       |         |          |         |       |           |
-|              ImHashMap_AddOrUpdate |  1000 | 342,183.4 ns | 4,212.23 ns | 3,940.13 ns |  1.00 |    0.00 | 122.0703 |  3.4180 |     - |  511209 B |
-| Experimental_ImHashMap_AddOrUpdate |  1000 | 346,010.8 ns | 4,381.04 ns | 3,658.37 ns |  1.01 |    0.02 | 104.9805 | 25.8789 |     - |  439977 B |
-|           ImHashMap234_AddOrUpdate |  1000 | 250,609.3 ns | 4,117.99 ns | 3,851.97 ns |  0.73 |    0.02 |  78.6133 |  1.4648 |     - |  330064 B |
-
-## v3 candidate
-
 |                                      Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
 |-------------------------------------------- |------ |-------------:|------------:|------------:|------:|--------:|---------:|--------:|------:|----------:|
 |                V2_ImHashMap_AVL_AddOrUpdate |     1 |     155.9 ns |     1.78 ns |     1.58 ns |  1.00 |    0.00 |   0.0648 |       - |     - |     272 B |
@@ -438,6 +414,7 @@ Leaf4Plus1
 |            V3_ImHashMap_234Tree_AddOrUpdate |  1000 | 248,999.0 ns | 3,445.11 ns | 3,222.56 ns |  0.73 |    0.01 |  78.6133 |  1.4648 |     - |  330065 B |
 |   V3_PartitionedHashMap_234Tree_AddOrUpdate |  1000 | 151,655.7 ns | 1,724.22 ns | 1,612.83 ns |  0.45 |    0.01 |  43.2129 | 10.7422 |     - |  181496 B |
 
+### Removed 500+ locs of the AddAndSplit methods (20% of whole code) with improving the perf by ~1-2% at a cost of ~1% of memory
 
 |                                      Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |        
 |-------------------------------------------- |------ |-------------:|------------:|------------:|------:|--------:|---------:|--------:|------:|----------:|        

@@ -323,5 +323,33 @@ namespace ImTools.Experimental.UnitTests
             }, 
             size: 5000);
         }
+
+        static Gen<ImHashMap234<int, int>> GenMap(int upperBound) =>
+            Gen.Int[0, upperBound].ArrayUnique.SelectMany(ks =>
+                Gen.Int.Array[ks.Length].Select(vs =>
+                {
+                    var m = ImHashMap234<int, int>.Empty;
+                    for (int i = 0; i < ks.Length; i++)
+                        m = m.AddOrUpdate(ks[i], vs[i]);
+                    return m;
+                }));
+
+        [Test, Ignore("fixme")] // todo: @bug
+        public void AddOrUpdate_metamorphic()
+        {
+            const int upperBound = 100_000;
+            Gen.Select(GenMap(upperBound), Gen.Int[0, upperBound], Gen.Int, Gen.Int[0, upperBound], Gen.Int)
+                .Sample(t =>
+                {
+                    var (m, k1, v1, k2, v2) = t;
+                    var m1 = m.AddOrUpdate(k1, v1).AddOrUpdate(k2, v2);
+                    var m2 = k1 == k2 ? m.AddOrUpdate(k2, v2) : m.AddOrUpdate(k2, v2).AddOrUpdate(k1, v1);
+                    var s1 = m1.Enumerate().OrderBy(i => i.Key);
+                    var s2 = m2.Enumerate().OrderBy(i => i.Key);
+                    Assert.AreEqual(s1.Select(i => i.Key), s2.Select(i => i.Key));
+                    Assert.AreEqual(s1.Select(i => i.Value), s2.Select(i => i.Value));
+                }, 
+                size: 10_000, seed: "annfAUMuU8x1");
+        }
     }
 }
