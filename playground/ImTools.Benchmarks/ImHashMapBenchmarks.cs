@@ -1429,8 +1429,16 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 |                                          |       |             |           |           |       |         |        |       |       |           |
 |     V2_ImHashMap_AVL_EnumerateAndToArray |  1000 | 29,919.7 ns | 363.29 ns | 322.05 ns |  1.00 |    0.00 | 3.9673 |     - |     - |   16808 B |
 | V3_ImHashMap_234Tree_EnumerateAndToArray |  1000 | 21,530.8 ns | 292.37 ns | 259.18 ns |  0.72 |    0.01 | 1.8921 |     - |     - |    8016 B |
+
+### Array instead of List
+
+|                                   Method | Count |     Mean |    Error |   StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|----------------------------------------- |------ |---------:|---------:|---------:|------:|--------:|-------:|------:|------:|----------:|
+|     V2_ImHashMap_AVL_EnumerateAndToArray |    10 | 649.9 ns | 29.18 ns | 84.19 ns |  1.00 |    0.00 | 0.1125 |     - |     - |     472 B |
+| V3_ImHashMap_234Tree_EnumerateAndToArray |    10 | 871.5 ns | 17.01 ns | 18.90 ns |  1.41 |    0.10 | 0.1278 |     - |     - |     536 B |
+
 */
-            [Params(1, 5, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
+            [Params(10)]//, 5, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             public int Count;
 
             [GlobalSetup]

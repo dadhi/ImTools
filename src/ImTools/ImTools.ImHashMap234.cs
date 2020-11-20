@@ -2118,7 +2118,7 @@ namespace ImTools.Experimental
         /// Enumerates all the map nodes from the left to the right and from the bottom to top.
         /// You may pass `parentStack` to reuse the memory.
         /// </summary>
-        public static IEnumerable<ImHashMap234<K, V>.ValueEntry> Enumerate<K, V>(this ImHashMap234<K, V> map, List<ImHashMap234<K, V>> parentStack = null)
+        public static IEnumerable<ImHashMap234<K, V>.ValueEntry> Enumerate<K, V>(this ImHashMap234<K, V> map, ImHashMap234<K, V>[] parentStack = null)
         {
             if (map == ImHashMap234<K, V>.Empty)
                 yield break;
@@ -2234,28 +2234,37 @@ namespace ImTools.Experimental
 
             // todo: @perf may be optimized by not using the stack for branch with the leafs
             //  At this point we know that the map contains the branch, so we may need to use the stack to track the branch as a parent of leafs
+            var parentStackSize = 4;
             if (parentStack == null)
-                parentStack = new List<ImHashMap234<K, V>>();
+                parentStack = new ImHashMap234<K, V>[parentStackSize];
 
             var parentIndex = -1;
             while (true)
             {
                 if (map is ImHashMap234<K, V>.Branch2 b2) 
                 {
-                    if (parentStack.Count > ++parentIndex)
-                        parentStack[parentIndex] = map;
-                    else
-                        parentStack.Add(map);
+                    if (parentStackSize <= ++parentIndex)
+                    {
+                        var p = new ImHashMap234<K, V>[parentStackSize = 1 << parentStackSize]; // double the size
+                        Array.Copy(parentStack, 0, p, 0, parentStack.Length);
+                        parentStack = p;
+                    }
+                    parentStack[parentIndex] = map;
+
                     map = b2.Left;
                     continue; // stack the parent and go deeper to the left branch
                 }
                 
                 if (map is ImHashMap234<K, V>.Branch3 b3) 
                 {
-                    if (parentStack.Count > ++parentIndex)
-                        parentStack[parentIndex] = map;
-                    else
-                        parentStack.Add(map);
+                    if (parentStackSize <= ++parentIndex)
+                    {
+                        var p = new ImHashMap234<K, V>[parentStackSize = 1 << parentStackSize]; // double the size
+                        Array.Copy(parentStack, 0, p, 0, parentStack.Length);
+                        parentStack = p;
+                    }
+                    parentStack[parentIndex] = map;
+
                     map = b3.Left;
                     continue; // stack the parent and go deeper to the left branch
                 }
