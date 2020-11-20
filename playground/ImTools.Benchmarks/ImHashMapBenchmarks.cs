@@ -437,6 +437,40 @@ Leaf4Plus1
 | V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |  1000 | 338,591.6 ns | 3,026.13 ns | 2,682.59 ns |  0.99 |    0.01 | 104.9805 | 25.8789 |     - |  439976 B |
 |            V3_ImHashMap_234Tree_AddOrUpdate |  1000 | 248,999.0 ns | 3,445.11 ns | 3,222.56 ns |  0.73 |    0.01 |  78.6133 |  1.4648 |     - |  330065 B |
 |   V3_PartitionedHashMap_234Tree_AddOrUpdate |  1000 | 151,655.7 ns | 1,724.22 ns | 1,612.83 ns |  0.45 |    0.01 |  43.2129 | 10.7422 |     - |  181496 B |
+
+
+|                                      Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |        
+|-------------------------------------------- |------ |-------------:|------------:|------------:|------:|--------:|---------:|--------:|------:|----------:|        
+|                V2_ImHashMap_AVL_AddOrUpdate |     1 |     154.4 ns |     3.18 ns |     3.12 ns |  1.00 |    0.00 |   0.0648 |       - |     - |     272 B |        
+| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |     1 |     128.4 ns |     2.45 ns |     1.91 ns |  0.83 |    0.02 |   0.0381 |       - |     - |     160 B |        
+|            V3_ImHashMap_234Tree_AddOrUpdate |     1 |     126.0 ns |     1.66 ns |     1.55 ns |  0.82 |    0.02 |   0.0381 |       - |     - |     160 B |        
+|   V3_PartitionedHashMap_234Tree_AddOrUpdate |     1 |     186.2 ns |     1.57 ns |     1.39 ns |  1.21 |    0.03 |   0.0668 |       - |     - |     280 B |
+|                 ConcurrentDictionary_TryAdd |     1 |     401.9 ns |     8.12 ns |    15.45 ns |  2.67 |    0.12 |   0.1988 |       - |     - |     832 B |        
+|                                             |       |              |             |             |       |         |          |         |       |           |
+|                V2_ImHashMap_AVL_AddOrUpdate |     5 |     582.0 ns |     7.13 ns |     6.67 ns |  1.00 |    0.00 |   0.2632 |       - |     - |    1104 B |        
+| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |     5 |     457.8 ns |     8.91 ns |    12.78 ns |  0.79 |    0.02 |   0.1602 |       - |     - |     672 B |
+|            V3_ImHashMap_234Tree_AddOrUpdate |     5 |     372.4 ns |     7.08 ns |     9.20 ns |  0.64 |    0.02 |   0.1144 |       - |     - |     480 B |        
+|   V3_PartitionedHashMap_234Tree_AddOrUpdate |     5 |     400.5 ns |     8.00 ns |     7.49 ns |  0.69 |    0.02 |   0.1125 |       - |     - |     472 B |        
+|                 ConcurrentDictionary_TryAdd |     5 |     755.7 ns |    14.73 ns |    20.17 ns |  1.29 |    0.04 |   0.2441 |       - |     - |    1024 B |        
+|                                             |       |              |             |             |       |         |          |         |       |           |        
+|                V2_ImHashMap_AVL_AddOrUpdate |    10 |   1,155.7 ns |    22.84 ns |    28.05 ns |  1.00 |    0.00 |   0.5512 |       - |     - |    2312 B |        
+| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |    10 |     901.7 ns |    12.30 ns |     9.61 ns |  0.78 |    0.02 |   0.3576 |       - |     - |    1496 B |
+|            V3_ImHashMap_234Tree_AddOrUpdate |    10 |     799.9 ns |    15.94 ns |    18.35 ns |  0.69 |    0.03 |   0.2708 |       - |     - |    1136 B |
+|   V3_PartitionedHashMap_234Tree_AddOrUpdate |    10 |     705.2 ns |    13.82 ns |    12.25 ns |  0.61 |    0.02 |   0.1869 |       - |     - |     784 B |
+|                 ConcurrentDictionary_TryAdd |    10 |   2,001.6 ns |    38.36 ns |    48.52 ns |  1.73 |    0.06 |   0.6752 |       - |     - |    2824 B |        
+|                                             |       |              |             |             |       |         |          |         |       |           |        
+|                V2_ImHashMap_AVL_AddOrUpdate |   100 |  17,990.7 ns |   353.72 ns |   378.47 ns |  1.00 |    0.00 |   8.3313 |       - |     - |   34856 B |
+| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |   100 |  15,504.4 ns |   304.44 ns |   426.79 ns |  0.86 |    0.04 |   6.6528 |       - |     - |   27880 B |        
+|            V3_ImHashMap_234Tree_AddOrUpdate |   100 |  12,801.1 ns |   208.34 ns |   401.40 ns |  0.72 |    0.03 |   5.0201 |       - |     - |   21008 B |
+|   V3_PartitionedHashMap_234Tree_AddOrUpdate |   100 |   7,010.4 ns |   138.21 ns |   141.93 ns |  0.39 |    0.01 |   1.9989 |  0.0076 |     - |    8376 B |
+|                 ConcurrentDictionary_TryAdd |   100 |  20,917.1 ns |   410.67 ns |   456.46 ns |  1.16 |    0.04 |   6.8359 |  0.0305 |     - |   28640 B |
+|                                             |       |              |             |             |       |         |          |         |       |           |
+|                V2_ImHashMap_AVL_AddOrUpdate |  1000 | 386,120.3 ns | 7,546.45 ns | 5,891.77 ns |  1.00 |    0.00 | 122.0703 |  3.4180 |     - |  511209 B |        
+| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |  1000 | 395,281.9 ns | 7,120.73 ns | 8,476.72 ns |  1.02 |    0.03 | 104.9805 | 25.8789 |     - |  439976 B |        
+|            V3_ImHashMap_234Tree_AddOrUpdate |  1000 | 262,020.3 ns | 5,200.18 ns | 6,386.29 ns |  0.68 |    0.02 |  80.5664 |  1.9531 |     - |  338464 B |        
+|   V3_PartitionedHashMap_234Tree_AddOrUpdate |  1000 | 168,867.3 ns | 3,053.79 ns | 3,750.33 ns |  0.44 |    0.01 |  44.6777 | 10.9863 |     - |  187376 B |        
+|                 ConcurrentDictionary_TryAdd |  1000 | 234,142.0 ns | 4,564.28 ns | 5,073.19 ns |  0.60 |    0.02 |  52.7344 | 13.1836 |     - |  247576 B | 
+
 */
             [Params(1, 5, 10, 100, 1_000)]
             public int Count;
@@ -557,8 +591,8 @@ Leaf4Plus1
                 return map;
             }
 
-            // [Benchmark]
-            public ConcurrentDictionary<Type, string> ConcurrentDict_TryAdd()
+            [Benchmark]
+            public ConcurrentDictionary<Type, string> ConcurrentDictionary_TryAdd()
             {
                 var map = new ConcurrentDictionary<Type, string>();
 
@@ -1431,6 +1465,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 | V3_ImHashMap_234Tree_EnumerateAndToArray |  1000 | 21,530.8 ns | 292.37 ns | 259.18 ns |  0.72 |    0.01 | 1.8921 |     - |     - |    8016 B |
 
 ### Array instead of List
+
 
 |                                   Method | Count |     Mean |    Error |   StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
 |----------------------------------------- |------ |---------:|---------:|---------:|------:|--------:|-------:|------:|------:|----------:|
