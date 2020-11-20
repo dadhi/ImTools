@@ -2247,14 +2247,17 @@ namespace ImTools.Experimental
                     else
                         parentStack.Add(map);
                     map = b2.Left;
+                    continue; // stack the parent and go deeper to the left branch
                 }
-                else if (map is ImHashMap234<K, V>.Branch3 b3) 
+                
+                if (map is ImHashMap234<K, V>.Branch3 b3) 
                 {
                     if (parentStack.Count > ++parentIndex)
                         parentStack[parentIndex] = map;
                     else
                         parentStack.Add(map);
                     map = b3.Left;
+                    continue; // stack the parent and go deeper to the left branch
                 }
 
                 if (map is ImHashMap234<K, V>.Leaf2 l2)
