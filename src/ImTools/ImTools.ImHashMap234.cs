@@ -98,8 +98,7 @@ namespace ImTools.Experimental
                 hash == Hash ? TryRemove(key) ?? Empty : this;
         }
 
-        /// <summary>Entry containing the Array of conflicting Value entries.
-        /// Note: The Key field is unused and always has a default value</summary>
+        /// <summary>Entry containing the Array of conflicting Value entries.</summary>
         public sealed class ConflictsEntry : Entry
         {
             /// <summary>The 2 and more conflicts.</summary>
@@ -1618,16 +1617,17 @@ namespace ImTools.Experimental
         /// </summary>
         public static IEnumerable<ImHashMap234<K, V>.ValueEntry> Enumerate<K, V>(this ImHashMap234<K, V> map, ImHashMap234<K, V>[] parentStack = null)
         {
-            if (map == ImHashMap234<K, V>.Empty)
-                yield break;
-            if (map is ImHashMap234<K, V>.Entry e)
+            if (map is ImHashMap234<K, V>.Branch == false)
             {
-                if (e is ImHashMap234<K, V>.ValueEntry v) yield return v;
-                else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)e).Conflicts) yield return c;
-                yield break;
-            }
-            // todo: @perf add a single check for the branch to prevent multiple checks for the leafs in case of bug tree
-            {
+                if (map == ImHashMap234<K, V>.Empty)
+                    yield break;
+                if (map is ImHashMap234<K, V>.Entry e)
+                {
+                    if (e is ImHashMap234<K, V>.ValueEntry v) yield return v;
+                    else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)e).Conflicts) yield return c;
+                    yield break;
+                }
+
                 if (map is ImHashMap234<K, V>.Leaf2 l2)
                 {
                     if (l2.Entry0 is ImHashMap234<K, V>.ValueEntry v0) yield return v0;
