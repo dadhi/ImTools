@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using BenchmarkDotNet.Attributes;
 using ImTools;
+using ImTools.Experimental;
 using Microsoft.Collections.Extensions;
 
 namespace Playground
@@ -114,11 +115,11 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
             private const string Seed = "hubba-bubba";
 
-            [Params(10, 100, 1_000, 10_000, 100_000)]
+            [Params(10_000, 100_000)]
             public int Count;
 
             [Benchmark(Baseline = true)]
-            public ImHashMap<string, string> ImHashMap_AddOrUpdate()
+            public ImHashMap<string, string> V2_ImHashMap_AVL_AddOrUpdate()
             {
                 var map = ImHashMap<string, string>.Empty;
 
@@ -133,6 +134,36 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             }
 
             [Benchmark]
+            public ImTools.Experimental.ImHashMap234<string, string> V3_ImHashMap_234Tree_AddOrUpdate()
+            {
+                var map = ImTools.Experimental.ImHashMap234<string, string>.Empty;
+
+                for (var i = 0; i < Count; ++i)
+                {
+                    var a = i.ToString();
+                    var v = a + Seed;
+                    map = map.AddOrUpdate(v + a, v);
+                }
+
+                return map;
+            }
+
+            // [Benchmark]
+            public ImTools.Experimental.ImHashMap234<string, string>[] V3_PartitionedHashMap_234Tree_AddOrUpdate()
+            {
+                var map = ImTools.Experimental.PartitionedHashMap234.CreateEmpty<string, string>();
+
+                for (var i = 0; i < Count; ++i)
+                {
+                    var a = i.ToString();
+                    var v = a + Seed;
+                    map.AddOrUpdate(v + a, v);
+                }
+
+                return map;
+            }
+
+            // [Benchmark]
             public ImTools.OldVersions.V1.ImHashMap<string, string> ImHashMap_V1_AddOrUpdate()
             {
                 var map = ImTools.OldVersions.V1.ImHashMap<string, string>.Empty;
@@ -147,7 +178,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImHashMap<string, string>[] ImHashMapSlots_AddOrUpdate()
             {
                 var map = ImHashMapSlots.CreateWithEmpty<string, string>();
@@ -162,7 +193,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public DictionarySlim<string, string> DictionarySlim_GetOrAddValueRef()
             {
                 var map = new DictionarySlim<string, string>();
@@ -177,7 +208,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public Dictionary<string, string> Dictionary_TryAdd()
             {
                 var map = new Dictionary<string, string>();
@@ -192,7 +223,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ConcurrentDictionary<string, string> ConcurrentDictionary_TryAdd()
             {
                 var map = new ConcurrentDictionary<string, string>();
@@ -207,7 +238,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImmutableDictionary<string, string> ImmutableDictionary_Add()
             {
                 var map = ImmutableDictionary<string, string>.Empty;
