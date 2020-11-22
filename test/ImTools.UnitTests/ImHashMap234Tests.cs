@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Linq;
+using System.Collections.Generic;
 using NUnit.Framework;
 using CsCheck;
 
@@ -360,10 +361,32 @@ namespace ImTools.Experimental.UnitTests
                     var m2 = k1 == k2 ? m.AddOrUpdate(k2, v2) : m.AddOrUpdate(k2, v2).AddOrUpdate(k1, v1);
                     var s1 = m1.Enumerate().OrderBy(i => i.Key);
                     var s2 = m2.Enumerate().OrderBy(i => i.Key);
-                    Assert.AreEqual(s1.Select(i => i.Key), s2.Select(i => i.Key));
-                    Assert.AreEqual(s1.Select(i => i.Value), s2.Select(i => i.Value));
+                    CollectionAssert.AreEqual(s1.Select(i => i.Key), s2.Select(i => i.Key));
+                    CollectionAssert.AreEqual(s1.Select(i => i.Value), s2.Select(i => i.Value));
                 }, 
                 size: 10_000, seed: "annfAUMuU8x1");
+        }
+
+        [Test, Ignore("fixme")] // todo: @bug
+        public void AddOrUpdate_ModelBased()
+        {
+            const int upperBound = 100000;
+            Gen.SelectMany(GenMap(upperBound), m =>
+                Gen.Select(Gen.Const(m), Gen.Int[0, upperBound], Gen.Int))
+                .Sample(t =>
+                {
+                    var dic1 = new Dictionary<int, int>();
+                    foreach (var entry in t.V0.Enumerate()) 
+                        dic1.Add(entry.Key, entry.Value);
+
+                    dic1[t.V1] = t.V2;
+                    var dic2 = new Dictionary<int, int>();
+                    foreach (var entry in t.V0.AddOrUpdate(t.V1, t.V2).Enumerate())
+                        dic2.Add(entry.Key, entry.Value);
+                    CollectionAssert.AreEqual(dic1, dic2);
+                }
+                , size: 1
+                , print: t => t + "\n" + string.Join("\n", t.V0.Enumerate()));
         }
     }
 }
