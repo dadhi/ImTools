@@ -302,6 +302,20 @@ namespace ImTools.Experimental.UnitTests
         }
 
         [Test]
+        public void Enumerate_should_work_for_the_randomized_input()
+        {
+            var uniqueItems = new[] {
+                45751, 6825, 44599, 79942, 73380, 8408, 34126, 51224, 14463, 71529, 46775, 74893, 80615, 78504, 29401, 60789, 14050, 
+                67780, 52369, 16486, 48124, 46939, 43229, 58359, 61378, 31969, 79905, 37405, 37259, 66683, 87401, 42175 };
+
+            var m = ImHashMap234<int, int>.Empty;
+            foreach (var i in uniqueItems)
+                m = m.AddOrUpdate(i, i);
+
+            CollectionAssert.AreEqual(uniqueItems.OrderBy(x => x), m.Enumerate().Select(x => x.Key));
+        }
+
+        [Test]
         public void AddOrKeep_random_items_and_randomly_checking_CsCheck()
         {
             const int upperBound = 100000;
@@ -323,7 +337,7 @@ namespace ImTools.Experimental.UnitTests
             }, 
             size: 5000);
         }
-
+        
         static Gen<ImHashMap234<int, int>> GenMap(int upperBound) =>
             Gen.Int[0, upperBound].ArrayUnique.SelectMany(ks =>
                 Gen.Int.Array[ks.Length].Select(vs =>
