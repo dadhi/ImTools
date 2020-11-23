@@ -19,7 +19,17 @@ namespace ImTools.Experimental
         protected ImHashMap234() { } // todo: @perf - does it hurt the perf or the call to the empty constructor is erased?
 
         /// Pretty-prints
-        public override string ToString() => "empty " + typeof(ImHashMap234<K, V>).Name;
+        public override string ToString() 
+        {
+#if DEBUG
+            // for debug purposes we just output the first N hashes in array
+            const int outputCount = 101;
+            var itemsInHashOrder = Enumerate().Take(outputCount).Select(x => x.Hash).ToList();
+            return $"new int[{(itemsInHashOrder.Count >= 100 ? ">=" : "") + itemsInHashOrder.Count}] {{" + string.Join(", ", itemsInHashOrder) + "}";
+#else
+            return "empty " + typeof(ImHashMap234<K, V>).Name;
+#endif
+        }
 
         /// <summary>Lookup for the entry, if not found returns `null`</summary>
         public virtual Entry GetEntryOrDefault(int hash) => null;
@@ -73,8 +83,10 @@ namespace ImTools.Experimental
                 Value = value;
             }
 
+#if !DEBUG
             /// <inheritdoc />
             public override string ToString() => "[" + Hash + "]" + Key + ":" + Value;
+#endif
 
             /// <inheritdoc />
             public override IEnumerable<ValueEntry> Enumerate() 
@@ -117,6 +129,7 @@ namespace ImTools.Experimental
             /// <summary>Constructs the entry with the key and value</summary>
             public ConflictsEntry(int hash, params ValueEntry[] conflicts) : base(hash) => Conflicts = conflicts;
 
+#if !DEBUG
             /// <inheritdoc />
             public override string ToString()
             {
@@ -125,6 +138,7 @@ namespace ImTools.Experimental
                     sb.Append(x.ToString()).Append("; ");
                 return sb.ToString();
             }
+#endif
 
             /// <inheritdoc />
             public override IEnumerable<ValueEntry> Enumerate() => Conflicts;
@@ -239,8 +253,10 @@ namespace ImTools.Experimental
                 Entry1 = e1;
             }
 
+#if !DEBUG
             /// <inheritdoc />
             public override string ToString() => "leaf2{" + Entry0 + "; " + Entry1 + "}";
+#endif
 
             /// <inheritdoc />
             public override Entry GetEntryOrDefault(int hash) =>
@@ -320,8 +336,10 @@ namespace ImTools.Experimental
                 Entry2 = e2;
             }
 
+#if !DEBUG
             /// <inheritdoc />
             public override string ToString() => "leaf3{" + Entry0 + "; " + Entry1 + "; " + Entry2 + "}";
+#endif
 
             /// <inheritdoc />
             public override Entry GetEntryOrDefault(int hash) =>
@@ -404,8 +422,10 @@ namespace ImTools.Experimental
                 L3 = l3;
             }
 
+#if !DEBUG
             /// <inheritdoc />
             public override string ToString() => "leaf3+1{" + Plus + " + " + L3 + "}";
+#endif
 
             /// <inheritdoc />
             public override Entry GetEntryOrDefault(int hash) 
@@ -714,8 +734,10 @@ namespace ImTools.Experimental
                 Entry4 = e4;
             }
 
+#if !DEBUG
             /// <inheritdoc />
             public override string ToString() => "leaf5{" + Entry0 + "; " + Entry1 + "; " + Entry2 + "; " + Entry3 + "; " + Entry4 + "}";
+#endif
 
             /// <inheritdoc />
             public override Entry GetEntryOrDefault(int hash) =>
@@ -822,8 +844,10 @@ namespace ImTools.Experimental
                 L5   = l5;
             }
 
+#if !DEBUG
             /// <inheritdoc />
             public override string ToString() => "leaf5+1{" + Plus + " + " + L5 + "}";
+#endif
 
             /// <inheritdoc />
             public override Entry GetEntryOrDefault(int hash)
@@ -961,7 +985,7 @@ namespace ImTools.Experimental
                     else foreach (var x in ((ConflictsEntry)e4).Conflicts)
                         yield return x;
                 }
-                if (ph < e4.Hash) 
+                else if (ph < e4.Hash)
                 {
                     if (e0 is ValueEntry v0)
                         yield return v0;
@@ -1341,10 +1365,12 @@ namespace ImTools.Experimental
                 Right  = right;
             }
 
+#if !DEBUG
             /// <inheritdoc />
             public override string ToString() =>
                 !(Left is Branch2) && !(Left is Branch3) ? Left + " <- " + Entry0 + " -> " + Right : 
-                Left.GetType().Name + " <- " + Entry0 + " -> " + Right.GetType().Name;
+                  Left.GetType().Name + " <- " + Entry0 + " -> " + Right.GetType().Name;
+#endif
 
             /// <inheritdoc />
             public override Entry GetEntryOrDefault(int hash) =>
@@ -1587,10 +1613,12 @@ namespace ImTools.Experimental
                 Right  = right;
             }
 
+#if !DEBUG
             /// <inheritdoc />
             public override string ToString() =>
                 !(Left is Branch2) && !(Left is Branch3) ? Left + " <- " + Entry0 + " -> " + Middle + " <- " + Entry1 + " -> " + Right : 
                 Left.GetType().Name + " <- " + Entry0 + " -> " + Middle.GetType().Name + " <- " + Entry1 + " -> " + Right.GetType().Name;
+#endif
 
             /// <inheritdoc />
             public override Entry GetEntryOrDefault(int hash)

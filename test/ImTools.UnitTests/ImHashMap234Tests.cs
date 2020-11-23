@@ -349,7 +349,8 @@ namespace ImTools.Experimental.UnitTests
                     return m;
                 }));
 
-        [Test, Ignore("fixme")] // todo: @bug
+        // https://www.youtube.com/watch?v=G0NUOst-53U&feature=youtu.be&t=1639
+        [Test]
         public void AddOrUpdate_metamorphic()
         {
             const int upperBound = 100_000;
@@ -357,17 +358,68 @@ namespace ImTools.Experimental.UnitTests
                 .Sample(t =>
                 {
                     var (m, k1, v1, k2, v2) = t;
+
                     var m1 = m.AddOrUpdate(k1, v1).AddOrUpdate(k2, v2);
+
                     var m2 = k1 == k2 ? m.AddOrUpdate(k2, v2) : m.AddOrUpdate(k2, v2).AddOrUpdate(k1, v1);
-                    var s1 = m1.Enumerate().OrderBy(i => i.Key);
-                    var s2 = m2.Enumerate().OrderBy(i => i.Key);
-                    CollectionAssert.AreEqual(s1.Select(i => i.Key), s2.Select(i => i.Key));
-                    CollectionAssert.AreEqual(s1.Select(i => i.Value), s2.Select(i => i.Value));
+                    
+                    var e1 = m1.Enumerate().OrderBy(i => i.Key);
+                    
+                    var e2 = m2.Enumerate().OrderBy(i => i.Key);
+
+                    CollectionAssert.AreEqual(e1.Select(x => x.Key), e2.Select(x => x.Key));
                 }, 
-                size: 10_000, seed: "annfAUMuU8x1");
+                size: 5000);
         }
 
-        [Test, Ignore("fixme")] // todo: @bug
+        [Test]
+        public void AddOrUpdate_metamorphic_shrinked()
+        {
+            const int upperBound = 100_000;
+            Gen.Select(GenMap(upperBound), Gen.Int[0, upperBound], Gen.Int, Gen.Int[0, upperBound], Gen.Int)
+                .Sample(t =>
+                {
+                    var (m, k1, v1, k2, v2) = t;
+
+                    var m1 = m.AddOrUpdate(k1, v1).AddOrUpdate(k2, v2);
+
+                    var m2 = k1 == k2 ? m.AddOrUpdate(k2, v2) : m.AddOrUpdate(k2, v2).AddOrUpdate(k1, v1);
+                    
+                    var e1 = m1.Enumerate().OrderBy(i => i.Key);
+                    
+                    var e2 = m2.Enumerate().OrderBy(i => i.Key);
+
+                    CollectionAssert.AreEqual(e1.Select(x => x.Key), e2.Select(x => x.Key));
+                }, 
+                size: 100, seed: "000027FFpth8");
+        }
+
+        [Test]
+        public void AddOrUpdate_metamorphic_shrinked_manually()
+        {
+            var baseItems = new int[4] { 65347, 87589, 89692, 92562 };
+
+            var m1 = ImHashMap234<int, int>.Empty;
+            var m2 = ImHashMap234<int, int>.Empty;
+            foreach (var x in baseItems)
+            {
+                m1 = m1.AddOrUpdate(x, x);
+                m2 = m2.AddOrUpdate(x, x);
+            }
+
+            m1 = m1.AddOrUpdate(58955, 42);
+            m1 = m1.AddOrUpdate(97319, 43);
+
+            m2 = m2.AddOrUpdate(97319, 43);
+            m2 = m2.AddOrUpdate(58955, 42);
+
+            var e1 = m1.Enumerate().OrderBy(i => i.Key);
+            var e2 = m2.Enumerate().OrderBy(i => i.Key);
+
+            CollectionAssert.AreEqual(e1.Select(x => x.Key), e2.Select(x => x.Key));
+        }
+
+        [Test]
         public void AddOrUpdate_ModelBased()
         {
             const int upperBound = 100000;
@@ -385,7 +437,7 @@ namespace ImTools.Experimental.UnitTests
                         dic2.Add(entry.Key, entry.Value);
                     CollectionAssert.AreEqual(dic1, dic2);
                 }
-                , size: 1
+                , size: 1000
                 , print: t => t + "\n" + string.Join("\n", t.V0.Enumerate()));
         }
     }
