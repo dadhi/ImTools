@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
+using System.Collections;
 
 namespace ImTools.Experimental
 {
@@ -351,18 +352,59 @@ namespace ImTools.Experimental
             /// <inheritdoc />
             public override IEnumerable<ValueEntry> Enumerate()
             {
-                if (Entry0 is ValueEntry v0)
-                    yield return v0;
-                else foreach (var x in ((ConflictsEntry)Entry0).Conflicts)
-                    yield return x;
-                if (Entry1 is ValueEntry v1)
-                    yield return v1;
-                else foreach (var x in ((ConflictsEntry)Entry1).Conflicts)
-                    yield return x;
-                if (Entry2 is ValueEntry v2)
-                    yield return v2;
-                else foreach (var x in ((ConflictsEntry)Entry2).Conflicts)
-                    yield return x;
+                return new Enumerable(this);
+
+                // if (Entry0 is ValueEntry v0)
+                //     yield return v0;
+                // else foreach (var x in ((ConflictsEntry)Entry0).Conflicts)
+                //     yield return x;
+                // if (Entry1 is ValueEntry v1)
+                //     yield return v1;
+                // else foreach (var x in ((ConflictsEntry)Entry1).Conflicts)
+                //     yield return x;
+                // if (Entry2 is ValueEntry v2)
+                //     yield return v2;
+                // else foreach (var x in ((ConflictsEntry)Entry2).Conflicts)
+                //     yield return x;
+            }
+
+            
+            private readonly struct Enumerable : IEnumerable<ValueEntry>
+            {
+                private readonly Leaf3 _l;
+                public Enumerable(Leaf3 l) => _l = l;
+                public Enumerator GetEnumerator() => new Enumerator(_l, 0);
+                IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+                IEnumerator<ValueEntry> IEnumerable<ValueEntry>.GetEnumerator() => GetEnumerator();
+            }
+
+            private struct Enumerator : IEnumerator<ValueEntry>
+            {
+                private readonly Leaf3 _l;
+                private byte _i;
+                public Enumerator(Leaf3 l, byte i) 
+                {
+                    _l = l;
+                    _i = i;
+                }
+
+                public ValueEntry Current 
+                {
+                    [MethodImpl((MethodImplOptions)256)]
+                    get 
+                    {
+                        var i = _i;
+                        return (ValueEntry)(
+                            i == 1 ? _l.Entry0 : 
+                            i == 2 ? _l.Entry1 :
+                                     _l.Entry2);
+                    }
+                }
+                object IEnumerator.Current => Current;
+                public bool MoveNext() => ++_i < 4;
+
+                public void Dispose() {}
+                public void Reset() => _i = 0;
             }
 
             /// <inheritdoc />
@@ -450,7 +492,6 @@ namespace ImTools.Experimental
                 var e1 = l.Entry1;
                 var e2 = l.Entry2;
 
-                // [2*, 3, 4]
                 if (ph < e0.Hash)
                 {
                     if (p is ValueEntry v)
@@ -707,7 +748,7 @@ namespace ImTools.Experimental
         }
 
         /// <summary>Leaf with 5 entries</summary>
-        public sealed class Leaf5 : ImHashMap234<K, V>
+        public sealed class Leaf5 : ImHashMap234<K, V>, IEnumerable<ValueEntry>
         {
             /// <summary>Left entry</summary>
             public readonly Entry Entry0;
@@ -751,26 +792,75 @@ namespace ImTools.Experimental
             /// <inheritdoc />
             public override IEnumerable<ValueEntry> Enumerate()
             {
-                if (Entry0 is ValueEntry v0)
-                    yield return v0;
-                else foreach (var x in ((ConflictsEntry)Entry0).Conflicts)
-                    yield return x;
-                if (Entry1 is ValueEntry v1)
-                    yield return v1;
-                else foreach (var x in ((ConflictsEntry)Entry1).Conflicts)
-                    yield return x;
-                if (Entry2 is ValueEntry v2)
-                    yield return v2;
-                else foreach (var x in ((ConflictsEntry)Entry2).Conflicts)
-                    yield return x;
-                if (Entry3 is ValueEntry v3)
-                    yield return v3;
-                else foreach (var x in ((ConflictsEntry)Entry3).Conflicts)
-                    yield return x;
-                if (Entry4 is ValueEntry v4)
-                    yield return v4;
-                else foreach (var x in ((ConflictsEntry)Entry4).Conflicts)
-                    yield return x;
+                return this;
+                // if (Entry0 is ValueEntry v0)
+                //     yield return v0;
+                // else foreach (var x in ((ConflictsEntry)Entry0).Conflicts)
+                //     yield return x;
+                // if (Entry1 is ValueEntry v1)
+                //     yield return v1;
+                // else foreach (var x in ((ConflictsEntry)Entry1).Conflicts)
+                //     yield return x;
+                // if (Entry2 is ValueEntry v2)
+                //     yield return v2;
+                // else foreach (var x in ((ConflictsEntry)Entry2).Conflicts)
+                //     yield return x;
+                // if (Entry3 is ValueEntry v3)
+                //     yield return v3;
+                // else foreach (var x in ((ConflictsEntry)Entry3).Conflicts)
+                //     yield return x;
+                // if (Entry4 is ValueEntry v4)
+                //     yield return v4;
+                // else foreach (var x in ((ConflictsEntry)Entry4).Conflicts)
+                //     yield return x;
+            }
+
+            /// <summary>Returns the left-to-right enumerator</summary>
+            public IEnumerator<ValueEntry> GetEnumerator() => new Enumerator(this);
+            IEnumerator<ValueEntry> IEnumerable<ValueEntry>.GetEnumerator() => GetEnumerator();
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+            private struct Enumerator : IEnumerator<ValueEntry>
+            {
+                private readonly Leaf5 _m;
+                private byte _i, _j;
+                public Enumerator(Leaf5 m) 
+                {
+                    _m = m;
+                    _i = 0;
+                    _j = 0;
+                    Current = null;
+                }
+
+                public ValueEntry Current { get; private set; }
+                object IEnumerator.Current => Current;
+                public bool MoveNext() 
+                {
+                    for (var i = _i; i < 5; ++_i) 
+                    {
+                        var e = i == 0 ? _m.Entry0 : i == 1 ? _m.Entry1 : i == 2 ? _m.Entry2 : i == 3 ? _m.Entry3 : _m.Entry4;
+                        if (_j == 0 && e is ValueEntry v0)
+                        {
+                            Current = v0;
+                            ++_i;
+                            return true;
+                        }
+
+                        var ee = ((ConflictsEntry)e).Conflicts;
+                        if (_j < (uint)ee.Length)
+                        {
+                            Current = ee[_j++];
+                            return true;
+                        }
+
+                        _j = 0;
+                    }
+
+                    return false;
+                }
+
+                public void Dispose() {}
+                public void Reset() {}
             }
 
             /// <inheritdoc />
@@ -2122,5 +2212,13 @@ namespace ImTools.Experimental
         /// <summary>Updates the ref to the part with the new version and retries if the someone changed the part in between</summary>
         public static void RefAddOrUpdatePart<K, V>(ref ImHashMap234<K, V> part, int hash, K key, V value) =>
             Ref.Swap(ref part, hash, key, value, (x, h, k, v) => x.AddOrUpdate(h, k, v));
+    }
+
+    /// <summary>Funny enumerable</summary>
+    public interface IEnumerable<out T, out TEnumerator> : IEnumerable<T>
+        where TEnumerator : IEnumerator<T> 
+    {
+        /// <summary>Funny enumerator</summary>
+        new TEnumerator GetEnumerator();
     }
 }

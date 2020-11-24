@@ -22,13 +22,6 @@ echo:
 echo:## Finished: TESTS
 
 echo: 
-echo:## Starting: SOURCE PACKAGING...
-echo:
-call BuildScripts\NugetPack.bat
-if %ERRORLEVEL% neq 0 goto :error
-echo:
-echo:## Finished: SOURCE PACKAGING
-echo: 
 echo:## Finished: ALL ##
 echo:
 exit /b 0

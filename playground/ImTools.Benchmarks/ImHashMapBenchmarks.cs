@@ -1444,20 +1444,19 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 ### Array instead of List
 
 
-|                                   Method | Count |     Mean |    Error |   StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-|----------------------------------------- |------ |---------:|---------:|---------:|------:|--------:|-------:|------:|------:|----------:|
-|     V2_ImHashMap_AVL_EnumerateAndToArray |    10 | 649.9 ns | 29.18 ns | 84.19 ns |  1.00 |    0.00 | 0.1125 |     - |     - |     472 B |
-| V3_ImHashMap_234Tree_EnumerateAndToArray |    10 | 871.5 ns | 17.01 ns | 18.90 ns |  1.41 |    0.10 | 0.1278 |     - |     - |     536 B |
+|                                   Method | Count |     Mean |   Error |  StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|----------------------------------------- |------ |---------:|--------:|--------:|------:|--------:|-------:|------:|------:|----------:|
+|     V2_ImHashMap_AVL_EnumerateAndToArray |     9 | 524.8 ns | 7.52 ns | 6.28 ns |  1.00 |    0.00 | 0.1087 |     - |     - |     456 B |
+| V3_ImHashMap_234Tree_EnumerateAndToArray |     9 | 586.4 ns | 7.62 ns | 7.13 ns |  1.12 |    0.02 | 0.1163 |     - |     - |     488 B |
 
 */
-            [Params(10)]//, 5, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
+            [Params(9)]//, 5, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             public int Count;
 
             [GlobalSetup]
             public void Populate()
             {
                 _map = AddOrUpdate();
-                _mapV1 = AddOrUpdate_v1();
                 _mapExp = Experimental_ImHashMap_AddOrUpdate();
                 _map234 = V3_ImHashMap_234Tree_AddOrUpdate();
                 _mapSlots = ImHashMapSlots_AddOrUpdate();
@@ -1476,7 +1475,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 foreach (var key in _keys.Take(Count))
                     map = map.AddOrUpdate(key, "a");
 
-                map = map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+                // map = map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
                 return map;
             }
 
@@ -1515,7 +1514,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 foreach (var key in _keys.Take(Count))
                     map = map.AddOrUpdate(key.GetHashCode(), key, "a");
 
-                return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
+                return map;//.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
             }
 
             private ImTools.Experimental.ImHashMap234<Type, string> _map234;
@@ -1527,7 +1526,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 foreach (var key in _keys.Take(Count))
                     map = map.AddOrUpdate(key.GetHashCode(), key, "a");
 
-                return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
+                return map;//.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
             }
 
             private ImHashMap<Type, string>[] _mapSlots;
@@ -1539,7 +1538,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 foreach (var key in _keys.Take(Count))
                     map.TryAdd(key, "a");
 
-                map.TryAdd(typeof(ImHashMapBenchmarks), "!");
+                // map.TryAdd(typeof(ImHashMapBenchmarks), "!");
 
                 return map;
             }
@@ -1553,7 +1552,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 foreach (var key in _keys.Take(Count))
                     dict.GetOrAddValueRef(key) = "a";
 
-                dict.GetOrAddValueRef(typeof(ImHashMapBenchmarks)) = "!";
+                // dict.GetOrAddValueRef(typeof(ImHashMapBenchmarks)) = "!";
                 return dict;
             }
 
@@ -1566,7 +1565,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 foreach (var key in _keys.Take(Count))
                     map.TryAdd(key, "a");
 
-                map.TryAdd(typeof(ImHashMapBenchmarks), "!");
+                // map.TryAdd(typeof(ImHashMapBenchmarks), "!");
                 return map;
             }
 
@@ -1578,7 +1577,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 
                 foreach (var key in _keys.Take(Count))
                     builder.Add(key, "a");
-                builder.Add(typeof(ImHashMapBenchmarks), "!");
+                // builder.Add(typeof(ImHashMapBenchmarks), "!");
                 return builder.ToImmutable();
             }
 
