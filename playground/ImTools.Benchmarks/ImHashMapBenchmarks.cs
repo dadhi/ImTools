@@ -448,6 +448,23 @@ Leaf4Plus1
 |   V3_PartitionedHashMap_234Tree_AddOrUpdate |  1000 | 168,867.3 ns | 3,053.79 ns | 3,750.33 ns |  0.44 |    0.01 |  44.6777 | 10.9863 |     - |  187376 B |        
 |                 ConcurrentDictionary_TryAdd |  1000 | 234,142.0 ns | 4,564.28 ns | 5,073.19 ns |  0.60 |    0.02 |  52.7344 | 13.1836 |     - |  247576 B | 
 
+|                           Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |    Gen 0 |  Gen 1 | Gen 2 | Allocated |
+|--------------------------------- |------ |-------------:|------------:|------------:|------:|--------:|---------:|-------:|------:|----------:|
+|     V2_ImHashMap_AVL_AddOrUpdate |     1 |     149.2 ns |     3.01 ns |     3.70 ns |  1.00 |    0.00 |   0.0648 |      - |     - |     272 B |
+| V3_ImHashMap_234Tree_AddOrUpdate |     1 |     113.4 ns |     1.83 ns |     1.62 ns |  0.77 |    0.02 |   0.0381 |      - |     - |     160 B |
+|                                  |       |              |             |             |       |         |          |        |       |           |
+|     V2_ImHashMap_AVL_AddOrUpdate |     5 |     498.4 ns |     8.70 ns |     7.26 ns |  1.00 |    0.00 |   0.2632 |      - |     - |    1104 B |
+| V3_ImHashMap_234Tree_AddOrUpdate |     5 |     312.1 ns |     4.81 ns |     4.02 ns |  0.63 |    0.01 |   0.1144 |      - |     - |     480 B |
+|                                  |       |              |             |             |       |         |          |        |       |           |
+|     V2_ImHashMap_AVL_AddOrUpdate |    10 |   1,006.6 ns |    14.96 ns |    13.99 ns |  1.00 |    0.00 |   0.5512 |      - |     - |    2312 B |
+| V3_ImHashMap_234Tree_AddOrUpdate |    10 |     646.4 ns |    10.71 ns |    10.02 ns |  0.64 |    0.01 |   0.2708 |      - |     - |    1136 B |
+|                                  |       |              |             |             |       |         |          |        |       |           |
+|     V2_ImHashMap_AVL_AddOrUpdate |   100 |  15,609.1 ns |   270.70 ns |   239.97 ns |  1.00 |    0.00 |   8.3313 |      - |     - |   34856 B |
+| V3_ImHashMap_234Tree_AddOrUpdate |   100 |  10,596.0 ns |   162.45 ns |   144.01 ns |  0.68 |    0.02 |   5.0201 |      - |     - |   21008 B |
+|                                  |       |              |             |             |       |         |          |        |       |           |
+|     V2_ImHashMap_AVL_AddOrUpdate |  1000 | 335,021.4 ns | 3,485.34 ns | 3,089.66 ns |  1.00 |    0.00 | 122.0703 | 3.4180 |     - |  511209 B |
+| V3_ImHashMap_234Tree_AddOrUpdate |  1000 | 236,541.4 ns | 4,408.08 ns | 3,907.65 ns |  0.71 |    0.01 |  80.5664 | 1.9531 |     - |  338471 B |
+
 */
             [Params(1, 5, 10, 100, 1_000)]
             public int Count;
@@ -486,7 +503,7 @@ Leaf4Plus1
                 return map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImTools.Experimental.ImMap<ImMap.KValue<Type>> V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate()
             {
                 var map = ImTools.Experimental.ImMap<ImMap.KValue<Type>>.Empty;
@@ -508,7 +525,7 @@ Leaf4Plus1
                 return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImHashMap234<Type, string>[] V3_PartitionedHashMap_234Tree_AddOrUpdate()
             {
                 var map = PartitionedHashMap234.CreateEmpty<Type, string>();
@@ -568,7 +585,7 @@ Leaf4Plus1
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ConcurrentDictionary<Type, string> ConcurrentDictionary_TryAdd()
             {
                 var map = new ConcurrentDictionary<Type, string>();
@@ -1444,10 +1461,10 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 ### Array instead of List
 
 
-|                                   Method | Count |     Mean |   Error |  StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-|----------------------------------------- |------ |---------:|--------:|--------:|------:|--------:|-------:|------:|------:|----------:|
-|     V2_ImHashMap_AVL_EnumerateAndToArray |     9 | 524.8 ns | 7.52 ns | 6.28 ns |  1.00 |    0.00 | 0.1087 |     - |     - |     456 B |
-| V3_ImHashMap_234Tree_EnumerateAndToArray |     9 | 586.4 ns | 7.62 ns | 7.13 ns |  1.12 |    0.02 | 0.1163 |     - |     - |     488 B |
+|                                   Method | Count |     Mean |    Error |   StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|----------------------------------------- |------ |---------:|---------:|---------:|------:|--------:|-------:|------:|------:|----------:|
+|     V2_ImHashMap_AVL_EnumerateAndToArray |     9 | 710.7 ns | 14.40 ns | 31.30 ns |  1.00 |    0.00 | 0.1087 |     - |     - |     456 B |
+| V3_ImHashMap_234Tree_EnumerateAndToArray |     9 | 791.1 ns | 16.06 ns | 31.69 ns |  1.12 |    0.07 | 0.1125 |     - |     - |     472 B |
 
 */
             [Params(9)]//, 5, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
