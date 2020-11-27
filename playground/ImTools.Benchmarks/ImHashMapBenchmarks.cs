@@ -448,6 +448,8 @@ Leaf4Plus1
 |   V3_PartitionedHashMap_234Tree_AddOrUpdate |  1000 | 168,867.3 ns | 3,053.79 ns | 3,750.33 ns |  0.44 |    0.01 |  44.6777 | 10.9863 |     - |  187376 B |        
 |                 ConcurrentDictionary_TryAdd |  1000 | 234,142.0 ns | 4,564.28 ns | 5,073.19 ns |  0.60 |    0.02 |  52.7344 | 13.1836 |     - |  247576 B | 
 
+### Inlining of Leaf3 and Leaf5 addition in Branch 2 and 3
+
 |                           Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |    Gen 0 |  Gen 1 | Gen 2 | Allocated |
 |--------------------------------- |------ |-------------:|------------:|------------:|------:|--------:|---------:|-------:|------:|----------:|
 |     V2_ImHashMap_AVL_AddOrUpdate |     1 |     149.2 ns |     3.01 ns |     3.70 ns |  1.00 |    0.00 |   0.0648 |      - |     - |     272 B |
@@ -464,6 +466,37 @@ Leaf4Plus1
 |                                  |       |              |             |             |       |         |          |        |       |           |
 |     V2_ImHashMap_AVL_AddOrUpdate |  1000 | 335,021.4 ns | 3,485.34 ns | 3,089.66 ns |  1.00 |    0.00 | 122.0703 | 3.4180 |     - |  511209 B |
 | V3_ImHashMap_234Tree_AddOrUpdate |  1000 | 236,541.4 ns | 4,408.08 ns | 3,907.65 ns |  0.71 |    0.01 |  80.5664 | 1.9531 |     - |  338471 B |
+
+## Merge update in Leaf5plus1 (less code) and .NET 5
+
+BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19041.630 (2004/?/20H1)
+Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical cores
+.NET Core SDK=5.0.100
+  [Host]     : .NET Core 5.0.0 (CoreCLR 5.0.20.51904, CoreFX 5.0.20.51904), X64 RyuJIT
+  DefaultJob : .NET Core 5.0.0 (CoreCLR 5.0.20.51904, CoreFX 5.0.20.51904), X64 RyuJIT
+
+
+|                           Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
+|--------------------------------- |------ |-------------:|------------:|------------:|------:|--------:|---------:|--------:|------:|----------:|
+|     V2_ImHashMap_AVL_AddOrUpdate |     1 |     144.0 ns |     1.52 ns |     1.19 ns |  1.00 |    0.00 |   0.0650 |       - |     - |     272 B |
+| V3_ImHashMap_234Tree_AddOrUpdate |     1 |     101.5 ns |     1.28 ns |     1.14 ns |  0.70 |    0.01 |   0.0381 |       - |     - |     160 B |
+|      ConcurrentDictionary_TryAdd |     1 |     292.7 ns |     4.76 ns |     4.45 ns |  2.04 |    0.04 |   0.1969 |       - |     - |     824 B |
+|                                  |       |              |             |             |       |         |          |         |       |           |
+|     V2_ImHashMap_AVL_AddOrUpdate |     5 |     481.5 ns |     6.25 ns |     5.22 ns |  1.00 |    0.00 |   0.2632 |       - |     - |    1104 B |
+| V3_ImHashMap_234Tree_AddOrUpdate |     5 |     306.7 ns |     3.46 ns |     3.06 ns |  0.64 |    0.01 |   0.1144 |       - |     - |     480 B |
+|      ConcurrentDictionary_TryAdd |     5 |     540.4 ns |    10.13 ns |     9.48 ns |  1.13 |    0.02 |   0.2422 |       - |     - |    1016 B |
+|                                  |       |              |             |             |       |         |          |         |       |           |
+|     V2_ImHashMap_AVL_AddOrUpdate |    10 |     953.8 ns |    12.19 ns |    11.40 ns |  1.00 |    0.00 |   0.5512 |       - |     - |    2312 B |
+| V3_ImHashMap_234Tree_AddOrUpdate |    10 |     621.9 ns |     6.69 ns |     5.59 ns |  0.65 |    0.01 |   0.2708 |       - |     - |    1136 B |
+|      ConcurrentDictionary_TryAdd |    10 |   1,449.7 ns |    28.39 ns |    27.88 ns |  1.52 |    0.04 |   0.6752 |       - |     - |    2824 B |
+|                                  |       |              |             |             |       |         |          |         |       |           |
+|     V2_ImHashMap_AVL_AddOrUpdate |   100 |  14,325.1 ns |   172.84 ns |   161.68 ns |  1.00 |    0.00 |   8.3313 |       - |     - |   34856 B |
+| V3_ImHashMap_234Tree_AddOrUpdate |   100 |  10,243.7 ns |   128.61 ns |   120.30 ns |  0.72 |    0.01 |   5.0201 |       - |     - |   21008 B |
+|      ConcurrentDictionary_TryAdd |   100 |  16,128.0 ns |   224.14 ns |   220.13 ns |  1.13 |    0.02 |   6.8359 |  0.7324 |     - |   28664 B |
+|                                  |       |              |             |             |       |         |          |         |       |           |
+|     V2_ImHashMap_AVL_AddOrUpdate |  1000 | 322,331.1 ns | 4,775.60 ns | 4,467.10 ns |  1.00 |    0.00 | 122.0703 |  3.4180 |     - |  511208 B |
+| V3_ImHashMap_234Tree_AddOrUpdate |  1000 | 229,038.5 ns | 2,153.89 ns | 1,798.59 ns |  0.71 |    0.01 |  80.8105 |  0.9766 |     - |  338464 B |
+|      ConcurrentDictionary_TryAdd |  1000 | 181,740.5 ns | 2,808.62 ns | 2,489.77 ns |  0.56 |    0.01 |  52.9785 | 15.3809 |     - |  247624 B |
 
 */
             [Params(1, 5, 10, 100, 1_000)]
@@ -490,17 +523,6 @@ Leaf4Plus1
 
                 map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
                 return map;
-            }
-
-            // [Benchmark]
-            public ImTools.OldVersions.V1.ImHashMap<Type, string> ImHashMap_V1_AddOrUpdate()
-            {
-                var map = ImTools.OldVersions.V1.ImHashMap<Type, string>.Empty;
-
-                foreach (var key in _keys.Take(Count))
-                    map = map.AddOrUpdate(key, "a");
-
-                return map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
             }
 
             // [Benchmark]
@@ -585,7 +607,7 @@ Leaf4Plus1
                 return map;
             }
 
-            // [Benchmark]
+            [Benchmark]
             public ConcurrentDictionary<Type, string> ConcurrentDictionary_TryAdd()
             {
                 var map = new ConcurrentDictionary<Type, string>();
@@ -1133,7 +1155,6 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             {
                 _map = AddOrUpdate();
                 _mapSlots = ImHashMapSlots_AddOrUpdate();
-                _mapV1 = AddOrUpdate_v1();
                 _mapExp = Experimental_ImHashMap_AddOrUpdate();
                 _map234 = ImHashMap_234Tree_AddOrUpdate();
                 _partMap234 = PartitionedHashMap_234Tree_AddOrUpdate();
@@ -1184,8 +1205,6 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 map = map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
                 return map;
             }
-
-            private ImTools.OldVersions.V1.ImHashMap<Type, string> _mapV1;
 
             public ImTools.Experimental.ImMap<ImMap.KValue<Type>> Experimental_ImHashMap_AddOrUpdate()
             {
@@ -1316,13 +1335,6 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             {
                 var hash = LookupKey.GetHashCode();
                 _mapSlots[hash & ImHashMapSlots.HASH_MASK_TO_FIND_SLOT].TryFind(hash, LookupKey, out var result);
-                return result;
-            }
-
-            // [Benchmark]
-            public string ImHashMap_TryFind_V1()
-            {
-                _mapV1.TryFind(LookupKey, out var result);
                 return result;
             }
 
@@ -1544,8 +1556,6 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 return map;
             }
 
-            private ImTools.OldVersions.V1.ImHashMap<Type, string> _mapV1;
-
             public ImHashMap<Type, string>[] ImHashMapSlots_AddOrUpdate()
             {
                 var map = ImHashMapSlots.CreateWithEmpty<Type, string>();
@@ -1644,10 +1654,6 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             [Benchmark]
             public object V3_ImHashMap_234Tree_EnumerateAndToArray() =>
                 _map234.Enumerate().ToArray();
-
-            //[Benchmark]
-            public object ImHashMap_V1_EnumerateToArray() =>
-                _mapV1.Enumerate().ToArray();
 
             // [Benchmark]
             public object ImHashMap_FoldToArray() =>

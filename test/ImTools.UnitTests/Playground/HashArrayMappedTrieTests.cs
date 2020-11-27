@@ -4,8 +4,7 @@ using NUnit.Framework;
 
 namespace ImTools.UnitTests.Playground
 {
-    [TestFixture]
-    [Explicit]
+    // [TestFixture]
     public class HashArrayMappedTrieTests
     {
         [Test]

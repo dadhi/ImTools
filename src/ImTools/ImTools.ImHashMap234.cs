@@ -1128,115 +1128,71 @@ namespace ImTools.Experimental
                 var e2 = l.Entry2;
                 var e3 = l.Entry3;
                 var e4 = l.Entry4;
- 
-                if (hash > e4.Hash)
+
+                if (hash == e0.Hash) 
+                    return new Leaf5Plus1(p, new Leaf5(e0.Update(entry), e1, e2, e3, e4));
+                if (hash == e1.Hash) 
+                    return new Leaf5Plus1(p, new Leaf5(e0, e1.Update(entry), e2, e3, e4));
+                if (hash == e2.Hash)
+                    return new Leaf5Plus1(p, new Leaf5(e0, e1, e2.Update(entry), e3, e4));
+                if (hash == e3.Hash) 
+                    return new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3.Update(entry), e4));
+                if (hash == e4.Hash)
+                    return new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3, e4.Update(entry)));
+
+                // Insert the added entry and the Plus entry into the correct position starting from the last to the first entry (e4 -> e0),
+                // because we assume the addition of inscreasing hash (keys) is the more often case.
+                // The order at the end should be the follwing: 
+                // e0 < e1 < e2 < e3 < e4 < plus < entry
+                Entry swap = null;
+                if (ph < e4.Hash)
                 {
-                    if (ph < e0.Hash)
-                        return new Branch2(new Leaf3(p, e0, e1), e2, new Leaf3(e3, e4, entry));
-                    if (ph < e1.Hash)
-                        return new Branch2(new Leaf3(e0, p, e1), e2, new Leaf3(e3, e4, entry));
-                    if (ph < e2.Hash)
-                        return new Branch2(new Leaf3(e0, e1, p), e2, new Leaf3(e3, e4, entry));
+                    swap = e4; e4 = p; p = swap;
                     if (ph < e3.Hash)
-                        return new Branch2(new Leaf3(e0, e1, e2), p, new Leaf3(e3, e4, entry));
-                    if (ph < e4.Hash)
-                        return new Branch2(new Leaf3(e0, e1, e2), e3, new Leaf3(p, e4, entry));
-                    if (ph < hash)
-                        return new Branch2(new Leaf3(e0, e1, e2), e3, new Leaf3(e4, p, entry));
-                    return new Branch2(new Leaf3(e0, e1, e2), e3, new Leaf3(e4, entry, p));
+                    {
+                        swap = e3; e3 = e4; e4 = swap;
+                        if (ph < e2.Hash)
+                        {
+                            swap = e2; e2 = e3; e3 = swap;
+                            if (ph < e1.Hash)
+                            {
+                                swap = e1; e1 = e2; e2 = swap;
+                                if (ph < e0.Hash)
+                                {
+                                    swap = e0; e0 = e1; e1 = swap;
+                                }
+                            }
+                        }
+                    }
                 }
 
-                if (hash < e0.Hash)
+                Entry e = entry;
+                if (hash < p.Hash)
                 {
-                    if (ph < hash)
-                        return new Branch2(new Leaf3(p, entry, e0), e1, new Leaf3(e2, e3, e4));
-                    if (ph < e0.Hash)
-                        return new Branch2(new Leaf3(entry, p, e0), e1, new Leaf3(e2, e3, e4));
-                    if (ph < e1.Hash)
-                        return new Branch2(new Leaf3(entry, e0, p), e1, new Leaf3(e2, e3, e4));
-                    if (ph < e2.Hash)
-                        return new Branch2(new Leaf3(entry, e0, e1), p, new Leaf3(e2, e3, e4));
-                    if (ph < e3.Hash)
-                        return new Branch2(new Leaf3(entry, e0, e1), e2, new Leaf3(p, e3, e4));
-                    if (ph < e4.Hash)
-                        return new Branch2(new Leaf3(entry, e0, e1), e2, new Leaf3(e3, p, e4));
-                    return new Branch2(new Leaf3(entry, e0, e1), e2, new Leaf3(e3, e4, p));
+                    swap = p; p = e; e = swap;
+                    if (hash < e4.Hash)
+                    {
+                        swap = e4; e4 = p; p = swap;
+                        if (hash < e3.Hash)
+                        {
+                            swap = e3; e3 = e4; e4 = swap;
+                            if (hash < e2.Hash)
+                            {
+                                swap = e2; e2 = e3; e3 = swap;
+                                if (hash < e1.Hash)
+                                {
+                                    swap = e1; e1 = e2; e2 = swap;
+                                    if (hash < e0.Hash)
+                                    {
+                                        swap = e0; e0 = e1; e1 = swap;
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
 
-                if (hash > e0.Hash && hash < e1.Hash)
-                {
-                    if (ph < e0.Hash)
-                        return new Branch2(new Leaf3(p, e0, entry), e1, new Leaf3(e2, e3, e4));
-                    if (ph < hash)
-                        return new Branch2(new Leaf3(e0, p, entry), e1, new Leaf3(e2, e3, e4));
-                    if (ph < e1.Hash)
-                        return new Branch2(new Leaf3(e0, entry, p), e1, new Leaf3(e2, e3, e4));
-                    if (ph < e2.Hash)
-                        return new Branch2(new Leaf3(e0, entry, e1), p, new Leaf3(e2, e3, e4));
-                    if (ph < e3.Hash)
-                        return new Branch2(new Leaf3(e0, entry, e1), e2, new Leaf3(p, e3, e4));
-                    if (ph < e4.Hash)
-                        return new Branch2(new Leaf3(e0, entry, e1), e2, new Leaf3(e3, p, e4));
-                    return new Branch2(new Leaf3(e0, entry, e1), e2, new Leaf3(e3, e4, p));
-                }
-
-                if (hash > e1.Hash && hash < e2.Hash)
-                {
-                    if (ph < e0.Hash)
-                        return new Branch2(new Leaf3(p, e0, e1), entry, new Leaf3(e2, e3, e4));
-                    if (ph < e1.Hash)
-                        return new Branch2(new Leaf3(e0, p, e1), entry, new Leaf3(e2, e3, e4));
-                    if (ph < hash)
-                        return new Branch2(new Leaf3(e0, e1, p), entry, new Leaf3(e2, e3, e4));
-                    if (ph < e2.Hash)
-                        return new Branch2(new Leaf3(e0, e1, entry), p, new Leaf3(e2, e3, e4));
-                    if (ph < e3.Hash)
-                        return new Branch2(new Leaf3(e0, e1, entry), e2, new Leaf3(p, e3, e4));
-                    if (ph < e4.Hash)
-                        return new Branch2(new Leaf3(e0, e1, entry), e2, new Leaf3(e3, p, e4));
-                    return new Branch2(new Leaf3(e0, e1, entry), e2, new Leaf3(e3, e4, p));
-                }
-
-                if (hash > e2.Hash && hash < e3.Hash)
-                {
-                    if (ph < e0.Hash)
-                        return new Branch2(new Leaf3(p, e0, e1), e2, new Leaf3(entry, e3, e4));
-                    if (ph < e1.Hash)
-                        return new Branch2(new Leaf3(e0, p, e1), e2, new Leaf3(entry, e3, e4));
-                    if (ph < e2.Hash)
-                        return new Branch2(new Leaf3(e0, e1, p), e2, new Leaf3(entry, e3, e4));
-                    if (ph < hash)
-                        return new Branch2(new Leaf3(e0, e1, e2), p, new Leaf3(entry, e3, e4));
-                    if (ph < e3.Hash)
-                        return new Branch2(new Leaf3(e0, e1, e2), entry, new Leaf3(p, e3, e4));
-                    if (ph < e4.Hash)
-                        return new Branch2(new Leaf3(e0, e1, e2), entry, new Leaf3(e3, p, e4));
-                    return new Branch2(new Leaf3(e0, e1, e2), entry, new Leaf3(e3, e4, p));
-                }
-
-                if (hash > e3.Hash && hash < e4.Hash)
-                {
-                    if (ph < e0.Hash)
-                        return new Branch2(new Leaf3(p, e0, e1), e2, new Leaf3(e3, entry, e4));
-                    if (ph < e1.Hash)
-                        return new Branch2(new Leaf3(e0, p, e1), e2, new Leaf3(e3, entry, e4));
-                    if (ph < e2.Hash)
-                        return new Branch2(new Leaf3(e0, e1, p), e2, new Leaf3(e3, entry, e4));
-                    if (ph < e3.Hash)
-                        return new Branch2(new Leaf3(e0, e1, e2), p, new Leaf3(e3, entry, e4));
-                    if (ph < hash)
-                        return new Branch2(new Leaf3(e0, e1, e2), e3, new Leaf3(p, entry, e4));
-                    if (ph < e4.Hash)
-                        return new Branch2(new Leaf3(e0, e1, e2), e3, new Leaf3(entry, p, e4));
-                    return new Branch2(new Leaf3(e0, e1, e2), e3, new Leaf3(entry, e4, p));
-                }
-
-                return
-                    hash == e0.Hash ? new Leaf5Plus1(p, new Leaf5(e0.Update(entry), e1, e2, e3, e4)) :
-                    hash == e1.Hash ? new Leaf5Plus1(p, new Leaf5(e0, e1.Update(entry), e2, e3, e4)) :
-                    hash == e2.Hash ? new Leaf5Plus1(p, new Leaf5(e0, e1, e2.Update(entry), e3, e4)) :
-                    hash == e3.Hash ? new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3.Update(entry), e4)) :
-                                      new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3, e4.Update(entry)));
+                return new Branch2(new Leaf3(e0, e1, e2), e3, new Leaf3(e4, p, e));
             }
 
             /// <inheritdoc />
