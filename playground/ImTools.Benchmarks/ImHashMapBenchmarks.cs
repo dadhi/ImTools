@@ -1067,29 +1067,63 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 |                                   Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
 |----------------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
 |                 V2_ImHashMap_AVL_TryFind |     1 |  6.084 ns | 0.1295 ns | 0.1082 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| V2_ImHashMap_AVLOptimizedForAdd_TryFind |     1 |  7.319 ns | 0.2009 ns | 0.1879 ns |  1.20 |    0.03 |     - |     - |     - |         - |
+|  V2_ImHashMap_AVLOptimizedForAdd_TryFind |     1 |  7.319 ns | 0.2009 ns | 0.1879 ns |  1.20 |    0.03 |     - |     - |     - |         - |
 |             V3_ImHashMap_234Tree_TryFind |     1 |  5.372 ns | 0.1142 ns | 0.0954 ns |  0.88 |    0.02 |     - |     - |     - |         - |
 |    V3_PartitionedHashMap_234Tree_TryFind |     1 |  6.578 ns | 0.1517 ns | 0.1345 ns |  1.08 |    0.03 |     - |     - |     - |         - |
 |                                          |       |           |           |           |       |         |       |       |       |           |
 |                 V2_ImHashMap_AVL_TryFind |     5 |  6.867 ns | 0.1035 ns | 0.0918 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| V2_ImHashMap_AVLOptimizedForAdd_TryFind |     5 |  9.599 ns | 0.1509 ns | 0.1411 ns |  1.40 |    0.03 |     - |     - |     - |         - |
+|  V2_ImHashMap_AVLOptimizedForAdd_TryFind |     5 |  9.599 ns | 0.1509 ns | 0.1411 ns |  1.40 |    0.03 |     - |     - |     - |         - |
 |             V3_ImHashMap_234Tree_TryFind |     5 |  5.319 ns | 0.1028 ns | 0.1142 ns |  0.77 |    0.02 |     - |     - |     - |         - |
 |    V3_PartitionedHashMap_234Tree_TryFind |     5 |  6.550 ns | 0.0856 ns | 0.0801 ns |  0.95 |    0.01 |     - |     - |     - |         - |
 |                                          |       |           |           |           |       |         |       |       |       |           |
 |                 V2_ImHashMap_AVL_TryFind |    10 |  7.646 ns | 0.0905 ns | 0.0802 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| V2_ImHashMap_AVLOptimizedForAdd_TryFind |    10 | 11.002 ns | 0.2011 ns | 0.1881 ns |  1.44 |    0.03 |     - |     - |     - |         - |
+|  V2_ImHashMap_AVLOptimizedForAdd_TryFind |    10 | 11.002 ns | 0.2011 ns | 0.1881 ns |  1.44 |    0.03 |     - |     - |     - |         - |
 |             V3_ImHashMap_234Tree_TryFind |    10 |  6.986 ns | 0.2160 ns | 0.2122 ns |  0.91 |    0.03 |     - |     - |     - |         - |
 |    V3_PartitionedHashMap_234Tree_TryFind |    10 |  6.714 ns | 0.2153 ns | 0.1798 ns |  0.88 |    0.03 |     - |     - |     - |         - |
 |                                          |       |           |           |           |       |         |       |       |       |           |
 |                 V2_ImHashMap_AVL_TryFind |   100 | 12.413 ns | 0.3100 ns | 0.2748 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| V2_ImHashMap_AVLOptimizedForAdd_TryFind |   100 | 15.134 ns | 0.2375 ns | 0.2917 ns |  1.23 |    0.04 |     - |     - |     - |         - |
+|  V2_ImHashMap_AVLOptimizedForAdd_TryFind |   100 | 15.134 ns | 0.2375 ns | 0.2917 ns |  1.23 |    0.04 |     - |     - |     - |         - |
 |             V3_ImHashMap_234Tree_TryFind |   100 | 11.147 ns | 0.2990 ns | 0.3443 ns |  0.90 |    0.03 |     - |     - |     - |         - |
 |    V3_PartitionedHashMap_234Tree_TryFind |   100 |  8.245 ns | 0.1473 ns | 0.1150 ns |  0.67 |    0.01 |     - |     - |     - |         - |
 |                                          |       |           |           |           |       |         |       |       |       |           |
 |                 V2_ImHashMap_AVL_TryFind |  1000 | 16.528 ns | 0.1799 ns | 0.1502 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| V2_ImHashMap_AVLOptimizedForAdd_TryFind |  1000 | 22.341 ns | 0.2584 ns | 0.2291 ns |  1.35 |    0.02 |     - |     - |     - |         - |
+|  V2_ImHashMap_AVLOptimizedForAdd_TryFind |  1000 | 22.341 ns | 0.2584 ns | 0.2291 ns |  1.35 |    0.02 |     - |     - |     - |         - |
 |             V3_ImHashMap_234Tree_TryFind |  1000 | 13.178 ns | 0.2153 ns | 0.2014 ns |  0.80 |    0.01 |     - |     - |     - |         - |
 |    V3_PartitionedHashMap_234Tree_TryFind |  1000 | 11.198 ns | 0.2784 ns | 0.3094 ns |  0.68 |    0.02 |     - |     - |     - |         - |
+
+|----------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+|     V2_ImHashMap_AVL_TryFind |     1 |  5.713 ns | 0.1876 ns | 0.2440 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V3_ImHashMap_234Tree_TryFind |     1 |  4.662 ns | 0.1281 ns | 0.1198 ns |  0.81 |    0.04 |     - |     - |     - |         - |
+|                              |       |           |           |           |       |         |       |       |       |           |
+|     V2_ImHashMap_AVL_TryFind |     5 |  5.825 ns | 0.1814 ns | 0.1515 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V3_ImHashMap_234Tree_TryFind |     5 |  4.616 ns | 0.0810 ns | 0.0677 ns |  0.79 |    0.02 |     - |     - |     - |         - |
+|                              |       |           |           |           |       |         |       |       |       |           |
+|     V2_ImHashMap_AVL_TryFind |    10 |  7.177 ns | 0.1120 ns | 0.1047 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V3_ImHashMap_234Tree_TryFind |    10 |  5.931 ns | 0.1373 ns | 0.1285 ns |  0.83 |    0.02 |     - |     - |     - |         - |
+|                              |       |           |           |           |       |         |       |       |       |           |
+|     V2_ImHashMap_AVL_TryFind |   100 | 11.283 ns | 0.2572 ns | 0.2280 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V3_ImHashMap_234Tree_TryFind |   100 |  9.292 ns | 0.0580 ns | 0.0453 ns |  0.82 |    0.01 |     - |     - |     - |         - |
+|                              |       |           |           |           |       |         |       |       |       |           |
+|     V2_ImHashMap_AVL_TryFind |  1000 | 15.201 ns | 0.2404 ns | 0.2248 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V3_ImHashMap_234Tree_TryFind |  1000 | 11.958 ns | 0.1973 ns | 0.1846 ns |  0.79 |    0.02 |     - |     - |     - |         - |
+
+|                           Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|--------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+|     V3_ImHashMap_234Tree_TryFind |     1 |  4.467 ns | 0.0977 ns | 0.0816 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| ConcurrentDictionary_TryGetValue |     1 | 19.103 ns | 0.2302 ns | 0.2040 ns |  4.28 |    0.08 |     - |     - |     - |         - |
+|                                  |       |           |           |           |       |         |       |       |       |           |
+|     V3_ImHashMap_234Tree_TryFind |     5 |  4.588 ns | 0.1057 ns | 0.0937 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| ConcurrentDictionary_TryGetValue |     5 | 19.000 ns | 0.1738 ns | 0.1625 ns |  4.15 |    0.09 |     - |     - |     - |         - |
+|                                  |       |           |           |           |       |         |       |       |       |           |
+|     V3_ImHashMap_234Tree_TryFind |    10 |  5.948 ns | 0.1194 ns | 0.1116 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| ConcurrentDictionary_TryGetValue |    10 | 19.598 ns | 0.4600 ns | 0.4303 ns |  3.30 |    0.11 |     - |     - |     - |         - |
+|                                  |       |           |           |           |       |         |       |       |       |           |
+|     V3_ImHashMap_234Tree_TryFind |   100 |  9.838 ns | 0.1607 ns | 0.1342 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| ConcurrentDictionary_TryGetValue |   100 | 20.336 ns | 0.3591 ns | 0.2998 ns |  2.07 |    0.03 |     - |     - |     - |         - |
+|                                  |       |           |           |           |       |         |       |       |       |           |
+|     V3_ImHashMap_234Tree_TryFind |  1000 | 11.980 ns | 0.2353 ns | 0.2201 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| ConcurrentDictionary_TryGetValue |  1000 | 19.939 ns | 0.4273 ns | 0.8824 ns |  1.73 |    0.10 |     - |     - |     - |         - |
+
 */
             [Params(1, 5, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             public int Count;
@@ -1270,7 +1304,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 
             public static Type LookupKey = typeof(ImHashMapBenchmarks);
 
-            [Benchmark(Baseline = true)]
+            // [Benchmark(Baseline = true)]
             public string V2_ImHashMap_AVL_TryFind()
             {
                 _map.TryFind(LookupKey, out var result);
@@ -1292,21 +1326,22 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 return result;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public string V2_ImHashMap_AVLOptimizedForAdd_TryFind()
             {
                 _mapExp.TryFind(LookupKey.GetHashCode(), LookupKey, out var result);
                 return (string)result;
             }
 
-            [Benchmark]
+            // [Benchmark]
+            [Benchmark(Baseline = true)]
             public string V3_ImHashMap_234Tree_TryFind()
             {
                 _map234.TryFindReferenceEqual(LookupKey.GetHashCode(), LookupKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public string V3_PartitionedHashMap_234Tree_TryFind()
             {
                 var hash = LookupKey.GetHashCode();
@@ -1344,7 +1379,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 return result;
             }
 
-            // [Benchmark]
+            [Benchmark]
             public string ConcurrentDictionary_TryGetValue()
             {
                 _concurrentDict.TryGetValue(LookupKey, out var result);
