@@ -268,14 +268,16 @@ namespace ImTools.Experimental
             public override IEnumerable<ValueEntry> Enumerate() => this;
 
             /// <summary>Returns the left-to-right enumerator</summary>
-            public IEnumerator<ValueEntry> GetEnumerator() => new Enumerator(this);
+            public Enumerator GetEnumerator() => new Enumerator(this);
             IEnumerator<ValueEntry> IEnumerable<ValueEntry>.GetEnumerator() => GetEnumerator();
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-            private struct Enumerator : IEnumerator<ValueEntry>
+            /// <summary>The enumerator</summary>
+            public struct Enumerator : IEnumerator<ValueEntry>
             {
                 private readonly Leaf2 _m;
-                private byte _i, _j;
+                private byte _i;
+                private int  _j;
+                /// <summary>Constructor</summary>
                 public Enumerator(Leaf2 m) 
                 {
                     _m = m;
@@ -283,9 +285,10 @@ namespace ImTools.Experimental
                     _j = 0;
                     Current = null;
                 }
-
+                /// <inheritdoc />
                 public ValueEntry Current { get; private set; }
                 object IEnumerator.Current => Current;
+                /// <inheritdoc />
                 public bool MoveNext() 
                 {
                     for (var i = _i; i < 2; ++_i) 
@@ -297,21 +300,20 @@ namespace ImTools.Experimental
                             ++_i;
                             return true;
                         }
-
                         var ee = ((ConflictsEntry)e).Conflicts; // todo: @perf can be replaced with Unsafe.As - check the F# map PR https://github.com/dotnet/fsharp/pull/10188
-                        if (_j < (uint)ee.Length)
+                        if ((uint)_j < (uint)ee.Length)
                         {
                             Current = ee[_j++];
                             return true;
                         }
-
                         _j = 0;
                     }
 
                     return false;
                 }
-
+                /// <inheritdoc />
                 public void Dispose() {}
+                /// <inheritdoc />
                 public void Reset() {}
             }
 
@@ -390,14 +392,17 @@ namespace ImTools.Experimental
             public override IEnumerable<ValueEntry> Enumerate() => this;
 
             /// <summary>Returns the left-to-right enumerator</summary>
-            public IEnumerator<ValueEntry> GetEnumerator() => new Enumerator(this);
+            public Enumerator GetEnumerator() => new Enumerator(this);
             IEnumerator<ValueEntry> IEnumerable<ValueEntry>.GetEnumerator() => GetEnumerator();
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-            private struct Enumerator : IEnumerator<ValueEntry>
+            /// <summary>The enumerator</summary>
+            public struct Enumerator : IEnumerator<ValueEntry>
             {
                 private readonly Leaf3 _m;
-                private byte _i, _j;
+                private byte _i;
+                private int _j;
+                /// <summary>Constructor</summary>
                 public Enumerator(Leaf3 m) 
                 {
                     _m = m;
@@ -405,9 +410,10 @@ namespace ImTools.Experimental
                     _j = 0;
                     Current = null;
                 }
-
+                /// <inheritdoc />
                 public ValueEntry Current { get; private set; }
                 object IEnumerator.Current => Current;
+                /// <inheritdoc />
                 public bool MoveNext() 
                 {
                     for (var i = _i; i < 3; ++_i) 
@@ -419,21 +425,19 @@ namespace ImTools.Experimental
                             ++_i;
                             return true;
                         }
-
                         var ee = ((ConflictsEntry)e).Conflicts;
-                        if (_j < (uint)ee.Length)
+                        if ((uint)_j < (uint)ee.Length)
                         {
                             Current = ee[_j++];
                             return true;
                         }
-
                         _j = 0;
                     }
-
                     return false;
                 }
-
+                /// <inheritdoc />
                 public void Dispose() {}
+                /// <inheritdoc />
                 public void Reset() {}
             }
 
@@ -511,15 +515,17 @@ namespace ImTools.Experimental
             /// <inheritdoc />
             public override IEnumerable<ValueEntry> Enumerate() => this;
 
-            /// <summary>Returns the left-to-right enumerator</summary>
-            public IEnumerator<ValueEntry> GetEnumerator() => new Enumerator(this);
+            /// <summary>Form the left to the right and from the leafs to the root</summary>
+            public Enumerator GetEnumerator() => new Enumerator(this);
             IEnumerator<ValueEntry> IEnumerable<ValueEntry>.GetEnumerator() => GetEnumerator();
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-            private struct Enumerator : IEnumerator<ValueEntry>
+            /// <summary>The enumerator</summary>
+            public struct Enumerator : IEnumerator<ValueEntry>
             {
                 private readonly Leaf3Plus1 _m;
-                private byte _i, _j;
+                private byte _i;
+                private int _j;
+                /// <summary>Constructor</summary>
                 public Enumerator(Leaf3Plus1 m) 
                 {
                     _m = m;
@@ -527,9 +533,10 @@ namespace ImTools.Experimental
                     _j = 0;
                     Current = null;
                 }
-
+                /// <inheritdoc />
                 public ValueEntry Current { get; private set; }
                 object IEnumerator.Current => Current;
+                /// <inheritdoc />
                 public bool MoveNext() 
                 {
                     for (var i = _i; i < 4; ++_i) 
@@ -547,21 +554,19 @@ namespace ImTools.Experimental
                             ++_i;
                             return true;
                         }
-
                         var ee = ((ConflictsEntry)e).Conflicts; // todo: @perf can be replaced with Unsafe.As - check the F# map PR https://github.com/dotnet/fsharp/pull/10188
-                        if (_j < (uint)ee.Length)
+                        if ((uint)_j < (uint)ee.Length)
                         {
                             Current = ee[_j++];
                             return true;
                         }
-
                         _j = 0;
                     }
-
                     return false;
                 }
-
+                /// <inheritdoc />
                 public void Dispose() {}
+                /// <inheritdoc />
                 public void Reset() {}
             }
 
@@ -788,14 +793,16 @@ namespace ImTools.Experimental
             public override IEnumerable<ValueEntry> Enumerate() => this; // todo: @incomplete move to the ImHashMap234 
 
             /// <summary>Returns the left-to-right enumerator</summary>
-            public IEnumerator<ValueEntry> GetEnumerator() => new Enumerator(this);
+            public Enumerator GetEnumerator() => new Enumerator(this);
             IEnumerator<ValueEntry> IEnumerable<ValueEntry>.GetEnumerator() => GetEnumerator();
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-            private struct Enumerator : IEnumerator<ValueEntry>
+            /// <summary>The enumerator</summary>
+            public struct Enumerator : IEnumerator<ValueEntry>
             {
                 private readonly Leaf5 _m;
-                private byte _i, _j;
+                private byte _i;
+                private int  _j;
+                /// <summary>Constructor</summary>
                 public Enumerator(Leaf5 m) 
                 {
                     _m = m;
@@ -803,9 +810,10 @@ namespace ImTools.Experimental
                     _j = 0;
                     Current = null;
                 }
-
+                /// <inheritdoc />
                 public ValueEntry Current { get; private set; }
                 object IEnumerator.Current => Current;
+                /// <inheritdoc />
                 public bool MoveNext() 
                 {
                     for (var i = _i; i < 5; ++_i) 
@@ -817,21 +825,20 @@ namespace ImTools.Experimental
                             ++_i;
                             return true;
                         }
-
                         var ee = ((ConflictsEntry)e).Conflicts;
-                        if (_j < (uint)ee.Length)
+                        if ((uint)_j < (uint)ee.Length)
                         {
                             Current = ee[_j++];
                             return true;
                         }
-
                         _j = 0;
                     }
 
                     return false;
                 }
-
+                /// <inheritdoc />
                 public void Dispose() {}
+                /// <inheritdoc />
                 public void Reset() {}
             }
 
@@ -2087,13 +2094,5 @@ namespace ImTools.Experimental
         /// <summary>Updates the ref to the part with the new version and retries if the someone changed the part in between</summary>
         public static void RefAddOrUpdatePart<K, V>(ref ImHashMap234<K, V> part, int hash, K key, V value) =>
             Ref.Swap(ref part, hash, key, value, (x, h, k, v) => x.AddOrUpdate(h, k, v));
-    }
-
-    /// <summary>Funny enumerable</summary>
-    public interface IEnumerable<out T, out TEnumerator> : IEnumerable<T>
-        where TEnumerator : IEnumerator<T> 
-    {
-        /// <summary>Funny enumerator</summary>
-        new TEnumerator GetEnumerator();
     }
 }
