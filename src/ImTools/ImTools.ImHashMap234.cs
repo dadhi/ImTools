@@ -238,7 +238,7 @@ namespace ImTools.Experimental
         }
 
         /// <summary>Leaf with 2 entries</summary>
-        public sealed class Leaf2 : ImHashMap234<K, V>
+        public sealed class Leaf2 : ImHashMap234<K, V>, IEnumerable<ValueEntry>
         {
             /// <summary>Left entry</summary>
             public readonly Entry Entry0;
@@ -265,16 +265,54 @@ namespace ImTools.Experimental
                 null;
 
             /// <inheritdoc />
-            public override IEnumerable<ValueEntry> Enumerate()
+            public override IEnumerable<ValueEntry> Enumerate() => this;
+
+            /// <summary>Returns the left-to-right enumerator</summary>
+            public IEnumerator<ValueEntry> GetEnumerator() => new Enumerator(this);
+            IEnumerator<ValueEntry> IEnumerable<ValueEntry>.GetEnumerator() => GetEnumerator();
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+            private struct Enumerator : IEnumerator<ValueEntry>
             {
-                if (Entry0 is ValueEntry v0)
-                    yield return v0;
-                else foreach (var x in ((ConflictsEntry)Entry0).Conflicts)
-                    yield return x;
-                if (Entry1 is ValueEntry v1)
-                    yield return v1;
-                else foreach (var x in ((ConflictsEntry)Entry1).Conflicts)
-                    yield return x;
+                private readonly Leaf2 _m;
+                private byte _i, _j;
+                public Enumerator(Leaf2 m) 
+                {
+                    _m = m;
+                    _i = 0;
+                    _j = 0;
+                    Current = null;
+                }
+
+                public ValueEntry Current { get; private set; }
+                object IEnumerator.Current => Current;
+                public bool MoveNext() 
+                {
+                    for (var i = _i; i < 2; ++_i) 
+                    {
+                        var e = i == 0 ? _m.Entry0 : _m.Entry1;
+                        if (_j == 0 && e is ValueEntry v0)
+                        {
+                            Current = v0;
+                            ++_i;
+                            return true;
+                        }
+
+                        var ee = ((ConflictsEntry)e).Conflicts; // todo: @perf can be replaced with Unsafe.As - check the F# map PR https://github.com/dotnet/fsharp/pull/10188
+                        if (_j < (uint)ee.Length)
+                        {
+                            Current = ee[_j++];
+                            return true;
+                        }
+
+                        _j = 0;
+                    }
+
+                    return false;
+                }
+
+                public void Dispose() {}
+                public void Reset() {}
             }
 
             /// <inheritdoc />
