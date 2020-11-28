@@ -395,7 +395,7 @@ namespace ImTools.Experimental.UnitTests
         }
 
         [Test]
-        public void AddOrUpdate_metamorphic_shrinked_manually()
+        public void AddOrUpdate_metamorphic_shrinked_manually_case_1()
         {
             var baseItems = new int[4] { 65347, 87589, 89692, 92562 };
 
@@ -418,6 +418,32 @@ namespace ImTools.Experimental.UnitTests
 
             CollectionAssert.AreEqual(e1.Select(x => x.Key), e2.Select(x => x.Key));
         }
+
+        [Test]
+        public void AddOrUpdate_metamorphic_shrinked_manually_case_2()
+        {
+            var baseItems = new int[6] {4527, 58235, 65127, 74715, 81974, 89123};
+
+            var m1 = ImHashMap234<int, int>.Empty;
+            var m2 = ImHashMap234<int, int>.Empty;
+            foreach (var x in baseItems)
+            {
+                m1 = m1.AddOrUpdate(x, x);
+                m2 = m2.AddOrUpdate(x, x);
+            }
+
+            m1 = m1.AddOrUpdate(35206, 42);
+            m1 = m1.AddOrUpdate(83178, 43);
+
+            m2 = m2.AddOrUpdate(83178, 43);
+            m2 = m2.AddOrUpdate(35206, 42);
+
+            var e1 = m1.Enumerate().OrderBy(i => i.Key).Select(x => x.Key).ToArray();
+            var e2 = m2.Enumerate().OrderBy(i => i.Key).Select(x => x.Key).ToArray();
+
+            CollectionAssert.AreEqual(e1, e2);
+        }
+
 
         [Test]
         public void AddOrUpdate_ModelBased()
