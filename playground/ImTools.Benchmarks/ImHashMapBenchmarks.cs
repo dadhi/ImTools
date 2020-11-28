@@ -1514,22 +1514,22 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
   DefaultJob : .NET Core 5.0.0 (CoreCLR 5.0.20.51904, CoreFX 5.0.20.51904), X64 RyuJIT
 
 
-|                                   Method | Count |         Mean |     Error |    StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-|----------------------------------------- |------ |-------------:|----------:|----------:|------:|--------:|-------:|------:|------:|----------:|
-|     V2_ImHashMap_AVL_EnumerateAndToArray |     1 |     132.1 ns |   2.09 ns |   1.85 ns |  1.00 |    0.00 | 0.0458 |     - |     - |     192 B |
-| V3_ImHashMap_234Tree_EnumerateAndToArray |     1 |     107.2 ns |   1.77 ns |   1.74 ns |  0.81 |    0.01 | 0.0305 |     - |     - |     128 B |
-|                                          |       |              |           |           |       |         |        |       |       |           |
-|     V2_ImHashMap_AVL_EnumerateAndToArray |     5 |     253.2 ns |   3.92 ns |   3.48 ns |  1.00 |    0.00 | 0.0782 |     - |     - |     328 B |
-| V3_ImHashMap_234Tree_EnumerateAndToArray |     5 |     211.2 ns |   2.56 ns |   2.27 ns |  0.83 |    0.01 | 0.0591 |     - |     - |     248 B |
-|                                          |       |              |           |           |       |         |        |       |       |           |
-|     V2_ImHashMap_AVL_EnumerateAndToArray |    10 |     402.6 ns |   4.14 ns |   3.87 ns |  1.00 |    0.00 | 0.1106 |     - |     - |     464 B |
-| V3_ImHashMap_234Tree_EnumerateAndToArray |    10 |     488.3 ns |   5.23 ns |   4.64 ns |  1.21 |    0.02 | 0.1297 |     - |     - |     544 B |
-|                                          |       |              |           |           |       |         |        |       |       |           |
-|     V2_ImHashMap_AVL_EnumerateAndToArray |   100 |   2,976.7 ns |  25.56 ns |  22.66 ns |  1.00 |    0.00 | 0.5341 |     - |     - |    2240 B |
-| V3_ImHashMap_234Tree_EnumerateAndToArray |   100 |   8,286.5 ns |  89.58 ns |  79.41 ns |  2.78 |    0.04 | 0.9766 |     - |     - |    4096 B |
-|                                          |       |              |           |           |       |         |        |       |       |           |
-|     V2_ImHashMap_AVL_EnumerateAndToArray |  1000 |  29,610.8 ns | 273.95 ns | 228.76 ns |  1.00 |    0.00 | 3.9978 |     - |     - |   16800 B |
-| V3_ImHashMap_234Tree_EnumerateAndToArray |  1000 | 117,115.6 ns | 870.57 ns | 771.74 ns |  3.95 |    0.05 | 8.4229 |     - |     - |   35656 B |
+|                                   Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|----------------------------------------- |------ |-------------:|------------:|------------:|------:|--------:|-------:|------:|------:|----------:|
+|     V2_ImHashMap_AVL_EnumerateAndToArray |     1 |     131.8 ns |     2.43 ns |     2.27 ns |  1.00 |    0.00 | 0.0458 |     - |     - |     192 B |
+| V3_ImHashMap_234Tree_EnumerateAndToArray |     1 |     107.7 ns |     0.56 ns |     0.44 ns |  0.82 |    0.01 | 0.0305 |     - |     - |     128 B |
+|                                          |       |              |             |             |       |         |        |       |       |           |
+|     V2_ImHashMap_AVL_EnumerateAndToArray |     5 |     251.5 ns |     3.12 ns |     2.77 ns |  1.00 |    0.00 | 0.0782 |     - |     - |     328 B |
+| V3_ImHashMap_234Tree_EnumerateAndToArray |     5 |     214.5 ns |     4.37 ns |     4.86 ns |  0.86 |    0.02 | 0.0591 |     - |     - |     248 B |
+|                                          |       |              |             |             |       |         |        |       |       |           |
+|     V2_ImHashMap_AVL_EnumerateAndToArray |    10 |     402.3 ns |     2.40 ns |     2.00 ns |  1.00 |    0.00 | 0.1106 |     - |     - |     464 B |
+| V3_ImHashMap_234Tree_EnumerateAndToArray |    10 |     469.7 ns |     8.19 ns |    14.13 ns |  1.19 |    0.04 | 0.1144 |     - |     - |     480 B |
+|                                          |       |              |             |             |       |         |        |       |       |           |
+|     V2_ImHashMap_AVL_EnumerateAndToArray |   100 |   2,987.6 ns |    34.44 ns |    28.76 ns |  1.00 |    0.00 | 0.5341 |     - |     - |    2240 B |
+| V3_ImHashMap_234Tree_EnumerateAndToArray |   100 |   8,085.2 ns |    54.39 ns |    50.88 ns |  2.71 |    0.03 | 0.9308 |     - |     - |    3904 B |
+|                                          |       |              |             |             |       |         |        |       |       |           |
+|     V2_ImHashMap_AVL_EnumerateAndToArray |  1000 |  29,107.9 ns |   372.54 ns |   330.25 ns |  1.00 |    0.00 | 3.9978 |     - |     - |   16800 B |
+| V3_ImHashMap_234Tree_EnumerateAndToArray |  1000 | 117,098.5 ns | 1,388.31 ns | 1,298.62 ns |  4.02 |    0.07 | 8.0566 |     - |     - |   33992 B |
 
 */
             [Params(1, 5, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
