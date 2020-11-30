@@ -1166,6 +1166,22 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 |     V3_ImHashMap_234Tree_TryFind |  1000 | 11.980 ns | 0.2353 ns | 0.2201 ns |  1.00 |    0.00 |     - |     - |     - |         - |
 | ConcurrentDictionary_TryGetValue |  1000 | 19.939 ns | 0.4273 ns | 0.8824 ns |  1.73 |    0.10 |     - |     - |     - |         - |
 
+|                       Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|----------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+| V3_ImHashMap_234Tree_TryFind |     1 |  4.647 ns | 0.0516 ns | 0.0431 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|         ImmutableDict_TryGet |     1 | 23.396 ns | 0.3703 ns | 0.3092 ns |  5.04 |    0.10 |     - |     - |     - |         - |
+|                              |       |           |           |           |       |         |       |       |       |           |
+| V3_ImHashMap_234Tree_TryFind |     5 |  5.242 ns | 0.1822 ns | 0.3143 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|         ImmutableDict_TryGet |     5 | 23.739 ns | 0.1941 ns | 0.1816 ns |  4.42 |    0.32 |     - |     - |     - |         - |
+|                              |       |           |           |           |       |         |       |       |       |           |
+| V3_ImHashMap_234Tree_TryFind |    10 |  5.749 ns | 0.1206 ns | 0.1128 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|         ImmutableDict_TryGet |    10 | 24.769 ns | 0.3152 ns | 0.2949 ns |  4.31 |    0.11 |     - |     - |     - |         - |
+|                              |       |           |           |           |       |         |       |       |       |           |
+| V3_ImHashMap_234Tree_TryFind |   100 |  8.252 ns | 0.1754 ns | 0.1465 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|         ImmutableDict_TryGet |   100 | 27.288 ns | 0.6118 ns | 0.6009 ns |  3.31 |    0.10 |     - |     - |     - |         - |
+|                              |       |           |           |           |       |         |       |       |       |           |
+| V3_ImHashMap_234Tree_TryFind |  1000 | 12.053 ns | 0.1955 ns | 0.1829 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|         ImmutableDict_TryGet |  1000 | 30.762 ns | 0.3980 ns | 0.3723 ns |  2.55 |    0.04 |     - |     - |     - |         - |
 */
             [Params(1, 5, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             public int Count;
@@ -1411,14 +1427,14 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 return result;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public string ConcurrentDictionary_TryGetValue()
             {
                 _concurrentDict.TryGetValue(LookupKey, out var result);
                 return result;
             }
 
-            // [Benchmark]
+            [Benchmark]
             public string ImmutableDict_TryGet()
             {
                 _immutableDict.TryGetValue(LookupKey, out var result);
