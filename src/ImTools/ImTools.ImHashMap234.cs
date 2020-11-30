@@ -10,7 +10,7 @@ using System.Collections;
 namespace ImTools.Experimental
 {
     /// <summary>The base class for the tree leafs and branches, also defines the Empty tree</summary>
-    public class ImHashMap234<K, V>
+    public class ImHashMap234<K, V> : IEnumerable<ImHashMap234<K, V>.ValueEntry>
     {
         /// <summary>Empty tree to start with.</summary>
         public static readonly ImHashMap234<K, V> Empty = new ImHashMap234<K, V>();
@@ -24,7 +24,7 @@ namespace ImTools.Experimental
 #if DEBUG
             // for debug purposes we just output the first N hashes in array
             const int outputCount = 101;
-            var itemsInHashOrder = Enumerate().Take(outputCount).Select(x => x.Hash).ToList();
+            var itemsInHashOrder = this.Take(outputCount).Select(x => x.Hash).ToList();
             return $"new int[{(itemsInHashOrder.Count >= 100 ? ">=" : "") + itemsInHashOrder.Count}] {{" + string.Join(", ", itemsInHashOrder) + "}";
 #else
             return "empty " + typeof(ImHashMap234<K, V>).Name;
@@ -34,8 +34,18 @@ namespace ImTools.Experimental
         /// <summary>Lookup for the entry, if not found returns `null`</summary>
         public virtual Entry GetEntryOrDefault(int hash) => null;
 
-        /// <summary>Enumerates all the map entries from the left to the right and from the bottom to top</summary>
-        public virtual IEnumerable<ValueEntry> Enumerate() => Enumerable.Empty<ValueEntry>();
+        /// <inheritdoc />
+        public virtual IEnumerator<ValueEntry> GetEnumerator() => _emptyEnumerator;
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        private readonly IEnumerator<ValueEntry> _emptyEnumerator = new EmptyEnumerator();
+        private struct EmptyEnumerator : IEnumerator<ValueEntry>
+        {
+            public ValueEntry Current => throw new NotSupportedException();
+            object IEnumerator.Current => Current;
+            public bool MoveNext() => false; 
+            void IDisposable.Dispose() {}
+            void IEnumerator.Reset() {}
+        }
 
         /// <summary>Produces the new or updated map with the new entry</summary>
         public virtual ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry) => entry;
@@ -89,9 +99,33 @@ namespace ImTools.Experimental
 #endif
 
             /// <inheritdoc />
-            public override IEnumerable<ValueEntry> Enumerate() 
+            public override IEnumerator<ValueEntry> GetEnumerator() => new Enumerator(this);
+            /// <summary>the enumerator</summary>
+            public struct Enumerator : IEnumerator<ValueEntry>
             {
-                yield return this;
+                private ValueEntry _e;
+                /// <summary>the enumerator</summary>
+                public Enumerator(ValueEntry e) 
+                {
+                    _e = e;
+                    Current = null;
+                }  
+                /// <inheritdoc />
+                public ValueEntry Current { get; private set; }
+                object IEnumerator.Current => Current;
+                /// <inheritdoc />
+                public bool MoveNext() 
+                {
+                    if (_e != null)
+                    {
+                        Current = _e;
+                        _e = null;
+                        return true;
+                    }
+                    return false;
+                } 
+                void IDisposable.Dispose() {}
+                void IEnumerator.Reset() {}
             }
 
             internal override Entry Update(ValueEntry entry) => 
@@ -141,7 +175,7 @@ namespace ImTools.Experimental
 #endif
 
             /// <inheritdoc />
-            public override IEnumerable<ValueEntry> Enumerate() => Conflicts;
+            public override IEnumerator<ValueEntry> GetEnumerator() => ((IEnumerable<ValueEntry>)Conflicts).GetEnumerator();
 
             internal override Entry Update(ValueEntry entry) 
             {
@@ -264,13 +298,8 @@ namespace ImTools.Experimental
                 hash == Entry1.Hash ? Entry1 :
                 null;
 
-            /// <inheritdoc />
-            public override IEnumerable<ValueEntry> Enumerate() => this;
-
             /// <summary>Returns the left-to-right enumerator</summary>
-            public Enumerator GetEnumerator() => new Enumerator(this);
-            IEnumerator<ValueEntry> IEnumerable<ValueEntry>.GetEnumerator() => GetEnumerator();
-            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+            public override IEnumerator<ValueEntry> GetEnumerator() => new Enumerator(this);
             /// <summary>The enumerator</summary>
             public struct Enumerator : IEnumerator<ValueEntry>
             {
@@ -388,14 +417,8 @@ namespace ImTools.Experimental
                 hash == Entry2.Hash ? Entry2 :
                 null;
 
-            /// <inheritdoc />
-            public override IEnumerable<ValueEntry> Enumerate() => this;
-
             /// <summary>Returns the left-to-right enumerator</summary>
-            public Enumerator GetEnumerator() => new Enumerator(this);
-            IEnumerator<ValueEntry> IEnumerable<ValueEntry>.GetEnumerator() => GetEnumerator();
-            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
+            public override IEnumerator<ValueEntry> GetEnumerator() => new Enumerator(this);
             /// <summary>The enumerator</summary>
             public struct Enumerator : IEnumerator<ValueEntry>
             {
@@ -512,12 +535,8 @@ namespace ImTools.Experimental
                     null;
             }
 
-            /// <inheritdoc />
-            public override IEnumerable<ValueEntry> Enumerate() => this;
             /// <summary>Form the left to the right and from the leafs to the root</summary>
-            public Enumerator GetEnumerator() => new Enumerator(this);
-            IEnumerator<ValueEntry> IEnumerable<ValueEntry>.GetEnumerator() => GetEnumerator();
-            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+            public override IEnumerator<ValueEntry> GetEnumerator() => new Enumerator(this);
             /// <summary>The enumerator</summary>
             public struct Enumerator : IEnumerator<ValueEntry>
             {
@@ -788,13 +807,8 @@ namespace ImTools.Experimental
                 hash == Entry4.Hash ? Entry4 :
                 null;
 
-            /// <inheritdoc />
-            public override IEnumerable<ValueEntry> Enumerate() => this; // todo: @incomplete move to the ImHashMap234 
-
             /// <summary>Returns the left-to-right enumerator</summary>
-            public Enumerator GetEnumerator() => new Enumerator(this);
-            IEnumerator<ValueEntry> IEnumerable<ValueEntry>.GetEnumerator() => GetEnumerator();
-            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+            public override IEnumerator<ValueEntry> GetEnumerator() => new Enumerator(this);
             /// <summary>The enumerator</summary>
             public struct Enumerator : IEnumerator<ValueEntry>
             {
@@ -926,12 +940,8 @@ namespace ImTools.Experimental
                     null;
             }
 
-            /// <inheritdoc />
-            public override IEnumerable<ValueEntry> Enumerate() => this;
             /// <summary>Form the left to the right and from the leafs to the root</summary>
-            public Enumerator GetEnumerator() => new Enumerator(this);
-            IEnumerator<ValueEntry> IEnumerable<ValueEntry>.GetEnumerator() => GetEnumerator();
-            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+            public override IEnumerator<ValueEntry> GetEnumerator() => new Enumerator(this);
             /// <summary>The enumerator</summary>
             public struct Enumerator : IEnumerator<ValueEntry>
             {
@@ -1199,7 +1209,7 @@ namespace ImTools.Experimental
 
         // todo: @perf consider to separate the Branch2Leafs
         /// <summary>Branch of 2 leafs or branches</summary>
-        public sealed class Branch2 : Branch
+        public sealed class Branch2 : Branch, IEnumerable<ValueEntry>
         {
             /// <summary>Left branch</summary>
             public readonly ImHashMap234<K, V> Left;
@@ -1230,19 +1240,67 @@ namespace ImTools.Experimental
                 hash < Entry0.Hash ? Left .GetEntryOrDefault(hash) :
                 Entry0;
 
-            /// <inheritdoc />
-            public override IEnumerable<ValueEntry> Enumerate()
+            /// <summary>Form the left to the right and from the leafs to the root</summary>
+            public override IEnumerator<ValueEntry> GetEnumerator() => new Enumerator(this);
+            /// <summary>The enumerator</summary>
+            public struct Enumerator : IEnumerator<ValueEntry>
             {
-                foreach (var x in Left.Enumerate())
-                    yield return x;
+                private readonly Branch2 _m;
+                private byte _i;
+                private int _j;
+                private IEnumerator<ValueEntry> _e;
+                /// <summary>Constructor</summary>
+                public Enumerator(Branch2 m) 
+                {
+                    _m = m;
+                    _i = 0;
+                    _j = 0;
+                    _e = null;
+                    Current = null;
+                }
+                /// <inheritdoc />
+                public ValueEntry Current { get; private set; }
+                object IEnumerator.Current => Current;
+                /// <inheritdoc />
+                public bool MoveNext() 
+                {
+                    while (_i < 3)
+                    {
+                        if (_i == 0 || _i == 2)
+                        {
+                            if (_e == null)
+                                _e = _i == 0 ? _m.Left.GetEnumerator() : _m.Right.GetEnumerator();
+                            if (_e.MoveNext())
+                            {
+                                Current = _e.Current;
+                                return true;
+                            }
+                            _e = null;
+                            ++_i; // means the next
+                        }
 
-                if (Entry0 is ValueEntry v)
-                    yield return v;
-                else foreach (var x in ((ConflictsEntry)Entry0).Conflicts)
-                    yield return x;
-
-                foreach (var x in Right.Enumerate())
-                    yield return x;
+                        if (_i == 1)
+                        {
+                            if (_j == 0 && _m.Entry0 is ValueEntry v)
+                            {
+                                Current = v;
+                                ++_i;
+                                return true;
+                            }
+                            var ee = ((ConflictsEntry)_m.Entry0).Conflicts; // todo: @perf can be replaced with Unsafe.As - check the F# map PR https://github.com/dotnet/fsharp/pull/10188
+                            if ((uint)_j < (uint)ee.Length)
+                            {
+                                Current = ee[_j++];
+                                return true;
+                            }
+                            _j = 0; // reset the _j
+                            ++_i;
+                        }
+                    }
+                    return false;
+                }
+                void IDisposable.Dispose() {}
+                void IEnumerator.Reset() {}
             }
 
             // todo: @perf see that the size of the method is small, so we may consider to inline the addition for the branchs of the leafs, it will be especially more simple, if the Branch2Leafs would be a separate type.
@@ -1485,28 +1543,71 @@ namespace ImTools.Experimental
                     Middle.GetEntryOrDefault(hash);
             }
 
-            /// <inheritdoc />
-            public override IEnumerable<ValueEntry> Enumerate()
+            /// <summary>Form the left to the right and from the leafs to the root</summary>
+            public override IEnumerator<ValueEntry> GetEnumerator() => new Enumerator(this);
+            /// <summary>The enumerator</summary>
+            public struct Enumerator : IEnumerator<ValueEntry>
             {
-                foreach (var x in Left.Enumerate())
-                    yield return x;
+                private readonly Branch3 _m;
+                private byte _i;
+                private int _j;
+                private IEnumerator<ValueEntry> _e;
+                /// <summary>Constructor</summary>
+                public Enumerator(Branch3 m) 
+                {
+                    _m = m;
+                    _i = 0;
+                    _j = 0;
+                    _e = null;
+                    Current = null;
+                }
+                /// <inheritdoc />
+                public ValueEntry Current { get; private set; }
+                object IEnumerator.Current => Current;
+                /// <inheritdoc />
+                public bool MoveNext() 
+                {
+                    while (_i < 5) 
+                    {
+                        if (_i == 0 || _i == 2 || _i == 4)
+                        {
+                            if (_e == null)
+                                _e = _i == 0 ? _m.Left.GetEnumerator() : _i == 2 ? _m.Middle.GetEnumerator() : _m.Right.GetEnumerator();
+                            if (_e.MoveNext())
+                            {
+                                Current = _e.Current;
+                                return true;
+                            }
+                            _e = null;
+                            ++_i; // handle the Entry0 or Entry1
+                        }
 
-                if (Entry0 is ValueEntry v0)
-                    yield return v0;
-                else foreach (var x in ((ConflictsEntry)Entry0).Conflicts)
-                    yield return x;
-                
-                foreach (var x in Middle.Enumerate())
-                    yield return x;
+                        if (_i == 1 || _i == 3)
+                        {
+                            var e = _i == 1 ? _m.Entry0 : _m.Entry1;
+                            if (_j == 0 && e is ValueEntry v)
+                            {
+                                Current = v;
+                                ++_i;
+                                return true;
+                            }
+                            var ee = ((ConflictsEntry)e).Conflicts; // todo: @perf can be replaced with Unsafe.As - check the F# map PR https://github.com/dotnet/fsharp/pull/10188
+                            if ((uint)_j < (uint)ee.Length)
+                            {
+                                Current = ee[_j++];
+                                return true;
+                            }
+                            _j = 0; // reset the _j
+                            ++_i;
+                        }
+                    }
+                    return false;
+                }
 
-                if (Entry1 is ValueEntry v1)
-                    yield return v1;
-                else foreach (var x in ((ConflictsEntry)Entry1).Conflicts)
-                    yield return x;
-
-                foreach (var x in Right.Enumerate())
-                    yield return x;
+                void IDisposable.Dispose() {}
+                void IEnumerator.Reset() {}
             }
+
 
             /// <inheritdoc />
             public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry)
@@ -1718,6 +1819,10 @@ namespace ImTools.Experimental
     /// <summary>ImMap methods</summary>
     public static class ImHashMap234
     {
+        /// <summary>Enumerates all the map entries from the left to the right and from the bottom to top</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static IEnumerable<ImHashMap234<K, V>.ValueEntry> Enumerate<K, V>(this ImHashMap234<K, V> map) => map;
+
         /// <summary>Looks up for the key using its hash code and checking the key with `object.Equals` for equality,
         ///  returns found value or the default value if not found</summary>
         [MethodImpl((MethodImplOptions)256)]

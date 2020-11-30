@@ -10,7 +10,7 @@ namespace ImTools.Experimental.UnitTests
     public class ImHashMap234Tests
     {
         [Test]
-        public void Adding_hash_and_keys_from_1_to_10_and_checking_the_tree_shape_on_each_addition()
+        public void Adding_hash_and_keys_and_checking_the_tree_shape_on_each_addition()
         {
             var m = ImHashMap234<int, string>.Empty;
             Assert.AreEqual(null, m.GetValueOrDefault(0));
