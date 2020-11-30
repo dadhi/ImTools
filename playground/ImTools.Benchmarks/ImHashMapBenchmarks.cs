@@ -498,6 +498,26 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 | V3_ImHashMap_234Tree_AddOrUpdate |  1000 | 229,038.5 ns | 2,153.89 ns | 1,798.59 ns |  0.71 |    0.01 |  80.8105 |  0.9766 |     - |  338464 B |
 |      ConcurrentDictionary_TryAdd |  1000 | 181,740.5 ns | 2,808.62 ns | 2,489.77 ns |  0.56 |    0.01 |  52.9785 | 15.3809 |     - |  247624 B |
 
+
+### Adding Leaf5Plus1Plus1
+
+|                           Method | Count |          Mean |        Error |       StdDev | Ratio | RatioSD |    Gen 0 |  Gen 1 | Gen 2 | Allocated |
+|--------------------------------- |------ |--------------:|-------------:|-------------:|------:|--------:|---------:|-------:|------:|----------:|
+|     V2_ImHashMap_AVL_AddOrUpdate |     1 |     128.83 ns |     1.662 ns |     1.555 ns |  1.00 |    0.00 |   0.0650 |      - |     - |     272 B |
+| V3_ImHashMap_234Tree_AddOrUpdate |     1 |      97.27 ns |     1.609 ns |     1.505 ns |  0.76 |    0.01 |   0.0381 |      - |     - |     160 B |
+|                                  |       |               |              |              |       |         |          |        |       |           |
+|     V2_ImHashMap_AVL_AddOrUpdate |     5 |     442.58 ns |     1.549 ns |     1.373 ns |  1.00 |    0.00 |   0.2637 |      - |     - |    1104 B |
+| V3_ImHashMap_234Tree_AddOrUpdate |     5 |     279.32 ns |     4.114 ns |     3.848 ns |  0.63 |    0.01 |   0.1144 |      - |     - |     480 B |
+|                                  |       |               |              |              |       |         |          |        |       |           |
+|     V2_ImHashMap_AVL_AddOrUpdate |    10 |     893.52 ns |     9.387 ns |     8.780 ns |  1.00 |    0.00 |   0.5522 |      - |     - |    2312 B |
+| V3_ImHashMap_234Tree_AddOrUpdate |    10 |     562.95 ns |     5.771 ns |     5.116 ns |  0.63 |    0.01 |   0.2537 |      - |     - |    1064 B |
+|                                  |       |               |              |              |       |         |          |        |       |           |
+|     V2_ImHashMap_AVL_AddOrUpdate |   100 |  13,360.49 ns |   260.099 ns |   299.531 ns |  1.00 |    0.00 |   8.3313 |      - |     - |   34856 B |
+| V3_ImHashMap_234Tree_AddOrUpdate |   100 |   9,526.86 ns |   184.968 ns |   189.949 ns |  0.72 |    0.02 |   4.9591 |      - |     - |   20792 B |
+|                                  |       |               |              |              |       |         |          |        |       |           |
+|     V2_ImHashMap_AVL_AddOrUpdate |  1000 | 299,650.94 ns | 3,724.188 ns | 3,483.608 ns |  1.00 |    0.00 | 122.0703 | 3.4180 |     - |  511208 B |
+| V3_ImHashMap_234Tree_AddOrUpdate |  1000 | 195,267.20 ns | 3,327.881 ns | 3,112.902 ns |  0.65 |    0.01 |  79.5898 |      - |     - |  333496 B |
+
 */
             [Params(1, 5, 10, 100, 1_000)]
             public int Count;
@@ -607,7 +627,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ConcurrentDictionary<Type, string> ConcurrentDictionary_TryAdd()
             {
                 var map = new ConcurrentDictionary<Type, string>();

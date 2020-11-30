@@ -10,7 +10,7 @@ using System.Collections;
 namespace ImTools.Experimental
 {
     /// <summary>The base class for the tree leafs and branches, also defines the Empty tree</summary>
-    public class ImHashMap234<K, V> : IEnumerable<ImHashMap234<K, V>.ValueEntry>
+    public class ImHashMap234<K, V>// : IEnumerable<ImHashMap234<K, V>.ValueEntry>
     {
         /// <summary>Empty tree to start with.</summary>
         public static readonly ImHashMap234<K, V> Empty = new ImHashMap234<K, V>();
@@ -24,7 +24,7 @@ namespace ImTools.Experimental
 #if DEBUG
             // for debug purposes we just output the first N hashes in array
             const int outputCount = 101;
-            var itemsInHashOrder = this.Take(outputCount).Select(x => x.Hash).ToList();
+            var itemsInHashOrder = this.Enumerate().Take(outputCount).Select(x => x.Hash).ToList();
             return $"new int[{(itemsInHashOrder.Count >= 100 ? ">=" : "") + itemsInHashOrder.Count}] {{" + string.Join(", ", itemsInHashOrder) + "}";
 #else
             return "empty " + typeof(ImHashMap234<K, V>).Name;
@@ -33,19 +33,6 @@ namespace ImTools.Experimental
 
         /// <summary>Lookup for the entry, if not found returns `null`</summary>
         public virtual Entry GetEntryOrDefault(int hash) => null;
-
-        /// <inheritdoc />
-        public virtual IEnumerator<ValueEntry> GetEnumerator() => _emptyEnumerator;
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-        private readonly IEnumerator<ValueEntry> _emptyEnumerator = new EmptyEnumerator();
-        private struct EmptyEnumerator : IEnumerator<ValueEntry>
-        {
-            public ValueEntry Current => throw new NotSupportedException();
-            object IEnumerator.Current => Current;
-            public bool MoveNext() => false; 
-            void IDisposable.Dispose() {}
-            void IEnumerator.Reset() {}
-        }
 
         /// <summary>Produces the new or updated map with the new entry</summary>
         public virtual ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry) => entry;
@@ -98,36 +85,6 @@ namespace ImTools.Experimental
             public override string ToString() => "[" + Hash + "]" + Key + ":" + Value;
 #endif
 
-            /// <inheritdoc />
-            public override IEnumerator<ValueEntry> GetEnumerator() => new Enumerator(this);
-            /// <summary>the enumerator</summary>
-            public struct Enumerator : IEnumerator<ValueEntry>
-            {
-                private ValueEntry _e;
-                /// <summary>the enumerator</summary>
-                public Enumerator(ValueEntry e) 
-                {
-                    _e = e;
-                    Current = null;
-                }  
-                /// <inheritdoc />
-                public ValueEntry Current { get; private set; }
-                object IEnumerator.Current => Current;
-                /// <inheritdoc />
-                public bool MoveNext() 
-                {
-                    if (_e != null)
-                    {
-                        Current = _e;
-                        _e = null;
-                        return true;
-                    }
-                    return false;
-                } 
-                void IDisposable.Dispose() {}
-                void IEnumerator.Reset() {}
-            }
-
             internal override Entry Update(ValueEntry entry) => 
                 Key.Equals(entry.Key) ? entry : (Entry)new ConflictsEntry(Hash, this, entry);
 
@@ -173,9 +130,6 @@ namespace ImTools.Experimental
                 return sb.ToString();
             }
 #endif
-
-            /// <inheritdoc />
-            public override IEnumerator<ValueEntry> GetEnumerator() => ((IEnumerable<ValueEntry>)Conflicts).GetEnumerator();
 
             internal override Entry Update(ValueEntry entry) 
             {
@@ -272,7 +226,7 @@ namespace ImTools.Experimental
         }
 
         /// <summary>Leaf with 2 entries</summary>
-        public sealed class Leaf2 : ImHashMap234<K, V>, IEnumerable<ValueEntry>
+        public sealed class Leaf2 : ImHashMap234<K, V>
         {
             /// <summary>Left entry</summary>
             public readonly Entry Entry0;
@@ -297,52 +251,6 @@ namespace ImTools.Experimental
                 hash == Entry0.Hash ? Entry0 :
                 hash == Entry1.Hash ? Entry1 :
                 null;
-
-            /// <summary>Returns the left-to-right enumerator</summary>
-            public override IEnumerator<ValueEntry> GetEnumerator() => new Enumerator(this);
-            /// <summary>The enumerator</summary>
-            public struct Enumerator : IEnumerator<ValueEntry>
-            {
-                private readonly Leaf2 _m;
-                private byte _i;
-                private int  _j;
-                /// <summary>Constructor</summary>
-                public Enumerator(Leaf2 m) 
-                {
-                    _m = m;
-                    _i = 0;
-                    _j = 0;
-                    Current = null;
-                }
-                /// <inheritdoc />
-                public ValueEntry Current { get; private set; }
-                object IEnumerator.Current => Current;
-                /// <inheritdoc />
-                public bool MoveNext() 
-                {
-                    for (var i = _i; i < 2; ++_i) 
-                    {
-                        var e = i == 0 ? _m.Entry0 : _m.Entry1;
-                        if (_j == 0 && e is ValueEntry v0)
-                        {
-                            Current = v0;
-                            ++_i;
-                            return true;
-                        }
-                        var ee = ((ConflictsEntry)e).Conflicts; // todo: @perf can be replaced with Unsafe.As - check the F# map PR https://github.com/dotnet/fsharp/pull/10188
-                        if ((uint)_j < (uint)ee.Length)
-                        {
-                            Current = ee[_j++];
-                            return true;
-                        }
-                        _j = 0;
-                    }
-
-                    return false;
-                }
-                void IDisposable.Dispose() {}
-                void IEnumerator.Reset() {}
-            }
 
             /// <inheritdoc />
             public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry)
@@ -384,7 +292,7 @@ namespace ImTools.Experimental
         }
 
         /// <summary>Leaf with 3 entries</summary>
-        public sealed class Leaf3 : ImHashMap234<K, V>, IEnumerable<ValueEntry>
+        public sealed class Leaf3 : ImHashMap234<K, V>
         {
             /// <summary>Left entry</summary>
             public readonly Entry Entry0;
@@ -415,52 +323,6 @@ namespace ImTools.Experimental
                 hash == Entry2.Hash ? Entry2 :
                 null;
 
-            /// <summary>Returns the left-to-right enumerator</summary>
-            public override IEnumerator<ValueEntry> GetEnumerator() => new Enumerator(this);
-            /// <summary>The enumerator</summary>
-            public struct Enumerator : IEnumerator<ValueEntry>
-            {
-                private readonly Leaf3 _m;
-                private byte _i;
-                private int _j;
-                /// <summary>Constructor</summary>
-                public Enumerator(Leaf3 m) 
-                {
-                    _m = m;
-                    _i = 0;
-                    _j = 0;
-                    Current = null;
-                }
-                /// <inheritdoc />
-                public ValueEntry Current { get; private set; }
-                object IEnumerator.Current => Current;
-                /// <inheritdoc />
-                public bool MoveNext() 
-                {
-                    for (var i = _i; i < 3; ++_i) 
-                    {
-                        var e = i == 0 ? _m.Entry0 : i == 1 ? _m.Entry1 : _m.Entry2;
-                        if (_j == 0 && e is ValueEntry v0)
-                        {
-                            Current = v0;
-                            ++_i;
-                            return true;
-                        }
-                        var ee = ((ConflictsEntry)e).Conflicts;
-                        if ((uint)_j < (uint)ee.Length)
-                        {
-                            Current = ee[_j++];
-                            return true;
-                        }
-                        _j = 0;
-                    }
-                    return false;
-                }
-                void IDisposable.Dispose() {}
-                void IEnumerator.Reset() {}
-            }
-
-            // todo: @perf the candidate for the inlining
             /// <inheritdoc />
             public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry) =>
                 hash == Entry0.Hash ? new Leaf3(Entry0.Update(entry), Entry1, Entry2) :
@@ -468,7 +330,6 @@ namespace ImTools.Experimental
                 hash == Entry2.Hash ? new Leaf3(Entry0, Entry1, Entry2.Update(entry)) :
                 (ImHashMap234<K, V>)new Leaf3Plus1(entry, this);
 
-            // todo: @perf the candidate for the inlining
             /// <inheritdoc />
             public override ImHashMap234<K, V> AddOrKeepEntry(int hash, ValueEntry entry)
             {
@@ -499,7 +360,7 @@ namespace ImTools.Experimental
         }
 
         /// <summary>Leaf with 3 + 1 entries</summary>
-        public sealed class Leaf3Plus1 : ImHashMap234<K, V>, IEnumerable<ValueEntry>
+        public sealed class Leaf3Plus1 : ImHashMap234<K, V>
         {
             /// <summary>Plus entry</summary>
             public readonly Entry Plus;
@@ -529,57 +390,6 @@ namespace ImTools.Experimental
                     hash == l.Entry1.Hash ? l.Entry1 :
                     hash == l.Entry2.Hash ? l.Entry2 :
                     null;
-            }
-
-            /// <summary>Form the left to the right and from the leafs to the root</summary>
-            public override IEnumerator<ValueEntry> GetEnumerator() => new Enumerator(this);
-            /// <summary>The enumerator</summary>
-            public struct Enumerator : IEnumerator<ValueEntry>
-            {
-                private readonly Leaf3Plus1 _m;
-                private byte _i;
-                private int _j;
-                /// <summary>Constructor</summary>
-                public Enumerator(Leaf3Plus1 m) 
-                {
-                    _m = m;
-                    _i = 0;
-                    _j = 0;
-                    Current = null;
-                }
-                /// <inheritdoc />
-                public ValueEntry Current { get; private set; }
-                object IEnumerator.Current => Current;
-                /// <inheritdoc />
-                public bool MoveNext() 
-                {
-                    var l = _m.L3;
-                    var ph = _m.Plus.Hash;
-                    for (var i = _i; i < 4; ++_i) 
-                    {
-                        var e = i == 0 ? (ph < l.Entry0.Hash ? _m.Plus : l.Entry0) : 
-                                i == 1 ? (ph < l.Entry0.Hash ? l.Entry0 : ph < l.Entry1.Hash ? _m.Plus : l.Entry1) : 
-                                i == 2 ? (ph < l.Entry1.Hash ? l.Entry1 : ph < l.Entry2.Hash ? _m.Plus : l.Entry2) : 
-                                         (ph > l.Entry2.Hash ? _m.Plus : l.Entry2); 
-                        
-                        if (_j == 0 && e is ValueEntry v0)
-                        {
-                            Current = v0;
-                            ++_i;
-                            return true;
-                        }
-                        var ee = ((ConflictsEntry)e).Conflicts; // todo: @perf can be replaced with Unsafe.As - check the F# map PR https://github.com/dotnet/fsharp/pull/10188
-                        if ((uint)_j < (uint)ee.Length)
-                        {
-                            Current = ee[_j++];
-                            return true;
-                        }
-                        _j = 0;
-                    }
-                    return false;
-                }
-                void IDisposable.Dispose() {}
-                void IEnumerator.Reset() {}
             }
 
             /// <inheritdoc />
@@ -760,7 +570,7 @@ namespace ImTools.Experimental
         }
 
         /// <summary>Leaf with 5 entries</summary>
-        public sealed class Leaf5 : ImHashMap234<K, V>, IEnumerable<ValueEntry>
+        public sealed class Leaf5 : ImHashMap234<K, V>
         {
             /// <summary>Left entry</summary>
             public readonly Entry Entry0;
@@ -801,53 +611,6 @@ namespace ImTools.Experimental
                 hash == Entry4.Hash ? Entry4 :
                 null;
 
-            /// <summary>Returns the left-to-right enumerator</summary>
-            public override IEnumerator<ValueEntry> GetEnumerator() => new Enumerator(this);
-            /// <summary>The enumerator</summary>
-            public struct Enumerator : IEnumerator<ValueEntry>
-            {
-                private readonly Leaf5 _m;
-                private byte _i;
-                private int  _j;
-                /// <summary>Constructor</summary>
-                public Enumerator(Leaf5 m) 
-                {
-                    _m = m;
-                    _i = 0;
-                    _j = 0;
-                    Current = null;
-                }
-                /// <inheritdoc />
-                public ValueEntry Current { get; private set; }
-                object IEnumerator.Current => Current;
-                /// <inheritdoc />
-                public bool MoveNext() 
-                {
-                    for (var i = _i; i < 5; ++_i) 
-                    {
-                        var e = i == 0 ? _m.Entry0 : i == 1 ? _m.Entry1 : i == 2 ? _m.Entry2 : i == 3 ? _m.Entry3 : _m.Entry4;
-                        if (_j == 0 && e is ValueEntry v0)
-                        {
-                            Current = v0;
-                            ++_i;
-                            return true;
-                        }
-                        var ee = ((ConflictsEntry)e).Conflicts;
-                        if ((uint)_j < (uint)ee.Length)
-                        {
-                            Current = ee[_j++];
-                            return true;
-                        }
-                        _j = 0;
-                    }
-
-                    return false;
-                }
-                void IDisposable.Dispose() {}
-                void IEnumerator.Reset() {}
-            }
-
-            // todo: @perf the candidate for the inlining
             /// <inheritdoc />
             public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry) =>
                     hash == Entry0.Hash ? new Leaf5(Entry0.Update(entry), Entry1, Entry2, Entry3, Entry4) :
@@ -857,7 +620,6 @@ namespace ImTools.Experimental
                     hash == Entry4.Hash ? new Leaf5(Entry0, Entry1, Entry2, Entry3, Entry4.Update(entry)) :
                     (ImHashMap234<K, V>)new Leaf5Plus1(entry, this);
 
-            // todo: @perf the candidate for the inlining
             /// <inheritdoc />
             public override ImHashMap234<K, V> AddOrKeepEntry(int hash, ValueEntry entry)
             {
@@ -898,7 +660,7 @@ namespace ImTools.Experimental
         }
 
         /// <summary>Leaf with 5 entries</summary>
-        public sealed class Leaf5Plus1 : ImHashMap234<K, V>, IEnumerable<ValueEntry>
+        public sealed class Leaf5Plus1 : ImHashMap234<K, V>//
         {
             /// <summary>Plus entry</summary>
             public readonly Entry Plus;
@@ -930,58 +692,6 @@ namespace ImTools.Experimental
                     hash == l.Entry3.Hash ? l.Entry3 :
                     hash == l.Entry4.Hash ? l.Entry4 :
                     null;
-            }
-
-            /// <summary>Form the left to the right and from the leafs to the root</summary>
-            public override IEnumerator<ValueEntry> GetEnumerator() => new Enumerator(this);
-            /// <summary>The enumerator</summary>
-            public struct Enumerator : IEnumerator<ValueEntry>
-            {
-                private readonly Leaf5Plus1 _m;
-                private byte _i;
-                private int _j;
-                /// <summary>Constructor</summary>
-                public Enumerator(Leaf5Plus1 m) 
-                {
-                    _m = m;
-                    _i = 0;
-                    _j = 0;
-                    Current = null;
-                }
-                /// <inheritdoc />
-                public ValueEntry Current { get; private set; }
-                object IEnumerator.Current => Current;
-                /// <inheritdoc />
-                public bool MoveNext() 
-                {
-                    var l = _m.L5;
-                    var ph = _m.Plus.Hash;
-                    for (var i = _i; i < 6; ++_i) 
-                    {
-                        var e = i == 0 ? (ph < l.Entry0.Hash ? _m.Plus : l.Entry0) : 
-                                i == 1 ? (ph < l.Entry0.Hash ? l.Entry0 : ph < l.Entry1.Hash ? _m.Plus : l.Entry1) : 
-                                i == 2 ? (ph < l.Entry1.Hash ? l.Entry1 : ph < l.Entry2.Hash ? _m.Plus : l.Entry2) : 
-                                i == 3 ? (ph < l.Entry2.Hash ? l.Entry2 : ph < l.Entry3.Hash ? _m.Plus : l.Entry3) : 
-                                i == 4 ? (ph < l.Entry3.Hash ? l.Entry3 : ph < l.Entry4.Hash ? _m.Plus : l.Entry4) : 
-                                         (ph > l.Entry4.Hash ? _m.Plus : l.Entry4);
-                        if (_j == 0 && e is ValueEntry v0)
-                        {
-                            Current = v0;
-                            ++_i;
-                            return true;
-                        }
-                        var ee = ((ConflictsEntry)e).Conflicts; // todo: @perf can be replaced with Unsafe.As - check the F# map PR https://github.com/dotnet/fsharp/pull/10188
-                        if ((uint)_j < (uint)ee.Length)
-                        {
-                            Current = ee[_j++];
-                            return true;
-                        }
-                        _j = 0;
-                    }
-                    return false;
-                }
-                void IDisposable.Dispose() {}
-                void IEnumerator.Reset() {}
             }
 
             /// <inheritdoc />
@@ -1103,7 +813,7 @@ namespace ImTools.Experimental
         }
 
         /// <summary>Leaf with 5 entries</summary>
-        public sealed class Leaf5Plus1Plus1 : ImHashMap234<K, V>, IEnumerable<ValueEntry>
+        public sealed class Leaf5Plus1Plus1 : ImHashMap234<K, V>
         {
             /// <summary>Plus entry</summary>
             public readonly Entry Plus;
@@ -1138,113 +848,6 @@ namespace ImTools.Experimental
                     hash == l.Entry3.Hash ? l.Entry3 :
                     hash == l.Entry4.Hash ? l.Entry4 :
                     null;
-            }
-
-            /// <summary>Form the left to the right and from the leafs to the root</summary>
-            public override IEnumerator<ValueEntry> GetEnumerator() => new Enumerator(this);
-            /// <summary>The enumerator</summary>
-            public struct Enumerator : IEnumerator<ValueEntry>
-            {
-                private readonly Leaf5Plus1Plus1 _m;
-                private byte _i;
-                private int _j;
-                /// <summary>Constructor</summary>
-                public Enumerator(Leaf5Plus1Plus1 m) 
-                {
-                    _m = m;
-                    _i = 0;
-                    _j = 0;
-                    Current = null;
-                }
-                /// <inheritdoc />
-                public ValueEntry Current { get; private set; }
-                object IEnumerator.Current => Current;
-                /// <inheritdoc />
-                public bool MoveNext() 
-                {
-                    var p   = _m.Plus;   // p-out
-                    var ph  = p.Hash;
-                    var lp  = _m.L.Plus; // p-in
-                    var lph = lp.Hash;
-
-                    var l  = _m.L.L5;
-                    var e0 = l.Entry0;
-                    var e1 = l.Entry1;
-                    var e2 = l.Entry2;
-                    var e3 = l.Entry3;
-                    var e4 = l.Entry4;
-
-                    // e0 < e1 < e2 < e3 < e4 < lp < p
-
-                    for (var i = _i; i < 7; ++_i)
-                    {
-                        // todo: @perf simple sort but maybe ineffective - check it later
-                        Entry swap = null;
-                        if (lph < e4.Hash)
-                        {
-                            swap = e4; e4 = lp; lp = swap;
-                            if (lph < e3.Hash)
-                            {
-                                swap = e3; e3 = e4; e4 = swap;
-                                if (lph < e2.Hash)
-                                {
-                                    swap = e2; e2 = e3; e3 = swap;
-                                    if (lph < e1.Hash)
-                                    {
-                                        swap = e1; e1 = e2; e2 = swap;
-                                        if (lph < e0.Hash)
-                                        {
-                                            swap = e0; e0 = e1; e1 = swap;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        if (ph < lp.Hash)
-                        {
-                            swap = lp; lp = p; p = swap;
-                            if (ph < e4.Hash)
-                            {
-                                swap = e4; e4 = p; p = swap;
-                                if (ph < e3.Hash)
-                                {
-                                    swap = e3; e3 = e4; e4 = swap;
-                                    if (ph < e2.Hash)
-                                    {
-                                        swap = e2; e2 = e3; e3 = swap;
-                                        if (ph < e1.Hash)
-                                        {
-                                            swap = e1; e1 = e2; e2 = swap;
-                                            if (ph < e0.Hash)
-                                            {
-                                                swap = e0; e0 = e1; e1 = swap;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        var e = i == 0 ? e0 : i == 1 ? e1 : i == 2 ? e2 : i == 3 ? e3 : i == 4 ? e4 : i == 5 ? p  : lp;
-                        if (_j == 0 && e is ValueEntry v0)
-                        {
-                            Current = v0;
-                            ++_i;
-                            return true;
-                        }
-                        var ee = ((ConflictsEntry)e).Conflicts; // todo: @perf can be replaced with Unsafe.As - check the F# map PR https://github.com/dotnet/fsharp/pull/10188
-                        if ((uint)_j < (uint)ee.Length)
-                        {
-                            Current = ee[_j++];
-                            return true;
-                        }
-                        _j = 0;
-                    }
-                    return false;
-                }
-
-                void IDisposable.Dispose() {}
-                void IEnumerator.Reset() {}
             }
 
             /// <inheritdoc />
@@ -1542,12 +1145,9 @@ namespace ImTools.Experimental
             }
         }
 
-        /// <summary>Base marker for the branches - mainly to have a single check if the node is Not a Leaf</summary>
-        public abstract class Branch : ImHashMap234<K, V> {}
-
         // todo: @perf consider to separate the Branch2Leafs
         /// <summary>Branch of 2 leafs or branches</summary>
-        public sealed class Branch2 : Branch, IEnumerable<ValueEntry>
+        public sealed class Branch2 : ImHashMap234<K, V>
         {
             /// <summary>Left branch</summary>
             public readonly ImHashMap234<K, V> Left;
@@ -1577,69 +1177,6 @@ namespace ImTools.Experimental
                 hash > Entry0.Hash ? Right.GetEntryOrDefault(hash) :
                 hash < Entry0.Hash ? Left .GetEntryOrDefault(hash) :
                 Entry0;
-
-            /// <summary>Form the left to the right and from the leafs to the root</summary>
-            public override IEnumerator<ValueEntry> GetEnumerator() => new Enumerator(this);
-            /// <summary>The enumerator</summary>
-            public struct Enumerator : IEnumerator<ValueEntry>
-            {
-                private readonly Branch2 _m;
-                private byte _i;
-                private int _j;
-                private IEnumerator<ValueEntry> _e;
-                /// <summary>Constructor</summary>
-                public Enumerator(Branch2 m) 
-                {
-                    _m = m;
-                    _i = 0;
-                    _j = 0;
-                    _e = null;
-                    Current = null;
-                }
-                /// <inheritdoc />
-                public ValueEntry Current { get; private set; }
-                object IEnumerator.Current => Current;
-                /// <inheritdoc />
-                public bool MoveNext() 
-                {
-                    while (_i < 3)
-                    {
-                        if (_i == 0 || _i == 2)
-                        {
-                            if (_e == null)
-                                _e = _i == 0 ? _m.Left.GetEnumerator() : _m.Right.GetEnumerator();
-                            if (_e.MoveNext())
-                            {
-                                Current = _e.Current;
-                                return true;
-                            }
-                            _e = null;
-                            ++_i; // means the next
-                        }
-
-                        if (_i == 1)
-                        {
-                            if (_j == 0 && _m.Entry0 is ValueEntry v)
-                            {
-                                Current = v;
-                                ++_i;
-                                return true;
-                            }
-                            var ee = ((ConflictsEntry)_m.Entry0).Conflicts; // todo: @perf can be replaced with Unsafe.As - check the F# map PR https://github.com/dotnet/fsharp/pull/10188
-                            if ((uint)_j < (uint)ee.Length)
-                            {
-                                Current = ee[_j++];
-                                return true;
-                            }
-                            _j = 0; // reset the _j
-                            ++_i;
-                        }
-                    }
-                    return false;
-                }
-                void IDisposable.Dispose() {}
-                void IEnumerator.Reset() {}
-            }
 
             // todo: @perf see that the size of the method is small, so we may consider to inline the addition for the branchs of the leafs, it will be especially more simple, if the Branch2Leafs would be a separate type.
             /// <inheritdoc />
@@ -1837,8 +1374,8 @@ namespace ImTools.Experimental
         }
 
         /// <summary>Branch of 3 leafs or branches and two entries</summary>
-        public sealed class Branch3 : Branch
-        { 
+        public sealed class Branch3 : ImHashMap234<K, V>
+        {
             /// <summary>Left branch</summary>
             public readonly ImHashMap234<K, V> Left;
             /// <summary>Left entry</summary>
@@ -1880,72 +1417,6 @@ namespace ImTools.Experimental
                     hash == h1 ? Entry1 :
                     Middle.GetEntryOrDefault(hash);
             }
-
-            /// <summary>Form the left to the right and from the leafs to the root</summary>
-            public override IEnumerator<ValueEntry> GetEnumerator() => new Enumerator(this);
-            /// <summary>The enumerator</summary>
-            public struct Enumerator : IEnumerator<ValueEntry>
-            {
-                private readonly Branch3 _m;
-                private byte _i;
-                private int _j;
-                private IEnumerator<ValueEntry> _e;
-                /// <summary>Constructor</summary>
-                public Enumerator(Branch3 m) 
-                {
-                    _m = m;
-                    _i = 0;
-                    _j = 0;
-                    _e = null;
-                    Current = null;
-                }
-                /// <inheritdoc />
-                public ValueEntry Current { get; private set; }
-                object IEnumerator.Current => Current;
-                /// <inheritdoc />
-                public bool MoveNext() 
-                {
-                    while (_i < 5) 
-                    {
-                        if (_i == 0 || _i == 2 || _i == 4)
-                        {
-                            if (_e == null)
-                                _e = _i == 0 ? _m.Left.GetEnumerator() : _i == 2 ? _m.Middle.GetEnumerator() : _m.Right.GetEnumerator();
-                            if (_e.MoveNext())
-                            {
-                                Current = _e.Current;
-                                return true;
-                            }
-                            _e = null;
-                            ++_i; // handle the Entry0 or Entry1
-                        }
-
-                        if (_i == 1 || _i == 3)
-                        {
-                            var e = _i == 1 ? _m.Entry0 : _m.Entry1;
-                            if (_j == 0 && e is ValueEntry v)
-                            {
-                                Current = v;
-                                ++_i;
-                                return true;
-                            }
-                            var ee = ((ConflictsEntry)e).Conflicts; // todo: @perf can be replaced with Unsafe.As - check the F# map PR https://github.com/dotnet/fsharp/pull/10188
-                            if ((uint)_j < (uint)ee.Length)
-                            {
-                                Current = ee[_j++];
-                                return true;
-                            }
-                            _j = 0; // reset the _j
-                            ++_i;
-                        }
-                    }
-                    return false;
-                }
-
-                void IDisposable.Dispose() {}
-                void IEnumerator.Reset() {}
-            }
-
 
             /// <inheritdoc />
             public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry)
@@ -2159,7 +1630,7 @@ namespace ImTools.Experimental
     {
         /// <summary>Enumerates all the map entries from the left to the right and from the bottom to top</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static IEnumerable<ImHashMap234<K, V>.ValueEntry> Enumerate<K, V>(this ImHashMap234<K, V> map) => map;
+        public static IEnumerable<ImHashMap234<K, V>.ValueEntry> Enumerate<K, V>(this ImHashMap234<K, V> map) => null;
 
         /// <summary>Looks up for the key using its hash code and checking the key with `object.Equals` for equality,
         ///  returns found value or the default value if not found</summary>
