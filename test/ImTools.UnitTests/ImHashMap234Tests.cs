@@ -317,6 +317,67 @@ namespace ImTools.Experimental.UnitTests
         }
 
         [Test]
+        public void Enumerate_should_work_for_the_randomized_input_2()
+        {
+            var uniqueItems = new[] {
+                17883, 23657, 24329, 29524, 55791, 66175, 67389, 74867, 74946, 81350, 94477, 70414, 26499 }; 
+
+            var m = ImHashMap234<int, int>.Empty;
+            foreach (var i in uniqueItems)
+                m = m.AddOrUpdate(i, i);
+
+            CollectionAssert.AreEqual(uniqueItems.OrderBy(x => x), m.Enumerate().ToArray().Select(x => x.Key));
+        }
+
+        [Test]
+        public void Enumerate_should_work_for_the_randomized_input_3()
+        {
+            var uniqueItems = new int[] { 65347, 87589, 89692, 92562, 97319, 58955 };
+
+            var m = ImHashMap234<int, int>.Empty;
+            foreach (var i in uniqueItems)
+                m = m.AddOrUpdate(i, i);
+
+            CollectionAssert.AreEqual(uniqueItems.OrderBy(x => x), m.Enumerate().ToArray().Select(x => x.Key));
+        }
+
+        [Test]
+        public void Enumerate_should_work_for_predefined_map_shape()
+        {
+            //                  20           40    
+            //         /               |            \
+            //    10    13            30             50
+            //   /    |    \        /    \         /    \
+            // 8 9  11 12  14 15 25 26  35 36   45 46   55 56
+            //                  
+            var m = new ImHashMap234<int, int>.Branch3(
+                new ImHashMap234<int, int>.Branch3(
+                    new ImHashMap234<int, int>.Leaf2(new ImHashMap234<int, int>.ValueEntry(8, 8), new ImHashMap234<int, int>.ValueEntry(9, 9)),
+                    new ImHashMap234<int, int>.ValueEntry(10, 10),
+                    new ImHashMap234<int, int>.Leaf2(new ImHashMap234<int, int>.ValueEntry(11, 11), new ImHashMap234<int, int>.ValueEntry(12, 12)),
+                    new ImHashMap234<int, int>.ValueEntry(13, 13),
+                    new ImHashMap234<int, int>.Leaf2(new ImHashMap234<int, int>.ValueEntry(14, 14), new ImHashMap234<int, int>.ValueEntry(15, 15))
+                    ),
+                new ImHashMap234<int, int>.ValueEntry(20, 20),
+                new ImHashMap234<int, int>.Branch2(
+                    new ImHashMap234<int, int>.Leaf2(new ImHashMap234<int, int>.ValueEntry(25, 25), new ImHashMap234<int, int>.ValueEntry(26, 26)),
+                    new ImHashMap234<int, int>.ValueEntry(30, 30),
+                    new ImHashMap234<int, int>.Leaf2(new ImHashMap234<int, int>.ValueEntry(35, 35), new ImHashMap234<int, int>.ValueEntry(36, 36))
+                ),
+                new ImHashMap234<int, int>.ValueEntry(40, 40),
+                new ImHashMap234<int, int>.Branch2(
+                    new ImHashMap234<int, int>.Leaf2(new ImHashMap234<int, int>.ValueEntry(45, 45), new ImHashMap234<int, int>.ValueEntry(46, 46)),
+                    new ImHashMap234<int, int>.ValueEntry(50, 50),
+                    new ImHashMap234<int, int>.Leaf2(new ImHashMap234<int, int>.ValueEntry(55, 55), new ImHashMap234<int, int>.ValueEntry(56, 56))
+                )
+            );
+
+            CollectionAssert.AreEqual(
+                new[] { 8, 9, 10, 11, 12, 13, 14, 15, 20, 25, 26, 30, 35, 36, 40, 45, 46, 50, 55, 56 }, 
+                m.Enumerate().ToArray().Select(x => x.Key));
+        }
+
+        [Test]
         public void AddOrKeep_random_items_and_randomly_checking_CsCheck()
         {
             const int upperBound = 100000;
@@ -440,6 +501,31 @@ namespace ImTools.Experimental.UnitTests
 
             var e1 = m1.Enumerate().OrderBy(i => i.Key).Select(x => x.Key).ToArray();
             var e2 = m2.Enumerate().OrderBy(i => i.Key).Select(x => x.Key).ToArray();
+
+            CollectionAssert.AreEqual(e1, e2);
+        }
+
+        [Test]
+        public void AddOrUpdate_metamorphic_shrinked_manually_case_3()
+        {
+            var baseItems = new int[] { 65347, 87589, 89692, 92562 };
+
+            var m1 = ImHashMap234<int, int>.Empty;
+            var m2 = ImHashMap234<int, int>.Empty;
+            foreach (var x in baseItems)
+            {
+                m1 = m1.AddOrUpdate(x, x);
+                m2 = m2.AddOrUpdate(x, x);
+            }
+
+            m1 = m1.AddOrUpdate(97319, 42);
+            m1 = m1.AddOrUpdate(58955, 43);
+
+            m2 = m2.AddOrUpdate(58955, 43);
+            m2 = m2.AddOrUpdate(97319, 42);
+
+            var e1 = m1.Enumerate().ToArray().OrderBy(i => i.Key).Select(x => x.Key).ToArray();
+            var e2 = m2.Enumerate().ToArray().OrderBy(i => i.Key).Select(x => x.Key).ToArray();
 
             CollectionAssert.AreEqual(e1, e2);
         }
