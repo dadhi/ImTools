@@ -692,6 +692,7 @@ namespace ImTools.Experimental
                     hash == l.Entry3.Hash ? l.Entry3 :
                     hash == l.Entry4.Hash ? l.Entry4 :
                     null;
+                    
             }
 
             /// <inheritdoc />
@@ -836,10 +837,9 @@ namespace ImTools.Experimental
             public override Entry GetEntryOrDefault(int hash)
             {
                 if (hash == Plus.Hash)
-                    return Plus; 
-                var pp = L.Plus;
-                if (hash == pp.Hash)
-                    return pp;
+                    return Plus;
+                if (hash == L.Plus.Hash)
+                    return L.Plus;
                 var l = L.L5;
                 return 
                     hash == l.Entry0.Hash ? l.Entry0 :
@@ -1162,7 +1162,10 @@ namespace ImTools.Experimental
             /// <summary>Constructs</summary>
             public Branch2(ImHashMap234<K, V> left, Entry e, ImHashMap234<K, V> right)
             {
-                // todo: @incomplete add invariant check for the left and right both are either leafs or branches and not empty or entries
+                Debug.Assert(Left != Empty);
+                Debug.Assert(Left is Entry == false);
+                Debug.Assert(Right != Empty);
+                Debug.Assert(Right is Entry == false);
                 Entry0 = e;
                 Left   = left;
                 Right  = right;
@@ -1396,7 +1399,9 @@ namespace ImTools.Experimental
             /// <summary>Constructs the branch</summary>
             public Branch3(ImHashMap234<K, V> left, Entry entry0, Branch2 rightBranch)
             {
-                // todo: @wip add the invariant check for the left and right both are either leafs or branches and not empty or entries
+                Debug.Assert(Left != Empty);
+                Debug.Assert(Left is Entry == false);
+                Debug.Assert(entry0.Hash < RightBranch.Entry0.Hash, "entry0.Hash < RightBranch.Entry0.Hash");
                 Entry0 = entry0;
                 Left   = left;
                 RightBranch = rightBranch;
@@ -1637,7 +1642,7 @@ namespace ImTools.Experimental
         /// <summary>Enumerates all the map entries from the left to the right and from the bottom to top</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static IEnumerable<ImHashMap234<K, V>.ValueEntry> Enumerate<K, V>(this ImHashMap234<K, V> map, 
-            List<ImHashMap234<K, V>> parentStack = null) // todo: @perf replace the List with the more lightweight alternative
+            List<ImHashMap234<K, V>> parentStack = null) // todo: @perf replace the List with the more lightweight alternative, the bad thing that we cannot pass the `ref` array into the method returning IEnumerable
         {
             if (map == ImHashMap234<K, V>.Empty)
                 yield break;
