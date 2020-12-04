@@ -1599,7 +1599,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 | V3_ImHashMap_234Tree_EnumerateAndToArray |  1000 | 27,555.7 ns | 318.08 ns | 281.97 ns |  0.96 |    0.01 | 4.0588 |     - |     - |   16992 B |
 
 */
-            [Params(1, 5, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
+            [Params(100)]//, 5, 10, 100, 1_000)]
             public int Count;
 
             [GlobalSetup]
