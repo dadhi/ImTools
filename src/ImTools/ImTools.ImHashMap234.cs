@@ -586,10 +586,10 @@ namespace ImTools.Experimental
             /// <summary>Constructs the leaf</summary>
             public Leaf5(Entry e0, Entry e1, Entry e2, Entry e3, Entry e4)
             {
-                Debug.Assert(e0.Hash < e1.Hash);
-                Debug.Assert(e1.Hash < e2.Hash);
-                Debug.Assert(e2.Hash < e3.Hash);
-                Debug.Assert(e3.Hash < e4.Hash);
+                Debug.Assert(e0.Hash < e1.Hash, "e0 < e1");
+                Debug.Assert(e1.Hash < e2.Hash, "e1 < e2");
+                Debug.Assert(e2.Hash < e3.Hash, "e2 < e3");
+                Debug.Assert(e3.Hash < e4.Hash, "e3 < e4");
                 Entry0 = e0;
                 Entry1 = e1;
                 Entry2 = e2;
