@@ -1180,7 +1180,6 @@ namespace ImTools.Experimental
         /// <summary>Base type for the Branch2 and Branch3</summary>
         public abstract class Branch : ImHashMap234<K, V> {} 
 
-        // todo: @perf consider to separate the Branch2Leafs
         /// <summary>Branch of 2 leafs or branches</summary>
         public sealed class Branch2 : Branch
         {
@@ -1198,6 +1197,8 @@ namespace ImTools.Experimental
                 Debug.Assert(Left is Entry == false);
                 Debug.Assert(Right != Empty);
                 Debug.Assert(Right is Entry == false);
+                Debug.Assert(Left is Branch ? Right is Branch : Right is Branch == false, 
+                    "the all Branch2 branches should be either leafs or the branches");
                 Entry0 = e;
                 Left   = left;
                 Right  = right;
@@ -1657,7 +1658,11 @@ namespace ImTools.Experimental
                         }
                     }
 
-                    // todo: @wip Left and Right are branches
+                    //         ~5~                              
+                    //      /       \               /       \      
+                    //     2         8      =>     2         8     
+                    //   /  \       / \          /  \       / \    
+                    // 0 1  3 4   6 7 9 10    0 1   3 4   6 7 9 10
                 }
 
                 return this;
@@ -1687,6 +1692,8 @@ namespace ImTools.Experimental
                 Debug.Assert(Left != Empty);
                 Debug.Assert(Left is Entry == false);
                 Debug.Assert(entry0.Hash < RightBranch.Entry0.Hash, "entry0.Hash < RightBranch.Entry0.Hash");
+                Debug.Assert(Left is Branch ? rightBranch.Left is Branch : rightBranch.Left is Branch == false, 
+                    "the all Branch3 branches should be either leafs or the branches");
                 Entry0 = entry0;
                 Left   = left;
                 RightBranch = rightBranch;
