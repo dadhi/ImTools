@@ -567,6 +567,24 @@ namespace ImTools.Experimental
                                        new Leaf3(e0, e1, p);
                 return this;
             }
+
+            internal static void SortEntriesByHash(ref Entry e0, ref Entry e1, ref Entry e2, ref Entry p)
+            {
+                var h = p.Hash;
+                Entry swap = null;
+                if (h < e2.Hash)
+                {
+                    swap = e2; e2 = p; p = swap;
+                    if (h < e1.Hash)
+                    {
+                        swap = e1; e1 = e2; e2 = swap;
+                        if (h < e0.Hash)
+                        {
+                            swap = e0; e0 = e1; e1 = swap;
+                        }
+                    }
+                }
+            }
         }
 
         /// <summary>Leaf with 5 entries</summary>
@@ -811,6 +829,32 @@ namespace ImTools.Experimental
 
                 return this;
             }
+
+            internal static void SortEntriesByHash(ref Entry e0, ref Entry e1, ref Entry e2, ref Entry e3, ref Entry e4, ref Entry p)
+            {
+                var h = p.Hash;
+                Entry swap = null;
+                if (h < e4.Hash)
+                {
+                    swap = e4; e4 = p; p = swap;
+                    if (h < e3.Hash)
+                    {
+                        swap = e3; e3 = e4; e4 = swap;
+                        if (h < e2.Hash)
+                        {
+                            swap = e2; e2 = e3; e3 = swap;
+                            if (h < e1.Hash)
+                            {
+                                swap = e1; e1 = e2; e2 = swap;
+                                if (h < e0.Hash)
+                                {
+                                    swap = e0; e0 = e1; e1 = swap;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         /// <summary>Leaf with 5 entries</summary>
@@ -1012,6 +1056,58 @@ namespace ImTools.Experimental
                 }
             }
 
+            internal static void SortEntriesByHash(ref Entry e0, ref Entry e1, ref Entry e2, ref Entry e3, ref Entry e4, ref Entry lp, ref Entry p)
+            {
+                var h = lp.Hash;
+                Entry swap = null;
+                if (h < e4.Hash)
+                {
+                    swap = e4; e4 = lp; lp = swap;
+                    if (h < e3.Hash)
+                    {
+                        swap = e3; e3 = e4; e4 = swap;
+                        if (h < e2.Hash)
+                        {
+                            swap = e2; e2 = e3; e3 = swap;
+                            if (h < e1.Hash)
+                            {
+                                swap = e1; e1 = e2; e2 = swap;
+                                if (h < e0.Hash)
+                                {
+                                    swap = e0; e0 = e1; e1 = swap;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                h = p.Hash;
+                if (h < lp.Hash)
+                {
+                    swap = lp; lp = p; p = swap;
+                    if (h < e4.Hash)
+                    {
+                        swap = e4; e4 = lp; lp = swap;
+                        if (h < e3.Hash)
+                        {
+                            swap = e3; e3 = e4; e4 = swap;
+                            if (h < e2.Hash)
+                            {
+                                swap = e2; e2 = e3; e3 = swap;
+                                if (h < e1.Hash)
+                                {
+                                    swap = e1; e1 = e2; e2 = swap;
+                                    if (h < e0.Hash)
+                                    {
+                                        swap = e0; e0 = e1; e1 = swap;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             /// <inheritdoc />
             public override ImHashMap234<K, V> RemoveEntry(int hash, K key)
             {
@@ -1192,7 +1288,7 @@ namespace ImTools.Experimental
                     if (newRight == Right)
                         return this;
 
-                    if (newRight is Entry re) 
+                    if (newRight is Entry re)
                     {
                         var l = Left;
                         // If the Left is not a Leaf2, move its one entry to the Right
@@ -1258,8 +1354,7 @@ namespace ImTools.Experimental
                             if (lph > lle4.Hash)
                                 return lph > ph ? new Branch2(new Leaf5Plus1(p, ll), lp, new Leaf2(e0, re)) : new Branch2(l511.L, p, new Leaf2(e0, re));
                             
-                            Entry _ = null;
-                            Leaf5Plus1Plus1.SortEntriesByHash(ref lle0, ref lle1, ref lle2, ref lle3, ref lle4, ref lp, ref p, ref _);
+                            Leaf5Plus1Plus1.SortEntriesByHash(ref lle0, ref lle1, ref lle2, ref lle3, ref lle4, ref lp, ref p);
                             return new Branch2(new Leaf5(lle0, lle1, lle2, lle3, lle4), lp, new Leaf3(p, e0, re));
                         }
 
@@ -1404,9 +1499,8 @@ namespace ImTools.Experimental
                                 return ph < lph ? new Branch2(new Leaf2(le, e0), p, l511.L) : new Branch2(new Leaf2(le, e0), lp, new Leaf5Plus1(p, ll));
                             if (lph < lle0.Hash)
                                 return lph < ph ? new Branch2(new Leaf2(le, e0), lp, new Leaf5Plus1(p, ll)) : new Branch2(new Leaf2(le, e0), p, l511.L);
-                            
-                            Entry _ = null;
-                            Leaf5Plus1Plus1.SortEntriesByHash(ref lle0, ref lle1, ref lle2, ref lle3, ref lle4, ref lp, ref p, ref _);
+
+                            Leaf5Plus1Plus1.SortEntriesByHash(ref lle0, ref lle1, ref lle2, ref lle3, ref lle4, ref lp, ref p);
                             return new Branch2(new Leaf3(le, e0, lle0), lle1, new Leaf5(lle2, lle3, lle4, lp, p));
                         }
 
@@ -1417,10 +1511,155 @@ namespace ImTools.Experimental
                         return new Leaf3Plus1(le, new Leaf3(e0, l2.Entry0, l2.Entry1));
                     }
 
-                    //todo: @wip handle branches
+                    // Handling the Case #1
+                    if (newLeft is Leaf3Plus1 && Left is Branch2) // no need to check for the Branch3 because there is no way that Leaf4 will be the result of deleting one element from it 
+                    {
+                        // Case #2 (for the right branch)
+                        //             7                       4     7 
+                        //          /      \                 /    |     \
+                        //        4      8 9 10 11  =>   1 2 3   5 6   8 9 10 11
+                        //      /   \                    
+                        //   1 2 3   5 6                  
+                        // The result tree height is decreased, so we should not forget to rebalance with the other part of the tree on the upper level
+                        // see the case handled below...
+
+                        if (Right is Branch2 lb2)
+                            return new Branch3(newLeft, e0, lb2);
+
+                        //                     10                            7
+                        //              /           \                     /     \
+                        //        4      7        11 12 13 14 =>       4          10
+                        //      /     |    \                         /    \     /    \
+                        //   1 2 3   5 6    8 9                   1 2 3   5 6|8 9   11 12 13 14
+
+                        if (Right is Branch3 lb3) // the result tree height is the same - no need to rebalance
+                            return new Branch2(new Branch2(newLeft, e0, lb3.Left), lb3.Entry0, new Branch2(lb3.Middle, lb3.Entry1, lb3.Right));
+                    }
+
+                    // Handling the Case #2
+                    if (newLeft is Branch3 rb3 && Left is Branch2)
+                    {
+                        //         0                                  -10        0
+                        //       /         \                          /     |          \                
+                        //   -10           4     7                  a       b          4     7          
+                        //  /   \        /    |     \               |       |        /    |     \       
+                        // a     b    1 2 3   5 6   8 9 10 11   =>  ?       ?     1 2 3   5 6  8 9 10 11
+                        // |     |
+                        // ?     ?
+
+                        if (Right is Branch2 lb2)
+                            return new Branch3(newLeft, e0, lb2);
+
+                        //              0                                       -5                            
+                        //       /              \                              /     \                        
+                        //   -10  -5            4      7                  -10           0                     
+                        //  /   |   \          /    |     \              /   |      /        \                
+                        // a    b    c   1 2 3     5 6   8 9 10 11  =>  a    b     c         4     7          
+                        // |    |    |                                  |    |     |       /    |     \       
+                        // ?    ?    ?                                  ?    ?     ?    1 2 3  5 6   8 9 10 11
+
+                        if (Left is Branch3 lb3)
+                            return new Branch2(new Branch2(newLeft, e0, lb3.Left), lb3.Entry0, new Branch2(lb3.Middle, lb3.Entry1, lb3.Right));
+                    }
+
+                    return new Branch2(newLeft, e0, Right);
                 }
 
-                // todo: @wip remove the e0 and try to keep the branch until its possible
+                var entry = e0.TryRemove(key);
+                if (entry != e0)
+                {
+                    if (entry != null)
+                        return new Branch2(Left, entry, Right);
+
+                    //         ~5~                     4         
+                    //      /       \      =>      /       \     
+                    //  1 2 3 4   6  7  8      1 2 3      6 7 8  
+
+                    var l = Left;
+                    if (l is Branch == false) // left and right are leafs
+                    {
+                        var r = Right;
+                        if (l is Leaf2 l2)
+                        {
+                            if (r is Leaf2 r2)
+                                return new Leaf3Plus1(l2.Entry0, new Leaf3(l2.Entry1, r2.Entry0, r2.Entry1));
+                            if (r is Leaf3 r3)
+                                return new Leaf5(l2.Entry0, l2.Entry1, r3.Entry0, r3.Entry1, r3.Entry2);
+                            if (r is Leaf3Plus1 r31)
+                                return new Leaf5Plus1(r31.Plus, new Leaf5(l2.Entry0, l2.Entry1, r31.L3.Entry0, r31.L3.Entry1, r31.L3.Entry2));
+                            if (r is Leaf5 r5)
+                                return new Leaf5Plus1Plus1(l2.Entry0, new Leaf5Plus1(l2.Entry1, r5));
+                            if (r is Leaf5Plus1 r51)
+                            {
+                                var p  = r51.Plus;
+                                var rl = r51.L5;
+                                var rle0 = rl.Entry0;
+                                var rle1 = rl.Entry1;
+                                var rle2 = rl.Entry2;
+                                var rle3 = rl.Entry3;
+                                var rle4 = rl.Entry4;
+                                Leaf5Plus1.SortEntriesByHash(ref rle0, ref rle1, ref rle2, ref rle3, ref rle4, ref p);
+                                return new Branch2(l2, rle0, new Leaf5(rle1, rle2, rle3, rle4, p));
+                            }
+                            {
+                                var r511 = (Leaf5Plus1Plus1)r; 
+                                var p  = r511.Plus;
+                                var lp = r511.L.Plus;
+                                var rl = r511.L.L5;
+                                var rle0 = rl.Entry0;
+                                var rle1 = rl.Entry1;
+                                var rle2 = rl.Entry2;
+                                var rle3 = rl.Entry3;
+                                var rle4 = rl.Entry4;
+                                Leaf5Plus1Plus1.SortEntriesByHash(ref rle0, ref rle1, ref rle2, ref rle3, ref rle4, ref lp, ref p);
+                                return new Branch2(l2, rle0, new Leaf5Plus1(rle1, new Leaf5(rle2, rle3, rle4, lp, p)));
+                            }
+                        }
+
+                        if (l is Leaf3 l3)
+                            return new Branch2(new Leaf2(l3.Entry0, l3.Entry1), l3.Entry2, r);
+                        if (l is Leaf3Plus1 l31)
+                        {
+                            var p  = l31.Plus;
+                            var ll = l31.L3;
+                            var lle0 = ll.Entry0;
+                            var lle1 = ll.Entry1;
+                            var lle2 = ll.Entry2;
+                            Leaf3Plus1.SortEntriesByHash(ref lle0, ref lle1, ref lle2, ref p);
+                            return new Branch2(new Leaf3(lle0, lle1, lle2), p, r);
+                        }
+                        if (l is Leaf5 l5)
+                            return new Branch2(new Leaf3Plus1(l5.Entry0, new Leaf3(l5.Entry1, l5.Entry2, l5.Entry3)), l5.Entry4, r);
+                        if (l is Leaf5Plus1 l51)
+                        {
+                            var p  = l51.Plus;
+                            var ll = l51.L5;
+                            var lle0 = ll.Entry0;
+                            var lle1 = ll.Entry1;
+                            var lle2 = ll.Entry2;
+                            var lle3 = ll.Entry3;
+                            var lle4 = ll.Entry4;
+                            Leaf5Plus1.SortEntriesByHash(ref lle0, ref lle1, ref lle2, ref lle3, ref lle4, ref p);
+                            return new Branch2(new Leaf5(lle0, lle1, lle2, lle3, lle4), p, r);
+                        }
+                        {
+                            var l511 = (Leaf5Plus1Plus1)l; 
+                            var p  = l511.Plus;
+                            var lp = l511.L.Plus;
+                            var ll = l511.L.L5;
+                            var lle0 = ll.Entry0;
+                            var lle1 = ll.Entry1;
+                            var lle2 = ll.Entry2;
+                            var lle3 = ll.Entry3;
+                            var lle4 = ll.Entry4;
+                            Leaf5Plus1Plus1.SortEntriesByHash(ref lle0, ref lle1, ref lle2, ref lle3, ref lle4, ref lp, ref p);
+                            return new Branch2(new Leaf5Plus1(lle0, new Leaf5(lle1, lle2, lle3, lle4, lp)), p, r);
+                        }
+                    }
+
+                    // todo: @wip Left and Right are branches
+                }
+
                 return this;
             }
         }
@@ -1832,8 +2071,7 @@ namespace ImTools.Experimental
                     var e3  = l.Entry3;
                     var e4  = l.Entry4;
 
-                    ImHashMap234<K, V>.Entry _ = null;
-                    ImHashMap234<K, V>.Leaf5Plus1Plus1.SortEntriesByHash(ref e0, ref e1, ref e2, ref e3, ref e4, ref lp, ref p, ref _);
+                    ImHashMap234<K, V>.Leaf5Plus1Plus1.SortEntriesByHash(ref e0, ref e1, ref e2, ref e3, ref e4, ref lp, ref p);
 
                     if (e0 is ImHashMap234<K, V>.ValueEntry v0) yield return v0;
                     else foreach (var c in ((ImHashMap234<K, V>.ConflictsEntry)e0).Conflicts) yield return c;
