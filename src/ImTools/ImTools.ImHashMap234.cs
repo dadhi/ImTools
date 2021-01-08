@@ -1322,8 +1322,10 @@ namespace ImTools.Experimental
                                 return new Branch2(new Leaf3(lle0, p, lle1), lle2, new Leaf2(e0, re)); 
                             return new Branch2(new Leaf3(lle0, lle1, p), lle2, new Leaf2(e0, re));
                         }
+
                         if (l is Leaf5 l5)
                             return new Branch2(new Leaf3(l5.Entry0, l5.Entry1, l5.Entry2), l5.Entry3, new Leaf3(l5.Entry4, e0, re));
+
                         if (l is Leaf5Plus1 l51)
                         {
                             var p  = l51.Plus;
@@ -1347,6 +1349,7 @@ namespace ImTools.Experimental
                                 return new Branch2(new Leaf5(lle0, lle1, lle2, p, lle3), lle4, new Leaf2(e0, re));
                             return new Branch2(new Leaf5(lle0, lle1, lle2, lle3, p), lle4, new Leaf2(e0, re));
                         }
+
                         if (l is Leaf5Plus1Plus1 l511)
                         {
                             var p  = l511.Plus;
@@ -1628,8 +1631,8 @@ namespace ImTools.Experimental
                 return
                     hash > h1 ? Right.GetEntryOrDefault(hash) :
                     hash < h0 ? Left .GetEntryOrDefault(hash) :
-                    hash == h0 ? Entry0 :
-                    hash == h1 ? Entry1 :
+                    hash == h0 ? (Entry0 is RemovedEntry ? null : Entry0) :
+                    hash == h1 ? (Entry1 is RemovedEntry ? null : Entry1) :
                     Middle.GetEntryOrDefault(hash);
             }
 
@@ -1830,7 +1833,7 @@ namespace ImTools.Experimental
 
                 if (hash == e0.Hash)
                 {
-                    // todo: @wip
+                    
                 }
 
                 //if (hash == e1.Hash)
