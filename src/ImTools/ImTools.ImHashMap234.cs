@@ -61,6 +61,16 @@ namespace ImTools.Experimental
             internal abstract Entry TryRemove<T>(T key);
         }
 
+        internal sealed class RemovedEntry : Entry 
+        {
+            public RemovedEntry(int hash) : base(hash) {}
+            internal override Entry Update(ValueEntry entry) => entry;
+            internal override Entry Keep(ValueEntry entry) => entry;
+            internal override Entry TryRemove<T>(T key) => this;
+
+            public override string ToString() => "removed-entry";
+        }
+
         /// <summary>Entry containing the Value</summary>
         public sealed class ValueEntry : Entry
         {
@@ -1215,7 +1225,7 @@ namespace ImTools.Experimental
             public override Entry GetEntryOrDefault(int hash) =>
                 hash > Entry0.Hash ? Right.GetEntryOrDefault(hash) :
                 hash < Entry0.Hash ? Left .GetEntryOrDefault(hash) :
-                Entry0;
+                Entry0 is RemovedEntry ? null : Entry0;
 
             // todo: @perf see that the size of the method is small, so we may consider to inline the addition for the branchs of the leafs, it will be especially more simple, if the Branch2Leafs would be a separate type.
             /// <inheritdoc />
@@ -1568,103 +1578,7 @@ namespace ImTools.Experimental
 
                 var entry = e0.TryRemove(key);
                 if (entry != e0)
-                {
-                    if (entry != null)
-                        return new Branch2(Left, entry, Right);
-
-                    //         ~5~                     4         
-                    //      /       \      =>      /       \     
-                    //  1 2 3 4   6  7  8      1 2 3      6 7 8  
-
-                    var l = Left;
-                    if (l is Branch == false) // left and right are leafs
-                    {
-                        var r = Right;
-                        if (l is Leaf2 l2)
-                        {
-                            if (r is Leaf2 r2)
-                                return new Leaf3Plus1(l2.Entry0, new Leaf3(l2.Entry1, r2.Entry0, r2.Entry1));
-                            if (r is Leaf3 r3)
-                                return new Leaf5(l2.Entry0, l2.Entry1, r3.Entry0, r3.Entry1, r3.Entry2);
-                            if (r is Leaf3Plus1 r31)
-                                return new Leaf5Plus1(r31.Plus, new Leaf5(l2.Entry0, l2.Entry1, r31.L3.Entry0, r31.L3.Entry1, r31.L3.Entry2));
-                            if (r is Leaf5 r5)
-                                return new Leaf5Plus1Plus1(l2.Entry0, new Leaf5Plus1(l2.Entry1, r5));
-                            if (r is Leaf5Plus1 r51)
-                            {
-                                var p  = r51.Plus;
-                                var rl = r51.L5;
-                                var rle0 = rl.Entry0;
-                                var rle1 = rl.Entry1;
-                                var rle2 = rl.Entry2;
-                                var rle3 = rl.Entry3;
-                                var rle4 = rl.Entry4;
-                                Leaf5Plus1.SortEntriesByHash(ref rle0, ref rle1, ref rle2, ref rle3, ref rle4, ref p);
-                                return new Branch2(l2, rle0, new Leaf5(rle1, rle2, rle3, rle4, p));
-                            }
-                            {
-                                var r511 = (Leaf5Plus1Plus1)r; 
-                                var p  = r511.Plus;
-                                var lp = r511.L.Plus;
-                                var rl = r511.L.L5;
-                                var rle0 = rl.Entry0;
-                                var rle1 = rl.Entry1;
-                                var rle2 = rl.Entry2;
-                                var rle3 = rl.Entry3;
-                                var rle4 = rl.Entry4;
-                                Leaf5Plus1Plus1.SortEntriesByHash(ref rle0, ref rle1, ref rle2, ref rle3, ref rle4, ref lp, ref p);
-                                return new Branch2(l2, rle0, new Leaf5Plus1(rle1, new Leaf5(rle2, rle3, rle4, lp, p)));
-                            }
-                        }
-
-                        if (l is Leaf3 l3)
-                            return new Branch2(new Leaf2(l3.Entry0, l3.Entry1), l3.Entry2, r);
-                        if (l is Leaf3Plus1 l31)
-                        {
-                            var p  = l31.Plus;
-                            var ll = l31.L3;
-                            var lle0 = ll.Entry0;
-                            var lle1 = ll.Entry1;
-                            var lle2 = ll.Entry2;
-                            Leaf3Plus1.SortEntriesByHash(ref lle0, ref lle1, ref lle2, ref p);
-                            return new Branch2(new Leaf3(lle0, lle1, lle2), p, r);
-                        }
-                        if (l is Leaf5 l5)
-                            return new Branch2(new Leaf3Plus1(l5.Entry0, new Leaf3(l5.Entry1, l5.Entry2, l5.Entry3)), l5.Entry4, r);
-                        if (l is Leaf5Plus1 l51)
-                        {
-                            var p  = l51.Plus;
-                            var ll = l51.L5;
-                            var lle0 = ll.Entry0;
-                            var lle1 = ll.Entry1;
-                            var lle2 = ll.Entry2;
-                            var lle3 = ll.Entry3;
-                            var lle4 = ll.Entry4;
-                            Leaf5Plus1.SortEntriesByHash(ref lle0, ref lle1, ref lle2, ref lle3, ref lle4, ref p);
-                            return new Branch2(new Leaf5(lle0, lle1, lle2, lle3, lle4), p, r);
-                        }
-                        {
-                            var l511 = (Leaf5Plus1Plus1)l; 
-                            var p  = l511.Plus;
-                            var lp = l511.L.Plus;
-                            var ll = l511.L.L5;
-                            var lle0 = ll.Entry0;
-                            var lle1 = ll.Entry1;
-                            var lle2 = ll.Entry2;
-                            var lle3 = ll.Entry3;
-                            var lle4 = ll.Entry4;
-                            Leaf5Plus1Plus1.SortEntriesByHash(ref lle0, ref lle1, ref lle2, ref lle3, ref lle4, ref lp, ref p);
-                            return new Branch2(new Leaf5Plus1(lle0, new Leaf5(lle1, lle2, lle3, lle4, lp)), p, r);
-                        }
-                    }
-
-                    //         ~5~                              
-                    //      /       \               /       \      
-                    //     2         8      =>     2         8     
-                    //   /  \       / \          /  \       / \    
-                    // 0 1  3 4   6 7 9 10    0 1   3 4   6 7 9 10
-                }
-
+                    return new Branch2(Left, entry ?? new RemovedEntry(e0.Hash), Right);
                 return this;
             }
         }
