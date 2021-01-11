@@ -87,30 +87,6 @@ namespace ImTools.Experimental
         }
 
         /// <summary>Entry containing the Value</summary>
-        public sealed class ValueEntry : Entry
-        {
-            /// <summary>The value. May be modified if you need the Ref{V} semantics</summary>
-            public V Value;
-
-            /// <summary>Constructs the entry with the default value</summary>
-            public ValueEntry(int hash) : base(hash) {}
-
-            /// <summary>Constructs the entry with the key and value</summary>
-            public ValueEntry(int hash, V value) :  base(hash) => Value = value;
-
-#if !DEBUG
-            /// <inheritdoc />
-            public override string ToString() => "[" + Hash + "]:" + Value;
-#endif
-
-            internal override Entry Update(KeyValueEntry entry) => entry;
-
-            internal override Entry KeepOrUpdate(KeyValueEntry entry) => this;
-
-            internal override Entry TryRemove(K _) => null;
-        }
-
-        /// <summary>Entry containing the Value</summary>
         public sealed class KeyValueEntry : Entry
         {
             /// <summary>The Key</summary>
