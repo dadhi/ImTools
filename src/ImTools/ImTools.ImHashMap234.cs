@@ -5,12 +5,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using System.Collections;
 
 namespace ImTools.Experimental
 {
     /// <summary>The base class for the tree leafs and branches, also defines the Empty tree</summary>
-    public class ImHashMap234<K, V>// : IEnumerable<ImHashMap234<K, V>.ValueEntry>
+    public class ImHashMap234<K, V>
     {
         /// <summary>Empty tree to start with.</summary>
         public static readonly ImHashMap234<K, V> Empty = new ImHashMap234<K, V>();
