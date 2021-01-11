@@ -191,8 +191,25 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 | Experimental_ImMap234Slots_AddOrUpdate | 10000 | 3,826,270.52 ns | 27,039.210 ns | 25,292.494 ns |  0.87 |    0.01 | 531.2500 | 242.1875 |  39.0625 | 3362691 B |
 |                  ConcurrentDict_TryAdd | 10000 | 2,992,046.02 ns | 25,592.476 ns | 23,939.218 ns |  0.68 |    0.01 | 273.4375 | 121.0938 |  42.9688 | 1645240 B |
 |              ImmutableDict_Builder_Add | 10000 | 6,083,897.19 ns | 15,221.664 ns | 14,238.354 ns |  1.38 |    0.01 | 148.4375 |  70.3125 |        - |  959776 B |
+
+
+## V3
+
+|                         Method | Count |            Mean |          Error |         StdDev |          Median | Ratio | RatioSD |     Gen 0 |    Gen 1 |    Gen 2 | Allocated |
+|------------------------------- |------ |----------------:|---------------:|---------------:|----------------:|------:|--------:|----------:|---------:|---------:|----------:|
+| Experimental_ImMap_AddOrUpdate |     1 |        24.58 ns |       0.545 ns |       0.560 ns |        24.62 ns |  1.00 |    0.00 |    0.0076 |        - |        - |      32 B |
+|       Old_ImMap234_AddOrUpdate |     1 |        24.93 ns |       0.232 ns |       0.206 ns |        24.88 ns |  1.02 |    0.02 |    0.0076 |        - |        - |      32 B |
+|           ImMap234_AddOrUpdate |     1 |        26.09 ns |       0.568 ns |       0.697 ns |        25.90 ns |  1.06 |    0.04 |    0.0076 |        - |        - |      32 B |
+|                                |       |                 |                |                |                 |       |         |           |          |          |           |
+| Experimental_ImMap_AddOrUpdate |     5 |       192.30 ns |       1.497 ns |       1.250 ns |       192.00 ns |  1.00 |    0.00 |    0.0994 |        - |        - |     416 B |
+|       Old_ImMap234_AddOrUpdate |     5 |       172.47 ns |       1.845 ns |       1.636 ns |       172.94 ns |  0.90 |    0.01 |    0.0801 |        - |        - |     336 B |
+|           ImMap234_AddOrUpdate |     5 |       165.95 ns |       1.712 ns |       1.518 ns |       166.07 ns |  0.86 |    0.01 |    0.0763 |        - |        - |     320 B |
+|                                |       |                 |                |                |                 |       |         |           |          |          |           |
+| Experimental_ImMap_AddOrUpdate |    10 |       547.54 ns |       7.405 ns |       6.927 ns |       546.98 ns |  1.00 |    0.00 |    0.2975 |        - |        - |    1248 B |
+|       Old_ImMap234_AddOrUpdate |    10 |       500.04 ns |       5.583 ns |       4.359 ns |       500.98 ns |  0.91 |    0.01 |    0.2384 |        - |        - |    1000 B |
+|           ImMap234_AddOrUpdate |    10 |       451.32 ns |       8.955 ns |      13.942 ns |       452.64 ns |  0.81 |    0.03 |    0.1969 |        - |        - |     824 B |
 */
-            [Params(10, 100)]//, 1_000, 10_000)]
+            [Params(1, 5, 10, 100, 1_000, 10_000)]
             public int Count;
 
             //[Benchmark(Baseline = true)]
@@ -241,9 +258,9 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             }
 
             [Benchmark]
-            public ImMap234<string> Old_ImMap234_AddOrUpdate()
+            public ImTools.UnitTests.ImMap234<string> Old_ImMap234_AddOrUpdate()
             {
-                var map = ImMap234<string>.Empty;
+                var map = ImTools.UnitTests.ImMap234<string>.Empty;
 
                 for (var i = 0; i < Count; i++)
                     map = map.AddOrUpdate(i, i.ToString());
@@ -252,15 +269,26 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             }
 
             [Benchmark]
-            public ImMap234<string>[] Old_ImMap234Slots_AddOrUpdate()
+            public ImTools.Experimental.ImMap234<string> ImMap234_AddOrUpdate()
             {
-                var slots = ImMap234.CreateWithEmpty<string>();
+                var map = ImTools.Experimental.ImMap234<string>.Empty;
 
                 for (var i = 0; i < Count; i++)
-                    slots.AddOrUpdate(i, i.ToString());
+                    map = map.AddOrUpdate(i, i.ToString());
 
-                return slots;
+                return map;
             }
+
+            // [Benchmark]
+            // public ImMap234<string>[] Old_ImMap234Slots_AddOrUpdate()
+            // {
+            //     var slots = ImMap234.CreateWithEmpty<string>();
+
+            //     for (var i = 0; i < Count; i++)
+            //         slots.AddOrUpdate(i, i.ToString());
+
+            //     return slots;
+            // }
 
             // [Benchmark]
             public ImTools.ImMap<string>[] ImMapSlots_AddOrUpdate()
@@ -583,16 +611,16 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            private ImMap234<string> _map234;
-            public ImMap234<string> AddOrUpdate_Exp_ImMap234()
-            {
-                var map = ImMap234<string>.Empty;
+            // private ImMap234<string> _map234;
+            // public ImMap234<string> AddOrUpdate_Exp_ImMap234()
+            // {
+            //     var map = ImMap234<string>.Empty;
 
-                for (var i = 0; i < Count; i++)
-                    map = map.AddOrUpdate(i, i.ToString());
+            //     for (var i = 0; i < Count; i++)
+            //         map = map.AddOrUpdate(i, i.ToString());
 
-                return map;
-            }
+            //     return map;
+            // }
 
             private ImTools.ImMap<string>[] _mapSlots;
             public ImTools.ImMap<string>[] AddOrUpdate_ImMapSlots()
@@ -684,7 +712,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 _map = AddOrUpdate();
                 _mapV1 = AddOrUpdate_V1();
                 _mapExp = AddOrUpdate_Exp();
-                _map234 = AddOrUpdate_Exp_ImMap234();
+                // _map234 = AddOrUpdate_Exp_ImMap234();
                 _mapSlots = AddOrUpdate_ImMapSlots();
                 _mapSlotsExp = AddOrUpdate_ImMapSlots_Exp();
                 _mapSlots234 = AddOrUpdate_ImMap234Slots_Exp();
@@ -723,12 +751,12 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return result;
             }
 
-            [Benchmark]
-            public string Experimental_ImMap234_TryFind()
-            {
-                _map234.TryFind(LookupMaxKey, out var result);
-                return result;
-            }
+            // [Benchmark]
+            // public string Experimental_ImMap234_TryFind()
+            // {
+            //     _map234.TryFind(LookupMaxKey, out var result);
+            //     return result;
+            // }
 
             [Benchmark]
             public string Experimental_ImMap234Slots_TryFind()
@@ -742,8 +770,8 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 _mapExp.GetValueOrDefault(LookupMaxKey);
 
             //[Benchmark]
-            public string ImMap_Experimental_ImMap234_GetValueOrDefault() =>
-                _map234.GetValueOrDefault(LookupMaxKey);
+            // public string ImMap_Experimental_ImMap234_GetValueOrDefault() =>
+            //     _map234.GetValueOrDefault(LookupMaxKey);
 
             //[Benchmark]
             public string ImMapSlots_TryFind()
@@ -819,7 +847,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 MissingKey = Count + 1;
 
                 _mapExp = AddOrUpdate_Exp();
-                _map234 = AddOrUpdate_Exp_ImMap234();
+                // _map234 = AddOrUpdate_Exp_ImMap234();
             }
 
 
@@ -827,9 +855,9 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             public string ImMap_Experimental_GetValueOrDefault() =>
                 _mapExp.GetValueOrDefault(MissingKey);
 
-            [Benchmark]
-            public string ImMap_Experimental_ImMap234_GetValueOrDefault() =>
-                _map234.GetValueOrDefault(MissingKey);
+            // [Benchmark]
+            // public string ImMap_Experimental_ImMap234_GetValueOrDefault() =>
+            //     _map234.GetValueOrDefault(MissingKey);
 
 
             private ImTools.Experimental.ImMap<string> _mapExp;
@@ -843,16 +871,16 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            private ImMap234<string> _map234;
-            public ImMap234<string> AddOrUpdate_Exp_ImMap234()
-            {
-                var map = ImMap234<string>.Empty;
+            // private ImMap234<string> _map234;
+            // public ImMap234<string> AddOrUpdate_Exp_ImMap234()
+            // {
+            //     var map = ImMap234<string>.Empty;
 
-                for (var i = 0; i < Count; i++)
-                    map = ImMap234.AddOrUpdate(map, i, i.ToString());
+            //     for (var i = 0; i < Count; i++)
+            //         map = ImMap234.AddOrUpdate(map, i, i.ToString());
 
-                return map;
-            }
+            //     return map;
+            // }
         }
 
         [MemoryDiagnoser]
@@ -990,16 +1018,16 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            private ImMap234<string> _mapExp234;
-            public ImMap234<string> AddOrUpdate_Exp234()
-            {
-                var map = ImMap234<string>.Empty;
+            // private ImMap234<string> _mapExp234;
+            // public ImMap234<string> AddOrUpdate_Exp234()
+            // {
+            //     var map = ImMap234<string>.Empty;
 
-                for (var i = 0; i < Count; i++)
-                    map = ImMap234.AddOrUpdate(map, i, i.ToString());
+            //     for (var i = 0; i < Count; i++)
+            //         map = ImMap234.AddOrUpdate(map, i, i.ToString());
 
-                return map;
-            }
+            //     return map;
+            // }
 
             private ImTools.ImMap<string>[] _mapSlots;
             public ImTools.ImMap<string>[] AddOrUpdate_ImMapSlots()
@@ -1078,7 +1106,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 _map = AddOrUpdate();
                 _mapV1 = AddOrUpdate_V1();
                 _mapExp = AddOrUpdate_Exp();
-                _mapExp234 = AddOrUpdate_Exp234();
+                // _mapExp234 = AddOrUpdate_Exp234();
                 _mapSlots = AddOrUpdate_ImMapSlots();
                 _mapSlotsExp = AddOrUpdate_ImMapSlots_Exp();
                 _dictSlim = DictSlim();
@@ -1117,9 +1145,9 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             public object Experimental_ImMap_FoldToArray() =>
                 _mapExp.Fold(new List<ImMapEntry<string>>(), (item, list) => { list.Add(item); return list; }).ToArray();
 
-            [Benchmark]
-            public object Experimental_ImMap234_FoldToArray() =>
-                _mapExp234.Fold(new List<ImMap234<string>.Entry>(), (item, list) => { list.Add(item); return list; }).ToArray();
+            // [Benchmark]
+            // public object Experimental_ImMap234_FoldToArray() =>
+            //     _mapExp234.Fold(new List<ImMap234<string>.Entry>(), (item, list) => { list.Add(item); return list; }).ToArray();
 
             //[Benchmark]
             public object ImMapSlots_FoldToArray() => 
