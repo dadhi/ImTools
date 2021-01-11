@@ -55,9 +55,9 @@ namespace ImTools.Experimental
             public sealed override Entry GetEntryOrDefault(int hash) => hash == Hash ? this : null;
 
             internal abstract Entry Update(KeyValueEntry entry);
-            internal abstract Entry Keep(KeyValueEntry entry);
+            internal abstract Entry KeepOrUpdate(KeyValueEntry entry);
             /// <summary>returns null if entry is removed completely or modified entry, or the original entry if nothing is removed </summary>
-            internal abstract Entry TryRemove<T>(T key);
+            internal abstract Entry TryRemove(K key);
 
             /// <inheritdoc />
             public sealed override ImHashMap234<K, V> AddOrUpdateEntry(int hash, KeyValueEntry entry) =>
@@ -69,7 +69,7 @@ namespace ImTools.Experimental
             public sealed override ImHashMap234<K, V> AddOrKeepEntry(int hash, KeyValueEntry entry) =>
                 hash > Hash ? new Leaf2(this, entry) :
                 hash < Hash ? new Leaf2(entry, this) :
-                (ImHashMap234<K, V>)Keep(entry);
+                (ImHashMap234<K, V>)KeepOrUpdate(entry);
 
             /// <inheritdoc />
             public sealed override ImHashMap234<K, V> RemoveEntry(int hash, K key) =>
@@ -80,8 +80,8 @@ namespace ImTools.Experimental
         {
             public RemovedEntry(int hash) : base(hash) {}
             internal override Entry Update(KeyValueEntry entry) => entry;
-            internal override Entry Keep(KeyValueEntry entry) => entry;
-            internal override Entry TryRemove<T>(T key) => this;
+            internal override Entry KeepOrUpdate(KeyValueEntry entry) => entry;
+            internal override Entry TryRemove(K key) => this;
 
             public override string ToString() => "[" + Hash + "]:removed-entry";
         }
@@ -105,9 +105,9 @@ namespace ImTools.Experimental
 
             internal override Entry Update(KeyValueEntry entry) => entry;
 
-            internal override Entry Keep(KeyValueEntry entry) => this;
+            internal override Entry KeepOrUpdate(KeyValueEntry entry) => this;
 
-            internal override Entry TryRemove<T>(T _) => null;
+            internal override Entry TryRemove(K _) => null;
         }
 
         /// <summary>Entry containing the Value</summary>
@@ -137,10 +137,10 @@ namespace ImTools.Experimental
             internal override Entry Update(KeyValueEntry entry) => 
                 Key.Equals(entry.Key) ? entry : (Entry)new HashConflictKeyValuesEntry(Hash, this, entry);
 
-            internal override Entry Keep(KeyValueEntry entry) => 
+            internal override Entry KeepOrUpdate(KeyValueEntry entry) => 
                 Key.Equals(entry.Key) ? this : (Entry)new HashConflictKeyValuesEntry(Hash, this, entry);
 
-            internal override Entry TryRemove<T>(T key) =>
+            internal override Entry TryRemove(K key) =>
                 Key.Equals(key) ? null : this;
         }
 
@@ -190,7 +190,7 @@ namespace ImTools.Experimental
                 return new HashConflictKeyValuesEntry(Hash, newConflicts);
             }
 
-            internal override Entry Keep(KeyValueEntry entry)
+            internal override Entry KeepOrUpdate(KeyValueEntry entry)
             {
                 var key = entry.Key;
 
@@ -210,7 +210,7 @@ namespace ImTools.Experimental
                 return new HashConflictKeyValuesEntry(Hash, newConflicts);
             }
 
-            internal override Entry TryRemove<T>(T key) 
+            internal override Entry TryRemove(K key) 
             {
                 var cs = Conflicts;
                 var n = cs.Length;
@@ -283,8 +283,8 @@ namespace ImTools.Experimental
                     hash > e1.Hash                   ? new Leaf3(e0, e1, entry) :
                     hash < e0.Hash                   ? new Leaf3(entry, e0, e1) :
                     hash > e0.Hash && hash < e1.Hash ? new Leaf3(e0, entry, e1) :
-                    hash == e0.Hash ?   ((e0 = e0.Keep(entry)) == Entry0 ? this : new Leaf2(e0, e1)) :
-                    (ImHashMap234<K, V>)((e1 = e1.Keep(entry)) == Entry1 ? this : new Leaf2(e0, e1));
+                    hash == e0.Hash ?   ((e0 = e0.KeepOrUpdate(entry)) == Entry0 ? this : new Leaf2(e0, e1)) :
+                    (ImHashMap234<K, V>)((e1 = e1.KeepOrUpdate(entry)) == Entry1 ? this : new Leaf2(e0, e1));
             }
 
             /// <inheritdoc />
@@ -346,9 +346,9 @@ namespace ImTools.Experimental
                 var e1 = Entry1;
                 var e2 = Entry2;
                 return
-                    hash == e0.Hash ? ((e0 = e0.Keep(entry)) == Entry0 ? this : new Leaf3(e0, e1, e2)) :
-                    hash == e1.Hash ? ((e1 = e1.Keep(entry)) == Entry1 ? this : new Leaf3(e0, e1, e2)) :
-                    hash == e2.Hash ? ((e2 = e2.Keep(entry)) == Entry2 ? this : new Leaf3(e0, e1, e2)) :
+                    hash == e0.Hash ? ((e0 = e0.KeepOrUpdate(entry)) == Entry0 ? this : new Leaf3(e0, e1, e2)) :
+                    hash == e1.Hash ? ((e1 = e1.KeepOrUpdate(entry)) == Entry1 ? this : new Leaf3(e0, e1, e2)) :
+                    hash == e2.Hash ? ((e2 = e2.KeepOrUpdate(entry)) == Entry2 ? this : new Leaf3(e0, e1, e2)) :
                     (ImHashMap234<K, V>)new Leaf3Plus1(entry, this);
             }
 
@@ -478,7 +478,7 @@ namespace ImTools.Experimental
                 var p = Plus;
                 var ph = p.Hash;
                 if (ph == hash)
-                    return (p = p.Keep(entry)) == Plus ? this : new Leaf3Plus1(p, L3);
+                    return (p = p.KeepOrUpdate(entry)) == Plus ? this : new Leaf3Plus1(p, L3);
 
                 var l = L3;
                 var e0 = l.Entry0;
@@ -538,9 +538,9 @@ namespace ImTools.Experimental
                 }
 
                 return
-                    hash == e0.Hash ? ((e0 = e0.Keep(entry)) == l.Entry0 ? this : (ImHashMap234<K, V>)new Leaf3Plus1(p, new Leaf3(e0, e1, e2))) :
-                    hash == e1.Hash ? ((e1 = e1.Keep(entry)) == l.Entry1 ? this : (ImHashMap234<K, V>)new Leaf3Plus1(p, new Leaf3(e0, e1, e2))) :
-                                      ((e2 = e2.Keep(entry)) == l.Entry2 ? this : (ImHashMap234<K, V>)new Leaf3Plus1(p, new Leaf3(e0, e1, e2)));
+                    hash == e0.Hash ? ((e0 = e0.KeepOrUpdate(entry)) == l.Entry0 ? this : (ImHashMap234<K, V>)new Leaf3Plus1(p, new Leaf3(e0, e1, e2))) :
+                    hash == e1.Hash ? ((e1 = e1.KeepOrUpdate(entry)) == l.Entry1 ? this : (ImHashMap234<K, V>)new Leaf3Plus1(p, new Leaf3(e0, e1, e2))) :
+                                      ((e2 = e2.KeepOrUpdate(entry)) == l.Entry2 ? this : (ImHashMap234<K, V>)new Leaf3Plus1(p, new Leaf3(e0, e1, e2)));
             }
 
             /// <inheritdoc />
@@ -656,11 +656,11 @@ namespace ImTools.Experimental
                 var e3 = Entry3;
                 var e4 = Entry4;
                 return
-                    hash == e0.Hash ? ((e0 = e0.Keep(entry)) == Entry0 ? this : new Leaf5(e0, e1, e2, e3, e4)) :
-                    hash == e1.Hash ? ((e1 = e1.Keep(entry)) == Entry1 ? this : new Leaf5(e0, e1, e2, e3, e4)) :
-                    hash == e2.Hash ? ((e2 = e2.Keep(entry)) == Entry2 ? this : new Leaf5(e0, e1, e2, e3, e4)) :
-                    hash == e3.Hash ? ((e3 = e3.Keep(entry)) == Entry3 ? this : new Leaf5(e0, e1, e2, e3, e4)) :
-                    hash == e4.Hash ? ((e4 = e4.Keep(entry)) == Entry4 ? this : new Leaf5(e0, e1, e2, e3, e4)) :
+                    hash == e0.Hash ? ((e0 = e0.KeepOrUpdate(entry)) == Entry0 ? this : new Leaf5(e0, e1, e2, e3, e4)) :
+                    hash == e1.Hash ? ((e1 = e1.KeepOrUpdate(entry)) == Entry1 ? this : new Leaf5(e0, e1, e2, e3, e4)) :
+                    hash == e2.Hash ? ((e2 = e2.KeepOrUpdate(entry)) == Entry2 ? this : new Leaf5(e0, e1, e2, e3, e4)) :
+                    hash == e3.Hash ? ((e3 = e3.KeepOrUpdate(entry)) == Entry3 ? this : new Leaf5(e0, e1, e2, e3, e4)) :
+                    hash == e4.Hash ? ((e4 = e4.KeepOrUpdate(entry)) == Entry4 ? this : new Leaf5(e0, e1, e2, e3, e4)) :
                     (ImHashMap234<K, V>)new Leaf5Plus1(entry, this);
             }
 
@@ -757,7 +757,7 @@ namespace ImTools.Experimental
                 var p = Plus;
                 var ph = p.Hash;
                 if (ph == hash)
-                    return (p = p.Keep(entry)) == Plus ? this : (ImHashMap234<K, V>)new Leaf5Plus1(p, L5);
+                    return (p = p.KeepOrUpdate(entry)) == Plus ? this : (ImHashMap234<K, V>)new Leaf5Plus1(p, L5);
 
                 var l5 = L5;
                 var e0 = l5.Entry0;
@@ -768,15 +768,15 @@ namespace ImTools.Experimental
                 var e4 = l5.Entry4;
 
                 if (hash == e0.Hash)
-                     return (e0 = e0.Keep(entry)) == l5.Entry0 ? this : new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3, e4));
+                     return (e0 = e0.KeepOrUpdate(entry)) == l5.Entry0 ? this : new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3, e4));
                 if (hash == e1.Hash)
-                    return (e1 = e1.Keep(entry)) == l5.Entry1 ? this : new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3, e4));
+                    return (e1 = e1.KeepOrUpdate(entry)) == l5.Entry1 ? this : new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3, e4));
                 if (hash == e2.Hash)
-                    return (e2 = e2.Keep(entry)) == l5.Entry2 ? this : new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3, e4));
+                    return (e2 = e2.KeepOrUpdate(entry)) == l5.Entry2 ? this : new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3, e4));
                 if (hash == e3.Hash)
-                    return (e3 = e3.Keep(entry)) == l5.Entry3 ? this : new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3, e4));
+                    return (e3 = e3.KeepOrUpdate(entry)) == l5.Entry3 ? this : new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3, e4));
                 if (hash == e4.Hash)
-                    return (e4 = e4.Keep(entry)) == l5.Entry4 ? this : new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3, e4));
+                    return (e4 = e4.KeepOrUpdate(entry)) == l5.Entry4 ? this : new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3, e4));
 
                 return new Leaf5Plus1Plus1(entry, this);
             }
@@ -948,12 +948,12 @@ namespace ImTools.Experimental
                 var p = Plus;
                 var ph = p.Hash;
                 if (ph == hash)
-                    return (p = p.Keep(entry)) == Plus ? this : (ImHashMap234<K, V>)new Leaf5Plus1(p, L.L5);
+                    return (p = p.KeepOrUpdate(entry)) == Plus ? this : (ImHashMap234<K, V>)new Leaf5Plus1(p, L.L5);
 
                 var lp = L.Plus;
                 var lph = lp.Hash;
                 if (lph == hash)
-                    return (lp = lp.Keep(entry)) == L.Plus ? this : (ImHashMap234<K, V>)new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, L.L5));
+                    return (lp = lp.KeepOrUpdate(entry)) == L.Plus ? this : (ImHashMap234<K, V>)new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, L.L5));
 
                 var l5 = L.L5;
                 var e0 = l5.Entry0;
@@ -963,15 +963,15 @@ namespace ImTools.Experimental
                 var e4 = l5.Entry4;
 
                 if (hash == e0.Hash)
-                    return (e0 = e0.Keep(entry)) == l5.Entry0 ? this : new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, new Leaf5(e0, e1, e2, e3, e4)));
+                    return (e0 = e0.KeepOrUpdate(entry)) == l5.Entry0 ? this : new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, new Leaf5(e0, e1, e2, e3, e4)));
                 if (hash == e1.Hash)
-                    return (e1 = e1.Keep(entry)) == l5.Entry1 ? this : new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, new Leaf5(e0, e1, e2, e3, e4)));
+                    return (e1 = e1.KeepOrUpdate(entry)) == l5.Entry1 ? this : new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, new Leaf5(e0, e1, e2, e3, e4)));
                 if (hash == e2.Hash)
-                    return (e2 = e2.Keep(entry)) == l5.Entry2 ? this : new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, new Leaf5(e0, e1, e2, e3, e4)));
+                    return (e2 = e2.KeepOrUpdate(entry)) == l5.Entry2 ? this : new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, new Leaf5(e0, e1, e2, e3, e4)));
                 if (hash == e3.Hash)
-                    return (e3 = e3.Keep(entry)) == l5.Entry3 ? this : new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, new Leaf5(e0, e1, e2, e3, e4)));
+                    return (e3 = e3.KeepOrUpdate(entry)) == l5.Entry3 ? this : new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, new Leaf5(e0, e1, e2, e3, e4)));
                 if (hash == e4.Hash)
-                    return (e4 = e4.Keep(entry)) == l5.Entry4 ? this : new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, new Leaf5(e0, e1, e2, e3, e4)));
+                    return (e4 = e4.KeepOrUpdate(entry)) == l5.Entry4 ? this : new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, new Leaf5(e0, e1, e2, e3, e4)));
 
                 Entry e = entry;
                 SortEntriesByHash(ref e0, ref e1, ref e2, ref e3, ref e4, ref lp, ref p, ref e);
@@ -1277,7 +1277,7 @@ namespace ImTools.Experimental
                     return new Branch2(aNew, e0, Right);
                 }
 
-                return (e0 = e0.Keep(entry)) == Entry0 ? this : new Branch2(Left, e0, Right);
+                return (e0 = e0.KeepOrUpdate(entry)) == Entry0 ? this : new Branch2(Left, e0, Right);
             }
 
             /// <inheritdoc />
@@ -1690,8 +1690,8 @@ namespace ImTools.Experimental
                 }
 
                 return hash == e0.Hash
-                    ? ((e0 = e0.Keep(entry)) == Entry0 ? this : new Branch3(Left, e0, RightBranch))
-                    : ((e1 = e1.Keep(entry)) == Entry1 ? this : new Branch3(Left, e0, new Branch2(Middle, e1, Right)));
+                    ? ((e0 = e0.KeepOrUpdate(entry)) == Entry0 ? this : new Branch3(Left, e0, RightBranch))
+                    : ((e1 = e1.KeepOrUpdate(entry)) == Entry1 ? this : new Branch3(Left, e0, new Branch2(Middle, e1, Right)));
             }
 
             /// <inheritdoc />
