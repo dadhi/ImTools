@@ -25,14 +25,6 @@ THE SOFTWARE.
 
 // ReSharper disable once InconsistentNaming
 
-#if !NET35 && !PCL
-#define SUPPORTS_SPIN_WAIT
-#endif
-
-#if !NET35 && !PCL
-#define SUPPORTS_LAZY
-#endif
-
 namespace ImTools
 {
     using System;
@@ -96,14 +88,12 @@ namespace ImTools
         public static R ToFunc<T, R>(this R result, T ignoredArg) => result;
     }
 
-#if SUPPORTS_LAZY
     /// <summary>Helpers for lazy instantiations</summary>
     public static class Lazy
     {
         /// <summary>Provides result type inference for creation of lazy.</summary>
         public static Lazy<T> Of<T>(Func<T> valueFactory) => new Lazy<T>(valueFactory);
     }
-#endif
 
     /// Replacement for `Void` type which can be used as a type argument and value.
     /// In traditional functional languages this type is a singleton empty record type,
@@ -2118,9 +2108,7 @@ namespace ImTools
             int retryCountUntilThrow = RETRY_COUNT_UNTIL_THROW) 
             where T : class
         {
-#if SUPPORTS_SPIN_WAIT
             var spinWait = new SpinWait();
-#endif
             var retryCount = 0;
             while (true)
             {
@@ -2131,9 +2119,7 @@ namespace ImTools
 
                 if (++retryCount > retryCountUntilThrow)
                     ThrowRetryCountExceeded(retryCountUntilThrow);
-#if SUPPORTS_SPIN_WAIT
                 spinWait.SpinOnce();
-#endif
             }
         }
 
@@ -2149,9 +2135,7 @@ namespace ImTools
             int retryCountUntilThrow = RETRY_COUNT_UNTIL_THROW) 
             where T : class
         {
-#if SUPPORTS_SPIN_WAIT
             var spinWait = new SpinWait();
-#endif
             var retryCount = 0;
             while (true)
             {
@@ -2161,9 +2145,7 @@ namespace ImTools
                     return oldValue;
                 if (++retryCount > retryCountUntilThrow)
                     ThrowRetryCountExceeded(retryCountUntilThrow);
-#if SUPPORTS_SPIN_WAIT
                 spinWait.SpinOnce();
-#endif
             }
         }
 
@@ -2173,9 +2155,7 @@ namespace ImTools
             int retryCountUntilThrow = RETRY_COUNT_UNTIL_THROW) 
             where T : class
         {
-#if SUPPORTS_SPIN_WAIT
             var spinWait = new SpinWait();
-#endif
             var retryCount = 0;
             while (true)
             {
@@ -2187,9 +2167,7 @@ namespace ImTools
                 if (++retryCount > retryCountUntilThrow)
                     ThrowRetryCountExceeded(retryCountUntilThrow);
 
-#if SUPPORTS_SPIN_WAIT
                 spinWait.SpinOnce();
-#endif
             }
         }
 
@@ -2199,9 +2177,7 @@ namespace ImTools
             int retryCountUntilThrow = RETRY_COUNT_UNTIL_THROW)
             where T : class
         {
-#if SUPPORTS_SPIN_WAIT
             var spinWait = new SpinWait();
-#endif
             var retryCount = 0;
             while (true)
             {
@@ -2213,38 +2189,9 @@ namespace ImTools
                 if (++retryCount > retryCountUntilThrow)
                     ThrowRetryCountExceeded(retryCountUntilThrow);
 
-#if SUPPORTS_SPIN_WAIT
                 spinWait.SpinOnce();
-#endif
             }
         }
-
-        // todo: Func of 5 args is not available on all plats
-//        /// Option without allocation for capturing `a`, `b`, `c`, `d` in closure of `getNewValue`
-//        [MethodImpl((MethodImplOptions)256)]
-//        public static T Swap<T, A, B, C, D>(ref T value, A a, B b, C c, D d, Func<T, A, B, C, D, T> getNewValue,
-//            int retryCountUntilThrow = RETRY_COUNT_UNTIL_THROW)
-//            where T : class
-//        {
-//#if SUPPORTS_SPIN_WAIT
-//            var spinWait = new SpinWait();
-//#endif
-//            var retryCount = 0;
-//            while (true)
-//            {
-//                var oldValue = value;
-//                var newValue = getNewValue(oldValue, a, b, c, d);
-//                if (Interlocked.CompareExchange(ref value, newValue, oldValue) == oldValue)
-//                    return oldValue;
-
-//                if (++retryCount > retryCountUntilThrow)
-//                    ThrowRetryCountExceeded(retryCountUntilThrow);
-
-//#if SUPPORTS_SPIN_WAIT
-//                spinWait.SpinOnce();
-//#endif
-//            }
-//        }
     }
 
     /// <summary>Printable thing via provided printer </summary>

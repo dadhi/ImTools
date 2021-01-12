@@ -22,7 +22,9 @@
 <![CDATA[
 ## v3.0.0 Major feature release
 
+- Minimizing the target frameworks to the net45 and netstandard2.0
 - Added fast and more memory efficient ImMap and ImHashMap based on 2-3-4 tree (#32, #35)
+
 ]]>
     </PackageReleaseNotes>
     </PropertyGroup>
