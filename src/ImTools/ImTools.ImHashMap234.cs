@@ -76,16 +76,6 @@ namespace ImTools.Experimental
                 hash == Hash ? TryRemove(key) ?? Empty : this;
         }
 
-        internal sealed class RemovedEntry : Entry 
-        {
-            public RemovedEntry(int hash) : base(hash) {}
-            internal override Entry Update(KeyValueEntry entry) => entry;
-            internal override Entry KeepOrUpdate(KeyValueEntry entry) => entry;
-            internal override Entry TryRemove(K key) => this;
-
-            public override string ToString() => "[" + Hash + "]:removed-entry";
-        }
-
         /// <summary>Entry containing the Value</summary>
         public sealed class KeyValueEntry : Entry
         {
@@ -207,20 +197,19 @@ namespace ImTools.Experimental
             }
         }
 
-        /// <summary>Leaf with 2 entries</summary>
+        /// <summary>Leaf with 2 entries.
+        /// Note: the entries may be null for the removed entries</summary>
         public sealed class Leaf2 : ImHashMap234<K, V>
         {
             /// <summary>Left entry</summary>
             public readonly Entry Entry0;
             /// <summary>Right entry</summary>
             public readonly Entry Entry1;
-
             /// <summary>Constructs the leaf</summary>
             public Leaf2(Entry e0, Entry e1)
             {
-                Debug.Assert(e0.Hash < e1.Hash);
-                Entry0 = e0;
-                Entry1 = e1;
+                Debug.Assert(e0 == null || e1 == null || e0.Hash < e1.Hash);
+                Entry0 = e0; Entry1 = e1;
             }
 
 #if !DEBUG
@@ -229,16 +218,31 @@ namespace ImTools.Experimental
 #endif
 
             /// <inheritdoc />
-            public override Entry GetEntryOrDefault(int hash) =>
-                hash == Entry0.Hash ? Entry0 :
-                hash == Entry1.Hash ? Entry1 :
-                null;
-
+            public override Entry GetEntryOrDefault(int hash)
+            {
+                var e0 = Entry0;
+                if (e0 != null && e0.Hash == hash)
+                    return e0;
+                var e1 = Entry1;
+                if (e1 != null && e1.Hash == hash)
+                    return e1;
+                return null;
+            }
+                
             /// <inheritdoc />
             public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, KeyValueEntry entry)
             {
-                var e1 = Entry1;
                 var e0 = Entry0;
+                var e1 = Entry1;
+                if (e0 == null)
+                    return e1 == null ? new Leaf2(null, entry)
+                        :  e1.Hash == hash ? new Leaf2(null, e1.Update(entry))
+                        :  e1.Hash <  hash ? new Leaf2(entry, e1) : new Leaf2(e1, entry);
+
+                if (e1 == null)
+                    return e0.Hash == hash ? new Leaf2(e0.Update(entry), null)
+                        :  e0.Hash <  hash ? new Leaf2(e0, entry) : new Leaf2(entry, e0);
+
                 return
                     hash > e1.Hash                   ? new Leaf3(e0, e1, entry) :
                     hash < e0.Hash                   ? new Leaf3(entry, e0, e1) :
@@ -250,8 +254,18 @@ namespace ImTools.Experimental
             /// <inheritdoc />
             public override ImHashMap234<K, V> AddOrKeepEntry(int hash, KeyValueEntry entry)
             {
-                var e1 = Entry1;
                 var e0 = Entry0;
+                var e1 = Entry1;
+
+                if (e0 == null)
+                    return e1 == null ? new Leaf2(null, entry)
+                        :  e1.Hash == hash ? ((e1 = e1.KeepOrUpdate(entry)) == Entry1 ? this : new Leaf2(null, e1))
+                        :  e1.Hash <  hash ? new Leaf2(entry, e1) : new Leaf2(e1, entry);
+
+                if (e1 == null)
+                    return e0.Hash == hash ? ((e0 = e0.KeepOrUpdate(entry)) == Entry0 ? this : new Leaf2(e0, null))
+                        :  e0.Hash <  hash ? new Leaf2(e0, entry) : new Leaf2(entry, e0);
+
                 return
                     hash > e1.Hash                   ? new Leaf3(e0, e1, entry) :
                     hash < e0.Hash                   ? new Leaf3(entry, e0, e1) :
@@ -265,11 +279,10 @@ namespace ImTools.Experimental
             {
                 var e0 = Entry0;
                 var e1 = Entry1;
-                if (hash == e0.Hash)
-                    return (e0 = e0.TryRemove(key)) == Entry0 ? this : e0 == null ? e1 : (ImHashMap234<K, V>)new Leaf2(e0, e1);
-                if (hash == e1.Hash)
-                    return (e1 = e1.TryRemove(key)) == Entry1 ? this : e1 == null ? e0 : (ImHashMap234<K, V>)new Leaf2(e0, e1);
-                return this;
+                // e0 or e1 may be null as the result and its Ok for the removed entry
+                return hash == e0.Hash ? ((e0 = e0.TryRemove(key)) == Entry0 ? this : new Leaf2(e0, e1))
+                    :  hash == e1.Hash ? ((e1 = e1.TryRemove(key)) == Entry1 ? this : new Leaf2(e0, e1))
+                    :  this;
             }
         }
 
@@ -912,7 +925,7 @@ namespace ImTools.Experimental
                 SortEntriesByHash(ref e0, ref e1, ref e2, ref e3, ref e4, ref lp, ref p, ref e);
 
                 // todo: @perf find the way to reuse the Leaf5
-                return new Branch2(new Leaf5(e0, e1, e2, e3, e4), lp, new Leaf2(p, e));
+                return new Branch2(new Leaf5(e0, e1, e2, e3, e4), lp.Hash, lp, new Leaf2(p, e));
             }
 
             /// <inheritdoc />
@@ -950,7 +963,7 @@ namespace ImTools.Experimental
                 SortEntriesByHash(ref e0, ref e1, ref e2, ref e3, ref e4, ref lp, ref p, ref e);
 
                 // todo: @perf find the way to reuse the Leaf5
-                return new Branch2(new Leaf5(e0, e1, e2, e3, e4), lp, new Leaf2(p, e));
+                return new Branch2(new Leaf5(e0, e1, e2, e3, e4), lp.Hash, lp, new Leaf2(p, e));
             }
 
             /// <summary>The order at the end should be the follwing: <![CDATA[e0 < e1 < e2 < e3 < e4 < lp < p < entry]]></summary>
@@ -1165,23 +1178,26 @@ namespace ImTools.Experimental
         /// <summary>Branch of 2 leafs or branches</summary>
         public sealed class Branch2 : Branch
         {
+            /// <summary>Holds the Entry0 Hash to simplify the removal (so that Entry0 maybe null but avaliability of Hash will keep th algorithm intact). As a bonus it speeds up the lookup a bit, because we don't need to load the Entry to use its Hash for comparison.</summary>
+            public readonly int Entry0Hash;
             /// <summary>Left branch</summary>
             public readonly ImHashMap234<K, V> Left;
             /// <summary>Entry in the middle</summary>
             public readonly Entry Entry0;
             /// <summary>Right branch</summary>
             public readonly ImHashMap234<K, V> Right;
-
             /// <summary>Constructs</summary>
-            public Branch2(ImHashMap234<K, V> left, Entry e, ImHashMap234<K, V> right)
+            public Branch2(ImHashMap234<K, V> left, int entry0Hash, Entry entry0, ImHashMap234<K, V> right)
             {
-                Debug.Assert(Left != Empty);
-                Debug.Assert(Left is Entry == false);
-                Debug.Assert(Right != Empty);
-                Debug.Assert(Right is Entry == false);
-                Debug.Assert(Left is Branch ? Right is Branch : Right is Branch == false, 
+                Debug.Assert(left != Empty);
+                Debug.Assert(left is Entry == false);
+                Debug.Assert(right != Empty);
+                Debug.Assert(right is Entry == false);
+                Debug.Assert(left is Branch ? right is Branch : right is Branch == false, 
                     "the all Branch2 branches should be either leafs or the branches");
-                Entry0 = e;
+                Debug.Assert(entry0 == null || entry0Hash == entry0.Hash, $"entry0Hash({entry0Hash}) == entry0.Hash({entry0.Hash})");
+                Entry0Hash = entry0Hash;
+                Entry0 = entry0;
                 Left   = left;
                 Right  = right;
             }
@@ -1189,347 +1205,94 @@ namespace ImTools.Experimental
 #if !DEBUG
             /// <inheritdoc />
             public override string ToString() =>
-                !(Left is Branch2) && !(Left is Branch3) ? Left + " <- " + Entry0 + " -> " + Right : 
-                  Left.GetType().Name + " <- " + Entry0 + " -> " + Right.GetType().Name;
+                Left is Branch == false ? Left + " <- " + Entry0 + " -> " + Right :
+                Left.GetType().Name + " <- " + Entry0 + " -> " + Right.GetType().Name;
 #endif
 
             /// <inheritdoc />
             public override Entry GetEntryOrDefault(int hash) =>
-                hash > Entry0.Hash ? Right.GetEntryOrDefault(hash) :
-                hash < Entry0.Hash ? Left .GetEntryOrDefault(hash) :
-                Entry0 is RemovedEntry ? null : Entry0;
+                hash > Entry0Hash ? Right.GetEntryOrDefault(hash) :
+                hash < Entry0Hash ? Left .GetEntryOrDefault(hash) :
+                Entry0;
 
             /// <inheritdoc />
             public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, KeyValueEntry entry)
             {
-                var e0 = Entry0; // todo: @perf load the hash into the variable
-                if (hash > e0.Hash)
+                if (hash > Entry0Hash)
                 {
-                    var old = Right;
-                    var aNew = old.AddOrUpdateEntry(hash, entry);
-                    if (aNew is Branch2 b2 && (old is Branch3 || old is Leaf5Plus1Plus1))
-                        return new Branch3(Left, e0, b2);
-                    return new Branch2(Left, e0, aNew);
+                    var newRight = Right.AddOrUpdateEntry(hash, entry);
+                    if (newRight is Branch2 newRightBranch2 && (Right is Branch3 || Right is Leaf5Plus1Plus1))
+                        return new Branch3(Left, Entry0Hash, Entry0, newRightBranch2);
+                    return new Branch2(Left, Entry0Hash, Entry0, newRight);
                 }
 
-                if (hash < e0.Hash)
+                if (hash < Entry0Hash)
                 {
-                    var old = Left;
-                    var aNew = old.AddOrUpdateEntry(hash, entry);
-                    if (aNew is Branch2 b2 && (old is Branch3 || old is Leaf5Plus1Plus1))
-                        return new Branch3(b2.Left, b2.Entry0, new Branch2(b2.Right, e0, Right));
-                    return new Branch2(aNew, e0, Right);
+                    var newLeft = Left.AddOrUpdateEntry(hash, entry);
+                    if (newLeft is Branch2 newLeftBranch2 && (Left is Branch3 || Left is Leaf5Plus1Plus1))
+                        // todo: @perf think how to reuse newLeftBranch2 without destructing it - 
+                        // may be we can use the `Entry0Hash < Entry1Hash` as the condition to decide on the ASC or DESC Branch3.
+                        // Take the complexity of Enumerate into the account - but it seems doable
+                        return new Branch3(
+                            newLeftBranch2.Left, newLeftBranch2.Entry0Hash, newLeftBranch2.Entry0, 
+                            new Branch2(newLeftBranch2.Right, Entry0Hash, Entry0, Right));
+                    return new Branch2(newLeft, Entry0Hash, Entry0, Right);
                 }
 
-                return new Branch2(Left, e0.Update(entry), Right);
+                return new Branch2(Left, hash, Entry0 == null ? entry : Entry0.Update(entry), Right);
             }
 
             /// <inheritdoc />
             public override ImHashMap234<K, V> AddOrKeepEntry(int hash, KeyValueEntry entry)
             {
-                var e0 = Entry0;
-                if (hash > e0.Hash)
+                if (hash > Entry0Hash)
                 {
-                    var old = Right;
-                    var aNew = old.AddOrKeepEntry(hash, entry);
-                    if (aNew == old)
+                    var newRight = Right.AddOrKeepEntry(hash, entry);
+                    if (newRight == Right)
                         return this;
-                    if (aNew is Branch2 b2 && (old is Branch3 || old is Leaf5Plus1Plus1))
-                        return new Branch3(Left, e0, b2);
-                    return new Branch2(Left, e0, aNew);
+                    if (newRight is Branch2 newRightBranch2 && (Right is Branch3 || Right is Leaf5Plus1Plus1))
+                        return new Branch3(Left, Entry0Hash, Entry0, newRightBranch2);
+                    return new Branch2(Left, Entry0Hash, Entry0, newRight);
                 }
 
-                if (hash < e0.Hash)
+                if (hash < Entry0Hash)
                 {
-                    var old = Left;
-                    var aNew = old.AddOrKeepEntry(hash, entry);
-                    if (aNew == old)
+                    var newLeft = Left.AddOrKeepEntry(hash, entry);
+                    if (newLeft == Left)
                         return this;
-                    if (aNew is Branch2 b2 && (old is Branch3 || old is Leaf5Plus1Plus1))
-                        return new Branch3(b2.Left, b2.Entry0, new Branch2(b2.Right, e0, Right));
-                    return new Branch2(aNew, e0, Right);
+                    if (newLeft is Branch2 newLeftBranch2 && (Left is Branch3 || Left is Leaf5Plus1Plus1))
+                        // todo: @perf think how to reuse newLeftBranch2 without destructing it - see in more details above
+                        return new Branch3(
+                            newLeftBranch2.Left, newLeftBranch2.Entry0Hash, newLeftBranch2.Entry0,
+                            new Branch2(newLeftBranch2.Right, Entry0Hash, Entry0, Right));
+                    return new Branch2(newLeft, Entry0Hash, Entry0, Right);
                 }
 
-                return (e0 = e0.KeepOrUpdate(entry)) == Entry0 ? this : new Branch2(Left, e0, Right);
+                if (Entry0 == null)
+                    return new Branch2(Left, hash, entry, Right);
+                var e0 = Entry0.KeepOrUpdate(entry);
+                return e0 == Entry0 ? this : new Branch2(Left, hash, e0, Right);
             }
 
             /// <inheritdoc />
             public override ImHashMap234<K, V> RemoveEntry(int hash, K key)
             {
-                // Despite all the visible complexity of the method the simple check should be 
-                // that all of the non-removed nodes are used when constructing the result.
-
-                var e0 = Entry0;
-                if (hash > e0.Hash) 
+                if (hash > Entry0Hash)
                 {
-                    //        4
-                    //      /   \
-                    //  1 2 3   5 [6]
-
                     var newRight = Right.RemoveEntry(hash, key);
-                    if (newRight == Right)
-                        return this;
-
-                    if (newRight is Entry re)
-                    {
-                        var l = Left;
-                        // If the Left is not a Leaf2, move its one entry to the Right
-                        if (l is Leaf3 l3)
-                            return e0 is RemovedEntry ?
-                                (ImHashMap234<K, V>)new Leaf3Plus1(re, l3) :
-                                new Branch2(new Leaf2(l3.Entry0, l3.Entry1), l3.Entry2, new Leaf2(e0, re));
-
-                        if (l is Leaf3Plus1 l31)
-                        {
-                            var p  = l31.Plus;
-                            var ll = l31.L3;
-                            var lle0 = ll.Entry0;
-                            var lle1 = ll.Entry1;
-                            var lle2 = ll.Entry2;
-                            Leaf3Plus1.SortEntriesByHash(ref lle0, ref lle1, ref lle2, ref p);
-                            return e0 is RemovedEntry 
-                                ? (ImHashMap234<K, V>)new Leaf5(lle0, lle1, lle2, p, re)
-                                : new Branch2(ll, p, new Leaf2(e0, re));
-                        }
-
-                        if (l is Leaf5 l5)
-                            return e0 is RemovedEntry 
-                                ? new Branch2(new Leaf3(l5.Entry0, l5.Entry1, l5.Entry2), l5.Entry3, new Leaf2(l5.Entry4, re))
-                                : new Branch2(new Leaf3(l5.Entry0, l5.Entry1, l5.Entry2), l5.Entry3, new Leaf3(l5.Entry4, e0, re));
-
-                        if (l is Leaf5Plus1 l51)
-                        {
-                            var p  = l51.Plus;
-                            var ll = l51.L5;
-                            var lle0 = ll.Entry0;
-                            var lle1 = ll.Entry1;
-                            var lle2 = ll.Entry2;
-                            var lle3 = ll.Entry3;
-                            var lle4 = ll.Entry4;
-                            Leaf5Plus1.SortEntriesByHash(ref lle0, ref lle1, ref lle2, ref lle3, ref lle4, ref p);
-                            return e0 is RemovedEntry
-                                ? new Branch2(new Leaf3(lle0, lle1, lle2), lle3, new Leaf3(lle4, p, re))
-                                : new Branch2(new Leaf5(lle0, lle1, lle2, lle3, lle4), p, new Leaf2(e0, re));
-                        }
-
-                        if (l is Leaf5Plus1Plus1 l511)
-                        {
-                            var p  = l511.Plus;
-                            var lp  = l511.L.Plus;
-                            var ll = l511.L.L5;
-                            var lle0 = ll.Entry0;
-                            var lle1 = ll.Entry1;
-                            var lle2 = ll.Entry2;
-                            var lle3 = ll.Entry3;
-                            var lle4 = ll.Entry4;
-
-                            Leaf5Plus1Plus1.SortEntriesByHash(ref lle0, ref lle1, ref lle2, ref lle3, ref lle4, ref lp, ref p);
-                            return e0 is RemovedEntry
-                                ? new Branch2(new Leaf5(lle0, lle1, lle2, lle3, lle4), lp, new Leaf2(p, re))
-                                : new Branch2(new Leaf5(lle0, lle1, lle2, lle3, lle4), lp, new Leaf3(p, e0, re));
-                        }
-
-                        // Case #1
-                        // If the Left is Leaf2 -> reduce the whole branch to the Leaf4 and rely on the upper branch (if any) to balance itself,
-                        // see this case handled below..
-                        var l2 = (Leaf2)l;
-                        return e0 is RemovedEntry
-                            ? (ImHashMap234<K, V>)new Leaf3(l2.Entry0, l2.Entry1, re)
-                            : new Leaf3Plus1(l2.Entry0, new Leaf3(l2.Entry1, e0, re));
-                    }
-
-                    // Handling Case #1
-                    if (Right is Branch2 && newRight is Branch == false)
-                    {
-                        // Case #2
-                        //             7                       4     7 
-                        //          /      \                 /    |     \
-                        //        4      8 9 10 11  =>   1 2 3   5 6   8 9 10 11
-                        //      /   \                    
-                        //   1 2 3   5 6                  
-                        // The result tree height is decreased, so we should not forget to rebalance with the other part of the tree on the upper level
-                        // see the case handled below...
-
-                        if (Left is Branch2 lb2)
-                            return new Branch3(lb2.Left, lb2.Entry0, new Branch2(lb2.Right, e0, newRight));
-
-                        //                     10                            7
-                        //              /           \                     /     \
-                        //        4      7        11 12 13 14 =>       4          10
-                        //      /     |    \                         /    \     /    \
-                        //   1 2 3   5 6    8 9                   1 2 3   5 6|8 9   11 12 13 14
-
-                        if (Left is Branch3 lb3) // the result tree height is the same - no need to rebalance
-                            return new Branch2(new Branch2(lb3.Left, lb3.Entry0, lb3.Middle), lb3.Entry1, new Branch2(lb3.Right, e0, newRight));
-                    }
-
-                    // Handling the Case #2
-                    if (Right is Branch2 && newRight is Branch3 rb3)
-                    {
-                        //         0                                  -10        0
-                        //       /         \                          /     |          \                
-                        //   -10           4     7                  a       b          4     7          
-                        //  /   \        /    |     \               |       |        /    |     \       
-                        // a     b    1 2 3   5 6   8 9 10 11   =>  ?       ?     1 2 3   5 6  8 9 10 11
-                        // |     |
-                        // ?     ?
-
-                        if (Left is Branch2 lb2) 
-                            return new Branch3(lb2.Left, lb2.Entry0, new Branch2(lb2.Right, e0, newRight));
-
-                        //              0                                       -5                            
-                        //       /              \                              /     \                        
-                        //   -10  -5            4      7                  -10           0                     
-                        //  /   |   \          /    |     \              /   |      /        \                
-                        // a    b    c   1 2 3     5 6   8 9 10 11  =>  a    b     c         4     7          
-                        // |    |    |                                  |    |     |       /    |     \       
-                        // ?    ?    ?                                  ?    ?     ?    1 2 3  5 6   8 9 10 11
-
-                        if (Left is Branch3 lb3)
-                            return new Branch2(new Branch2(lb3.Left, lb3.Entry0, lb3.Middle), lb3.Entry1, new Branch2(lb3.Right, e0, newRight));
-                    }
-
-                    return new Branch2(Left, e0, newRight);
+                    return newRight == Right ? this : new Branch2(Left, Entry0Hash, Entry0, newRight);
                 }
 
-                if (hash < e0.Hash)
+                if (hash < Entry0Hash)
                 {
-                    //        4
-                    //      /   \
-                    //   1 [2]    5 6 7
-
                     var newLeft = Left.RemoveEntry(hash, key);
-                    if (newLeft == Left)
-                        return this;
-
-                    if (newLeft is Entry le)
-                    {
-                        var r = Right;
-                        if (r is Leaf3 l3)
-                            return e0 is RemovedEntry 
-                                ? (ImHashMap234<K, V>)new Leaf3Plus1(le, l3)
-                                : new Branch2(new Leaf2(le, e0), l3.Entry0, new Leaf2(l3.Entry1, l3.Entry2));
-
-                        if (r is Leaf3Plus1 l31)
-                        {
-                            var p = l31.Plus;
-                            var ll = l31.L3;
-                            var lle0 = ll.Entry0;
-                            var lle1 = ll.Entry1;
-                            var lle2 = ll.Entry2;
-
-                            Leaf3Plus1.SortEntriesByHash(ref lle0, ref lle1, ref lle2, ref p);
-
-                            return e0 is RemovedEntry
-                                ? (ImHashMap234<K, V>)new Leaf5(le, lle0, lle1, lle2, p)
-                                : new Branch2(new Leaf2(le, e0), lle0, new Leaf3(lle1, lle2, p));
-                        }
-
-                        if (r is Leaf5 l5)
-                            return e0 is RemovedEntry
-                                ? new Branch2(new Leaf2(le, l5.Entry0),     l5.Entry1, new Leaf3(l5.Entry2, l5.Entry3, l5.Entry4))
-                                : new Branch2(new Leaf3(le, e0, l5.Entry0), l5.Entry1, new Leaf3(l5.Entry2, l5.Entry3, l5.Entry4));
-
-                        if (r is Leaf5Plus1 l51)
-                        {
-                            var p  = l51.Plus;
-                            var ll = l51.L5;
-                            var lle0 = ll.Entry0;
-                            var lle1 = ll.Entry1;
-                            var lle2 = ll.Entry2;
-                            var lle3 = ll.Entry3;
-                            var lle4 = ll.Entry4;
-
-                            Leaf5Plus1.SortEntriesByHash(ref lle0, ref lle1, ref lle2, ref lle3, ref lle4, ref p);
-
-                            return e0 is RemovedEntry 
-                                ? new Branch2(new Leaf3(le, lle0, lle1), lle2, new Leaf3(lle3, lle4, p))
-                                : new Branch2(new Leaf2(le, e0), lle0, new Leaf5(lle1, lle2, lle3, lle4, p));
-                        }
-
-                        if (r is Leaf5Plus1Plus1 l511)
-                        {
-                            var p  = l511.Plus;
-                            var lp  = l511.L.Plus;
-                            var ll = l511.L.L5;
-                            var lle0 = ll.Entry0;
-                            var lle1 = ll.Entry1;
-                            var lle2 = ll.Entry2;
-                            var lle3 = ll.Entry3;
-                            var lle4 = ll.Entry4;
-
-                            Leaf5Plus1Plus1.SortEntriesByHash(ref lle0, ref lle1, ref lle2, ref lle3, ref lle4, ref lp, ref p);
-
-                            return e0 is RemovedEntry
-                                ? new Branch2(new Leaf2(le, lle0),     lle1, new Leaf5(lle2, lle3, lle4, lp, p))
-                                : new Branch2(new Leaf3(le, e0, lle0), lle1, new Leaf5(lle2, lle3, lle4, lp, p));
-                        }
-
-                        // Case #1
-                        // If the Left is Leaf2 -> reduce the whole branch to the Leaf31 and rely on the upper branch (if any) to balance itself,
-                        // see this case handled below..
-                        var l2 = (Leaf2)r;
-                        return e0 is RemovedEntry
-                            ? (ImHashMap234<K, V>)new Leaf3(le, l2.Entry0, l2.Entry1)
-                            : new Leaf3Plus1(le,  new Leaf3(e0, l2.Entry0, l2.Entry1));
-                    }
-
-                    // Handling the Case #1
-                    if (Left is Branch2 && newLeft is Branch == false) 
-                    {
-                        // Case #2 (for the right branch)
-                        //             7                       4     7 
-                        //          /      \                 /    |     \
-                        //        4      8 9 10 11  =>   1 2 3   5 6   8 9 10 11
-                        //      /   \                    
-                        //   1 2 3   5 6                  
-                        // The result tree height is decreased, so we should not forget to rebalance with the other part of the tree on the upper level
-                        // see the case handled below...
-
-                        if (Right is Branch2 lb2)
-                            return new Branch3(newLeft, e0, lb2);
-
-                        //                     10                            7
-                        //              /           \                     /     \
-                        //        4      7        11 12 13 14 =>       4          10
-                        //      /     |    \                         /    \     /    \
-                        //   1 2 3   5 6    8 9                   1 2 3   5 6|8 9   11 12 13 14
-
-                        if (Right is Branch3 lb3) // the result tree height is the same - no need to rebalance
-                            return new Branch2(new Branch2(newLeft, e0, lb3.Left), lb3.Entry0, new Branch2(lb3.Middle, lb3.Entry1, lb3.Right));
-                    }
-
-                    // Handling the Case #2
-                    if (Left is Branch2 && newLeft is Branch3 rb3)
-                    {
-                        //         0                                  -10        0
-                        //       /         \                          /     |          \                
-                        //   -10           4     7                  a       b          4     7          
-                        //  /   \        /    |     \               |       |        /    |     \       
-                        // a     b    1 2 3   5 6   8 9 10 11   =>  ?       ?     1 2 3   5 6  8 9 10 11
-                        // |     |
-                        // ?     ?
-
-                        if (Right is Branch2 lb2)
-                            return new Branch3(newLeft, e0, lb2);
-
-                        //              0                                       -5                            
-                        //       /              \                              /     \                        
-                        //   -10  -5            4      7                  -10           0                     
-                        //  /   |   \          /    |     \              /   |      /        \                
-                        // a    b    c   1 2 3     5 6   8 9 10 11  =>  a    b     c         4     7          
-                        // |    |    |                                  |    |     |       /    |     \       
-                        // ?    ?    ?                                  ?    ?     ?    1 2 3  5 6   8 9 10 11
-
-                        if (Left is Branch3 lb3)
-                            return new Branch2(new Branch2(newLeft, e0, lb3.Left), lb3.Entry0, new Branch2(lb3.Middle, lb3.Entry1, lb3.Right));
-                    }
-
-                    return new Branch2(newLeft, e0, Right);
+                    return newLeft == Left ? this : new Branch2(newLeft, Entry0Hash, Entry0, Right);
                 }
-
-                var entry = e0.TryRemove(key);
-                return entry == e0 ? this : new Branch2(Left, entry ?? new RemovedEntry(e0.Hash), Right);
+                
+                if (Entry0 == null)
+                    return this;
+                var e0 = Entry0.TryRemove(key);
+                return e0 == Entry0 ? this : new Branch2(Left, hash, e0, Right);
             }
         }
 
@@ -1538,26 +1301,23 @@ namespace ImTools.Experimental
         {
             /// <summary>Left branch</summary>
             public readonly ImHashMap234<K, V> Left;
+            /// <summary>Holds the Entry0 Hash to simplify the removal (so that Entry0 maybe null but avaliability of Hash will keep th algorithm intact). As a bonus it speeds up the lookup a bit, because we don't need to load the Entry to use its Hash for comparison.</summary>
+            public readonly int Entry0Hash;
             /// <summary>Left entry</summary>
             public readonly Entry Entry0;
             /// <summary>The middle and right is represented by the Branch2 to simplify the Enumeration implementation,
             /// so we always deal with the binary tree. But for the outside the use of Branch2 is just an internal detail.</summary>
             public readonly Branch2 RightBranch;
-            /// <summary>Middle branch</summary>
-            public ImHashMap234<K, V> Middle => RightBranch.Left;
-            /// <summary>Right entry</summary>
-            public Entry Entry1 => RightBranch.Entry0;
-            /// <summary>Rightmost branch</summary>
-            public ImHashMap234<K, V> Right => RightBranch.Right;
-
             /// <summary>Constructs the branch</summary>
-            public Branch3(ImHashMap234<K, V> left, Entry entry0, Branch2 rightBranch)
+            public Branch3(ImHashMap234<K, V> left, int entry0Hash, Entry entry0, Branch2 rightBranch)
             {
-                Debug.Assert(Left != Empty);
-                Debug.Assert(Left is Entry == false);
-                Debug.Assert(entry0.Hash < RightBranch.Entry0.Hash, "entry0.Hash < RightBranch.Entry0.Hash");
-                Debug.Assert(Left is Branch ? rightBranch.Left is Branch : rightBranch.Left is Branch == false, 
+                Debug.Assert(left != Empty);
+                Debug.Assert(left is Entry == false);
+                Debug.Assert(entry0 == null || entry0Hash == entry0.Hash, $"entry0Hash({entry0Hash}) == entry0.Hash({entry0.Hash})");
+                Debug.Assert(entry0Hash < rightBranch.Entry0Hash, $"entry0Hash({entry0Hash}) < RightBranch.Entry0Hash({rightBranch.Entry0Hash})");
+                Debug.Assert(left is Branch ? rightBranch.Left is Branch : rightBranch.Left is Branch == false, 
                     "the all Branch3 branches should be either leafs or the branches");
+                Entry0Hash = entry0Hash;
                 Entry0 = entry0;
                 Left   = left;
                 RightBranch = rightBranch;
@@ -1566,225 +1326,140 @@ namespace ImTools.Experimental
 #if !DEBUG
             /// <inheritdoc />
             public override string ToString() =>
-                !(Left is Branch2) && !(Left is Branch3) ? Left + " <- " + Entry0 + " -> " + Middle + " <- " + Entry1 + " -> " + Right : 
-                Left.GetType().Name + " <- " + Entry0 + " -> " + Middle.GetType().Name + " <- " + Entry1 + " -> " + Right.GetType().Name;
+                Left is Branch == false ? Left + " <- " + Entry0 + " ->(" + RightBranch + ")" :
+                Left.GetType().Name + " <- " + Entry0 + " ->(" + RightBranch + ")";
 #endif
 
             /// <inheritdoc />
-            public override Entry GetEntryOrDefault(int hash)
-            {
-                var h0 = Entry0.Hash;
-                var h1 = Entry1.Hash;
-                return
-                    hash > h1 ? Right.GetEntryOrDefault(hash) :
-                    hash < h0 ? Left .GetEntryOrDefault(hash) :
-                    hash == h0 ? (Entry0 is RemovedEntry ? null : Entry0) :
-                    hash == h1 ? (Entry1 is RemovedEntry ? null : Entry1) :
-                    Middle.GetEntryOrDefault(hash);
-            }
+            public override Entry GetEntryOrDefault(int hash) =>
+                hash > RightBranch.Entry0Hash ? RightBranch.Right.GetEntryOrDefault(hash) :
+                hash < Entry0Hash ? Left.GetEntryOrDefault(hash) :
+                hash == Entry0Hash ? Entry0 : hash == RightBranch.Entry0Hash ? RightBranch.Entry0 :
+                RightBranch.Left.GetEntryOrDefault(hash);
 
             /// <inheritdoc />
             public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, KeyValueEntry entry)
             {
-                var h0 = Entry0.Hash;
-                var h1 = Entry1.Hash;
-                
-                if (hash > h1)
+                var rb = RightBranch;
+                if (hash > rb.Entry0Hash)
                 {
-                     // No need to call the Split method because we won't destruct the result branch
-                    var old = Right;
-                    var aNew = old.AddOrUpdateEntry(hash, entry);
-                    if (aNew is Branch2 b2 && (old is Branch3 || old is Leaf5Plus1Plus1))
-                        return new Branch2(new Branch2(Left, Entry0, Middle), Entry1, aNew);
-                    return new Branch3(Left, Entry0, new Branch2(Middle, Entry1, aNew));
+                    var right = rb.Right;
+                    var newRight = right.AddOrUpdateEntry(hash, entry);
+                    if (newRight is Branch2 && (right is Branch3 || right is Leaf5Plus1Plus1))
+                        return new Branch2(new Branch2(Left, Entry0Hash, Entry0, rb.Left), rb.Entry0Hash, rb.Entry0, newRight);
+                    return new Branch3(Left, Entry0Hash, Entry0, new Branch2(rb.Left, rb.Entry0Hash, rb.Entry0, newRight));
                 }
 
-                if (hash < h0)
+                if (hash < Entry0Hash)
                 {
-                    var old = Left;
-                    var aNew = old.AddOrUpdateEntry(hash, entry);
-                    if (aNew is Branch2 b2 && (old is Branch3 || old is Leaf5Plus1Plus1))
-                        return new Branch2(aNew, Entry0, RightBranch);
-                    return new Branch3(aNew, Entry0, RightBranch);
+                    var newLeft = Left.AddOrUpdateEntry(hash, entry);
+                    if (newLeft is Branch2 && (Left is Branch3 || Left is Leaf5Plus1Plus1))
+                        return new Branch2(newLeft, Entry0Hash, Entry0, rb);
+                    return new Branch3(newLeft, Entry0Hash, Entry0, rb);
                 }
 
-                if (hash > h0 && hash < h1)
+                if (hash > Entry0Hash && hash < rb.Entry0Hash)
                 {
-                    var old = Middle;
-                    var aNew = old.AddOrUpdateEntry(hash, entry);
-                    if (aNew is Branch2 b2 && (old is Branch3 || old is Leaf5Plus1Plus1))
-                        return new Branch2(new Branch2(Left, Entry0, b2.Left), b2.Entry0, new Branch2(b2.Right, Entry1, Right));
-                    return new Branch3(Left, Entry0, new Branch2(aNew, Entry1, Right));
+                    var middle = rb.Left;
+                    var newMiddle = middle.AddOrUpdateEntry(hash, entry);
+                    if (newMiddle is Branch2 newMiddleBranch && (middle is Branch3 || middle is Leaf5Plus1Plus1))
+                        return new Branch2(new Branch2(Left, Entry0Hash, Entry0, newMiddleBranch.Left), 
+                            newMiddleBranch.Entry0Hash, newMiddleBranch.Entry0, 
+                            new Branch2(newMiddleBranch.Right, rb.Entry0Hash, rb.Entry0, rb.Right));
+                    return new Branch3(Left, Entry0Hash, Entry0, new Branch2(newMiddle, rb.Entry0Hash, rb.Entry0, rb.Right));
                 }
 
-                return hash == h0
-                    ? new Branch3(Left, Entry0.Update(entry), RightBranch)
-                    : new Branch3(Left, Entry0, new Branch2(Middle, Entry1.Update(entry), Right));
+                return hash == Entry0Hash
+                    ? new Branch3(Left, hash, Entry0 == null ? entry : Entry0.Update(entry), rb)
+                    : new Branch3(Left, Entry0Hash, Entry0, 
+                        new Branch2(rb.Left, hash, rb.Entry0 == null ? entry : rb.Entry0.Update(entry), rb.Right));
             }
 
             /// <inheritdoc />
             public override ImHashMap234<K, V> AddOrKeepEntry(int hash, KeyValueEntry entry)
             {
-                // todo: @perf apply the same hash to var refactoring as for AddOrUpdateEntry
-                var e0 = Entry0;
-                var e1 = Entry1;
-
-                if (hash > e1.Hash)
+                var rb = RightBranch;
+                if (hash > rb.Entry0Hash)
                 {
-                    var old = Right;
-                    var aNew = old.AddOrKeepEntry(hash, entry);
-                    if (aNew == old)
+                    var right = rb.Right;
+                    var newRight = right.AddOrKeepEntry(hash, entry);
+                    if (newRight == right)
                         return this;
-                    if (aNew is Branch2 b2 && (old is Branch3 || old is Leaf5Plus1))
-                        return new Branch2(new Branch2(Left, Entry0, Middle), Entry1, aNew);
-                    return new Branch3(Left, Entry0, new Branch2(Middle, Entry1, aNew));
+                    if (newRight is Branch2 && (right is Branch3 || right is Leaf5Plus1))
+                        return new Branch2(new Branch2(Left, Entry0Hash, Entry0, rb.Left), rb.Entry0Hash, rb.Entry0, newRight);
+                    return new Branch3(Left, Entry0Hash, Entry0, new Branch2(rb.Left, rb.Entry0Hash, rb.Entry0, newRight));
                 }
 
-                if (hash < e0.Hash)
+                if (hash < Entry0Hash)
                 {
-                    var old = Left;
-                    var aNew = old.AddOrKeepEntry(hash, entry);
-                    if (aNew == old)
+                    var left = Left;
+                    var newLeft = left.AddOrKeepEntry(hash, entry);
+                    if (newLeft == left)
                         return this;
-                    if (aNew is Branch2 b2 && (old is Branch3 || old is Leaf5Plus1))
-                        return new Branch2(aNew, Entry0, RightBranch);
-                    return new Branch3(aNew, Entry0, RightBranch);
+                    if (newLeft is Branch2 && (left is Branch3 || left is Leaf5Plus1))
+                        return new Branch2(newLeft, Entry0Hash, Entry0, rb);
+                    return new Branch3(newLeft, Entry0Hash, Entry0, rb);
                 }
 
-                if (hash > e0.Hash && hash < e1.Hash)
+                if (hash > Entry0Hash && hash < rb.Entry0Hash)
                 {
-                    var old = Middle;
-                    var aNew = old.AddOrKeepEntry(hash, entry);
-                    if (aNew == old)
+                    var middle = rb.Left;
+                    var newMiddle = middle.AddOrKeepEntry(hash, entry);
+                    if (newMiddle == middle)
                         return this;
-                    if (aNew is Branch2 b2 && (old is Branch3 || old is Leaf5Plus1))
-                        return new Branch2(new Branch2(Left, Entry0, b2.Left), b2.Entry0, new Branch2(b2.Right, Entry1, Right));
-                    return new Branch3(Left, Entry0, new Branch2(aNew, Entry1, Right));
+                    if (newMiddle is Branch2 newMiddleBranch2 && (middle is Branch3 || middle is Leaf5Plus1))
+                        return new Branch2(
+                            new Branch2(Left, Entry0Hash, Entry0, newMiddleBranch2.Left), 
+                            newMiddleBranch2.Entry0Hash, newMiddleBranch2.Entry0, 
+                            new Branch2(newMiddleBranch2.Right, rb.Entry0Hash, rb.Entry0, rb.Right));
+
+                    return new Branch3(Left, Entry0Hash, Entry0, new Branch2(newMiddle, rb.Entry0Hash, rb.Entry0, rb.Right));
                 }
 
-                return hash == e0.Hash
-                    ? ((e0 = e0.KeepOrUpdate(entry)) == Entry0 ? this : new Branch3(Left, e0, RightBranch))
-                    : ((e1 = e1.KeepOrUpdate(entry)) == Entry1 ? this : new Branch3(Left, e0, new Branch2(Middle, e1, Right)));
+                if (hash == Entry0Hash)
+                {
+                    if (Entry0 == null)
+                        return new Branch3(Left, hash, entry, rb);
+                    var e0 = Entry0.KeepOrUpdate(entry);
+                    return e0 == Entry0 ? this : new Branch3(Left, hash, e0, rb);
+                }
+
+                {
+                    if (rb.Entry0 == null)
+                        return new Branch3(Left, Entry0Hash, Entry0, new Branch2(rb.Left, hash, entry, rb.Right));
+                    var e1 = rb.Entry0.KeepOrUpdate(entry);
+                    return e1 == rb.Entry0 ? this : new Branch3(Left, Entry0Hash, Entry0, new Branch2(rb.Left, hash, e1, rb.Right));
+                }
             }
 
             /// <inheritdoc />
             public override ImHashMap234<K, V> RemoveEntry(int hash, K key)
             {
-                var e1 = Entry1;
-                if (hash > e1.Hash)
+                var rb = RightBranch;
+                if (hash > rb.Entry0Hash)
                 {
-                    var newRight = Right.RemoveEntry(hash, key);
-                    if (newRight == Right)
+                    var newRight = rb.Right.RemoveEntry(hash, key);
+                    if (newRight == rb.Right)
                         return this;
-
-                    // if we done to the single entry - rebalance the entries
-                    if (newRight is Entry re)
-                    {
-                        //      3       7               3
-                        //    /     |     \    =>    /      \
-                        //  1 2   3 5 6     8      1 2   3 5 6 7 8
-                        var m = Middle;
-
-                        // If the Middle is Leaf2 or Leaf3 - merge the Middle with new Right to the Branch2
-                        if (m is Leaf2 l2)
-                            return new Branch2(Left, Entry0, new Leaf3Plus1(l2.Entry0, new Leaf3(l2.Entry1, e1, re)));
-                        if (m is Leaf3 l3)
-                            return new Branch2(Left, Entry0, new Leaf5(l3.Entry0, l3.Entry1, l3.Entry2, e1, re));
-
-                        // Rebalance the entries from Middle to the Right
-                        if (m is Leaf3Plus1 l4)
-                        {
-                            var p = l4.Plus;
-                            var ph = p.Hash;
-                            var l4l3  = l4.L3;
-                            var l3e0 = l4l3.Entry0;
-                            var l3e1 = l4l3.Entry1;
-                            var l3e2 = l4l3.Entry2;
-
-                            if (ph > l3e2.Hash)
-                                return new Branch3(Left, Entry0, new Branch2(l4l3, p, new Leaf2(e1, re)));
-                            if (ph < l3e0.Hash)
-                                return new Branch3(Left, Entry0, new Branch2(new Leaf3(p, l3e0, l3e1), l3e2, new Leaf2(e1, re)));
-                            if (ph < l3e1.Hash)
-                                return new Branch3(Left, Entry0, new Branch2(new Leaf3(l3e0, p, l3e1), l3e2, new Leaf2(e1, re)));
-                            return new Branch3(Left, Entry0, new Branch2(new Leaf3(l3e0, l3e1, p), l3e2, new Leaf2(e1, re)));
-                        }
-
-                        if (m is Leaf5 l5) 
-                            return new Branch3(Left, Entry0,
-                                new Branch2(new Leaf3Plus1(l5.Entry0, new Leaf3(l5.Entry1, l5.Entry2, l5.Entry3)), l5.Entry4, new Leaf2(e1, re)));
-
-                        {
-                            var l6 = (Leaf5Plus1)m;
-                            var p  = l6.Plus;
-                            var ph = p.Hash;
-                            var l6l5 = l6.L5;
-                            var l5e0 = l6l5.Entry0;
-                            var l5e1 = l6l5.Entry1;
-                            var l5e2 = l6l5.Entry2;
-                            var l5e3 = l6l5.Entry3;
-                            var l5e4 = l6l5.Entry4;
-
-                            if (ph > l5e4.Hash)
-                                return new Branch3(Left, Entry0, new Branch2(l6l5, p, new Leaf2(e1, re)));
-                            if (ph < l5e0.Hash)
-                                return new Branch3(Left, Entry0, new Branch2(new Leaf5(p, l5e0, l5e1, l5e2, l5e3), l5e4, new Leaf2(e1, re)));
-                            if (ph < l5e1.Hash)
-                                return new Branch3(Left, Entry0, new Branch2(new Leaf5(l5e0, p, l5e1, l5e2, l5e3), l5e4, new Leaf2(e1, re)));
-                            if (ph < l5e2.Hash)
-                                return new Branch3(Left, Entry0, new Branch2(new Leaf5(l5e0, l5e1, p, l5e2, l5e3), l5e4, new Leaf2(e1, re)));
-                            if (ph < l5e3.Hash)
-                                return new Branch3(Left, Entry0, new Branch2(new Leaf5(l5e0, l5e1, l5e2, p, l5e3), l5e4, new Leaf2(e1, re)));
-                            return new Branch3(Left, Entry0, new Branch2(new Leaf5(l5e0, l5e1, l5e2, l5e3, p), l5e4, new Leaf2(e1, re)));
-                        }
-                    }
-
-                    // The only reason for moving from the Branch3 to the Branch2 is the decreased the tree height so we need to rebalance
-                    if (newRight is Branch3 && Right is Branch2)
-                    {
-                        //      1       7                                   1
-                        //    /     |         \                           /    \
-                        //   ?      b        10    13                   ?     b     7
-                        //  / \    / \      /    |    \                 |    /   |     \
-                        // ?   ?  a   c   8 9  11 12  14 15  =>         ?   a    c   10   13
-                        // |   |  |   |                                 
-                        // ?   ?  ?   ?                                                ...
-                        if (Middle is Branch2 mb2) // just dangle the new right together with Middle
-                            return new Branch2(Left, Entry0, new Branch3(mb2.Left, mb2.Entry0, new Branch2(mb2.Right, e1, newRight)));
-
-                        //      -15             0                                 -15          -5                              
-                        //    /         |              \                          /       |         \                          
-                        // -20       -10  -5             4      7              -20       -10           0                       
-                        //  |       /   |   \          /    |     \             |        /   \       /        \                
-                        //  x      a    b    c   1 2 3     5 6   8 9 10 11  =>  ?       a     b     c        4     7           
-                        //  |      |    |    |                                  |       |     |     |      /    |     \        
-                        //  ?      ?    ?    ?                                  ?       ?     ?     ?    1 2 3  5 6   8 9 10 11
-                        if (Middle is Branch3 mb3)
-                            return new Branch3(Left, Entry0, 
-                                new Branch2(new Branch2(mb3.Left, mb3.Entry0, mb3.Middle), mb3.Entry1, new Branch2(mb3.Right, e1, newRight)));
-                    }
-
-                    return new Branch3(Left, Entry0, new Branch2(Middle, Entry1, newRight));
+                    return new Branch3(Left, Entry0Hash, Entry0, new Branch2(rb.Left, rb.Entry0Hash, rb.Entry0, newRight));
                 }
 
-                var e0 = Entry0;
-                if (hash < e0.Hash) 
+                if (hash < Entry0Hash) 
                 {
                     // todo: @wip
                 }
 
-                if (hash > e0.Hash && hash < e1.Hash) 
+                if (hash > Entry0Hash && hash < rb.Entry0Hash)
                 {
                     // todo: @wip
                 }
 
-                if (hash == e0.Hash)
+                if (hash == Entry0Hash)
                 {
-                    
+                    // todo: @wip
                 }
 
-                //if (hash == e1.Hash)
-                    // todo: @wip
+                // todo: @wip
 
 
                 return this;
@@ -1827,9 +1502,9 @@ namespace ImTools.Experimental
                 if (map is ImHashMap234<K, V>.Leaf2 l2)
                 {
                     if (l2.Entry0 is ImHashMap234<K, V>.KeyValueEntry v0) yield return v0;
-                    else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)l2.Entry0).Conflicts) yield return c;
+                    else if (l2.Entry0 != null) foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)l2.Entry0).Conflicts) yield return c;
                     if (l2.Entry1 is ImHashMap234<K, V>.KeyValueEntry v1) yield return v1;
-                    else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)l2.Entry1).Conflicts) yield return c;
+                    else if (l2.Entry1 != null) foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)l2.Entry1).Conflicts) yield return c;
                 }
                 else if (map is ImHashMap234<K, V>.Leaf3 l3)
                 {
@@ -1966,18 +1641,15 @@ namespace ImTools.Experimental
                 map = parentStack[parentIndex]; // otherwise get the parent
                 if (map is ImHashMap234<K, V>.Branch2 pb2) 
                 {
-                    if (pb2.Entry0 is ImHashMap234<K, V>.RemovedEntry == false) 
-                    {
-                        if (pb2.Entry0 is ImHashMap234<K, V>.KeyValueEntry v) 
-                            yield return v;
-                        else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)pb2.Entry0).Conflicts) 
-                            yield return c;
-                    }
+                    if (pb2.Entry0 is ImHashMap234<K, V>.KeyValueEntry v) 
+                        yield return v;
+                    else if (pb2.Entry0 != null) foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)pb2.Entry0).Conflicts) 
+                        yield return c;
 
                     map = pb2.Right;
                     --parentIndex; // we done with the this level handled the Left (previously) and the Right (now)
                 }
-                else 
+                else // if it is a Branch3
                 {
                     // let's treat the b3 as the b2 tree
                     //                  20           40                                      20
@@ -1988,18 +1660,13 @@ namespace ImTools.Experimental
                     //                                                                            /    \         /    \    
                     //                                                                         25 26  35 36   45 46   55 56
                     var pb3 = (ImHashMap234<K, V>.Branch3)map;
-                    {
-                        if (pb3.Entry0 is ImHashMap234<K, V>.RemovedEntry == false)
-                        {
-                            if (pb3.Entry0 is ImHashMap234<K, V>.KeyValueEntry v) 
-                                yield return v;
-                            else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)pb3.Entry0).Conflicts) 
-                                yield return c;
-                        }
+                    if (pb3.Entry0 is ImHashMap234<K, V>.KeyValueEntry v) 
+                        yield return v;
+                    else if (pb3.Entry0 != null) foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)pb3.Entry0).Conflicts) 
+                        yield return c;
 
-                        map = pb3.RightBranch;
-                        --parentIndex; // we done with the this level handled the Left and the Middle (previously) and the Right (now)
-                    }
+                    map = pb3.RightBranch;
+                    --parentIndex; // we done with the this level handled the Left and the Middle (previously) and the Right (now)
                 }
             }
         }
