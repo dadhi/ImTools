@@ -1233,9 +1233,12 @@ namespace ImTools.Experimental
                         // todo: @perf think how to reuse newLeftBranch2 without destructing it - 
                         // may be we can use the `Entry0Hash < Entry1Hash` as the condition to decide on the ASC or DESC Branch3.
                         // Take the complexity of Enumerate into the account - but it seems doable
+                        // Imagine we have this instead: 
+                        // return new Branch3L(newLeftBranch2, Entry0Hash, Entry0, Right);
                         return new Branch3(
                             newLeftBranch2.Left, newLeftBranch2.Entry0Hash, newLeftBranch2.Entry0, 
                             new Branch2(newLeftBranch2.Right, Entry0Hash, Entry0, Right));
+
                     return new Branch2(newLeft, Entry0Hash, Entry0, Right);
                 }
 

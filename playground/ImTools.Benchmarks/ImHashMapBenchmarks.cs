@@ -526,8 +526,22 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 |     V2_ImHashMap_AVL_AddOrUpdate |    10 | 1,505.8 ns | 39.49 ns | 114.56 ns | 1,470.7 ns |  1.00 |    0.00 | 0.5512 |     - |     - |   2.26 KB |
 | V3_ImHashMap_234Tree_AddOrUpdate |    10 |   899.0 ns | 17.92 ns |  28.93 ns |   900.8 ns |  0.60 |    0.05 | 0.2441 |     - |     - |      1 KB |
 
+### Added the separate hash into Branch2 and Branch3
+
+|                           Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |    Gen 0 |  Gen 1 | Gen 2 | Allocated |
+|--------------------------------- |------ |-------------:|------------:|------------:|------:|--------:|---------:|-------:|------:|----------:|
+|     V2_ImHashMap_AVL_AddOrUpdate |    10 |   1,315.7 ns |    21.35 ns |    17.83 ns |  1.00 |    0.00 |   0.5512 |      - |     - |   2.26 KB |
+| V3_ImHashMap_234Tree_AddOrUpdate |    10 |     816.0 ns |    12.01 ns |    10.03 ns |  0.62 |    0.01 |   0.2613 |      - |     - |   1.07 KB |
+|                                  |       |              |             |             |       |         |          |        |       |           |
+|     V2_ImHashMap_AVL_AddOrUpdate |   100 |  19,718.1 ns |   370.83 ns |   309.66 ns |  1.00 |    0.00 |   8.3313 |      - |     - |  34.04 KB |
+| V3_ImHashMap_234Tree_AddOrUpdate |   100 |  15,369.2 ns |   210.21 ns |   196.63 ns |  0.78 |    0.01 |   5.7068 |      - |     - |  23.32 KB |
+|                                  |       |              |             |             |       |         |          |        |       |           |
+|     V2_ImHashMap_AVL_AddOrUpdate |  1000 | 406,820.3 ns | 7,222.79 ns | 6,031.35 ns |  1.00 |    0.00 | 122.0703 | 3.4180 |     - | 499.23 KB |
+| V3_ImHashMap_234Tree_AddOrUpdate |  1000 | 298,444.1 ns | 3,216.95 ns | 2,686.30 ns |  0.73 |    0.02 |  95.7031 | 0.9766 |     - | 392.56 KB |
+
+
 */
-            [Params(10)]//, 5, 10, 100, 1_000)]
+            [Params(10, 100, 1000)]//, 5, 10, 100, 1_000)]
             public int Count;
 
             [Benchmark(Baseline = true)]
