@@ -553,10 +553,10 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 | V3_ImHashMap_234Tree_AddOrUpdate |  1000 | 243,159.5 ns | 3,253.80 ns | 2,884.41 ns |  0.70 |    0.01 |  83.4961 | 2.4414 |     - | 341.13 KB |
 
 */
-            [Params(10, 100, 1000)]//, 5, 10, 100, 1_000)]
+            [Params(10, 100, 1_000)]
             public int Count;
 
-            [Benchmark(Baseline = true)]
+            // [Benchmark(Baseline = true)]
             public ImHashMap<Type, string> V2_ImHashMap_AVL_AddOrUpdate()
             {
                 var map = ImHashMap<Type, string>.Empty;
@@ -579,7 +579,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 return map;
             }
 
-            // [Benchmark]
+            [Benchmark(Baseline = true)]
             public ImTools.Experimental.ImMap<ImMap.KValue<Type>> V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate()
             {
                 var map = ImTools.Experimental.ImMap<ImMap.KValue<Type>>.Empty;
@@ -1221,7 +1221,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 |     V2_ImHashMap_AVL_TryFind |  1000 | 16.883 ns | 0.2438 ns | 0.2280 ns |  1.00 |    0.00 |     - |     - |     - |         - |
 | V3_ImHashMap_234Tree_TryFind |  1000 | 15.516 ns | 0.3248 ns | 0.4554 ns |  0.93 |    0.04 |     - |     - |     - |         - |
 */
-            [Params(1, 5, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
+            [Params(/*1, 5, 10,*/ 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             public int Count;
 
             [GlobalSetup]
@@ -1412,7 +1412,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 return result;
             }
 
-            // [Benchmark]
+            [Benchmark]
             public string V2_ImHashMap_AVLOptimizedForAdd_TryFind()
             {
                 _mapExp.TryFind(LookupKey.GetHashCode(), LookupKey, out var result);
