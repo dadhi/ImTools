@@ -207,8 +207,8 @@ namespace ImTools.Experimental
             }
         }
 
-        /// <summary>Leaf with 2 entries.
-        /// Note: the entries may be null for the removed entries</summary>
+        // todo: @perf we may probably split the class to Leaf2NoE1, Leaf2NoE2, Leaf2NoE1E2 and simplify the code - remove the conditions
+        /// <summary>Leaf with 2 entries. Note: the entries may be null for the removed entries</summary>
         public sealed class Leaf2 : ImHashMap234<K, V>
         {
             /// <summary>Left entry</summary>
