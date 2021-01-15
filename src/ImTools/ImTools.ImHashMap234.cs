@@ -1207,7 +1207,7 @@ namespace ImTools.Experimental
 
 #if !DEBUG
             /// <inheritdoc />
-            public override string ToString() =>
+            public override string ToString() => "br2:" +
                 Left is Branch == false ? Left + " <- " + MidEntry + " -> " + Right :
                 Left.GetType().Name + " <- " + MidEntry + " -> " + Right.GetType().Name;
 #endif
@@ -1316,7 +1316,7 @@ namespace ImTools.Experimental
 
 #if !DEBUG
             /// <inheritdoc />
-            public override string ToString() =>
+            public override string ToString() => "br3: " + 
                 Left is Branch == false ? Left + " <- " + MidEntry + " ->(" + RightBranch + ")" :
                 Left.GetType().Name + " <- " + MidEntry + " ->(" + RightBranch + ")";
 #endif
