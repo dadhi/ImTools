@@ -539,6 +539,18 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 |     V2_ImHashMap_AVL_AddOrUpdate |  1000 | 406,820.3 ns | 7,222.79 ns | 6,031.35 ns |  1.00 |    0.00 | 122.0703 | 3.4180 |     - | 499.23 KB |
 | V3_ImHashMap_234Tree_AddOrUpdate |  1000 | 298,444.1 ns | 3,216.95 ns | 2,686.30 ns |  0.73 |    0.02 |  95.7031 | 0.9766 |     - | 392.56 KB |
 
+### Removed the hash
+
+|                           Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |    Gen 0 |  Gen 1 | Gen 2 | Allocated |
+|--------------------------------- |------ |-------------:|------------:|------------:|------:|--------:|---------:|-------:|------:|----------:|
+|     V2_ImHashMap_AVL_AddOrUpdate |    10 |   1,042.4 ns |    20.58 ns |    27.48 ns |  1.00 |    0.00 |   0.5522 |      - |     - |   2.26 KB |
+| V3_ImHashMap_234Tree_AddOrUpdate |    10 |     680.8 ns |    13.05 ns |    11.57 ns |  0.65 |    0.03 |   0.2537 |      - |     - |   1.04 KB |
+|                                  |       |              |             |             |       |         |          |        |       |           |
+|     V2_ImHashMap_AVL_AddOrUpdate |   100 |  15,616.5 ns |   190.24 ns |   177.95 ns |  1.00 |    0.00 |   8.3313 |      - |     - |  34.04 KB |
+| V3_ImHashMap_234Tree_AddOrUpdate |   100 |  12,215.0 ns |   173.73 ns |   145.08 ns |  0.78 |    0.01 |   5.0964 |      - |     - |  20.84 KB |
+|                                  |       |              |             |             |       |         |          |        |       |           |
+|     V2_ImHashMap_AVL_AddOrUpdate |  1000 | 347,367.0 ns | 6,077.04 ns | 5,684.46 ns |  1.00 |    0.00 | 122.0703 | 3.4180 |     - | 499.23 KB |
+| V3_ImHashMap_234Tree_AddOrUpdate |  1000 | 243,159.5 ns | 3,253.80 ns | 2,884.41 ns |  0.70 |    0.01 |  83.4961 | 2.4414 |     - | 341.13 KB |
 
 */
             [Params(10, 100, 1000)]//, 5, 10, 100, 1_000)]
