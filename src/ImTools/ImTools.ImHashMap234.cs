@@ -572,24 +572,6 @@ namespace ImTools.Experimental
                                        new Leaf3(e0, e1, p);
                 return this;
             }
-
-            internal static void SortEntriesByHash(ref Entry e0, ref Entry e1, ref Entry e2, ref Entry p)
-            {
-                var h = p.Hash;
-                Entry swap = null;
-                if (h < e2.Hash)
-                {
-                    swap = e2; e2 = p; p = swap;
-                    if (h < e1.Hash)
-                    {
-                        swap = e1; e1 = e2; e2 = swap;
-                        if (h < e0.Hash)
-                        {
-                            swap = e0; e0 = e1; e1 = swap;
-                        }
-                    }
-                }
-            }
         }
 
         /// <summary>Leaf with 5 entries</summary>
