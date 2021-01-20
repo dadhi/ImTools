@@ -1014,58 +1014,6 @@ namespace ImTools.Experimental
                 }
             }
 
-            internal static void SortEntriesByHash(ref Entry e0, ref Entry e1, ref Entry e2, ref Entry e3, ref Entry e4, ref Entry lp, ref Entry p)
-            {
-                var h = lp.Hash;
-                Entry swap = null;
-                if (h < e4.Hash)
-                {
-                    swap = e4; e4 = lp; lp = swap;
-                    if (h < e3.Hash)
-                    {
-                        swap = e3; e3 = e4; e4 = swap;
-                        if (h < e2.Hash)
-                        {
-                            swap = e2; e2 = e3; e3 = swap;
-                            if (h < e1.Hash)
-                            {
-                                swap = e1; e1 = e2; e2 = swap;
-                                if (h < e0.Hash)
-                                {
-                                    swap = e0; e0 = e1; e1 = swap;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                h = p.Hash;
-                if (h < lp.Hash)
-                {
-                    swap = lp; lp = p; p = swap;
-                    if (h < e4.Hash)
-                    {
-                        swap = e4; e4 = lp; lp = swap;
-                        if (h < e3.Hash)
-                        {
-                            swap = e3; e3 = e4; e4 = swap;
-                            if (h < e2.Hash)
-                            {
-                                swap = e2; e2 = e3; e3 = swap;
-                                if (h < e1.Hash)
-                                {
-                                    swap = e1; e1 = e2; e2 = swap;
-                                    if (h < e0.Hash)
-                                    {
-                                        swap = e0; e0 = e1; e1 = swap;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
             /// <inheritdoc />
             public override ImHashMap234<K, V> RemoveEntry(int hash, K key)
             {
@@ -1187,6 +1135,24 @@ namespace ImTools.Experimental
                 if (hash < e.Hash)
                 {
                     var left = Left;
+                    // ImHashMap234<K, V> newLeft;
+                    // if (left is Branch3 lb3)
+                    // {
+                    //     newLeft = lb3.AddOrUpdateEntry(hash, entry);
+                    //     if (newLeft is Branch2 b2 && newLeft is Branch3 == false)
+                    //         return new Branch3(b2.Left, b2.MidEntry, new Branch2(b2.Right, e, Right));
+                    // }
+                    // else if (left is Leaf5Plus1Plus1 l5pp)
+                    // {
+                    //     newLeft = l5pp.AddOrUpdateEntry(hash, entry);
+                    //     if (newLeft is Branch2 b2 && newLeft is Branch3 == false)
+                    //         return new Branch3(b2.Left, b2.MidEntry, new Branch2(b2.Right, e, Right));
+                    // }
+                    // else
+                    //     newLeft = left.AddOrUpdateEntry(hash, entry);
+
+                    // return new Branch2(newLeft, e, Right);
+
                     var newLeft = left.AddOrUpdateEntry(hash, entry);
                     if ((left is Branch3 || left is Leaf5Plus1Plus1) && newLeft is Branch3 == false && newLeft is Branch2 b2)
                         return new Branch3(b2.Left, b2.MidEntry, new Branch2(b2.Right, e, Right));
@@ -1269,7 +1235,6 @@ namespace ImTools.Experimental
                 
                 if (hash > h1)
                 {
-                     // No need to call the Split method because we won't destruct the result branch
                     var right = rb.Right;
                     var newRight = right.AddOrUpdateEntry(hash, entry);
                     if ((right is Branch3 || right is Leaf5Plus1Plus1) && newRight is Branch2 && newRight is Branch3 == false)
@@ -1504,7 +1469,8 @@ namespace ImTools.Experimental
                     var e3  = l.Entry3;
                     var e4  = l.Entry4;
 
-                    ImHashMap234<K, V>.Leaf5Plus1Plus1.SortEntriesByHash(ref e0, ref e1, ref e2, ref e3, ref e4, ref lp, ref p);
+                    ImHashMap234<K, V>.Entry _ = null;
+                    ImHashMap234<K, V>.Leaf5Plus1Plus1.SortEntriesByHash(ref e0, ref e1, ref e2, ref e3, ref e4, ref lp, ref p, ref _);
 
                     if (e0 is ImHashMap234<K, V>.KeyValueEntry v0) yield return v0;
                     else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)e0).Conflicts) yield return c;
