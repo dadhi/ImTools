@@ -898,7 +898,7 @@ namespace ImTools.Experimental
                 var p = Plus;
                 var ph = p.Hash;
                 if (ph == hash)
-                    return (p = p.KeepOrUpdate(entry)) == Plus ? this : (ImHashMap234<K, V>)new Leaf5Plus1(p, L.L5);
+                    return (p = p.KeepOrUpdate(entry)) == Plus ? this : (ImHashMap234<K, V>)new Leaf5Plus1Plus1(p, L);
 
                 var lp = L.Plus;
                 var lph = lp.Hash;
