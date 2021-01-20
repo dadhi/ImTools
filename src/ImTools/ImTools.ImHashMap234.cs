@@ -664,7 +664,7 @@ namespace ImTools.Experimental
             }
         }
 
-        /// <summary>Leaf with 5 entries</summary>
+        /// <summary>Leaf with 5 + 1 entries</summary>
         public sealed class Leaf5Plus1 : ImHashMap234<K, V>
         {
             /// <summary>Plus entry</summary>
@@ -818,7 +818,7 @@ namespace ImTools.Experimental
             }
         }
 
-        /// <summary>Leaf with 5 entries</summary>
+        /// <summary>Leaf with 5 + 2 entries</summary>
         public sealed class Leaf5Plus1Plus1 : ImHashMap234<K, V>
         {
             /// <summary>Plus entry</summary>
