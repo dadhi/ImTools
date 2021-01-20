@@ -869,11 +869,7 @@ namespace ImTools.Experimental
                     return new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp.Update(entry), L.L5));
 
                 var l5 = L.L5;
-                var e0 = l5.Entry0;
-                var e1 = l5.Entry1;
-                var e2 = l5.Entry2;
-                var e3 = l5.Entry3;
-                var e4 = l5.Entry4;
+                Entry e0 = l5.Entry0, e1 = l5.Entry1, e2 = l5.Entry2, e3 = l5.Entry3, e4 = l5.Entry4;
 
                 if (hash == e0.Hash) 
                     return new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, new Leaf5(e0.Update(entry), e1, e2, e3, e4)));
@@ -892,6 +888,42 @@ namespace ImTools.Experimental
                 return new Branch2(new Leaf5(e0, e1, e2, e3, e4), lp, new Leaf2(p, e));
             }
 
+            /// <summary>AddOrUpdateEntry without creating the result tree</summary>
+            public ImHashMap234<K, V> AddOrUpdateEntrySplit(int hash, KeyValueEntry entry, ref Entry newMidEntry, ref ImHashMap234<K, V> newRight)
+
+            {
+                var p = Plus;
+                var ph = p.Hash;
+                if (ph == hash)
+                    return new Leaf5Plus1Plus1(entry, L);
+
+                var lp = L.Plus;
+                var lph = lp.Hash;
+                if (lph == hash)
+                    return new Leaf5Plus1Plus1(p, new Leaf5Plus1(entry, L.L5));
+
+                var l5 = L.L5;
+                Entry e0 = l5.Entry0, e1 = l5.Entry1, e2 = l5.Entry2, e3 = l5.Entry3, e4 = l5.Entry4;
+
+                if (hash == e0.Hash) 
+                    return new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, new Leaf5(entry, e1, e2, e3, e4)));
+                if (hash == e1.Hash) 
+                    return new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, new Leaf5(e0, entry, e2, e3, e4)));
+                if (hash == e2.Hash)
+                    return new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, new Leaf5(e0, e1, entry, e3, e4)));
+                if (hash == e3.Hash) 
+                    return new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, new Leaf5(e0, e1, e2, entry, e4)));
+                if (hash == e4.Hash)
+                    return new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, new Leaf5(e0, e1, e2, e3, entry)));
+
+                Entry e = entry;
+                SortEntriesByHash(ref e0, ref e1, ref e2, ref e3, ref e4, ref lp, ref p, ref e);
+
+                newMidEntry = lp;
+                newRight = new Leaf2(p, e); // todo: @perf use the hash and ph to decide where to go with Leaf2 and Leaf5
+                return new Leaf5(e0, e1, e2, e3, e4);
+            }
+
             /// <inheritdoc />
             public override ImHashMap234<K, V> AddOrKeepEntry(int hash, KeyValueEntry entry)
             {
@@ -906,11 +938,7 @@ namespace ImTools.Experimental
                     return (lp = lp.KeepOrUpdate(entry)) == L.Plus ? this : (ImHashMap234<K, V>)new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, L.L5));
 
                 var l5 = L.L5;
-                var e0 = l5.Entry0;
-                var e1 = l5.Entry1;
-                var e2 = l5.Entry2;
-                var e3 = l5.Entry3;
-                var e4 = l5.Entry4;
+                Entry e0 = l5.Entry0, e1 = l5.Entry1, e2 = l5.Entry2, e3 = l5.Entry3, e4 = l5.Entry4;
 
                 if (hash == e0.Hash)
                     return (e0 = e0.KeepOrUpdate(entry)) == l5.Entry0 ? this : new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, new Leaf5(e0, e1, e2, e3, e4)));
@@ -1028,11 +1056,7 @@ namespace ImTools.Experimental
                     return (lp = lp.TryRemove(key)) == Plus ? this : lp == null ? new Leaf5Plus1(p, L.L5) : (ImHashMap234<K, V>)new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, L.L5));
 
                 var l5 = L.L5;
-                var e0 = l5.Entry0;
-                var e1 = l5.Entry1;
-                var e2 = l5.Entry2;
-                var e3 = l5.Entry3;
-                var e4 = l5.Entry4;
+                Entry e0 = l5.Entry0, e1 = l5.Entry1, e2 = l5.Entry2, e3 = l5.Entry3, e4 = l5.Entry4;
 
                 if (hash == e0.Hash)
                     return (e0 = e0.TryRemove(key)) == l5.Entry0 
@@ -1135,24 +1159,6 @@ namespace ImTools.Experimental
                 if (hash < e.Hash)
                 {
                     var left = Left;
-                    // ImHashMap234<K, V> newLeft;
-                    // if (left is Branch3 lb3)
-                    // {
-                    //     newLeft = lb3.AddOrUpdateEntry(hash, entry);
-                    //     if (newLeft is Branch2 b2 && newLeft is Branch3 == false)
-                    //         return new Branch3(b2.Left, b2.MidEntry, new Branch2(b2.Right, e, Right));
-                    // }
-                    // else if (left is Leaf5Plus1Plus1 l5pp)
-                    // {
-                    //     newLeft = l5pp.AddOrUpdateEntry(hash, entry);
-                    //     if (newLeft is Branch2 b2 && newLeft is Branch3 == false)
-                    //         return new Branch3(b2.Left, b2.MidEntry, new Branch2(b2.Right, e, Right));
-                    // }
-                    // else
-                    //     newLeft = left.AddOrUpdateEntry(hash, entry);
-
-                    // return new Branch2(newLeft, e, Right);
-
                     var newLeft = left.AddOrUpdateEntry(hash, entry);
                     if ((left is Branch3 || left is Leaf5Plus1Plus1) && newLeft is Branch3 == false && newLeft is Branch2 b2)
                         return new Branch3(b2.Left, b2.MidEntry, new Branch2(b2.Right, e, Right));
@@ -1265,6 +1271,64 @@ namespace ImTools.Experimental
                 return hash == h0
                     ? new Branch3(Left, MidEntry.Update(entry), rb)
                     : new Branch3(Left, MidEntry, new Branch2(rb.Left, rb.MidEntry.Update(entry), rb.Right));
+            }
+
+            /// <summary>AddOrUpdateEntry without creating the result tree</summary>
+            public ImHashMap234<K, V> AddOrUpdateEntrySplit(int hash, KeyValueEntry entry, ref Entry newMidEntry, ref ImHashMap234<K, V> newRight)
+
+            {
+                var h0 = MidEntry.Hash;
+                var rb = (Branch2)Right;
+                var h1 = rb.MidEntry.Hash;
+                
+                if (hash > h1)
+                {
+                    var right = rb.Right;
+                    newRight = right.AddOrUpdateEntry(hash, entry);
+                    if ((right is Branch3 || right is Leaf5Plus1Plus1) && newRight is Branch2 && newRight is Branch3 == false)
+                    {
+                        newMidEntry = rb.MidEntry;
+                        return new Branch2(Left, MidEntry, rb.Left);
+                    }
+
+                    newMidEntry = MidEntry;
+                    newRight = new Branch2(rb.Left, rb.MidEntry, newRight);
+                    return Left;
+                }
+
+                if (hash < h0)
+                {
+                    newMidEntry = MidEntry;
+                    newRight = rb;
+                    return Left.AddOrUpdateEntry(hash, entry);
+                }
+
+                if (hash > h0 && hash < h1)
+                {
+                    var middle = rb.Left;
+                    var newMiddle = middle.AddOrUpdateEntry(hash, entry);
+                    if ((middle is Branch3 || middle is Leaf5Plus1Plus1) && newMiddle is Branch3 == false && newMiddle is Branch2 newMiddleBranch2)
+                    {
+                        newMidEntry = newMiddleBranch2.MidEntry;
+                        newRight = new Branch2(newMiddleBranch2.Right, rb.MidEntry, rb.Right);
+                        return new Branch2(Left, MidEntry, newMiddleBranch2.Left);
+                    }
+
+                    newMidEntry = MidEntry;
+                    newRight = new Branch2(newMiddle, rb.MidEntry, rb.Right);
+                    return Left;
+                }
+
+                if (hash == h0)
+                {
+                    newMidEntry = MidEntry.Update(entry);
+                    newRight = rb;
+                    return Left;
+                }
+
+                newMidEntry = MidEntry;
+                newRight = new Branch2(rb.Left, rb.MidEntry.Update(entry), rb.Right);
+                return Left;
             }
 
             /// <inheritdoc />
