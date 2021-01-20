@@ -2393,7 +2393,7 @@ namespace ImTools.Experimental
         {
             /// <summary>Plus entry</summary>
             public readonly Entry Plus;
-            /// <summary>Dangling Leaf5</summary>
+            /// <summary>Dangling Leaf</summary>
             public readonly Leaf5Plus1 L;
             /// <summary>Constructs the leaf</summary>
             public Leaf5Plus1Plus1(Entry plus, Leaf5Plus1 l)
