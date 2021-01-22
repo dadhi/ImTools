@@ -862,6 +862,59 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
+            public ImHashMap234<K, V> AddOrUpdateLeftOrMiddleEntry(int hash, KeyValueEntry entry, Branch2 b)
+            {
+                Leaf5Plus1Plus1 newLeaf = null;
+                var p = Plus;
+                var ph = p.Hash;
+                if (ph == hash)
+                    newLeaf =  new Leaf5Plus1Plus1(p.Update(entry), L);
+                else 
+                {
+                    var lp = L.Plus;
+                    var lph = lp.Hash;
+                    if (lph == hash)
+                        newLeaf = new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp.Update(entry), L.L5));
+                    else 
+                    {
+                        var l = L.L5;
+                        Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4;
+                        if (hash == e0.Hash) 
+                            newLeaf = new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, new Leaf5(e0.Update(entry), e1, e2, e3, e4)));
+                        else if (hash == e1.Hash) 
+                            newLeaf = new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, new Leaf5(e0, e1.Update(entry), e2, e3, e4)));
+                        else if (hash == e2.Hash)
+                            newLeaf = new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, new Leaf5(e0, e1, e2.Update(entry), e3, e4)));
+                        else if (hash == e3.Hash) 
+                            newLeaf = new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, new Leaf5(e0, e1, e2, e3.Update(entry), e4)));
+                        else if (hash == e4.Hash)
+                            newLeaf = new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, new Leaf5(e0, e1, e2, e3, e4.Update(entry))));
+                        else 
+                        {
+                            Entry e = entry;
+                            SortEntriesByHash(ref e0, ref e1, ref e2, ref e3, ref e4, ref lp, ref p, ref e);
+
+                            // note that we putting the smaller Leaf2 on the left because we tend to add on the Left
+                            if (b is Branch3 _b3)
+                            {
+                                var rb = (Branch2)_b3.Right;
+                                return new Branch2(new Branch2(b.Left, b.MidEntry, new Leaf2(e0, e1)),
+                                    e2, new Branch2(new Leaf5(e3, e4, lp, p, e), rb.MidEntry, rb.Right));
+                            }
+                            return new Branch3(new Leaf2(e0, e1), e2, new Branch2(new Leaf5(e3, e4, lp, p, e), b.MidEntry, b.Right));
+                        }
+                    }
+                }
+
+                if (b is Branch3 b3)
+                {
+                    var rb = (Branch2)b3.Right;
+                    return new Branch3(b.Left, b.MidEntry, new Branch2(newLeaf, rb.MidEntry, rb.Right));
+                }
+                return new Branch2(newLeaf, b.MidEntry, b.Right);
+            }
+
+            /// <inheritdoc />
             public override ImHashMap234<K, V> AddOrKeepEntry(int hash, KeyValueEntry entry)
             {
                 var p = Plus;
@@ -1096,8 +1149,11 @@ namespace ImTools.Experimental
                 if (hash < e.Hash)
                 {
                     var left = Left;
+                    if (left is Leaf5Plus1Plus1 l511)
+                        return l511.AddOrUpdateLeftOrMiddleEntry(hash, entry, this);
+
                     var newLeft = left.AddOrUpdateEntry(hash, entry);
-                    if ((left is Branch3 || left is Leaf5Plus1Plus1) && newLeft is Branch3 == false && newLeft is Branch2 b2)
+                    if (left is Branch3 && newLeft is Branch3 == false && newLeft is Branch2 b2)
                         return new Branch3(b2.Left, b2.MidEntry, new Branch2(b2.Right, e, Right));
                     return new Branch2(newLeft, e, Right);
                 }
@@ -1211,8 +1267,11 @@ namespace ImTools.Experimental
                 if (hash > h0 && hash < h1)
                 {
                     var middle = rb.Left;
+                    if (middle is Leaf5Plus1Plus1 l511)
+                        return l511.AddOrUpdateLeftOrMiddleEntry(hash, entry, this);
+
                     var newMiddle = middle.AddOrUpdateEntry(hash, entry);
-                    if ((middle is Branch3 || middle is Leaf5Plus1Plus1) && newMiddle is Branch3 == false && newMiddle is Branch2 newMiddleBranch2)
+                    if (middle is Branch3 && newMiddle is Branch3 == false && newMiddle is Branch2 newMiddleBranch2)
                         return new Branch2(
                             new Branch2(Left, MidEntry, newMiddleBranch2.Left),
                             newMiddleBranch2.MidEntry, 
