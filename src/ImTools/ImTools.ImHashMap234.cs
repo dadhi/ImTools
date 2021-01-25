@@ -727,59 +727,6 @@ namespace ImTools.Experimental
                 return new Branch2(new Leaf5(e0, e1, e2, e3, e4), lp, new Leaf2(p, e));
             }
 
-            /// <inheritdoc />
-            public ImHashMap234<K, V> AddOrUpdateLeftOrMiddleEntry(int hash, KeyValueEntry entry, Branch2 b, Updater update)
-            {
-                Leaf5Plus1Plus1 newLeaf = null;
-                var p = Plus;
-                var ph = p.Hash;
-                if (ph == hash)
-                    newLeaf = (p = update(p, entry)) == Plus ? this : new Leaf5Plus1Plus1(p, L);
-                else 
-                {
-                    var lp = L.Plus;
-                    var lph = lp.Hash;
-                    if (lph == hash)
-                        newLeaf = (lp = update(lp, entry)) == L.Plus ? this : new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, L.L5));
-                    else 
-                    {
-                        var l = L.L5;
-                        Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4;
-                        if (hash == e0.Hash)
-                            newLeaf = (e0 = update(e0, entry)) == l.Entry0 ? this : new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, new Leaf5(e0, e1, e2, e3, e4)));
-                        else if (hash == e1.Hash)
-                            newLeaf = (e1 = update(e1, entry)) == l.Entry1 ? this : new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, new Leaf5(e0, e1, e2, e3, e4)));
-                        else if (hash == e2.Hash)
-                            newLeaf = (e2 = update(e2, entry)) == l.Entry2 ? this : new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, new Leaf5(e0, e1, e2, e3, e4)));
-                        else if (hash == e3.Hash)
-                            newLeaf = (e3 = update(e3, entry)) == l.Entry3 ? this : new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, new Leaf5(e0, e1, e2, e3, e4)));
-                        else if (hash == e4.Hash)
-                            newLeaf = (e4 = update(e4, entry)) == l.Entry4 ? this : new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, new Leaf5(e0, e1, e2, e3, e4)));
-                        else
-                        {
-                            Entry e = entry;
-                            SortEntriesByHash(ref e0, ref e1, ref e2, ref e3, ref e4, ref lp, ref p, ref e);
-
-                            // note that we putting the smaller Leaf2 on the left because we tend to add on the Left
-                            if (b is Branch3)
-                            {
-                                var rb = (Branch2)b.Right;
-                                return new Branch2(new Branch2(b.Left, b.MidEntry, new Leaf2(e0, e1)),
-                                   e2, new Branch2(new Leaf5(e3, e4, lp, p, e), rb.MidEntry, rb.Right));
-                            }
-                            return new Branch3(new Leaf2(e0, e1), e2, new Branch2(new Leaf5(e3, e4, lp, p, e), b.MidEntry, b.Right));
-                        }
-                    }
-                }
-
-                if (b is Branch3)
-                {
-                    var rb = (Branch2)b.Right;
-                    return new Branch3(b.Left, b.MidEntry, new Branch2(newLeaf, rb.MidEntry, rb.Right));
-                }
-                return new Branch2(newLeaf, b.MidEntry, b.Right);
-            }
-
             /// <summary>The order at the end should be the follwing: <![CDATA[e0 < e1 < e2 < e3 < e4 < lp < p < entry]]></summary>
             internal static void SortEntriesByHash(ref Entry e0, ref Entry e1, ref Entry e2, ref Entry e3, ref Entry e4, ref Entry lp, ref Entry p, ref Entry e)
             {
@@ -984,17 +931,10 @@ namespace ImTools.Experimental
                 if (hash < e.Hash)
                 {
                     var left = Left;
-                    ImHashMap234<K, V> newLeft;
-                    if (left is Leaf5Plus1Plus1 l511)
-                    {
-                        newLeft = l511.AddOrUpdateLeftOrMiddleEntry(hash, entry, this, update);
-                        return newLeft == left ? this : newLeft;
-                    }
-
-                    newLeft = left.AddOrUpdateEntry(hash, entry, update);
+                    var newLeft = left.AddOrUpdateEntry(hash, entry, update);
                     if (newLeft == left)
                         return this;
-                    if (left is Branch3 && newLeft is Branch3 == false && newLeft is Branch2 b2)
+                    if ((left is Branch3 || left is Leaf5Plus1Plus1) && newLeft is Branch3 == false && newLeft is Branch2 b2)
                         return new Branch3(b2.Left, b2.MidEntry, new Branch2(b2.Right, e, Right));
                     return new Branch2(newLeft, e, Right);
                 }
@@ -1069,17 +1009,10 @@ namespace ImTools.Experimental
                 if (hash > h0 && hash < h1)
                 {
                     var middle = rb.Left;
-                    ImHashMap234<K, V> newMiddle;
-                    if (middle is Leaf5Plus1Plus1 l511)
-                    {
-                        newMiddle = l511.AddOrUpdateLeftOrMiddleEntry(hash, entry, this, update);
-                        return newMiddle == middle ? this : newMiddle;
-                    }
-
-                    newMiddle = middle.AddOrUpdateEntry(hash, entry, update);
+                    var newMiddle = middle.AddOrUpdateEntry(hash, entry, update);
                     if (newMiddle == middle)
                         return this;
-                    if (middle is Branch3 && newMiddle is Branch3 == false && newMiddle is Branch2 newMiddleBranch2)
+                    if ((middle is Branch3 || middle is Leaf5Plus1Plus1) && newMiddle is Branch3 == false && newMiddle is Branch2 newMiddleBranch2)
                         return new Branch2(
                             new Branch2(Left, MidEntry, newMiddleBranch2.Left),
                             newMiddleBranch2.MidEntry, 
