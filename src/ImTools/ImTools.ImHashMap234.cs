@@ -961,7 +961,7 @@ namespace ImTools.Experimental
 #endif
 
             /// <inheritdoc />
-            public override Entry GetEntryOrDefault(int hash) =>
+            public sealed override Entry GetEntryOrDefault(int hash) =>
                 hash > MidEntry.Hash ? Right.GetEntryOrDefault(hash) :
                 hash < MidEntry.Hash ? Left .GetEntryOrDefault(hash) :
                 MidEntry is RemovedEntry ? null : MidEntry;
@@ -1036,21 +1036,6 @@ namespace ImTools.Experimental
             /// <inheritdoc />
             public override string ToString() => "br3-" + base.ToString();
 #endif
-
-            /// <inheritdoc />
-            public override Entry GetEntryOrDefault(int hash)
-            {
-                var h0 = MidEntry.Hash;
-                if (hash < h0)
-                    return Left.GetEntryOrDefault(hash);
-                var rb = (Branch2)Right;
-                var h1 = rb.MidEntry.Hash;
-                return
-                    hash >  h1 ? rb.Right.GetEntryOrDefault(hash) :
-                    hash == h0 ? (MidEntry is RemovedEntry ? null : MidEntry) :
-                    hash == h1 ? (rb.MidEntry is RemovedEntry ? null : rb.MidEntry) :
-                    rb.Left.GetEntryOrDefault(hash);
-            }
 
             /// <inheritdoc />
             public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, KeyValueEntry entry, Updater update)
