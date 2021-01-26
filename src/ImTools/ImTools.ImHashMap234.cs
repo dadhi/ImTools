@@ -1,4 +1,3 @@
-
 using System;
 using System.Linq;
 using System.Collections.Generic;
@@ -26,7 +25,7 @@ namespace ImTools.Experimental
             var itemsInHashOrder = this.Enumerate().Take(outputCount).Select(x => x.Hash).ToList();
             return $"new int[{(itemsInHashOrder.Count >= 100 ? ">=" : "") + itemsInHashOrder.Count}] {{" + string.Join(", ", itemsInHashOrder) + "}";
 #else
-            return "empty " + typeof(ImHashMap234<K, V>).Name;
+            return "{}";
 #endif
         }
 
@@ -81,7 +80,7 @@ namespace ImTools.Experimental
             internal override Entry KeepOrUpdate(KeyValueEntry entry) => entry;
             internal override Entry TryRemove(K key) => this;
 
-            public override string ToString() => "[" + Hash + "]:removed-entry";
+            public override string ToString() => "{RemovedE: {H: " + Hash + "}}";
         }
 
         /// <summary>Entry containing the Value</summary>
@@ -102,7 +101,7 @@ namespace ImTools.Experimental
 
 #if !DEBUG
             /// <inheritdoc />
-            public override string ToString() => "[" + Hash + "]" + Key + ":" + Value;
+            public override string ToString() => "{E: {H: " + Hash + ", K: " + Key + ", V: " + Value + "}}";
 #endif
 
             internal override Entry Update(KeyValueEntry entry) => 
@@ -128,10 +127,10 @@ namespace ImTools.Experimental
             /// <inheritdoc />
             public override string ToString()
             {
-                var sb = new System.Text.StringBuilder();
+                var sb = new System.Text.StringBuilder("HashConflictingE: [");
                 foreach (var x in Conflicts) 
-                    sb.Append(x.ToString()).Append("; ");
-                return sb.ToString();
+                    sb.Append(x.ToString()).Append(", ");
+                return sb.Append("]").ToString();
             }
 #endif
 
@@ -222,7 +221,7 @@ namespace ImTools.Experimental
 
 #if !DEBUG
             /// <inheritdoc />
-            public override string ToString() => "leaf2{" + Entry0 + "; " + Entry1 + "}";
+            public override string ToString() => "{L2: {E0: " + Entry0 + ", E1: " + Entry1 + "}}";
 #endif
 
             /// <inheritdoc />
@@ -294,7 +293,7 @@ namespace ImTools.Experimental
 
 #if !DEBUG
             /// <inheritdoc />
-            public override string ToString() => "leaf3{" + Entry0 + "; " + Entry1 + "; " + Entry2 + "}";
+            public override string ToString() => "{L2: {E0: " + Entry0 + ", E1: " + Entry1 + ", E2: " + Entry2 + "}}";
 #endif
 
             /// <inheritdoc />
@@ -350,7 +349,7 @@ namespace ImTools.Experimental
 
 #if !DEBUG
             /// <inheritdoc />
-            public override string ToString() => "leaf3+1{" + Plus + " + " + L3 + "}";
+            public override string ToString() => "{L31: {P: " + Plus + ", L: " + L3 + "}}";
 #endif
 
             /// <inheritdoc />
@@ -498,7 +497,8 @@ namespace ImTools.Experimental
 
 #if !DEBUG
             /// <inheritdoc />
-            public override string ToString() => "leaf5{" + Entry0 + "; " + Entry1 + "; " + Entry2 + "; " + Entry3 + "; " + Entry4 + "}";
+            public override string ToString() => 
+                "{L2: {E0: " + Entry0 + ", E1: " + Entry1 + ", E2: " + Entry2 + ", E3: " + Entry3 + ", E4: " + Entry4 + "}}";
 #endif
 
             /// <inheritdoc />
@@ -558,7 +558,7 @@ namespace ImTools.Experimental
 
 #if !DEBUG
             /// <inheritdoc />
-            public override string ToString() => "leaf5+1{" + Plus + " + " + L5 + "}";
+            public override string ToString() => "{L51: {P: " + Plus + ", L: " + L5 + "}}";
 #endif
 
             /// <inheritdoc />
@@ -674,7 +674,7 @@ namespace ImTools.Experimental
 
 #if !DEBUG
             /// <inheritdoc />
-            public override string ToString() => "leaf5+1+1{" + Plus + " + " + L + "}";
+            public override string ToString() => "{L511: {P: " + Plus + ", L: " + L + "}}";
 #endif
 
             /// <inheritdoc />
@@ -889,12 +889,8 @@ namespace ImTools.Experimental
             /// <summary>Constructs</summary>
             public Branch2(ImHashMap234<K, V> left, Entry entry, ImHashMap234<K, V> right)
             {
-                Debug.Assert(left != Empty);
-                Debug.Assert(left is Entry == false);
-                Debug.Assert(right != Empty);
-                Debug.Assert(right is Entry == false);
-                Debug.Assert(left is Branch2 ? right is Branch2 : right is Branch2 == false, 
-                    "the all Branch2 branches should be either leafs or the branches");
+                Debug.Assert(left  != Empty && left  is Entry == false);
+                Debug.Assert(right != Empty && right is Entry == false);
                 MidEntry = entry;
                 Left     = left;
                 Right    = right;
@@ -902,9 +898,7 @@ namespace ImTools.Experimental
 
 #if !DEBUG
             /// <inheritdoc />
-            public override string ToString() => "br:" +
-                Left is Branch2 == false ? Left + " <- " + MidEntry + " -> " + Right :
-                Left.GetType().Name + " <- " + MidEntry + " -> " + Right.GetType().Name;
+            public override string ToString() => "{B2: {E: " + MidEntry + ", L: " + Left + ", R: " + Right + "}}";
 #endif
 
             /// <inheritdoc />
@@ -966,15 +960,11 @@ namespace ImTools.Experimental
         public sealed class Branch3 : Branch2
         {
             /// <summary>Creating the branch</summary>
-            public Branch3(ImHashMap234<K, V> left, Entry entry, Branch2 rightBranch) : base(left, entry, rightBranch)
-            {
-                Debug.Assert(left is Branch2 ? rightBranch.Left is Branch2 : rightBranch.Left is Branch2 == false, 
-                    "the all Branch3 branches should be either leafs or the branches");
-            }
+            public Branch3(ImHashMap234<K, V> left, Entry entry, Branch2 rightBranch) : base(left, entry, rightBranch) {}
 
 #if !DEBUG
             /// <inheritdoc />
-            public override string ToString() => "br3-" + base.ToString();
+            public override string ToString() => "{RB3: {"  + base.ToString() + "}";
 #endif
 
             /// <inheritdoc />
@@ -2420,12 +2410,8 @@ namespace ImTools.Experimental
             /// <summary>Constructs</summary>
             public Branch2(ImMap234<V> left, Entry e, ImMap234<V> right)
             {
-                Debug.Assert(Left != Empty);
-                Debug.Assert(Left is Entry == false);
-                Debug.Assert(Right != Empty);
-                Debug.Assert(Right is Entry == false);
-                Debug.Assert(Left is Branch ? Right is Branch : Right is Branch == false, 
-                    "the all Branch2 branches should be either leafs or the branches");
+                Debug.Assert(Left != Empty  && Left is Entry == false);
+                Debug.Assert(Right != Empty && Right is Entry == false);
                 Entry0 = e;
                 Left   = left;
                 Right  = right;
