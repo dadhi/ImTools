@@ -700,12 +700,12 @@ namespace ImTools.Experimental
                 var p = Plus;
                 var ph = p.Hash;
                 if (ph == hash)
-                    return (p = update(p, entry)) == Plus ? this : (ImHashMap234<K, V>)new Leaf5Plus1Plus1(p, L);
+                    return (p = update(p, entry)) == Plus ? this : new Leaf5Plus1Plus1(p, L);
 
                 var lp = L.Plus;
                 var lph = lp.Hash;
                 if (lph == hash)
-                    return (lp = update(lp, entry)) == L.Plus ? this : (ImHashMap234<K, V>)new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, L.L5));
+                    return (lp = update(lp, entry)) == L.Plus ? this : new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, L.L5));
 
                 var l = L.L5;
                 Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4;
