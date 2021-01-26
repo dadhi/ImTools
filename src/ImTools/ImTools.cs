@@ -2369,6 +2369,10 @@ namespace ImTools
         /// Pops the item - just moving the counter back
         public void Pop() => --Count;
 
+        // todo: @naming think of the better name
+        /// Pops the item - just moving the counter back
+        public T PopItem() => Items[--Count];
+
         /// Expands the items starting with 2
         private static T[] Expand(T[] items)
         {

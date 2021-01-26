@@ -1238,7 +1238,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 |     V2_ImHashMap_AVL_TryFind |  1000 | 16.883 ns | 0.2438 ns | 0.2280 ns |  1.00 |    0.00 |     - |     - |     - |         - |
 | V3_ImHashMap_234Tree_TryFind |  1000 | 15.516 ns | 0.3248 ns | 0.4554 ns |  0.93 |    0.04 |     - |     - |     - |         - |
 */
-            [Params(/*1, 5, 10,*/ 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
+            [Params(1, 5, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             public int Count;
 
             [GlobalSetup]
@@ -1429,7 +1429,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 return result;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public string V2_ImHashMap_AVLOptimizedForAdd_TryFind()
             {
                 _mapExp.TryFind(LookupKey.GetHashCode(), LookupKey, out var result);
@@ -1641,8 +1641,34 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 |     V2_ImHashMap_AVL_EnumerateAndToArray |  1000 | 28,594.2 ns | 307.61 ns | 287.73 ns |  1.00 |    0.00 | 3.9673 |     - |     - |   16800 B |
 | V3_ImHashMap_234Tree_EnumerateAndToArray |  1000 | 27,555.7 ns | 318.08 ns | 281.97 ns |  0.96 |    0.01 | 4.0588 |     - |     - |   16992 B |
 
+### Branch3 is a Branch2
+
+|                                   Method | Count |       Mean |    Error |   StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|----------------------------------------- |------ |-----------:|---------:|---------:|------:|--------:|-------:|------:|------:|----------:|
+|     V2_ImHashMap_AVL_EnumerateAndToArray |     5 |   329.7 ns |  6.40 ns |  5.99 ns |  1.00 |    0.00 | 0.0782 |     - |     - |     328 B |
+| V3_ImHashMap_234Tree_EnumerateAndToArray |     5 |   313.1 ns |  5.69 ns |  5.59 ns |  0.95 |    0.02 | 0.0877 |     - |     - |     368 B |
+|                                          |       |            |          |          |       |         |        |       |       |           |
+|     V2_ImHashMap_AVL_EnumerateAndToArray |    10 |   513.4 ns |  4.55 ns |  4.26 ns |  1.00 |    0.00 | 0.1106 |     - |     - |     464 B |
+| V3_ImHashMap_234Tree_EnumerateAndToArray |    10 |   525.6 ns |  7.40 ns |  6.92 ns |  1.02 |    0.02 | 0.1354 |     - |     - |     568 B |
+|                                          |       |            |          |          |       |         |        |       |       |           |
+|     V2_ImHashMap_AVL_EnumerateAndToArray |   100 | 3,658.7 ns | 53.67 ns | 47.58 ns |  1.00 |    0.00 | 0.5341 |     - |     - |    2240 B |
+| V3_ImHashMap_234Tree_EnumerateAndToArray |   100 | 3,388.2 ns | 67.71 ns | 63.34 ns |  0.93 |    0.02 | 0.5646 |     - |     - |    2368 B |
+
+### Using the custom stack for the parents
+
+|                                   Method | Count |       Mean |    Error |    StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|----------------------------------------- |------ |-----------:|---------:|----------:|------:|--------:|-------:|------:|------:|----------:|
+|     V2_ImHashMap_AVL_EnumerateAndToArray |     5 |   384.5 ns | 10.97 ns |  30.22 ns |  1.00 |    0.00 | 0.0782 |     - |     - |     328 B |
+| V3_ImHashMap_234Tree_EnumerateAndToArray |     5 |   365.1 ns |  7.30 ns |  12.00 ns |  0.98 |    0.08 | 0.0877 |     - |     - |     368 B |
+|                                          |       |            |          |           |       |         |        |       |       |           |
+|     V2_ImHashMap_AVL_EnumerateAndToArray |    10 |   613.6 ns | 12.02 ns |  29.94 ns |  1.00 |    0.00 | 0.1097 |     - |     - |     464 B |
+| V3_ImHashMap_234Tree_EnumerateAndToArray |    10 |   623.1 ns | 12.48 ns |  24.34 ns |  1.02 |    0.07 | 0.1373 |     - |     - |     576 B |
+|                                          |       |            |          |           |       |         |        |       |       |           |
+|     V2_ImHashMap_AVL_EnumerateAndToArray |   100 | 4,230.6 ns | 84.09 ns | 128.41 ns |  1.00 |    0.00 | 0.5341 |     - |     - |    2240 B |
+| V3_ImHashMap_234Tree_EnumerateAndToArray |   100 | 4,065.8 ns | 80.72 ns | 147.60 ns |  0.96 |    0.06 | 0.5493 |     - |     - |    2320 B |
+
 */
-            [Params(100)]//, 5, 10, 100, 1_000)]
+            [Params(5, 10, 100)]//, 5, 10, 100, 1_000)]
             public int Count;
 
             [GlobalSetup]

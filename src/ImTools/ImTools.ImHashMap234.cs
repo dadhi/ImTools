@@ -1033,10 +1033,38 @@ namespace ImTools.Experimental
     /// <summary>ImHashMap methods</summary>
     public static class ImHashMap234
     {
+        /// <summary>Stack</summary>
+        public sealed class Stack<T>
+        {
+            private const int DefaultInitialCapacity = 4;
+            private T[] _items;
+
+            /// <summary>Creates the list of the `DefaultInitialCapacity`</summary>
+            public Stack() => _items = new T[DefaultInitialCapacity];
+
+            /// <summary>Pushes the item</summary>
+            public void Push(T item, int count)
+            {
+                if (count >= _items.Length)
+                    _items = Expand(_items);
+                _items[count] = item;
+            }
+
+            /// <summary>Gets the item by index</summary>
+            public T Get(int index) => _items[index];
+
+            private static T[] Expand(T[] items)
+            {
+                var count = items.Length;
+                var newItems = new T[count << 1]; // count * 2
+                Array.Copy(items, 0, newItems, 0, count);
+                return newItems;
+            }
+        }
+
         /// <summary>Enumerates all the map entries from the left to the right and from the bottom to top</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static IEnumerable<ImHashMap234<K, V>.KeyValueEntry> Enumerate<K, V>(this ImHashMap234<K, V> map, 
-            List<ImHashMap234<K, V>> parentStack = null) // todo: @perf replace the List with the more lightweight alternative, the bad thing that we cannot pass the `ref` array into the method returning IEnumerable
+        public static IEnumerable<ImHashMap234<K, V>.KeyValueEntry> Enumerate<K, V>(this ImHashMap234<K, V> map, Stack<ImHashMap234<K, V>> parents = null)
         {
             if (map == ImHashMap234<K, V>.Empty)
                 yield break;
@@ -1047,17 +1075,14 @@ namespace ImTools.Experimental
                 yield break;
             }
 
-            var parentIndex = -1;
+            var count = 0;
             while (true)
             {
                 if (map is ImHashMap234<K, V>.Branch2 b2)
                 {
-                    if (parentStack == null)
-                        parentStack = new List<ImHashMap234<K, V>>(2);
-                    if (++parentIndex >= parentStack.Count)
-                        parentStack.Add(map);
-                    else
-                        parentStack[parentIndex] = map;
+                    if (parents == null)
+                        parents = new Stack<ImHashMap234<K, V>>();
+                    parents.Push(map, count++);
                     map = b2.Left;
                     continue;
                 }
@@ -1183,17 +1208,16 @@ namespace ImTools.Experimental
                     else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)p).Conflicts)  yield return c;
                 }
 
-                if (parentIndex == -1)
+                if (count == 0)
                     break; // we yield the leaf and there is nothing in stack - we are DONE!
 
-                var pb2 = (ImHashMap234<K, V>.Branch2)parentStack[parentIndex]; // otherwise get the parent
+                var pb2 = (ImHashMap234<K, V>.Branch2)parents.Get(--count); // otherwise get the parent
                 if (pb2.MidEntry is ImHashMap234<K, V>.KeyValueEntry v) 
                     yield return v;
                 else if (pb2.MidEntry != null) foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)pb2.MidEntry).Conflicts) 
                     yield return c;
 
                 map = pb2.Right;
-                --parentIndex; // we done with the this level handled the Left (previously) and the Right (now)
             }
         }
 
