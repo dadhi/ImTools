@@ -303,6 +303,19 @@ namespace ImTools.Experimental.UnitTests
         }
 
         [Test]
+        public void AddOrUpdate_problematic_shrinked_set_case3()
+        {
+            var items = new[] { 87173, 99053, 63922, 20879, 77178, 95518, 16692, 60819, 29881, 69987, 24798, 67743 };
+
+            var m = ImHashMap234<int, int>.Empty;
+            foreach (var i in items)
+                m = m.AddOrUpdate(i, i);
+
+            foreach (var i in items)
+                Assert.AreEqual(i, m.GetValueOrDefault(i));
+        }
+
+        [Test]
         public void Enumerate_should_work_for_the_randomized_input()
         {
             var uniqueItems = new[] {
@@ -350,8 +363,8 @@ namespace ImTools.Experimental.UnitTests
             //   /    |    \        /    \         /    \
             // 8 9  11 12  14 15 25 26  35 36   45 46   55 56
             //                  
-            var m = new ImHashMap234<int, int>.Branch3(
-                new ImHashMap234<int, int>.Branch3(
+            var m = new ImHashMap234<int, int>.RightyBranch3(
+                new ImHashMap234<int, int>.RightyBranch3(
                     new ImHashMap234<int, int>.Leaf2(new ImHashMap234<int, int>.KeyValueEntry(8, 8), new ImHashMap234<int, int>.KeyValueEntry(9, 9)),
                     new ImHashMap234<int, int>.KeyValueEntry(10, 10),
                     new ImHashMap234<int, int>.Branch2(

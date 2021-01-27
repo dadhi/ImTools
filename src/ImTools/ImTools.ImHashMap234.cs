@@ -917,8 +917,13 @@ namespace ImTools.Experimental
                     var newRight = right.AddOrUpdateEntry(hash, entry, update);
                     if (newRight == right)
                         return this;
-                    if ((right is Branch3 || right is Leaf5Plus1Plus1) && newRight is Branch3 == false && newRight is Branch2 b2)
-                        return new Branch3(Left, e, b2);
+                    if (right is RightyBranch3 && newRight is RightyBranch3 == false)
+                        return new RightyBranch3(Left, e, (Branch2)newRight);
+                    if (right is LeftyBranch3 && newRight is LeftyBranch3 == false)
+                        return new RightyBranch3(Left, e, (Branch2)newRight);
+                    if (right is Leaf5Plus1Plus1 && newRight is Branch2 b2)
+                        return new RightyBranch3(Left, e, b2);
+
                     return new Branch2(Left, e, newRight);
                 }
 
@@ -928,8 +933,13 @@ namespace ImTools.Experimental
                     var newLeft = left.AddOrUpdateEntry(hash, entry, update);
                     if (newLeft == left)
                         return this;
-                    if ((left is Branch3 || left is Leaf5Plus1Plus1) && newLeft is Branch3 == false && newLeft is Branch2 b2)
-                        return new Branch3(b2.Left, b2.MidEntry, new Branch2(b2.Right, e, Right));
+                    if (left is RightyBranch3 && newLeft is RightyBranch3 == false)
+                        return new LeftyBranch3((Branch2)newLeft, e, Right);
+                    if (left is LeftyBranch3  && newLeft is LeftyBranch3 == false)
+                        return new LeftyBranch3((Branch2)newLeft, e, Right);
+                    if (left is Leaf5Plus1Plus1 && newLeft is Branch2 b2)
+                        return new LeftyBranch3(b2, e, Right);
+
                     return new Branch2(newLeft, e, Right);
                 }
 
@@ -956,11 +966,11 @@ namespace ImTools.Experimental
             }
         }
 
-        /// <summary>Branch of 3 leafs or branches and two entries</summary>
-        public sealed class Branch3 : Branch2
+        /// <summary>Right skewed Branch of 3</summary>
+        public sealed class RightyBranch3 : Branch2
         {
             /// <summary>Creating the branch</summary>
-            public Branch3(ImHashMap234<K, V> left, Entry entry, Branch2 rightBranch) : base(left, entry, rightBranch) {}
+            public RightyBranch3(ImHashMap234<K, V> left, Entry entry, Branch2 rightBranch) : base(left, entry, rightBranch) {}
 
 #if !DEBUG
             /// <inheritdoc />
@@ -980,9 +990,14 @@ namespace ImTools.Experimental
                     var newRight = right.AddOrUpdateEntry(hash, entry, update);
                     if (newRight == right)
                         return this;
-                    if ((right is Branch3 || right is Leaf5Plus1Plus1) && newRight is Branch2 && newRight is Branch3 == false)
+                    if (right is RightyBranch3 && newRight is RightyBranch3 == false)
                         return new Branch2(new Branch2(Left, MidEntry, rb.Left), rb.MidEntry, newRight);
-                    return new Branch3(Left, MidEntry, new Branch2(rb.Left, rb.MidEntry, newRight));
+                    if (right is LeftyBranch3 && newRight is LeftyBranch3 == false)
+                        return new Branch2(new Branch2(Left, MidEntry, rb.Left), rb.MidEntry, newRight);
+                    if (right is Leaf5Plus1Plus1 && newRight is Branch2)
+                        return new Branch2(new Branch2(Left, MidEntry, rb.Left), rb.MidEntry, newRight);
+
+                    return new RightyBranch3(Left, MidEntry, new Branch2(rb.Left, rb.MidEntry, newRight));
                 }
 
                 if (hash < h0)
@@ -991,9 +1006,14 @@ namespace ImTools.Experimental
                     var newLeft = left.AddOrUpdateEntry(hash, entry, update);
                     if (newLeft == left)
                         return this;
-                    if ((left is Branch3 || left is Leaf5Plus1Plus1) && newLeft is Branch2 && newLeft is Branch3 == false)
+                    if (left is RightyBranch3 && newLeft is RightyBranch3 == false)
                         return new Branch2(newLeft, MidEntry, rb);
-                    return new Branch3(newLeft, MidEntry, rb);
+                    if (left is LeftyBranch3 && newLeft is LeftyBranch3 == false)
+                        return new Branch2(newLeft, MidEntry, rb);
+                    if (left is Leaf5Plus1Plus1 && newLeft is Branch2)
+                        return new Branch2(newLeft, MidEntry, rb);
+
+                    return new RightyBranch3(newLeft, MidEntry, rb);
                 }
 
                 if (hash > h0 && hash < h1)
@@ -1002,20 +1022,114 @@ namespace ImTools.Experimental
                     var newMiddle = middle.AddOrUpdateEntry(hash, entry, update);
                     if (newMiddle == middle)
                         return this;
-                    if ((middle is Branch3 || middle is Leaf5Plus1Plus1) && newMiddle is Branch3 == false && newMiddle is Branch2 newMiddleBranch2)
-                        return new Branch2(
-                            new Branch2(Left, MidEntry, newMiddleBranch2.Left),
-                            newMiddleBranch2.MidEntry, 
-                            new Branch2(newMiddleBranch2.Right, rb.MidEntry, rb.Right));
-                    return new Branch3(Left, MidEntry, new Branch2(newMiddle, rb.MidEntry, rb.Right));
+                    if (middle is RightyBranch3 && newMiddle is RightyBranch3 == false && newMiddle is Branch2 mb2)
+                        return new Branch2(new Branch2(Left, MidEntry, mb2.Left), 
+                            mb2.MidEntry,  new Branch2(mb2.Right, rb.MidEntry, rb.Right));
+
+                    if (middle is LeftyBranch3 && newMiddle is LeftyBranch3 == false && newMiddle is Branch2 mb2_)
+                        return new Branch2(new Branch2(Left, MidEntry, mb2_.Left), 
+                            mb2_.MidEntry,  new Branch2(mb2_.Right, rb.MidEntry, rb.Right));
+
+                    if (middle is Leaf5Plus1Plus1 && newMiddle is Branch2 mb2__)
+                        return new Branch2(new Branch2(Left, MidEntry, mb2__.Left), 
+                            mb2__.MidEntry,  new Branch2(mb2__.Right, rb.MidEntry, rb.Right));
+
+                    return new RightyBranch3(Left, MidEntry, new Branch2(newMiddle, rb.MidEntry, rb.Right));
                 }
 
                 var e0 = MidEntry;
                 if (hash == h0)
-                    return (e0 = update(e0, entry)) == MidEntry ? this : new Branch3(Left, e0, rb);
+                    return (e0 = update(e0, entry)) == MidEntry ? this : new RightyBranch3(Left, e0, rb);
 
                 var e1 = rb.MidEntry;
-                return  (e1 = update(e1, entry)) == rb.MidEntry ? this : new Branch3(Left, e0, new Branch2(rb.Left, e1, rb.Right));
+                return  (e1 = update(e1, entry)) == rb.MidEntry ? this : new RightyBranch3(Left, e0, new Branch2(rb.Left, e1, rb.Right));
+            }
+        }
+
+        /// <summary>Left skewed Branch of 3</summary>
+        public sealed class LeftyBranch3 : Branch2
+        {
+            /// <summary>Creating the branch</summary>
+            public LeftyBranch3(Branch2 leftBranch, Entry entry, ImHashMap234<K, V> right) : base(leftBranch, entry, right) {}
+
+#if !DEBUG
+            /// <inheritdoc />
+            public override string ToString() => "{LB3: {"  + base.ToString() + "}";
+#endif
+
+            /// <inheritdoc />
+            public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, KeyValueEntry entry, Updater update)
+            {
+                var lb = (Branch2)Left;
+                var h0 = lb.MidEntry.Hash;
+                var h1 = MidEntry.Hash;
+                
+                if (hash > h1)
+                {
+                    var right = Right;
+                    var newRight = right.AddOrUpdateEntry(hash, entry, update);
+                    if (newRight == right)
+                        return this;
+
+                    if (right is LeftyBranch3 && newRight is LeftyBranch3 == false)
+                        return new Branch2(lb, MidEntry, newRight);
+
+                    if (right is RightyBranch3 && newRight is RightyBranch3 == false)
+                        return new Branch2(lb, MidEntry, newRight);
+
+                    if (right is Leaf5Plus1Plus1 && newRight is Branch2)
+                        return new Branch2(lb, MidEntry, newRight);
+                    
+                    return new LeftyBranch3(lb, MidEntry, newRight);
+                }
+
+                if (hash < h0)
+                {
+                    var left = lb.Left;
+                    var newLeft = left.AddOrUpdateEntry(hash, entry, update);
+                    if (newLeft == left)
+                        return this;
+
+                    if (left is LeftyBranch3 && newLeft is LeftyBranch3 == false)
+                        return new Branch2(newLeft, lb.MidEntry, new Branch2(lb.Right, MidEntry, Right));
+
+                    if (left is RightyBranch3 && newLeft is RightyBranch3 == false)
+                        return new Branch2(newLeft, lb.MidEntry, new Branch2(lb.Right, MidEntry, Right));
+
+                    if (left is Leaf5Plus1Plus1 && newLeft is Branch2)
+                        return new Branch2(newLeft, lb.MidEntry, new Branch2(lb.Right, MidEntry, Right));
+
+                    return new LeftyBranch3(new Branch2(newLeft, lb.MidEntry, lb.Right), MidEntry, Right);
+                }
+
+                if (hash > h0 && hash < h1)
+                {
+                    var middle = lb.Right;
+                    var newMiddle = middle.AddOrUpdateEntry(hash, entry, update);
+                    if (newMiddle == middle)
+                        return this;
+
+                    if (middle is LeftyBranch3 && newMiddle is LeftyBranch3 == false && newMiddle is Branch2 mb2)
+                        return new Branch2(new Branch2(lb.Left, lb.MidEntry, mb2.Left),
+                            mb2.MidEntry,  new Branch2(mb2.Right, MidEntry, Right));
+
+                    if (middle is RightyBranch3 && newMiddle is RightyBranch3 == false && newMiddle is Branch2 mb2_)
+                        return new Branch2(new Branch2(lb.Left, lb.MidEntry, mb2_.Left),
+                            mb2_.MidEntry,  new Branch2(mb2_.Right, MidEntry, Right));
+
+                    if (middle is Leaf5Plus1Plus1 && newMiddle is Branch2 mb2__)
+                        return new Branch2(new Branch2(lb.Left, lb.MidEntry, mb2__.Left),
+                            mb2__.MidEntry,  new Branch2(mb2__.Right, MidEntry, Right));
+
+                    return new LeftyBranch3(new Branch2(lb.Left, lb.MidEntry, newMiddle), MidEntry, Right);
+                }
+
+                var e0 = lb.MidEntry;
+                var e1 = MidEntry;
+
+                return hash == h0
+                    ? (e0 = update(e0, entry)) == lb.MidEntry ? this : new LeftyBranch3(new Branch2(lb.Left, e0, lb.Right), e1, Right)
+                    : (e1 = update(e1, entry)) == MidEntry    ? this : new LeftyBranch3(lb, e1, Right);
             }
         }
     }
