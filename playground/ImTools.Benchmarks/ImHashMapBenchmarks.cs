@@ -569,11 +569,35 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 | V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |  1000 | 452,621.8 ns | 6,879.46 ns | 5,744.66 ns |  1.00 |    0.00 | 104.4922 | 25.3906 |     - |  439976 B |
 |            V3_ImHashMap_234Tree_AddOrUpdate |  1000 | 333,678.1 ns | 5,960.06 ns | 6,120.54 ns |  0.74 |    0.02 |  83.4961 | 19.0430 |     - |  350776 B |
 
+### Lefty and Righty Branch3
+
+|                                      Method | Count |         Mean |       Error |       StdDev |       Median | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
+|-------------------------------------------- |------ |-------------:|------------:|-------------:|-------------:|------:|--------:|---------:|--------:|------:|----------:|
+|                V2_ImHashMap_AVL_AddOrUpdate |     1 |     171.4 ns |     3.37 ns |      6.24 ns |     170.5 ns |  1.00 |    0.00 |   0.0648 |       - |     - |     272 B |
+| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |     1 |     149.6 ns |     4.88 ns |     13.75 ns |     143.6 ns |  0.85 |    0.06 |   0.0381 |       - |     - |     160 B |
+|            V3_ImHashMap_234Tree_AddOrUpdate |     1 |     126.2 ns |     2.40 ns |      2.35 ns |     125.8 ns |  0.72 |    0.02 |   0.0381 |       - |     - |     160 B |
+|                                             |       |              |             |              |              |       |         |          |         |       |           |
+|                V2_ImHashMap_AVL_AddOrUpdate |     5 |     527.1 ns |     7.09 ns |      5.92 ns |     525.9 ns |  1.00 |    0.00 |   0.2632 |       - |     - |    1104 B |
+| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |     5 |     394.3 ns |     7.91 ns |     13.43 ns |     391.1 ns |  0.74 |    0.02 |   0.1602 |       - |     - |     672 B |
+|            V3_ImHashMap_234Tree_AddOrUpdate |     5 |     352.8 ns |     7.01 ns |     14.48 ns |     351.8 ns |  0.67 |    0.03 |   0.1144 |       - |     - |     480 B |
+|                                             |       |              |             |              |              |       |         |          |         |       |           |
+|                V2_ImHashMap_AVL_AddOrUpdate |    10 |   1,057.5 ns |    19.37 ns |     27.16 ns |   1,052.1 ns |  1.00 |    0.00 |   0.5512 |       - |     - |    2312 B |
+| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |    10 |     821.1 ns |    14.89 ns |     12.43 ns |     816.8 ns |  0.77 |    0.03 |   0.3576 |       - |     - |    1496 B |
+|            V3_ImHashMap_234Tree_AddOrUpdate |    10 |     735.3 ns |    14.65 ns |     32.77 ns |     722.8 ns |  0.70 |    0.04 |   0.2537 |       - |     - |    1064 B |
+|                                             |       |              |             |              |              |       |         |          |         |       |           |
+|                V2_ImHashMap_AVL_AddOrUpdate |   100 |  16,403.4 ns |   321.95 ns |    383.26 ns |  16,335.3 ns |  1.00 |    0.00 |   8.3313 |       - |     - |   34856 B |
+| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |   100 |  13,788.9 ns |   272.72 ns |    569.27 ns |  13,531.6 ns |  0.86 |    0.04 |   6.6528 |       - |     - |   27880 B |
+|            V3_ImHashMap_234Tree_AddOrUpdate |   100 |  13,643.6 ns |   271.44 ns |    645.10 ns |  13,426.7 ns |  0.85 |    0.05 |   5.0201 |       - |     - |   21016 B |
+|                                             |       |              |             |              |              |       |         |          |         |       |           |
+|                V2_ImHashMap_AVL_AddOrUpdate |  1000 | 360,250.5 ns | 6,784.21 ns | 15,723.43 ns | 356,501.8 ns |  1.00 |    0.00 | 122.0703 |  3.4180 |     - |  511208 B |
+| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |  1000 | 362,127.1 ns | 7,152.59 ns | 15,242.75 ns | 354,378.3 ns |  1.00 |    0.05 | 104.9805 | 25.8789 |     - |  439976 B |
+|            V3_ImHashMap_234Tree_AddOrUpdate |  1000 | 256,792.6 ns | 3,382.32 ns |  3,163.82 ns | 256,375.0 ns |  0.72 |    0.04 |  82.0313 |  1.9531 |     - |  344320 B |
+
 */
-            [Params(100, 500, 1000)]
+            [Params(1, 5, 10, 100, 1000)]
             public int Count;
 
-            // [Benchmark(Baseline = true)]
+            [Benchmark(Baseline = true)]
             public ImHashMap<Type, string> V2_ImHashMap_AVL_AddOrUpdate()
             {
                 var map = ImHashMap<Type, string>.Empty;
@@ -596,7 +620,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 return map;
             }
 
-            [Benchmark(Baseline = true)]
+            [Benchmark]
             public ImTools.Experimental.ImMap<ImMap.KValue<Type>> V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate()
             {
                 var map = ImTools.Experimental.ImMap<ImMap.KValue<Type>>.Empty;

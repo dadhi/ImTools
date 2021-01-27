@@ -45,6 +45,11 @@ namespace ImTools.Experimental
         /// <summary>Returns the map without the entry with the specified hash and key if it is found in the map</summary>
         public virtual ImHashMap234<K, V> RemoveEntry(int hash, K key) => this;
 
+        internal virtual Branch2 LeftToBranch(ImHashMap234<K, V> newLeft, Entry entry, ImHashMap234<K, V> right) => 
+            new Branch2(newLeft, entry, right);
+        internal virtual Branch2 RightToBranch(ImHashMap234<K, V> left, Entry entry, ImHashMap234<K, V> newRight) => 
+            new Branch2(left, entry, newRight);
+
         /// <summary>The base entry for the Value and for the ConflictingValues entries, contains the Hash and Key</summary>
         public abstract class Entry : ImHashMap234<K, V>
         {
@@ -727,6 +732,12 @@ namespace ImTools.Experimental
                 return new Branch2(new Leaf5(e0, e1, e2, e3, e4), lp, new Leaf2(p, e));
             }
 
+            internal override Branch2 LeftToBranch(ImHashMap234<K, V> newLeft, Entry entry, ImHashMap234<K, V> right) =>
+                newLeft is Branch2 ? new LeftyBranch3(newLeft, entry, right) : new Branch2(newLeft, entry, right);
+
+            internal override Branch2 RightToBranch(ImHashMap234<K, V> left, Entry entry, ImHashMap234<K, V> newRight) =>
+                newRight is Branch2 ? new RightyBranch3(left, entry, newRight) : new Branch2(left, entry, newRight);
+
             /// <summary>The order at the end should be the follwing: <![CDATA[e0 < e1 < e2 < e3 < e4 < lp < p < entry]]></summary>
             internal static void SortEntriesByHash(ref Entry e0, ref Entry e1, ref Entry e2, ref Entry e3, ref Entry e4, ref Entry lp, ref Entry p, ref Entry e)
             {
@@ -915,32 +926,14 @@ namespace ImTools.Experimental
                 {
                     var right = Right;
                     var newRight = right.AddOrUpdateEntry(hash, entry, update);
-                    if (newRight == right)
-                        return this;
-                    if (right is RightyBranch3 && newRight is RightyBranch3 == false)
-                        return new RightyBranch3(Left, e, (Branch2)newRight);
-                    if (right is LeftyBranch3 && newRight is LeftyBranch3 == false)
-                        return new RightyBranch3(Left, e, (Branch2)newRight);
-                    if (right is Leaf5Plus1Plus1 && newRight is Branch2 b2)
-                        return new RightyBranch3(Left, e, b2);
-
-                    return new Branch2(Left, e, newRight);
+                    return newRight == right ? this : right.RightToBranch(Left, e, newRight);
                 }
 
                 if (hash < e.Hash)
                 {
                     var left = Left;
                     var newLeft = left.AddOrUpdateEntry(hash, entry, update);
-                    if (newLeft == left)
-                        return this;
-                    if (left is RightyBranch3 && newLeft is RightyBranch3 == false)
-                        return new LeftyBranch3((Branch2)newLeft, e, Right);
-                    if (left is LeftyBranch3  && newLeft is LeftyBranch3 == false)
-                        return new LeftyBranch3((Branch2)newLeft, e, Right);
-                    if (left is Leaf5Plus1Plus1 && newLeft is Branch2 b2)
-                        return new LeftyBranch3(b2, e, Right);
-
-                    return new Branch2(newLeft, e, Right);
+                    return newLeft == left ? this : left.LeftToBranch(newLeft, e, Right);
                 }
 
                 return (e = update(e, entry)) == MidEntry ? this : new Branch2(Left, e, Right);
@@ -970,12 +963,18 @@ namespace ImTools.Experimental
         public sealed class RightyBranch3 : Branch2
         {
             /// <summary>Creating the branch</summary>
-            public RightyBranch3(ImHashMap234<K, V> left, Entry entry, Branch2 rightBranch) : base(left, entry, rightBranch) {}
+            public RightyBranch3(ImHashMap234<K, V> left, Entry entry, ImHashMap234<K, V>  right) : base(left, entry, right) {}
 
 #if !DEBUG
             /// <inheritdoc />
             public override string ToString() => "{RB3: {"  + base.ToString() + "}";
 #endif
+
+            internal override Branch2 LeftToBranch(ImHashMap234<K, V> newLeft, Entry entry, ImHashMap234<K, V> right) =>
+                newLeft is RightyBranch3 ? new Branch2(newLeft, entry, right) : new LeftyBranch3(newLeft, entry, right);
+
+            internal override Branch2 RightToBranch(ImHashMap234<K, V> left, Entry entry, ImHashMap234<K, V> newRight) =>
+                newRight is RightyBranch3 ? new Branch2(left, entry, newRight) : new RightyBranch3(left, entry, newRight);
 
             /// <inheritdoc />
             public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, KeyValueEntry entry, Updater update)
@@ -990,6 +989,7 @@ namespace ImTools.Experimental
                     var newRight = right.AddOrUpdateEntry(hash, entry, update);
                     if (newRight == right)
                         return this;
+
                     if (right is RightyBranch3 && newRight is RightyBranch3 == false)
                         return new Branch2(new Branch2(Left, MidEntry, rb.Left), rb.MidEntry, newRight);
                     if (right is LeftyBranch3 && newRight is LeftyBranch3 == false)
@@ -1006,6 +1006,7 @@ namespace ImTools.Experimental
                     var newLeft = left.AddOrUpdateEntry(hash, entry, update);
                     if (newLeft == left)
                         return this;
+
                     if (left is RightyBranch3 && newLeft is RightyBranch3 == false)
                         return new Branch2(newLeft, MidEntry, rb);
                     if (left is LeftyBranch3 && newLeft is LeftyBranch3 == false)
@@ -1022,6 +1023,7 @@ namespace ImTools.Experimental
                     var newMiddle = middle.AddOrUpdateEntry(hash, entry, update);
                     if (newMiddle == middle)
                         return this;
+
                     if (middle is RightyBranch3 && newMiddle is RightyBranch3 == false && newMiddle is Branch2 mb2)
                         return new Branch2(new Branch2(Left, MidEntry, mb2.Left), 
                             mb2.MidEntry,  new Branch2(mb2.Right, rb.MidEntry, rb.Right));
@@ -1050,12 +1052,18 @@ namespace ImTools.Experimental
         public sealed class LeftyBranch3 : Branch2
         {
             /// <summary>Creating the branch</summary>
-            public LeftyBranch3(Branch2 leftBranch, Entry entry, ImHashMap234<K, V> right) : base(leftBranch, entry, right) {}
+            public LeftyBranch3(ImHashMap234<K, V> leftBranch, Entry entry, ImHashMap234<K, V> right) : base(leftBranch, entry, right) {}
 
 #if !DEBUG
             /// <inheritdoc />
             public override string ToString() => "{LB3: {"  + base.ToString() + "}";
 #endif
+
+            internal override Branch2 LeftToBranch(ImHashMap234<K, V> newLeft, Entry entry, ImHashMap234<K, V> right) =>
+                newLeft is LeftyBranch3? new Branch2(newLeft, entry, right) : new LeftyBranch3(newLeft, entry, right);
+
+            internal override Branch2 RightToBranch(ImHashMap234<K, V> left, Entry entry, ImHashMap234<K, V> newRight) =>
+                newRight is LeftyBranch3 ? new Branch2(left, entry, newRight) : new RightyBranch3(left, entry, newRight);
 
             /// <inheritdoc />
             public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, KeyValueEntry entry, Updater update)
