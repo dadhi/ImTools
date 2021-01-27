@@ -808,92 +808,6 @@ namespace ImTools.Experimental
                 return new Branch2(new Leaf5(e0, e1, e2, e3, e4), lp, new Leaf2(p, e));
             }
 
-            /// <summary>The order at the end should be the follwing: <![CDATA[e0 < e1 < e2 < e3 < e4 < lp < p < entry]]></summary>
-            internal static void SortEntriesByHash(ref Entry e0, ref Entry e1, ref Entry e2, ref Entry e3, ref Entry e4, ref Entry lp, ref Entry p, ref Entry e)
-            {
-                var h = lp.Hash;
-                Entry swap = null;
-                if (h < e4.Hash)
-                {
-                    swap = e4; e4 = lp; lp = swap;
-                    if (h < e3.Hash)
-                    {
-                        swap = e3; e3 = e4; e4 = swap;
-                        if (h < e2.Hash)
-                        {
-                            swap = e2; e2 = e3; e3 = swap;
-                            if (h < e1.Hash)
-                            {
-                                swap = e1; e1 = e2; e2 = swap;
-                                if (h < e0.Hash)
-                                {
-                                    swap = e0; e0 = e1; e1 = swap;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                h = p.Hash;
-                if (h < lp.Hash)
-                {
-                    swap = lp; lp = p; p = swap;
-                    if (h < e4.Hash)
-                    {
-                        swap = e4; e4 = lp; lp = swap;
-                        if (h < e3.Hash)
-                        {
-                            swap = e3; e3 = e4; e4 = swap;
-                            if (h < e2.Hash)
-                            {
-                                swap = e2; e2 = e3; e3 = swap;
-                                if (h < e1.Hash)
-                                {
-                                    swap = e1; e1 = e2; e2 = swap;
-                                    if (h < e0.Hash)
-                                    {
-                                        swap = e0; e0 = e1; e1 = swap;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                if (e != null) 
-                {
-                    h = e.Hash; 
-                    if (h < p.Hash)
-                    {
-                        swap = p; p = e; e = swap;
-                        if (h < lp.Hash)
-                        {
-                            swap = lp; lp = p; p = swap;
-                            if (h < e4.Hash)
-                            {
-                                swap = e4; e4 = lp; lp = swap;
-                                if (h < e3.Hash)
-                                {
-                                    swap = e3; e3 = e4; e4 = swap;
-                                    if (h < e2.Hash)
-                                    {
-                                        swap = e2; e2 = e3; e3 = swap;
-                                        if (h < e1.Hash)
-                                        {
-                                            swap = e1; e1 = e2; e2 = swap;
-                                            if (h < e0.Hash)
-                                            {
-                                                swap = e0; e0 = e1; e1 = swap;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-            }
-
             /// <inheritdoc />
             public override ImHashMap234<K, V> RemoveEntry(int hash, K key)
             {
@@ -1327,11 +1241,56 @@ namespace ImTools.Experimental
                 }
                 else if (map is ImHashMap234<K, V>.Leaf5Plus1Plus1 l511)
                 {
-                    var p   = l511.Plus;
-                    var lp  = l511.L.Plus;
-                    var l   = l511.L.L5;
-                    ImHashMap234<K, V>.Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, _ = null;
-                    ImHashMap234<K, V>.Leaf5Plus1Plus1.SortEntriesByHash(ref e0, ref e1, ref e2, ref e3, ref e4, ref lp, ref p, ref _);
+                    var l = l511.L.L5;
+                    ImHashMap234<K, V>.Entry 
+                        e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, p = l511.Plus, lp = l511.L.Plus, swap = null;
+                    var h = lp.Hash;
+                    if (h < e4.Hash)
+                    {
+                        swap = e4; e4 = lp; lp = swap;
+                        if (h < e3.Hash)
+                        {
+                            swap = e3; e3 = e4; e4 = swap;
+                            if (h < e2.Hash)
+                            {
+                                swap = e2; e2 = e3; e3 = swap;
+                                if (h < e1.Hash)
+                                {
+                                    swap = e1; e1 = e2; e2 = swap;
+                                    if (h < e0.Hash)
+                                    {
+                                        swap = e0; e0 = e1; e1 = swap;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    h = p.Hash;
+                    if (h < lp.Hash)
+                    {
+                        swap = lp; lp = p; p = swap;
+                        if (h < e4.Hash)
+                        {
+                            swap = e4; e4 = lp; lp = swap;
+                            if (h < e3.Hash)
+                            {
+                                swap = e3; e3 = e4; e4 = swap;
+                                if (h < e2.Hash)
+                                {
+                                    swap = e2; e2 = e3; e3 = swap;
+                                    if (h < e1.Hash)
+                                    {
+                                        swap = e1; e1 = e2; e2 = swap;
+                                        if (h < e0.Hash)
+                                        {
+                                            swap = e0; e0 = e1; e1 = swap;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     if (e0 is ImHashMap234<K, V>.KeyValueEntry v0) yield return v0;
                     else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)e0).Conflicts) yield return c;
