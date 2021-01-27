@@ -721,9 +721,90 @@ namespace ImTools.Experimental
                 if (hash == e4.Hash)
                     return (e4 = update(e4, entry)) == l.Entry4 ? this : new Leaf5Plus1Plus1(p, new Leaf5Plus1(lp, new Leaf5(e0, e1, e2, e3, e4)));
 
-                Entry e = entry;
-                SortEntriesByHash(ref e0, ref e1, ref e2, ref e3, ref e4, ref lp, ref p, ref e);
+                var right = hash > e4.Hash && ph > e4.Hash && lph > e4.Hash;
+                var left  = !right && hash < e0.Hash && ph < e0.Hash && lph < e0.Hash;
 
+                Entry swap = null;
+                if (lph < e4.Hash)
+                {
+                    swap = e4; e4 = lp; lp = swap;
+                    if (lph < e3.Hash)
+                    {
+                        swap = e3; e3 = e4; e4 = swap;
+                        if (lph < e2.Hash)
+                        {
+                            swap = e2; e2 = e3; e3 = swap;
+                            if (lph < e1.Hash)
+                            {
+                                swap = e1; e1 = e2; e2 = swap;
+                                if (lph < e0.Hash)
+                                {
+                                    swap = e0; e0 = e1; e1 = swap;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (ph < lp.Hash)
+                {
+                    swap = lp; lp = p; p = swap;
+                    if (ph < e4.Hash)
+                    {
+                        swap = e4; e4 = lp; lp = swap;
+                        if (ph < e3.Hash)
+                        {
+                            swap = e3; e3 = e4; e4 = swap;
+                            if (ph < e2.Hash)
+                            {
+                                swap = e2; e2 = e3; e3 = swap;
+                                if (ph < e1.Hash)
+                                {
+                                    swap = e1; e1 = e2; e2 = swap;
+                                    if (ph < e0.Hash)
+                                    {
+                                        swap = e0; e0 = e1; e1 = swap;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Entry e = entry;
+                if (hash < p.Hash)
+                {
+                    swap = p; p = e; e = swap;
+                    if (hash < lp.Hash)
+                    {
+                        swap = lp; lp = p; p = swap;
+                        if (hash < e4.Hash)
+                        {
+                            swap = e4; e4 = lp; lp = swap;
+                            if (hash < e3.Hash)
+                            {
+                                swap = e3; e3 = e4; e4 = swap;
+                                if (hash < e2.Hash)
+                                {
+                                    swap = e2; e2 = e3; e3 = swap;
+                                    if (hash < e1.Hash)
+                                    {
+                                        swap = e1; e1 = e2; e2 = swap;
+                                        if (hash < e0.Hash)
+                                        {
+                                            swap = e0; e0 = e1; e1 = swap;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (right)
+                    return new Branch2(l, lp, new Leaf2(p, e));
+                if (left)
+                    return new Branch2(new Leaf2(e0, e1), e2, l);
                 return new Branch2(new Leaf5(e0, e1, e2, e3, e4), lp, new Leaf2(p, e));
             }
 
@@ -810,6 +891,7 @@ namespace ImTools.Experimental
                         }
                     }
                 }
+
             }
 
             /// <inheritdoc />
