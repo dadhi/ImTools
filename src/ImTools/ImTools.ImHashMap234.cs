@@ -45,9 +45,9 @@ namespace ImTools.Experimental
         /// <summary>Returns the map without the entry with the specified hash and key if it is found in the map</summary>
         public virtual ImHashMap234<K, V> RemoveEntry(int hash, K key) => this;
 
-        internal virtual Branch2 LeftToBranch(ImHashMap234<K, V> newLeft, Entry entry, ImHashMap234<K, V> right) => 
+        internal virtual Branch2 LeftToBranch2(ImHashMap234<K, V> newLeft, Entry entry, ImHashMap234<K, V> right) => 
             new Branch2(newLeft, entry, right);
-        internal virtual Branch2 RightToBranch(ImHashMap234<K, V> left, Entry entry, ImHashMap234<K, V> newRight) => 
+        internal virtual Branch2 RightToBranch2(ImHashMap234<K, V> left, Entry entry, ImHashMap234<K, V> newRight) => 
             new Branch2(left, entry, newRight);
 
         /// <summary>The base entry for the Value and for the ConflictingValues entries, contains the Hash and Key</summary>
@@ -732,10 +732,10 @@ namespace ImTools.Experimental
                 return new Branch2(new Leaf5(e0, e1, e2, e3, e4), lp, new Leaf2(p, e));
             }
 
-            internal override Branch2 LeftToBranch(ImHashMap234<K, V> newLeft, Entry entry, ImHashMap234<K, V> right) =>
+            internal override Branch2 LeftToBranch2(ImHashMap234<K, V> newLeft, Entry entry, ImHashMap234<K, V> right) =>
                 newLeft is Branch2 ? new LeftyBranch3(newLeft, entry, right) : new Branch2(newLeft, entry, right);
 
-            internal override Branch2 RightToBranch(ImHashMap234<K, V> left, Entry entry, ImHashMap234<K, V> newRight) =>
+            internal override Branch2 RightToBranch2(ImHashMap234<K, V> left, Entry entry, ImHashMap234<K, V> newRight) =>
                 newRight is Branch2 ? new RightyBranch3(left, entry, newRight) : new Branch2(left, entry, newRight);
 
             /// <summary>The order at the end should be the follwing: <![CDATA[e0 < e1 < e2 < e3 < e4 < lp < p < entry]]></summary>
@@ -926,14 +926,14 @@ namespace ImTools.Experimental
                 {
                     var right = Right;
                     var newRight = right.AddOrUpdateEntry(hash, entry, update);
-                    return newRight == right ? this : right.RightToBranch(Left, e, newRight);
+                    return newRight == right ? this : right.RightToBranch2(Left, e, newRight);
                 }
 
                 if (hash < e.Hash)
                 {
                     var left = Left;
                     var newLeft = left.AddOrUpdateEntry(hash, entry, update);
-                    return newLeft == left ? this : left.LeftToBranch(newLeft, e, Right);
+                    return newLeft == left ? this : left.LeftToBranch2(newLeft, e, Right);
                 }
 
                 return (e = update(e, entry)) == MidEntry ? this : new Branch2(Left, e, Right);
@@ -970,10 +970,9 @@ namespace ImTools.Experimental
             public override string ToString() => "{RB3: {"  + base.ToString() + "}";
 #endif
 
-            internal override Branch2 LeftToBranch(ImHashMap234<K, V> newLeft, Entry entry, ImHashMap234<K, V> right) =>
+            internal override Branch2 LeftToBranch2(ImHashMap234<K, V> newLeft, Entry entry, ImHashMap234<K, V> right) =>
                 newLeft is RightyBranch3 ? new Branch2(newLeft, entry, right) : new LeftyBranch3(newLeft, entry, right);
-
-            internal override Branch2 RightToBranch(ImHashMap234<K, V> left, Entry entry, ImHashMap234<K, V> newRight) =>
+            internal override Branch2 RightToBranch2(ImHashMap234<K, V> left, Entry entry, ImHashMap234<K, V> newRight) =>
                 newRight is RightyBranch3 ? new Branch2(left, entry, newRight) : new RightyBranch3(left, entry, newRight);
 
             /// <inheritdoc />
@@ -990,13 +989,8 @@ namespace ImTools.Experimental
                     if (newRight == right)
                         return this;
 
-                    if (right is RightyBranch3 && newRight is RightyBranch3 == false)
+                    if (right.GetType() != typeof(Branch2) && newRight.GetType() == typeof(Branch2))
                         return new Branch2(new Branch2(Left, MidEntry, rb.Left), rb.MidEntry, newRight);
-                    if (right is LeftyBranch3 && newRight is LeftyBranch3 == false)
-                        return new Branch2(new Branch2(Left, MidEntry, rb.Left), rb.MidEntry, newRight);
-                    if (right is Leaf5Plus1Plus1 && newRight is Branch2)
-                        return new Branch2(new Branch2(Left, MidEntry, rb.Left), rb.MidEntry, newRight);
-
                     return new RightyBranch3(Left, MidEntry, new Branch2(rb.Left, rb.MidEntry, newRight));
                 }
 
@@ -1007,13 +1001,8 @@ namespace ImTools.Experimental
                     if (newLeft == left)
                         return this;
 
-                    if (left is RightyBranch3 && newLeft is RightyBranch3 == false)
+                    if (left.GetType() != typeof(Branch2) && newLeft.GetType() == typeof(Branch2))
                         return new Branch2(newLeft, MidEntry, rb);
-                    if (left is LeftyBranch3 && newLeft is LeftyBranch3 == false)
-                        return new Branch2(newLeft, MidEntry, rb);
-                    if (left is Leaf5Plus1Plus1 && newLeft is Branch2)
-                        return new Branch2(newLeft, MidEntry, rb);
-
                     return new RightyBranch3(newLeft, MidEntry, rb);
                 }
 
@@ -1024,17 +1013,11 @@ namespace ImTools.Experimental
                     if (newMiddle == middle)
                         return this;
 
-                    if (middle is RightyBranch3 && newMiddle is RightyBranch3 == false && newMiddle is Branch2 mb2)
-                        return new Branch2(new Branch2(Left, MidEntry, mb2.Left), 
-                            mb2.MidEntry,  new Branch2(mb2.Right, rb.MidEntry, rb.Right));
-
-                    if (middle is LeftyBranch3 && newMiddle is LeftyBranch3 == false && newMiddle is Branch2 mb2_)
-                        return new Branch2(new Branch2(Left, MidEntry, mb2_.Left), 
-                            mb2_.MidEntry,  new Branch2(mb2_.Right, rb.MidEntry, rb.Right));
-
-                    if (middle is Leaf5Plus1Plus1 && newMiddle is Branch2 mb2__)
-                        return new Branch2(new Branch2(Left, MidEntry, mb2__.Left), 
-                            mb2__.MidEntry,  new Branch2(mb2__.Right, rb.MidEntry, rb.Right));
+                    if (middle.GetType() != typeof(Branch2) && newMiddle.GetType() == typeof(Branch2))
+                    {
+                        var nmb2 = (Branch2)newMiddle;
+                        return new Branch2(new Branch2(Left, MidEntry, nmb2.Left), nmb2.MidEntry, new Branch2(nmb2.Right, rb.MidEntry, rb.Right));
+                    }
 
                     return new RightyBranch3(Left, MidEntry, new Branch2(newMiddle, rb.MidEntry, rb.Right));
                 }
@@ -1059,10 +1042,10 @@ namespace ImTools.Experimental
             public override string ToString() => "{LB3: {"  + base.ToString() + "}";
 #endif
 
-            internal override Branch2 LeftToBranch(ImHashMap234<K, V> newLeft, Entry entry, ImHashMap234<K, V> right) =>
+            internal override Branch2 LeftToBranch2(ImHashMap234<K, V> newLeft, Entry entry, ImHashMap234<K, V> right) =>
                 newLeft is LeftyBranch3? new Branch2(newLeft, entry, right) : new LeftyBranch3(newLeft, entry, right);
 
-            internal override Branch2 RightToBranch(ImHashMap234<K, V> left, Entry entry, ImHashMap234<K, V> newRight) =>
+            internal override Branch2 RightToBranch2(ImHashMap234<K, V> left, Entry entry, ImHashMap234<K, V> newRight) =>
                 newRight is LeftyBranch3 ? new Branch2(left, entry, newRight) : new RightyBranch3(left, entry, newRight);
 
             /// <inheritdoc />
@@ -1079,15 +1062,9 @@ namespace ImTools.Experimental
                     if (newRight == right)
                         return this;
 
-                    if (right is LeftyBranch3 && newRight is LeftyBranch3 == false)
+                    if (right.GetType() != typeof(Branch2) && newRight.GetType() == typeof(Branch2))
                         return new Branch2(lb, MidEntry, newRight);
 
-                    if (right is RightyBranch3 && newRight is RightyBranch3 == false)
-                        return new Branch2(lb, MidEntry, newRight);
-
-                    if (right is Leaf5Plus1Plus1 && newRight is Branch2)
-                        return new Branch2(lb, MidEntry, newRight);
-                    
                     return new LeftyBranch3(lb, MidEntry, newRight);
                 }
 
@@ -1098,13 +1075,7 @@ namespace ImTools.Experimental
                     if (newLeft == left)
                         return this;
 
-                    if (left is LeftyBranch3 && newLeft is LeftyBranch3 == false)
-                        return new Branch2(newLeft, lb.MidEntry, new Branch2(lb.Right, MidEntry, Right));
-
-                    if (left is RightyBranch3 && newLeft is RightyBranch3 == false)
-                        return new Branch2(newLeft, lb.MidEntry, new Branch2(lb.Right, MidEntry, Right));
-
-                    if (left is Leaf5Plus1Plus1 && newLeft is Branch2)
+                    if (left.GetType() != typeof(Branch2) && newLeft.GetType() == typeof(Branch2))
                         return new Branch2(newLeft, lb.MidEntry, new Branch2(lb.Right, MidEntry, Right));
 
                     return new LeftyBranch3(new Branch2(newLeft, lb.MidEntry, lb.Right), MidEntry, Right);
@@ -1117,17 +1088,11 @@ namespace ImTools.Experimental
                     if (newMiddle == middle)
                         return this;
 
-                    if (middle is LeftyBranch3 && newMiddle is LeftyBranch3 == false && newMiddle is Branch2 mb2)
-                        return new Branch2(new Branch2(lb.Left, lb.MidEntry, mb2.Left),
-                            mb2.MidEntry,  new Branch2(mb2.Right, MidEntry, Right));
-
-                    if (middle is RightyBranch3 && newMiddle is RightyBranch3 == false && newMiddle is Branch2 mb2_)
-                        return new Branch2(new Branch2(lb.Left, lb.MidEntry, mb2_.Left),
-                            mb2_.MidEntry,  new Branch2(mb2_.Right, MidEntry, Right));
-
-                    if (middle is Leaf5Plus1Plus1 && newMiddle is Branch2 mb2__)
-                        return new Branch2(new Branch2(lb.Left, lb.MidEntry, mb2__.Left),
-                            mb2__.MidEntry,  new Branch2(mb2__.Right, MidEntry, Right));
+                    if (middle.GetType() != typeof(Branch2) && newMiddle.GetType() == typeof(Branch2))
+                    {
+                        var nmb2 = (Branch2)newMiddle;
+                        return new Branch2(new Branch2(lb.Left, lb.MidEntry, nmb2.Left), nmb2.MidEntry, new Branch2(nmb2.Right, MidEntry, Right));
+                    }
 
                     return new LeftyBranch3(new Branch2(lb.Left, lb.MidEntry, newMiddle), MidEntry, Right);
                 }
