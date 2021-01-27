@@ -594,7 +594,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 |            V3_ImHashMap_234Tree_AddOrUpdate |  1000 | 256,792.6 ns | 3,382.32 ns |  3,163.82 ns | 256,375.0 ns |  0.72 |    0.04 |  82.0313 |  1.9531 |     - |  344320 B |
 
 */
-            [Params(50, 100, 1000)]
+            [Params(1, 5, 10, 100, 1000)]
             public int Count;
 
             [Benchmark(Baseline = true)]
