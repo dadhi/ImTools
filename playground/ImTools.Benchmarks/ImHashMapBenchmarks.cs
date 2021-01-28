@@ -594,7 +594,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 |            V3_ImHashMap_234Tree_AddOrUpdate |  1000 | 256,792.6 ns | 3,382.32 ns |  3,163.82 ns | 256,375.0 ns |  0.72 |    0.04 |  82.0313 |  1.9531 |     - |  344320 B |
 
 */
-            [Params(1, 5, 10, 100, 1000)]
+            [Params(100, 1000)]
             public int Count;
 
             [Benchmark(Baseline = true)]
@@ -620,7 +620,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImTools.Experimental.ImMap<ImMap.KValue<Type>> V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate()
             {
                 var map = ImTools.Experimental.ImMap<ImMap.KValue<Type>>.Empty;
@@ -1261,8 +1261,27 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 |                              |       |           |           |           |       |         |       |       |       |           |
 |     V2_ImHashMap_AVL_TryFind |  1000 | 16.883 ns | 0.2438 ns | 0.2280 ns |  1.00 |    0.00 |     - |     - |     - |         - |
 | V3_ImHashMap_234Tree_TryFind |  1000 | 15.516 ns | 0.3248 ns | 0.4554 ns |  0.93 |    0.04 |     - |     - |     - |         - |
+
+### RTM
+
+|                       Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|----------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+|     V2_ImHashMap_AVL_TryFind |     1 |  5.219 ns | 0.1409 ns | 0.1318 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V3_ImHashMap_234Tree_TryFind |     1 |  5.401 ns | 0.0929 ns | 0.0823 ns |  1.04 |    0.03 |     - |     - |     - |         - |
+|                              |       |           |           |           |       |         |       |       |       |           |
+|     V2_ImHashMap_AVL_TryFind |     5 |  6.764 ns | 0.2119 ns | 0.1983 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V3_ImHashMap_234Tree_TryFind |     5 |  6.300 ns | 0.1983 ns | 0.1758 ns |  0.93 |    0.05 |     - |     - |     - |         - |
+|                              |       |           |           |           |       |         |       |       |       |           |
+|     V2_ImHashMap_AVL_TryFind |    10 |  9.690 ns | 0.2190 ns | 0.1942 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V3_ImHashMap_234Tree_TryFind |    10 |  7.740 ns | 0.2124 ns | 0.1987 ns |  0.80 |    0.03 |     - |     - |     - |         - |
+|                              |       |           |           |           |       |         |       |       |       |           |
+|     V2_ImHashMap_AVL_TryFind |   100 | 14.06 ns  | 0.349 ns  | 0.629 ns  |  1.00 |    0.00 |     - |     - |     - |         - |
+| V3_ImHashMap_234Tree_TryFind |   100 | 15.24 ns  | 0.389 ns  | 0.570 ns  |  1.09 |    0.05 |     - |     - |     - |         - |
+|                              |       |           |           |           |       |         |       |       |       |           |
+|     V2_ImHashMap_AVL_TryFind |  1000 | 19.45 ns  | 0.464 ns  | 0.553 ns  |  1.00 |    0.00 |     - |     - |     - |         - |
+| V3_ImHashMap_234Tree_TryFind |  1000 | 19.03 ns  | 0.432 ns  | 0.383 ns  |  0.97 |    0.03 |     - |     - |     - |         - |
 */
-            [Params(1, 5, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
+            [Params(100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             public int Count;
 
             [GlobalSetup]
@@ -1466,6 +1485,15 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 _map234.TryFindReferenceEqual(LookupKey.GetHashCode(), LookupKey, out var result);
                 return result;
             }
+
+            // [Benchmark]
+            // public string V3_ImHashMap_234Tree_TryFind_SIMPLIFIED()
+            // {
+            //     var entry = _map234.GetEntryOrDefault(LookupKey.GetHashCode());
+            //     if (entry == null)
+            //         return null;
+            //     return ((ImTools.Experimental.ImHashMap234<Type, string>.KeyValueEntry)entry).Value;
+            // }
 
             // [Benchmark]
             public string V3_PartitionedHashMap_234Tree_TryFind()
@@ -1692,7 +1720,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 | V3_ImHashMap_234Tree_EnumerateAndToArray |   100 | 3,618.9 ns | 70.70 ns | 96.77 ns | 3,614.9 ns |  0.93 |    0.03 | 0.5722 |     - |     - |    2408 B |
 
 */
-            [Params(5, 10, 100)]//, 5, 10, 100, 1_000)]
+            [Params(1, 5, 10, 100, 1_000)]
             public int Count;
 
             [GlobalSetup]
