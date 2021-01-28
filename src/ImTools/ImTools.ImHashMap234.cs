@@ -7,22 +7,23 @@ using System.Threading;
 
 namespace ImTools.Experimental
 {
-    /// <summary>The base class for the tree leafs and branches, also defines the Empty tree</summary>
+    /// <summary>The base and the holder class for the map tree leafs and branches, also defines the Empty tree.
+    /// The map implementation is based on the "modified" 2-3-4 tree.</summary>
     public class ImHashMap234<K, V>
     {
-        /// <summary>Empty tree to start with.</summary>
+        /// <summary>Empty map to start with. Exists as a single instance.</summary>
         public static readonly ImHashMap234<K, V> Empty = new ImHashMap234<K, V>();
 
-        /// <summary>Hide the constructor to prevent the multiple Empty trees creation</summary>
-        protected ImHashMap234() { } // todo: @perf - does it hurt the perf or the call to the empty constructor is erased?
+        /// <summary>Hide the base constructor to prevent the multiple Empty trees creation</summary>
+        protected ImHashMap234() { } // todo: @perf does the call to empty constructor hurt the perf?
 
-        /// Pretty-prints
+        /// <summary>Prints the map tree in JSON-ish format in release mode and enumerates the keys in DEBUG.</summary>
         public override string ToString() 
         {
 #if DEBUG
-            // for debug purposes we just output the first N hashes in array
+            // for the debug purposes we just output the first N keys in array
             const int outputCount = 101;
-            var itemsInHashOrder = this.Enumerate().Take(outputCount).Select(x => x.Hash).ToList();
+            var itemsInHashOrder = this.Enumerate().Take(outputCount).Select(x => x.Key).ToList();
             return $"new int[{(itemsInHashOrder.Count >= 100 ? ">=" : "") + itemsInHashOrder.Count}] {{" + string.Join(", ", itemsInHashOrder) + "}";
 #else
             return "{}";
@@ -32,34 +33,35 @@ namespace ImTools.Experimental
         /// <summary>Lookup for the entry, if not found returns `null`</summary>
         public virtual Entry GetEntryOrDefault(int hash) => null;
 
-        /// <summary>Update behavior</summary>
+        /// <summary>Defines the handler for update entry behavior</summary>
         public delegate Entry Updater(Entry oldEntry, KeyValueEntry newEntry);
         /// <summary>Updates the entry</summary>
-        public static readonly Updater UpdateHandler = (x, e) => x.Update(e);
+        public static readonly Updater DoUpdate = (x, e) => x.Update(e);
         /// <summary>Keeps or updates the entry</summary>
-        public static readonly Updater KeepOrUpdateHandler = (x, e) => x.KeepOrUpdate(e);
+        public static readonly Updater DoKeepOrUpdate = (x, e) => x.KeepOrUpdate(e);
 
-        /// <summary>Produces the new or updated map with the new entry</summary>
+        /// <summary>Returns the new, updated or the same map depending on the `updater` passed</summary>
         public virtual ImHashMap234<K, V> AddOrUpdateEntry(int hash, KeyValueEntry entry, Updater update) => entry;
 
-        /// <summary>Returns the map without the entry with the specified hash and key if it is found in the map</summary>
+        /// <summary>Returns the map without the entry with the specified hash and key, or the same map if not found.</summary>
         public virtual ImHashMap234<K, V> RemoveEntry(int hash, K key) => this;
 
-        /// <summary>The base entry for the Value and for the ConflictingValues entries, contains the Hash and Key</summary>
+        /// <summary>The base map entry for holding the hash and payload</summary>
         public abstract class Entry : ImHashMap234<K, V>
         {
             /// <summary>The Hash</summary>
             public readonly int Hash;
 
-            /// <summary>Constructs the entry with the default Key</summary>
-            protected Entry(int hash) => Hash = hash; // todo: @perf think of the way to remove the base Entry constructor call - move to the inheriting classes, e.g. ValueEntry
+            /// <summary>Constructs the entry with the hash</summary>
+            protected Entry(int hash) => Hash = hash;
 
             /// <inheritdoc />
             public sealed override Entry GetEntryOrDefault(int hash) => hash == Hash ? this : null;
 
             internal abstract Entry Update(KeyValueEntry entry);
             internal abstract Entry KeepOrUpdate(KeyValueEntry entry);
-            /// <summary>returns null if entry is removed completely or modified entry, or the original entry if nothing is removed </summary>
+
+            /// Returns null if entry is removed completely or modified entry, or the original entry if nothing is removed
             internal abstract Entry TryRemove(K key);
 
             /// <inheritdoc />
@@ -73,22 +75,24 @@ namespace ImTools.Experimental
                 hash == Hash ? TryRemove(key) ?? Empty : this;
         }
 
+        /// Tombstone for the removed entry. It still keeps the hash to preserve the tree operations.
         internal sealed class RemovedEntry : Entry 
         {
             public RemovedEntry(int hash) : base(hash) {}
             internal override Entry Update(KeyValueEntry entry) => entry;
             internal override Entry KeepOrUpdate(KeyValueEntry entry) => entry;
             internal override Entry TryRemove(K key) => this;
-
             public override string ToString() => "{RemovedE: {H: " + Hash + "}}";
         }
 
-        /// <summary>Entry containing the Value</summary>
+        // todo: @api thinks how to design the ImHashMap<int, T> where the key and the hash are the same. Think to have the base ValueEntry without the Key and the KeyValueEntry implementation. 
+        /// <summary>Entry containing the Key and Value in addition to the Hash</summary>
         public sealed class KeyValueEntry : Entry
         {
-            /// <summary>The Key</summary>
+            /// <summary>The key</summary>
             public readonly K Key;
-            /// <summary>The value. May be modified if you need the Ref{V} semantics</summary>
+            /// <summary>The value. Maybe modified if you need the Ref{Value} semantics. 
+            /// You may add the entry with the default Value to the map, and calculate and set it later (e.g. using the CAS).</summary>
             public V Value;
             /// <summary>Constructs the entry with the default value</summary>
             public KeyValueEntry(int hash, K key) : base(hash) => Key = key;
@@ -114,14 +118,13 @@ namespace ImTools.Experimental
                 Key.Equals(key) ? null : this;
         }
 
-        /// <summary>Entry containing the Array of conflicting Value entries.</summary>
+        /// <summary>The composite containing the list of entries with the same conflicting Hash.</summary>
         public sealed class HashConflictKeyValuesEntry : Entry
         {
             /// <summary>The 2 and more conflicts.</summary>
             public KeyValueEntry[] Conflicts;
 
-            /// <summary>Constructs the entry with the key and value</summary>
-            public HashConflictKeyValuesEntry(int hash, params KeyValueEntry[] conflicts) : base(hash) => Conflicts = conflicts;
+            internal HashConflictKeyValuesEntry(int hash, params KeyValueEntry[] conflicts) : base(hash) => Conflicts = conflicts;
 
 #if !DEBUG
             /// <inheritdoc />
@@ -204,8 +207,7 @@ namespace ImTools.Experimental
             }
         }
 
-        // todo: @perf we may probably split the class to Leaf2NoE1, Leaf2NoE2, Leaf2NoE1E2 and simplify the code - remove the conditions
-        /// <summary>Leaf with 2 entries. Note: the entries may be null for the removed entries</summary>
+        /// <summary>Leaf with 2 hash-ordered entries. Important: the both or either of entries may be null for the removed entries</summary>
         public sealed class Leaf2 : ImHashMap234<K, V>
         {
             /// <summary>Left entry</summary>
@@ -266,7 +268,7 @@ namespace ImTools.Experimental
             }
         }
 
-        /// <summary>Leaf with 3 entries</summary>
+        /// <summary>The leaf containing the Leaf2 plus the newest added entry.</summary>
         public sealed class Leaf2Plus1 : ImHashMap234<K, V>
         {
             /// <summary>Plus entry</summary>
@@ -328,12 +330,12 @@ namespace ImTools.Experimental
             }
         }
 
-        /// <summary>Leaf with 3 + 1 entries</summary>
+        /// <summary>Leaf with the Leaf2 plus added entry, plus added entry</summary>
         public sealed class Leaf2Plus1Plus1 : ImHashMap234<K, V>
         {
-            /// <summary>Plus entry</summary>
+            /// <summary>New entry</summary>
             public readonly Entry Plus;
-            /// <summary>Dangling leaf3</summary>
+            /// <summary>The existing leaf to add entry to</summary>
             public readonly Leaf2Plus1 L;
 
             /// <summary>Constructs the leaf</summary>
@@ -454,16 +456,16 @@ namespace ImTools.Experimental
             }
         }
 
-        /// <summary>Leaf with 5 entries</summary>
+        /// <summary>Leaf with 5 hash-ordered entries</summary>
         public sealed class Leaf5 : ImHashMap234<K, V>
         {
             /// <summary>Left entry</summary>
             public readonly Entry Entry0;
-            /// <summary>Middle Left entry</summary>
+            /// <summary>Middle-left entry</summary>
             public readonly Entry Entry1;
             /// <summary>Middle entry</summary>
             public readonly Entry Entry2;
-            /// <summary>Middle Right entry</summary>
+            /// <summary>Middle-right entry</summary>
             public readonly Entry Entry3;
             /// <summary>Right entry</summary>
             public readonly Entry Entry4;
@@ -475,11 +477,7 @@ namespace ImTools.Experimental
                 Debug.Assert(e1.Hash < e2.Hash, "e1 < e2");
                 Debug.Assert(e2.Hash < e3.Hash, "e2 < e3");
                 Debug.Assert(e3.Hash < e4.Hash, "e3 < e4");
-                Entry0 = e0;
-                Entry1 = e1;
-                Entry2 = e2;
-                Entry3 = e3;
-                Entry4 = e4;
+                Entry0 = e0; Entry1 = e1; Entry2 = e2; Entry3 = e3; Entry4 = e4;
             }
 
 #if !DEBUG
@@ -528,12 +526,12 @@ namespace ImTools.Experimental
             }
         }
 
-        /// <summary>Leaf with 5 + 1 entries</summary>
+        /// <summary>Leaf with 5 existing ordered entries plus 1 newly added entry.</summary>
         public sealed class Leaf5Plus1 : ImHashMap234<K, V>
         {
-            /// <summary>Plus entry</summary>
+            /// <summary>New entry</summary>
             public readonly Entry Plus;
-            /// <summary>Dangling Leaf5</summary>
+            /// <summary>Dangling leaf</summary>
             public readonly Leaf5 L;
 
             /// <summary>Constructs the leaf</summary>
@@ -599,7 +597,6 @@ namespace ImTools.Experimental
                 var l = L;
                 Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4;
 
-                // todo: @simplify this thing by sorting the entries
                 if (hash == e0.Hash)
                     return (e0 = e0.TryRemove(key)) == l.Entry0 ? this : e0 != null ? (ImHashMap234<K, V>)new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3, e4)) :
                     ph < e1.Hash ? new Leaf5(p, e1, e2, e3, e4) :
@@ -644,12 +641,12 @@ namespace ImTools.Experimental
             }
         }
 
-        /// <summary>Leaf with 5 + 2 entries</summary>
+        /// <summary>Leaf with 5 existing ordered entries plus 1 newly added, plus 1 newly added.</summary>
         public sealed class Leaf5Plus1Plus1 : ImHashMap234<K, V>
         {
-            /// <summary>Plus entry</summary>
+            /// <summary>New entry</summary>
             public readonly Entry Plus;
-            /// <summary>Dangling Leaf5</summary>
+            /// <summary>Dangling leaf</summary>
             public readonly Leaf5Plus1 L;
 
             /// <summary>Constructs the leaf</summary>
@@ -860,7 +857,7 @@ namespace ImTools.Experimental
             }
         }
 
-        /// <summary>Branch of 2 leafs or branches</summary>
+        /// <summary>Branch of 2 leafs or branches with entry in the middle</summary>
         public class Branch2 : ImHashMap234<K, V>
         {
             /// <summary>Left branch</summary>
@@ -938,7 +935,7 @@ namespace ImTools.Experimental
             }
         }
 
-        /// <summary>Right skewed Branch of 3</summary>
+        /// <summary>Right-skewed Branch of 3 - actually a branch of 2 with the right branch of 2</summary>
         public sealed class RightyBranch3 : Branch2
         {
             /// <summary>Creating the branch</summary>
@@ -1022,7 +1019,7 @@ namespace ImTools.Experimental
             }
         }
 
-        /// <summary>Left skewed Branch of 3</summary>
+        /// <summary>Left-skewed Branch of 3 - actually a branch of 2 with the left branch of 2</summary>
         public sealed class LeftyBranch3 : Branch2
         {
             /// <summary>Creating the branch</summary>
@@ -1479,27 +1476,27 @@ namespace ImTools.Experimental
         /// <summary>Adds or updates the value by key in the map, always returning the modified map.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap234<K, V> AddOrUpdate<K, V>(this ImHashMap234<K, V> map, int hash, K key, V value) =>
-            map.AddOrUpdateEntry(hash, new ImHashMap234<K, V>.KeyValueEntry(hash, key, value), ImHashMap234<K, V>.UpdateHandler);
+            map.AddOrUpdateEntry(hash, new ImHashMap234<K, V>.KeyValueEntry(hash, key, value), ImHashMap234<K, V>.DoUpdate);
 
         /// <summary>Adds or updates the value by key in the map, always returning the modified map.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap234<K, V> AddOrUpdate<K, V>(this ImHashMap234<K, V> map, K key, V value)
         {
             var hash = key.GetHashCode();
-            return map.AddOrUpdateEntry(hash, new ImHashMap234<K, V>.KeyValueEntry(hash, key, value), ImHashMap234<K, V>.UpdateHandler);
+            return map.AddOrUpdateEntry(hash, new ImHashMap234<K, V>.KeyValueEntry(hash, key, value), ImHashMap234<K, V>.DoUpdate);
         }
 
         /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap234<K, V> AddOrKeep<K, V>(this ImHashMap234<K, V> map, int hash, K key, V value) =>
-            map.AddOrUpdateEntry(hash, new ImHashMap234<K, V>.KeyValueEntry(hash, key, value), ImHashMap234<K, V>.KeepOrUpdateHandler);
+            map.AddOrUpdateEntry(hash, new ImHashMap234<K, V>.KeyValueEntry(hash, key, value), ImHashMap234<K, V>.DoKeepOrUpdate);
 
         /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap234<K, V> AddOrKeep<K, V>(this ImHashMap234<K, V> map, K key, V value)
         {
             var hash = key.GetHashCode();
-            return map.AddOrUpdateEntry(hash, new ImHashMap234<K, V>.KeyValueEntry(hash, key, value), ImHashMap234<K, V>.KeepOrUpdateHandler);
+            return map.AddOrUpdateEntry(hash, new ImHashMap234<K, V>.KeyValueEntry(hash, key, value), ImHashMap234<K, V>.DoKeepOrUpdate);
         }
 
         /// <summary>Returns the map without the entry with the specified hash and key if it is found in the map.</summary>
