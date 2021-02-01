@@ -36,9 +36,57 @@ namespace ImTools.Experimental
         /// <summary>Defines the handler for update entry behavior</summary>
         public delegate Entry Updater(Entry oldEntry, KeyValueEntry newEntry);
         /// <summary>Updates the entry</summary>
-        public static readonly Updater DoUpdate = (x, e) => x.Update(e);
+        public static readonly Updater DoUpdate = (x, e) => 
+        {
+            if (x is KeyValueEntry kv)
+                return kv.Key.Equals(e.Key) ? e : (Entry)new HashConflictKeyValuesEntry(e.Hash, kv, e);
+            
+            if (x is HashConflictKeyValuesEntry hkv)
+            {
+                var key = e.Key;
+                var cs = hkv.Conflicts;
+                var n = cs.Length;
+                var i = n - 1;
+                while (i != -1 && !key.Equals(cs[i].Key)) --i;
+
+                var newConflicts = new KeyValueEntry[i != -1 ? n : n + 1];
+                Array.Copy(cs, 0, newConflicts, 0, n);
+                newConflicts[i != -1 ? i : n] = e;
+
+                return new HashConflictKeyValuesEntry(e.Hash, newConflicts);
+            }
+
+            return e;
+        };
+        
         /// <summary>Keeps or updates the entry</summary>
-        public static readonly Updater DoKeepOrUpdate = (x, e) => x.KeepOrUpdate(e);
+        public static readonly Updater DoKeepOrUpdate = (x, e) => 
+        {
+            if (x is KeyValueEntry kv)
+                return kv.Key.Equals(e.Key) ? kv : (Entry)new HashConflictKeyValuesEntry(e.Hash, kv, e);
+
+            if (x is HashConflictKeyValuesEntry hkv)
+            {
+                var key = e.Key;
+                var cs = hkv.Conflicts;
+                var n = cs.Length;
+                var i = n - 1;
+                while (i != -1 && !key.Equals(cs[i].Key)) --i;
+                if (i != -1) // return existing map
+                    return hkv;
+
+                var newConflicts = new KeyValueEntry[n + 1];
+                Array.Copy(cs, 0, newConflicts, 0, n);
+                newConflicts[n] = e;
+
+                return new HashConflictKeyValuesEntry(e.Hash, newConflicts);
+            }
+
+            if (x is RemovedEntry)
+                return e;
+
+            return x;
+        };
 
         /// <summary>Returns the new, updated or the same map depending on the `updater` passed</summary>
         public virtual ImHashMap234<K, V> AddOrUpdateEntry(int hash, KeyValueEntry entry, Updater update) => entry;
@@ -58,9 +106,6 @@ namespace ImTools.Experimental
             /// <inheritdoc />
             public sealed override Entry GetEntryOrDefault(int hash) => hash == Hash ? this : null;
 
-            internal abstract Entry Update(KeyValueEntry entry);
-            internal abstract Entry KeepOrUpdate(KeyValueEntry entry);
-
             /// Returns null if entry is removed completely or modified entry, or the original entry if nothing is removed
             internal abstract Entry TryRemove(KeyValueEntry entry);
 
@@ -79,13 +124,33 @@ namespace ImTools.Experimental
         internal sealed class RemovedEntry : Entry 
         {
             public RemovedEntry(int hash) : base(hash) {}
-            internal override Entry Update(KeyValueEntry entry) => entry;
-            internal override Entry KeepOrUpdate(KeyValueEntry entry) => entry;
             internal override Entry TryRemove(KeyValueEntry entry) => this;
             public override string ToString() => "{RemovedE: {H: " + Hash + "}}";
         }
 
-        // todo: @api thinks how to design the ImHashMap<int, T> where the key and the hash are the same. Think to have the base ValueEntry without the Key and the KeyValueEntry implementation. 
+//         /// <summary>Entry containing the Value in addition to the Hash</summary>
+//         public class ValueEntry : Entry
+//         {
+//             /// <summary>The value. Maybe modified if you need the Ref{Value} semantics. 
+//             /// You may add the entry with the default Value to the map, and calculate and set it later (e.g. using the CAS).</summary>
+//             public V Value;
+//             /// <summary>Constructs the entry with the default value</summary>
+//             public ValueEntry(int hash, K key) : base(hash) {}
+//             /// <summary>Constructs the entry with the key and value</summary>
+//             public ValueEntry(int hash, K key, V value) :  base(hash) => Value = value;
+
+
+// #if !DEBUG
+//             /// <inheritdoc />
+//             public override string ToString() => "{VE: {H: " + Hash + ", V: " + Value + "}}";
+// #endif
+
+//             internal override Entry Update(KeyValueEntry entry) => entry;
+//             internal override Entry KeepOrUpdate(KeyValueEntry entry) => this;
+
+//             internal override Entry TryRemove(KeyValueEntry entry) => entry == this ? null : this;
+//         }
+
         /// <summary>Entry containing the Key and Value in addition to the Hash</summary>
         public sealed class KeyValueEntry : Entry
         {
@@ -105,14 +170,8 @@ namespace ImTools.Experimental
 
 #if !DEBUG
             /// <inheritdoc />
-            public override string ToString() => "{E: {H: " + Hash + ", K: " + Key + ", V: " + Value + "}}";
+            public override string ToString() => "{KVE: {H: " + Hash + ", K: " + Key + ", V: " + Value + "}}";
 #endif
-
-            internal override Entry Update(KeyValueEntry entry) => 
-                Key.Equals(entry.Key) ? entry : (Entry)new HashConflictKeyValuesEntry(Hash, this, entry);
-
-            internal override Entry KeepOrUpdate(KeyValueEntry entry) => 
-                Key.Equals(entry.Key) ? this : (Entry)new HashConflictKeyValuesEntry(Hash, this, entry);
 
             internal override Entry TryRemove(KeyValueEntry entry) =>
                 entry == this ? null : this;
@@ -130,46 +189,12 @@ namespace ImTools.Experimental
             /// <inheritdoc />
             public override string ToString()
             {
-                var sb = new System.Text.StringBuilder("HashConflictingE: [");
+                var sb = new System.Text.StringBuilder("HashConflictingKVE: [");
                 foreach (var x in Conflicts) 
                     sb.Append(x.ToString()).Append(", ");
                 return sb.Append("]").ToString();
             }
 #endif
-
-            internal override Entry Update(KeyValueEntry entry) 
-            {
-                var key = entry.Key;
-
-                var cs = Conflicts;
-                var n = cs.Length;
-                var i = n - 1;
-                while (i != -1 && !key.Equals(cs[i].Key)) --i;
-
-                var newConflicts = new KeyValueEntry[i != -1 ? n : n + 1];
-                Array.Copy(cs, 0, newConflicts, 0, n);
-                newConflicts[i != -1 ? i : n] = entry;
-
-                return new HashConflictKeyValuesEntry(Hash, newConflicts);
-            }
-
-            internal override Entry KeepOrUpdate(KeyValueEntry entry)
-            {
-                var key = entry.Key;
-
-                var cs = Conflicts;
-                var n = cs.Length;
-                var i = n - 1;
-                while (i != -1 && !key.Equals(cs[i].Key)) --i;
-                if (i != -1) // return existing map
-                    return this;
-
-                var newConflicts = new KeyValueEntry[n + 1];
-                Array.Copy(cs, 0, newConflicts, 0, n);
-                newConflicts[n] = entry;
-
-                return new HashConflictKeyValuesEntry(Hash, newConflicts);
-            }
 
             internal override Entry TryRemove(KeyValueEntry entry) 
             {
