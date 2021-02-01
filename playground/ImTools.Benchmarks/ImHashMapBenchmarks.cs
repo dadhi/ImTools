@@ -1499,7 +1499,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             public string V3_PartitionedHashMap_234Tree_TryFind()
             {
                 var hash = LookupKey.GetHashCode();
-                _partMap234[hash & PartitionedHashMap234.PART_HASH_MASK].TryFind(hash, LookupKey, out var result);
+                _partMap234[hash & PartitionedHashMap234.PARTITION_HASH_MASK].TryFind(hash, LookupKey, out var result);
                 return result;
             }
 
