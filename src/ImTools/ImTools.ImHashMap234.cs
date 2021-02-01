@@ -146,19 +146,9 @@ namespace ImTools.Experimental
                 var i = n - 1;
                 while (i != -1 && !key.Equals(cs[i].Key)) --i;
 
-                KeyValueEntry[] newConflicts;
-                if (i != -1) // update the found (existing) conflicted value
-                {
-                    newConflicts = new KeyValueEntry[n];
-                    Array.Copy(cs, 0, newConflicts, 0, n);
-                    newConflicts[i] = entry;
-                }
-                else // add the new conflicting value
-                {
-                    newConflicts = new KeyValueEntry[n + 1];
-                    Array.Copy(cs, 0, newConflicts, 0, n);
-                    newConflicts[n] = entry;
-                }
+                var newConflicts = new KeyValueEntry[i != -1 ? n : n + 1];
+                Array.Copy(cs, 0, newConflicts, 0, n);
+                newConflicts[i != -1 ? i : n] = entry;
 
                 return new HashConflictKeyValuesEntry(Hash, newConflicts);
             }
@@ -171,12 +161,10 @@ namespace ImTools.Experimental
                 var n = cs.Length;
                 var i = n - 1;
                 while (i != -1 && !key.Equals(cs[i].Key)) --i;
-
-                KeyValueEntry[] newConflicts;
                 if (i != -1) // return existing map
                     return this;
 
-                newConflicts = new KeyValueEntry[n + 1];
+                var newConflicts = new KeyValueEntry[n + 1];
                 Array.Copy(cs, 0, newConflicts, 0, n);
                 newConflicts[n] = entry;
 
