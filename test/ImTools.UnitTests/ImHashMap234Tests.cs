@@ -131,6 +131,13 @@ namespace ImTools.Experimental.UnitTests
             m = m.AddOrUpdate(18, "18");
             Assert.AreEqual("18",  m.GetValueOrDefault(18));
             CollectionAssert.AreEquivalent(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18 }, m.Enumerate().Select(x => x.Key));
+        
+            var r = m.Remove(18).Remove(17).Remove(16);
+            CollectionAssert.AreEquivalent(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }, r.Enumerate().Select(x => x.Key));
+            Assert.IsNull(r.GetValueOrDefault(16));
+
+            var rr = r.Remove(16);
+            Assert.AreSame(r, rr);
         }
 
         public class XKey<K> 
