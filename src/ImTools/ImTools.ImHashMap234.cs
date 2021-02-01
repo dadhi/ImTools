@@ -1476,6 +1476,11 @@ namespace ImTools.Experimental
         public static bool TryFind<K, V>(this ImHashMap234<K, V> map, K key, out V value) =>
             map.TryFind(key.GetHashCode(), key, out value);
 
+        /// <summary>Adds or updates the map entry of the passed hash and key based on the `updater`</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap234<K, V> AddOrUpdate<K, V>(this ImHashMap234<K, V> map, int hash, K key, V value, ImHashMap234<K, V>.Updater updater) =>
+            map.AddOrUpdateEntry(hash, new ImHashMap234<K, V>.KeyValueEntry(hash, key, value), updater);
+
         /// <summary>Adds or updates (no mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap234<K, V> AddOrUpdate<K, V>(this ImHashMap234<K, V> map, int hash, K key, V value) =>
@@ -1636,6 +1641,23 @@ namespace ImTools.Experimental
         /// <summary>Updates the ref to the part with the new version and retries if the someone changed the part in between</summary>
         public static void RefAddOrKeepPart<K, V>(ref ImHashMap234<K, V> part, int hash, K key, V value) =>
             Ref.Swap(ref part, hash, key, value, (x, h, k, v) => x.AddOrUpdate(h, k, v));
+
+        /// <summary>Enumerates all the partitions map entries in the hash order.
+        /// `parents` parameter allow to reuse the stack memory used for traversal between multiple enumerates.
+        /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent `Enumerate` calls</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static IEnumerable<ImHashMap234<K, V>.KeyValueEntry> Enumerate<K, V>(this ImHashMap234<K, V>[] parts, ImHashMap234.Stack<ImHashMap234<K, V>> parents = null)
+        {
+            if (parents == null)
+                parents = new ImHashMap234.Stack<ImHashMap234<K, V>>();
+            foreach (var map in parts) 
+            {
+                if (map == ImHashMap234<K, V>.Empty)
+                    continue;
+                foreach (var entry in map.Enumerate(parents))
+                    yield return entry;
+            }
+        }
     }
 
     /// <summary>The base class for the tree leafs and branches, also defines the Empty tree</summary>
