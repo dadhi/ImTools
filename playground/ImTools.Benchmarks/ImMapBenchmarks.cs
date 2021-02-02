@@ -269,9 +269,9 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             }
 
             [Benchmark]
-            public ImTools.Experimental.ImMap234<string> ImMap234_AddOrUpdate()
+            public ImTools.Experimental.ImHashMap234<int, string> ImMap234_AddOrUpdate()
             {
-                var map = ImTools.Experimental.ImMap234<string>.Empty;
+                var map = ImTools.Experimental.ImHashMap234<int, string>.Empty;
 
                 for (var i = 0; i < Count; i++)
                     map = map.AddOrUpdate(i, i.ToString());

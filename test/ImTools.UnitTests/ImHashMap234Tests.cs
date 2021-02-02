@@ -20,7 +20,7 @@ namespace ImTools.Experimental.UnitTests
             m = m.AddOrUpdate(1, "a");
             Assert.AreEqual("a",  m.GetValueOrDefault(1));
             Assert.AreEqual(null, m.GetValueOrDefault(10));
-            CollectionAssert.AreEquivalent(new[] { 1 }, m.Enumerate().Select(x => x.Key));
+            CollectionAssert.AreEquivalent(new[] { 1 }, m.Enumerate().Select(x => x.Hash));
 
             Assert.AreSame(m, m.AddOrKeep(1, "aa"));
 
@@ -31,7 +31,7 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreEqual("b",  m.GetValueOrDefault(2));
             Assert.AreEqual("a",  m.GetValueOrDefault(1));
             Assert.AreEqual(null, m.GetValueOrDefault(10));
-            CollectionAssert.AreEquivalent(new[] { 1, 2 }, m.Enumerate().Select(x => x.Key));
+            CollectionAssert.AreEquivalent(new[] { 1, 2 }, m.Enumerate().Select(x => x.Hash));
 
             Assert.AreSame(m, m.AddOrKeep(1, "aa").AddOrKeep(2, "bb"));
             Assert.AreSame(m, m.Remove(0));
@@ -43,7 +43,7 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreEqual("b",  m.GetValueOrDefault(2));
             Assert.AreEqual("a",  m.GetValueOrDefault(1));
             Assert.AreEqual(null, m.GetValueOrDefault(10));
-            CollectionAssert.AreEquivalent(new[] { 1, 2, 3 }, m.Enumerate().Select(x => x.Key));
+            CollectionAssert.AreEquivalent(new[] { 1, 2, 3 }, m.Enumerate().Select(x => x.Hash));
 
             Assert.AreSame(m, m.AddOrKeep(3, "aa").AddOrKeep(2, "bb").AddOrKeep(1, "cc"));
             Assert.AreSame(m, m.Remove(0));
@@ -57,7 +57,7 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreEqual("a",  m.GetValueOrDefault(1));
             Assert.AreEqual("d",  m.GetValueOrDefault(4));
             Assert.AreEqual(null, m.GetValueOrDefault(10));
-            CollectionAssert.AreEquivalent(new[] { 1, 2, 3, 4 }, m.Enumerate().Select(x => x.Key));
+            CollectionAssert.AreEquivalent(new[] { 1, 2, 3, 4 }, m.Enumerate().Select(x => x.Hash));
 
             Assert.AreSame(m, m.AddOrKeep(3, "aa").AddOrKeep(2, "bb").AddOrKeep(1, "cc"));
             Assert.AreSame(m, m.Remove(0));
@@ -69,7 +69,7 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreEqual("d",  m.GetValueOrDefault(4));
             Assert.AreEqual("e",  m.GetValueOrDefault(5));
             Assert.AreEqual(null, m.GetValueOrDefault(10));
-            CollectionAssert.AreEquivalent(new[] { 1, 2, 3, 4, 5 }, m.Enumerate().Select(x => x.Key));
+            CollectionAssert.AreEquivalent(new[] { 1, 2, 3, 4, 5 }, m.Enumerate().Select(x => x.Hash));
 
             Assert.AreSame(m, m.AddOrKeep(3, "aa").AddOrKeep(2, "bb").AddOrKeep(1, "cc"));
             Assert.AreSame(m, m.Remove(0));
@@ -83,7 +83,7 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreEqual("a",  m.GetValueOrDefault(1));
             Assert.AreEqual(null, m.GetValueOrDefault(10));
             Assert.AreSame(m, m.AddOrKeep(3, "aa").AddOrKeep(2, "bb").AddOrKeep(1, "cc"));
-            CollectionAssert.AreEquivalent(new[] { 1, 2, 3, 4, 5, 6 }, m.Enumerate().Select(x => x.Key));
+            CollectionAssert.AreEquivalent(new[] { 1, 2, 3, 4, 5, 6 }, m.Enumerate().Select(x => x.Hash));
 
             m = m.AddOrUpdate(7, "7");
             Assert.AreEqual("7",  m.GetValueOrDefault(7));
@@ -91,7 +91,7 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreEqual("8",  m.GetValueOrDefault(8));
             m = m.AddOrUpdate(9, "9");
             Assert.AreEqual("9",  m.GetValueOrDefault(9));
-            CollectionAssert.AreEquivalent(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 }, m.Enumerate().Select(x => x.Key));
+            CollectionAssert.AreEquivalent(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 }, m.Enumerate().Select(x => x.Hash));
 
 
             m = m.AddOrUpdate(10, "10");
@@ -107,7 +107,7 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreEqual("a",  m.GetValueOrDefault(1));
             Assert.AreEqual(null, m.GetValueOrDefault(11));
             Assert.AreSame(m, m.AddOrKeep(8, "8!").AddOrKeep(5, "5!").AddOrKeep(3, "aa").AddOrKeep(2, "bb").AddOrKeep(1, "cc"));
-            CollectionAssert.AreEquivalent(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, m.Enumerate().Select(x => x.Key));
+            CollectionAssert.AreEquivalent(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, m.Enumerate().Select(x => x.Hash));
 
             m = m.AddOrUpdate(11, "11");
             m = m.AddOrUpdate(12, "12");
@@ -115,7 +115,7 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreEqual("11",  m.GetValueOrDefault(11));
             Assert.AreEqual("12",  m.GetValueOrDefault(12));
             Assert.AreEqual("13",  m.GetValueOrDefault(13));
-            CollectionAssert.AreEquivalent(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 }, m.Enumerate().Select(x => x.Key));
+            CollectionAssert.AreEquivalent(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 }, m.Enumerate().Select(x => x.Hash));
 
             m = m.AddOrUpdate(14, "14");
             Assert.AreEqual("14",  m.GetValueOrDefault(14));
@@ -126,14 +126,14 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreEqual("15",  m.GetValueOrDefault(15));
             Assert.AreEqual("16",  m.GetValueOrDefault(16));
             Assert.AreEqual("17",  m.GetValueOrDefault(17));
-            CollectionAssert.AreEquivalent(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 }, m.Enumerate().Select(x => x.Key));
+            CollectionAssert.AreEquivalent(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 }, m.Enumerate().Select(x => x.Hash));
 
             m = m.AddOrUpdate(18, "18");
             Assert.AreEqual("18",  m.GetValueOrDefault(18));
-            CollectionAssert.AreEquivalent(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18 }, m.Enumerate().Select(x => x.Key));
+            CollectionAssert.AreEquivalent(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18 }, m.Enumerate().Select(x => x.Hash));
         
             var r = m.Remove(18).Remove(17).Remove(16);
-            CollectionAssert.AreEquivalent(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }, r.Enumerate().Select(x => x.Key));
+            CollectionAssert.AreEquivalent(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }, r.Enumerate().Select(x => x.Hash));
             Assert.IsNull(r.GetValueOrDefault(16));
 
             var rr = r.Remove(16);
@@ -333,7 +333,7 @@ namespace ImTools.Experimental.UnitTests
             foreach (var i in uniqueItems)
                 m = m.AddOrUpdate(i, i);
 
-            CollectionAssert.AreEqual(uniqueItems.OrderBy(x => x), m.Enumerate().Select(x => x.Key));
+            CollectionAssert.AreEqual(uniqueItems.OrderBy(x => x), m.Enumerate().Select(x => x.Hash));
         }
 
         [Test]
@@ -346,7 +346,7 @@ namespace ImTools.Experimental.UnitTests
             foreach (var i in uniqueItems)
                 m = m.AddOrUpdate(i, i);
 
-            CollectionAssert.AreEqual(uniqueItems.OrderBy(x => x), m.Enumerate().ToArray().Select(x => x.Key));
+            CollectionAssert.AreEqual(uniqueItems.OrderBy(x => x), m.Enumerate().ToArray().Select(x => x.Hash));
         }
 
         [Test]
@@ -358,7 +358,7 @@ namespace ImTools.Experimental.UnitTests
             foreach (var i in uniqueItems)
                 m = m.AddOrUpdate(i, i);
 
-            CollectionAssert.AreEqual(uniqueItems.OrderBy(x => x), m.Enumerate().ToArray().Select(x => x.Key));
+            CollectionAssert.AreEqual(uniqueItems.OrderBy(x => x), m.Enumerate().ToArray().Select(x => x.Hash));
         }
 
         [Test]
@@ -396,7 +396,7 @@ namespace ImTools.Experimental.UnitTests
 
             CollectionAssert.AreEqual(
                 new[] { 8, 9, 10, 11, 12, 13, 14, 15, 20, 25, 26, 30, 35, 36, 40, 45, 46, 50, 55, 56 }, 
-                m.Enumerate().ToArray().Select(x => x.Key));
+                m.Enumerate().ToArray().Select(x => x.Hash));
         }
 
         [Test]
@@ -446,11 +446,11 @@ namespace ImTools.Experimental.UnitTests
 
                     var m2 = k1 == k2 ? m.AddOrUpdate(k2, v2) : m.AddOrUpdate(k2, v2).AddOrUpdate(k1, v1);
                     
-                    var e1 = m1.Enumerate().OrderBy(i => i.Key);
+                    var e1 = m1.Enumerate().OrderBy(i => i.Hash);
                     
-                    var e2 = m2.Enumerate().OrderBy(i => i.Key);
+                    var e2 = m2.Enumerate().OrderBy(i => i.Hash);
 
-                    CollectionAssert.AreEqual(e1.Select(x => x.Key), e2.Select(x => x.Key));
+                    CollectionAssert.AreEqual(e1.Select(x => x.Hash), e2.Select(x => x.Hash));
                 }, 
                 size: 5000);
         }
@@ -468,11 +468,11 @@ namespace ImTools.Experimental.UnitTests
 
                     var m2 = k1 == k2 ? m.AddOrUpdate(k2, v2) : m.AddOrUpdate(k2, v2).AddOrUpdate(k1, v1);
                     
-                    var e1 = m1.Enumerate().OrderBy(i => i.Key);
+                    var e1 = m1.Enumerate().OrderBy(i => i.Hash);
                     
-                    var e2 = m2.Enumerate().OrderBy(i => i.Key);
+                    var e2 = m2.Enumerate().OrderBy(i => i.Hash);
 
-                    CollectionAssert.AreEqual(e1.Select(x => x.Key), e2.Select(x => x.Key));
+                    CollectionAssert.AreEqual(e1.Select(x => x.Hash), e2.Select(x => x.Hash));
                 }, 
                 size: 100, seed: "000027FFpth8");
         }
@@ -496,10 +496,10 @@ namespace ImTools.Experimental.UnitTests
             m2 = m2.AddOrUpdate(97319, 43);
             m2 = m2.AddOrUpdate(58955, 42);
 
-            var e1 = m1.Enumerate().OrderBy(i => i.Key);
-            var e2 = m2.Enumerate().OrderBy(i => i.Key);
+            var e1 = m1.Enumerate().OrderBy(i => i.Hash);
+            var e2 = m2.Enumerate().OrderBy(i => i.Hash);
 
-            CollectionAssert.AreEqual(e1.Select(x => x.Key), e2.Select(x => x.Key));
+            CollectionAssert.AreEqual(e1.Select(x => x.Hash), e2.Select(x => x.Hash));
         }
 
         [Test]
@@ -521,8 +521,8 @@ namespace ImTools.Experimental.UnitTests
             m2 = m2.AddOrUpdate(83178, 43);
             m2 = m2.AddOrUpdate(35206, 42);
 
-            var e1 = m1.Enumerate().OrderBy(i => i.Key).Select(x => x.Key).ToArray();
-            var e2 = m2.Enumerate().OrderBy(i => i.Key).Select(x => x.Key).ToArray();
+            var e1 = m1.Enumerate().OrderBy(i => i.Hash).Select(x => x.Hash).ToArray();
+            var e2 = m2.Enumerate().OrderBy(i => i.Hash).Select(x => x.Hash).ToArray();
 
             CollectionAssert.AreEqual(e1, e2);
         }
@@ -546,8 +546,8 @@ namespace ImTools.Experimental.UnitTests
             m2 = m2.AddOrUpdate(58955, 43);
             m2 = m2.AddOrUpdate(97319, 42);
 
-            var e1 = m1.Enumerate().ToArray().OrderBy(i => i.Key).Select(x => x.Key).ToArray();
-            var e2 = m2.Enumerate().ToArray().OrderBy(i => i.Key).Select(x => x.Key).ToArray();
+            var e1 = m1.Enumerate().ToArray().OrderBy(i => i.Hash).Select(x => x.Hash).ToArray();
+            var e2 = m2.Enumerate().ToArray().OrderBy(i => i.Hash).Select(x => x.Hash).ToArray();
 
             CollectionAssert.AreEqual(e1, e2);
         }
@@ -563,12 +563,12 @@ namespace ImTools.Experimental.UnitTests
                 {
                     var dic1 = new Dictionary<int, int>();
                     foreach (var entry in t.V0.Enumerate()) 
-                        dic1.Add(entry.Key, entry.Value);
+                        dic1.Add(entry.Hash, entry.Value);
 
                     dic1[t.V1] = t.V2;
                     var dic2 = new Dictionary<int, int>();
                     foreach (var entry in t.V0.AddOrUpdate(t.V1, t.V2).Enumerate())
-                        dic2.Add(entry.Key, entry.Value);
+                        dic2.Add(entry.Hash, entry.Value);
                     CollectionAssert.AreEqual(dic1, dic2);
                 }
                 , size: 1000
