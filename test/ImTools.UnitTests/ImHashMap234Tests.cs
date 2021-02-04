@@ -323,6 +323,19 @@ namespace ImTools.Experimental.UnitTests
         }
 
         [Test]
+        public void AddOrUpdate_problematic_shrinked_set_case4()
+        {
+            var items = new[] { 78290, 97898, 23194, 12403, 27002, 78600, 92105, 76902, 90802, 84883, 78290, 18374 };
+
+            var m = ImHashMap234<int, int>.Empty;
+            foreach (var i in items)
+                m = m.AddOrUpdate(i, i);
+
+            foreach (var i in items)
+                Assert.AreEqual(i, m.GetValueOrDefault(i));
+        }
+
+        [Test]
         public void Enumerate_should_work_for_the_randomized_input()
         {
             var uniqueItems = new[] {
@@ -372,25 +385,25 @@ namespace ImTools.Experimental.UnitTests
             //                  
             var m = new ImHashMap234<int, int>.RightyBranch3(
                 new ImHashMap234<int, int>.RightyBranch3(
-                    new ImHashMap234<int, int>.Leaf2(new ImHashMap234<int, int>.KeyValueEntry(8, 8), new ImHashMap234<int, int>.KeyValueEntry(9, 9)),
-                    new ImHashMap234<int, int>.KeyValueEntry(10, 10),
+                    new ImHashMap234<int, int>.Leaf2(new ImHashMap234<int, int>.ValueEntry(8, 8), new ImHashMap234<int, int>.ValueEntry(9, 9)),
+                    new ImHashMap234<int, int>.ValueEntry(10, 10),
                     new ImHashMap234<int, int>.Branch2(
-                        new ImHashMap234<int, int>.Leaf2(new ImHashMap234<int, int>.KeyValueEntry(11, 11), new ImHashMap234<int, int>.KeyValueEntry(12, 12)),
-                        new ImHashMap234<int, int>.KeyValueEntry(13, 13),
-                        new ImHashMap234<int, int>.Leaf2(new ImHashMap234<int, int>.KeyValueEntry(14, 14), new ImHashMap234<int, int>.KeyValueEntry(15, 15))
+                        new ImHashMap234<int, int>.Leaf2(new ImHashMap234<int, int>.ValueEntry(11, 11), new ImHashMap234<int, int>.ValueEntry(12, 12)),
+                        new ImHashMap234<int, int>.ValueEntry(13, 13),
+                        new ImHashMap234<int, int>.Leaf2(new ImHashMap234<int, int>.ValueEntry(14, 14), new ImHashMap234<int, int>.ValueEntry(15, 15))
                     )),
-                new ImHashMap234<int, int>.KeyValueEntry(20, 20),
+                new ImHashMap234<int, int>.ValueEntry(20, 20),
                 new ImHashMap234<int, int>.Branch2(
                     new ImHashMap234<int, int>.Branch2(
-                        new ImHashMap234<int, int>.Leaf2(new ImHashMap234<int, int>.KeyValueEntry(25, 25), new ImHashMap234<int, int>.KeyValueEntry(26, 26)),
-                        new ImHashMap234<int, int>.KeyValueEntry(30, 30),
-                        new ImHashMap234<int, int>.Leaf2(new ImHashMap234<int, int>.KeyValueEntry(35, 35), new ImHashMap234<int, int>.KeyValueEntry(36, 36))
+                        new ImHashMap234<int, int>.Leaf2(new ImHashMap234<int, int>.ValueEntry(25, 25), new ImHashMap234<int, int>.ValueEntry(26, 26)),
+                        new ImHashMap234<int, int>.ValueEntry(30, 30),
+                        new ImHashMap234<int, int>.Leaf2(new ImHashMap234<int, int>.ValueEntry(35, 35), new ImHashMap234<int, int>.ValueEntry(36, 36))
                     ),
-                    new ImHashMap234<int, int>.KeyValueEntry(40, 40),
+                    new ImHashMap234<int, int>.ValueEntry(40, 40),
                     new ImHashMap234<int, int>.Branch2(
-                        new ImHashMap234<int, int>.Leaf2(new ImHashMap234<int, int>.KeyValueEntry(45, 45), new ImHashMap234<int, int>.KeyValueEntry(46, 46)),
-                        new ImHashMap234<int, int>.KeyValueEntry(50, 50),
-                        new ImHashMap234<int, int>.Leaf2(new ImHashMap234<int, int>.KeyValueEntry(55, 55), new ImHashMap234<int, int>.KeyValueEntry(56, 56))
+                        new ImHashMap234<int, int>.Leaf2(new ImHashMap234<int, int>.ValueEntry(45, 45), new ImHashMap234<int, int>.ValueEntry(46, 46)),
+                        new ImHashMap234<int, int>.ValueEntry(50, 50),
+                        new ImHashMap234<int, int>.Leaf2(new ImHashMap234<int, int>.ValueEntry(55, 55), new ImHashMap234<int, int>.ValueEntry(56, 56))
                 ))
             );
 

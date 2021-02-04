@@ -209,7 +209,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |       Old_ImMap234_AddOrUpdate |    10 |       500.04 ns |       5.583 ns |       4.359 ns |       500.98 ns |  0.91 |    0.01 |    0.2384 |        - |        - |    1000 B |
 |           ImMap234_AddOrUpdate |    10 |       451.32 ns |       8.955 ns |      13.942 ns |       452.64 ns |  0.81 |    0.03 |    0.1969 |        - |        - |     824 B |
 */
-            [Params(1, 5, 10, 100, 1_000, 10_000)]
+            [Params(100, 1_000, 10_000)]
             public int Count;
 
             //[Benchmark(Baseline = true)]
@@ -257,7 +257,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return slots;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImTools.UnitTests.ImMap234<string> Old_ImMap234_AddOrUpdate()
             {
                 var map = ImTools.UnitTests.ImMap234<string>.Empty;
@@ -611,16 +611,16 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            // private ImMap234<string> _map234;
-            // public ImMap234<string> AddOrUpdate_Exp_ImMap234()
-            // {
-            //     var map = ImMap234<string>.Empty;
+            private ImHashMap234<int, string> _map234;
+            public ImHashMap234<int, string> AddOrUpdate_Exp_ImMap234()
+            {
+                var map = ImHashMap234<int, string>.Empty;
 
-            //     for (var i = 0; i < Count; i++)
-            //         map = map.AddOrUpdate(i, i.ToString());
+                for (var i = 0; i < Count; i++)
+                    map = map.AddOrUpdate(i, i.ToString());
 
-            //     return map;
-            // }
+                return map;
+            }
 
             private ImTools.ImMap<string>[] _mapSlots;
             public ImTools.ImMap<string>[] AddOrUpdate_ImMapSlots()
@@ -699,7 +699,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return builder.ToImmutable();
             }
 
-            [Params(1, 10, 100, 1_000, 10_000)]
+            [Params(1, 5, 10, 100, 1_000, 10_000)]
             public int Count;
 
             public int LookupMaxKey;
@@ -712,7 +712,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 _map = AddOrUpdate();
                 _mapV1 = AddOrUpdate_V1();
                 _mapExp = AddOrUpdate_Exp();
-                // _map234 = AddOrUpdate_Exp_ImMap234();
+                _map234 = AddOrUpdate_Exp_ImMap234();
                 _mapSlots = AddOrUpdate_ImMapSlots();
                 _mapSlotsExp = AddOrUpdate_ImMapSlots_Exp();
                 _mapSlots234 = AddOrUpdate_ImMap234Slots_Exp();
@@ -722,7 +722,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 _immutableDict = ImmutableDict();
             }
 
-            //[Benchmark(Baseline = true)]
+            [Benchmark(Baseline = true)]
             public string ImMap_TryFind()
             {
                 _map.TryFind(LookupMaxKey, out var result);
@@ -736,29 +736,28 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return result;
             }
 
-            //[Benchmark]
-            [Benchmark(Baseline = true)]
+            // [Benchmark]
             public string Experimental_ImMap_TryFind()
             {
                 _mapExp.TryFind(LookupMaxKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public string Experimental_ImMapSlots_TryFind()
             {
                 _mapSlotsExp[LookupMaxKey & ImTools.Experimental.ImMapSlots.KEY_MASK_TO_FIND_SLOT].TryFind(LookupMaxKey, out var result);
                 return result;
             }
 
-            // [Benchmark]
-            // public string Experimental_ImMap234_TryFind()
-            // {
-            //     _map234.TryFind(LookupMaxKey, out var result);
-            //     return result;
-            // }
-
             [Benchmark]
+            public string Experimental_ImMap234_TryFind()
+            {
+                _map234.TryFind(LookupMaxKey, out var result);
+                return result;
+            }
+
+            // [Benchmark]
             public string Experimental_ImMap234Slots_TryFind()
             {
                 _mapSlots234[LookupMaxKey & ImTools.Experimental.ImMapSlots.KEY_MASK_TO_FIND_SLOT].TryFind(LookupMaxKey, out var result);
@@ -794,14 +793,14 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return result;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public string ConcurrentDict_TryGetValue()
             {
                 _concurDict.TryGetValue(LookupMaxKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public string ImmutableDict_TryGetValue()
             {
                 _immutableDict.TryGetValue(LookupMaxKey, out var result);

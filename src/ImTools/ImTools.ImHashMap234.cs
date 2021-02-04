@@ -34,7 +34,7 @@ namespace ImTools.Experimental
         public virtual Entry GetEntryOrDefault(int hash) => null;
 
         /// <summary>Defines the handler for update entry behavior</summary>
-        public delegate Entry Updater(Entry oldEntry, ValueEntry newEntry);
+        public delegate Entry Updater(Entry oldEntry, Entry newEntry);
         /// <summary>Updates the entry</summary>
         public static readonly Updater DoUpdate = (oldEntry, newEntry) => 
         {
@@ -123,10 +123,10 @@ namespace ImTools.Experimental
         };
 
         /// <summary>Returns the new, updated or the same map depending on the `updater` passed</summary>
-        public virtual ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry, Updater update) => entry;
+        public virtual ImHashMap234<K, V> AddOrUpdateEntry(int hash, Entry entry, Updater update) => entry;
 
         /// <summary>Returns the map without the entry with the specified hash and key, or the same map if not found.</summary>
-        public virtual ImHashMap234<K, V> RemoveEntry(int hash, ValueEntry entry, Updater remove) => this;
+        public virtual ImHashMap234<K, V> RemoveEntry(int hash, Entry entry, Updater remove) => this;
 
         /// <summary>The base map entry for holding the hash and payload</summary>
         public abstract class Entry : ImHashMap234<K, V>
@@ -141,13 +141,13 @@ namespace ImTools.Experimental
             public sealed override Entry GetEntryOrDefault(int hash) => hash == Hash ? this : null;
 
             /// <inheritdoc />
-            public sealed override ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry, Updater update) =>
+            public sealed override ImHashMap234<K, V> AddOrUpdateEntry(int hash, Entry entry, Updater update) =>
                 hash > Hash ? new Leaf2(this, entry) :
                 hash < Hash ? new Leaf2(entry, this) :
                 (ImHashMap234<K, V>)update(this, entry);
 
             /// <inheritdoc />
-            public sealed override ImHashMap234<K, V> RemoveEntry(int hash, ValueEntry entry, Updater remove) =>
+            public sealed override ImHashMap234<K, V> RemoveEntry(int hash, Entry entry, Updater remove) =>
                 hash == Hash ? remove(this, entry) ?? Empty : this;
         }
 
@@ -159,7 +159,7 @@ namespace ImTools.Experimental
         }
 
         /// <summary>Entry containing the Value in addition to the Hash</summary>
-        public class ValueEntry : Entry
+        public sealed class ValueEntry : Entry
         {
             /// <summary>The value. Maybe modified if you need the Ref{Value} semantics. 
             /// You may add the entry with the default Value to the map, and calculate and set it later (e.g. using the CAS).</summary>
@@ -168,8 +168,6 @@ namespace ImTools.Experimental
             public ValueEntry(int hash) : base(hash) {}
             /// <summary>Constructs the entry with the value</summary>
             public ValueEntry(int hash, V value) : base(hash) => Value = value;
-
-
 #if !DEBUG
             /// <inheritdoc />
             public override string ToString() => "{VE: {H: " + Hash + ", V: " + Value + "}}";
@@ -177,15 +175,21 @@ namespace ImTools.Experimental
         }
 
         /// <summary>Entry containing the Key and Value in addition to the Hash</summary>
-        public sealed class KeyValueEntry : ValueEntry
+        public sealed class KeyValueEntry : Entry
         {
             /// <summary>The key</summary>
             public readonly K Key;
             /// <summary>The value. Maybe modified if you need the Ref{Value} semantics. 
             /// You may add the entry with the default Value to the map, and calculate and set it later (e.g. using the CAS).</summary>
+            public V Value;
+            /// <summary>Constructs the entry with the key and value</summary>
             public KeyValueEntry(int hash, K key) : base(hash) => Key = key;
             /// <summary>Constructs the entry with the key and value</summary>
-            public KeyValueEntry(int hash, K key, V value) : base(hash, value) => Key = key;
+            public KeyValueEntry(int hash, K key, V value) : base(hash) 
+            {
+                Key = key;
+                Value = value;
+            } 
 #if !DEBUG
             /// <inheritdoc />
             public override string ToString() => "{KVE: {H: " + Hash + ", K: " + Key + ", V: " + Value + "}}";
@@ -237,7 +241,7 @@ namespace ImTools.Experimental
                 null;
 
             /// <inheritdoc />
-            public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry, Updater update)
+            public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, Entry entry, Updater update)
             {
                 var e0 = Entry0;
                 var e1 = Entry1;
@@ -250,13 +254,13 @@ namespace ImTools.Experimental
                     return e0.Hash == hash ? ((e0 = update(e0, entry)) == Entry0 ? this : new Leaf2(e0, null))
                         :  e0.Hash <  hash ? new Leaf2(e0, entry) : new Leaf2(entry, e0);
 
-                return hash == e0.Hash ? ((e0 = update(e0, entry)) == Entry0 ? this : new Leaf2(e0, e1)) 
-                    :  hash == e1.Hash ? ((e1 = update(e1, entry)) == Entry1 ? this : new Leaf2(e0, e1)) 
-                    :  (ImHashMap234<K, V>)new Leaf2Plus1(entry, this);
+                return hash == e0.Hash ? ((e0 = update(e0, entry)) == Entry0 ? this : new Leaf2(e0, e1))
+                     : hash == e1.Hash ? ((e1 = update(e1, entry)) == Entry1 ? this : new Leaf2(e0, e1))
+                     : (ImHashMap234<K, V>)new Leaf2Plus1(entry, this);
             }
 
             /// <inheritdoc />
-            public override ImHashMap234<K, V> RemoveEntry(int hash, ValueEntry entry, Updater remove)
+            public override ImHashMap234<K, V> RemoveEntry(int hash, Entry entry, Updater remove)
             {
                 var e0 = Entry0;
                 var e1 = Entry1;
@@ -301,7 +305,7 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
-            public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry, Updater update)
+            public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, Entry entry, Updater update)
             {
                 var p = Plus;
                 if (hash == p.Hash) 
@@ -315,7 +319,7 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
-            public override ImHashMap234<K, V> RemoveEntry(int hash, ValueEntry entry, Updater remove)
+            public override ImHashMap234<K, V> RemoveEntry(int hash, Entry entry, Updater remove)
             {
                 var p = Plus;
                 if (hash == p.Hash) 
@@ -366,7 +370,7 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
-            public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry, Updater update)
+            public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, Entry entry, Updater update)
             {
                 var p = Plus;
                 var ph = p.Hash;
@@ -431,7 +435,7 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
-            public override ImHashMap234<K, V> RemoveEntry(int hash, ValueEntry entry, Updater remove)
+            public override ImHashMap234<K, V> RemoveEntry(int hash, Entry entry, Updater remove)
             {
                 var p = Plus;
                 var ph = p.Hash;
@@ -500,7 +504,7 @@ namespace ImTools.Experimental
                 null;
 
             /// <inheritdoc />
-            public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry, Updater update)
+            public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, Entry entry, Updater update)
             {
                 Entry e0 = Entry0, e1 = Entry1, e2 = Entry2, e3 = Entry3, e4 = Entry4;
                 return
@@ -513,7 +517,7 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
-            public override ImHashMap234<K, V> RemoveEntry(int hash, ValueEntry entry, Updater remove)
+            public override ImHashMap234<K, V> RemoveEntry(int hash, Entry entry, Updater remove)
             {
                 Entry e0 = Entry0, e1 = Entry1, e2 = Entry2, e3 = Entry3, e4 = Entry4;
                 if (hash == e0.Hash)
@@ -566,7 +570,7 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
-            public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry, Updater update)
+            public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, Entry entry, Updater update)
             {
                 var p = Plus;
                 var ph = p.Hash;
@@ -591,7 +595,7 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
-            public override ImHashMap234<K, V> RemoveEntry(int hash, ValueEntry entry, Updater remove)
+            public override ImHashMap234<K, V> RemoveEntry(int hash, Entry entry, Updater remove)
             {
                 var p  = Plus;
                 var ph = p.Hash;
@@ -683,7 +687,7 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
-            public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry, Updater update)
+            public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, Entry entry, Updater update)
             {
                 var p = Plus;
                 var ph = p.Hash;
@@ -797,7 +801,7 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
-            public override ImHashMap234<K, V> RemoveEntry(int hash, ValueEntry entry, Updater remove)
+            public override ImHashMap234<K, V> RemoveEntry(int hash, Entry entry, Updater remove)
             {
                 var p  = Plus;
                 var ph = p.Hash;
@@ -895,7 +899,7 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
-            public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry, Updater update)
+            public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, Entry entry, Updater update)
             {
                 var e = MidEntry;
                 if (hash > e.Hash)
@@ -920,7 +924,7 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
-            public sealed override ImHashMap234<K, V> RemoveEntry(int hash, ValueEntry entry, Updater remove)
+            public sealed override ImHashMap234<K, V> RemoveEntry(int hash, Entry entry, Updater remove)
             {
                 var e = MidEntry;
                 if (hash > e.Hash)
@@ -968,7 +972,7 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
-            public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry, Updater update)
+            public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, Entry entry, Updater update)
             {
                 var h0 = MidEntry.Hash;
                 var rb = (Branch2)Right;
@@ -1052,7 +1056,7 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
-            public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, ValueEntry entry, Updater update)
+            public override ImHashMap234<K, V> AddOrUpdateEntry(int hash, Entry entry, Updater update)
             {
                 var lb = (Branch2)Left;
                 var h0 = lb.MidEntry.Hash;
@@ -1597,8 +1601,11 @@ namespace ImTools.Experimental
 
         /// <summary>Lookup for the value by hash, returns the default `V` if hash is not found.</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static V GetValueOrDefault<V>(this ImHashMap234<int, V> map, int hash) =>
-            map.GetEntryOrDefault(hash) is ImHashMap234<int, V>.ValueEntry v ? v.Value : default(V);
+        public static V GetValueOrDefault<V>(this ImHashMap234<int, V> map, int hash) 
+        {
+            var entry = map.GetEntryOrDefault(hash);
+            return entry != null ? ((ImHashMap234<int, V>.ValueEntry)entry).Value : default(V);
+        }
 
         /// <summary>Lookup for the value by the key using the hash and checking the key with the `object.ReferenceEquals` for equality,
         ///  returns found value or the default value if not found</summary>
@@ -1686,20 +1693,21 @@ namespace ImTools.Experimental
         [MethodImpl((MethodImplOptions)256)]
         public static bool TryFind<V>(this ImHashMap234<int, V> map, int hash, out V value)
         {
-            var e = map.GetEntryOrDefault(hash);
-            if (e is ImHashMap234<int, V>.ValueEntry v)
+            if (map is ImHashMap234<int, V>.ValueEntry v && v.Hash == hash)
             {
                 value = v.Value;
+                return true;
+            }
+
+            var e = map.GetEntryOrDefault(hash);
+            if (e != null)
+            {
+                value = ((ImHashMap234<int, V>.ValueEntry)e).Value;
                 return true;
             }
             value = default(V);
             return false;
         }
-
-        /// <summary>Adds or updates the map entry of the passed hash and key based on the `updater`</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap234<K, V> AddOrUpdate<K, V>(this ImHashMap234<K, V> map, int hash, K key, V value, ImHashMap234<K, V>.Updater updater) =>
-            map.AddOrUpdateEntry(hash, new ImHashMap234<K, V>.KeyValueEntry(hash, key, value), updater);
 
         /// <summary>Adds or updates (no mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -1731,6 +1739,11 @@ namespace ImTools.Experimental
             var hash = key.GetHashCode();
             return map.AddOrUpdateEntry(hash, new ImHashMap234<K, V>.KeyValueEntry(hash, key, value), ImHashMap234<K, V>.DoKeepOrUpdate);
         }
+
+        /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the hash is already present</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap234<int, V> AddOrKeep<V>(this ImHashMap234<int, V> map, int hash, V value) =>
+            map.AddOrUpdateEntry(hash, new ImHashMap234<int, V>.ValueEntry(hash, value), ImHashMap234<int, V>.DoKeepOrUpdate);
 
         [MethodImpl((MethodImplOptions)256)]
         private static ImHashMap234<K, V>.KeyValueEntry GetEntryOrDefault<K, V>(this ImHashMap234<K, V> map, int hash, K key)
