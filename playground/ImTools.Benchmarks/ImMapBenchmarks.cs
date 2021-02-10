@@ -577,6 +577,22 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |         ConcurrentDict_TryGetValue | 10000 | 10.672 ns | 0.0488 ns | 0.0456 ns | 10.660 ns |  0.83 |    0.01 |     - |     - |     - |         - |
 |          ImmutableDict_TryGetValue | 10000 | 32.125 ns | 0.2142 ns | 0.2003 ns | 32.128 ns |  2.50 |    0.02 |     - |     - |     - |         - |
 
+## ImMap 234
+
+|                        Method | Count |      Mean |     Error |    StdDev |    Median | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|------------------------------ |------ |----------:|----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+|                 ImMap_TryFind |     1 | 0.5539 ns | 0.1057 ns | 0.1795 ns | 0.5289 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|    Experimental_ImMap_TryFind |     1 | 2.3422 ns | 0.0688 ns | 0.0610 ns | 2.3421 ns |  4.51 |    1.98 |     - |     - |     - |         - |
+| Experimental_ImMap234_TryFind |     1 | 0.7792 ns | 0.2897 ns | 0.8543 ns | 0.2810 ns |  3.50 |    1.47 |     - |     - |     - |         - |
+|                               |       |           |           |           |           |       |         |       |       |       |           |
+|                 ImMap_TryFind |     5 | 3.8894 ns | 0.0659 ns | 0.0584 ns | 3.8744 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|    Experimental_ImMap_TryFind |     5 | 4.2285 ns | 0.1223 ns | 0.1359 ns | 4.2073 ns |  1.08 |    0.04 |     - |     - |     - |         - |
+| Experimental_ImMap234_TryFind |     5 | 3.5200 ns | 0.1430 ns | 0.1268 ns | 3.5534 ns |  0.91 |    0.04 |     - |     - |     - |         - |
+|                               |       |           |           |           |           |       |         |       |       |       |           |
+|                 ImMap_TryFind |    10 | 4.0155 ns | 0.1056 ns | 0.1336 ns | 4.0135 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|    Experimental_ImMap_TryFind |    10 | 4.5138 ns | 0.1196 ns | 0.1060 ns | 4.4995 ns |  1.12 |    0.05 |     - |     - |     - |         - |
+| Experimental_ImMap234_TryFind |    10 | 4.7094 ns | 0.1295 ns | 0.1081 ns | 4.7081 ns |  1.16 |    0.04 |     - |     - |     - |         - |
+
  */
             private ImTools.ImMap<string> _map;
             public ImTools.ImMap<string> AddOrUpdate()
@@ -699,7 +715,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return builder.ToImmutable();
             }
 
-            [Params(1, 5, 10, 100, 1_000, 10_000)]
+            [Params(1, 5, 10)]//, 100, 1_000, 10_000)]
             public int Count;
 
             public int LookupMaxKey;
@@ -736,7 +752,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return result;
             }
 
-            // [Benchmark]
+            [Benchmark]
             public string Experimental_ImMap_TryFind()
             {
                 _mapExp.TryFind(LookupMaxKey, out var result);
