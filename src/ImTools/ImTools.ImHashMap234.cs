@@ -96,9 +96,6 @@ namespace ImTools.Experimental
         /// <summary>Removes or keeps the entry</summary>
         public static readonly Updater DoRemove = (oldEntry, newEntry) => 
         {
-            if (oldEntry is ValueEntry)
-                return newEntry == oldEntry ? null : oldEntry;
-
             if (oldEntry is HashConflictKeyValuesEntry hkv)
             {
                 var cs = hkv.Conflicts;
@@ -119,7 +116,8 @@ namespace ImTools.Experimental
                     return new HashConflictKeyValuesEntry(oldEntry.Hash, newConflicts);
                 }
             }
-            return oldEntry;
+
+            return newEntry == oldEntry ? null : oldEntry;
         };
 
         /// <summary>Returns the new, updated or the same map depending on the `updater` passed</summary>
