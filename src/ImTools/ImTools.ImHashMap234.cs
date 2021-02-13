@@ -7,6 +7,28 @@ using System.Threading;
 
 namespace ImTools.Experimental
 {
+    /// <summary>Entry containing the Key and Value in addition to the Hash</summary>
+    public sealed class KeyValueEntry<K, V> : ImHashMap234<K, V>.Entry
+    {
+        /// <summary>The key</summary>
+        public readonly K Key;
+        /// <summary>The value. Maybe modified if you need the Ref{Value} semantics. 
+        /// You may add the entry with the default Value to the map, and calculate and set it later (e.g. using the CAS).</summary>
+        public V Value;
+        /// <summary>Constructs the entry with the key and value</summary>
+        public KeyValueEntry(int hash, K key) : base(hash) => Key = key;
+        /// <summary>Constructs the entry with the key and value</summary>
+        public KeyValueEntry(int hash, K key, V value) : base(hash) 
+        {
+            Key = key;
+            Value = value;
+        } 
+#if !DEBUG
+        /// <inheritdoc />
+        public override string ToString() => "{KVE: {H: " + Hash + ", K: " + Key + ", V: " + Value + "}}";
+#endif
+    }
+
     /// <summary>Entry containing the Value in addition to the Hash</summary>
     public sealed class ValueEntry<V> : ImHashMap234<int, V>.Entry
     {
@@ -54,9 +76,9 @@ namespace ImTools.Experimental
         /// <summary>Updates the entry</summary>
         public static readonly Updater DoUpdate = (oldEntry, newEntry) => 
         {
-            if (newEntry is KeyValueEntry e) 
+            if (newEntry is KeyValueEntry<K, V> e) 
             {
-                if (oldEntry is KeyValueEntry kv)
+                if (oldEntry is KeyValueEntry<K, V> kv)
                     return kv.Key.Equals(e.Key) ? e : (Entry)new HashConflictKeyValuesEntry(oldEntry.Hash, kv, e);
                 
                 if (oldEntry is HashConflictKeyValuesEntry hkv)
@@ -67,7 +89,7 @@ namespace ImTools.Experimental
                     var i = n - 1;
                     while (i != -1 && !key.Equals(cs[i].Key)) --i;
 
-                    var newConflicts = new KeyValueEntry[i != -1 ? n : n + 1];
+                    var newConflicts = new KeyValueEntry<K, V>[i != -1 ? n : n + 1];
                     Array.Copy(cs, 0, newConflicts, 0, n);
                     newConflicts[i != -1 ? i : n] = e;
 
@@ -83,9 +105,9 @@ namespace ImTools.Experimental
             if (oldEntry is RemovedEntry)
                 return newEntry;
 
-            if (newEntry is KeyValueEntry e)
+            if (newEntry is KeyValueEntry<K, V> e)
             {
-                if (oldEntry is KeyValueEntry kv)
+                if (oldEntry is KeyValueEntry<K, V> kv)
                     return kv.Key.Equals(e.Key) ? kv : (Entry)new HashConflictKeyValuesEntry(oldEntry.Hash, kv, e);
 
                 if (oldEntry is HashConflictKeyValuesEntry hkv)
@@ -98,7 +120,7 @@ namespace ImTools.Experimental
                     if (i != -1) // return existing map
                         return hkv;
 
-                    var newConflicts = new KeyValueEntry[n + 1];
+                    var newConflicts = new KeyValueEntry<K, V>[n + 1];
                     Array.Copy(cs, 0, newConflicts, 0, n);
                     newConflicts[n] = e;
 
@@ -123,7 +145,7 @@ namespace ImTools.Experimental
                     if (n == 2)
                         return i == 0 ? cs[1] : cs[0];
 
-                    var newConflicts = new KeyValueEntry[n -= 1]; // the new n is less by one
+                    var newConflicts = new KeyValueEntry<K, V>[n -= 1]; // the new n is less by one
                     if (i > 0) // copy the 1st part
                         Array.Copy(cs, 0, newConflicts, 0, i);
                     if (i < n) // copy the 2nd part
@@ -172,35 +194,12 @@ namespace ImTools.Experimental
             public override string ToString() => "{RemovedE: {H: " + Hash + "}}";
         }
 
-
-        /// <summary>Entry containing the Key and Value in addition to the Hash</summary>
-        public sealed class KeyValueEntry : Entry
-        {
-            /// <summary>The key</summary>
-            public readonly K Key;
-            /// <summary>The value. Maybe modified if you need the Ref{Value} semantics. 
-            /// You may add the entry with the default Value to the map, and calculate and set it later (e.g. using the CAS).</summary>
-            public V Value;
-            /// <summary>Constructs the entry with the key and value</summary>
-            public KeyValueEntry(int hash, K key) : base(hash) => Key = key;
-            /// <summary>Constructs the entry with the key and value</summary>
-            public KeyValueEntry(int hash, K key, V value) : base(hash) 
-            {
-                Key = key;
-                Value = value;
-            } 
-#if !DEBUG
-            /// <inheritdoc />
-            public override string ToString() => "{KVE: {H: " + Hash + ", K: " + Key + ", V: " + Value + "}}";
-#endif
-        }
-
         /// <summary>The composite containing the list of entries with the same conflicting Hash.</summary>
         public sealed class HashConflictKeyValuesEntry : Entry
         {
             /// <summary>The 2 and more conflicts.</summary>
-            public KeyValueEntry[] Conflicts;
-            internal HashConflictKeyValuesEntry(int hash, params KeyValueEntry[] conflicts) : base(hash) => Conflicts = conflicts;
+            public KeyValueEntry<K, V>[] Conflicts;
+            internal HashConflictKeyValuesEntry(int hash, params KeyValueEntry<K, V>[] conflicts) : base(hash) => Conflicts = conflicts;
 
 #if !DEBUG
             /// <inheritdoc />
@@ -1148,13 +1147,13 @@ namespace ImTools.Experimental
         /// <summary>Enumerates all the map entries in the hash order.
         /// `parents` parameter allow to reuse the stack memory used for traversal between multiple enumerates.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent `Enumerate` calls</summary>
-        public static IEnumerable<ImHashMap234<K, V>.KeyValueEntry> Enumerate<K, V>(this ImHashMap234<K, V> map, Stack<ImHashMap234<K, V>> parents = null)
+        public static IEnumerable<KeyValueEntry<K, V>> Enumerate<K, V>(this ImHashMap234<K, V> map, Stack<ImHashMap234<K, V>> parents = null)
         {
             if (map == ImHashMap234<K, V>.Empty)
                 yield break;
             if (map is ImHashMap234<K, V>.Entry e)
             {
-                if (e is ImHashMap234<K, V>.KeyValueEntry v) yield return v;
+                if (e is KeyValueEntry<K, V>v) yield return v;
                 else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)e).Conflicts) yield return c;
                 yield break;
             }
@@ -1173,9 +1172,9 @@ namespace ImTools.Experimental
                 
                 if (map is ImHashMap234<K, V>.Leaf2 l2)
                 {
-                    if (l2.Entry0 is ImHashMap234<K, V>.KeyValueEntry v0) yield return v0;
+                    if (l2.Entry0 is KeyValueEntry<K, V>v0) yield return v0;
                     else if (l2.Entry0 != null) foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)l2.Entry0).Conflicts) yield return c;
-                    if (l2.Entry1 is ImHashMap234<K, V>.KeyValueEntry v1) yield return v1;
+                    if (l2.Entry1 is KeyValueEntry<K, V>v1) yield return v1;
                     else if (l2.Entry1 != null) foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)l2.Entry1).Conflicts) yield return c;
                 }
                 else if (map is ImHashMap234<K, V>.Leaf2Plus1 l21)
@@ -1193,11 +1192,11 @@ namespace ImTools.Experimental
                         }
                     }
 
-                    if (e0 is ImHashMap234<K, V>.KeyValueEntry v0) yield return v0;
+                    if (e0 is KeyValueEntry<K, V>v0) yield return v0;
                     else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)e0).Conflicts) yield return c;
-                    if (e1 is ImHashMap234<K, V>.KeyValueEntry v1) yield return v1;
+                    if (e1 is KeyValueEntry<K, V>v1) yield return v1;
                     else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)e1).Conflicts) yield return c;
-                    if (p  is ImHashMap234<K, V>.KeyValueEntry v2) yield return v2;
+                    if (p  is KeyValueEntry<K, V>v2) yield return v2;
                     else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)p ).Conflicts) yield return c;
                 }
                 else if (map is ImHashMap234<K, V>.Leaf2Plus1Plus1 l211)
@@ -1230,26 +1229,26 @@ namespace ImTools.Experimental
                         }
                     }
 
-                    if (e0 is ImHashMap234<K, V>.KeyValueEntry v0) yield return v0;
+                    if (e0 is KeyValueEntry<K, V>v0) yield return v0;
                     else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)e0).Conflicts) yield return c;
-                    if (e1 is ImHashMap234<K, V>.KeyValueEntry v1) yield return v1;
+                    if (e1 is KeyValueEntry<K, V>v1) yield return v1;
                     else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)e1).Conflicts) yield return c;
-                    if (pp is ImHashMap234<K, V>.KeyValueEntry v2) yield return v2;
+                    if (pp is KeyValueEntry<K, V>v2) yield return v2;
                     else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)pp).Conflicts) yield return c;
-                    if (p  is ImHashMap234<K, V>.KeyValueEntry v3) yield return v3;
+                    if (p  is KeyValueEntry<K, V>v3) yield return v3;
                     else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)p).Conflicts)  yield return c;
                 }
                 else if (map is ImHashMap234<K, V>.Leaf5 l5)
                 {
-                    if (l5.Entry0 is ImHashMap234<K, V>.KeyValueEntry v0) yield return v0;
+                    if (l5.Entry0 is KeyValueEntry<K, V>v0) yield return v0;
                     else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)l5.Entry0).Conflicts) yield return c;
-                    if (l5.Entry1 is ImHashMap234<K, V>.KeyValueEntry v1) yield return v1;
+                    if (l5.Entry1 is KeyValueEntry<K, V>v1) yield return v1;
                     else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)l5.Entry1).Conflicts) yield return c;
-                    if (l5.Entry2 is ImHashMap234<K, V>.KeyValueEntry v2) yield return v2;
+                    if (l5.Entry2 is KeyValueEntry<K, V>v2) yield return v2;
                     else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)l5.Entry2).Conflicts) yield return c;
-                    if (l5.Entry3 is ImHashMap234<K, V>.KeyValueEntry v3) yield return v3;
+                    if (l5.Entry3 is KeyValueEntry<K, V>v3) yield return v3;
                     else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)l5.Entry3).Conflicts) yield return c;
-                    if (l5.Entry4 is ImHashMap234<K, V>.KeyValueEntry v4) yield return v4;
+                    if (l5.Entry4 is KeyValueEntry<K, V>v4) yield return v4;
                     else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)l5.Entry4).Conflicts) yield return c;
                 }
                 else if (map is ImHashMap234<K, V>.Leaf5Plus1 l51)
@@ -1279,17 +1278,17 @@ namespace ImTools.Experimental
                         }
                     }
 
-                    if (e0 is ImHashMap234<K, V>.KeyValueEntry v0) yield return v0;
+                    if (e0 is KeyValueEntry<K, V>v0) yield return v0;
                     else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)e0).Conflicts) yield return c;
-                    if (e1 is ImHashMap234<K, V>.KeyValueEntry v1) yield return v1;
+                    if (e1 is KeyValueEntry<K, V>v1) yield return v1;
                     else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)e1).Conflicts) yield return c;
-                    if (e2 is ImHashMap234<K, V>.KeyValueEntry v2) yield return v2;
+                    if (e2 is KeyValueEntry<K, V>v2) yield return v2;
                     else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)e2).Conflicts) yield return c;
-                    if (e3 is ImHashMap234<K, V>.KeyValueEntry v3) yield return v3;
+                    if (e3 is KeyValueEntry<K, V>v3) yield return v3;
                     else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)e3).Conflicts) yield return c;
-                    if (e4 is ImHashMap234<K, V>.KeyValueEntry v4) yield return v4;
+                    if (e4 is KeyValueEntry<K, V>v4) yield return v4;
                     else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)e4).Conflicts) yield return c;
-                    if (p  is ImHashMap234<K, V>.KeyValueEntry v5) yield return v5;
+                    if (p  is KeyValueEntry<K, V>v5) yield return v5;
                     else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)p).Conflicts)  yield return c;
                 }
                 else if (map is ImHashMap234<K, V>.Leaf5Plus1Plus1 l511)
@@ -1345,19 +1344,19 @@ namespace ImTools.Experimental
                         }
                     }
 
-                    if (e0 is ImHashMap234<K, V>.KeyValueEntry v0) yield return v0;
+                    if (e0 is KeyValueEntry<K, V>v0) yield return v0;
                     else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)e0).Conflicts) yield return c;
-                    if (e1 is ImHashMap234<K, V>.KeyValueEntry v1) yield return v1;
+                    if (e1 is KeyValueEntry<K, V>v1) yield return v1;
                     else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)e1).Conflicts) yield return c;
-                    if (e2 is ImHashMap234<K, V>.KeyValueEntry v2) yield return v2;
+                    if (e2 is KeyValueEntry<K, V>v2) yield return v2;
                     else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)e2).Conflicts) yield return c;
-                    if (e3 is ImHashMap234<K, V>.KeyValueEntry v3) yield return v3;
+                    if (e3 is KeyValueEntry<K, V>v3) yield return v3;
                     else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)e3).Conflicts) yield return c;
-                    if (e4 is ImHashMap234<K, V>.KeyValueEntry v4) yield return v4;
+                    if (e4 is KeyValueEntry<K, V>v4) yield return v4;
                     else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)e4).Conflicts) yield return c;
-                    if (pp is ImHashMap234<K, V>.KeyValueEntry v5) yield return v5;
+                    if (pp is KeyValueEntry<K, V>v5) yield return v5;
                     else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)pp).Conflicts) yield return c;
-                    if (p  is ImHashMap234<K, V>.KeyValueEntry v6) yield return v6;
+                    if (p  is KeyValueEntry<K, V>v6) yield return v6;
                     else foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)p).Conflicts)  yield return c;
                 }
 
@@ -1365,7 +1364,7 @@ namespace ImTools.Experimental
                     break; // we yield the leaf and there is nothing in stack - we are DONE!
 
                 var pb2 = (ImHashMap234<K, V>.Branch2)parents.Get(--count); // otherwise get the parent
-                if (pb2.MidEntry is ImHashMap234<K, V>.KeyValueEntry v) 
+                if (pb2.MidEntry is KeyValueEntry<K, V>v) 
                     yield return v;
                 else if (pb2.MidEntry != null) foreach (var c in ((ImHashMap234<K, V>.HashConflictKeyValuesEntry)pb2.MidEntry).Conflicts) 
                     yield return c;
@@ -1578,7 +1577,7 @@ namespace ImTools.Experimental
         public static V GetValueOrDefault<K, V>(this ImHashMap234<K, V> map, int hash, K key)
         {
             var e = map.GetEntryOrDefault(hash);
-            if (e is ImHashMap234<K, V>.KeyValueEntry v)
+            if (e is KeyValueEntry<K, V>v)
             {
                 if (v.Key.Equals(key))
                     return v.Value;
@@ -1612,7 +1611,7 @@ namespace ImTools.Experimental
         public static V GetValueOrDefaultReferenceEqual<K, V>(this ImHashMap234<K, V> map, int hash, K key) where K : class
         {
             var e = map.GetEntryOrDefault(hash);
-            if (e is ImHashMap234<K, V>.KeyValueEntry v)
+            if (e is KeyValueEntry<K, V>v)
             {
                 if (v.Key == key)
                     return v.Value;
@@ -1632,7 +1631,7 @@ namespace ImTools.Experimental
         public static bool TryFind<K, V>(this ImHashMap234<K, V> map, int hash, K key, out V value)
         {
             var e = map.GetEntryOrDefault(hash);
-            if (e is ImHashMap234<K, V>.KeyValueEntry v)
+            if (e is KeyValueEntry<K, V>v)
             {
                 if (v.Key.Equals(key))
                 {
@@ -1660,7 +1659,7 @@ namespace ImTools.Experimental
         public static bool TryFindReferenceEqual<K, V>(this ImHashMap234<K, V> map, int hash, K key, out V value) where K : class
         {
             var e = map.GetEntryOrDefault(hash);
-            if (e is ImHashMap234<K, V>.KeyValueEntry v)
+            if (e is KeyValueEntry<K, V>v)
             {
                 if (v.Key == key)
                 {
@@ -1711,7 +1710,7 @@ namespace ImTools.Experimental
         /// <summary>Adds or updates (no mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap234<K, V> AddOrUpdate<K, V>(this ImHashMap234<K, V> map, int hash, K key, V value) =>
-            map.AddOrUpdateEntry(hash, new ImHashMap234<K, V>.KeyValueEntry(hash, key, value), ImHashMap234<K, V>.DoUpdate);
+            map.AddOrUpdateEntry(hash, new KeyValueEntry<K, V>(hash, key, value), ImHashMap234<K, V>.DoUpdate);
 
         /// <summary>Adds or updates (no mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -1723,20 +1722,20 @@ namespace ImTools.Experimental
         public static ImHashMap234<K, V> AddOrUpdate<K, V>(this ImHashMap234<K, V> map, K key, V value)
         {
             var hash = key.GetHashCode();
-            return map.AddOrUpdateEntry(hash, new ImHashMap234<K, V>.KeyValueEntry(hash, key, value), ImHashMap234<K, V>.DoUpdate);
+            return map.AddOrUpdateEntry(hash, new KeyValueEntry<K, V>(hash, key, value), ImHashMap234<K, V>.DoUpdate);
         }
 
         /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap234<K, V> AddOrKeep<K, V>(this ImHashMap234<K, V> map, int hash, K key, V value) =>
-            map.AddOrUpdateEntry(hash, new ImHashMap234<K, V>.KeyValueEntry(hash, key, value), ImHashMap234<K, V>.DoKeepOrUpdate);
+            map.AddOrUpdateEntry(hash, new KeyValueEntry<K, V>(hash, key, value), ImHashMap234<K, V>.DoKeepOrUpdate);
 
         /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap234<K, V> AddOrKeep<K, V>(this ImHashMap234<K, V> map, K key, V value)
         {
             var hash = key.GetHashCode();
-            return map.AddOrUpdateEntry(hash, new ImHashMap234<K, V>.KeyValueEntry(hash, key, value), ImHashMap234<K, V>.DoKeepOrUpdate);
+            return map.AddOrUpdateEntry(hash, new KeyValueEntry<K, V>(hash, key, value), ImHashMap234<K, V>.DoKeepOrUpdate);
         }
 
         /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the hash is already present</summary>
@@ -1745,11 +1744,11 @@ namespace ImTools.Experimental
             map.AddOrUpdateEntry(hash, new ValueEntry<V>(hash, value), ImHashMap234<int, V>.DoKeepOrUpdate);
 
         [MethodImpl((MethodImplOptions)256)]
-        private static ImHashMap234<K, V>.KeyValueEntry GetEntryOrDefault<K, V>(this ImHashMap234<K, V> map, int hash, K key)
+        private static KeyValueEntry<K, V>GetEntryOrDefault<K, V>(this ImHashMap234<K, V> map, int hash, K key)
         {
             var e = map.GetEntryOrDefault(hash);
 
-            if (e is ImHashMap234<K, V>.KeyValueEntry v)
+            if (e is KeyValueEntry<K, V>v)
                 return v.Key.Equals(key) ? v : null;
 
             if (e is ImHashMap234<K, V>.HashConflictKeyValuesEntry c)
@@ -1909,7 +1908,7 @@ namespace ImTools.Experimental
         /// `parents` parameter allow to reuse the stack memory used for traversal between multiple enumerates.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent `Enumerate` calls</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static IEnumerable<ImHashMap234<K, V>.KeyValueEntry> Enumerate<K, V>(this ImHashMap234<K, V>[] parts, ImHashMap234.Stack<ImHashMap234<K, V>> parents = null)
+        public static IEnumerable<KeyValueEntry<K, V>> Enumerate<K, V>(this ImHashMap234<K, V>[] parts, ImHashMap234.Stack<ImHashMap234<K, V>> parents = null)
         {
             if (parents == null)
                 parents = new ImHashMap234.Stack<ImHashMap234<K, V>>();

@@ -166,7 +166,7 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreEqual(null, m.GetValueOrDefault(Xk(10)));
 
             var mr = m.Remove(Xk(1));
-            Assert.IsInstanceOf<ImHashMap234<XKey<int>, string>.KeyValueEntry>(mr);
+            Assert.IsInstanceOf<KeyValueEntry<XKey<int>, string>>(mr);
             Assert.AreEqual(null, mr.GetValueOrDefault(Xk(1)));
             Assert.AreEqual("b",  mr.GetValueOrDefault(Xk(2)));
 
