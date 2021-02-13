@@ -7,6 +7,22 @@ using System.Threading;
 
 namespace ImTools.Experimental
 {
+    /// <summary>Entry containing the Value in addition to the Hash</summary>
+    public sealed class ValueEntry<V> : ImHashMap234<int, V>.Entry
+    {
+        /// <summary>The value. Maybe modified if you need the Ref{Value} semantics. 
+        /// You may add the entry with the default Value to the map, and calculate and set it later (e.g. using the CAS).</summary>
+        public V Value;
+        /// <summary>Constructs the entry with the default value</summary>
+        public ValueEntry(int hash) : base(hash) {}
+        /// <summary>Constructs the entry with the value</summary>
+        public ValueEntry(int hash, V value) : base(hash) => Value = value;
+#if !DEBUG
+        /// <inheritdoc />
+        public override string ToString() => "{VE: {H: " + Hash + ", V: " + Value + "}}";
+#endif
+    }
+
     /// <summary>The base and the holder class for the map tree leafs and branches, also defines the Empty tree.
     /// The map implementation is based on the "modified" 2-3-4 tree.</summary>
     public class ImHashMap234<K, V>
@@ -156,21 +172,6 @@ namespace ImTools.Experimental
             public override string ToString() => "{RemovedE: {H: " + Hash + "}}";
         }
 
-        /// <summary>Entry containing the Value in addition to the Hash</summary>
-        public sealed class ValueEntry : Entry
-        {
-            /// <summary>The value. Maybe modified if you need the Ref{Value} semantics. 
-            /// You may add the entry with the default Value to the map, and calculate and set it later (e.g. using the CAS).</summary>
-            public V Value;
-            /// <summary>Constructs the entry with the default value</summary>
-            public ValueEntry(int hash) : base(hash) {}
-            /// <summary>Constructs the entry with the value</summary>
-            public ValueEntry(int hash, V value) : base(hash) => Value = value;
-#if !DEBUG
-            /// <inheritdoc />
-            public override string ToString() => "{VE: {H: " + Hash + ", V: " + Value + "}}";
-#endif
-        }
 
         /// <summary>Entry containing the Key and Value in addition to the Hash</summary>
         public sealed class KeyValueEntry : Entry
@@ -1376,11 +1377,11 @@ namespace ImTools.Experimental
         /// <summary>Enumerates all the map entries in the hash order.
         /// `parents` parameter allow to reuse the stack memory used for traversal between multiple enumerates.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent `Enumerate` calls</summary>
-        public static IEnumerable<ImHashMap234<int, V>.ValueEntry> Enumerate<V>(this ImHashMap234<int, V> map, Stack<ImHashMap234<int, V>> parents = null)
+        public static IEnumerable<ValueEntry<V>> Enumerate<V>(this ImHashMap234<int, V> map, Stack<ImHashMap234<int, V>> parents = null)
         {
             if (map == ImHashMap234<int, V>.Empty)
                 yield break;
-            if (map is ImHashMap234<int, V>.ValueEntry v)
+            if (map is ValueEntry<V> v)
             {
                 yield return v;
                 yield break;
@@ -1400,8 +1401,8 @@ namespace ImTools.Experimental
                 
                 if (map is ImHashMap234<int, V>.Leaf2 l2)
                 {
-                    yield return (ImHashMap234<int, V>.ValueEntry)l2.Entry0;
-                    yield return (ImHashMap234<int, V>.ValueEntry)l2.Entry1;
+                    yield return (ValueEntry<V>)l2.Entry0;
+                    yield return (ValueEntry<V>)l2.Entry1;
                 }
                 else if (map is ImHashMap234<int, V>.Leaf2Plus1 l21)
                 {
@@ -1418,9 +1419,9 @@ namespace ImTools.Experimental
                         }
                     }
 
-                    yield return (ImHashMap234<int, V>.ValueEntry)e0;
-                    yield return (ImHashMap234<int, V>.ValueEntry)e1;
-                    yield return (ImHashMap234<int, V>.ValueEntry)p ;
+                    yield return (ValueEntry<V>)e0;
+                    yield return (ValueEntry<V>)e1;
+                    yield return (ValueEntry<V>)p ;
                 }
                 else if (map is ImHashMap234<int, V>.Leaf2Plus1Plus1 l211)
                 {
@@ -1452,18 +1453,18 @@ namespace ImTools.Experimental
                         }
                     }
 
-                    yield return (ImHashMap234<int, V>.ValueEntry)e0;
-                    yield return (ImHashMap234<int, V>.ValueEntry)e1;
-                    yield return (ImHashMap234<int, V>.ValueEntry)pp;
-                    yield return (ImHashMap234<int, V>.ValueEntry)p ;
+                    yield return (ValueEntry<V>)e0;
+                    yield return (ValueEntry<V>)e1;
+                    yield return (ValueEntry<V>)pp;
+                    yield return (ValueEntry<V>)p ;
                 }
                 else if (map is ImHashMap234<int, V>.Leaf5 l5)
                 {
-                    yield return (ImHashMap234<int, V>.ValueEntry)l5.Entry0;
-                    yield return (ImHashMap234<int, V>.ValueEntry)l5.Entry1;
-                    yield return (ImHashMap234<int, V>.ValueEntry)l5.Entry2;
-                    yield return (ImHashMap234<int, V>.ValueEntry)l5.Entry3;
-                    yield return (ImHashMap234<int, V>.ValueEntry)l5.Entry4;
+                    yield return (ValueEntry<V>)l5.Entry0;
+                    yield return (ValueEntry<V>)l5.Entry1;
+                    yield return (ValueEntry<V>)l5.Entry2;
+                    yield return (ValueEntry<V>)l5.Entry3;
+                    yield return (ValueEntry<V>)l5.Entry4;
                 }
                 else if (map is ImHashMap234<int, V>.Leaf5Plus1 l51)
                 {
@@ -1492,12 +1493,12 @@ namespace ImTools.Experimental
                         }
                     }
 
-                    yield return (ImHashMap234<int, V>.ValueEntry)e0;
-                    yield return (ImHashMap234<int, V>.ValueEntry)e1;
-                    yield return (ImHashMap234<int, V>.ValueEntry)e2;
-                    yield return (ImHashMap234<int, V>.ValueEntry)e3;
-                    yield return (ImHashMap234<int, V>.ValueEntry)e4;
-                    yield return (ImHashMap234<int, V>.ValueEntry)p ;
+                    yield return (ValueEntry<V>)e0;
+                    yield return (ValueEntry<V>)e1;
+                    yield return (ValueEntry<V>)e2;
+                    yield return (ValueEntry<V>)e3;
+                    yield return (ValueEntry<V>)e4;
+                    yield return (ValueEntry<V>)p ;
                 }
                 else if (map is ImHashMap234<int, V>.Leaf5Plus1Plus1 l511)
                 {
@@ -1552,20 +1553,20 @@ namespace ImTools.Experimental
                         }
                     }
 
-                    yield return (ImHashMap234<int, V>.ValueEntry)e0;
-                    yield return (ImHashMap234<int, V>.ValueEntry)e1;
-                    yield return (ImHashMap234<int, V>.ValueEntry)e2;
-                    yield return (ImHashMap234<int, V>.ValueEntry)e3;
-                    yield return (ImHashMap234<int, V>.ValueEntry)e4;
-                    yield return (ImHashMap234<int, V>.ValueEntry)pp;
-                    yield return (ImHashMap234<int, V>.ValueEntry)p ;
+                    yield return (ValueEntry<V>)e0;
+                    yield return (ValueEntry<V>)e1;
+                    yield return (ValueEntry<V>)e2;
+                    yield return (ValueEntry<V>)e3;
+                    yield return (ValueEntry<V>)e4;
+                    yield return (ValueEntry<V>)pp;
+                    yield return (ValueEntry<V>)p ;
                 }
 
                 if (count == 0)
                     break; // we yield the leaf and there is nothing in stack - we are DONE!
 
                 var pb2 = (ImHashMap234<int, V>.Branch2)parents.Get(--count); // otherwise get the parent
-                yield return (ImHashMap234<int, V>.ValueEntry)pb2.MidEntry;
+                yield return (ValueEntry<V>)pb2.MidEntry;
 
                 map = pb2.Right;
             }
@@ -1602,7 +1603,7 @@ namespace ImTools.Experimental
         public static V GetValueOrDefault<V>(this ImHashMap234<int, V> map, int hash) 
         {
             var entry = map.GetEntryOrDefault(hash);
-            return entry != null ? ((ImHashMap234<int, V>.ValueEntry)entry).Value : default(V);
+            return entry != null ? ((ValueEntry<V>)entry).Value : default(V);
         }
 
         /// <summary>Lookup for the value by the key using the hash and checking the key with the `object.ReferenceEquals` for equality,
@@ -1691,7 +1692,7 @@ namespace ImTools.Experimental
         [MethodImpl((MethodImplOptions)256)]
         public static bool TryFind<V>(this ImHashMap234<int, V> map, int hash, out V value)
         {
-            if (map is ImHashMap234<int, V>.ValueEntry v && v.Hash == hash)
+            if (map is ValueEntry<V> v && v.Hash == hash)
             {
                 value = v.Value;
                 return true;
@@ -1700,7 +1701,7 @@ namespace ImTools.Experimental
             var e = map.GetEntryOrDefault(hash);
             if (e != null)
             {
-                value = ((ImHashMap234<int, V>.ValueEntry)e).Value;
+                value = ((ValueEntry<V>)e).Value;
                 return true;
             }
             value = default(V);
@@ -1715,7 +1716,7 @@ namespace ImTools.Experimental
         /// <summary>Adds or updates (no mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap234<int, V> AddOrUpdate<V>(this ImHashMap234<int, V> map, int hash, V value) =>
-            map.AddOrUpdateEntry(hash, new ImHashMap234<int, V>.ValueEntry(hash, value), ImHashMap234<int, V>.DoUpdate);
+            map.AddOrUpdateEntry(hash, new ValueEntry<V>(hash, value), ImHashMap234<int, V>.DoUpdate);
 
         /// <summary>Adds or updates (no mutation) the map with value by the passed key, always returning the NEW map!</summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -1741,7 +1742,7 @@ namespace ImTools.Experimental
         /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the hash is already present</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap234<int, V> AddOrKeep<V>(this ImHashMap234<int, V> map, int hash, V value) =>
-            map.AddOrUpdateEntry(hash, new ImHashMap234<int, V>.ValueEntry(hash, value), ImHashMap234<int, V>.DoKeepOrUpdate);
+            map.AddOrUpdateEntry(hash, new ValueEntry<V>(hash, value), ImHashMap234<int, V>.DoKeepOrUpdate);
 
         [MethodImpl((MethodImplOptions)256)]
         private static ImHashMap234<K, V>.KeyValueEntry GetEntryOrDefault<K, V>(this ImHashMap234<K, V> map, int hash, K key)
@@ -1772,7 +1773,7 @@ namespace ImTools.Experimental
         public static ImHashMap234<int, V> Remove<V>(this ImHashMap234<int, V> map, int hash)
         {
             var entry = map.GetEntryOrDefault(hash);
-            return entry != null ? map.RemoveEntry(hash, (ImHashMap234<int, V>.ValueEntry)entry, ImHashMap234<int, V>.DoRemove) : map;
+            return entry != null ? map.RemoveEntry(hash, (ValueEntry<V>)entry, ImHashMap234<int, V>.DoRemove) : map;
         }
 
         /// <summary>Returns the new map without the specified hash and key (if found) or returns the same map otherwise</summary>
