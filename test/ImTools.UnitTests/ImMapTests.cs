@@ -368,37 +368,6 @@ namespace ImTools.UnitTests
         }
 
         [Test]
-        public void Experimental_Folded_2_level_tree_values_should_be_returned_in_sorted_order()
-        {
-            var items = Enumerable.Range(1, 2).ToArray();
-            var tree = items.Aggregate(Experimental.ImMap<int>.Empty, (t, i) => Experimental.ImMap.AddOrUpdate(t, i, i));
-
-            var list = Experimental.ImMap.Fold(tree, new List<int>(), (data, l) =>
-            {
-                l.Add(data.Value);
-                return l;
-            });
-
-            CollectionAssert.AreEqual(items, list);
-        }
-
-        [Test]
-        public void Experimental_Folded_lefty_values_should_be_returned_in_sorted_order()
-        {
-            var items = Enumerable.Range(0, 20).ToArray();
-            var tree = items.Aggregate(Experimental.ImMap<int>.Empty, (t, i) => Experimental.ImMap.AddOrUpdate(t, i, i));
-
-            var list = Experimental.ImMap.Fold(tree, new List<int>(), (data, l) =>
-            {
-                l.Add(data.Value);
-                return l;
-            });
-
-            CollectionAssert.AreEqual(items, list);
-        }
-
-
-        [Test]
         public void Update_to_null_and_then_to_value_should_remove_null()
         {
             var map = ImMap<string>.Empty
