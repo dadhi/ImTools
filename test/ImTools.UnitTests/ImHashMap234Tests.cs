@@ -166,7 +166,7 @@ namespace ImTools.Experimental.UnitTests
             Assert.AreEqual(null, m.GetValueOrDefault(Xk(10)));
 
             var mr = m.Remove(Xk(1));
-            Assert.IsInstanceOf<KeyValueEntry<XKey<int>, string>>(mr);
+            Assert.IsInstanceOf<ImHashMapEntry<XKey<int>, string>>(mr);
             Assert.AreEqual(null, mr.GetValueOrDefault(Xk(1)));
             Assert.AreEqual("b",  mr.GetValueOrDefault(Xk(2)));
 
@@ -385,25 +385,25 @@ namespace ImTools.Experimental.UnitTests
             //                  
             var m = new ImHashMap234<int, int>.RightyBranch3(
                 new ImHashMap234<int, int>.RightyBranch3(
-                    new ImHashMap234<int, int>.Leaf2(new ValueEntry<int>(8, 8), new ValueEntry<int>(9, 9)),
-                    new ValueEntry<int>(10, 10),
+                    new ImHashMap234<int, int>.Leaf2(new ImHashMapEntry<int>(8, 8), new ImHashMapEntry<int>(9, 9)),
+                    new ImHashMapEntry<int>(10, 10),
                     new ImHashMap234<int, int>.Branch2(
-                        new ImHashMap234<int, int>.Leaf2(new ValueEntry<int>(11, 11), new ValueEntry<int>(12, 12)),
-                        new ValueEntry<int>(13, 13),
-                        new ImHashMap234<int, int>.Leaf2(new ValueEntry<int>(14, 14), new ValueEntry<int>(15, 15))
+                        new ImHashMap234<int, int>.Leaf2(new ImHashMapEntry<int>(11, 11), new ImHashMapEntry<int>(12, 12)),
+                        new ImHashMapEntry<int>(13, 13),
+                        new ImHashMap234<int, int>.Leaf2(new ImHashMapEntry<int>(14, 14), new ImHashMapEntry<int>(15, 15))
                     )),
-                new ValueEntry<int>(20, 20),
+                new ImHashMapEntry<int>(20, 20),
                 new ImHashMap234<int, int>.Branch2(
                     new ImHashMap234<int, int>.Branch2(
-                        new ImHashMap234<int, int>.Leaf2(new ValueEntry<int>(25, 25), new ValueEntry<int>(26, 26)),
-                        new ValueEntry<int>(30, 30),
-                        new ImHashMap234<int, int>.Leaf2(new ValueEntry<int>(35, 35), new ValueEntry<int>(36, 36))
+                        new ImHashMap234<int, int>.Leaf2(new ImHashMapEntry<int>(25, 25), new ImHashMapEntry<int>(26, 26)),
+                        new ImHashMapEntry<int>(30, 30),
+                        new ImHashMap234<int, int>.Leaf2(new ImHashMapEntry<int>(35, 35), new ImHashMapEntry<int>(36, 36))
                     ),
-                    new ValueEntry<int>(40, 40),
+                    new ImHashMapEntry<int>(40, 40),
                     new ImHashMap234<int, int>.Branch2(
-                        new ImHashMap234<int, int>.Leaf2(new ValueEntry<int>(45, 45), new ValueEntry<int>(46, 46)),
-                        new ValueEntry<int>(50, 50),
-                        new ImHashMap234<int, int>.Leaf2(new ValueEntry<int>(55, 55), new ValueEntry<int>(56, 56))
+                        new ImHashMap234<int, int>.Leaf2(new ImHashMapEntry<int>(45, 45), new ImHashMapEntry<int>(46, 46)),
+                        new ImHashMapEntry<int>(50, 50),
+                        new ImHashMap234<int, int>.Leaf2(new ImHashMapEntry<int>(55, 55), new ImHashMapEntry<int>(56, 56))
                 ))
             );
 

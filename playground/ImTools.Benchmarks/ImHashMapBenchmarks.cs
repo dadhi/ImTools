@@ -1861,7 +1861,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 
             // [Benchmark]
             public object ImHashMap_FoldToArray() =>
-                _map.Fold(new List<ImHashMapEntry<Type, string>>(), (entry, list) => { list.Add(entry); return list; }).ToArray();
+                _map.Fold(new List<ImTools.ImHashMapEntry<Type, string>>(), (entry, list) => { list.Add(entry); return list; }).ToArray();
 
             // [Benchmark]
             public object Experimental_ImHashMap_FoldToArray() =>
@@ -1874,7 +1874,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 
             //[Benchmark]
             public object ImHashMapSlots_FoldToArray() =>
-                _mapSlots.Fold(new List<ImHashMapEntry<Type, string>>(), (entry, list) => { list.Add(entry); return list; }).ToArray();
+                _mapSlots.Fold(new List<ImTools.ImHashMapEntry<Type, string>>(), (entry, list) => { list.Add(entry); return list; }).ToArray();
 
             //[Benchmark]
             public object DictionarySlim_ToArray() =>
