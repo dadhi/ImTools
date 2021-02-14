@@ -1204,7 +1204,7 @@ namespace ImTools.Experimental
                          ? new LeftyBranch3(newLeft, e, Right) : new Branch2(newLeft, e, Right);
                 }
 
-                return e;
+                return e is RemovedEntry ? new Branch2(Left, entry, Right) : (ImHashMap234<K, V>)e;
             }
 
             /// <inheritdoc />
@@ -1354,7 +1354,12 @@ namespace ImTools.Experimental
                     return new RightyBranch3(Left, MidEntry, new Branch2(newMiddle, rb.MidEntry, rb.Right));
                 }
 
-                return hash == h0 ? MidEntry : rb.MidEntry;
+                var e0 = MidEntry;
+                if (hash == h0)
+                    return e0 is RemovedEntry ? new RightyBranch3(Left, entry, rb) : (ImHashMap234<K, V>)e0;
+
+                var e1 = rb.MidEntry;
+                return  e1 is RemovedEntry ? new RightyBranch3(Left, e0, new Branch2(rb.Left, entry, rb.Right)) : (ImHashMap234<K, V>)e1;
             }
         }
 
@@ -1437,7 +1442,6 @@ namespace ImTools.Experimental
 
                 var e0 = lb.MidEntry;
                 var e1 = MidEntry;
-
                 return hash == h0
                     ? (e0 = update(e0, entry)) == lb.MidEntry ? this : new LeftyBranch3(new Branch2(lb.Left, e0, lb.Right), e1, Right)
                     : (e1 = update(e1, entry)) == MidEntry    ? this : new LeftyBranch3(lb, e1, Right);
@@ -1486,7 +1490,11 @@ namespace ImTools.Experimental
                     return new LeftyBranch3(new Branch2(lb.Left, lb.MidEntry, newMiddle), MidEntry, Right);
                 }
 
-                return hash == h0 ? lb.MidEntry : MidEntry;
+                var e0 = lb.MidEntry;
+                var e1 = MidEntry;
+                return hash == h0
+                    ? (e0 is RemovedEntry ? new LeftyBranch3(new Branch2(lb.Left, entry, lb.Right), e1, Right) : (ImHashMap234<K, V>)e0)
+                    : (e1 is RemovedEntry ? new LeftyBranch3(lb, entry, Right) : (ImHashMap234<K, V>)e1);
             }
         }
     }
@@ -2088,8 +2096,40 @@ namespace ImTools.Experimental
 
         /// <summary>Adds or updates (no mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap234<K, V> AddOrUpdate<K, V>(this ImHashMap234<K, V> map, int hash, K key, V value) =>
+        public static ImHashMap234<K, V> AddOrUpdate2<K, V>(this ImHashMap234<K, V> map, int hash, K key, V value) =>
             map.AddOrUpdateEntry(hash, new ImHashMapEntry<K, V>(hash, key, value), ImHashMap234<K, V>.DoUpdate);
+
+        /// <summary>Adds or updates (no mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap234<K, V> AddOrUpdate<K, V>(this ImHashMap234<K, V> map, int hash, K key, V value) 
+        {
+            var newEntry = new ImHashMapEntry<K, V>(hash, key, value);
+            if (map == ImHashMap234<K, V>.Empty)
+                return newEntry;
+
+            var oldEntryOrMap = map.GetOrAddEntry(hash, newEntry);
+            if (oldEntryOrMap is ImHashMapEntry<K, V>.Entry oldEntry)
+                return map.UpdateEntry(hash, oldEntry, UpdateEntry(oldEntry, newEntry));
+
+            return oldEntryOrMap;
+        }
+
+        private static ImHashMap234<K, V>.Entry UpdateEntry<K, V>(ImHashMap234<K, V>.Entry oldEntry, ImHashMapEntry<K, V> newEntry)
+        {
+            if (oldEntry is ImHashMapEntry<K, V> kv)
+                return kv.Key.Equals(newEntry.Key) ? newEntry : (ImHashMap234<K, V>.Entry)new HashConflictKeyValuesEntry<K, V>(oldEntry.Hash, kv, newEntry);
+
+            var hkv = (HashConflictKeyValuesEntry<K, V>)oldEntry;
+            var cs = hkv.Conflicts;
+            var n = cs.Length;
+            var i = n - 1;
+            while (i != -1 && !newEntry.Key.Equals(cs[i].Key)) --i;
+            var newConflicts = new ImHashMapEntry<K, V>[i != -1 ? n : n + 1];
+            Array.Copy(cs, 0, newConflicts, 0, n);
+            newConflicts[i != -1 ? i : n] = newEntry;
+
+            return new HashConflictKeyValuesEntry<K, V>(oldEntry.Hash, newConflicts);
+        }
 
         /// <summary>Adds or updates (no mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
         [MethodImpl((MethodImplOptions)256)]
