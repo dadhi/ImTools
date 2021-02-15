@@ -181,8 +181,12 @@ namespace ImTools.Experimental
         /// <summary>Returns the new, updated or the same map depending on the `updater` passed</summary>
         public virtual ImHashMap234<K, V> AddOrUpdateEntry(int hash, Entry entry, Updater update) => entry;
 
-        /// <summary>Returns the new, updated or the same map depending on the `updater` passed</summary>
-        public virtual ImHashMap234<K, V> GetOrAddEntry(int hash, Entry entry) => entry;
+        /// <summary>Returns the found entry with the same hash or the new map with added new entry.
+        /// Note that the empty map will return the entry the same as if the entry was found - so the consumer should check for the empty map</summary>
+        public virtual ImHashMap234<K, V> AddOrGetEntry(int hash, Entry entry) => entry;
+
+        /// <summary>Returns the new map with old entry replaced by the new entry. Note that the old entry should be present.</summary>
+        public virtual ImHashMap234<K, V> UpdateEntry(int hash, Entry oldEntry, Entry newEntry) => this;
 
         /// <summary>Returns the map without the entry with the specified hash and key, or the same map if not found.</summary>
         public virtual ImHashMap234<K, V> RemoveEntry(int hash, Entry entry, Updater remove) => this;
@@ -206,10 +210,15 @@ namespace ImTools.Experimental
                 (ImHashMap234<K, V>)update(this, entry);
 
             /// <inheritdoc />
-            public sealed override ImHashMap234<K, V> GetOrAddEntry(int hash, Entry entry) =>
+            public sealed override ImHashMap234<K, V> AddOrGetEntry(int hash, Entry entry) =>
                 hash > Hash ? new Leaf2(this, entry) :
                 hash < Hash ? new Leaf2(entry, this) :
-                (ImHashMap234<K, V>)entry;
+                (ImHashMap234<K, V>)this;
+
+            // todo: the big question what should it do and do we need this method on the entry
+            /// <inheritdoc />
+            public sealed override ImHashMap234<K, V> UpdateEntry(int hash, Entry oldEntry, Entry newEntry) => 
+                this == oldEntry ? newEntry : oldEntry;
 
             /// <inheritdoc />
             public sealed override ImHashMap234<K, V> RemoveEntry(int hash, Entry entry, Updater remove) =>
@@ -269,7 +278,7 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
-            public sealed override ImHashMap234<K, V> GetOrAddEntry(int hash, Entry entry)
+            public sealed override ImHashMap234<K, V> AddOrGetEntry(int hash, Entry entry)
             {
                 var e0 = Entry0;
                 var e1 = Entry1;
@@ -286,6 +295,11 @@ namespace ImTools.Experimental
                      : hash == e1.Hash ? e1
                      : (ImHashMap234<K, V>)new Leaf2Plus1(entry, this);
             }
+
+            /// <inheritdoc />
+            public sealed override ImHashMap234<K, V> UpdateEntry(int hash, Entry oldEntry, Entry newEntry) =>
+                oldEntry == Entry0 ? new Leaf2(newEntry, Entry1) : 
+                                     new Leaf2(Entry0, newEntry);
 
             /// <inheritdoc />
             public override ImHashMap234<K, V> RemoveEntry(int hash, Entry entry, Updater remove)
@@ -347,7 +361,7 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
-            public sealed override ImHashMap234<K, V> GetOrAddEntry(int hash, Entry entry)
+            public sealed override ImHashMap234<K, V> AddOrGetEntry(int hash, Entry entry)
             {
                 var p = Plus;
                 if (hash == p.Hash) 
@@ -359,6 +373,12 @@ namespace ImTools.Experimental
                     hash == e1.Hash ? e1 :
                     (ImHashMap234<K, V>)new Leaf2Plus1Plus1(entry, this);
             }
+
+            /// <inheritdoc />
+            public sealed override ImHashMap234<K, V> UpdateEntry(int hash, Entry oldEntry, Entry newEntry) =>
+                oldEntry == Plus     ? new Leaf2Plus1(newEntry, L) :
+                oldEntry == L.Entry0 ? new Leaf2Plus1(Plus, new Leaf2(newEntry, L.Entry1)) :
+                                       new Leaf2Plus1(Plus, new Leaf2(L.Entry0, newEntry));
 
             /// <inheritdoc />
             public override ImHashMap234<K, V> RemoveEntry(int hash, Entry entry, Updater remove)
@@ -477,7 +497,7 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
-            public sealed override ImHashMap234<K, V> GetOrAddEntry(int hash, Entry entry)
+            public sealed override ImHashMap234<K, V> AddOrGetEntry(int hash, Entry entry)
             {
                 var p = Plus;
                 var ph = p.Hash;
@@ -540,6 +560,13 @@ namespace ImTools.Experimental
 
                 return new Leaf5(e0, e1, pp, p, e);
             }
+
+            /// <inheritdoc />
+            public sealed override ImHashMap234<K, V> UpdateEntry(int hash, Entry oldEntry, Entry newEntry) =>
+                oldEntry == Plus       ? new Leaf2Plus1Plus1(newEntry, L) :
+                oldEntry == L.Plus     ? new Leaf2Plus1Plus1(Plus, new Leaf2Plus1(newEntry, L.L)) :
+                oldEntry == L.L.Entry0 ? new Leaf2Plus1Plus1(Plus, new Leaf2Plus1(L.Plus, new Leaf2(newEntry, L.L.Entry1))) :
+                                         new Leaf2Plus1Plus1(Plus, new Leaf2Plus1(L.Plus, new Leaf2(L.L.Entry0, newEntry)));
 
             /// <inheritdoc />
             public override ImHashMap234<K, V> RemoveEntry(int hash, Entry entry, Updater remove)
@@ -624,7 +651,7 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
-            public sealed override ImHashMap234<K, V> GetOrAddEntry(int hash, Entry entry)
+            public sealed override ImHashMap234<K, V> AddOrGetEntry(int hash, Entry entry)
             {
                 Entry e0 = Entry0, e1 = Entry1, e2 = Entry2, e3 = Entry3, e4 = Entry4;
                 return
@@ -635,6 +662,14 @@ namespace ImTools.Experimental
                     hash == e4.Hash ? e4 :
                     (ImHashMap234<K, V>)new Leaf5Plus1(entry, this);
             }
+
+            /// <inheritdoc />
+            public sealed override ImHashMap234<K, V> UpdateEntry(int hash, Entry oldEntry, Entry newEntry) =>
+                oldEntry == Entry0 ? new Leaf5(newEntry, Entry1, Entry2, Entry3, Entry4) : 
+                oldEntry == Entry1 ? new Leaf5(Entry0, newEntry, Entry2, Entry3, Entry4) :
+                oldEntry == Entry2 ? new Leaf5(Entry0, Entry1, newEntry, Entry3, Entry4) :
+                oldEntry == Entry3 ? new Leaf5(Entry0, Entry1, Entry2, newEntry, Entry4) :
+                                     new Leaf5(Entry0, Entry1, Entry2, Entry3, newEntry);
 
             /// <inheritdoc />
             public override ImHashMap234<K, V> RemoveEntry(int hash, Entry entry, Updater remove)
@@ -715,7 +750,7 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
-            public sealed override ImHashMap234<K, V> GetOrAddEntry(int hash, Entry entry)
+            public sealed override ImHashMap234<K, V> AddOrGetEntry(int hash, Entry entry)
             {
                 var p = Plus;
                 var ph = p.Hash;
@@ -737,6 +772,23 @@ namespace ImTools.Experimental
                     return e4;
 
                 return new Leaf5Plus1Plus1(entry, this);
+            }
+
+            /// <inheritdoc />
+            public sealed override ImHashMap234<K, V> UpdateEntry(int hash, Entry oldEntry, Entry newEntry)
+            {
+                var p = Plus;
+                if (oldEntry == p)
+                    return new Leaf5Plus1(newEntry, L);
+
+                var l = L; 
+                Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4;
+                return
+                    oldEntry == e0 ? new Leaf5Plus1(p, new Leaf5(newEntry, e1, e2, e3, e4)) :
+                    oldEntry == e1 ? new Leaf5Plus1(p, new Leaf5(e0, newEntry, e2, e3, e4)) :
+                    oldEntry == e2 ? new Leaf5Plus1(p, new Leaf5(e0, e1, newEntry, e3, e4)) :
+                    oldEntry == e3 ? new Leaf5Plus1(p, new Leaf5(e0, e1, e2, newEntry, e4)) :
+                                     new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3, newEntry));
             }
 
             /// <inheritdoc />
@@ -946,7 +998,7 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
-            public sealed override ImHashMap234<K, V> GetOrAddEntry(int hash, Entry entry)
+            public sealed override ImHashMap234<K, V> AddOrGetEntry(int hash, Entry entry)
             {
                 var p = Plus;
                 var ph = p.Hash;
@@ -1057,6 +1109,27 @@ namespace ImTools.Experimental
                 if (left)
                     return new Branch2(new Leaf2(e0, e1), e2, l);
                 return new Branch2(new Leaf5(e0, e1, e2, e3, e4), pp, new Leaf2(p, e));
+            }
+
+            /// <inheritdoc />
+            public sealed override ImHashMap234<K, V> UpdateEntry(int hash, Entry oldEntry, Entry newEntry)
+            {
+                var p = Plus;
+                if (p == oldEntry)
+                    return new Leaf5Plus1Plus1(newEntry, L);
+
+                var pp = L.Plus;
+                if (pp == oldEntry)
+                    return new Leaf5Plus1Plus1(p, new Leaf5Plus1(newEntry, L.L));
+
+                var l = L.L;
+                Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4;
+                return
+                    oldEntry == e0 ? new Leaf5Plus1Plus1(p, new Leaf5Plus1(pp, new Leaf5(newEntry, e1, e2, e3, e4))) :
+                    oldEntry == e1 ? new Leaf5Plus1Plus1(p, new Leaf5Plus1(pp, new Leaf5(e0, newEntry, e2, e3, e4))) :
+                    oldEntry == e2 ? new Leaf5Plus1Plus1(p, new Leaf5Plus1(pp, new Leaf5(e0, e1, newEntry, e3, e4))) :
+                    oldEntry == e3 ? new Leaf5Plus1Plus1(p, new Leaf5Plus1(pp, new Leaf5(e0, e1, e2, newEntry, e4))) :
+                                     new Leaf5Plus1Plus1(p, new Leaf5Plus1(pp, new Leaf5(e0, e1, e2, e3, newEntry)));
             }
 
             /// <inheritdoc />
@@ -1183,13 +1256,13 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
-            public override ImHashMap234<K, V> GetOrAddEntry(int hash, Entry entry)
+            public override ImHashMap234<K, V> AddOrGetEntry(int hash, Entry entry)
             {
                 var e = MidEntry;
                 if (hash > e.Hash)
                 {
                     var right = Right;
-                    var newRight = right.GetOrAddEntry(hash, entry);
+                    var newRight = right.AddOrGetEntry(hash, entry);
                     return newRight is Entry ? newRight
                          : right.GetType() != typeof(Branch2) && newRight.GetType() == typeof(Branch2) 
                          ? new RightyBranch3(Left, e, newRight) : new Branch2(Left, e, newRight);
@@ -1198,13 +1271,22 @@ namespace ImTools.Experimental
                 if (hash < e.Hash)
                 {
                     var left = Left;
-                    var newLeft = left.GetOrAddEntry(hash, entry);
+                    var newLeft = left.AddOrGetEntry(hash, entry);
                     return newLeft is Entry ? newLeft 
                          : left.GetType() != typeof(Branch2) && newLeft.GetType() == typeof(Branch2) 
                          ? new LeftyBranch3(newLeft, e, Right) : new Branch2(newLeft, e, Right);
                 }
 
                 return e is RemovedEntry ? new Branch2(Left, entry, Right) : (ImHashMap234<K, V>)e;
+            }
+
+            /// <inheritdoc />
+            public override ImHashMap234<K, V> UpdateEntry(int hash, Entry oldEntry, Entry newEntry)
+            {
+                var e = MidEntry;
+                return hash > e.Hash ? new Branch2(Left, e, Right.UpdateEntry(hash, oldEntry, newEntry))
+                    :  hash < e.Hash ? new Branch2(Left.UpdateEntry(hash, oldEntry, newEntry), e, Right)
+                    :  new Branch2(Left, newEntry, Right);
             }
 
             /// <inheritdoc />
@@ -1311,7 +1393,7 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
-            public override ImHashMap234<K, V> GetOrAddEntry(int hash, Entry entry)
+            public override ImHashMap234<K, V> AddOrGetEntry(int hash, Entry entry)
             {
                 var h0 = MidEntry.Hash;
                 var rb = (Branch2)Right;
@@ -1320,7 +1402,7 @@ namespace ImTools.Experimental
                 if (hash > h1)
                 {
                     var right = rb.Right;
-                    var newRight = right.GetOrAddEntry(hash, entry);
+                    var newRight = right.AddOrGetEntry(hash, entry);
                     if (newRight is Entry)
                         return newRight;
                     if (right.GetType() != typeof(Branch2) && newRight.GetType() == typeof(Branch2))
@@ -1331,7 +1413,7 @@ namespace ImTools.Experimental
                 if (hash < h0)
                 {
                     var left = Left;
-                    var newLeft = left.GetOrAddEntry(hash, entry);
+                    var newLeft = left.AddOrGetEntry(hash, entry);
                     if (newLeft is Entry)
                         return newLeft;
                     if (left.GetType() != typeof(Branch2) && newLeft.GetType() == typeof(Branch2))
@@ -1342,7 +1424,7 @@ namespace ImTools.Experimental
                 if (hash > h0 && hash < h1)
                 {
                     var middle = rb.Left;
-                    var newMiddle = middle.GetOrAddEntry(hash, entry);
+                    var newMiddle = middle.AddOrGetEntry(hash, entry);
                     if (newMiddle is Entry)
                         return newMiddle;
                     if (middle.GetType() != typeof(Branch2) && newMiddle.GetType() == typeof(Branch2))
@@ -1360,6 +1442,15 @@ namespace ImTools.Experimental
 
                 var e1 = rb.MidEntry;
                 return  e1 is RemovedEntry ? new RightyBranch3(Left, e0, new Branch2(rb.Left, entry, rb.Right)) : (ImHashMap234<K, V>)e1;
+            }
+
+            /// <inheritdoc />
+            public override ImHashMap234<K, V> UpdateEntry(int hash, Entry oldEntry, Entry newEntry)
+            {
+                var e = MidEntry;
+                return hash > e.Hash ? new RightyBranch3(Left, e, Right.UpdateEntry(hash, oldEntry, newEntry)) 
+                    :  hash < e.Hash ? new RightyBranch3(Left.UpdateEntry(hash, oldEntry, newEntry), e, Right)
+                    :  new RightyBranch3(Left, newEntry, Right);
             }
         }
 
@@ -1448,7 +1539,7 @@ namespace ImTools.Experimental
             }
 
             /// <inheritdoc />
-            public override ImHashMap234<K, V> GetOrAddEntry(int hash, Entry entry)
+            public override ImHashMap234<K, V> AddOrGetEntry(int hash, Entry entry)
             {
                 var lb = (Branch2)Left;
                 var h0 = lb.MidEntry.Hash;
@@ -1457,7 +1548,7 @@ namespace ImTools.Experimental
                 if (hash > h1)
                 {
                     var right = Right;
-                    var newRight = right.GetOrAddEntry(hash, entry);
+                    var newRight = right.AddOrGetEntry(hash, entry);
                     if (newRight is Entry)
                         return newRight;
                     if (right.GetType() != typeof(Branch2) && newRight.GetType() == typeof(Branch2))
@@ -1468,7 +1559,7 @@ namespace ImTools.Experimental
                 if (hash < h0)
                 {
                     var left = lb.Left;
-                    var newLeft = left.GetOrAddEntry(hash, entry);
+                    var newLeft = left.AddOrGetEntry(hash, entry);
                     if (newLeft is Entry)
                         return newLeft;
                     if (left.GetType() != typeof(Branch2) && newLeft.GetType() == typeof(Branch2))
@@ -1479,7 +1570,7 @@ namespace ImTools.Experimental
                 if (hash > h0 && hash < h1)
                 {
                     var middle = lb.Right;
-                    var newMiddle = middle.GetOrAddEntry(hash, entry);
+                    var newMiddle = middle.AddOrGetEntry(hash, entry);
                     if (newMiddle is Entry)
                         return newMiddle;
                     if (middle.GetType() != typeof(Branch2) && newMiddle.GetType() == typeof(Branch2))
@@ -1495,6 +1586,15 @@ namespace ImTools.Experimental
                 return hash == h0
                     ? (e0 is RemovedEntry ? new LeftyBranch3(new Branch2(lb.Left, entry, lb.Right), e1, Right) : (ImHashMap234<K, V>)e0)
                     : (e1 is RemovedEntry ? new LeftyBranch3(lb, entry, Right) : (ImHashMap234<K, V>)e1);
+            }
+
+            /// <inheritdoc />
+            public override ImHashMap234<K, V> UpdateEntry(int hash, Entry oldEntry, Entry newEntry)
+            {
+                var e = MidEntry;
+                return hash > e.Hash ? new LeftyBranch3(Left, e, Right.UpdateEntry(hash, oldEntry, newEntry))
+                    :  hash < e.Hash ? new LeftyBranch3(Left.UpdateEntry(hash, oldEntry, newEntry), e, Right)
+                    :  new LeftyBranch3(Left, newEntry, Right);
             }
         }
     }
@@ -2096,7 +2196,7 @@ namespace ImTools.Experimental
 
         /// <summary>Adds or updates (no mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap234<K, V> AddOrUpdate2<K, V>(this ImHashMap234<K, V> map, int hash, K key, V value) =>
+        public static ImHashMap234<K, V> AddOrUpdate_OLD<K, V>(this ImHashMap234<K, V> map, int hash, K key, V value) =>
             map.AddOrUpdateEntry(hash, new ImHashMapEntry<K, V>(hash, key, value), ImHashMap234<K, V>.DoUpdate);
 
         /// <summary>Adds or updates (no mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
@@ -2107,7 +2207,7 @@ namespace ImTools.Experimental
             if (map == ImHashMap234<K, V>.Empty)
                 return newEntry;
 
-            var oldEntryOrMap = map.GetOrAddEntry(hash, newEntry);
+            var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
             if (oldEntryOrMap is ImHashMapEntry<K, V>.Entry oldEntry)
                 return map.UpdateEntry(hash, oldEntry, UpdateEntry(oldEntry, newEntry));
 
@@ -2133,8 +2233,23 @@ namespace ImTools.Experimental
 
         /// <summary>Adds or updates (no mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap234<int, V> AddOrUpdate<V>(this ImHashMap234<int, V> map, int hash, V value) =>
+        public static ImHashMap234<int, V> AddOrUpdate_OLD<V>(this ImHashMap234<int, V> map, int hash, V value) =>
             map.AddOrUpdateEntry(hash, new ImHashMapEntry<V>(hash, value), ImHashMap234<int, V>.DoUpdate);
+
+        /// <summary>Adds or updates (no mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap234<int, V> AddOrUpdate<V>(this ImHashMap234<int, V> map, int hash, V value)
+        {
+            var newEntry = new ImHashMapEntry<V>(hash, value);
+            if (map == ImHashMap234<int, V>.Empty)
+                return newEntry;
+
+            var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
+            if (oldEntryOrMap is ImHashMapEntry<int, V>.Entry oldEntry)
+                return map.UpdateEntry(hash, oldEntry, newEntry); // todo: @perf here we have a chance to compare the old and the new value and prevent the updated if the values are equal
+
+            return oldEntryOrMap;
+        }
 
         /// <summary>Adds or updates (no mutation) the map with value by the passed key, always returning the NEW map!</summary>
         [MethodImpl((MethodImplOptions)256)]
