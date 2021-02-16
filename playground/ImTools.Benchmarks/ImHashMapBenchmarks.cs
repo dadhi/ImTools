@@ -338,7 +338,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |                 ImmutableDict_Builder_Add |  1000 |   515,561.1 ns | 1,244.32 ns | 1,163.94 ns |  1.96 |    0.01 |  12.6953 |  2.9297 |     - |   64209 B |
 |                         ImmutableDict_Add |  1000 | 1,013,851.3 ns | 4,173.47 ns | 3,903.87 ns |  3.86 |    0.02 | 140.6250 | 33.2031 |     - |  662171 B |
 
-## v3 - baseline
+## V3 - baseline
 
 BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19041.572 (2004/?/20H1)
 Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical cores
@@ -364,236 +364,27 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 | Experimental_ImHashMap_AddOrUpdate |  1000 | 309,012.9 ns | 1,882.16 ns | 1,760.57 ns |  1.00 |    0.01 | 104.9805 | 25.8789 |     - |  439977 B |
 |           ImHashMap234_AddOrUpdate |  1000 | 231,146.4 ns | 1,493.09 ns | 1,323.58 ns |  0.75 |    0.01 |  82.2754 | 18.0664 |     - |  344593 B |
 
-Leaf4Plus1
-
-|                             Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
-|----------------------------------- |------ |-------------:|------------:|------------:|------:|--------:|---------:|--------:|------:|----------:|
-|              ImHashMap_AddOrUpdate |     1 |     132.5 ns |     2.24 ns |     2.09 ns |  1.00 |    0.00 |   0.0648 |       - |     - |     272 B |
-| Experimental_ImHashMap_AddOrUpdate |     1 |     109.5 ns |     1.69 ns |     1.41 ns |  0.83 |    0.02 |   0.0381 |       - |     - |     160 B |
-|           ImHashMap234_AddOrUpdate |     1 |     102.3 ns |     1.21 ns |     1.13 ns |  0.77 |    0.02 |   0.0381 |       - |     - |     160 B |
-|                                    |       |              |             |             |       |         |          |         |       |           |
-|              ImHashMap_AddOrUpdate |    10 |     897.3 ns |    15.51 ns |    12.96 ns |  1.00 |    0.00 |   0.5522 |       - |     - |    2312 B |
-| Experimental_ImHashMap_AddOrUpdate |    10 |     703.9 ns |     6.53 ns |     5.45 ns |  0.78 |    0.02 |   0.3576 |       - |     - |    1496 B |
-|           ImHashMap234_AddOrUpdate |    10 |     633.4 ns |     8.66 ns |     8.10 ns |  0.70 |    0.01 |   0.2880 |       - |     - |    1208 B |
-|                                    |       |              |             |             |       |         |          |         |       |           |
-|              ImHashMap_AddOrUpdate |   100 |  13,834.5 ns |   135.18 ns |   126.45 ns |  1.00 |    0.00 |   8.3313 |       - |     - |   34856 B |
-| Experimental_ImHashMap_AddOrUpdate |   100 |  11,653.9 ns |   173.16 ns |   144.60 ns |  0.84 |    0.01 |   6.6528 |       - |     - |   27880 B |
-|           ImHashMap234_AddOrUpdate |   100 |  10,100.4 ns |   103.72 ns |    97.02 ns |  0.73 |    0.01 |   5.2185 |       - |     - |   21856 B |
-|                                    |       |              |             |             |       |         |          |         |       |           |
-|              ImHashMap_AddOrUpdate |  1000 | 303,169.9 ns | 3,114.01 ns | 2,600.34 ns |  1.00 |    0.00 | 122.0703 |  3.4180 |     - |  511209 B |
-| Experimental_ImHashMap_AddOrUpdate |  1000 | 304,592.2 ns | 4,624.16 ns | 4,325.44 ns |  1.00 |    0.02 | 104.9805 | 25.8789 |     - |  439976 B |
-|           ImHashMap234_AddOrUpdate |  1000 | 226,901.5 ns | 4,024.60 ns | 3,360.72 ns |  0.75 |    0.01 |  81.0547 |  1.4648 |     - |  339345 B |
-
-### Leaf5Plus1 + Leaf4Plus1
-
-|                                      Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
-|-------------------------------------------- |------ |-------------:|------------:|------------:|------:|--------:|---------:|--------:|------:|----------:|
-|                V2_ImHashMap_AVL_AddOrUpdate |     1 |     155.9 ns |     1.78 ns |     1.58 ns |  1.00 |    0.00 |   0.0648 |       - |     - |     272 B |
-| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |     1 |     123.1 ns |     2.26 ns |     1.88 ns |  0.79 |    0.01 |   0.0381 |       - |     - |     160 B |
-|            V3_ImHashMap_234Tree_AddOrUpdate |     1 |     122.5 ns |     2.18 ns |     2.04 ns |  0.79 |    0.02 |   0.0381 |       - |     - |     160 B |
-|   V3_PartitionedHashMap_234Tree_AddOrUpdate |     1 |     185.8 ns |     1.99 ns |     1.76 ns |  1.19 |    0.02 |   0.0668 |       - |     - |     280 B |
-|                                             |       |              |             |             |       |         |          |         |       |           |
-|                V2_ImHashMap_AVL_AddOrUpdate |     5 |     495.1 ns |     5.52 ns |     4.90 ns |  1.00 |    0.00 |   0.2632 |       - |     - |    1104 B |
-| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |     5 |     382.9 ns |     5.82 ns |    10.03 ns |  0.79 |    0.03 |   0.1602 |       - |     - |     672 B |
-|            V3_ImHashMap_234Tree_AddOrUpdate |     5 |     317.2 ns |     3.33 ns |     2.95 ns |  0.64 |    0.01 |   0.1144 |       - |     - |     480 B |
-|   V3_PartitionedHashMap_234Tree_AddOrUpdate |     5 |     342.5 ns |     4.24 ns |     3.76 ns |  0.69 |    0.01 |   0.1125 |       - |     - |     472 B |
-|                                             |       |              |             |             |       |         |          |         |       |           |
-|                V2_ImHashMap_AVL_AddOrUpdate |    10 |   1,017.4 ns |     6.82 ns |     6.38 ns |  1.00 |    0.00 |   0.5512 |       - |     - |    2312 B |
-| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |    10 |     804.0 ns |     5.72 ns |     4.78 ns |  0.79 |    0.01 |   0.3576 |       - |     - |    1496 B |
-|            V3_ImHashMap_234Tree_AddOrUpdate |    10 |     676.4 ns |     7.29 ns |     6.82 ns |  0.66 |    0.01 |   0.2708 |       - |     - |    1136 B |
-|   V3_PartitionedHashMap_234Tree_AddOrUpdate |    10 |     583.1 ns |     3.79 ns |     3.36 ns |  0.57 |    0.00 |   0.1869 |       - |     - |     784 B |
-|                                             |       |              |             |             |       |         |          |         |       |           |
-|                V2_ImHashMap_AVL_AddOrUpdate |   100 |  15,363.1 ns |   192.26 ns |   170.44 ns |  1.00 |    0.00 |   8.3313 |       - |     - |   34856 B |
-| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |   100 |  13,080.5 ns |   229.03 ns |   305.75 ns |  0.86 |    0.03 |   6.6528 |       - |     - |   27880 B |
-|            V3_ImHashMap_234Tree_AddOrUpdate |   100 |  11,198.1 ns |   129.68 ns |   108.29 ns |  0.73 |    0.01 |   4.8523 |       - |     - |   20328 B |
-|   V3_PartitionedHashMap_234Tree_AddOrUpdate |   100 |   6,450.8 ns |   128.49 ns |   329.38 ns |  0.43 |    0.04 |   1.9989 |  0.0076 |     - |    8376 B |
-|                                             |       |              |             |             |       |         |          |         |       |           |
-|                V2_ImHashMap_AVL_AddOrUpdate |  1000 | 340,521.4 ns | 5,592.75 ns | 5,231.46 ns |  1.00 |    0.00 | 122.0703 |  3.4180 |     - |  511209 B |
-| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |  1000 | 338,591.6 ns | 3,026.13 ns | 2,682.59 ns |  0.99 |    0.01 | 104.9805 | 25.8789 |     - |  439976 B |
-|            V3_ImHashMap_234Tree_AddOrUpdate |  1000 | 248,999.0 ns | 3,445.11 ns | 3,222.56 ns |  0.73 |    0.01 |  78.6133 |  1.4648 |     - |  330065 B |
-|   V3_PartitionedHashMap_234Tree_AddOrUpdate |  1000 | 151,655.7 ns | 1,724.22 ns | 1,612.83 ns |  0.45 |    0.01 |  43.2129 | 10.7422 |     - |  181496 B |
-
-### Removed 500+ locs of the AddAndSplit methods (20% of whole code) with improving the perf by ~1-2% at a cost of ~1% of memory
-
-|                                      Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |        
-|-------------------------------------------- |------ |-------------:|------------:|------------:|------:|--------:|---------:|--------:|------:|----------:|        
-|                V2_ImHashMap_AVL_AddOrUpdate |     1 |     154.4 ns |     3.18 ns |     3.12 ns |  1.00 |    0.00 |   0.0648 |       - |     - |     272 B |        
-| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |     1 |     128.4 ns |     2.45 ns |     1.91 ns |  0.83 |    0.02 |   0.0381 |       - |     - |     160 B |        
-|            V3_ImHashMap_234Tree_AddOrUpdate |     1 |     126.0 ns |     1.66 ns |     1.55 ns |  0.82 |    0.02 |   0.0381 |       - |     - |     160 B |        
-|   V3_PartitionedHashMap_234Tree_AddOrUpdate |     1 |     186.2 ns |     1.57 ns |     1.39 ns |  1.21 |    0.03 |   0.0668 |       - |     - |     280 B |
-|                 ConcurrentDictionary_TryAdd |     1 |     401.9 ns |     8.12 ns |    15.45 ns |  2.67 |    0.12 |   0.1988 |       - |     - |     832 B |        
-|                                             |       |              |             |             |       |         |          |         |       |           |
-|                V2_ImHashMap_AVL_AddOrUpdate |     5 |     582.0 ns |     7.13 ns |     6.67 ns |  1.00 |    0.00 |   0.2632 |       - |     - |    1104 B |        
-| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |     5 |     457.8 ns |     8.91 ns |    12.78 ns |  0.79 |    0.02 |   0.1602 |       - |     - |     672 B |
-|            V3_ImHashMap_234Tree_AddOrUpdate |     5 |     372.4 ns |     7.08 ns |     9.20 ns |  0.64 |    0.02 |   0.1144 |       - |     - |     480 B |        
-|   V3_PartitionedHashMap_234Tree_AddOrUpdate |     5 |     400.5 ns |     8.00 ns |     7.49 ns |  0.69 |    0.02 |   0.1125 |       - |     - |     472 B |        
-|                 ConcurrentDictionary_TryAdd |     5 |     755.7 ns |    14.73 ns |    20.17 ns |  1.29 |    0.04 |   0.2441 |       - |     - |    1024 B |        
-|                                             |       |              |             |             |       |         |          |         |       |           |        
-|                V2_ImHashMap_AVL_AddOrUpdate |    10 |   1,155.7 ns |    22.84 ns |    28.05 ns |  1.00 |    0.00 |   0.5512 |       - |     - |    2312 B |        
-| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |    10 |     901.7 ns |    12.30 ns |     9.61 ns |  0.78 |    0.02 |   0.3576 |       - |     - |    1496 B |
-|            V3_ImHashMap_234Tree_AddOrUpdate |    10 |     799.9 ns |    15.94 ns |    18.35 ns |  0.69 |    0.03 |   0.2708 |       - |     - |    1136 B |
-|   V3_PartitionedHashMap_234Tree_AddOrUpdate |    10 |     705.2 ns |    13.82 ns |    12.25 ns |  0.61 |    0.02 |   0.1869 |       - |     - |     784 B |
-|                 ConcurrentDictionary_TryAdd |    10 |   2,001.6 ns |    38.36 ns |    48.52 ns |  1.73 |    0.06 |   0.6752 |       - |     - |    2824 B |        
-|                                             |       |              |             |             |       |         |          |         |       |           |        
-|                V2_ImHashMap_AVL_AddOrUpdate |   100 |  17,990.7 ns |   353.72 ns |   378.47 ns |  1.00 |    0.00 |   8.3313 |       - |     - |   34856 B |
-| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |   100 |  15,504.4 ns |   304.44 ns |   426.79 ns |  0.86 |    0.04 |   6.6528 |       - |     - |   27880 B |        
-|            V3_ImHashMap_234Tree_AddOrUpdate |   100 |  12,801.1 ns |   208.34 ns |   401.40 ns |  0.72 |    0.03 |   5.0201 |       - |     - |   21008 B |
-|   V3_PartitionedHashMap_234Tree_AddOrUpdate |   100 |   7,010.4 ns |   138.21 ns |   141.93 ns |  0.39 |    0.01 |   1.9989 |  0.0076 |     - |    8376 B |
-|                 ConcurrentDictionary_TryAdd |   100 |  20,917.1 ns |   410.67 ns |   456.46 ns |  1.16 |    0.04 |   6.8359 |  0.0305 |     - |   28640 B |
-|                                             |       |              |             |             |       |         |          |         |       |           |
-|                V2_ImHashMap_AVL_AddOrUpdate |  1000 | 386,120.3 ns | 7,546.45 ns | 5,891.77 ns |  1.00 |    0.00 | 122.0703 |  3.4180 |     - |  511209 B |        
-| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |  1000 | 395,281.9 ns | 7,120.73 ns | 8,476.72 ns |  1.02 |    0.03 | 104.9805 | 25.8789 |     - |  439976 B |        
-|            V3_ImHashMap_234Tree_AddOrUpdate |  1000 | 262,020.3 ns | 5,200.18 ns | 6,386.29 ns |  0.68 |    0.02 |  80.5664 |  1.9531 |     - |  338464 B |        
-|   V3_PartitionedHashMap_234Tree_AddOrUpdate |  1000 | 168,867.3 ns | 3,053.79 ns | 3,750.33 ns |  0.44 |    0.01 |  44.6777 | 10.9863 |     - |  187376 B |        
-|                 ConcurrentDictionary_TryAdd |  1000 | 234,142.0 ns | 4,564.28 ns | 5,073.19 ns |  0.60 |    0.02 |  52.7344 | 13.1836 |     - |  247576 B | 
-
-
-## Merge update in Leaf5plus1 (less code) and .NET 5
-
-BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19041.630 (2004/?/20H1)
-Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical cores
-.NET Core SDK=5.0.100
-  [Host]     : .NET Core 5.0.0 (CoreCLR 5.0.20.51904, CoreFX 5.0.20.51904), X64 RyuJIT
-  DefaultJob : .NET Core 5.0.0 (CoreCLR 5.0.20.51904, CoreFX 5.0.20.51904), X64 RyuJIT
-
-
-|                           Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
-|--------------------------------- |------ |-------------:|------------:|------------:|------:|--------:|---------:|--------:|------:|----------:|
-|     V2_ImHashMap_AVL_AddOrUpdate |     1 |     144.0 ns |     1.52 ns |     1.19 ns |  1.00 |    0.00 |   0.0650 |       - |     - |     272 B |
-| V3_ImHashMap_234Tree_AddOrUpdate |     1 |     101.5 ns |     1.28 ns |     1.14 ns |  0.70 |    0.01 |   0.0381 |       - |     - |     160 B |
-|      ConcurrentDictionary_TryAdd |     1 |     292.7 ns |     4.76 ns |     4.45 ns |  2.04 |    0.04 |   0.1969 |       - |     - |     824 B |
-|                                  |       |              |             |             |       |         |          |         |       |           |
-|     V2_ImHashMap_AVL_AddOrUpdate |     5 |     481.5 ns |     6.25 ns |     5.22 ns |  1.00 |    0.00 |   0.2632 |       - |     - |    1104 B |
-| V3_ImHashMap_234Tree_AddOrUpdate |     5 |     306.7 ns |     3.46 ns |     3.06 ns |  0.64 |    0.01 |   0.1144 |       - |     - |     480 B |
-|      ConcurrentDictionary_TryAdd |     5 |     540.4 ns |    10.13 ns |     9.48 ns |  1.13 |    0.02 |   0.2422 |       - |     - |    1016 B |
-|                                  |       |              |             |             |       |         |          |         |       |           |
-|     V2_ImHashMap_AVL_AddOrUpdate |    10 |     953.8 ns |    12.19 ns |    11.40 ns |  1.00 |    0.00 |   0.5512 |       - |     - |    2312 B |
-| V3_ImHashMap_234Tree_AddOrUpdate |    10 |     621.9 ns |     6.69 ns |     5.59 ns |  0.65 |    0.01 |   0.2708 |       - |     - |    1136 B |
-|      ConcurrentDictionary_TryAdd |    10 |   1,449.7 ns |    28.39 ns |    27.88 ns |  1.52 |    0.04 |   0.6752 |       - |     - |    2824 B |
-|                                  |       |              |             |             |       |         |          |         |       |           |
-|     V2_ImHashMap_AVL_AddOrUpdate |   100 |  14,325.1 ns |   172.84 ns |   161.68 ns |  1.00 |    0.00 |   8.3313 |       - |     - |   34856 B |
-| V3_ImHashMap_234Tree_AddOrUpdate |   100 |  10,243.7 ns |   128.61 ns |   120.30 ns |  0.72 |    0.01 |   5.0201 |       - |     - |   21008 B |
-|      ConcurrentDictionary_TryAdd |   100 |  16,128.0 ns |   224.14 ns |   220.13 ns |  1.13 |    0.02 |   6.8359 |  0.7324 |     - |   28664 B |
-|                                  |       |              |             |             |       |         |          |         |       |           |
-|     V2_ImHashMap_AVL_AddOrUpdate |  1000 | 322,331.1 ns | 4,775.60 ns | 4,467.10 ns |  1.00 |    0.00 | 122.0703 |  3.4180 |     - |  511208 B |
-| V3_ImHashMap_234Tree_AddOrUpdate |  1000 | 229,038.5 ns | 2,153.89 ns | 1,798.59 ns |  0.71 |    0.01 |  80.8105 |  0.9766 |     - |  338464 B |
-|      ConcurrentDictionary_TryAdd |  1000 | 181,740.5 ns | 2,808.62 ns | 2,489.77 ns |  0.56 |    0.01 |  52.9785 | 15.3809 |     - |  247624 B |
-
-
-### Adding Leaf5Plus1Plus1
-
-|                           Method | Count |          Mean |        Error |       StdDev | Ratio | RatioSD |    Gen 0 |  Gen 1 | Gen 2 | Allocated |
-|--------------------------------- |------ |--------------:|-------------:|-------------:|------:|--------:|---------:|-------:|------:|----------:|
-|     V2_ImHashMap_AVL_AddOrUpdate |     1 |     128.83 ns |     1.662 ns |     1.555 ns |  1.00 |    0.00 |   0.0650 |      - |     - |     272 B |
-| V3_ImHashMap_234Tree_AddOrUpdate |     1 |      97.27 ns |     1.609 ns |     1.505 ns |  0.76 |    0.01 |   0.0381 |      - |     - |     160 B |
-|                                  |       |               |              |              |       |         |          |        |       |           |
-|     V2_ImHashMap_AVL_AddOrUpdate |     5 |     442.58 ns |     1.549 ns |     1.373 ns |  1.00 |    0.00 |   0.2637 |      - |     - |    1104 B |
-| V3_ImHashMap_234Tree_AddOrUpdate |     5 |     279.32 ns |     4.114 ns |     3.848 ns |  0.63 |    0.01 |   0.1144 |      - |     - |     480 B |
-|                                  |       |               |              |              |       |         |          |        |       |           |
-|     V2_ImHashMap_AVL_AddOrUpdate |    10 |     893.52 ns |     9.387 ns |     8.780 ns |  1.00 |    0.00 |   0.5522 |      - |     - |    2312 B |
-| V3_ImHashMap_234Tree_AddOrUpdate |    10 |     562.95 ns |     5.771 ns |     5.116 ns |  0.63 |    0.01 |   0.2537 |      - |     - |    1064 B |
-|                                  |       |               |              |              |       |         |          |        |       |           |
-|     V2_ImHashMap_AVL_AddOrUpdate |   100 |  13,360.49 ns |   260.099 ns |   299.531 ns |  1.00 |    0.00 |   8.3313 |      - |     - |   34856 B |
-| V3_ImHashMap_234Tree_AddOrUpdate |   100 |   9,526.86 ns |   184.968 ns |   189.949 ns |  0.72 |    0.02 |   4.9591 |      - |     - |   20792 B |
-|                                  |       |               |              |              |       |         |          |        |       |           |
-|     V2_ImHashMap_AVL_AddOrUpdate |  1000 | 299,650.94 ns | 3,724.188 ns | 3,483.608 ns |  1.00 |    0.00 | 122.0703 | 3.4180 |     - |  511208 B |
-| V3_ImHashMap_234Tree_AddOrUpdate |  1000 | 195,267.20 ns | 3,327.881 ns | 3,112.902 ns |  0.65 |    0.01 |  79.5898 |      - |     - |  333496 B |
-
-### Switching the Branch 3 to two Branch2
+## V3 - RTM
 
 |                           Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |    Gen 0 |  Gen 1 | Gen 2 | Allocated |
 |--------------------------------- |------ |-------------:|------------:|------------:|------:|--------:|---------:|-------:|------:|----------:|
-|     V2_ImHashMap_AVL_AddOrUpdate |     1 |     150.9 ns |     2.69 ns |     2.24 ns |  1.00 |    0.00 |   0.0648 |      - |     - |     272 B |
-| V3_ImHashMap_234Tree_AddOrUpdate |     1 |     106.2 ns |     2.16 ns |     1.69 ns |  0.70 |    0.01 |   0.0381 |      - |     - |     160 B |
+|     V2_ImHashMap_AVL_AddOrUpdate |     1 |     149.6 ns |     1.12 ns |     0.94 ns |  1.00 |    0.00 |   0.0648 |      - |     - |     272 B |
+| V3_ImHashMap_234Tree_AddOrUpdate |     1 |     114.0 ns |     1.12 ns |     1.05 ns |  0.76 |    0.01 |   0.0381 |      - |     - |     160 B |
 |                                  |       |              |             |             |       |         |          |        |       |           |
-|     V2_ImHashMap_AVL_AddOrUpdate |     5 |     510.8 ns |     5.69 ns |     5.32 ns |  1.00 |    0.00 |   0.2632 |      - |     - |    1104 B |
-| V3_ImHashMap_234Tree_AddOrUpdate |     5 |     322.3 ns |     5.14 ns |     4.81 ns |  0.63 |    0.01 |   0.1144 |      - |     - |     480 B |
+|     V2_ImHashMap_AVL_AddOrUpdate |     5 |     502.1 ns |     5.40 ns |     5.05 ns |  1.00 |    0.00 |   0.2632 |      - |     - |    1104 B |
+| V3_ImHashMap_234Tree_AddOrUpdate |     5 |     313.9 ns |     2.55 ns |     2.13 ns |  0.63 |    0.01 |   0.1125 |      - |     - |     472 B |
 |                                  |       |              |             |             |       |         |          |        |       |           |
-|     V2_ImHashMap_AVL_AddOrUpdate |    10 |   1,027.4 ns |    19.20 ns |    17.96 ns |  1.00 |    0.00 |   0.5512 |      - |     - |    2312 B |
-| V3_ImHashMap_234Tree_AddOrUpdate |    10 |     663.4 ns |    11.58 ns |    10.83 ns |  0.65 |    0.02 |   0.2537 |      - |     - |    1064 B |
+|     V2_ImHashMap_AVL_AddOrUpdate |    10 |     989.2 ns |    16.21 ns |    15.16 ns |  1.00 |    0.00 |   0.5512 |      - |     - |    2312 B |
+| V3_ImHashMap_234Tree_AddOrUpdate |    10 |     675.4 ns |     5.26 ns |     4.92 ns |  0.68 |    0.01 |   0.2499 |      - |     - |    1048 B |
 |                                  |       |              |             |             |       |         |          |        |       |           |
-|     V2_ImHashMap_AVL_AddOrUpdate |   100 |  15,636.8 ns |   305.14 ns |   326.50 ns |  1.00 |    0.00 |   8.3313 |      - |     - |   34856 B |
-| V3_ImHashMap_234Tree_AddOrUpdate |   100 |  11,126.5 ns |   208.20 ns |   204.49 ns |  0.71 |    0.02 |   5.0964 |      - |     - |   21336 B |
+|     V2_ImHashMap_AVL_AddOrUpdate |   100 |  14,780.6 ns |   164.35 ns |   145.69 ns |  1.00 |    0.00 |   8.3313 |      - |     - |   34856 B |
+| V3_ImHashMap_234Tree_AddOrUpdate |   100 |  13,468.3 ns |   265.18 ns |   248.05 ns |  0.91 |    0.02 |   4.9591 |      - |     - |   20792 B |
 |                                  |       |              |             |             |       |         |          |        |       |           |
-|     V2_ImHashMap_AVL_AddOrUpdate |  1000 | 342,175.5 ns | 5,268.54 ns | 4,670.42 ns |  1.00 |    0.00 | 122.0703 | 3.4180 |     - |  511208 B |
-| V3_ImHashMap_234Tree_AddOrUpdate |  1000 | 227,388.7 ns | 2,263.74 ns | 1,890.33 ns |  0.67 |    0.01 |  83.4961 | 1.4648 |     - |  349208 B |
-
-### Adding Leaf5Plus1Plus1Plus1
-
-|                           Method | Count |       Mean |    Error |    StdDev |     Median | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-|--------------------------------- |------ |-----------:|---------:|----------:|-----------:|------:|--------:|-------:|------:|------:|----------:|
-|     V2_ImHashMap_AVL_AddOrUpdate |    10 | 1,505.8 ns | 39.49 ns | 114.56 ns | 1,470.7 ns |  1.00 |    0.00 | 0.5512 |     - |     - |   2.26 KB |
-| V3_ImHashMap_234Tree_AddOrUpdate |    10 |   899.0 ns | 17.92 ns |  28.93 ns |   900.8 ns |  0.60 |    0.05 | 0.2441 |     - |     - |      1 KB |
-
-### Added the separate hash into Branch2 and Branch3
-
-|                           Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |    Gen 0 |  Gen 1 | Gen 2 | Allocated |
-|--------------------------------- |------ |-------------:|------------:|------------:|------:|--------:|---------:|-------:|------:|----------:|
-|     V2_ImHashMap_AVL_AddOrUpdate |    10 |   1,315.7 ns |    21.35 ns |    17.83 ns |  1.00 |    0.00 |   0.5512 |      - |     - |   2.26 KB |
-| V3_ImHashMap_234Tree_AddOrUpdate |    10 |     816.0 ns |    12.01 ns |    10.03 ns |  0.62 |    0.01 |   0.2613 |      - |     - |   1.07 KB |
-|                                  |       |              |             |             |       |         |          |        |       |           |
-|     V2_ImHashMap_AVL_AddOrUpdate |   100 |  19,718.1 ns |   370.83 ns |   309.66 ns |  1.00 |    0.00 |   8.3313 |      - |     - |  34.04 KB |
-| V3_ImHashMap_234Tree_AddOrUpdate |   100 |  15,369.2 ns |   210.21 ns |   196.63 ns |  0.78 |    0.01 |   5.7068 |      - |     - |  23.32 KB |
-|                                  |       |              |             |             |       |         |          |        |       |           |
-|     V2_ImHashMap_AVL_AddOrUpdate |  1000 | 406,820.3 ns | 7,222.79 ns | 6,031.35 ns |  1.00 |    0.00 | 122.0703 | 3.4180 |     - | 499.23 KB |
-| V3_ImHashMap_234Tree_AddOrUpdate |  1000 | 298,444.1 ns | 3,216.95 ns | 2,686.30 ns |  0.73 |    0.02 |  95.7031 | 0.9766 |     - | 392.56 KB |
-
-### Removed the hash
-
-|                           Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |    Gen 0 |  Gen 1 | Gen 2 | Allocated |
-|--------------------------------- |------ |-------------:|------------:|------------:|------:|--------:|---------:|-------:|------:|----------:|
-|     V2_ImHashMap_AVL_AddOrUpdate |    10 |   1,042.4 ns |    20.58 ns |    27.48 ns |  1.00 |    0.00 |   0.5522 |      - |     - |   2.26 KB |
-| V3_ImHashMap_234Tree_AddOrUpdate |    10 |     680.8 ns |    13.05 ns |    11.57 ns |  0.65 |    0.03 |   0.2537 |      - |     - |   1.04 KB |
-|                                  |       |              |             |             |       |         |          |        |       |           |
-|     V2_ImHashMap_AVL_AddOrUpdate |   100 |  15,616.5 ns |   190.24 ns |   177.95 ns |  1.00 |    0.00 |   8.3313 |      - |     - |  34.04 KB |
-| V3_ImHashMap_234Tree_AddOrUpdate |   100 |  12,215.0 ns |   173.73 ns |   145.08 ns |  0.78 |    0.01 |   5.0964 |      - |     - |  20.84 KB |
-|                                  |       |              |             |             |       |         |          |        |       |           |
-|     V2_ImHashMap_AVL_AddOrUpdate |  1000 | 347,367.0 ns | 6,077.04 ns | 5,684.46 ns |  1.00 |    0.00 | 122.0703 | 3.4180 |     - | 499.23 KB |
-| V3_ImHashMap_234Tree_AddOrUpdate |  1000 | 243,159.5 ns | 3,253.80 ns | 2,884.41 ns |  0.70 |    0.01 |  83.4961 | 2.4414 |     - | 341.13 KB |
-
-|                                      Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
-|-------------------------------------------- |------ |-------------:|------------:|------------:|------:|--------:|---------:|--------:|------:|----------:|
-| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |     1 |     175.6 ns |     3.48 ns |     6.87 ns |  1.00 |    0.00 |   0.0381 |       - |     - |     160 B |
-|            V3_ImHashMap_234Tree_AddOrUpdate |     1 |     161.1 ns |     3.19 ns |     6.14 ns |  0.92 |    0.05 |   0.0381 |       - |     - |     160 B |
-|                                             |       |              |             |             |       |         |          |         |       |           |
-| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |     5 |     514.9 ns |     9.89 ns |    12.86 ns |  1.00 |    0.00 |   0.1602 |       - |     - |     672 B |
-|            V3_ImHashMap_234Tree_AddOrUpdate |     5 |     432.9 ns |     8.65 ns |    14.69 ns |  0.84 |    0.03 |   0.1144 |       - |     - |     480 B |
-|                                             |       |              |             |             |       |         |          |         |       |           |
-| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |    10 |   1,045.1 ns |    18.59 ns |    16.48 ns |  1.00 |    0.00 |   0.3567 |       - |     - |    1496 B |
-|            V3_ImHashMap_234Tree_AddOrUpdate |    10 |     921.2 ns |    18.03 ns |    22.80 ns |  0.89 |    0.02 |   0.2537 |       - |     - |    1064 B |
-|                                             |       |              |             |             |       |         |          |         |       |           |
-| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |   100 |  18,025.8 ns |   355.14 ns |   531.56 ns |  1.00 |    0.00 |   6.6528 |       - |     - |   27880 B |
-|            V3_ImHashMap_234Tree_AddOrUpdate |   100 |  16,235.0 ns |   315.58 ns |   399.10 ns |  0.91 |    0.04 |   5.0659 |       - |     - |   21256 B |
-|                                             |       |              |             |             |       |         |          |         |       |           |
-| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |  1000 | 452,621.8 ns | 6,879.46 ns | 5,744.66 ns |  1.00 |    0.00 | 104.4922 | 25.3906 |     - |  439976 B |
-|            V3_ImHashMap_234Tree_AddOrUpdate |  1000 | 333,678.1 ns | 5,960.06 ns | 6,120.54 ns |  0.74 |    0.02 |  83.4961 | 19.0430 |     - |  350776 B |
-
-### Lefty and Righty Branch3
-
-|                                      Method | Count |         Mean |       Error |       StdDev |       Median | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
-|-------------------------------------------- |------ |-------------:|------------:|-------------:|-------------:|------:|--------:|---------:|--------:|------:|----------:|
-|                V2_ImHashMap_AVL_AddOrUpdate |     1 |     171.4 ns |     3.37 ns |      6.24 ns |     170.5 ns |  1.00 |    0.00 |   0.0648 |       - |     - |     272 B |
-| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |     1 |     149.6 ns |     4.88 ns |     13.75 ns |     143.6 ns |  0.85 |    0.06 |   0.0381 |       - |     - |     160 B |
-|            V3_ImHashMap_234Tree_AddOrUpdate |     1 |     126.2 ns |     2.40 ns |      2.35 ns |     125.8 ns |  0.72 |    0.02 |   0.0381 |       - |     - |     160 B |
-|                                             |       |              |             |              |              |       |         |          |         |       |           |
-|                V2_ImHashMap_AVL_AddOrUpdate |     5 |     527.1 ns |     7.09 ns |      5.92 ns |     525.9 ns |  1.00 |    0.00 |   0.2632 |       - |     - |    1104 B |
-| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |     5 |     394.3 ns |     7.91 ns |     13.43 ns |     391.1 ns |  0.74 |    0.02 |   0.1602 |       - |     - |     672 B |
-|            V3_ImHashMap_234Tree_AddOrUpdate |     5 |     352.8 ns |     7.01 ns |     14.48 ns |     351.8 ns |  0.67 |    0.03 |   0.1144 |       - |     - |     480 B |
-|                                             |       |              |             |              |              |       |         |          |         |       |           |
-|                V2_ImHashMap_AVL_AddOrUpdate |    10 |   1,057.5 ns |    19.37 ns |     27.16 ns |   1,052.1 ns |  1.00 |    0.00 |   0.5512 |       - |     - |    2312 B |
-| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |    10 |     821.1 ns |    14.89 ns |     12.43 ns |     816.8 ns |  0.77 |    0.03 |   0.3576 |       - |     - |    1496 B |
-|            V3_ImHashMap_234Tree_AddOrUpdate |    10 |     735.3 ns |    14.65 ns |     32.77 ns |     722.8 ns |  0.70 |    0.04 |   0.2537 |       - |     - |    1064 B |
-|                                             |       |              |             |              |              |       |         |          |         |       |           |
-|                V2_ImHashMap_AVL_AddOrUpdate |   100 |  16,403.4 ns |   321.95 ns |    383.26 ns |  16,335.3 ns |  1.00 |    0.00 |   8.3313 |       - |     - |   34856 B |
-| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |   100 |  13,788.9 ns |   272.72 ns |    569.27 ns |  13,531.6 ns |  0.86 |    0.04 |   6.6528 |       - |     - |   27880 B |
-|            V3_ImHashMap_234Tree_AddOrUpdate |   100 |  13,643.6 ns |   271.44 ns |    645.10 ns |  13,426.7 ns |  0.85 |    0.05 |   5.0201 |       - |     - |   21016 B |
-|                                             |       |              |             |              |              |       |         |          |         |       |           |
-|                V2_ImHashMap_AVL_AddOrUpdate |  1000 | 360,250.5 ns | 6,784.21 ns | 15,723.43 ns | 356,501.8 ns |  1.00 |    0.00 | 122.0703 |  3.4180 |     - |  511208 B |
-| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |  1000 | 362,127.1 ns | 7,152.59 ns | 15,242.75 ns | 354,378.3 ns |  1.00 |    0.05 | 104.9805 | 25.8789 |     - |  439976 B |
-|            V3_ImHashMap_234Tree_AddOrUpdate |  1000 | 256,792.6 ns | 3,382.32 ns |  3,163.82 ns | 256,375.0 ns |  0.72 |    0.04 |  82.0313 |  1.9531 |     - |  344320 B |
+|     V2_ImHashMap_AVL_AddOrUpdate |  1000 | 325,958.7 ns | 1,794.02 ns | 1,590.35 ns |  1.00 |    0.00 | 122.0703 | 3.4180 |     - |  511211 B |
+| V3_ImHashMap_234Tree_AddOrUpdate |  1000 | 273,113.0 ns | 4,146.37 ns | 4,774.96 ns |  0.83 |    0.01 |  82.0313 | 1.4648 |     - |  344592 B |
 
 */
-            [Params(100, 1000)]
+            [Params(1, 5, 10, 100, 1000)]
             public int Count;
 
             [Benchmark(Baseline = true)]

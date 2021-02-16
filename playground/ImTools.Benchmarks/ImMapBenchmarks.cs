@@ -208,6 +208,29 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 | Experimental_ImMap_AddOrUpdate |    10 |       547.54 ns |       7.405 ns |       6.927 ns |       546.98 ns |  1.00 |    0.00 |    0.2975 |        - |        - |    1248 B |
 |       Old_ImMap234_AddOrUpdate |    10 |       500.04 ns |       5.583 ns |       4.359 ns |       500.98 ns |  0.91 |    0.01 |    0.2384 |        - |        - |    1000 B |
 |           ImMap234_AddOrUpdate |    10 |       451.32 ns |       8.955 ns |      13.942 ns |       452.64 ns |  0.81 |    0.03 |    0.1969 |        - |        - |     824 B |
+
+|                                      Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|-------------------------------------------- |------ |----------:|----------:|----------:|------:|--------:|-------:|------:|------:|----------:|
+| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |     1 |  28.55 ns |  0.431 ns |  0.404 ns |  1.00 |    0.00 | 0.0076 |     - |     - |      32 B |
+|                V3_ImMap_234Tree_AddOrUpdate |     1 |  28.08 ns |  0.608 ns |  0.597 ns |  0.98 |    0.02 | 0.0076 |     - |     - |      32 B |
+|                                             |       |           |           |           |       |         |        |       |       |           |
+| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |     5 | 223.56 ns |  2.870 ns |  2.684 ns |  1.00 |    0.00 | 0.0994 |     - |     - |     416 B |
+|                V3_ImMap_234Tree_AddOrUpdate |     5 | 209.95 ns |  4.236 ns |  4.160 ns |  0.94 |    0.02 | 0.0744 |     - |     - |     312 B |
+|                                             |       |           |           |           |       |         |        |       |       |           |
+| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |    10 | 661.30 ns | 10.412 ns | 12.395 ns |  1.00 |    0.00 | 0.2975 |     - |     - |    1248 B |
+|                V3_ImMap_234Tree_AddOrUpdate |    10 | 502.34 ns | 10.123 ns | 11.252 ns |  0.76 |    0.02 | 0.1793 |     - |     - |     752 B |
+
+|                                      Method | Count |        Mean |      Error |     StdDev | Ratio | RatioSD |    Gen 0 |    Gen 1 |    Gen 2 |  Allocated |
+|-------------------------------------------- |------ |------------:|-----------:|-----------:|------:|--------:|---------:|---------:|---------:|-----------:|
+| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |   100 |    15.13 us |   0.300 us |   0.533 us |  1.00 |    0.00 |   7.2632 |        - |        - |   29.72 KB |
+|                V3_ImMap_234Tree_AddOrUpdate |   100 |    16.41 us |   0.314 us |   0.656 us |  1.08 |    0.06 |   5.7068 |        - |        - |   23.31 KB |
+|                                             |       |             |            |            |       |         |          |          |          |            |
+| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |  1000 |   264.37 us |   3.853 us |   3.604 us |  1.00 |    0.00 | 110.3516 |   0.4883 |        - |  451.78 KB |
+|                V3_ImMap_234Tree_AddOrUpdate |  1000 |   322.44 us |   4.546 us |   4.252 us |  1.22 |    0.02 | 102.0508 |   0.4883 |        - |  416.83 KB |
+|                                             |       |             |            |            |       |         |          |          |          |            |
+| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate | 10000 | 6,744.05 us | 121.251 us | 124.515 us |  1.00 |    0.00 | 992.1875 | 289.0625 | 109.3750 | 6106.78 KB |
+|                V3_ImMap_234Tree_AddOrUpdate | 10000 | 7,255.92 us | 117.567 us | 104.220 us |  1.07 |    0.02 | 992.1875 | 289.0625 | 109.3750 | 6106.98 KB |
+
 */
             [Params(100, 1_000, 10_000)]
             public int Count;
@@ -236,7 +259,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
             // [Benchmark]
             [Benchmark(Baseline = true)]
-            public ImTools.V2.Experimental.ImMap<string> Experimental_ImMap_AddOrUpdate()
+            public ImTools.V2.Experimental.ImMap<string> V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate()
             {
                 var map = ImTools.V2.Experimental.ImMap<string>.Empty;
 
@@ -269,7 +292,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             }
 
             [Benchmark]
-            public ImTools.Experimental.ImHashMap234<int, string> ImMap234_AddOrUpdate()
+            public ImTools.Experimental.ImHashMap234<int, string> V3_ImMap_234Tree_AddOrUpdate()
             {
                 var map = ImTools.Experimental.ImHashMap234<int, string>.Empty;
 

@@ -2203,7 +2203,7 @@ namespace ImTools.Experimental
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap234<K, V> AddOrUpdate<K, V>(this ImHashMap234<K, V> map, int hash, K key, V value) 
         {
-            var newEntry = new ImHashMapEntry<K, V>(hash, key, value);
+            var newEntry = new ImHashMapEntry<K, V>(hash, key, value); // todo: @perf newEntry may not be needed in the AddOrKeep scenario - consider the pooling of entries here
             if (map == ImHashMap234<K, V>.Empty)
                 return newEntry;
 
