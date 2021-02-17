@@ -139,7 +139,13 @@ namespace ImTools.Experimental.UnitTests
             var rr = r.Remove(16);
             Assert.AreSame(r, rr);
 
-            
+            m = m.AddOrUpdate(18, "18");
+            m = m.AddOrKeep(18, "18");
+            Assert.AreEqual("18",  m.GetValueOrDefault(18));
+
+            m = m.AddOrUpdate(19, "19").AddOrUpdate(20, "20").AddOrUpdate(21, "21").AddOrUpdate(22, "22").AddOrUpdate(23, "23");
+            rr = m.Remove(25).Remove(21);
+            Assert.IsNull(rr.GetValueOrDefault(21));
         }
 
         public class XKey<K> 
