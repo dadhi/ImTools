@@ -1751,6 +1751,44 @@ namespace ImTools.Experimental
             return oldEntryOrMap;
         }
 
+        /// <summary>Updates the map with the new value if the key is found otherwise returns the same unchanged map.</summary>
+        public static ImHashMap234<K, V> Update<K, V>(this ImHashMap234<K, V> map, int hash, K key, V value) 
+        {
+            var entry = map.GetEntryOrDefault(hash);
+            if (entry == null)
+                return map;
+
+            if (entry is ImHashMapEntry<K, V> kv)
+                return kv.Key.Equals(key) ? map.ReplaceEntry(hash, entry, new ImHashMapEntry<K, V>(hash, key, value)) : map;
+
+            var hc = (HashConflictKeyValuesEntry<K, V>)entry;
+            var cs = hc.Conflicts;
+            var n = cs.Length;
+            var i = n - 1;
+            while (i != -1 && !key.Equals(cs[i].Key)) --i;
+            if (i == -1)
+                return map;
+            
+            var newConflicts = new ImHashMapEntry<K, V>[n];
+            Array.Copy(cs, 0, newConflicts, 0, n);
+            newConflicts[i] = new ImHashMapEntry<K, V>(hash, key, value);
+
+            return map.ReplaceEntry(hash, entry, new HashConflictKeyValuesEntry<K, V>(hash, newConflicts));
+        }
+
+        /// <summary>Updates the map with the new value if the key is found otherwise returns the same unchanged map.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap234<K, V> Update<K, V>(this ImHashMap234<K, V> map, K key, V value) =>
+            map.Update(key.GetHashCode(), key, value);
+
+        /// <summary>Updates the map with the new value if the hash is found otherwise returns the same unchanged map.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap234<int, V> Update<V>(this ImHashMap234<int, V> map, int hash, V value) 
+        {
+            var entry = map.GetEntryOrDefault(hash);
+            return entry == null ? map : map.ReplaceEntry(hash, entry, new ImHashMapEntry<V>(hash, value));
+        }
+
         /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap234<K, V> AddOrKeep<K, V>(this ImHashMap234<K, V> map, int hash, K key, V value) 
