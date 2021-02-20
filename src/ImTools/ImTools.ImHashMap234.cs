@@ -93,7 +93,8 @@ namespace ImTools.Experimental
         public virtual Entry GetEntryOrDefault(int hash) => null;
 
         /// <summary>Returns the found entry with the same hash or the new map with added new entry.
-        /// Note that the empty map will return the entry the same as if the entry was found - so the consumer should check for the empty map</summary>
+        /// Note that the empty map will return the entry the same as if the entry was found - so the consumer should check for the empty map.
+        /// Note that the method cannot return the `null` - when the existing entry is not found it will alway be the new map with the added entry.</summary>
         public virtual ImHashMap234<K, V> AddOrGetEntry(int hash, Entry entry) => entry;
 
         /// <summary>Returns the new map with old entry replaced by the new entry. Note that the old entry should be present.</summary>
@@ -1696,6 +1697,36 @@ namespace ImTools.Experimental
 
             value = default(V);
             return false;
+        }
+
+
+        /// <summary>Adds or updates (no mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
+        public static ImHashMap234<K, V> AddOrGetEntry<K, V>(this ImHashMap234<K, V> map, int hash, K key, V value)
+        {
+            var newEntry = new ImHashMapEntry<K, V>(hash, key, value);
+            if (map == ImHashMap234<K, V>.Empty)
+                return newEntry;
+
+            var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
+            if (oldEntryOrMap is ImHashMapEntry<K, V>.Entry == false)
+                return oldEntryOrMap;
+
+            if (oldEntryOrMap is ImHashMapEntry<K, V> kv)
+                return kv.Key.Equals(newEntry.Key) ? oldEntryOrMap 
+                    : map.ReplaceEntry(hash, kv, new HashConflictKeyValuesEntry<K, V>(hash, kv, newEntry));
+
+            var hc = (HashConflictKeyValuesEntry<K, V>)oldEntryOrMap;
+            var cs = hc.Conflicts;
+            var n = cs.Length;
+            var i = n - 1;
+            while (i != -1 && !key.Equals(cs[i].Key)) --i;
+            if (i != -1)
+                return cs[i];
+
+            var newConflicts = new ImHashMapEntry<K, V>[n + 1];
+            Array.Copy(cs, 0, newConflicts, 0, n);
+            newConflicts[n] = newEntry;
+            return  map.ReplaceEntry(hash, hc, new HashConflictKeyValuesEntry<K, V>(hash, newConflicts));
         }
 
         /// <summary>Adds or updates (no mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
