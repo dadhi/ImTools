@@ -4,7 +4,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using BenchmarkDotNet.Attributes;
 using ImTools;
-using ImTools.Experimental;
+using ImTools.V2;
 using ImTools.UnitTests;
 using Microsoft.Collections.Extensions;
 using ImTools.V2.Experimental;
@@ -236,9 +236,9 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             public int Count;
 
             //[Benchmark(Baseline = true)]
-            public ImTools.ImMap<string> ImMap_AddOrUpdate()
+            public ImTools.V2.ImMap<string> ImMap_AddOrUpdate()
             {
-                var map = ImTools.ImMap<string>.Empty;
+                var map = ImTools.V2.ImMap<string>.Empty;
 
                 for (var i = 0; i < Count; i++)
                     map = map.AddOrUpdate(i, i.ToString());
@@ -246,16 +246,6 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            // [Benchmark]
-            public ImTools.OldVersions.V1.ImMap<string> ImMap_V1_AddOrUpdate()
-            {
-                var map = ImTools.OldVersions.V1.ImMap<string>.Empty;
-
-                for (var i = 0; i < Count; i++)
-                    map = map.AddOrUpdate(i, i.ToString());
-
-                return map;
-            }
 
             // [Benchmark]
             [Benchmark(Baseline = true)]
@@ -280,21 +270,10 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return slots;
             }
 
-            // [Benchmark]
-            public ImTools.UnitTests.ImMap234<string> Old_ImMap234_AddOrUpdate()
-            {
-                var map = ImTools.UnitTests.ImMap234<string>.Empty;
-
-                for (var i = 0; i < Count; i++)
-                    map = map.AddOrUpdate(i, i.ToString());
-
-                return map;
-            }
-
             [Benchmark]
-            public ImTools.Experimental.ImHashMap234<int, string> V3_ImMap_234Tree_AddOrUpdate()
+            public ImTools.ImHashMap<int, string> V3_ImMap_234Tree_AddOrUpdate()
             {
-                var map = ImTools.Experimental.ImHashMap234<int, string>.Empty;
+                var map = ImTools.ImHashMap<int, string>.Empty;
 
                 for (var i = 0; i < Count; i++)
                     map = map.AddOrUpdate(i, i.ToString());
@@ -606,21 +585,10 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 | Experimental_ImMap234_TryFind |    10 | 4.7094 ns | 0.1295 ns | 0.1081 ns | 4.7081 ns |  1.16 |    0.04 |     - |     - |     - |         - |
 
  */
-            private ImTools.ImMap<string> _map;
-            public ImTools.ImMap<string> AddOrUpdate()
+            private ImTools.V2.ImMap<string> _map;
+            public ImTools.V2.ImMap<string> AddOrUpdate()
             {
-                var map = ImTools.ImMap<string>.Empty;
-
-                for (var i = 0; i < Count; i++)
-                    map = map.AddOrUpdate(i, i.ToString());
-
-                return map;
-            }
-
-            private ImTools.OldVersions.V1.ImMap<string> _mapV1;
-            public ImTools.OldVersions.V1.ImMap<string> AddOrUpdate_V1()
-            {
-                var map = ImTools.OldVersions.V1.ImMap<string>.Empty;
+                var map = ImTools.V2.ImMap<string>.Empty;
 
                 for (var i = 0; i < Count; i++)
                     map = map.AddOrUpdate(i, i.ToString());
@@ -639,10 +607,10 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            private ImHashMap234<int, string> _map234;
-            public ImHashMap234<int, string> AddOrUpdate_Exp_ImMap234()
+            private ImTools.ImHashMap<int, string> _map234;
+            public ImTools.ImHashMap<int, string> AddOrUpdate_V3_ImMap()
             {
-                var map = ImHashMap234<int, string>.Empty;
+                var map = ImTools.ImHashMap<int, string>.Empty;
 
                 for (var i = 0; i < Count; i++)
                     map = map.AddOrUpdate(i, i.ToString());
@@ -661,21 +629,10 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return slots;
             }
 
-            private ImTools.V2.Experimental.ImMap<string>[] _mapSlotsExp;
-            public ImTools.V2.Experimental.ImMap<string>[] AddOrUpdate_ImMapSlots_Exp()
+            private ImTools.ImHashMap<int, string>[] _partMap;
+            public ImTools.ImHashMap<int, string>[] AddOrUpdate_V3_PartitionedHashMap()
             {
-                var slots = ImTools.V2.Experimental.ImMapSlots.CreateWithEmpty<string>();
-
-                for (var i = 0; i < Count; i++)
-                    slots.AddOrUpdate(i, i.ToString());
-
-                return slots;
-            }
-
-            private ImTools.UnitTests.ImMap234<string>[] _mapSlots234;
-            public ImTools.UnitTests.ImMap234<string>[] AddOrUpdate_ImMap234Slots_Exp()
-            {
-                var slots = ImTools.UnitTests.ImMap234.CreateWithEmpty<string>();
+                var slots = ImTools.PartitionedHashMap.CreateEmpty<string>();
 
                 for (var i = 0; i < Count; i++)
                     slots.AddOrUpdate(i, i.ToString());
@@ -738,12 +695,10 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 LookupMaxKey = Count - 1;
 
                 _map = AddOrUpdate();
-                _mapV1 = AddOrUpdate_V1();
                 _mapExp = AddOrUpdate_Exp();
-                _map234 = AddOrUpdate_Exp_ImMap234();
+                _map234 = AddOrUpdate_V3_ImMap();
                 _mapSlots = AddOrUpdate_ImMapSlots();
-                _mapSlotsExp = AddOrUpdate_ImMapSlots_Exp();
-                _mapSlots234 = AddOrUpdate_ImMap234Slots_Exp();
+                _partMap = AddOrUpdate_V3_PartitionedHashMap();
                 _dictSlim = DictSlim();
                 _dict = Dict();
                 _concurDict = ConcurrentDict();
@@ -757,24 +712,10 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return result;
             }
 
-            //[Benchmark]
-            public string ImMap_V1_TryFind()
-            {
-                _mapV1.TryFind(LookupMaxKey, out var result);
-                return result;
-            }
-
             [Benchmark]
             public string Experimental_ImMap_TryFind()
             {
                 _mapExp.TryFind(LookupMaxKey, out var result);
-                return result;
-            }
-
-            // [Benchmark]
-            public string Experimental_ImMapSlots_TryFind()
-            {
-                _mapSlotsExp[LookupMaxKey & ImTools.V2.Experimental.ImMapSlots.KEY_MASK_TO_FIND_SLOT].TryFind(LookupMaxKey, out var result);
                 return result;
             }
 
@@ -788,7 +729,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             // [Benchmark]
             public string Experimental_ImMap234Slots_TryFind()
             {
-                _mapSlots234[LookupMaxKey & ImTools.V2.Experimental.ImMapSlots.KEY_MASK_TO_FIND_SLOT].TryFind(LookupMaxKey, out var result);
+                _partMap[LookupMaxKey & ImTools.V2.Experimental.ImMapSlots.KEY_MASK_TO_FIND_SLOT].TryFind(LookupMaxKey, out var result);
                 return result;
             }
 
@@ -996,10 +937,10 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
             #region Populate
 
-            private ImTools.ImMap<string> _map;
-            public ImTools.ImMap<string> AddOrUpdate()
+            private ImTools.V2.ImMap<string> _map;
+            public ImTools.V2.ImMap<string> AddOrUpdate()
             {
-                var map = ImTools.ImMap<string>.Empty;
+                var map = ImTools.V2.ImMap<string>.Empty;
 
                 for (var i = 0; i < Count; i++)
                     map = map.AddOrUpdate(i, i.ToString());
@@ -1125,20 +1066,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
             //[Benchmark]
             public object ImMap_FoldToArray() =>
-                _map.Fold(new List<ImTools.ImMap<string>>(), (item, list) => { list.Add(item); return list; }).ToArray();
-
-            //[Benchmark]
-            public object ImMap_FoldToArray_FoldReducerStruct() =>
-                _map.Fold(new List<ImTools.ImMap<string>>(), new AddToListReducer()).ToArray();
-
-            struct AddToListReducer : IFoldReducer<ImTools.ImMap<string>, List<ImTools.ImMap<string>>>
-            {
-                public List<ImTools.ImMap<string>> Reduce(ImTools.ImMap<string> x, List<ImTools.ImMap<string>> state)
-                {
-                    state.Add(x);
-                    return state;
-                }
-            }
+                _map.Fold(new List<ImTools.V2.ImMap<string>>(), (item, list) => { list.Add(item); return list; }).ToArray();
 
             //[Benchmark]
             [Benchmark(Baseline = true)]

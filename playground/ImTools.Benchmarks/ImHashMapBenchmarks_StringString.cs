@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using BenchmarkDotNet.Attributes;
 using ImTools;
-using ImTools.Experimental;
+using ImTools.V2;
 using Microsoft.Collections.Extensions;
 
 namespace Playground
@@ -147,9 +147,9 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             public int Count;
 
             // [Benchmark(Baseline = true)]
-            public ImHashMap<string, string> V2_ImHashMap_AVL_AddOrUpdate()
+            public ImTools.V2.ImHashMap<string, string> V2_ImHashMap_AVL_AddOrUpdate()
             {
-                var map = ImHashMap<string, string>.Empty;
+                var map = ImTools.V2.ImHashMap<string, string>.Empty;
 
                 for (var i = 0; i < Count; ++i)
                 {
@@ -162,9 +162,9 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             }
 
             // [Benchmark]
-            public ImTools.Experimental.ImHashMap234<string, string> V3_ImHashMap_234Tree_AddOrUpdate()
+            public ImTools.ImHashMap<string, string> V3_ImHashMap_234Tree_AddOrUpdate()
             {
-                var map = ImTools.Experimental.ImHashMap234<string, string>.Empty;
+                var map = ImTools.ImHashMap<string, string>.Empty;
 
                 for (var i = 0; i < Count; ++i)
                 {
@@ -177,9 +177,9 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             }
 
             // [Benchmark]
-            public ImTools.Experimental.ImHashMap234<string, string>[] V3_PartitionedHashMap_234Tree_AddOrUpdate()
+            public ImTools.ImHashMap<string, string>[] V3_PartitionedHashMap_234Tree_AddOrUpdate()
             {
-                var map = ImTools.Experimental.PartitionedHashMap234.CreateEmpty<string, string>();
+                var map = ImTools.PartitionedHashMap.CreateEmpty<string, string>();
 
                 for (var i = 0; i < Count; ++i)
                 {
@@ -192,9 +192,9 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             }
 
             [Benchmark(Baseline = true)]
-            public ImTools.Experimental.ImHashMap234<string, string>[] V3_PartitionedHashMap_64Parts_234Tree_AddOrUpdate()
+            public ImTools.ImHashMap<string, string>[] V3_PartitionedHashMap_64Parts_234Tree_AddOrUpdate()
             {
-                var map = ImTools.Experimental.PartitionedHashMap234.CreateEmpty<string, string>(64);
+                var map = PartitionedHashMap.CreateEmpty<string, string>(64);
 
                 for (var i = 0; i < Count; ++i)
                 {
@@ -207,9 +207,9 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             }
 
             [Benchmark]
-            public ImTools.Experimental.ImHashMap234<string, string>[] V3_PartitionedHashMap_128Parts_234Tree_AddOrUpdate()
+            public ImTools.ImHashMap<string, string>[] V3_PartitionedHashMap_128Parts_234Tree_AddOrUpdate()
             {
-                var map = ImTools.Experimental.PartitionedHashMap234.CreateEmpty<string, string>(128);
+                var map = ImTools.PartitionedHashMap.CreateEmpty<string, string>(128);
 
                 for (var i = 0; i < Count; ++i)
                 {
@@ -222,9 +222,9 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             }
 
             [Benchmark]
-            public ImTools.Experimental.ImHashMap234<string, string>[] V3_PartitionedHashMap_256Parts_234Tree_AddOrUpdate()
+            public ImTools.ImHashMap<string, string>[] V3_PartitionedHashMap_256Parts_234Tree_AddOrUpdate()
             {
-                var map = ImTools.Experimental.PartitionedHashMap234.CreateEmpty<string, string>(256);
+                var map = ImTools.PartitionedHashMap.CreateEmpty<string, string>(256);
 
                 for (var i = 0; i < Count; ++i)
                 {
@@ -252,9 +252,9 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             }
 
             // [Benchmark]
-            public ImHashMap<string, string>[] ImHashMapSlots_AddOrUpdate()
+            public ImTools.V2.ImHashMap<string, string>[] ImHashMapSlots_AddOrUpdate()
             {
-                var map = ImHashMapSlots.CreateWithEmpty<string, string>();
+                var map = ImTools.V2.ImHashMapSlots.CreateWithEmpty<string, string>();
 
                 for (var i = 0; i < Count; ++i)
                 {
@@ -465,11 +465,11 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 _immutableDict = ImmutableDict_Add();
             }
 
-            private ImHashMap<string, string> _map;
-            private ImTools.Experimental.ImHashMap234<string, string> _map234;
-            private ImTools.Experimental.ImHashMap234<string, string>[] _partMap234;
+            private ImTools.V2.ImHashMap<string, string> _map;
+            private ImTools.ImHashMap<string, string> _map234;
+            private ImTools.ImHashMap<string, string>[] _partMap234;
             private ImTools.OldVersions.V1.ImHashMap<string, string> _mapV1;
-            private ImHashMap<string, string>[] _mapSlots;
+            private ImTools.V2.ImHashMap<string, string>[] _mapSlots;
             private Dictionary<string, string> _dict;
             private DictionarySlim<string, string> _dictSlim;
             private ConcurrentDictionary<string, string> _concurrentDict;
@@ -477,9 +477,9 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 
             #region Populate the collections
 
-            public ImHashMap<string, string> ImMap_AddOrUpdate()
+            public ImTools.V2.ImHashMap<string, string> ImMap_AddOrUpdate()
             {
-                var map = ImHashMap<string, string>.Empty;
+                var map = ImTools.V2.ImHashMap<string, string>.Empty;
 
                 for (var i = 0; i < Count; ++i)
                 {
@@ -505,9 +505,9 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 return map;
             }
 
-            public ImHashMap<string, string>[] ImHashMapSlots_AddOrUpdate()
+            public ImTools.V2.ImHashMap<string, string>[] ImHashMapSlots_AddOrUpdate()
             {
-                var map = ImHashMapSlots.CreateWithEmpty<string, string>();
+                var map = ImTools.V2.ImHashMapSlots.CreateWithEmpty<string, string>();
 
                 for (var i = 0; i < Count; ++i)
                 {
@@ -519,9 +519,9 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 return map;
             }
 
-            public ImTools.Experimental.ImHashMap234<string, string> V3_ImHashMap_234Tree_AddOrUpdate()
+            public ImTools.ImHashMap<string, string> V3_ImHashMap_234Tree_AddOrUpdate()
             {
-                var map = ImTools.Experimental.ImHashMap234<string, string>.Empty;
+                var map = ImTools.ImHashMap<string, string>.Empty;
 
                 for (var i = 0; i < Count; ++i)
                 {
@@ -533,9 +533,9 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 return map;
             }
 
-            public ImTools.Experimental.ImHashMap234<string, string>[] V3_PartitionedHashMap_234Tree_AddOrUpdate()
+            public ImTools.ImHashMap<string, string>[] V3_PartitionedHashMap_234Tree_AddOrUpdate()
             {
-                var map = ImTools.Experimental.PartitionedHashMap234.CreateEmpty<string, string>();
+                var map = ImTools.PartitionedHashMap.CreateEmpty<string, string>();
 
                 for (var i = 0; i < Count; ++i)
                 {

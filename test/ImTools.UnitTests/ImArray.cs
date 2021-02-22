@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using NUnit.Framework;
 
-namespace ImTools
+namespace ImTools.V2
 {
     /// <summary>Immutable array based on wide hash tree, where each node is sub-array with predefined size: 32 is by default.
     /// Array supports only append, no remove.</summary>
