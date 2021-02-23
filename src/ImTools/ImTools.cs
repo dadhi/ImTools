@@ -3136,17 +3136,13 @@ namespace ImTools
                 null;
 
             /// <inheritdoc />
-            public sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
-            {
-                Entry e0 = Entry0, e1 = Entry1, e2 = Entry2, e3 = Entry3, e4 = Entry4;
-                return
-                    hash == e0.Hash ? e0 :
-                    hash == e1.Hash ? e1 :
-                    hash == e2.Hash ? e2 :
-                    hash == e3.Hash ? e3 :
-                    hash == e4.Hash ? e4 :
-                    (ImHashMap<K, V>)new Leaf5Plus1(entry, this);
-            }
+            public sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry) =>
+                hash == Entry0.Hash ? Entry0 :
+                hash == Entry1.Hash ? Entry1 :
+                hash == Entry2.Hash ? Entry2 :
+                hash == Entry3.Hash ? Entry3 :
+                hash == Entry4.Hash ? Entry4 :
+                (ImHashMap<K, V>)new Leaf5Plus1(entry, this);
 
             /// <inheritdoc />
             public sealed override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry) =>
@@ -3206,20 +3202,13 @@ namespace ImTools
                 var ph = p.Hash;
                 if (ph == hash)
                     return p;
-
                 var l = L; 
-                Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4;
-                if (hash == e0.Hash)
-                    return e0;
-                if (hash == e1.Hash)
-                    return e1;
-                if (hash == e2.Hash)
-                    return e2;
-                if (hash == e3.Hash)
-                    return e3;
-                if (hash == e4.Hash)
-                    return e4;
-                return new Leaf5Plus1Plus1(entry, this);
+                return hash == l.Entry0.Hash ? l.Entry0
+                    :  hash == l.Entry1.Hash ? l.Entry1 
+                    :  hash == l.Entry2.Hash ? l.Entry2
+                    :  hash == l.Entry3.Hash ? l.Entry3
+                    :  hash == l.Entry4.Hash ? l.Entry4
+                    :  (ImHashMap<K, V>)new Leaf5Plus1Plus1(entry, this);
             }
 
             /// <inheritdoc />
@@ -3228,7 +3217,6 @@ namespace ImTools
                 var p = Plus;
                 if (oldEntry == p)
                     return new Leaf5Plus1(newEntry, L);
-
                 var l = L; 
                 Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4;
                 return oldEntry == e0 ? new Leaf5Plus1(p, new Leaf5(newEntry, e1, e2, e3, e4)) 
@@ -3580,21 +3568,19 @@ namespace ImTools
             /// <inheritdoc />
             public override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry)
             {
-                var e = MidEntry;
-                return hash > e.Hash ? new Branch2(Left, e, Right.ReplaceEntry(hash, oldEntry, newEntry))
-                    :  hash < e.Hash ? new Branch2(Left.ReplaceEntry(hash, oldEntry, newEntry), e, Right)
+                var h = MidEntry.Hash;
+                return hash > h ? new Branch2(Left, MidEntry, Right.ReplaceEntry(hash, oldEntry, newEntry))
+                    :  hash < h ? new Branch2(Left.ReplaceEntry(hash, oldEntry, newEntry), MidEntry, Right)
                     :  new Branch2(Left, newEntry, Right);
             }
 
             /// <inheritdoc />
             public override ImHashMap<K, V> RemoveEntry(int hash, Entry removedEntry)
             {
-                var e = MidEntry;
-                if (hash > e.Hash)
-                    return new Branch2(Left, e, Right.RemoveEntry(hash, removedEntry));
-                if (hash < e.Hash)
-                    return new Branch2(Left.RemoveEntry(hash, removedEntry), e, Right);
-                return new Branch2(Left, new RemovedEntry(hash), Right);
+                var h = MidEntry.Hash;
+                return hash > h ? new Branch2(Left, MidEntry, Right.RemoveEntry(hash, removedEntry))
+                    :  hash < h ? new Branch2(Left.RemoveEntry(hash, removedEntry), MidEntry, Right)
+                    :  new Branch2(Left, new RemovedEntry(hash), Right);
             }
         }
 
@@ -3680,21 +3666,19 @@ namespace ImTools
             /// <inheritdoc />
             public override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry)
             {
-                var e = MidEntry;
-                return hash > e.Hash ? new RightyBranch3(Left, e, Right.ReplaceEntry(hash, oldEntry, newEntry)) 
-                    :  hash < e.Hash ? new RightyBranch3(Left.ReplaceEntry(hash, oldEntry, newEntry), e, Right)
+                var h = MidEntry.Hash;
+                return hash > h ? new RightyBranch3(Left, MidEntry, Right.ReplaceEntry(hash, oldEntry, newEntry)) 
+                    :  hash < h ? new RightyBranch3(Left.ReplaceEntry(hash, oldEntry, newEntry), MidEntry, Right)
                     :  new RightyBranch3(Left, newEntry, Right);
             }
 
             /// <inheritdoc />
             public override ImHashMap<K, V> RemoveEntry(int hash, Entry removedEntry)
             {
-                var e = MidEntry;
-                if (hash > e.Hash)
-                    return new RightyBranch3(Left, e, Right.RemoveEntry(hash, removedEntry));
-                if (hash < e.Hash)
-                    return new RightyBranch3(Left.RemoveEntry(hash, removedEntry), e, Right);
-                return new RightyBranch3(Left, new RemovedEntry(hash), Right);
+                var h = MidEntry.Hash;
+                return hash > h ? new RightyBranch3(Left, MidEntry, Right.RemoveEntry(hash, removedEntry))
+                    :  hash < h ? new RightyBranch3(Left.RemoveEntry(hash, removedEntry), MidEntry, Right)
+                    :  new RightyBranch3(Left, new RemovedEntry(hash), Right);
             }
         }
 
@@ -3779,21 +3763,19 @@ namespace ImTools
             /// <inheritdoc />
             public override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry)
             {
-                var e = MidEntry;
-                return hash > e.Hash ? new LeftyBranch3(Left, e, Right.ReplaceEntry(hash, oldEntry, newEntry))
-                    :  hash < e.Hash ? new LeftyBranch3(Left.ReplaceEntry(hash, oldEntry, newEntry), e, Right)
+                var h = MidEntry.Hash;
+                return hash > h ? new LeftyBranch3(Left, MidEntry, Right.ReplaceEntry(hash, oldEntry, newEntry))
+                    :  hash < h ? new LeftyBranch3(Left.ReplaceEntry(hash, oldEntry, newEntry), MidEntry, Right)
                     :  new LeftyBranch3(Left, newEntry, Right);
             }
 
             /// <inheritdoc />
             public override ImHashMap<K, V> RemoveEntry(int hash, Entry removedEntry)
             {
-                var e = MidEntry;
-                if (hash > e.Hash)
-                    return new LeftyBranch3(Left, e, Right.RemoveEntry(hash, removedEntry));
-                if (hash < e.Hash)
-                    return new LeftyBranch3(Left.RemoveEntry(hash, removedEntry), e, Right);
-                return new LeftyBranch3(Left, new RemovedEntry(hash), Right);
+                var h = MidEntry.Hash;
+                return hash > h ? new LeftyBranch3(Left, MidEntry, Right.RemoveEntry(hash, removedEntry))
+                    :  hash < h ? new LeftyBranch3(Left.RemoveEntry(hash, removedEntry), MidEntry, Right)
+                    :  new LeftyBranch3(Left, new RemovedEntry(hash), Right);
             }
         }
     }
