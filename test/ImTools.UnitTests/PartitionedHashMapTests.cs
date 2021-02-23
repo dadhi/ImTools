@@ -50,6 +50,7 @@ namespace ImTools.UnitTests
         public void Search_for_non_existent_key_should_NOT_throw_TryFind()
         {
             var tree = PartitionedHashMap.CreateEmpty<int>();
+
             tree.AddOrUpdate(1, 1);
             tree.AddOrUpdate(3, 2);
 

@@ -2860,9 +2860,7 @@ namespace ImTools
 
             /// <inheritdoc />
             public sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry) =>
-                hash > Hash ? new Leaf2(this, entry) :
-                hash < Hash ? new Leaf2(entry, this) :
-                (ImHashMap<K, V>)this;
+                hash > Hash ? new Leaf2(this, entry) : hash < Hash ? new Leaf2(entry, this) : (ImHashMap<K, V>)this;
 
             // todo: @perf the big question what should it do and do we need this method on the entry
             /// <inheritdoc />
@@ -2904,9 +2902,7 @@ namespace ImTools
 
             /// <inheritdoc />
             public override Entry GetEntryOrDefault(int hash) => 
-                Entry0?.Hash == hash ? Entry0 :
-                Entry1?.Hash == hash ? Entry1 :
-                null;
+                Entry0?.Hash == hash ? Entry0 : Entry1?.Hash == hash ? Entry1 : null;
 
             /// <inheritdoc />
             public sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
@@ -2929,8 +2925,7 @@ namespace ImTools
 
             /// <inheritdoc />
             public sealed override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry) =>
-                oldEntry == Entry0 ? new Leaf2(newEntry, Entry1) : 
-                                     new Leaf2(Entry0, newEntry);
+                oldEntry == Entry0 ? new Leaf2(newEntry, Entry1) : new Leaf2(Entry0, newEntry);
 
             /// <inheritdoc />
             public override ImHashMap<K, V> RemoveEntry(int hash, Entry removedEntry) =>
@@ -2971,12 +2966,8 @@ namespace ImTools
                 var p = Plus;
                 if (hash == p.Hash) 
                     return p;
-
                 Entry e0 = L.Entry0, e1 = L.Entry1;
-                return
-                    hash == e0.Hash ? e0 :
-                    hash == e1.Hash ? e1 :
-                    (ImHashMap<K, V>)new Leaf2Plus1Plus1(entry, this);
+                return hash == e0.Hash ? e0 : hash == e1.Hash ? e1 : (ImHashMap<K, V>)new Leaf2Plus1Plus1(entry, this);
             }
 
             /// <inheritdoc />
@@ -3200,13 +3191,12 @@ namespace ImTools
                 if (hash == Plus.Hash) 
                     return Plus; 
                 var l = L;
-                return 
-                    hash == l.Entry0.Hash ? l.Entry0 :
-                    hash == l.Entry1.Hash ? l.Entry1 :
-                    hash == l.Entry2.Hash ? l.Entry2 :
-                    hash == l.Entry3.Hash ? l.Entry3 :
-                    hash == l.Entry4.Hash ? l.Entry4 :
-                    null;
+                return hash == l.Entry0.Hash ? l.Entry0 
+                    :  hash == l.Entry1.Hash ? l.Entry1 
+                    :  hash == l.Entry2.Hash ? l.Entry2 
+                    :  hash == l.Entry3.Hash ? l.Entry3 
+                    :  hash == l.Entry4.Hash ? l.Entry4 
+                    :  null;
             }
 
             /// <inheritdoc />
@@ -3219,7 +3209,6 @@ namespace ImTools
 
                 var l = L; 
                 Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4;
-
                 if (hash == e0.Hash)
                     return e0;
                 if (hash == e1.Hash)
@@ -3230,7 +3219,6 @@ namespace ImTools
                     return e3;
                 if (hash == e4.Hash)
                     return e4;
-
                 return new Leaf5Plus1Plus1(entry, this);
             }
 
@@ -3319,13 +3307,12 @@ namespace ImTools
                 if (hash == L.Plus.Hash)
                     return L.Plus;
                 var l = L.L;
-                return 
-                    hash == l.Entry0.Hash ? l.Entry0 :
-                    hash == l.Entry1.Hash ? l.Entry1 :
-                    hash == l.Entry2.Hash ? l.Entry2 :
-                    hash == l.Entry3.Hash ? l.Entry3 :
-                    hash == l.Entry4.Hash ? l.Entry4 :
-                    null;
+                return hash == l.Entry0.Hash ? l.Entry0 
+                    :  hash == l.Entry1.Hash ? l.Entry1 
+                    :  hash == l.Entry2.Hash ? l.Entry2 
+                    :  hash == l.Entry3.Hash ? l.Entry3 
+                    :  hash == l.Entry4.Hash ? l.Entry4 
+                    :  null;
             }
 
             /// <inheritdoc />
@@ -3679,7 +3666,6 @@ namespace ImTools
                         var nmb2 = (Branch2)newMiddle;
                         return new Branch2(new Branch2(Left, MidEntry, nmb2.Left), nmb2.MidEntry, new Branch2(nmb2.Right, rb.MidEntry, rb.Right));
                     }
-
                     return new RightyBranch3(Left, MidEntry, new Branch2(newMiddle, rb.MidEntry, rb.Right));
                 }
 
