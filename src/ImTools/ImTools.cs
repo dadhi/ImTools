@@ -2833,7 +2833,7 @@ namespace ImTools
         /// <summary>Lookup for the entry by hash. 
         /// You need to check the returned entry type because it maybe the `HashConflictKeyValuesEntry` which contain multiple key value entries for the same hash. For the `int` key you may be sure that the `ImHashMapEntry{V}` is always returned.
         /// If nothing the method returns `null`</summary>
-        public virtual Entry GetEntryOrDefault(int hash) => null;
+        internal virtual Entry GetEntryOrDefault(int hash) => null;
 
         /// <summary>Returns the found entry with the same hash or the new map with added new entry.
         /// Note that the empty map will return the entry the same as if the entry was found - so the consumer should check for the empty map.
@@ -2855,8 +2855,7 @@ namespace ImTools
             /// <summary>Constructs the entry with the hash</summary>
             protected Entry(int hash) => Hash = hash;
 
-            /// <inheritdoc />
-            public sealed override Entry GetEntryOrDefault(int hash) => hash == Hash ? this : null;
+            internal sealed override Entry GetEntryOrDefault(int hash) => hash == Hash ? this : null;
 
             /// <inheritdoc />
             public sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry) =>
@@ -2900,8 +2899,7 @@ namespace ImTools
             public override string ToString() => "{L2: {E0: " + Entry0 + ", E1: " + Entry1 + "}}";
 #endif
 
-            /// <inheritdoc />
-            public override Entry GetEntryOrDefault(int hash) => 
+            internal override Entry GetEntryOrDefault(int hash) => 
                 Entry0?.Hash == hash ? Entry0 : Entry1?.Hash == hash ? Entry1 : null;
 
             /// <inheritdoc />
@@ -2951,8 +2949,7 @@ namespace ImTools
             public override string ToString() => "{L21: {P: " + Plus + ", L: " + L + "}}";
 #endif
 
-            /// <inheritdoc />
-            public override Entry GetEntryOrDefault(int hash)
+            internal override Entry GetEntryOrDefault(int hash)
             {
                 if (hash == Plus.Hash) 
                     return Plus;
@@ -3004,8 +3001,7 @@ namespace ImTools
             public override string ToString() => "{L211: {P: " + Plus + ", L: " + L + "}}";
 #endif
 
-            /// <inheritdoc />
-            public override Entry GetEntryOrDefault(int hash)
+            internal override Entry GetEntryOrDefault(int hash)
             {
                 if (hash == Plus.Hash) 
                     return Plus;
@@ -3126,8 +3122,7 @@ namespace ImTools
                 "{L2: {E0: " + Entry0 + ", E1: " + Entry1 + ", E2: " + Entry2 + ", E3: " + Entry3 + ", E4: " + Entry4 + "}}";
 #endif
 
-            /// <inheritdoc />
-            public override Entry GetEntryOrDefault(int hash) =>
+            internal override Entry GetEntryOrDefault(int hash) =>
                 hash == Entry0.Hash ? Entry0 :
                 hash == Entry1.Hash ? Entry1 :
                 hash == Entry2.Hash ? Entry2 :
@@ -3181,8 +3176,7 @@ namespace ImTools
             public override string ToString() => "{L51: {P: " + Plus + ", L: " + L + "}}";
 #endif
 
-            /// <inheritdoc />
-            public override Entry GetEntryOrDefault(int hash)
+            internal override Entry GetEntryOrDefault(int hash)
             {
                 if (hash == Plus.Hash) 
                     return Plus; 
@@ -3287,8 +3281,7 @@ namespace ImTools
             public override string ToString() => "{L511: {P: " + Plus + ", L: " + L + "}}";
 #endif
 
-            /// <inheritdoc />
-            public override Entry GetEntryOrDefault(int hash)
+            internal override Entry GetEntryOrDefault(int hash)
             {
                 if (hash == Plus.Hash)
                     return Plus;
@@ -3531,8 +3524,7 @@ namespace ImTools
             public override string ToString() => "{B2: {E: " + MidEntry + ", L: " + Left + ", R: " + Right + "}}";
 #endif
 
-            /// <inheritdoc />
-            public override Entry GetEntryOrDefault(int hash) 
+            internal override Entry GetEntryOrDefault(int hash) 
             {
                 var mh = MidEntry.Hash;
                 return hash > mh ? Right.GetEntryOrDefault(hash) 
@@ -3595,8 +3587,7 @@ namespace ImTools
             public override string ToString() => "{RB3: {"  + base.ToString() + "}";
 #endif
 
-            /// <inheritdoc />
-            public override Entry GetEntryOrDefault(int hash) 
+            internal override Entry GetEntryOrDefault(int hash) 
             {
                 var mh = MidEntry.Hash;
                 if (mh > hash)
@@ -3693,8 +3684,7 @@ namespace ImTools
             public override string ToString() => "{LB3: {"  + base.ToString() + "}";
 #endif
 
-            /// <inheritdoc />
-            public override Entry GetEntryOrDefault(int hash) 
+            internal override Entry GetEntryOrDefault(int hash) 
             {
                 var mh = MidEntry.Hash;
                 if (mh < hash)
