@@ -2838,7 +2838,7 @@ namespace ImTools
         /// <summary>Returns the found entry with the same hash or the new map with added new entry.
         /// Note that the empty map will return the entry the same as if the entry was found - so the consumer should check for the empty map.
         /// Note that the method cannot return the `null` - when the existing entry is not found it will alway be the new map with the added entry.</summary>
-        public virtual ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry) => entry;
+        internal virtual ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry) => entry;
 
         /// <summary>Returns the new map with old entry replaced by the new entry. Note that the old entry should be present.</summary>
         public virtual ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry) => this;
@@ -2857,8 +2857,7 @@ namespace ImTools
 
             internal sealed override Entry GetEntryOrDefault(int hash) => hash == Hash ? this : null;
 
-            /// <inheritdoc />
-            public sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry) =>
+            internal sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry) =>
                 hash > Hash ? new Leaf2(this, entry) : hash < Hash ? new Leaf2(entry, this) : (ImHashMap<K, V>)this;
 
             // todo: @perf the big question what should it do and do we need this method on the entry
@@ -2903,7 +2902,7 @@ namespace ImTools
                 Entry0?.Hash == hash ? Entry0 : Entry1?.Hash == hash ? Entry1 : null;
 
             /// <inheritdoc />
-            public sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
+            internal sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
             {
                 var e0 = Entry0;
                 var e1 = Entry1;
@@ -2958,7 +2957,7 @@ namespace ImTools
             }
 
             /// <inheritdoc />
-            public sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
+            internal sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
             {
                 var p = Plus;
                 if (hash == p.Hash) 
@@ -3012,7 +3011,7 @@ namespace ImTools
             }
 
             /// <inheritdoc />
-            public sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
+            internal sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
             {
                 var p = Plus;
                 var ph = p.Hash;
@@ -3131,7 +3130,7 @@ namespace ImTools
                 null;
 
             /// <inheritdoc />
-            public sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry) =>
+            internal sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry) =>
                 hash == Entry0.Hash ? Entry0 :
                 hash == Entry1.Hash ? Entry1 :
                 hash == Entry2.Hash ? Entry2 :
@@ -3190,7 +3189,7 @@ namespace ImTools
             }
 
             /// <inheritdoc />
-            public sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
+            internal sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
             {
                 var p = Plus;
                 var ph = p.Hash;
@@ -3297,7 +3296,7 @@ namespace ImTools
             }
 
             /// <inheritdoc />
-            public sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
+            internal sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
             {
                 var p = Plus;
                 var ph = p.Hash;
@@ -3533,7 +3532,7 @@ namespace ImTools
             }
 
             /// <inheritdoc />
-            public override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
+            internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
             {
                 var e = MidEntry;
                 if (hash > e.Hash)
@@ -3604,7 +3603,7 @@ namespace ImTools
             }
 
             /// <inheritdoc />
-            public override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
+            internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
             {
                 var h0 = MidEntry.Hash;
                 var rb = (Branch2)Right;
@@ -3701,7 +3700,7 @@ namespace ImTools
             }
 
             /// <inheritdoc />
-            public override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
+            internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
             {
                 var lb = (Branch2)Left;
                 var h0 = lb.MidEntry.Hash;
