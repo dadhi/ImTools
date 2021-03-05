@@ -179,7 +179,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Can_use_int_key_tree_to_represent_general_HashTree_with_possible_hash_conflicts()
         {
-            var tree = ImHashMap<int, KeyValuePair<Type, string>[]>.Empty;
+            var tree = ImMap<KeyValuePair<Type, string>[]>.Empty;
 
             var key = typeof(ImMapTests);
             var keyHash = key.GetHashCode();

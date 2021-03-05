@@ -215,7 +215,7 @@ namespace ImTools.UnitTests
                 .AddOrUpdate(key2, 2)
                 .AddOrUpdate(key3, 3);
 
-            var values = tree.Fold2(new Dictionary<string, int>(), (data, dict) => dict.Do(data, (x, d) => x.Add(d.Key.Key, d.Value)));
+            var values = tree.Fold(new Dictionary<string, int>(), (data, dict) => dict.Do(data, (x, d) => x.Add(d.Key.Key, d.Value)));
 
             Assert.That(values, Is.EqualTo(new Dictionary<string, int>
             {
@@ -346,7 +346,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Can_use_int_key_tree_to_represent_general_HashTree_with_possible_hash_conflicts()
         {
-            var tree = ImHashMap<int, KeyValuePair<Type, string>[]>.Empty;
+            var tree = ImMap<KeyValuePair<Type, string>[]>.Empty;
 
             var key = typeof(ImHashMapTests);
             var keyHash = key.GetHashCode();
