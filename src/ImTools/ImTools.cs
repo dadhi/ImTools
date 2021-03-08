@@ -2150,6 +2150,27 @@ namespace ImTools
             }
         }
 
+        /// <summary>Swap with the additional state <paramref name="a"/> required for the delegate <paramref name="getNewValue"/>.
+        /// May prevent closure creation for the delegate</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static T SwapAndGetNewValue<T, A>(ref T value, A a, Func<T, A, T> getNewValue,
+            int retryCountUntilThrow = RETRY_COUNT_UNTIL_THROW)
+            where T : class
+        {
+            var spinWait = new SpinWait();
+            var retryCount = 0;
+            while (true)
+            {
+                var oldValue = value;
+                var newValue = getNewValue(oldValue, a);
+                if (Interlocked.CompareExchange(ref value, newValue, oldValue) == oldValue)
+                    return newValue;
+                if (++retryCount > retryCountUntilThrow)
+                    ThrowRetryCountExceeded(retryCountUntilThrow);
+                spinWait.SpinOnce();
+            }
+        }
+
         /// Option without allocation for capturing `a` and `b` in closure of `getNewValue`
         [MethodImpl((MethodImplOptions)256)]
         public static T Swap<T, A, B>(ref T value, A a, B b, Func<T, A, B, T> getNewValue,
@@ -2814,9 +2835,7 @@ namespace ImTools
         /// <summary>Indicates that the map is empty</summary>
         public bool IsEmpty => this == Empty;
 
-        /// <summary>Lookup for the entry by hash. 
-        /// You need to check the returned entry type because it maybe the `HashConflictKeyValuesEntry` which contain multiple key value entries for the same hash. For the `int` key you may be sure that the `ImHashMapEntry{V}` is always returned.
-        /// If nothing the method returns `null`</summary>
+        /// <summary>Lookup for the entry by hash. If nothing the method returns `null`</summary>
         internal virtual Entry GetEntryOrDefault(int hash) => null;
 
         /// <summary>Returns the found entry with the same hash or the new map with added new entry.
@@ -3767,7 +3786,7 @@ namespace ImTools
         /// <summary>Lookup for the entry by hash. 
         /// You need to check the returned entry type because it maybe the `HashConflictKeyValuesEntry` which contain multiple key value entries for the same hash. For the `int` key you may be sure that the `ImHashMapEntry{V}` is always returned.
         /// If nothing the method returns `null`</summary>
-        internal virtual Entry GetEntryOrDefault(int hash) => null;
+        internal virtual Entry GetEntryOrNull(int hash) => null;
 
         /// <summary>Returns the found entry with the same hash or the new map with added new entry.
         /// Note that the empty map will return the entry the same as if the entry was found - so the consumer should check for the empty map.
@@ -3789,7 +3808,7 @@ namespace ImTools
             /// <summary>Constructs the entry with the hash</summary>
             protected Entry(int hash) => Hash = hash;
 
-            internal sealed override Entry GetEntryOrDefault(int hash) => hash == Hash ? this : null;
+            internal sealed override Entry GetEntryOrNull(int hash) => hash == Hash ? this : null;
 
             internal sealed override ImMap<V> AddOrGetEntry(int hash, Entry entry) =>
                 hash > Hash ? new Leaf2(this, entry) : hash < Hash ? new Leaf2(entry, this) : (ImMap<V>)this;
@@ -3826,7 +3845,7 @@ namespace ImTools
             public override string ToString() => "{L2: {E0: " + Entry0 + ", E1: " + Entry1 + "}}";
 #endif
 
-            internal override Entry GetEntryOrDefault(int hash) => 
+            internal override Entry GetEntryOrNull(int hash) => 
                 Entry0?.Hash == hash ? Entry0 : Entry1?.Hash == hash ? Entry1 : null;
 
             internal override ImMap<V> AddOrGetEntry(int hash, Entry entry)
@@ -3873,7 +3892,7 @@ namespace ImTools
             public override string ToString() => "{L21: {P: " + Plus + ", L: " + L + "}}";
 #endif
 
-            internal override Entry GetEntryOrDefault(int hash)
+            internal override Entry GetEntryOrNull(int hash)
             {
                 if (hash == Plus.Hash) 
                     return Plus;
@@ -3922,7 +3941,7 @@ namespace ImTools
             public override string ToString() => "{L211: {P: " + Plus + ", L: " + L + "}}";
 #endif
 
-            internal override Entry GetEntryOrDefault(int hash)
+            internal override Entry GetEntryOrNull(int hash)
             {
                 if (hash == Plus.Hash) 
                     return Plus;
@@ -4040,7 +4059,7 @@ namespace ImTools
                 "{L2: {E0: " + Entry0 + ", E1: " + Entry1 + ", E2: " + Entry2 + ", E3: " + Entry3 + ", E4: " + Entry4 + "}}";
 #endif
 
-            internal override Entry GetEntryOrDefault(int hash) =>
+            internal override Entry GetEntryOrNull(int hash) =>
                 hash == Entry0.Hash ? Entry0 :
                 hash == Entry1.Hash ? Entry1 :
                 hash == Entry2.Hash ? Entry2 :
@@ -4091,7 +4110,7 @@ namespace ImTools
             public override string ToString() => "{L51: {P: " + Plus + ", L: " + L + "}}";
 #endif
 
-            internal override Entry GetEntryOrDefault(int hash)
+            internal override Entry GetEntryOrNull(int hash)
             {
                 if (hash == Plus.Hash) 
                     return Plus; 
@@ -4193,7 +4212,7 @@ namespace ImTools
             public override string ToString() => "{L511: {P: " + Plus + ", L: " + L + "}}";
 #endif
 
-            internal override Entry GetEntryOrDefault(int hash)
+            internal override Entry GetEntryOrNull(int hash)
             {
                 if (hash == Plus.Hash)
                     return Plus;
@@ -4433,11 +4452,11 @@ namespace ImTools
             public override string ToString() => "{B2: {E: " + MidEntry + ", L: " + Left + ", R: " + Right + "}}";
 #endif
 
-            internal override Entry GetEntryOrDefault(int hash) 
+            internal override Entry GetEntryOrNull(int hash) 
             {
                 var mh = MidEntry.Hash;
-                return hash > mh ? Right.GetEntryOrDefault(hash) 
-                    :  hash < mh ? Left .GetEntryOrDefault(hash) 
+                return hash > mh ? Right.GetEntryOrNull(hash) 
+                    :  hash < mh ? Left .GetEntryOrNull(hash) 
                     :  MidEntry is RemovedEntry ? null : MidEntry;
             }
 
@@ -4493,17 +4512,17 @@ namespace ImTools
             public override string ToString() => "{RB3: {"  + base.ToString() + "}";
 #endif
 
-            internal override Entry GetEntryOrDefault(int hash) 
+            internal override Entry GetEntryOrNull(int hash) 
             {
                 var mh = MidEntry.Hash;
                 if (mh > hash)
-                    return Left.GetEntryOrDefault(hash);
+                    return Left.GetEntryOrNull(hash);
                 if (mh < hash)
                 {
                     var r = (Branch2)Right;
                     mh = r.MidEntry.Hash;
-                    return hash > mh ? r.Right.GetEntryOrDefault(hash) 
-                        :  hash < mh ? r.Left .GetEntryOrDefault(hash) 
+                    return hash > mh ? r.Right.GetEntryOrNull(hash) 
+                        :  hash < mh ? r.Left .GetEntryOrNull(hash) 
                         :  r.MidEntry is RemovedEntry ? null : r.MidEntry;
                 }
                 return MidEntry is RemovedEntry ? null : MidEntry;
@@ -4587,17 +4606,17 @@ namespace ImTools
             public override string ToString() => "{LB3: {"  + base.ToString() + "}";
 #endif
 
-            internal override Entry GetEntryOrDefault(int hash) 
+            internal override Entry GetEntryOrNull(int hash) 
             {
                 var mh = MidEntry.Hash;
                 if (mh < hash)
-                    return Right.GetEntryOrDefault(hash);
+                    return Right.GetEntryOrNull(hash);
                 if (mh > hash)
                 {
                     var l = (Branch2)Left;
                     mh = l.MidEntry.Hash;
-                    return hash > mh ? l.Right.GetEntryOrDefault(hash) 
-                        :  hash < mh ? l.Left .GetEntryOrDefault(hash) 
+                    return hash > mh ? l.Right.GetEntryOrNull(hash) 
+                        :  hash < mh ? l.Left .GetEntryOrNull(hash) 
                         :  l.MidEntry is RemovedEntry ? null : l.MidEntry;
                 }
                 return MidEntry is RemovedEntry ? null : MidEntry;
@@ -5573,6 +5592,11 @@ namespace ImTools
             return null;
         }
 
+        /// <summary>Get the key value entry if the hash and key is in the map or the default `null` value otherwise.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMapEntry<V> GetEntryOrDefault<V>(this ImMap<V> map, int hash) =>
+            (ImMapEntry<V>)map.GetEntryOrNull(hash);
+
         /// <summary>Returns the entry ASSUMING it is present otherwise its behavior is UNDEFINED.
         /// You can use the method after the Add and Update methods on the same map instance - because the map is immutable it is for sure contains added or updated entry.</summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -5591,7 +5615,7 @@ namespace ImTools
         /// You can use the method after the Add and Update methods on the same map instance - because the map is immutable it is for sure contains added or updated entry.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImMapEntry<V> GetSurePresentEntry<V>(this ImMap<V> map, int hash) =>
-            (ImMapEntry<V>)map.GetEntryOrDefault(hash);
+            (ImMapEntry<V>)map.GetEntryOrNull(hash);
 
         /// <summary>Lookup for the value by the key using the hash and checking the key with the `object.Equals` for equality, 
         /// returns the default `V` if hash, key are not found.</summary>
@@ -5622,7 +5646,7 @@ namespace ImTools
         /// <summary>Lookup for the value by hash, returns the default `V` if hash is not found.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static V GetValueOrDefault<V>(this ImMap<V> map, int hash) =>
-            map.GetEntryOrDefault(hash) is ImMapEntry<V> kv ? kv.Value : default(V);
+            map.GetEntryOrNull(hash) is ImMapEntry<V> kv ? kv.Value : default(V);
 
         /// <summary>Lookup for the value by the key using the hash and checking the key with the `object.ReferenceEquals` for equality,
         ///  returns found value or the default value if not found</summary>
@@ -5716,7 +5740,7 @@ namespace ImTools
                 return true;
             }
 
-            var e = map.GetEntryOrDefault(hash);
+            var e = map.GetEntryOrNull(hash);
             if (e != null)
             {
                 value = ((ImMapEntry<V>)e).Value;
@@ -5863,6 +5887,11 @@ namespace ImTools
             return oldEntryOrMap;
         }
 
+        /// <summary>Adds or updates (no in-place mutation) the map with value by the passed key, always returning the NEW map!</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap<K, V> AddOrUpdate<K, V>(this ImHashMap<K, V> map, K key, V value, Update<K, V> update) =>
+            map.AddOrUpdate(key.GetHashCode(), key, value, update);
+
         /// <summary>Updates the map with the new value if the key is found otherwise returns the same unchanged map.</summary>
         public static ImHashMap<K, V> Update<K, V>(this ImHashMap<K, V> map, int hash, K key, V value) 
         {
@@ -5897,13 +5926,31 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public static ImMap<V> Update<V>(this ImMap<V> map, int hash, V value) 
         {
-            var entry = map.GetEntryOrDefault(hash);
+            var entry = map.GetEntryOrNull(hash);
             return entry == null ? map : map.ReplaceEntry(hash, entry, new ImMapEntry<V>(hash, value));
         }
 
         /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap<K, V> AddOrKeep<K, V>(this ImHashMap<K, V> map, int hash, K key, V value) 
+        public static ImHashMap<K, V> AddOrKeepEntry<K, V>(this ImHashMap<K, V> map, ImHashMapEntry<K, V> newEntry) 
+        {
+            if (map == ImHashMap<K, V>.Empty)
+                return newEntry;
+
+            var hash = newEntry.Hash;
+            var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
+            if (oldEntryOrMap is ImHashMapEntry<K, V>.Entry oldEntry)
+            {
+                var e = KeepOrAddEntry(oldEntry, newEntry);
+                return e == oldEntry ? map : map.ReplaceEntry(hash, oldEntry, e);
+            }
+
+            return oldEntryOrMap;
+        }
+
+        /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap<K, V> AddOrKeep<K, V>(this ImHashMap<K, V> map, int hash, K key, V value)
         {
             var newEntry = new ImHashMapEntry<K, V>(hash, key, value); // todo: @perf newEntry may not be needed here - consider the pooling of entries here
             if (map == ImHashMap<K, V>.Empty)
@@ -5999,7 +6046,7 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public static ImMap<V> Remove<V>(this ImMap<V> map, int hash)
         {
-            var entryToRemove = map.GetEntryOrDefault(hash);
+            var entryToRemove = map.GetEntryOrNull(hash);
             return entryToRemove == null ? map : map.RemoveEntry(hash, entryToRemove);
         }
 
@@ -6064,7 +6111,7 @@ namespace ImTools
         public static V GetValueOrDefault<V>(this ImMap<V>[] parts, int hash, int partHashMask = PARTITION_HASH_MASK)
         {
             var p = parts[hash & partHashMask];
-            return p != null && p.GetEntryOrDefault(hash) is ImMapEntry<V> kv ? kv.Value : default(V);
+            return p != null && p.GetEntryOrNull(hash) is ImMapEntry<V> kv ? kv.Value : default(V);
         }
 
         /// <summary>Lookup for the value by the key using the hash and checking the key with the `object.ReferenceEquals` for equality, 
