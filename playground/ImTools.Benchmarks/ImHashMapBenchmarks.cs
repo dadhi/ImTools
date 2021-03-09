@@ -368,23 +368,28 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 
 ## V3 - RTM
 
-|                           Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |    Gen 0 |  Gen 1 | Gen 2 | Allocated |
-|--------------------------------- |------ |-------------:|------------:|------------:|------:|--------:|---------:|-------:|------:|----------:|
-|     V2_ImHashMap_AVL_AddOrUpdate |     1 |     149.6 ns |     1.12 ns |     0.94 ns |  1.00 |    0.00 |   0.0648 |      - |     - |     272 B |
-| V3_ImHashMap_234Tree_AddOrUpdate |     1 |     114.0 ns |     1.12 ns |     1.05 ns |  0.76 |    0.01 |   0.0381 |      - |     - |     160 B |
-|                                  |       |              |             |             |       |         |          |        |       |           |
-|     V2_ImHashMap_AVL_AddOrUpdate |     5 |     502.1 ns |     5.40 ns |     5.05 ns |  1.00 |    0.00 |   0.2632 |      - |     - |    1104 B |
-| V3_ImHashMap_234Tree_AddOrUpdate |     5 |     313.9 ns |     2.55 ns |     2.13 ns |  0.63 |    0.01 |   0.1125 |      - |     - |     472 B |
-|                                  |       |              |             |             |       |         |          |        |       |           |
-|     V2_ImHashMap_AVL_AddOrUpdate |    10 |     989.2 ns |    16.21 ns |    15.16 ns |  1.00 |    0.00 |   0.5512 |      - |     - |    2312 B |
-| V3_ImHashMap_234Tree_AddOrUpdate |    10 |     675.4 ns |     5.26 ns |     4.92 ns |  0.68 |    0.01 |   0.2499 |      - |     - |    1048 B |
-|                                  |       |              |             |             |       |         |          |        |       |           |
-|     V2_ImHashMap_AVL_AddOrUpdate |   100 |  14,780.6 ns |   164.35 ns |   145.69 ns |  1.00 |    0.00 |   8.3313 |      - |     - |   34856 B |
-| V3_ImHashMap_234Tree_AddOrUpdate |   100 |  13,468.3 ns |   265.18 ns |   248.05 ns |  0.91 |    0.02 |   4.9591 |      - |     - |   20792 B |
-|                                  |       |              |             |             |       |         |          |        |       |           |
-|     V2_ImHashMap_AVL_AddOrUpdate |  1000 | 325,958.7 ns | 1,794.02 ns | 1,590.35 ns |  1.00 |    0.00 | 122.0703 | 3.4180 |     - |  511211 B |
-| V3_ImHashMap_234Tree_AddOrUpdate |  1000 | 273,113.0 ns | 4,146.37 ns | 4,774.96 ns |  0.83 |    0.01 |  82.0313 | 1.4648 |     - |  344592 B |
+BenchmarkDotNet=v0.12.1, OS=Windows 10.0.18363.1379 (1909/November2018Update/19H2)
+Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+.NET Core SDK=5.0.200
+  [Host]     : .NET Core 3.1.12 (CoreCLR 4.700.21.6504, CoreFX 4.700.21.6905), X64 RyuJIT
+  DefaultJob : .NET Core 3.1.12 (CoreCLR 4.700.21.6504, CoreFX 4.700.21.6905), X64 RyuJIT
 
+|                           Method | Count |          Mean |        Error |       StdDev | Ratio | RatioSD |   Gen 0 |  Gen 1 | Gen 2 | Allocated |
+|--------------------------------- |------ |--------------:|-------------:|-------------:|------:|--------:|--------:|-------:|------:|----------:|
+|     V2_ImHashMap_AVL_AddOrUpdate |     1 |     126.24 ns |     2.172 ns |     1.814 ns |  1.00 |    0.00 |  0.0433 |      - |     - |     272 B |
+| V3_ImHashMap_234Tree_AddOrUpdate |     1 |      96.04 ns |     1.957 ns |     2.253 ns |  0.77 |    0.01 |  0.0253 |      - |     - |     160 B |
+|                                  |       |               |              |              |       |         |         |        |       |           |
+|     V2_ImHashMap_AVL_AddOrUpdate |     5 |     423.31 ns |     8.420 ns |    12.076 ns |  1.00 |    0.00 |  0.1760 | 0.0005 |     - |    1104 B |
+| V3_ImHashMap_234Tree_AddOrUpdate |     5 |     275.39 ns |     5.447 ns |     9.250 ns |  0.65 |    0.03 |  0.0749 |      - |     - |     472 B |
+|                                  |       |               |              |              |       |         |         |        |       |           |
+|     V2_ImHashMap_AVL_AddOrUpdate |    10 |     859.73 ns |    16.281 ns |    17.421 ns |  1.00 |    0.00 |  0.3681 | 0.0019 |     - |    2312 B |
+| V3_ImHashMap_234Tree_AddOrUpdate |    10 |     562.69 ns |     8.104 ns |     7.581 ns |  0.65 |    0.02 |  0.1669 |      - |     - |    1048 B |
+|                                  |       |               |              |              |       |         |         |        |       |           |
+|     V2_ImHashMap_AVL_AddOrUpdate |   100 |  12,775.54 ns |   250.128 ns |   333.913 ns |  1.00 |    0.00 |  5.5542 | 0.2594 |     - |   34856 B |
+| V3_ImHashMap_234Tree_AddOrUpdate |   100 |  11,366.40 ns |   224.167 ns |   230.203 ns |  0.88 |    0.03 |  3.3112 | 0.1068 |     - |   20792 B |
+|                                  |       |               |              |              |       |         |         |        |       |           |
+|     V2_ImHashMap_AVL_AddOrUpdate |  1000 | 266,086.98 ns | 4,796.703 ns | 4,252.153 ns |  1.00 |    0.00 | 81.0547 | 0.9766 |     - |  511209 B |
+| V3_ImHashMap_234Tree_AddOrUpdate |  1000 | 229,625.37 ns | 3,876.547 ns | 3,980.928 ns |  0.86 |    0.02 | 54.9316 | 1.7090 |     - |  344592 B |
 */
             [Params(1, 5, 10, 100, 1000)]
             public int Count;

@@ -232,11 +232,11 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |                V3_ImMap_234Tree_AddOrUpdate | 10000 | 7,255.92 us | 117.567 us | 104.220 us |  1.07 |    0.02 | 992.1875 | 289.0625 | 109.3750 | 6106.98 KB |
 
 */
-            [Params(100, 1_000, 10_000)]
+            [Params(1, 5, 10, 100, 1_000)]
             public int Count;
 
-            //[Benchmark(Baseline = true)]
-            public ImTools.V2.ImMap<string> ImMap_AddOrUpdate()
+            [Benchmark(Baseline = true)]
+            public ImTools.V2.ImMap<string> V2_ImMap_AVL_AddOrUpdate()
             {
                 var map = ImTools.V2.ImMap<string>.Empty;
 
@@ -248,8 +248,8 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
 
             // [Benchmark]
-            [Benchmark(Baseline = true)]
-            public ImTools.V2.Experimental.ImMap<string> V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate()
+            [Benchmark]
+            public ImTools.V2.Experimental.ImMap<string> V2_ImMap_AVLOptimizedForAdd_AddOrUpdate()
             {
                 var map = ImTools.V2.Experimental.ImMap<string>.Empty;
 
