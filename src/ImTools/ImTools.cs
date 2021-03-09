@@ -2092,7 +2092,7 @@ namespace ImTools
     /// <summary>Provides optimistic-concurrency consistent <see cref="Swap{T}"/> operation.</summary>
     public static class Ref
     {
-        /// The default max retry count - can be overriden by `Swap` optional parameter 
+        /// The default max retry count - can be overridden by `Swap` optional parameter 
         public const int RETRY_COUNT_UNTIL_THROW = 50;
 
         /// <summary>Factory for <see cref="Ref{T}"/> with type of value inference.</summary>
@@ -2115,8 +2115,8 @@ namespace ImTools
         /// <returns>Old/original value. By analogy with <see cref="Interlocked.Exchange(ref int,int)"/>.</returns>
         /// <remarks>Important: <paramref name="getNewValue"/> May be called multiple times to retry update with value concurrently changed by other code.</remarks>
         [MethodImpl((MethodImplOptions)256)]
-        public static T Swap<T>(ref T value, Func<T, T> getNewValue, 
-            int retryCountUntilThrow = RETRY_COUNT_UNTIL_THROW) 
+        public static T Swap<T>(ref T value, Func<T, T> getNewValue,
+            int retryCountUntilThrow = RETRY_COUNT_UNTIL_THROW)
             where T : class
         {
             var spinWait = new SpinWait();
@@ -2134,13 +2134,12 @@ namespace ImTools
             }
         }
 
-        private static void ThrowRetryCountExceeded(int retryCountExceeded) => 
+        private static void ThrowRetryCountExceeded(int retryCountExceeded) =>
             throw new InvalidOperationException(
                 $"Ref retried to Update for {retryCountExceeded} times But there is always someone else intervened.");
 
-        /// <summary>
-        /// Option without allocation for capturing `a` in closure of `getNewValue`
-        /// </summary>
+        /// <summary>Swap with the additional state <paramref name="a"/> required for the delegate <paramref name="getNewValue"/>.
+        /// May prevent closure creation for the delegate</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static T Swap<T, A>(ref T value, A a, Func<T, A, T> getNewValue, 
             int retryCountUntilThrow = RETRY_COUNT_UNTIL_THROW) 
@@ -2181,10 +2180,11 @@ namespace ImTools
             }
         }
 
-        /// Option without allocation for capturing `a` and `b` in closure of `getNewValue`
+        /// <summary>Swap with the additional state <paramref name="a"/>, <paramref name="b"/> required for the delegate <paramref name="getNewValue"/>.
+        /// May prevent closure creation for the delegate</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static T Swap<T, A, B>(ref T value, A a, B b, Func<T, A, B, T> getNewValue,
-            int retryCountUntilThrow = RETRY_COUNT_UNTIL_THROW) 
+            int retryCountUntilThrow = RETRY_COUNT_UNTIL_THROW)
             where T : class
         {
             var spinWait = new SpinWait();
@@ -2203,7 +2203,8 @@ namespace ImTools
             }
         }
 
-        /// Option without allocation for capturing `a`, `b`, `c` in closure of `getNewValue`
+        /// <summary>Swap with the additional state <paramref name="a"/>, <paramref name="b"/>, <paramref name="c"/> required for the delegate <paramref name="getNewValue"/>.
+        /// May prevent closure creation for the delegate</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static T Swap<T, A, B, C>(ref T value, A a, B b, C c, Func<T, A, B, C, T> getNewValue,
             int retryCountUntilThrow = RETRY_COUNT_UNTIL_THROW)
@@ -2254,11 +2255,13 @@ namespace ImTools
     /// Simple unbounded object pool
     public sealed class StackPool<T> where T : class
     {
-        /// Give me an object
+        /// <summary>Give me an object</summary>
+        [MethodImpl((MethodImplOptions)256)]
         public T RentOrDefault() =>
             Interlocked.Exchange(ref _s, _s?.Tail)?.Head;
 
-        /// Give it back
+        /// <summary>Give it back</summary>
+        [MethodImpl((MethodImplOptions)256)]
         public void Return(T x) =>
             Interlocked.Exchange(ref _s, new Stack(x, _s));
 
@@ -2285,11 +2288,11 @@ namespace ImTools
         /// <summary>Key.</summary>
         public readonly K Key;
 
-        /// <summary> value.</summary>
+        /// <summary>Value.</summary>
         public readonly V Value;
 
         /// <summary>Creates Key-Value object by providing key and value. Does Not check either one for null.</summary>
-        /// <param name="key">key.</param><param name="value"> value.</param>
+        /// <param name="key">key.</param><param name="value">value.</param>
         public KV(K key, V value)
         {
             Key = key;
@@ -2365,20 +2368,20 @@ namespace ImTools
         /// <summary>Default initial capacity </summary>
         public const int DefaultInitialCapacity = 2;
 
-        /// The items array
+        /// <summary>The items array</summary>
         public T[] Items;
 
-        /// The count
+        /// <summary>The count</summary>
         public int Count;
 
-        /// Constructs the thing 
+        /// <summary>Constructs the thing</summary>
         public GrowingList(T[] items, int count = 0)
         {
             Items = items;
             Count = count;
         }
 
-        /// Push the new slot and return the ref to it
+        /// <summary>Push the new slot and return the ref to it</summary>
         public ref T PushSlot()
         {
             if (Items == null)
@@ -2388,7 +2391,7 @@ namespace ImTools
             return ref Items[Count++];
         }
 
-        /// Adds the new item possibly extending the item collection
+        /// <summary>Adds the new item possibly extending the item collection</summary>
         public void PushSlot(T item)
         {
             if (Items == null)
@@ -2398,14 +2401,14 @@ namespace ImTools
             Items[Count++] = item;
         }
 
-        /// Pops the item - just moving the counter back
+        /// <summary>Pops the item - just moving the counter back</summary>
         public void Pop() => --Count;
 
         // todo: @naming think of the better name
-        /// Pops the item - just moving the counter back
+        /// <summary>Pops the item - just moving the counter back</summary>
         public T PopItem() => Items[--Count];
 
-        /// Expands the items starting with 2
+        /// <summary>Expands the items starting with 2</summary>
         private static T[] Expand(T[] items)
         {
             var count = items.Length;
