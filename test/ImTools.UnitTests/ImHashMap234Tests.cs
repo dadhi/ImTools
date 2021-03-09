@@ -93,6 +93,7 @@ namespace ImTools.UnitTests
             Assert.AreEqual(null, m.GetValueOrDefault(10));
             Assert.AreSame(m, m.AddOrKeep(3, "aa").AddOrKeep(2, "bb").AddOrKeep(1, "cc"));
             CollectionAssert.AreEquivalent(new[] { 1, 2, 3, 4, 5, 6 }, m.Enumerate().Select(x => x.Hash));
+            Assert.AreEqual(6, m.Count());
 
             m = m.AddOrUpdate(7, "7");
             Assert.AreEqual("7",  m.GetValueOrDefault(7));
@@ -101,7 +102,7 @@ namespace ImTools.UnitTests
             m = m.AddOrUpdate(9, "9");
             Assert.AreEqual("9",  m.GetValueOrDefault(9));
             CollectionAssert.AreEquivalent(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 }, m.Enumerate().Select(x => x.Hash));
-
+            Assert.AreEqual(9, m.Count());
 
             m = m.AddOrUpdate(10, "10");
             Assert.AreEqual("10", m.GetValueOrDefault(10));
@@ -117,6 +118,7 @@ namespace ImTools.UnitTests
             Assert.AreEqual(null, m.GetValueOrDefault(11));
             Assert.AreSame(m, m.AddOrKeep(8, "8!").AddOrKeep(5, "5!").AddOrKeep(3, "aa").AddOrKeep(2, "bb").AddOrKeep(1, "cc"));
             CollectionAssert.AreEquivalent(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }, m.Enumerate().Select(x => x.Hash));
+            Assert.AreEqual(10, m.Count());
 
             m = m.AddOrUpdate(11, "11");
             m = m.AddOrUpdate(12, "12");
@@ -125,9 +127,11 @@ namespace ImTools.UnitTests
             Assert.AreEqual("12",  m.GetValueOrDefault(12));
             Assert.AreEqual("13",  m.GetValueOrDefault(13));
             CollectionAssert.AreEquivalent(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 }, m.Enumerate().Select(x => x.Hash));
+            Assert.AreEqual(13, m.Count());
 
             m = m.AddOrUpdate(14, "14");
             Assert.AreEqual("14",  m.GetValueOrDefault(14));
+            Assert.AreEqual(14, m.Count());
 
             m = m.AddOrUpdate(15, "15");
             m = m.AddOrUpdate(16, "16");
@@ -136,10 +140,12 @@ namespace ImTools.UnitTests
             Assert.AreEqual("16",  m.GetValueOrDefault(16));
             Assert.AreEqual("17",  m.GetValueOrDefault(17));
             CollectionAssert.AreEquivalent(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 }, m.Enumerate().Select(x => x.Hash));
+            Assert.AreEqual(17, m.Count());
 
             m = m.AddOrUpdate(18, "18");
             Assert.AreEqual("18",  m.GetValueOrDefault(18));
             CollectionAssert.AreEquivalent(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18 }, m.Enumerate().Select(x => x.Hash));
+            Assert.AreEqual(18, m.Count());
 
             var r = m.Remove(18).Remove(17).Remove(16);
             CollectionAssert.AreEquivalent(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }, r.Enumerate().Select(x => x.Hash));
