@@ -96,6 +96,24 @@ namespace ImTools
         public static Lazy<T> Of<T>(Func<T> valueFactory) => new Lazy<T>(valueFactory);
     }
 
+    /// <summary>Just a helper state with the number of mutable fields with the nice names ;) Maybe used together with Fold or other methods required state</summary>
+    public sealed class St<A, B, C> 
+    {
+        /// <summary>A</summary>
+        public A a;
+        /// <summary>B</summary>
+        public B b;
+        /// <summary>C</summary>
+        public C c;
+    } 
+
+    /// <summary>State factory and helper methods</summary>
+    public static class St 
+    {
+        /// <summary>Creates the state out of the supplied arguments</summary>
+        public static St<A, B, C> Of<A, B, C>(A a, B b, C c) => new St<A, B, C> { a = a, b = b, c = c };
+    }
+
     /// Replacement for `Void` type which can be used as a type argument and value.
     /// In traditional functional languages this type is a singleton empty record type,
     /// e.g. `()` in Haskell https://en.wikipedia.org/wiki/Unit_type
@@ -140,7 +158,7 @@ namespace ImTools
         }
     }
 
-    /// Wraps the `T` in a typed `TData` struct value in a one-line declaration,
+    /// Wraps the `T` in a typed `TItem` struct value in a one-line declaration,
     /// so the <c><![CDATA[class Name : Case<Name, string>]]></c>
     /// is different from the <c><![CDATA[class Address : Case<Address, string>]]></c> 
     public abstract class Item<TItem, T> where TItem : Item<TItem, T>
@@ -5438,8 +5456,7 @@ namespace ImTools
             return state;
         }
 
-        /// <summary> 
-        /// Depth-first in-order of hash traversal as described in http://en.wikipedia.org/wiki/Tree_traversal.
+        /// <summary>Depth-first in-order of hash traversal as described in http://en.wikipedia.org/wiki/Tree_traversal.
         /// The `parents` parameter allows to reuse the stack memory used for traversal between multiple enumerates.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent `Enumerate` calls</summary>
         public static S Fold<V, S>(this ImMap<V> map, S state, Func<ImMapEntry<V>, S, S> reduce, Stack<ImMap<V>> parents = null)
@@ -5635,6 +5652,16 @@ namespace ImTools
 
             return state;
         }
+
+        /// <summary>Converts map tree to an array with the minimum allocations</summary>
+        public static S[] ToArray<K, V, S>(this ImHashMap<K, V> map, Func<ImHashMapEntry<K, V>, S> selector, Stack<ImHashMap<K, V>> parents = null) =>
+            map == ImHashMap<K, V>.Empty ? ArrayTools.Empty<S>() : 
+                map.Fold(St.Of(a:new S[map.Count()], b:selector, c:0), (x, s) => { s.a[s.c] = s.b(x); return s; }, parents).a;
+
+        /// <summary>Converts the map tree to an array with the minimum allocations</summary>
+        public static S[] ToArray<V, S>(this ImMap<V> map, Func<ImMapEntry<V>, S> selector, Stack<ImMap<V>> parents = null) =>
+            map == ImMap<V>.Empty ? ArrayTools.Empty<S>() :
+                map.Fold(St.Of(a:new S[map.Count()], b:selector, c:0), (x, s) => { s.a[s.c] = s.b(x); return s; }, parents).a;
 
         /// <summary>Get the key value entry if the hash and key is in the map or the default `null` value otherwise.</summary>
         [MethodImpl((MethodImplOptions)256)]
