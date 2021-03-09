@@ -16,27 +16,32 @@ namespace ImTools.UnitTests
             Assert.AreEqual(null, m.GetValueOrDefault(0));
             Assert.AreEqual(null, m.GetValueOrDefault(13));
             Assert.IsEmpty(m.Enumerate());
+            Assert.AreEqual(0, m.Count());
 
             m = m.AddOrUpdate(1, "a");
             Assert.AreEqual("a",  m.GetValueOrDefault(1));
             Assert.AreEqual(null, m.GetValueOrDefault(10));
             CollectionAssert.AreEquivalent(new[] { 1 }, m.Enumerate().Select(x => x.Hash));
+            Assert.AreEqual(1, m.Count());
 
             Assert.AreSame(m, m.AddOrKeep(1, "aa"));
 
             var mr = m.Remove(1);
             Assert.AreSame(ImHashMap<int, string>.Empty, mr);
+            Assert.AreEqual(0, mr.Count());
 
             m = m.AddOrUpdate(2, "b");
             Assert.AreEqual("b",  m.GetValueOrDefault(2));
             Assert.AreEqual("a",  m.GetValueOrDefault(1));
             Assert.AreEqual(null, m.GetValueOrDefault(10));
             CollectionAssert.AreEquivalent(new[] { 1, 2 }, m.Enumerate().Select(x => x.Hash));
+            Assert.AreEqual(2, m.Count());
 
             Assert.AreSame(m, m.AddOrKeep(1, "aa").AddOrKeep(2, "bb"));
             Assert.AreSame(m, m.Remove(0));
             mr = m.Remove(2);
             Assert.AreEqual("a", mr.GetValueOrDefault(1));
+            Assert.AreEqual(1, mr.Count());
 
             m = m.AddOrUpdate(3, "c");
             Assert.AreEqual("c",  m.GetValueOrDefault(3));
@@ -44,12 +49,14 @@ namespace ImTools.UnitTests
             Assert.AreEqual("a",  m.GetValueOrDefault(1));
             Assert.AreEqual(null, m.GetValueOrDefault(10));
             CollectionAssert.AreEquivalent(new[] { 1, 2, 3 }, m.Enumerate().Select(x => x.Hash));
+            Assert.AreEqual(3, m.Count());
 
             Assert.AreSame(m, m.AddOrKeep(3, "aa").AddOrKeep(2, "bb").AddOrKeep(1, "cc"));
             Assert.AreSame(m, m.Remove(0));
             mr = m.Remove(2);
             Assert.AreEqual("a", mr.GetValueOrDefault(1));
             Assert.AreEqual("c", mr.GetValueOrDefault(3));
+            Assert.AreEqual(2, mr.Count());
 
             m = m.AddOrUpdate(4, "d");
             Assert.AreEqual("c",  m.GetValueOrDefault(3));
@@ -58,6 +65,7 @@ namespace ImTools.UnitTests
             Assert.AreEqual("d",  m.GetValueOrDefault(4));
             Assert.AreEqual(null, m.GetValueOrDefault(10));
             CollectionAssert.AreEquivalent(new[] { 1, 2, 3, 4 }, m.Enumerate().Select(x => x.Hash));
+            Assert.AreEqual(4, m.Count());
 
             Assert.AreSame(m, m.AddOrKeep(3, "aa").AddOrKeep(2, "bb").AddOrKeep(1, "cc"));
             Assert.AreSame(m, m.Remove(0));
@@ -70,6 +78,7 @@ namespace ImTools.UnitTests
             Assert.AreEqual("e",  m.GetValueOrDefault(5));
             Assert.AreEqual(null, m.GetValueOrDefault(10));
             CollectionAssert.AreEquivalent(new[] { 1, 2, 3, 4, 5 }, m.Enumerate().Select(x => x.Hash));
+            Assert.AreEqual(5, m.Count());
 
             Assert.AreSame(m, m.AddOrKeep(3, "aa").AddOrKeep(2, "bb").AddOrKeep(1, "cc"));
             Assert.AreSame(m, m.Remove(0));

@@ -414,54 +414,6 @@ namespace ImTools.V2
         }
 
         /// <summary>
-        /// Folds all the map nodes with the state from left to right and from the bottom to top
-        /// You may pass `parentStacks` to reuse the array memory.
-        /// NOTE: the length of `parentStack` should be at least of map height, content is not important and could be erased.
-        /// </summary>
-        public S Fold<S, R>(S state, R reducer, ImMap<V>[] parentStack = null) where R : struct, IFoldReducer<ImMap<V>, S>
-        {
-            if (Height == 0)
-                return state;
-
-            if (Height == 1)
-                return reducer.Reduce(this, state);
-
-            if (Height == 2)
-                return this.ReduceTwoLevelTree(state, reducer);
-
-            parentStack = parentStack ?? new ImMap<V>[Height - 2];
-            var map = this;
-            var parentIndex = -1;
-            do
-            {
-                if (map.Height == 1)
-                {
-                    state = reducer.Reduce(map, state);
-                    if (parentIndex == -1)
-                        break;
-                    state = reducer.Reduce(map = parentStack[parentIndex--], state);
-                    map = map.Right;
-                }
-                else if (map.Height == 2)
-                {
-                    state = map.ReduceTwoLevelTree(state, reducer);
-                    if (parentIndex == -1)
-                        break;
-                    state = reducer.Reduce(map = parentStack[parentIndex--], state);
-                    map = map.Right;
-                }
-                else
-                {
-                    parentStack[++parentIndex] = map;
-                    map = map.Left;
-                }
-            } while (map.Height != 0);
-
-            return state;
-        }
-
-
-        /// <summary>
         /// Folds all the map nodes with the state and index from left to right and from bottom to top
         /// You may pass `parentStacks` to reuse the array memory.
         /// NOTE: the length of `parentStack` should be at least of map height, content is not important and could be erased.
@@ -686,17 +638,6 @@ namespace ImTools.V2
             state = reduce(map, state);
             if (map.Right.Height != 0)
                 state = reduce(map.Right, state);
-            return state;
-        }
-
-        [MethodImpl((MethodImplOptions)256)]
-        internal static S ReduceTwoLevelTree<V, S, R>(this ImMap<V> map, S state, R reducer) where R : struct, IFoldReducer<ImMap<V>, S>
-        {
-            if (map.Left.Height != 0)
-                state = reducer.Reduce(map.Left, state);
-            state = reducer.Reduce(map, state);
-            if (map.Right.Height != 0)
-                state = reducer.Reduce(map.Right, state);
             return state;
         }
     }
