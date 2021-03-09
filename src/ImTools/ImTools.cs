@@ -2768,16 +2768,6 @@ namespace ImTools
     /// Update handler including the key
     public delegate V Update<K, V>(K key, V oldValue, V newValue);
 
-    /// <summary>
-    /// Fold reducer. Designed as a alternative to `Func{V, S, S}` but with possibility of inlining on the call side.
-    /// Note: To get the advantage of inlining the <see cref="Reduce"/> can the interface should be implemented and passed as a NON-GENERIC STRUCT
-    /// </summary>
-    public interface IFoldReducer<V, S>
-    {
-        /// <summary>Reduce method</summary>
-        S Reduce(V x, S state);
-    }
-
     /// <summary>Entry containing the Key and Value in addition to the Hash</summary>
     public sealed class ImHashMapEntry<K, V> : ImHashMap<K, V>.Entry
     {
@@ -2793,7 +2783,11 @@ namespace ImTools
         {
             Key = key;
             Value = value;
-        } 
+        }
+
+        /// <inheritdoc />
+        public override int Count() => 1;
+
 #if !DEBUG
         /// <inheritdoc />
         public override string ToString() => "{KVE: {H: " + Hash + ", K: " + Key + ", V: " + Value + "}}";
@@ -2806,6 +2800,9 @@ namespace ImTools
         /// <summary>The 2 and more conflicts.</summary>
         public ImHashMapEntry<K, V>[] Conflicts;
         internal HashConflictKeyValuesEntry(int hash, params ImHashMapEntry<K, V>[] conflicts) : base(hash) => Conflicts = conflicts;
+
+        /// <inheritdoc />
+        public override int Count() => Conflicts.Length;
 
 #if !DEBUG
         /// <inheritdoc />
@@ -2844,6 +2841,9 @@ namespace ImTools
 
         /// <summary>Indicates that the map is empty</summary>
         public bool IsEmpty => this == Empty;
+
+        /// <summary>The count of entries in the map</summary>
+        public virtual int Count() => 0;
 
         /// <summary>Lookup for the entry by hash. If nothing the method returns `null`</summary>
         internal virtual Entry GetEntryOrDefault(int hash) => null;
@@ -2887,7 +2887,6 @@ namespace ImTools
             public override string ToString() => "{RemovedE: {H: " + Hash + "}}";
         }
 
-
         /// <summary>Leaf with 2 hash-ordered entries. Important: the both or either of entries may be null for the removed entries</summary>
         public sealed class Leaf2 : ImHashMap<K, V>
         {
@@ -2901,6 +2900,9 @@ namespace ImTools
                 Debug.Assert(e0 == null || e1 == null || e0.Hash < e1.Hash);
                 Entry0 = e0; Entry1 = e1;
             }
+
+            /// <inheritdoc />
+            public override int Count() => (Entry0?.Count() ?? 0) + (Entry1?.Count() ?? 0);
 
 #if !DEBUG
             /// <inheritdoc />
@@ -2948,6 +2950,9 @@ namespace ImTools
                 Plus = plus;
                 L    = leaf;
             }
+
+            /// <inheritdoc />
+            public override int Count() => Plus.Count() + L.Entry0.Count() + L.Entry1.Count();
 
 #if !DEBUG
             /// <inheritdoc />
@@ -2997,6 +3002,9 @@ namespace ImTools
                 Plus = plus;
                 L = l;
             }
+
+            /// <inheritdoc />
+            public override int Count() => Plus.Count() + L.Plus.Count() + L.L.Entry0.Count() + L.L.Entry1.Count();
 
 #if !DEBUG
             /// <inheritdoc />
@@ -3115,6 +3123,9 @@ namespace ImTools
                 Entry0 = e0; Entry1 = e1; Entry2 = e2; Entry3 = e3; Entry4 = e4;
             }
 
+            /// <inheritdoc />
+            public override int Count() => Entry0.Count() + Entry1.Count() + Entry2.Count() + Entry3.Count() + Entry4.Count();
+
 #if !DEBUG
             /// <inheritdoc />
             public override string ToString() => 
@@ -3166,6 +3177,9 @@ namespace ImTools
                 Plus = plus;
                 L    = l;
             }
+
+            /// <inheritdoc />
+            public override int Count() => Plus.Count() + L.Count();
 
 #if !DEBUG
             /// <inheritdoc />
@@ -3268,6 +3282,9 @@ namespace ImTools
                 Plus = plus;
                 L    = l;
             }
+
+            /// <inheritdoc />
+            public override int Count() => Plus.Count() + L.Count();
 
 #if !DEBUG
             /// <inheritdoc />
@@ -3508,6 +3525,9 @@ namespace ImTools
                 Left     = left;
                 Right    = right;
             }
+
+            /// <inheritdoc />
+            public sealed override int Count() => (MidEntry is RemovedEntry ? 0 : 1) + Left.Count() + Right.Count();
 
 #if !DEBUG
             /// <inheritdoc />
@@ -3761,10 +3781,14 @@ namespace ImTools
         public ImMapEntry(int hash) : base(hash) {}
         /// <summary>Constructs the entry with the value</summary>
         public ImMapEntry(int hash, V value) : base(hash) => Value = value;
+
 #if !DEBUG
         /// <inheritdoc />
         public override string ToString() => "{VE: {H: " + Hash + ", V: " + Value + "}}";
 #endif
+
+        /// <inheritdoc />
+        public override int Count() => 1;
     }
 
     /// <summary>The base and the holder class for the map tree leafs and branches, also defines the Empty tree.
@@ -3792,6 +3816,9 @@ namespace ImTools
 
         /// <summary>Indicates that the map is empty</summary>
         public bool IsEmpty => this == Empty;
+
+        /// <summary>The count of entries in the map</summary>
+        public virtual int Count() => 0;
 
         /// <summary>Lookup for the entry by hash. 
         /// You need to check the returned entry type because it maybe the `HashConflictKeyValuesEntry` which contain multiple key value entries for the same hash. For the `int` key you may be sure that the `ImHashMapEntry{V}` is always returned.
@@ -3850,6 +3877,9 @@ namespace ImTools
                 Entry0 = e0; Entry1 = e1;
             }
 
+            /// <inheritdoc />
+            public override int Count() => (Entry0?.Count() ?? 0) + (Entry1?.Count() ?? 0);
+
 #if !DEBUG
             /// <inheritdoc />
             public override string ToString() => "{L2: {E0: " + Entry0 + ", E1: " + Entry1 + "}}";
@@ -3896,6 +3926,9 @@ namespace ImTools
                 Plus = plus;
                 L    = leaf;
             }
+
+            /// <inheritdoc />
+            public override int Count() => 3;
 
 #if !DEBUG
             /// <inheritdoc />
@@ -3945,6 +3978,9 @@ namespace ImTools
                 Plus = plus;
                 L = l;
             }
+
+            /// <inheritdoc />
+            public override int Count() => 4;
 
 #if !DEBUG
             /// <inheritdoc />
@@ -4063,6 +4099,9 @@ namespace ImTools
                 Entry0 = e0; Entry1 = e1; Entry2 = e2; Entry3 = e3; Entry4 = e4;
             }
 
+            /// <inheritdoc />
+            public override int Count() => 5;
+
 #if !DEBUG
             /// <inheritdoc />
             public override string ToString() => 
@@ -4114,6 +4153,9 @@ namespace ImTools
                 Plus = plus;
                 L    = l;
             }
+
+            /// <inheritdoc />
+            public override int Count() => 6;
 
 #if !DEBUG
             /// <inheritdoc />
@@ -4221,6 +4263,9 @@ namespace ImTools
             /// <inheritdoc />
             public override string ToString() => "{L511: {P: " + Plus + ", L: " + L + "}}";
 #endif
+
+            /// <inheritdoc />
+            public sealed override int Count() => 7;
 
             internal override Entry GetEntryOrNull(int hash)
             {
@@ -4456,6 +4501,9 @@ namespace ImTools
                 Left     = left;
                 Right    = right;
             }
+
+            /// <inheritdoc />
+            public sealed override int Count() => (MidEntry is RemovedEntry ? 0 : 1) + Left.Count() + Right.Count();
 
 #if !DEBUG
             /// <inheritdoc />
@@ -5169,7 +5217,7 @@ namespace ImTools
             if (map is ImHashMap<K, V>.Entry e)
             {
                 if (e is ImHashMapEntry<K, V> kv) state = reduce(kv, state);
-                foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e).Conflicts) state = reduce(c, state);
+                else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e).Conflicts) state = reduce(c, state);
                 return state;
             }
 
@@ -5602,6 +5650,11 @@ namespace ImTools
             return null;
         }
 
+        /// <summary>Get the key value entry if the key is in the map or the default `null` value otherwise.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMapEntry<K, V> GetEntryOrDefault<K, V>(this ImHashMap<K, V> map, K key) =>
+            GetEntryOrDefault(map, key.GetHashCode(), key);
+
         /// <summary>Returns <see langword="true"/> if map contains the hash and key, otherwise returns <see langword="false"/></summary>
         [MethodImpl((MethodImplOptions)256)]
         public static bool Contains<K, V>(this ImHashMap<K, V> map, int hash, K key) => map.GetEntryOrDefault(hash, key) != null;
@@ -5817,6 +5870,21 @@ namespace ImTools
             return oldEntryOrMap;
         }
 
+        /// <summary>Adds or updates (no in-place mutation) the map with the new entry, always returning the NEW map!</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap<K, V> AddOrUpdateEntry<K, V>(this ImHashMap<K, V> map, ImHashMapEntry<K, V> newEntry) 
+        {
+            if (map == ImHashMap<K, V>.Empty)
+                return newEntry;
+
+            var hash = newEntry.Hash;
+            var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
+            if (oldEntryOrMap is ImHashMap<K, V>.Entry oldEntry)
+                return map.ReplaceEntry(hash, oldEntry, UpdateEntry(oldEntry, newEntry));
+
+            return oldEntryOrMap;
+        }
+
         private static ImHashMap<K, V>.Entry UpdateEntry<K, V>(ImHashMap<K, V>.Entry oldEntry, ImHashMapEntry<K, V> newEntry)
         {
             if (oldEntry is ImHashMapEntry<K, V> kv)
@@ -5887,6 +5955,21 @@ namespace ImTools
             if (map == ImMap<V>.Empty)
                 return newEntry;
 
+            var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
+            if (oldEntryOrMap is ImMapEntry<V> oldEntry)
+                return map.ReplaceEntry(hash, oldEntry, newEntry); // todo: @perf here we have a chance to compare the old and the new value and prevent the updated if the values are equal
+
+            return oldEntryOrMap;
+        }
+
+        /// <summary>Adds or updates (no in-place mutation) the map with the new entry, always returning the NEW map!</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMap<V> AddOrUpdateEntry<V>(this ImMap<V> map, ImMapEntry<V> newEntry)
+        {
+            if (map == ImMap<V>.Empty)
+                return newEntry;
+
+            var hash = newEntry.Hash;
             var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
             if (oldEntryOrMap is ImMapEntry<V> oldEntry)
                 return map.ReplaceEntry(hash, oldEntry, newEntry); // todo: @perf here we have a chance to compare the old and the new value and prevent the updated if the values are equal
