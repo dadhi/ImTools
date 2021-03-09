@@ -1598,6 +1598,16 @@ namespace ImTools
             return -1;
         }
 
+        /// <summary>The same as `IndexOf` but searching for the item by reference</summary>
+        public static int IndexOfReference<T>(this T[] source, T reference) where T : class
+        {
+            if (source != null && source.Length != 0)
+                for (var i = 0; i < source.Length; ++i)
+                    if (ReferenceEquals(source[i], reference))
+                        return i;
+            return -1;
+        }
+
         /// <summary>Produces new array without item at specified <paramref name="index"/>. 
         /// Will return <paramref name="source"/> array if index is out of bounds, or source is null/empty.</summary>
         /// <typeparam name="T">Type of array item.</typeparam>
@@ -5662,7 +5672,7 @@ namespace ImTools
         /// <summary>Lookup for the value by the key using the hash and checking the key with the `object.ReferenceEquals` for equality,
         ///  returns found value or the default value if not found</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static V GetValueOrDefaultReferenceEqual<K, V>(this ImHashMap<K, V> map, int hash, K key) where K : class
+        public static V GetValueOrDefaultByReferenceEquals<K, V>(this ImHashMap<K, V> map, int hash, K key) where K : class
         {
             var e = map.GetEntryOrDefault(hash);
             if (e is ImHashMapEntry<K, V> kv)
@@ -5710,7 +5720,7 @@ namespace ImTools
         /// <summary>Lookup for the value by the key using the hash and checking the key with the `object.ReferenceEquals`, 
         /// returns the `true` and the found value or the `false` otherwise</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static bool TryFindReferenceEqual<K, V>(this ImHashMap<K, V> map, int hash, K key, out V value) where K : class
+        public static bool TryFindByReferenceEquals<K, V>(this ImHashMap<K, V> map, int hash, K key, out V value) where K : class
         {
             var e = map.GetEntryOrDefault(hash);
             if (e is ImHashMapEntry<K, V> kv)
@@ -5789,7 +5799,7 @@ namespace ImTools
             var newConflicts = new ImHashMapEntry<K, V>[n + 1];
             Array.Copy(cs, 0, newConflicts, 0, n);
             newConflicts[n] = newEntry;
-            return  map.ReplaceEntry(hash, hc, new HashConflictKeyValuesEntry<K, V>(hash, newConflicts));
+            return map.ReplaceEntry(hash, hc, new HashConflictKeyValuesEntry<K, V>(hash, newConflicts));
         }
 
         /// <summary>Adds or updates (no in-place mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
@@ -5810,7 +5820,8 @@ namespace ImTools
         private static ImHashMap<K, V>.Entry UpdateEntry<K, V>(ImHashMap<K, V>.Entry oldEntry, ImHashMapEntry<K, V> newEntry)
         {
             if (oldEntry is ImHashMapEntry<K, V> kv)
-                return kv.Key.Equals(newEntry.Key) ? newEntry : (ImHashMap<K, V>.Entry)new HashConflictKeyValuesEntry<K, V>(oldEntry.Hash, kv, newEntry);
+                return kv.Key.Equals(newEntry.Key) ? newEntry 
+                     : (ImHashMap<K, V>.Entry)new HashConflictKeyValuesEntry<K, V>(oldEntry.Hash, kv, newEntry);
 
             var hc = (HashConflictKeyValuesEntry<K, V>)oldEntry;
             var key = newEntry.Key;
@@ -5850,7 +5861,7 @@ namespace ImTools
             var key = newEntry.Key;
             if (oldEntry is ImHashMapEntry<K, V> kv)
                 return kv.Key.Equals(key) ? new ImHashMapEntry<K, V>(newEntry.Hash, key, update(key, kv.Value, newEntry.Value))
-                        : (ImHashMap<K, V>.Entry)new HashConflictKeyValuesEntry<K, V>(oldEntry.Hash, kv, newEntry);
+                    : (ImHashMap<K, V>.Entry)new HashConflictKeyValuesEntry<K, V>(oldEntry.Hash, kv, newEntry);
 
             var hc = (HashConflictKeyValuesEntry<K, V>)oldEntry;
             var cs = hc.Conflicts;
@@ -5933,12 +5944,81 @@ namespace ImTools
         public static ImHashMap<K, V> Update<K, V>(this ImHashMap<K, V> map, K key, V value) =>
             map.Update(key.GetHashCode(), key, value);
 
+        /// <summary>Updates the map with the new value if the key is found otherwise returns the same unchanged map.</summary>
+        public static ImHashMap<K, V> UpdateToDefault<K, V>(this ImHashMap<K, V> map, int hash, K key) 
+        {
+            var entry = map.GetEntryOrDefault(hash);
+            if (entry == null)
+                return map;
+
+            if (entry is ImHashMapEntry<K, V> kv)
+                return kv.Key.Equals(key) ? map.ReplaceEntry(hash, entry, new ImHashMapEntry<K, V>(hash, key)) : map;
+
+            var hc = (HashConflictKeyValuesEntry<K, V>)entry;
+            var cs = hc.Conflicts;
+            var n = cs.Length;
+            var i = n - 1;
+            while (i != -1 && !key.Equals(cs[i].Key)) --i;
+            if (i == -1)
+                return map;
+            var newConflicts = new ImHashMapEntry<K, V>[n];
+            Array.Copy(cs, 0, newConflicts, 0, n);
+            newConflicts[i] = new ImHashMapEntry<K, V>(hash, key);
+            return map.ReplaceEntry(hash, entry, new HashConflictKeyValuesEntry<K, V>(hash, newConflicts));
+        }
+
+        /// <summary>Updates the map with the new value if the key is found otherwise returns the same unchanged map.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap<K, V> UpdateToDefault<K, V>(this ImHashMap<K, V> map, K key) =>
+            map.UpdateToDefault(key.GetHashCode(), key);
+
+        /// <summary>Updates the map with the new value and the `update` function if the key is found otherwise returns the same unchanged map.
+        /// If `update` returns the same map if the updated result is the same</summary>
+        public static ImHashMap<K, V> Update<K, V>(this ImHashMap<K, V> map, int hash, K key, V value, Update<K, V> update)
+        {
+            var entry = map.GetEntryOrDefault(hash);
+            if (entry == null)
+                return map;
+
+            if (entry is ImHashMapEntry<K, V> kv)
+                return !kv.Key.Equals(key) || ReferenceEquals(kv.Value, value = update(key, kv.Value, value)) 
+                    ? map 
+                    : map.ReplaceEntry(hash, entry, new ImHashMapEntry<K, V>(hash, key, value));
+
+            var hc = (HashConflictKeyValuesEntry<K, V>)entry;
+            var cs = hc.Conflicts;
+            var n = cs.Length;
+            var i = n - 1;
+            while (i != -1 && !key.Equals(cs[i].Key)) --i;
+            if (i == -1 || ReferenceEquals(cs[i].Value, value = update(key, cs[i].Value, value)))
+                return map;
+
+            var newConflicts = new ImHashMapEntry<K, V>[n];
+            Array.Copy(cs, 0, newConflicts, 0, n);
+            newConflicts[i] = new ImHashMapEntry<K, V>(hash, key, value);
+
+            return map.ReplaceEntry(hash, entry, new HashConflictKeyValuesEntry<K, V>(hash, newConflicts));
+        }
+
+        /// <summary>Updates the map with the new value and the `update` function if the key is found otherwise returns the same unchanged map.
+        /// If `update` returns the same map if the updated result is the same</summary>
+        public static ImHashMap<K, V> Update<K, V>(this ImHashMap<K, V> map, K key, V value, Update<K, V> update) =>
+            map.Update(key.GetHashCode(), key, value, update);
+
         /// <summary>Updates the map with the new value if the hash is found otherwise returns the same unchanged map.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImMap<V> Update<V>(this ImMap<V> map, int hash, V value) 
         {
             var entry = map.GetEntryOrNull(hash);
             return entry == null ? map : map.ReplaceEntry(hash, entry, new ImMapEntry<V>(hash, value));
+        }
+
+        /// <summary>Updates the map with the default value if the hash is found otherwise returns the same unchanged map.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMap<V> UpdateToDefault<V>(this ImMap<V> map, int hash)
+        {
+            var entry = map.GetEntryOrNull(hash);
+            return entry == null ? map : map.ReplaceEntry(hash, entry, new ImMapEntry<V>(hash));
         }
 
         /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
@@ -6137,10 +6217,10 @@ namespace ImTools
         /// <summary>Lookup for the value by the key using the hash and checking the key with the `object.ReferenceEquals` for equality, 
         /// returns the default `V` if hash, key are not found.</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static V GetValueOrDefaultReferenceEqual<K, V>(this ImHashMap<K, V>[] parts, int hash, K key, int partHashMask = PARTITION_HASH_MASK) where K : class
+        public static V GetValueOrDefaultByReferenceEquals<K, V>(this ImHashMap<K, V>[] parts, int hash, K key, int partHashMask = PARTITION_HASH_MASK) where K : class
         {
             var p = parts[hash & partHashMask];
-            return p != null ? p.GetValueOrDefaultReferenceEqual(hash, key) : default(V);
+            return p != null ? p.GetValueOrDefaultByReferenceEquals(hash, key) : default(V);
         }
 
         /// <summary>Lookup for the value by the key using the hash code and checking the key with the `object.Equals` for equality,
@@ -6164,12 +6244,12 @@ namespace ImTools
         /// <summary>Lookup for the value by the key using the hash code and checking the key with the `object.ReferenceEquals` for equality,
         /// returns the `true` and the found value or the `false`</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static bool TryFindReferenceEqual<K, V>(this ImHashMap<K, V>[] parts, int hash, K key, out V value, int partHashMask = PARTITION_HASH_MASK)
+        public static bool TryFindByReferenceEquals<K, V>(this ImHashMap<K, V>[] parts, int hash, K key, out V value, int partHashMask = PARTITION_HASH_MASK)
             where K : class
         {
             var p = parts[hash & partHashMask];
             if (p != null) 
-                return p.TryFindReferenceEqual(hash, key, out value);
+                return p.TryFindByReferenceEquals(hash, key, out value);
             value = default(V);
             return false;
         }
@@ -6177,8 +6257,8 @@ namespace ImTools
         /// <summary>Lookup for the value by the key using its hash and checking the key with the `object.ReferenceEquals` for equality, 
         /// returns the default `V` if hash, key are not found.</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static V GetValueOrDefaultReferenceEqual<K, V>(this ImHashMap<K, V>[] parts, K key, int partHashMask = PARTITION_HASH_MASK) where K : class => 
-            parts.GetValueOrDefaultReferenceEqual(key.GetHashCode(), key, partHashMask);
+        public static V GetValueOrDefaultByReferenceEquals<K, V>(this ImHashMap<K, V>[] parts, K key, int partHashMask = PARTITION_HASH_MASK) where K : class => 
+            parts.GetValueOrDefaultByReferenceEquals(key.GetHashCode(), key, partHashMask);
 
         /// <summary>Returns the SAME partitioned maps array instance but with the NEW added or updated partion</summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -6291,7 +6371,6 @@ namespace ImTools
         /// Depth-first in-order of hash traversal as described in http://en.wikipedia.org/wiki/Tree_traversal.
         /// The `parents` parameter allows to reuse the stack memory used for traversal between multiple enumerates.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent `Enumerate` calls</summary>
-
         public static S Fold<V, S>(this ImMap<V>[] parts, S state, Func<ImMapEntry<V>, S, S> reduce, 
             ImHashMap.Stack<ImMap<V>> parents = null)
         {

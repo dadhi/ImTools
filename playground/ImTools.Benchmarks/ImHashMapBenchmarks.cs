@@ -1259,7 +1259,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             [Benchmark]
             public string V3_ImHashMap_234Tree_TryFind()
             {
-                _map234.TryFindReferenceEqual(LookupKey.GetHashCode(), LookupKey, out var result);
+                _map234.TryFindByReferenceEquals(LookupKey.GetHashCode(), LookupKey, out var result);
                 return result;
             }
 
