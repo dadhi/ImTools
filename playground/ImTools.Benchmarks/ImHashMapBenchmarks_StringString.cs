@@ -122,21 +122,21 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 |                                    Method |  Count |       Mean |     Error |    StdDev | Ratio | RatioSD |      Gen 0 |     Gen 1 |    Gen 2 | Allocated |
 |------------------------------------------ |------- |-----------:|----------:|----------:|------:|--------:|-----------:|----------:|---------:|----------:|
 |              V2_ImHashMap_AVL_AddOrUpdate |  10000 |  12.255 ms | 0.1736 ms | 0.1539 ms |  1.00 |    0.00 |  1328.1250 |  343.7500 | 140.6250 |   7.89 MB |
-|          V3_ImHashMap_234Tree_AddOrUpdate |  10000 |   9.464 ms | 0.0964 ms | 0.0902 ms |  0.77 |    0.01 |   984.3750 |  375.0000 | 156.2500 |    5.8 MB |
-| V3_PartitionedHashMap_234Tree_AddOrUpdate |  10000 |   8.361 ms | 0.0299 ms | 0.0233 ms |  0.68 |    0.01 |   718.7500 |  281.2500 | 109.3750 |   4.35 MB |
+|          V3_ImHashMap_23Tree_AddOrUpdate |  10000 |   9.464 ms | 0.0964 ms | 0.0902 ms |  0.77 |    0.01 |   984.3750 |  375.0000 | 156.2500 |    5.8 MB |
+| V3_PartitionedHashMap_23Tree_AddOrUpdate |  10000 |   8.361 ms | 0.0299 ms | 0.0233 ms |  0.68 |    0.01 |   718.7500 |  281.2500 | 109.3750 |   4.35 MB |
 |               ConcurrentDictionary_TryAdd |  10000 |   8.299 ms | 0.1656 ms | 0.2478 ms |  0.67 |    0.02 |   546.8750 |  281.2500 | 125.0000 |   3.18 MB |
 |                                           |        |            |           |           |       |         |            |           |          |           |
 |              V2_ImHashMap_AVL_AddOrUpdate | 100000 | 227.280 ms | 3.8927 ms | 3.6412 ms |  1.00 |    0.00 | 16333.3333 | 4333.3333 | 666.6667 |  94.15 MB |
-|          V3_ImHashMap_234Tree_AddOrUpdate | 100000 | 180.789 ms | 2.1376 ms | 1.7850 ms |  0.79 |    0.01 | 12333.3333 | 3000.0000 | 666.6667 |  70.34 MB |
-| V3_PartitionedHashMap_234Tree_AddOrUpdate | 100000 | 175.898 ms | 3.5090 ms | 5.8628 ms |  0.79 |    0.03 | 10000.0000 | 3000.0000 | 666.6667 |  55.65 MB |
+|          V3_ImHashMap_23Tree_AddOrUpdate | 100000 | 180.789 ms | 2.1376 ms | 1.7850 ms |  0.79 |    0.01 | 12333.3333 | 3000.0000 | 666.6667 |  70.34 MB |
+| V3_PartitionedHashMap_23Tree_AddOrUpdate | 100000 | 175.898 ms | 3.5090 ms | 5.8628 ms |  0.79 |    0.03 | 10000.0000 | 3000.0000 | 666.6667 |  55.65 MB |
 |               ConcurrentDictionary_TryAdd | 100000 | 104.194 ms | 1.2147 ms | 1.0768 ms |  0.46 |    0.01 |  4200.0000 | 1600.0000 | 400.0000 |  25.09 MB |
 
 |                                            Method |  Count |       Mean |     Error |    StdDev | Ratio | RatioSD |     Gen 0 |     Gen 1 |    Gen 2 | Allocated |
 |-------------------------------------------------- |------- |-----------:|----------:|----------:|------:|--------:|----------:|----------:|---------:|----------:|
-| V3_PartitionedHashMap_64Parts_234Tree_AddOrUpdate |  10000 |   9.192 ms | 0.0974 ms | 0.0813 ms |  1.00 |    0.00 |  609.3750 |  265.6250 |  93.7500 |   3.63 MB |
+| V3_PartitionedHashMap_64Parts_23Tree_AddOrUpdate |  10000 |   9.192 ms | 0.0974 ms | 0.0813 ms |  1.00 |    0.00 |  609.3750 |  265.6250 |  93.7500 |   3.63 MB |
 |                       ConcurrentDictionary_TryAdd |  10000 |   9.872 ms | 0.1674 ms | 0.1644 ms |  1.08 |    0.02 |  531.2500 |  265.6250 | 125.0000 |   3.16 MB |
 |                                                   |        |            |           |           |       |         |           |           |          |           |
-| V3_PartitionedHashMap_64Parts_234Tree_AddOrUpdate | 100000 | 206.237 ms | 4.1077 ms | 5.0446 ms |  1.00 |    0.00 | 8666.6667 | 2666.6667 | 666.6667 |  48.35 MB |
+| V3_PartitionedHashMap_64Parts_23Tree_AddOrUpdate | 100000 | 206.237 ms | 4.1077 ms | 5.0446 ms |  1.00 |    0.00 | 8666.6667 | 2666.6667 | 666.6667 |  48.35 MB |
 |                       ConcurrentDictionary_TryAdd | 100000 | 130.479 ms | 2.5806 ms | 3.0720 ms |  0.63 |    0.02 | 4250.0000 | 1750.0000 | 500.0000 |  24.99 MB |
 
 */
@@ -162,7 +162,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             }
 
             // [Benchmark]
-            public ImTools.ImHashMap<string, string> V3_ImHashMap_234Tree_AddOrUpdate()
+            public ImTools.ImHashMap<string, string> V3_ImHashMap_23Tree_AddOrUpdate()
             {
                 var map = ImTools.ImHashMap<string, string>.Empty;
 
@@ -177,7 +177,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             }
 
             // [Benchmark]
-            public ImTools.ImHashMap<string, string>[] V3_PartitionedHashMap_234Tree_AddOrUpdate()
+            public ImTools.ImHashMap<string, string>[] V3_PartitionedHashMap_23Tree_AddOrUpdate()
             {
                 var map = ImTools.PartitionedHashMap.CreateEmpty<string, string>();
 
@@ -192,7 +192,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             }
 
             [Benchmark(Baseline = true)]
-            public ImTools.ImHashMap<string, string>[] V3_PartitionedHashMap_64Parts_234Tree_AddOrUpdate()
+            public ImTools.ImHashMap<string, string>[] V3_PartitionedHashMap_64Parts_23Tree_AddOrUpdate()
             {
                 var map = PartitionedHashMap.CreateEmpty<string, string>(64);
 
@@ -207,7 +207,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             }
 
             [Benchmark]
-            public ImTools.ImHashMap<string, string>[] V3_PartitionedHashMap_128Parts_234Tree_AddOrUpdate()
+            public ImTools.ImHashMap<string, string>[] V3_PartitionedHashMap_128Parts_23Tree_AddOrUpdate()
             {
                 var map = ImTools.PartitionedHashMap.CreateEmpty<string, string>(128);
 
@@ -222,7 +222,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             }
 
             [Benchmark]
-            public ImTools.ImHashMap<string, string>[] V3_PartitionedHashMap_256Parts_234Tree_AddOrUpdate()
+            public ImTools.ImHashMap<string, string>[] V3_PartitionedHashMap_256Parts_23Tree_AddOrUpdate()
             {
                 var map = ImTools.PartitionedHashMap.CreateEmpty<string, string>(256);
 
@@ -431,13 +431,13 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 |                                Method |  Count |     Mean |    Error |   StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
 |-------------------------------------- |------- |---------:|---------:|---------:|------:|--------:|------:|------:|------:|----------:|
 |              V2_ImHashMap_AVL_TryFind |  10000 | 35.19 ns | 0.400 ns | 0.355 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-|          V3_ImHashMap_234Tree_TryFind |  10000 | 33.10 ns | 0.507 ns | 0.423 ns |  0.94 |    0.02 |     - |     - |     - |         - |
-| V3_PartitionedHashMap_234Tree_TryFind |  10000 | 34.72 ns | 0.278 ns | 0.232 ns |  0.99 |    0.01 |     - |     - |     - |         - |
+|          V3_ImHashMap_23Tree_TryFind |  10000 | 33.10 ns | 0.507 ns | 0.423 ns |  0.94 |    0.02 |     - |     - |     - |         - |
+| V3_PartitionedHashMap_23Tree_TryFind |  10000 | 34.72 ns | 0.278 ns | 0.232 ns |  0.99 |    0.01 |     - |     - |     - |         - |
 |      ConcurrentDictionary_TryGetValue |  10000 | 35.63 ns | 0.289 ns | 0.241 ns |  1.01 |    0.01 |     - |     - |     - |         - |
 |                                       |        |          |          |          |       |         |       |       |       |           |
 |              V2_ImHashMap_AVL_TryFind | 100000 | 38.50 ns | 0.451 ns | 0.377 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-|          V3_ImHashMap_234Tree_TryFind | 100000 | 38.79 ns | 0.593 ns | 0.495 ns |  1.01 |    0.02 |     - |     - |     - |         - |
-| V3_PartitionedHashMap_234Tree_TryFind | 100000 | 47.47 ns | 0.394 ns | 0.369 ns |  1.24 |    0.01 |     - |     - |     - |         - |
+|          V3_ImHashMap_23Tree_TryFind | 100000 | 38.79 ns | 0.593 ns | 0.495 ns |  1.01 |    0.02 |     - |     - |     - |         - |
+| V3_PartitionedHashMap_23Tree_TryFind | 100000 | 47.47 ns | 0.394 ns | 0.369 ns |  1.24 |    0.01 |     - |     - |     - |         - |
 |      ConcurrentDictionary_TryGetValue | 100000 | 42.49 ns | 0.580 ns | 0.542 ns |  1.11 |    0.02 |     - |     - |     - |         - |
 
 */
@@ -455,8 +455,8 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 LookupKey = n + Seed + n; 
 
                 _map = ImMap_AddOrUpdate();
-                _map234 = V3_ImHashMap_234Tree_AddOrUpdate();
-                _partMap234 = V3_PartitionedHashMap_234Tree_AddOrUpdate();
+                _map234 = V3_ImHashMap_23Tree_AddOrUpdate();
+                _partMap234 = V3_PartitionedHashMap_23Tree_AddOrUpdate();
                 _mapV1 = AddOrUpdate_V1_AddOrUpdate();
                 _mapSlots = ImHashMapSlots_AddOrUpdate();
                 _dictSlim = DictSlim_GetOrAddValueRef();
@@ -519,7 +519,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 return map;
             }
 
-            public ImTools.ImHashMap<string, string> V3_ImHashMap_234Tree_AddOrUpdate()
+            public ImTools.ImHashMap<string, string> V3_ImHashMap_23Tree_AddOrUpdate()
             {
                 var map = ImTools.ImHashMap<string, string>.Empty;
 
@@ -533,7 +533,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 return map;
             }
 
-            public ImTools.ImHashMap<string, string>[] V3_PartitionedHashMap_234Tree_AddOrUpdate()
+            public ImTools.ImHashMap<string, string>[] V3_PartitionedHashMap_23Tree_AddOrUpdate()
             {
                 var map = ImTools.PartitionedHashMap.CreateEmpty<string, string>();
 
@@ -613,14 +613,14 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             }
 
             [Benchmark]
-            public string V3_ImHashMap_234Tree_TryFind()
+            public string V3_ImHashMap_23Tree_TryFind()
             {
                 _map234.TryFind(LookupKey, out var result);
                 return result;
             }
 
             [Benchmark]
-            public string V3_PartitionedHashMap_234Tree_TryFind()
+            public string V3_PartitionedHashMap_23Tree_TryFind()
             {
                 _partMap234.TryFind(LookupKey, out var result);
                 return result;

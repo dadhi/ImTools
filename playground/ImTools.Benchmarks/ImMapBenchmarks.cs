@@ -212,24 +212,24 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |                                      Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
 |-------------------------------------------- |------ |----------:|----------:|----------:|------:|--------:|-------:|------:|------:|----------:|
 | V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |     1 |  28.55 ns |  0.431 ns |  0.404 ns |  1.00 |    0.00 | 0.0076 |     - |     - |      32 B |
-|                V3_ImMap_234Tree_AddOrUpdate |     1 |  28.08 ns |  0.608 ns |  0.597 ns |  0.98 |    0.02 | 0.0076 |     - |     - |      32 B |
+|                V3_ImMap_23Tree_AddOrUpdate |     1 |  28.08 ns |  0.608 ns |  0.597 ns |  0.98 |    0.02 | 0.0076 |     - |     - |      32 B |
 |                                             |       |           |           |           |       |         |        |       |       |           |
 | V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |     5 | 223.56 ns |  2.870 ns |  2.684 ns |  1.00 |    0.00 | 0.0994 |     - |     - |     416 B |
-|                V3_ImMap_234Tree_AddOrUpdate |     5 | 209.95 ns |  4.236 ns |  4.160 ns |  0.94 |    0.02 | 0.0744 |     - |     - |     312 B |
+|                V3_ImMap_23Tree_AddOrUpdate |     5 | 209.95 ns |  4.236 ns |  4.160 ns |  0.94 |    0.02 | 0.0744 |     - |     - |     312 B |
 |                                             |       |           |           |           |       |         |        |       |       |           |
 | V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |    10 | 661.30 ns | 10.412 ns | 12.395 ns |  1.00 |    0.00 | 0.2975 |     - |     - |    1248 B |
-|                V3_ImMap_234Tree_AddOrUpdate |    10 | 502.34 ns | 10.123 ns | 11.252 ns |  0.76 |    0.02 | 0.1793 |     - |     - |     752 B |
+|                V3_ImMap_23Tree_AddOrUpdate |    10 | 502.34 ns | 10.123 ns | 11.252 ns |  0.76 |    0.02 | 0.1793 |     - |     - |     752 B |
 
 |                                      Method | Count |        Mean |      Error |     StdDev | Ratio | RatioSD |    Gen 0 |    Gen 1 |    Gen 2 |  Allocated |
 |-------------------------------------------- |------ |------------:|-----------:|-----------:|------:|--------:|---------:|---------:|---------:|-----------:|
 | V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |   100 |    15.13 us |   0.300 us |   0.533 us |  1.00 |    0.00 |   7.2632 |        - |        - |   29.72 KB |
-|                V3_ImMap_234Tree_AddOrUpdate |   100 |    16.41 us |   0.314 us |   0.656 us |  1.08 |    0.06 |   5.7068 |        - |        - |   23.31 KB |
+|                V3_ImMap_23Tree_AddOrUpdate |   100 |    16.41 us |   0.314 us |   0.656 us |  1.08 |    0.06 |   5.7068 |        - |        - |   23.31 KB |
 |                                             |       |             |            |            |       |         |          |          |          |            |
 | V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |  1000 |   264.37 us |   3.853 us |   3.604 us |  1.00 |    0.00 | 110.3516 |   0.4883 |        - |  451.78 KB |
-|                V3_ImMap_234Tree_AddOrUpdate |  1000 |   322.44 us |   4.546 us |   4.252 us |  1.22 |    0.02 | 102.0508 |   0.4883 |        - |  416.83 KB |
+|                V3_ImMap_23Tree_AddOrUpdate |  1000 |   322.44 us |   4.546 us |   4.252 us |  1.22 |    0.02 | 102.0508 |   0.4883 |        - |  416.83 KB |
 |                                             |       |             |            |            |       |         |          |          |          |            |
 | V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate | 10000 | 6,744.05 us | 121.251 us | 124.515 us |  1.00 |    0.00 | 992.1875 | 289.0625 | 109.3750 | 6106.78 KB |
-|                V3_ImMap_234Tree_AddOrUpdate | 10000 | 7,255.92 us | 117.567 us | 104.220 us |  1.07 |    0.02 | 992.1875 | 289.0625 | 109.3750 | 6106.98 KB |
+|                V3_ImMap_23Tree_AddOrUpdate | 10000 | 7,255.92 us | 117.567 us | 104.220 us |  1.07 |    0.02 | 992.1875 | 289.0625 | 109.3750 | 6106.98 KB |
 
 */
             [Params(1, 5, 10, 100, 1_000)]
@@ -271,7 +271,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             }
 
             [Benchmark]
-            public ImTools.ImHashMap<int, string> V3_ImMap_234Tree_AddOrUpdate()
+            public ImTools.ImHashMap<int, string> V3_ImMap_23Tree_AddOrUpdate()
             {
                 var map = ImTools.ImHashMap<int, string>.Empty;
 
