@@ -3980,7 +3980,7 @@ namespace ImTools
 
             internal override ImMap<V> RemoveEntry(int hash, Entry removedEntry) =>
                 removedEntry == Plus ? L :
-                removedEntry == L.Entry0 ? 
+                removedEntry == L.Entry0 ?
                     (Plus.Hash < L.Entry1.Hash ? new Leaf2(Plus, L.Entry1) : new Leaf2(L.Entry1, Plus)) :
                     (Plus.Hash < L.Entry0.Hash ? new Leaf2(Plus, L.Entry0) : new Leaf2(L.Entry0, Plus));
         }
@@ -4571,13 +4571,10 @@ namespace ImTools
                     :  new Branch2(Left, newEntry, Right);
             }
 
-            internal override ImMap<V> RemoveEntry(int hash, Entry removedEntry)
-            {
-                var h = MidEntry.Hash;
-                return hash > h ? new Branch2(Left, MidEntry, Right.RemoveEntry(hash, removedEntry))
-                    :  hash < h ? new Branch2(Left.RemoveEntry(hash, removedEntry), MidEntry, Right)
-                    :  new Branch2(Left, new RemovedEntry(hash), Right);
-            }
+            internal override ImMap<V> RemoveEntry(int hash, Entry removedEntry) =>
+                removedEntry == MidEntry ? new Branch2(Left, new RemovedEntry(hash), Right) :
+                hash > MidEntry.Hash     ? new Branch2(Left, MidEntry, Right.RemoveEntry(hash, removedEntry)) :
+                                           new Branch2(Left.RemoveEntry(hash, removedEntry), MidEntry, Right);
         }
 
         /// <summary>Right-skewed Branch of 3 - actually a branch of 2 with the right branch of 2</summary>
