@@ -398,44 +398,6 @@ namespace ImTools.UnitTests
         }
 
         [Test]
-        public void Enumerate_should_work_for_predefined_map_shape()
-        {
-            //                  20           40    
-            //         /               |            \
-            //    10    13            30             50
-            //   /    |    \        /    \         /    \
-            // 8 9  11 12  14 15 25 26  35 36   45 46   55 56
-            //                  
-            var m = new ImHashMap<int, int>.RightyBranch3(
-                new ImHashMap<int, int>.RightyBranch3(
-                    new ImHashMap<int, int>.Leaf2(new ImHashMapEntry<int, int>(8, 8), new ImHashMapEntry<int, int>(9, 9)),
-                    new ImHashMapEntry<int, int>(10, 10),
-                    new ImHashMap<int, int>.Branch2(
-                        new ImHashMap<int, int>.Leaf2(new ImHashMapEntry<int, int>(11, 11), new ImHashMapEntry<int, int>(12, 12)),
-                        new ImHashMapEntry<int, int>(13, 13),
-                        new ImHashMap<int, int>.Leaf2(new ImHashMapEntry<int, int>(14, 14), new ImHashMapEntry<int, int>(15, 15))
-                    )),
-                new ImHashMapEntry<int, int>(20, 20),
-                new ImHashMap<int, int>.Branch2(
-                    new ImHashMap<int, int>.Branch2(
-                        new ImHashMap<int, int>.Leaf2(new ImHashMapEntry<int, int>(25, 25), new ImHashMapEntry<int, int>(26, 26)),
-                        new ImHashMapEntry<int, int>(30, 30),
-                        new ImHashMap<int, int>.Leaf2(new ImHashMapEntry<int, int>(35, 35), new ImHashMapEntry<int, int>(36, 36))
-                    ),
-                    new ImHashMapEntry<int, int>(40, 40),
-                    new ImHashMap<int, int>.Branch2(
-                        new ImHashMap<int, int>.Leaf2(new ImHashMapEntry<int, int>(45, 45), new ImHashMapEntry<int, int>(46, 46)),
-                        new ImHashMapEntry<int, int>(50, 50),
-                        new ImHashMap<int, int>.Leaf2(new ImHashMapEntry<int, int>(55, 55), new ImHashMapEntry<int, int>(56, 56))
-                ))
-            );
-
-            CollectionAssert.AreEqual(
-                new[] { 8, 9, 10, 11, 12, 13, 14, 15, 20, 25, 26, 30, 35, 36, 40, 45, 46, 50, 55, 56 }, 
-                m.Enumerate().ToArray().Select(x => x.Hash));
-        }
-
-        [Test]
         public void AddOrKeep_random_items_and_randomly_checking_CsCheck()
         {
             const int upperBound = 100000;

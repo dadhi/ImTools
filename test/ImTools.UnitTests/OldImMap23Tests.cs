@@ -8,43 +8,43 @@ using NUnit.Framework;
 namespace ImTools.UnitTests
 {
     [TestFixture]
-    public class OldImMap234Tests
+    public class OldImMap23Tests
     {
         [Test]
         public void Adding_keys_from_1_to_10_and_checking_the_tree_shape_on_each_addition()
         {
-            var m = ImMap234<int>.Empty;
+            var m = ImMap23<int>.Empty;
             
             Assert.AreEqual(default(int), m.GetValueOrDefault(0));
             Assert.AreEqual(default(int), m.GetValueOrDefault(13));
 
             m = m.AddOrUpdate(1, 1);
-            Assert.IsInstanceOf<ImMap234<int>.Entry>(m);
+            Assert.IsInstanceOf<ImMap23<int>.Entry>(m);
             Assert.AreEqual(1, m.GetValueOrDefault(1));
 
             m = m.AddOrUpdate(2, 2);
-            Assert.IsInstanceOf<ImMap234<int>.Leaf2>(m);
+            Assert.IsInstanceOf<ImMap23<int>.Leaf2>(m);
             Assert.AreEqual(2, m.GetValueOrDefault(2));
 
             m = m.AddOrUpdate(3, 3);
-            Assert.IsInstanceOf<ImMap234<int>.Leaf3>(m);
+            Assert.IsInstanceOf<ImMap23<int>.Leaf3>(m);
             Assert.AreEqual(3, m.GetValueOrDefault(3));
 
             m = m.AddOrUpdate(4, 4);
-            Assert.IsInstanceOf<ImMap234<int>.Leaf4>(m);
+            Assert.IsInstanceOf<ImMap23<int>.Leaf4>(m);
             Assert.AreEqual(4, m.GetValueOrDefault(4));
             Assert.AreEqual(3, m.GetValueOrDefault(3));
             Assert.AreEqual(2, m.GetValueOrDefault(2));
             Assert.AreEqual(1, m.GetValueOrDefault(1));
 
             m = m.AddOrUpdate(5, 5);
-            Assert.IsInstanceOf<ImMap234<int>.Leaf5>(m);
+            Assert.IsInstanceOf<ImMap23<int>.Leaf5>(m);
             Assert.AreEqual(5, m.GetValueOrDefault(5));
 
             m = m.AddOrUpdate(6, 6);
-            Assert.IsInstanceOf<ImMap234<int>.Branch2>(m);
-            Assert.IsInstanceOf<ImMap234<int>.Leaf3>(((ImMap234<int>.Branch2)m).Left);
-            Assert.IsInstanceOf<ImMap234<int>.Leaf2>(((ImMap234<int>.Branch2)m).Right);
+            Assert.IsInstanceOf<ImMap23<int>.Branch2>(m);
+            Assert.IsInstanceOf<ImMap23<int>.Leaf3>(((ImMap23<int>.Branch2)m).Left);
+            Assert.IsInstanceOf<ImMap23<int>.Leaf2>(((ImMap23<int>.Branch2)m).Right);
             Assert.AreEqual(3, m.GetValueOrDefault(3));
             Assert.AreEqual(5, m.GetValueOrDefault(5));
             Assert.AreEqual(6, m.GetValueOrDefault(6));
@@ -52,11 +52,11 @@ namespace ImTools.UnitTests
             CollectionAssert.AreEqual(Enumerable.Range(1, 6), m.Enumerate().Select(x => x.Value));
 
             m = m.AddOrUpdate(7, 7);
-            Assert.IsInstanceOf<ImMap234<int>.Branch2>(m);
+            Assert.IsInstanceOf<ImMap23<int>.Branch2>(m);
             Assert.AreEqual(7, m.GetValueOrDefault(7));
 
             m = m.AddOrUpdate(8, 8);
-            Assert.IsInstanceOf<ImMap234<int>.Branch2>(m);
+            Assert.IsInstanceOf<ImMap23<int>.Branch2>(m);
             Assert.AreEqual(8, m.GetValueOrDefault(8));
 
             m = m.AddOrUpdate(9, 9);
@@ -71,7 +71,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Adding_1000_keys_and_randomly_checking()
         {
-            var m = ImMap234<int>.Empty;
+            var m = ImMap23<int>.Empty;
             for (var i = 0; i < 1000; i++)
             {
                 m = m.AddOrUpdate(i, i);
@@ -93,7 +93,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Adding_1000_keys_descending_and_randomly_checking()
         {
-            var m = ImMap234<int>.Empty;
+            var m = ImMap23<int>.Empty;
             for (var i = 1000 - 1; i >= 0; i--)
             {
                 m = m.AddOrUpdate(i, i);
@@ -117,7 +117,7 @@ namespace ImTools.UnitTests
         {
             var rnd = new Random();
 
-            var m = ImMap234<int>.Empty;
+            var m = ImMap23<int>.Empty;
             for (var i = 0; i < 1000; i++)
             {
                 var n = rnd.Next(0, 10000);
@@ -135,7 +135,7 @@ namespace ImTools.UnitTests
         {
             var rnd = new Random();
 
-            var m = ImMap234<int>.Empty;
+            var m = ImMap23<int>.Empty;
             for (var i = 0; i < 1000; i++)
             {
                 var n = rnd.Next(0, 10000);
@@ -152,29 +152,29 @@ namespace ImTools.UnitTests
     //======
 
     /// <summary>The base class for the tree leafs and branches, also defines the Empty tree</summary>
-    public class ImMap234<V>
+    public class ImMap23<V>
     {
         /// <summary>Empty tree to start with.</summary>
-        public static readonly ImMap234<V> Empty = new ImMap234<V>();
+        public static readonly ImMap23<V> Empty = new ImMap23<V>();
 
         /// <summary>Hide the constructor to prevent the multiple Empty trees creation</summary>
-        protected ImMap234() { }
+        protected ImMap23() { }
 
         /// Pretty-prints
         public override string ToString() => "empty";
 
         /// <summary>Produces the new or updated map</summary>
-        public virtual ImMap234<V> AddOrUpdateEntry(int key, Entry entry) => entry;
+        public virtual ImMap23<V> AddOrUpdateEntry(int key, Entry entry) => entry;
 
         /// <summary>As the empty cannot be a leaf - so no chance to call it</summary>
-        protected virtual ImMap234<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight) =>
+        protected virtual ImMap23<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap23<V> popRight) =>
             throw new NotSupportedException();
 
         /// <summary> Adds the value for the key or returns the non-modified map if the key is already present </summary>
-        public virtual ImMap234<V> AddOrKeepEntry(int key, Entry entry) => entry;
+        public virtual ImMap23<V> AddOrKeepEntry(int key, Entry entry) => entry;
 
         /// <summary>As the empty cannot be a leaf - so no chance to call it</summary>
-        protected virtual ImMap234<V> AddOrKeepOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight) =>
+        protected virtual ImMap23<V> AddOrKeepOrSplitEntry(int key, ref Entry entry, out ImMap23<V> popRight) =>
             throw new NotSupportedException();
 
         /// <summary>Lookup for the entry, if not found returns `null`. You can define other Lookup methods on top of it.</summary>
@@ -188,7 +188,7 @@ namespace ImTools.UnitTests
 
         /// <summary>Wraps the stored data with "fixed" reference semantics - 
         /// when added to the tree it won't be changed or reconstructed in memory</summary>
-        public sealed class Entry : ImMap234<V>
+        public sealed class Entry : ImMap23<V>
         {
             /// <summary>The Key is basically the hash</summary>
             public readonly int Key;
@@ -210,23 +210,23 @@ namespace ImTools.UnitTests
             public override string ToString() => Key + ":" + Value;
 
             /// <summary>Produces the new or updated map</summary>
-            public override ImMap234<V> AddOrUpdateEntry(int key, Entry entry) =>
+            public override ImMap23<V> AddOrUpdateEntry(int key, Entry entry) =>
                 key > Key ? new Leaf2(this, entry) :
                 key < Key ? new Leaf2(entry, this) :
-                (ImMap234<V>)entry;
+                (ImMap23<V>)entry;
 
             /// <summary>As the single entry cannot be a leaf - so no way to call it</summary>
-            protected override ImMap234<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight) =>
+            protected override ImMap23<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap23<V> popRight) =>
                 throw new NotSupportedException();
 
             /// <inheritdoc />
-            public override ImMap234<V> AddOrKeepEntry(int key, Entry entry) =>
+            public override ImMap23<V> AddOrKeepEntry(int key, Entry entry) =>
                 key > Key ? new Leaf2(this, entry) :
                 key < Key ? new Leaf2(entry, this) :
-                (ImMap234<V>)this;
+                (ImMap23<V>)this;
 
             /// <summary>As the empty cannot be a leaf - so no chance to call it</summary>
-            protected override ImMap234<V> AddOrKeepOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight) =>
+            protected override ImMap23<V> AddOrKeepOrSplitEntry(int key, ref Entry entry, out ImMap23<V> popRight) =>
                 throw new NotSupportedException();
 
             /// <inheritdoc />
@@ -244,7 +244,7 @@ namespace ImTools.UnitTests
         }
 
         /// <summary>2 leafs</summary>
-        public sealed class Leaf2 : ImMap234<V>
+        public sealed class Leaf2 : ImMap23<V>
         {
             /// <summary>Left entry</summary>
             public readonly Entry Entry0;
@@ -263,7 +263,7 @@ namespace ImTools.UnitTests
             public override string ToString() => Entry0 + "|" + Entry1;
 
             /// <summary>Produces the new or updated map</summary>
-            public override ImMap234<V> AddOrUpdateEntry(int key, Entry entry)
+            public override ImMap23<V> AddOrUpdateEntry(int key, Entry entry)
             {
                 var e1 = Entry1;
                 var e0 = Entry0;
@@ -271,35 +271,35 @@ namespace ImTools.UnitTests
                     key < e0.Key ? new Leaf3(entry, e0, e1) :
                     key > e0.Key && key < e1.Key ? new Leaf3(e0, entry, e1) :
                     key == e0.Key ? new Leaf2(entry, e1) :
-                    (ImMap234<V>) new Leaf2(e0, entry);
+                    (ImMap23<V>) new Leaf2(e0, entry);
             }
 
             /// <summary>Produces the new or updated leaf</summary>
-            protected override ImMap234<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight)
+            protected override ImMap23<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap23<V> popRight)
             {
                 popRight = null;
                 return key > Entry1.Key ? new Leaf3(Entry0, Entry1, entry) :
                     key < Entry0.Key ? new Leaf3(entry, Entry0, Entry1) :
                     key > Entry0.Key && key < Entry1.Key ? new Leaf3(Entry0, entry, Entry1) :
                     key == Entry0.Key ? new Leaf2(entry, Entry1) :
-                    (ImMap234<V>)new Leaf2(Entry0, entry);
+                    (ImMap23<V>)new Leaf2(Entry0, entry);
             }
 
             /// <inheritdoc />
-            public override ImMap234<V> AddOrKeepEntry(int key, Entry entry) =>
+            public override ImMap23<V> AddOrKeepEntry(int key, Entry entry) =>
                 key > Entry1.Key ? new Leaf3(Entry0, Entry1, entry) :
                 key < Entry0.Key ? new Leaf3(entry, Entry0, Entry1) :
                 key > Entry0.Key && key < Entry1.Key ? new Leaf3(Entry0, entry, Entry1) :
-                (ImMap234<V>)this;
+                (ImMap23<V>)this;
 
             /// <summary>Produces the new or updated leaf</summary>
-            protected override ImMap234<V> AddOrKeepOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight)
+            protected override ImMap23<V> AddOrKeepOrSplitEntry(int key, ref Entry entry, out ImMap23<V> popRight)
             {
                 popRight = null;
                 return key > Entry1.Key ? new Leaf3(Entry0, Entry1, entry) :
                     key < Entry0.Key ? new Leaf3(entry, Entry0, Entry1) :
                     key > Entry0.Key && key < Entry1.Key ? new Leaf3(Entry0, entry, Entry1) :
-                    (ImMap234<V>)this;
+                    (ImMap23<V>)this;
             }
 
             /// <inheritdoc />
@@ -321,7 +321,7 @@ namespace ImTools.UnitTests
         }
 
         /// <summary>3 leafs</summary>
-        public sealed class Leaf3 : ImMap234<V>
+        public sealed class Leaf3 : ImMap23<V>
         {
             /// <summary>Left entry</summary>
             public readonly Entry Entry0;
@@ -344,17 +344,17 @@ namespace ImTools.UnitTests
             public override string ToString() => Entry0 + "|" + Entry1 + "|" + Entry2;
 
             /// <summary>Produces the new or updated map</summary>
-            public override ImMap234<V> AddOrUpdateEntry(int key, Entry entry) =>
+            public override ImMap23<V> AddOrUpdateEntry(int key, Entry entry) =>
                 key > Entry2.Key ? new Leaf4(Entry0, Entry1, Entry2, entry)
                 : key < Entry0.Key ? new Leaf4(entry, Entry0, Entry1, Entry2)
                 : key > Entry0.Key && key < Entry1.Key ? new Leaf4(Entry0, entry, Entry1, Entry2)
                 : key > Entry1.Key && key < Entry2.Key ? new Leaf4(Entry0, Entry1, entry, Entry2)
                 : key == Entry0.Key ? new Leaf3(entry, Entry1, Entry2)
                 : key == Entry1.Key ? new Leaf3(Entry0, entry, Entry2)
-                : (ImMap234<V>)new Leaf3(Entry0, Entry1, entry);
+                : (ImMap23<V>)new Leaf3(Entry0, Entry1, entry);
 
             /// <summary>Produces the new or updated leaf</summary>
-            protected override ImMap234<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight)
+            protected override ImMap23<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap23<V> popRight)
             {
                 popRight = null;
                 return key > Entry2.Key ? new Leaf4(Entry0, Entry1, Entry2, entry)
@@ -363,26 +363,26 @@ namespace ImTools.UnitTests
                     : key > Entry1.Key && key < Entry2.Key ? new Leaf4(Entry0, Entry1, entry, Entry2)
                     : key == Entry0.Key ? new Leaf3(entry, Entry1, Entry2)
                     : key == Entry1.Key ? new Leaf3(Entry0, entry, Entry2)
-                    : (ImMap234<V>)new Leaf3(Entry0, Entry1, entry);
+                    : (ImMap23<V>)new Leaf3(Entry0, Entry1, entry);
             }
 
             /// <inheritdoc />
-            public override ImMap234<V> AddOrKeepEntry(int key, Entry entry) =>
+            public override ImMap23<V> AddOrKeepEntry(int key, Entry entry) =>
                 key > Entry2.Key ? new Leaf4(Entry0, Entry1, Entry2, entry)
                 : key < Entry0.Key ? new Leaf4(entry, Entry0, Entry1, Entry2)
                 : key > Entry0.Key && key < Entry1.Key ? new Leaf4(Entry0, entry, Entry1, Entry2)
                 : key > Entry1.Key && key < Entry2.Key ? new Leaf4(Entry0, Entry1, entry, Entry2)
-                : (ImMap234<V>)this;
+                : (ImMap23<V>)this;
 
             /// <summary>Produces the new or updated leaf</summary>
-            protected override ImMap234<V> AddOrKeepOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight)
+            protected override ImMap23<V> AddOrKeepOrSplitEntry(int key, ref Entry entry, out ImMap23<V> popRight)
             {
                 popRight = null;
                 return key > Entry2.Key ? new Leaf4(Entry0, Entry1, Entry2, entry)
                     : key < Entry0.Key ? new Leaf4(entry, Entry0, Entry1, Entry2)
                     : key > Entry0.Key && key < Entry1.Key ? new Leaf4(Entry0, entry, Entry1, Entry2)
                     : key > Entry1.Key && key < Entry2.Key ? new Leaf4(Entry0, Entry1, entry, Entry2)
-                    : (ImMap234<V>)this;
+                    : (ImMap23<V>)this;
             }
 
             /// <inheritdoc />
@@ -406,7 +406,7 @@ namespace ImTools.UnitTests
         }
 
         /// <summary>3 leafs</summary>
-        public sealed class Leaf4 : ImMap234<V>
+        public sealed class Leaf4 : ImMap23<V>
         {
             /// <summary>Left entry</summary>
             public readonly Entry Entry0;
@@ -433,7 +433,7 @@ namespace ImTools.UnitTests
             public override string ToString() => Entry0 + "|" + Entry1 + "|" + Entry2 + "|" + Entry3;
 
             /// <summary>Produces the new or updated map</summary>
-            public override ImMap234<V> AddOrUpdateEntry(int key, Entry entry)
+            public override ImMap23<V> AddOrUpdateEntry(int key, Entry entry)
             {
                 if (key > Entry3.Key)
                     return new Leaf5(Entry0, Entry1, Entry2, Entry3, entry);
@@ -457,7 +457,7 @@ namespace ImTools.UnitTests
             }
 
             /// <summary>Produces the new or updated leaf</summary>
-            protected override ImMap234<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight)
+            protected override ImMap23<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap23<V> popRight)
             {
                 popRight = null;
                 if (key > Entry3.Key)
@@ -482,16 +482,16 @@ namespace ImTools.UnitTests
             }
 
             /// <inheritdoc />
-            public override ImMap234<V> AddOrKeepEntry(int key, Entry entry) =>
+            public override ImMap23<V> AddOrKeepEntry(int key, Entry entry) =>
                 key > Entry3.Key ? new Leaf5(Entry0, Entry1, Entry2, Entry3, entry)
                 : key < Entry0.Key ? new Leaf5(entry, Entry0, Entry1, Entry2, Entry3)
                 : key > Entry0.Key && key < Entry1.Key ? new Leaf5(Entry0, entry, Entry1, Entry2, Entry3)
                 : key > Entry1.Key && key < Entry2.Key ? new Leaf5(Entry0, Entry1, entry, Entry2, Entry3)
                 : key > Entry2.Key && key < Entry3.Key ? new Leaf5(Entry0, Entry1, Entry2, entry, Entry3)
-                : (ImMap234<V>)this;
+                : (ImMap23<V>)this;
 
             /// <summary>Produces the new or updated leaf</summary>
-            protected override ImMap234<V> AddOrKeepOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight)
+            protected override ImMap23<V> AddOrKeepOrSplitEntry(int key, ref Entry entry, out ImMap23<V> popRight)
             {
                 popRight = null;
                 return key > Entry3.Key ? new Leaf5(Entry0, Entry1, Entry2, Entry3, entry)
@@ -499,7 +499,7 @@ namespace ImTools.UnitTests
                     : key > Entry0.Key && key < Entry1.Key ? new Leaf5(Entry0, entry, Entry1, Entry2, Entry3)
                     : key > Entry1.Key && key < Entry2.Key ? new Leaf5(Entry0, Entry1, entry, Entry2, Entry3)
                     : key > Entry2.Key && key < Entry3.Key ? new Leaf5(Entry0, Entry1, Entry2, entry, Entry3)
-                    : (ImMap234<V>)this;
+                    : (ImMap23<V>)this;
             }
 
             /// <inheritdoc />
@@ -525,7 +525,7 @@ namespace ImTools.UnitTests
         }
 
         /// <summary>3 leafs</summary>
-        public sealed class Leaf5 : ImMap234<V>
+        public sealed class Leaf5 : ImMap23<V>
         {
             /// <summary>Left entry</summary>
             public readonly Entry Entry0;
@@ -556,7 +556,7 @@ namespace ImTools.UnitTests
             public override string ToString() => Entry0 + "," + Entry1 + " <- " + Entry2 + " -> " + Entry3 + "," + Entry4;
 
             /// <summary>Produces the new or updated map</summary>
-            public override ImMap234<V> AddOrUpdateEntry(int key, Entry entry)
+            public override ImMap23<V> AddOrUpdateEntry(int key, Entry entry)
             {
                 if (key > Entry4.Key)
                     return new Branch2(new Leaf3(Entry0, Entry1, Entry2), Entry3, new Leaf2(Entry4, entry));
@@ -585,7 +585,7 @@ namespace ImTools.UnitTests
 
             /// <summary>Produces the new or updated leaf or
             /// the split Branch2 nodes: returns the left branch, entry is changed to the Branch Entry0, popRight is the right branch</summary>
-            protected override ImMap234<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight)
+            protected override ImMap23<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap23<V> popRight)
             {
                 if (key > Entry4.Key)
                 {
@@ -640,7 +640,7 @@ namespace ImTools.UnitTests
             }
 
             /// <inheritdoc />
-            public override ImMap234<V> AddOrKeepEntry(int key, Entry entry)
+            public override ImMap23<V> AddOrKeepEntry(int key, Entry entry)
             {
                 if (key > Entry4.Key)
                     return new Branch2(new Leaf3(Entry0, Entry1, Entry2), Entry3, new Leaf2(Entry4, entry));
@@ -664,7 +664,7 @@ namespace ImTools.UnitTests
             }
 
             /// <summary>Produces the new or updated leaf</summary>
-            protected override ImMap234<V> AddOrKeepOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight)
+            protected override ImMap23<V> AddOrKeepOrSplitEntry(int key, ref Entry entry, out ImMap23<V> popRight)
             {
                 if (key > Entry4.Key)
                 {
@@ -737,19 +737,19 @@ namespace ImTools.UnitTests
         }
 
         /// <summary>2 branches - it is never split itself, but may produce Branch3 if the lower branches are split</summary>
-        public sealed class Branch2 : ImMap234<V>
+        public sealed class Branch2 : ImMap23<V>
         {
             /// <summary>The only entry</summary>
             public readonly Entry Entry0;
 
             /// <summary>Left branch</summary>
-            public readonly ImMap234<V> Left;
+            public readonly ImMap23<V> Left;
 
             /// <summary>Right branch</summary>
-            public readonly ImMap234<V> Right;
+            public readonly ImMap23<V> Right;
 
             /// <summary>Constructs</summary>
-            public Branch2(ImMap234<V> left, Entry entry0, ImMap234<V> right)
+            public Branch2(ImMap23<V> left, Entry entry0, ImMap23<V> right)
             {
                 Left = left;
                 Entry0 = entry0;
@@ -763,7 +763,7 @@ namespace ImTools.UnitTests
                 (Right is Branch2 ? Right.GetType().Name : Right.ToString());
 
             /// <summary>Produces the new or updated map</summary>
-            public override ImMap234<V> AddOrUpdateEntry(int key, Entry entry)
+            public override ImMap23<V> AddOrUpdateEntry(int key, Entry entry)
             {
                 if (key > Entry0.Key)
                 {
@@ -786,7 +786,7 @@ namespace ImTools.UnitTests
             }
 
             /// <summary>Produces the new or updated branch</summary>
-            protected override ImMap234<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight)
+            protected override ImMap23<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap23<V> popRight)
             {
                 popRight = null;
                 if (key > Entry0.Key)
@@ -809,14 +809,14 @@ namespace ImTools.UnitTests
             }
 
             /// <inheritdoc />
-            public override ImMap234<V> AddOrKeepEntry(int key, Entry entry)
+            public override ImMap23<V> AddOrKeepEntry(int key, Entry entry)
             {
                 if (key > Entry0.Key)
                 {
                     var newBranch = Right.AddOrKeepOrSplitEntry(key, ref entry, out var popRight);
                     return popRight != null ? new Branch3(Left, Entry0, newBranch, entry, popRight) 
                         : newBranch != Right ? new Branch2(Left, Entry0, newBranch)
-                        : (ImMap234<V>)this;
+                        : (ImMap23<V>)this;
                 }
 
                 if (key < Entry0.Key)
@@ -824,14 +824,14 @@ namespace ImTools.UnitTests
                     var newBranch = Left.AddOrKeepOrSplitEntry(key, ref entry, out var popRight);
                     return popRight != null ? new Branch3(newBranch, entry, popRight, Entry0, Right)
                         : newBranch != Left ? new Branch2(newBranch, Entry0, Right) 
-                        : (ImMap234<V>)this;
+                        : (ImMap23<V>)this;
                 }
 
                 return this;
             }
 
             /// <summary>Produces the new or updated leaf</summary>
-            protected override ImMap234<V> AddOrKeepOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight)
+            protected override ImMap23<V> AddOrKeepOrSplitEntry(int key, ref Entry entry, out ImMap23<V> popRight)
             {
                 popRight = null;
                 if (key > Entry0.Key)
@@ -880,25 +880,25 @@ namespace ImTools.UnitTests
         }
 
         /// <summary>3 branches</summary>
-        public sealed class Branch3 : ImMap234<V>
+        public sealed class Branch3 : ImMap23<V>
         {
             /// <summary>Left branch</summary>
-            public readonly ImMap234<V> Left;
+            public readonly ImMap23<V> Left;
 
             /// <summary>The only entry</summary>
             public readonly Entry Entry0;
 
             /// <summary>Right branch</summary>
-            public readonly ImMap234<V> Middle;
+            public readonly ImMap23<V> Middle;
 
             /// <summary>Right entry</summary>
             public readonly Entry Entry1;
 
             /// <summary>Rightmost branch</summary>
-            public readonly ImMap234<V> Right;
+            public readonly ImMap23<V> Right;
 
             /// <summary>Constructs</summary>
-            public Branch3(ImMap234<V> left, Entry entry0, ImMap234<V> middle, Entry entry1, ImMap234<V> right)
+            public Branch3(ImMap23<V> left, Entry entry0, ImMap23<V> middle, Entry entry1, ImMap23<V> right)
             {
                 Left = left;
                 Entry0 = entry0;
@@ -916,9 +916,9 @@ namespace ImTools.UnitTests
                 (Right is Branch2 ? Right.GetType().Name.TrimEnd('<', '>', '`', 'V') : Right.ToString());
 
             /// <summary>Produces the new or updated map</summary>
-            public override ImMap234<V> AddOrUpdateEntry(int key, Entry entry)
+            public override ImMap23<V> AddOrUpdateEntry(int key, Entry entry)
             {
-                ImMap234<V> newBranch;
+                ImMap23<V> newBranch;
                 if (key > Entry1.Key)
                 {
                     newBranch = Right.AddOrUpdateOrSplitEntry(key, ref entry, out var popRight);
@@ -951,10 +951,10 @@ namespace ImTools.UnitTests
 
             /// <summary>Produces the new or updated leaf or
             /// the split Branch2 nodes: returns the left branch, entry is changed to the Branch Entry0, popRight is the right branch</summary>
-            protected override ImMap234<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight)
+            protected override ImMap23<V> AddOrUpdateOrSplitEntry(int key, ref Entry entry, out ImMap23<V> popRight)
             {
                 popRight = null;
-                ImMap234<V> newBranch;
+                ImMap23<V> newBranch;
                 if (key > Entry1.Key)
                 {
                     // having:
@@ -1007,15 +1007,15 @@ namespace ImTools.UnitTests
             }
 
             /// <inheritdoc />
-            public override ImMap234<V> AddOrKeepEntry(int key, Entry entry)
+            public override ImMap23<V> AddOrKeepEntry(int key, Entry entry)
             {
-                ImMap234<V> newBranch;
+                ImMap23<V> newBranch;
                 if (key > Entry1.Key)
                 {
                     newBranch = Right.AddOrKeepOrSplitEntry(key, ref entry, out var popRight);
                     if (popRight != null)
                         return new Branch2(new Branch2(Left, Entry0, Middle), Entry1, new Branch2(newBranch, entry, popRight));
-                    return newBranch != Right ? new Branch3(Left, Entry0, Middle, Entry1, newBranch) : (ImMap234<V>)this;
+                    return newBranch != Right ? new Branch3(Left, Entry0, Middle, Entry1, newBranch) : (ImMap23<V>)this;
                 }
 
                 if (key < Entry0.Key)
@@ -1038,10 +1038,10 @@ namespace ImTools.UnitTests
             }
 
             /// <summary>Produces the new or updated leaf</summary>
-            protected override ImMap234<V> AddOrKeepOrSplitEntry(int key, ref Entry entry, out ImMap234<V> popRight)
+            protected override ImMap23<V> AddOrKeepOrSplitEntry(int key, ref Entry entry, out ImMap23<V> popRight)
             {
                 popRight = null;
-                ImMap234<V> newBranch;
+                ImMap23<V> newBranch;
                 if (key > Entry1.Key)
                 {
                     // for example:
@@ -1121,26 +1121,26 @@ namespace ImTools.UnitTests
     {
         /// <summary>Adds or updates the value by key in the map, always returns a modified map.</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImMap234<V> AddOrUpdate<V>(this ImMap234<V> map, int key, V value) =>
-            map == ImMap234<V>.Empty
-                ? new ImMap234<V>.Entry(key, value)
-                : map.AddOrUpdateEntry(key, new ImMap234<V>.Entry(key, value));
+        public static ImMap23<V> AddOrUpdate<V>(this ImMap23<V> map, int key, V value) =>
+            map == ImMap23<V>.Empty
+                ? new ImMap23<V>.Entry(key, value)
+                : map.AddOrUpdateEntry(key, new ImMap23<V>.Entry(key, value));
 
         /// <summary>Adds the entry or keeps the map intact.</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImMap234<V> AddOrKeep<V>(this ImMap234<V> map, int key, V value) =>
-            map == ImMap234<V>.Empty
-                ? new ImMap234<V>.Entry(key, value)
-                : map.AddOrKeepEntry(key, new ImMap234<V>.Entry(key, value));
+        public static ImMap23<V> AddOrKeep<V>(this ImMap23<V> map, int key, V value) =>
+            map == ImMap23<V>.Empty
+                ? new ImMap23<V>.Entry(key, value)
+                : map.AddOrKeepEntry(key, new ImMap23<V>.Entry(key, value));
 
         /// <summary>Adds the entry or keeps the map intact.</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImMap234<V> AddOrKeep<V>(this ImMap234<V> map, ImMap234<V>.Entry entry) => 
+        public static ImMap23<V> AddOrKeep<V>(this ImMap23<V> map, ImMap23<V>.Entry entry) => 
             map.AddOrKeepEntry(entry.Key, entry);
 
         /// <summary>Lookup</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static V GetValueOrDefault<V>(this ImMap234<V> map, int key)
+        public static V GetValueOrDefault<V>(this ImMap23<V> map, int key)
         {
             var entry = map.GetEntryOrDefault(key);
             return entry != null ? entry.Value : default(V);
@@ -1148,7 +1148,7 @@ namespace ImTools.UnitTests
 
         /// <summary>Lookup</summary>
         [MethodImpl((MethodImplOptions) 256)]
-        public static bool TryFind<V>(this ImMap234<V> map, int key, out V value)
+        public static bool TryFind<V>(this ImMap23<V> map, int key, out V value)
         {
             var entry = map.GetEntryOrDefault(key);
             if (entry != null)
@@ -1169,17 +1169,17 @@ namespace ImTools.UnitTests
 
         /// Creates the array with the empty slots
         [MethodImpl((MethodImplOptions)256)]
-        public static ImMap234<V>[] CreateWithEmpty<V>(int slotCountPowerOfTwo = SLOT_COUNT_POWER_OF_TWO)
+        public static ImMap23<V>[] CreateWithEmpty<V>(int slotCountPowerOfTwo = SLOT_COUNT_POWER_OF_TWO)
         {
-            var slots = new ImMap234<V>[slotCountPowerOfTwo];
+            var slots = new ImMap23<V>[slotCountPowerOfTwo];
             for (var i = 0; i < slots.Length; ++i)
-                slots[i] = ImMap234<V>.Empty;
+                slots[i] = ImMap23<V>.Empty;
             return slots;
         }
 
         /// Returns a new tree with added or updated value for specified key.
         [MethodImpl((MethodImplOptions)256)]
-        public static void AddOrUpdate<V>(this ImMap234<V>[] slots, int key, V value, int keyMaskToFindSlot = KEY_MASK_TO_FIND_SLOT)
+        public static void AddOrUpdate<V>(this ImMap23<V>[] slots, int key, V value, int keyMaskToFindSlot = KEY_MASK_TO_FIND_SLOT)
         {
             ref var slot = ref slots[key & keyMaskToFindSlot];
             var copy = slot;
@@ -1188,7 +1188,7 @@ namespace ImTools.UnitTests
         }
 
         /// Update the ref to the slot with the new version - retry if the someone changed the slot in between
-        public static void RefAddOrUpdateSlot<V>(ref ImMap234<V> slot, int key, V value) =>
+        public static void RefAddOrUpdateSlot<V>(ref ImMap23<V> slot, int key, V value) =>
             Ref.Swap(ref slot, key, value, (x, k, v) => x.AddOrUpdate(k, v));
     }
 }

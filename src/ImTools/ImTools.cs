@@ -4295,25 +4295,20 @@ namespace ImTools
         }
 
         /// <summary>Leaf with 5 existing ordered entries plus 1 newly added, plus 1 newly added.</summary>
-        public sealed class Leaf5Plus1Plus1 : ImMap<V>
+        internal sealed class Leaf5Plus1Plus1 : ImMap<V>
         {
-            /// <summary>New entry</summary>
             public readonly Entry Plus;
-            /// <summary>Dangling leaf</summary>
             public readonly Leaf5Plus1 L;
 
-            /// <summary>Constructs the leaf</summary>
             public Leaf5Plus1Plus1(Entry plus, Leaf5Plus1 l)
             {
                 Plus = plus;
                 L    = l;
             }
 
-            /// <inheritdoc />
             public sealed override int Count() => 7;
 
 #if !DEBUG
-            /// <inheritdoc />
             public override string ToString() => "{L511: {P: " + Plus + ", L: " + L + "}}";
 #endif
 
@@ -4544,16 +4539,11 @@ namespace ImTools
             }
         }
 
-        /// <summary>Branch of 2 leafs or branches with entry in the middle</summary>
-        public class Branch2 : ImMap<V> // todo: @wip make internal
+        internal class Branch2 : ImMap<V>
         {
-            /// <summary>Left branch</summary>
-            public readonly ImMap<V> Left;
-            /// <summary>Entry in the middle</summary>
             public readonly Entry MidEntry;
-            /// <summary>Right branch</summary>
-            public readonly ImMap<V> Right;
-            /// <summary>Constructs</summary>
+            public readonly ImMap<V> Left, Right;
+
             public Branch2(ImMap<V> left, Entry entry, ImMap<V> right)
             {
                 Debug.Assert(left  != Empty && left  is Entry == false);
@@ -4563,11 +4553,9 @@ namespace ImTools
                 Right    = right;
             }
 
-            /// <inheritdoc />
             public sealed override int Count() => (MidEntry is RemovedEntry ? 0 : 1) + Left.Count() + Right.Count();
 
 #if !DEBUG
-            /// <inheritdoc />
             public override string ToString() => "{B2: {E: " + MidEntry + ", L: " + Left + ", R: " + Right + "}}";
 #endif
 
@@ -4613,11 +4601,6 @@ namespace ImTools
                     :  hash < h ? new Branch2(Left.ReplaceEntry(hash, oldEntry, newEntry), MidEntry, Right)
                     :  new Branch2(Left, newEntry, Right);
             }
-
-            internal /*override*/ ImMap<V> RemoveEntry_OLD(int hash, Entry removedEntry) =>
-                removedEntry == MidEntry ? new Branch2(Left, new RemovedEntry(hash), Right) :
-                hash > MidEntry.Hash     ? new Branch2(Left, MidEntry, Right.RemoveEntry(hash, removedEntry)) :
-                                           new Branch2(Left.RemoveEntry(hash, removedEntry), MidEntry, Right);
 
             internal override ImMap<V> RemoveEntry(int hash, Entry removedEntry) 
             {
@@ -4714,13 +4697,11 @@ namespace ImTools
         }
 
         /// <summary>Right-skewed Branch of 3 - actually a branch of 2 with the right branch of 2</summary>
-        public sealed class RightyBranch3 : Branch2
+        internal sealed class RightyBranch3 : Branch2
         {
-            /// <summary>Creating the branch</summary>
             public RightyBranch3(ImMap<V> left, Entry entry, ImMap<V> right) : base(left, entry, right) {}
 
 #if !DEBUG
-            /// <inheritdoc />
             public override string ToString() => "{RB3: {"  + base.ToString() + "}";
 #endif
 
@@ -4808,13 +4789,11 @@ namespace ImTools
         }
 
         /// <summary>Left-skewed Branch of 3 - actually a branch of 2 with the left branch of 2</summary>
-        public sealed class LeftyBranch3 : Branch2
+        internal sealed class LeftyBranch3 : Branch2
         {
-            /// <summary>Creating the branch</summary>
             public LeftyBranch3(ImMap<V> leftBranch, Entry entry, ImMap<V> right) : base(leftBranch, entry, right) {}
 
 #if !DEBUG
-            /// <inheritdoc />
             public override string ToString() => "{LB3: {"  + base.ToString() + "}";
 #endif
 
