@@ -4522,7 +4522,7 @@ namespace ImTools
                 Right    = right;
             }
 
-            public sealed override int Count() => (MidEntry is RemovedEntry ? 0 : 1) + Left.Count() + Right.Count();
+            public sealed override int Count() => 1 + Left.Count() + Right.Count();
 
 #if !DEBUG
             public override string ToString() => "{B2: {E: " + MidEntry + ", L: " + Left + ", R: " + Right + "}}";
@@ -4536,7 +4536,7 @@ namespace ImTools
                 var mh = MidEntry.Hash;
                 return hash > mh ? Right.GetEntryOrNull(hash) 
                     :  hash < mh ? Left .GetEntryOrNull(hash) 
-                    :  MidEntry is RemovedEntry ? null : MidEntry;
+                    :  MidEntry;
             }
 
             internal override ImMap<V> AddOrGetEntry(int hash, Entry entry)
@@ -4560,7 +4560,7 @@ namespace ImTools
                          ? new LeftyBranch3(newLeft, e, Right) : new Branch2(newLeft, e, Right);
                 }
 
-                return e is RemovedEntry ? new Branch2(Left, entry, Right) : (ImMap<V>)e;
+                return e;
             }
 
             internal override ImMap<V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry)
