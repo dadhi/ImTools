@@ -3863,7 +3863,7 @@ namespace ImTools
         /// <summary>The base map entry for holding the hash and payload</summary>
         public abstract class Entry : ImMap<V>
         {
-            /// <summary>The Hash</summary>
+            /// <summary>The hash.</summary>
             public readonly int Hash;
 
             /// <summary>Constructs the entry with the hash</summary>
@@ -3891,24 +3891,19 @@ namespace ImTools
         }
 
         /// <summary>Leaf with 2 hash-ordered entries. Important: the both or either of entries may be null for the removed entries</summary>
-        public sealed class Leaf2 : ImMap<V>
+        internal sealed class Leaf2 : ImMap<V>
         {
-            /// <summary>Left entry</summary>
-            public readonly Entry Entry0;
-            /// <summary>Right entry</summary>
-            public readonly Entry Entry1;
-            /// <summary>Constructs the leaf</summary>
+            public readonly Entry Entry0, Entry1;
+
             public Leaf2(Entry e0, Entry e1)
             {
                 Debug.Assert(e0 == null || e1 == null || e0.Hash < e1.Hash);
                 Entry0 = e0; Entry1 = e1;
             }
 
-            /// <inheritdoc />
             public override int Count() => (Entry0?.Count() ?? 0) + (Entry1?.Count() ?? 0);
 
 #if !DEBUG
-            /// <inheritdoc />
             public override string ToString() => "{L2: {E0: " + Entry0 + ", E1: " + Entry1 + "}}";
 #endif
 
@@ -3944,24 +3939,20 @@ namespace ImTools
         }
 
         /// <summary>The leaf containing the Leaf2 plus the newest added entry.</summary>
-        public sealed class Leaf2Plus1 : ImMap<V>
+        internal sealed class Leaf2Plus1 : ImMap<V>
         {
-            /// <summary>Plus entry</summary>
             public readonly Entry Plus;
-            /// <summary>The dangling leaf</summary>
             public readonly Leaf2 L;
-            /// <summary>Constructs the leaf</summary>
+
             public Leaf2Plus1(Entry plus, Leaf2 leaf)
             {
                 Plus = plus;
                 L    = leaf;
             }
 
-            /// <inheritdoc />
             public override int Count() => 3;
 
 #if !DEBUG
-            /// <inheritdoc />
             public override string ToString() => "{L21: {P: " + Plus + ", L: " + L + "}}";
 #endif
 
@@ -3998,25 +3989,20 @@ namespace ImTools
         }
 
         /// <summary>Leaf with the Leaf2 plus added entry, plus added entry</summary>
-        public sealed class Leaf2Plus1Plus1 : ImMap<V>
+        internal sealed class Leaf2Plus1Plus1 : ImMap<V>
         {
-            /// <summary>New entry</summary>
             public readonly Entry Plus;
-            /// <summary>The existing leaf to add entry to</summary>
             public readonly Leaf2Plus1 L;
 
-            /// <summary>Constructs the leaf</summary>
             public Leaf2Plus1Plus1(Entry plus, Leaf2Plus1 l)
             {
                 Plus = plus;
                 L = l;
             }
 
-            /// <inheritdoc />
             public override int Count() => 4;
 
 #if !DEBUG
-            /// <inheritdoc />
             public override string ToString() => "{L211: {P: " + Plus + ", L: " + L + "}}";
 #endif
 
@@ -4120,20 +4106,10 @@ namespace ImTools
         }
 
         /// <summary>Leaf with 5 hash-ordered entries</summary>
-        public sealed class Leaf5 : ImMap<V>
+        internal sealed class Leaf5 : ImMap<V>
         {
-            /// <summary>Left entry</summary>
-            public readonly Entry Entry0;
-            /// <summary>Middle-left entry</summary>
-            public readonly Entry Entry1;
-            /// <summary>Middle entry</summary>
-            public readonly Entry Entry2;
-            /// <summary>Middle-right entry</summary>
-            public readonly Entry Entry3;
-            /// <summary>Right entry</summary>
-            public readonly Entry Entry4;
+            public readonly Entry Entry0, Entry1, Entry2, Entry3, Entry4;
 
-            /// <summary>Constructs the leaf</summary>
             public Leaf5(Entry e0, Entry e1, Entry e2, Entry e3, Entry e4)
             {
                 Debug.Assert(e0.Hash < e1.Hash, "e0 < e1");
@@ -4143,11 +4119,9 @@ namespace ImTools
                 Entry0 = e0; Entry1 = e1; Entry2 = e2; Entry3 = e3; Entry4 = e4;
             }
 
-            /// <inheritdoc />
             public override int Count() => 5;
 
 #if !DEBUG
-            /// <inheritdoc />
             public override string ToString() => 
                 "{L2: {E0: " + Entry0 + ", E1: " + Entry1 + ", E2: " + Entry2 + ", E3: " + Entry3 + ", E4: " + Entry4 + "}}";
 #endif
@@ -4187,25 +4161,20 @@ namespace ImTools
         }
 
         /// <summary>Leaf with 5 existing ordered entries plus 1 newly added entry.</summary>
-        public sealed class Leaf5Plus1 : ImMap<V>
+        internal sealed class Leaf5Plus1 : ImMap<V>
         {
-            /// <summary>New entry</summary>
             public readonly Entry Plus;
-            /// <summary>Dangling leaf</summary>
             public readonly Leaf5 L;
 
-            /// <summary>Constructs the leaf</summary>
             public Leaf5Plus1(Entry plus, Leaf5 l)
             {
                 Plus = plus;
                 L    = l;
             }
 
-            /// <inheritdoc />
             public override int Count() => 6;
 
 #if !DEBUG
-            /// <inheritdoc />
             public override string ToString() => "{L51: {P: " + Plus + ", L: " + L + "}}";
 #endif
 
