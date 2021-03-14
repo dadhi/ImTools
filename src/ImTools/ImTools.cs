@@ -4798,7 +4798,11 @@ namespace ImTools
                     return new RightyBranch3(newLeft, mid, Right);
                 }
 
-                if (hash < r.MidEntry.Hash)
+                var midRight = r.MidEntry;
+                if (removedEntry == midRight)
+                    removedEntry = midRight = middle.MaxEntry();
+
+                if (hash < midRight.Hash)
                 {
                     var newMiddle = middle.RemoveEntry(hash, removedEntry);
                     var right = r.Right;
@@ -4806,13 +4810,13 @@ namespace ImTools
                     if (middle is Branch2 == false)
                     {
                         if (newMiddle != Empty)
-                            return new RightyBranch3(Left, mid, new Branch2(newMiddle, r.MidEntry, right)); // no need to rebalance because the terminal Leaf is not empty
+                            return new RightyBranch3(Left, mid, new Branch2(newMiddle, midRight, right)); // no need to rebalance because the terminal Leaf is not empty
 
                         if (right is Leaf2Plus1Plus1 == false)
                             return new Branch2(Left, mid, right.AddOrGetEntry(mid.Hash, mid)); //! the height does not change
 
                         var rightMin = right.MinEntry();
-                        return new RightyBranch3(Left, mid, new Branch2(r.MidEntry, rightMin, right.RemoveEntry(rightMin.Hash, rightMin))); //! the height does not change
+                        return new RightyBranch3(Left, mid, new Branch2(midRight, rightMin, right.RemoveEntry(rightMin.Hash, rightMin))); //! the height does not change
                     }
 
                     // *rebalance needed: the branch was merged from Br2 to Br3 or to the leaf and the height decreased 
@@ -4822,18 +4826,18 @@ namespace ImTools
                         if (right is LeftyBranch3 leftyRight) //! the height does not change
                         {
                             var rbLeftBr = (Branch2)leftyRight.Left;
-                            return new RightyBranch3(Left, mid, new Branch2(new Branch2(newMiddle, r.MidEntry, rbLeftBr.Left), rbLeftBr.MidEntry, new Branch2(rbLeftBr.Right, leftyRight.MidEntry, leftyRight.Right)));
+                            return new RightyBranch3(Left, mid, new Branch2(new Branch2(newMiddle, midRight, rbLeftBr.Left), rbLeftBr.MidEntry, new Branch2(rbLeftBr.Right, leftyRight.MidEntry, leftyRight.Right)));
                         }
 
                         // the hole has a 3-node as a parent and a 3-node as a sibling.
                         if (right is RightyBranch3 rightyRight) //! the height does not change
-                            return new RightyBranch3(Left, mid, new Branch2(new Branch2(newMiddle, r.MidEntry, rightyRight.Left), rightyRight.MidEntry, rightyRight.Right));
+                            return new RightyBranch3(Left, mid, new Branch2(new Branch2(newMiddle, midRight, rightyRight.Left), rightyRight.MidEntry, rightyRight.Right));
 
                         // the hole has a 3-node as a parent and a 2-node as a sibling.
-                        return new Branch2(Left, mid, new RightyBranch3(newMiddle, r.MidEntry, right));
+                        return new Branch2(Left, mid, new RightyBranch3(newMiddle, midRight, right));
                     }
 
-                    return new RightyBranch3(Left, mid, new Branch2(newMiddle, r.MidEntry, right));
+                    return new RightyBranch3(Left, mid, new Branch2(newMiddle, midRight, right));
                 }
 
                 return null; // todo: @wip incomplete
