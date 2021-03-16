@@ -3884,12 +3884,6 @@ namespace ImTools
             internal sealed override Entry MinEntry() => this;
         }
 
-        internal sealed class RemovedEntry : Entry 
-        {
-            public RemovedEntry(int hash) : base(hash) {}
-            public override string ToString() => "{RemovedE: {H: " + Hash + "}}";
-        }
-
         /// <summary>Leaf with 2 hash-ordered entries. Important: the both or either of entries may be null for the removed entries</summary>
         internal sealed class Leaf2 : ImMap<V>
         {
@@ -4669,9 +4663,9 @@ namespace ImTools
                     mh = r.MidEntry.Hash;
                     return hash > mh ? r.Right.GetEntryOrNull(hash) 
                         :  hash < mh ? r.Left .GetEntryOrNull(hash) 
-                        :  r.MidEntry is RemovedEntry ? null : r.MidEntry;
+                        :  r.MidEntry;
                 }
-                return MidEntry is RemovedEntry ? null : MidEntry;
+                return MidEntry;
             }
 
             internal override ImMap<V> AddOrGetEntry(int hash, Entry entry)
@@ -4716,12 +4710,7 @@ namespace ImTools
                     return new RightyBranch3(Left, MidEntry, new Branch2(newMiddle, rb.MidEntry, rb.Right));
                 }
 
-                var e0 = MidEntry;
-                if (hash == h0)
-                    return e0 is RemovedEntry ? new RightyBranch3(Left, entry, rb) : (ImMap<V>)e0;
-
-                var e1 = rb.MidEntry;
-                return  e1 is RemovedEntry ? new RightyBranch3(Left, e0, new Branch2(rb.Left, entry, rb.Right)) : (ImMap<V>)e1;
+                return hash == h0 ? MidEntry : rb.MidEntry;
             }
 
             internal override ImMap<V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry)
@@ -4858,9 +4847,9 @@ namespace ImTools
                     mh = l.MidEntry.Hash;
                     return hash > mh ? l.Right.GetEntryOrNull(hash) 
                         :  hash < mh ? l.Left .GetEntryOrNull(hash) 
-                        :  l.MidEntry is RemovedEntry ? null : l.MidEntry;
+                        :  l.MidEntry;
                 }
-                return MidEntry is RemovedEntry ? null : MidEntry;
+                return MidEntry;
             }
 
             internal override ImMap<V> AddOrGetEntry(int hash, Entry entry)
@@ -4905,11 +4894,7 @@ namespace ImTools
                     return new LeftyBranch3(new Branch2(lb.Left, lb.MidEntry, newMiddle), MidEntry, Right);
                 }
 
-                var e0 = lb.MidEntry;
-                var e1 = MidEntry;
-                return hash == h0
-                    ? (e0 is RemovedEntry ? new LeftyBranch3(new Branch2(lb.Left, entry, lb.Right), e1, Right) : (ImMap<V>)e0)
-                    : (e1 is RemovedEntry ? new LeftyBranch3(lb, entry, Right) : (ImMap<V>)e1);
+                return hash == h0 ? lb.MidEntry : MidEntry;
             }
 
             internal override ImMap<V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry)
