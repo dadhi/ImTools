@@ -2853,8 +2853,9 @@ namespace ImTools
 #if DEBUG
             // for the debug purposes we just output the first N keys in array
             const int n = 50;
-            var hashes = this.Enumerate().Take(n + 1).Select(x => x.Hash).ToList();
-            return $"{{hashes: new int[{(hashes.Count >= n ? ">=" : "") + hashes.Count}] {{{(string.Join(", ", hashes))}}}}}";
+            var count = this.Count();
+            var hashes = this.Enumerate().Take(n).Select(x => x.Hash).ToList();
+            return $"{{hashes: new int[{(count > n ? $"{n}/{count}" : "" + count)}] {{{(string.Join(", ", hashes))}}}}}";
 #else
             return "{}";
 #endif
@@ -3845,8 +3846,9 @@ namespace ImTools
 #if DEBUG
             // for the debug purposes we just output the first N keys in array
             const int n = 50;
-            var hashes = this.Enumerate().Take(n + 1).Select(x => x.Hash).ToList();
-            return $"{{hashes: new int[{(hashes.Count >= n ? ">=" : "") + hashes.Count}] {{{(string.Join(", ", hashes))}}}}}";
+            var count = this.Count();
+            var hashes = this.Enumerate().Take(n).Select(x => x.Hash).ToList();
+            return $"{{hashes: new int[{(count > n ? $"{n}/{count}" : "" + count)}] {{{(string.Join(", ", hashes))}}}}}";
 #else
             return "{}";
 #endif
@@ -4702,17 +4704,17 @@ namespace ImTools
 
             internal override ImMap<V> RemoveEntry(ImMapEntry<V> removedEntry)
             {
-                var hash = removedEntry.Hash;
                 var midLeft = MidEntry;
-                // case 1, downward: swap the predecessor entry (max left entry) with the mid entry, then proceed to remove the predecessor from the Left branch
-                if (removedEntry == midLeft)
-                    removedEntry = midLeft = Left.GetMaxHashEntryOrDefault();
-
                 var rb = (Branch2)Right;
                 var middle   = rb.Left;
                 var midRight = rb.MidEntry;
                 var right    = rb.Right;
-                if (hash < midLeft.Hash)
+
+                // case 1, downward: swap the predecessor entry (max left entry) with the mid entry, then proceed to remove the predecessor from the Left branch
+                if (removedEntry == midLeft)
+                    removedEntry = midLeft = Left.GetMaxHashEntryOrDefault();
+
+                if (removedEntry.Hash <= midLeft.Hash)
                 {
                     var newLeft = Left.RemoveEntry(removedEntry);
                     if (newLeft == Empty)
@@ -4746,7 +4748,7 @@ namespace ImTools
                 if (removedEntry == midRight)
                     removedEntry = midRight = middle.GetMaxHashEntryOrDefault();
 
-                if (hash < midRight.Hash)
+                if (removedEntry.Hash <= midRight.Hash)
                 {
                     var newMiddle = middle.RemoveEntry(removedEntry);
                     if (newMiddle == Empty)
@@ -4889,7 +4891,6 @@ namespace ImTools
 
             internal override ImMap<V> RemoveEntry(ImMapEntry<V> removedEntry)
             {
-                var hash = removedEntry.Hash;
                 var lb = (Branch2)Left;
                 var left     = lb.Left;
                 var midLeft  = lb.MidEntry;
@@ -4901,7 +4902,7 @@ namespace ImTools
                 if (removedEntry == midLeft)
                     removedEntry  = midLeft = left.GetMaxHashEntryOrDefault();
 
-                if (hash < midLeft.Hash)
+                if (removedEntry.Hash <= midLeft.Hash) // `<=` here is because of check on the above line
                 {
                     var newLeft = left.RemoveEntry(removedEntry);
                     if (newLeft == Empty)
@@ -4929,20 +4930,20 @@ namespace ImTools
                         return new Branch2(new RightyBranch3(newLeft, midLeft, middle), midRight, right);
                     }
 
-                    return new RightyBranch3(newLeft, midLeft, lb); // no rebalance needed
+                    return new LeftyBranch3(new Branch2(newLeft, midLeft, middle), midRight, Right); // no rebalance needed
                 }
 
                 if (removedEntry == midRight)
                     removedEntry = midRight = middle.GetMaxHashEntryOrDefault();
 
-                if (hash < midRight.Hash)
+                if (removedEntry.Hash <= midRight.Hash) // `<=` here is because of check on the above line
                 {
                     var newMiddle = middle.RemoveEntry(removedEntry);
                     if (newMiddle == Empty)
                     {
                         if (right is Leaf2Plus1Plus1 == false)
                             return new Branch2(left, midLeft, right.AddOrGetEntry(midLeft.Hash, midLeft)); // the Br3 become the Br2 but the height did not change - so no rebalance needed
-                        return new RightyBranch3(left, midLeft, new Branch2(midRight, removedEntry = right.GetMinHashEntryOrDefault(), right.RemoveEntry(removedEntry))); //! the height does not change
+                        return new LeftyBranch3(new Branch2(left, midLeft, midRight), removedEntry = right.GetMinHashEntryOrDefault(), right.RemoveEntry(removedEntry)); //! the height does not change
                     }
 
                     if (middle.GetType() == typeof(Branch2) && newMiddle.GetType() != typeof(Branch2))
@@ -4962,7 +4963,7 @@ namespace ImTools
                         return new Branch2(left, midLeft, new RightyBranch3(newMiddle, midRight, right));
                     }
 
-                    return new RightyBranch3(left, midLeft, new Branch2(newMiddle, midRight, right));
+                    return new LeftyBranch3(new Branch2(left, midLeft, newMiddle), midRight, right);
                 }
 
                 var newRight = right.RemoveEntry(removedEntry);
@@ -4991,7 +4992,7 @@ namespace ImTools
                     return new Branch2(left, midLeft, new LeftyBranch3(middle, midRight, newRight));
                 }
 
-                return new RightyBranch3(left, midLeft, new Branch2(middle, midRight, newRight));
+                return new LeftyBranch3(Left, midRight, newRight);
             }
         }
     }

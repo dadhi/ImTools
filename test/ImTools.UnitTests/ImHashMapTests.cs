@@ -302,17 +302,16 @@ namespace ImTools.UnitTests
             CollectionAssert.AreEqual(list.ToArray(), enumerated);
         }
 
-        // todo: @wip
-        // [Test]
-        // public void Folded_values_should_be_returned_in_sorted_order_with_index()
-        // {
-        //     var list = Enumerable.Range(0, 10).ToImList();
-        //     var tree = list.Fold(ImHashMap<int, int>.Empty, (i, t) => t.AddOrUpdate(i, i));
+        [Test]
+        public void Folded_values_should_be_returned_in_sorted_order_with_index()
+        {
+            var list = Enumerable.Range(0, 10).ToImList();
+            var tree = list.Fold(ImHashMap<int, int>.Empty, (i, t) => t.AddOrUpdate(i, i));
 
-        //     var enumerated = tree.Fold(new List<int>(), (data, index, l) => l.Do(index, (x, i) => x.Add(i)));
+            var enumerated = tree.Fold(new List<int>(), (data, index, l) => l.Do(index, (x, i) => x.Add(i)));
 
-        //     CollectionAssert.AreEqual(list.ToArray(), enumerated);
-        // }
+            CollectionAssert.AreEqual(list.ToArray(), enumerated);
+        }
 
         [Test]
         public void Update_to_null_and_then_to_value_should_remove_null()

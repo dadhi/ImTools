@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Collections.Generic;
@@ -587,14 +588,14 @@ namespace ImTools.UnitTests
                     return m;
                 }));
 
-        static Gen<ImMap<int>> GenImMap(int upperBound) =>
-            Gen.Int[0, upperBound].ArrayUnique.SelectMany(arrU =>
-                Gen.Int.Array[arrU.Length].Select(arr =>
+        static Gen<(ImMap<int>, int[])> GenImMap(int upperBound) =>
+            Gen.Int[0, upperBound].ArrayUnique.SelectMany(keys =>
+                Gen.Int.Array[keys.Length].Select(values =>
                 {
                     var m = ImMap<int>.Empty;
-                    for (int i = 0; i < arrU.Length; i++)
-                        m = m.AddOrUpdate(arrU[i], arr[i]);
-                    return m;
+                    for (int i = 0; i < keys.Length; i++)
+                        m = m.AddOrUpdate(keys[i], values[i]);
+                    return (map: m, shape: keys);
                 }));
 
         // https://www.youtube.com/watch?v=G0NUOst-53U&feature=youtu.be&t=1639
@@ -744,19 +745,18 @@ namespace ImTools.UnitTests
         {
             const int upperBound = 100000;
             Gen.SelectMany(GenImMap(upperBound), m =>
-                Gen.Select(Gen.Const(m), Gen.Int[0, upperBound], Gen.Int))
+                Gen.Select(Gen.Const(m.Item1), Gen.Int[0, upperBound], Gen.Int, Gen.Const(m.Item2)))
                 .Sample(t =>
                 {
                     var dic1 = t.V0.Fold(new Dictionary<int, int>(), (e, _, d) => { d.Add(e.Hash, e.Value); return d; });
                     dic1[t.V1] = t.V2;
 
-                    var map = t.V0.AddOrUpdate(t.V1, t.V2);
-                    var dic2 = map.Fold(new Dictionary<int, int>(), (e, _, d) => { d.Add(e.Hash, e.Value); return d; });
+                    var dic2 = t.V0.AddOrUpdate(t.V1, t.V2).Fold(new Dictionary<int, int>(), (e, _, d) => { d.Add(e.Hash, e.Value); return d; });
 
                     CollectionAssert.AreEqual(dic1, dic2);
                 }
                 , size: 1000
-                , print: t => t + "\n" + string.Join("\n", t.V0.Enumerate()));
+                , print: t => t + "\nkeys: {" + string.Join(", ", t.V3) + "}");
         }
 
         [Test]
@@ -764,35 +764,37 @@ namespace ImTools.UnitTests
         {
             const int upperBound = 100000;
             Gen.SelectMany(GenImMap(upperBound), m =>
-                Gen.Select(Gen.Const(m), Gen.Int[0, upperBound], Gen.Int))
+                Gen.Select(Gen.Const(m.Item1), Gen.Int[0, upperBound], Gen.Int, Gen.Const(m.Item2)))
                 .Sample(t =>
                 {
                     var dic1 = t.V0.Fold(new Dictionary<int, int>(), (e, _, d) => { d.Add(e.Hash, e.Value); return d; });
+                    if (dic1.ContainsKey(t.V1))
+                        dic1.Remove(t.V1);
 
                     var map = t.V0.AddOrUpdate(t.V1, t.V2).Remove(t.V1);
-                    var dic2 = map.Fold(new Dictionary<int, int>(), (e, _, d) => { d.Add(e.Hash, e.Value); return d; });
+                    Assert.AreEqual(t.V0.Remove(t.V1).Count(), map.Count());
 
+                    var dic2 = map.Fold(new Dictionary<int, int>(), (e, _, d) => { d.Add(e.Hash, e.Value); return d; });
                     CollectionAssert.AreEqual(dic1, dic2);
                 }
                 , size: 1000
-                , print: t => t + "\n" + string.Join("\n", t.V0.Enumerate()));
+                , print: t => t + "\n" + "keys: {" + string.Join(", ", t.V3) + "}");
         }
 
         [Test]
         public void ImMap_Remove_ModelBased_FailedCase1()
         {
-            var hashes = new int[10] {4159, 15006, 17587, 46767, 47223, 48791, 55477, 74909, 96927, 98874};
-            var added = 14584;
+            var hashes = new int[10] {22063, 17962, 90649, 8112, 30393, 94009, 60740, 80192, 11026, 19570};
+            var added = 29210;
 
             var map = ImMap<int>.Empty;
             foreach (var n in hashes)
                 map = map.AddOrUpdate(n, n);
 
-            map = map.AddOrUpdate(added, added);
+            var result = map.AddOrUpdate(added, added);
+            result = result.Remove(added);
 
-            map = map.Remove(added);
-
-            CollectionAssert.AreEqual(hashes, map.Fold(new int[map.Count()], (x, i, a) => { a[i] = x.Hash; return a; }));
+            CollectionAssert.AreEqual(map.Enumerate().Select(x => x.Hash), result.Enumerate().Select(x => x.Hash));
         }
     }
 }
