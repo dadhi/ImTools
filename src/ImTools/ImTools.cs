@@ -2811,7 +2811,7 @@ namespace ImTools
 
 #if !DEBUG
         /// <inheritdoc />
-        public override string ToString() => "{KVE: {H: " + Hash + ", K: " + Key + ", V: " + Value + "}}";
+        public override string ToString() => "{H: " + Hash + ", K: " + Key + ", V: " + Value + "}";
 #endif
     }
 
@@ -2852,9 +2852,9 @@ namespace ImTools
         {
 #if DEBUG
             // for the debug purposes we just output the first N keys in array
-            const int outputCount = 101;
-            var itemsInHashOrder = this.Enumerate().Take(outputCount).Select(x => x.Key).ToList();
-            return $"new int[{(itemsInHashOrder.Count >= 100 ? ">=" : "") + itemsInHashOrder.Count}] {{" + string.Join(", ", itemsInHashOrder) + "}";
+            const int n = 50;
+            var hashes = this.Enumerate().Take(n + 1).Select(x => x.Hash).ToList();
+            return $"{{hashes: new int[{(hashes.Count >= n ? ">=" : "") + hashes.Count}] {{{(string.Join(", ", hashes))}}}}}";
 #else
             return "{}";
 #endif
@@ -3808,7 +3808,7 @@ namespace ImTools
 
 #if !DEBUG
         /// <inheritdoc />
-        public override string ToString() => "{E: {H: " + Hash + ", V: " + Value + "}}";
+        public override string ToString() => "{H: " + Hash + ", V: " + Value + "}";
 #endif
 
         /// <inheritdoc />
@@ -3887,7 +3887,7 @@ namespace ImTools
                 Entry0 = e0; Entry1 = e1;
             }
 
-            public override int Count() => (Entry0?.Count() ?? 0) + (Entry1?.Count() ?? 0);
+            public override int Count() => 2;
 
 #if !DEBUG
             public override string ToString() => "{L2: {E0: " + Entry0 + ", E1: " + Entry1 + "}}";
@@ -5459,14 +5459,15 @@ namespace ImTools
         /// Depth-first in-order of hash traversal as described in http://en.wikipedia.org/wiki/Tree_traversal.
         /// The `parents` parameter allows to reuse the stack memory used for traversal between multiple enumerates.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent `Enumerate` calls</summary>
-        public static S Fold<K, V, S>(this ImHashMap<K, V> map, S state, Func<ImHashMapEntry<K, V>, S, S> reduce, Stack<ImHashMap<K, V>> parents = null)
+        public static S Fold<K, V, S>(this ImHashMap<K, V> map, S state, Func<ImHashMapEntry<K, V>, int, S, S> reduce, Stack<ImHashMap<K, V>> parents = null)
         {
             if (map == ImHashMap<K, V>.Empty)
                 return state;
+            var i = 0;
             if (map is ImHashMap<K, V>.Entry e)
             {
-                if (e is ImHashMapEntry<K, V> kv) state = reduce(kv, state);
-                else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e).Conflicts) state = reduce(c, state);
+                if (e is ImHashMapEntry<K, V> kv) state = reduce(kv, 0, state);
+                else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e).Conflicts) state = reduce(c, i++, state);
                 return state;
             }
 
@@ -5484,10 +5485,10 @@ namespace ImTools
                 
                 if (map is ImHashMap<K, V>.Leaf2 l2)
                 {
-                    if (l2.Entry0 is ImHashMapEntry<K, V> v0) state = reduce(v0, state);
-                    else if (l2.Entry0 != null) foreach (var c in ((HashConflictKeyValuesEntry<K, V>)l2.Entry0).Conflicts) state = reduce(c, state);
-                    if (l2.Entry1 is ImHashMapEntry<K, V> v1) state = reduce(v1, state);
-                    else if (l2.Entry1 != null) foreach (var c in ((HashConflictKeyValuesEntry<K, V>)l2.Entry1).Conflicts) state = reduce(c, state);
+                    if (l2.Entry0 is ImHashMapEntry<K, V> v0) state = reduce(v0, i++, state);
+                    else if (l2.Entry0 != null) foreach (var c in ((HashConflictKeyValuesEntry<K, V>)l2.Entry0).Conflicts) state = reduce(c, i++, state);
+                    if (l2.Entry1 is ImHashMapEntry<K, V> v1) state = reduce(v1, i++, state);
+                    else if (l2.Entry1 != null) foreach (var c in ((HashConflictKeyValuesEntry<K, V>)l2.Entry1).Conflicts) state = reduce(c, i++, state);
                 }
                 else if (map is ImHashMap<K, V>.Leaf2Plus1 l21)
                 {
@@ -5504,12 +5505,12 @@ namespace ImTools
                         }
                     }
 
-                    if (e0 is ImHashMapEntry<K, V> v0) state = reduce(v0, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e0).Conflicts) state = reduce(c, state);
-                    if (e1 is ImHashMapEntry<K, V> v1) state = reduce(v1, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e1).Conflicts) state = reduce(c, state);
-                    if (p  is ImHashMapEntry<K, V> v2) state = reduce(v2, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)p ).Conflicts) state = reduce(c, state);
+                    if (e0 is ImHashMapEntry<K, V> v0) state = reduce(v0, i++, state);
+                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e0).Conflicts) state = reduce(c, i++, state);
+                    if (e1 is ImHashMapEntry<K, V> v1) state = reduce(v1, i++, state);
+                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e1).Conflicts) state = reduce(c, i++, state);
+                    if (p  is ImHashMapEntry<K, V> v2) state = reduce(v2, i++, state);
+                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)p ).Conflicts) state = reduce(c, i++, state);
                 }
                 else if (map is ImHashMap<K, V>.Leaf2Plus1Plus1 l211)
                 {
@@ -5541,27 +5542,27 @@ namespace ImTools
                         }
                     }
 
-                    if (e0 is ImHashMapEntry<K, V> v0) state = reduce(v0, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e0).Conflicts) state = reduce(c, state);
-                    if (e1 is ImHashMapEntry<K, V> v1) state = reduce(v1, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e1).Conflicts) state = reduce(c, state);
-                    if (pp is ImHashMapEntry<K, V> v2) state = reduce(v2, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)pp).Conflicts) state = reduce(c, state);
-                    if (p  is ImHashMapEntry<K, V> v3) state = reduce(v3, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)p).Conflicts)  state = reduce(c, state);
+                    if (e0 is ImHashMapEntry<K, V> v0) state = reduce(v0, i++, state);
+                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e0).Conflicts) state = reduce(c, i++, state);
+                    if (e1 is ImHashMapEntry<K, V> v1) state = reduce(v1, i++, state);
+                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e1).Conflicts) state = reduce(c, i++, state);
+                    if (pp is ImHashMapEntry<K, V> v2) state = reduce(v2, i++, state);
+                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)pp).Conflicts) state = reduce(c, i++, state);
+                    if (p  is ImHashMapEntry<K, V> v3) state = reduce(v3, i++, state);
+                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)p).Conflicts)  state = reduce(c, i++, state);
                 }
                 else if (map is ImHashMap<K, V>.Leaf5 l5)
                 {
-                    if (l5.Entry0 is ImHashMapEntry<K, V> v0) state = reduce(v0, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)l5.Entry0).Conflicts) state = reduce(c, state);
-                    if (l5.Entry1 is ImHashMapEntry<K, V> v1) state = reduce(v1, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)l5.Entry1).Conflicts) state = reduce(c, state);
-                    if (l5.Entry2 is ImHashMapEntry<K, V> v2) state = reduce(v2, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)l5.Entry2).Conflicts) state = reduce(c, state);
-                    if (l5.Entry3 is ImHashMapEntry<K, V> v3) state = reduce(v3, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)l5.Entry3).Conflicts) state = reduce(c, state);
-                    if (l5.Entry4 is ImHashMapEntry<K, V> v4) state = reduce(v4, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)l5.Entry4).Conflicts) state = reduce(c, state);
+                    if (l5.Entry0 is ImHashMapEntry<K, V> v0) state = reduce(v0, i++, state);
+                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)l5.Entry0).Conflicts) state = reduce(c, i++, state);
+                    if (l5.Entry1 is ImHashMapEntry<K, V> v1) state = reduce(v1, i++, state);
+                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)l5.Entry1).Conflicts) state = reduce(c, i++, state);
+                    if (l5.Entry2 is ImHashMapEntry<K, V> v2) state = reduce(v2, i++, state);
+                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)l5.Entry2).Conflicts) state = reduce(c, i++, state);
+                    if (l5.Entry3 is ImHashMapEntry<K, V> v3) state = reduce(v3, i++, state);
+                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)l5.Entry3).Conflicts) state = reduce(c, i++, state);
+                    if (l5.Entry4 is ImHashMapEntry<K, V> v4) state = reduce(v4, i++, state);
+                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)l5.Entry4).Conflicts) state = reduce(c, i++, state);
                 }
                 else if (map is ImHashMap<K, V>.Leaf5Plus1 l51)
                 {
@@ -5590,18 +5591,18 @@ namespace ImTools
                         }
                     }
 
-                    if (e0 is ImHashMapEntry<K, V> v0) state = reduce(v0, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e0).Conflicts) state = reduce(c, state);
-                    if (e1 is ImHashMapEntry<K, V> v1) state = reduce(v1, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e1).Conflicts) state = reduce(c, state);
-                    if (e2 is ImHashMapEntry<K, V> v2) state = reduce(v2, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e2).Conflicts) state = reduce(c, state);
-                    if (e3 is ImHashMapEntry<K, V> v3) state = reduce(v3, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e3).Conflicts) state = reduce(c, state);
-                    if (e4 is ImHashMapEntry<K, V> v4) state = reduce(v4, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e4).Conflicts) state = reduce(c, state);
-                    if (p  is ImHashMapEntry<K, V> v5) state = reduce(v5, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)p).Conflicts)  state = reduce(c, state);
+                    if (e0 is ImHashMapEntry<K, V> v0) state = reduce(v0, i++, state);
+                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e0).Conflicts) state = reduce(c, i++, state);
+                    if (e1 is ImHashMapEntry<K, V> v1) state = reduce(v1, i++, state);
+                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e1).Conflicts) state = reduce(c, i++, state);
+                    if (e2 is ImHashMapEntry<K, V> v2) state = reduce(v2, i++, state);
+                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e2).Conflicts) state = reduce(c, i++, state);
+                    if (e3 is ImHashMapEntry<K, V> v3) state = reduce(v3, i++, state);
+                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e3).Conflicts) state = reduce(c, i++, state);
+                    if (e4 is ImHashMapEntry<K, V> v4) state = reduce(v4, i++, state);
+                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e4).Conflicts) state = reduce(c, i++, state);
+                    if (p  is ImHashMapEntry<K, V> v5) state = reduce(v5, i++, state);
+                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)p).Conflicts)  state = reduce(c, i++, state);
                 }
                 else if (map is ImHashMap<K, V>.Leaf5Plus1Plus1 l511)
                 {
@@ -5656,28 +5657,28 @@ namespace ImTools
                         }
                     }
 
-                    if (e0 is ImHashMapEntry<K, V> v0) state = reduce(v0, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e0).Conflicts) state = reduce(c, state);
-                    if (e1 is ImHashMapEntry<K, V> v1) state = reduce(v1, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e1).Conflicts) state = reduce(c, state);
-                    if (e2 is ImHashMapEntry<K, V> v2) state = reduce(v2, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e2).Conflicts) state = reduce(c, state);
-                    if (e3 is ImHashMapEntry<K, V> v3) state = reduce(v3, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e3).Conflicts) state = reduce(c, state);
-                    if (e4 is ImHashMapEntry<K, V> v4) state = reduce(v4, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e4).Conflicts) state = reduce(c, state);
-                    if (pp is ImHashMapEntry<K, V> v5) state = reduce(v5, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)pp).Conflicts) state = reduce(c, state);
-                    if (p  is ImHashMapEntry<K, V> v6) state = reduce(v6, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)p).Conflicts)  state = reduce(c, state);
+                    if (e0 is ImHashMapEntry<K, V> v0) state = reduce(v0, i++, state);
+                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e0).Conflicts) state = reduce(c, i++, state);
+                    if (e1 is ImHashMapEntry<K, V> v1) state = reduce(v1, i++, state);
+                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e1).Conflicts) state = reduce(c, i++, state);
+                    if (e2 is ImHashMapEntry<K, V> v2) state = reduce(v2, i++, state);
+                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e2).Conflicts) state = reduce(c, i++, state);
+                    if (e3 is ImHashMapEntry<K, V> v3) state = reduce(v3, i++, state);
+                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e3).Conflicts) state = reduce(c, i++, state);
+                    if (e4 is ImHashMapEntry<K, V> v4) state = reduce(v4, i++, state);
+                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e4).Conflicts) state = reduce(c, i++, state);
+                    if (pp is ImHashMapEntry<K, V> v5) state = reduce(v5, i++, state);
+                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)pp).Conflicts) state = reduce(c, i++, state);
+                    if (p  is ImHashMapEntry<K, V> v6) state = reduce(v6, i++, state);
+                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)p).Conflicts)  state = reduce(c, i++, state);
                 }
 
                 if (count == 0)
                     break; // we yield the leaf and there is nothing in stack - we are DONE!
 
                 var pb2 = (ImHashMap<K, V>.Branch2)parents.Get(--count); // otherwise get the parent
-                if (pb2.MidEntry is ImHashMapEntry<K, V> kv) state = reduce(kv, state);
-                else if (pb2.MidEntry is HashConflictKeyValuesEntry<K, V> hkv) foreach (var c in hkv.Conflicts) state = reduce(c, state);
+                if (pb2.MidEntry is ImHashMapEntry<K, V> kv) state = reduce(kv, i++, state);
+                else if (pb2.MidEntry is HashConflictKeyValuesEntry<K, V> hkv) foreach (var c in hkv.Conflicts) state = reduce(c, i++, state);
                 map = pb2.Right;
             }
 
@@ -5687,14 +5688,14 @@ namespace ImTools
         /// <summary>Depth-first in-order of hash traversal as described in http://en.wikipedia.org/wiki/Tree_traversal.
         /// The `parents` parameter allows to reuse the stack memory used for traversal between multiple enumerates.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent `Enumerate` calls</summary>
-        public static S Fold<V, S>(this ImMap<V> map, S state, Func<ImMapEntry<V>, S, S> reduce, Stack<ImMap<V>> parents = null)
+        public static S Fold<V, S>(this ImMap<V> map, S state, Func<ImMapEntry<V>, int, S, S> reduce, Stack<ImMap<V>> parents = null)
         {
             if (map == ImMap<V>.Empty)
                 return state;
             if (map is ImMapEntry<V> v)
-                return reduce(v, state);
+                return reduce(v, 0, state);
 
-            var count = 0;
+            int count = 0, i = 0;
             while (true)
             {
                 if (map is ImMap<V>.Branch2 b2)
@@ -5707,9 +5708,9 @@ namespace ImTools
                 }
                 
                 if (map is ImMapEntry<V> l1)
-                    state = reduce(l1, state);
+                    state = reduce(l1, i++, state);
                 else if (map is ImMap<V>.Leaf2 l2)
-                    state = reduce(l2.Entry1, reduce(l2.Entry0, state));
+                    state = reduce(l2.Entry1, i++, reduce(l2.Entry0, i++, state));
                 else if (map is ImMap<V>.Leaf2Plus1 l21)
                 {
                     var p  = l21.Plus;
@@ -5725,9 +5726,9 @@ namespace ImTools
                         }
                     }
 
-                    state = reduce(e0, state);
-                    state = reduce(e1, state);
-                    state = reduce(p,  state);
+                    state = reduce(e0, i++, state);
+                    state = reduce(e1, i++, state);
+                    state = reduce(p,  i++, state);
                 }
                 else if (map is ImMap<V>.Leaf2Plus1Plus1 l211)
                 {
@@ -5759,18 +5760,18 @@ namespace ImTools
                         }
                     }
 
-                    state = reduce(e0, state);
-                    state = reduce(e1, state);
-                    state = reduce(pp, state);
-                    state = reduce(p,  state);
+                    state = reduce(e0, i++, state);
+                    state = reduce(e1, i++, state);
+                    state = reduce(pp, i++, state);
+                    state = reduce(p,  i++, state);
                 }
                 else if (map is ImMap<V>.Leaf5 l5)
                 {
-                    state = reduce(l5.Entry0, state);
-                    state = reduce(l5.Entry1, state);
-                    state = reduce(l5.Entry2, state);
-                    state = reduce(l5.Entry3, state);
-                    state = reduce(l5.Entry4, state);
+                    state = reduce(l5.Entry0, i++, state);
+                    state = reduce(l5.Entry1, i++, state);
+                    state = reduce(l5.Entry2, i++, state);
+                    state = reduce(l5.Entry3, i++, state);
+                    state = reduce(l5.Entry4, i++, state);
                 }
                 else if (map is ImMap<V>.Leaf5Plus1 l51)
                 {
@@ -5799,12 +5800,12 @@ namespace ImTools
                         }
                     }
 
-                    state = reduce(e0, state);
-                    state = reduce(e1, state);
-                    state = reduce(e2, state);
-                    state = reduce(e3, state);
-                    state = reduce(e4, state);
-                    state = reduce(p , state);
+                    state = reduce(e0, i++, state);
+                    state = reduce(e1, i++, state);
+                    state = reduce(e2, i++, state);
+                    state = reduce(e3, i++, state);
+                    state = reduce(e4, i++, state);
+                    state = reduce(p , i++, state);
                 }
                 else if (map is ImMap<V>.Leaf5Plus1Plus1 l511)
                 {
@@ -5859,20 +5860,20 @@ namespace ImTools
                         }
                     }
 
-                    state = reduce(e0, state);
-                    state = reduce(e1, state);
-                    state = reduce(e2, state);
-                    state = reduce(e3, state);
-                    state = reduce(e4, state);
-                    state = reduce(pp, state);
-                    state = reduce(p , state);
+                    state = reduce(e0, i++, state);
+                    state = reduce(e1, i++, state);
+                    state = reduce(e2, i++, state);
+                    state = reduce(e3, i++, state);
+                    state = reduce(e4, i++, state);
+                    state = reduce(pp, i++, state);
+                    state = reduce(p , i++, state);
                 }
 
                 if (count == 0)
                     break; // we yield the leaf and there is nothing in stack - we are DONE!
 
                 var pb2 = (ImMap<V>.Branch2)parents.Get(--count); // otherwise get the parent
-                state = reduce(pb2.MidEntry, state);
+                state = reduce(pb2.MidEntry, i++, state);
                 map = pb2.Right;
             }
 
@@ -5882,12 +5883,12 @@ namespace ImTools
         /// <summary>Converts map tree to an array with the minimum allocations</summary>
         public static S[] ToArray<K, V, S>(this ImHashMap<K, V> map, Func<ImHashMapEntry<K, V>, S> selector, Stack<ImHashMap<K, V>> parents = null) =>
             map == ImHashMap<K, V>.Empty ? ArrayTools.Empty<S>() : 
-                map.Fold(St.Of(a:new S[map.Count()], b:selector, c:0), (x, s) => { s.a[s.c] = s.b(x); return s; }, parents).a;
+                map.Fold(new S[map.Count()], (e, i, a) => { a[i] = selector(e); return a; }, parents);
 
         /// <summary>Converts the map tree to an array with the minimum allocations</summary>
         public static S[] ToArray<V, S>(this ImMap<V> map, Func<ImMapEntry<V>, S> selector, Stack<ImMap<V>> parents = null) =>
             map == ImMap<V>.Empty ? ArrayTools.Empty<S>() :
-                map.Fold(St.Of(a:new S[map.Count()], b:selector, c:0), (x, s) => { s.a[s.c] = s.b(x); return s; }, parents).a;
+                map.Fold(new S[map.Count()], (e, i, a) => { a[i] = selector(e); return a; }, parents);
 
         /// <summary>Get the key value entry if the hash and key is in the map or the default `null` value otherwise.</summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -5899,7 +5900,7 @@ namespace ImTools
                 return kv.Key.Equals(key) ? kv : null;
 
             if (e is HashConflictKeyValuesEntry<K, V> hc)
-                foreach (var x in hc.Conflicts) 
+                foreach (var x in hc.Conflicts)
                     if (x.Key.Equals(key))
                         return x;
 
@@ -6710,7 +6711,7 @@ namespace ImTools
         /// Depth-first in-order of hash traversal as described in http://en.wikipedia.org/wiki/Tree_traversal.
         /// The `parents` parameter allows to reuse the stack memory used for traversal between multiple enumerates.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent `Enumerate` calls</summary>
-        public static S Fold<V, S>(this ImMap<V>[] parts, S state, Func<ImMapEntry<V>, S, S> reduce, 
+        public static S Fold<V, S>(this ImMap<V>[] parts, S state, Func<ImMapEntry<V>, int, S, S> reduce, 
             ImHashMap.Stack<ImMap<V>> parents = null)
         {
             if (parents == null)

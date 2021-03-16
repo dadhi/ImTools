@@ -717,7 +717,6 @@ namespace ImTools.UnitTests
             CollectionAssert.AreEqual(e1, e2);
         }
 
-
         [Test]
         public void AddOrUpdate_ModelBased()
         {
@@ -741,6 +740,26 @@ namespace ImTools.UnitTests
         }
 
         [Test]
+        public void ImMap_AddOrUpdate_ModelBased()
+        {
+            const int upperBound = 100000;
+            Gen.SelectMany(GenImMap(upperBound), m =>
+                Gen.Select(Gen.Const(m), Gen.Int[0, upperBound], Gen.Int))
+                .Sample(t =>
+                {
+                    var dic1 = t.V0.Fold(new Dictionary<int, int>(), (e, _, d) => { d.Add(e.Hash, e.Value); return d; });
+                    dic1[t.V1] = t.V2;
+
+                    var map = t.V0.AddOrUpdate(t.V1, t.V2);
+                    var dic2 = map.Fold(new Dictionary<int, int>(), (e, _, d) => { d.Add(e.Hash, e.Value); return d; });
+
+                    CollectionAssert.AreEqual(dic1, dic2);
+                }
+                , size: 1000
+                , print: t => t + "\n" + string.Join("\n", t.V0.Enumerate()));
+        }
+
+        [Test]
         public void ImMap_Remove_ModelBased()
         {
             const int upperBound = 100000;
@@ -748,17 +767,32 @@ namespace ImTools.UnitTests
                 Gen.Select(Gen.Const(m), Gen.Int[0, upperBound], Gen.Int))
                 .Sample(t =>
                 {
-                    var map = t.V0.AddOrUpdate(t.V1, t.V2);
-                    var dic1 = map.Fold(new Dictionary<int, int>(), (e, d) => { d.Add(e.Hash, e.Value); return d; });
+                    var dic1 = t.V0.Fold(new Dictionary<int, int>(), (e, _, d) => { d.Add(e.Hash, e.Value); return d; });
 
-                    dic1.Remove(t.V1);
-                    map = map.Remove(t.V1);
-                    var dic2 = map.Fold(new Dictionary<int, int>(), (e, d) => { d.Add(e.Hash, e.Value); return d; });
+                    var map = t.V0.AddOrUpdate(t.V1, t.V2).Remove(t.V1);
+                    var dic2 = map.Fold(new Dictionary<int, int>(), (e, _, d) => { d.Add(e.Hash, e.Value); return d; });
 
                     CollectionAssert.AreEqual(dic1, dic2);
                 }
                 , size: 1000
                 , print: t => t + "\n" + string.Join("\n", t.V0.Enumerate()));
+        }
+
+        [Test]
+        public void ImMap_Remove_ModelBased_FailedCase1()
+        {
+            var hashes = new int[10] {4159, 15006, 17587, 46767, 47223, 48791, 55477, 74909, 96927, 98874};
+            var added = 14584;
+
+            var map = ImMap<int>.Empty;
+            foreach (var n in hashes)
+                map = map.AddOrUpdate(n, n);
+
+            map = map.AddOrUpdate(added, added);
+
+            map = map.Remove(added);
+
+            CollectionAssert.AreEqual(hashes, map.Fold(new int[map.Count()], (x, i, a) => { a[i] = x.Hash; return a; }));
         }
     }
 }
