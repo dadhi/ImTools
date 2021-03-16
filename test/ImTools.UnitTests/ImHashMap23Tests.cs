@@ -600,7 +600,7 @@ namespace ImTools.UnitTests
 
         // https://www.youtube.com/watch?v=G0NUOst-53U&feature=youtu.be&t=1639
         [Test]
-        public void AddOrUpdate_metamorphic()
+        public void ImHashMap_AddOrUpdate_metamorphic()
         {
             const int upperBound = 100_000;
             Gen.Select(GenImHashMap(upperBound), Gen.Int[0, upperBound], Gen.Int, Gen.Int[0, upperBound], Gen.Int)
@@ -622,13 +622,57 @@ namespace ImTools.UnitTests
         }
 
         [Test]
-        public void AddOrUpdate_metamorphic_shrinked()
+        public void ImMap_AddOrUpdate_metamorphic()
+        {
+            const int upperBound = 100_000;
+            Gen.Select(GenImMap(upperBound), Gen.Int[0, upperBound], Gen.Int, Gen.Int[0, upperBound], Gen.Int)
+                .Sample(t =>
+                {
+                    var ((m, _), k1, v1, k2, v2) = t;
+
+                    var m1 = m.AddOrUpdate(k1, v1).AddOrUpdate(k2, v2);
+
+                    var m2 = k1 == k2 ? m.AddOrUpdate(k2, v2) : m.AddOrUpdate(k2, v2).AddOrUpdate(k1, v1);
+                    
+                    var e1 = m1.Enumerate().OrderBy(i => i.Hash);
+                    
+                    var e2 = m2.Enumerate().OrderBy(i => i.Hash);
+
+                    CollectionAssert.AreEqual(e1.Select(x => x.Hash), e2.Select(x => x.Hash));
+                }, 
+                size: 5000);
+        }
+
+        [Test]
+        public void ImHashMap_AddOrUpdate_metamorphic_shrinked()
         {
             const int upperBound = 100_000;
             Gen.Select(GenImHashMap(upperBound), Gen.Int[0, upperBound], Gen.Int, Gen.Int[0, upperBound], Gen.Int)
                 .Sample(t =>
                 {
                     var (m, k1, v1, k2, v2) = t;
+
+                    var m1 = m.AddOrUpdate(k1, v1).AddOrUpdate(k2, v2);
+
+                    var m2 = k1 == k2 ? m.AddOrUpdate(k2, v2) : m.AddOrUpdate(k2, v2).AddOrUpdate(k1, v1);
+                    
+                    var e1 = m1.Enumerate().OrderBy(i => i.Hash);
+                    
+                    var e2 = m2.Enumerate().OrderBy(i => i.Hash);
+
+                    CollectionAssert.AreEqual(e1.Select(x => x.Hash), e2.Select(x => x.Hash));
+                }, 
+                size: 100, seed: "000027FFpth8");
+        }
+
+        [Test]
+        public void ImMap_AddOrUpdate_metamorphic_shrinked()
+        {
+            const int upperBound = 100_000;
+            Gen.Select(GenImMap(upperBound), Gen.Int[0, upperBound], Gen.Int, Gen.Int[0, upperBound], Gen.Int)
+                .Sample(t =>
+                {
+                    var ((m, _), k1, v1, k2, v2) = t;
 
                     var m1 = m.AddOrUpdate(k1, v1).AddOrUpdate(k2, v2);
 
