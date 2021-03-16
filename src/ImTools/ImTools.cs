@@ -3844,9 +3844,9 @@ namespace ImTools
         {
 #if DEBUG
             // for the debug purposes we just output the first N keys in array
-            const int outputCount = 101;
-            var itemsInHashOrder = this.Enumerate().Take(outputCount).Select(x => x.Hash).ToList();
-            return $"new int[{(itemsInHashOrder.Count >= 100 ? ">=" : "") + itemsInHashOrder.Count}] {{" + string.Join(", ", itemsInHashOrder) + "}";
+            const int n = 50;
+            var hashes = this.Enumerate().Take(n + 1).Select(x => x.Hash).ToList();
+            return $"{{hashes: new int[{(hashes.Count >= n ? ">=" : "") + hashes.Count}] {{{(string.Join(", ", hashes))}}}}}";
 #else
             return "{}";
 #endif
@@ -4486,8 +4486,7 @@ namespace ImTools
 
             public Branch2(ImMap<V> left, ImMapEntry<V> entry, ImMap<V> right)
             {
-                Debug.Assert(left  != Empty && left  is ImMapEntry<V> == false);
-                Debug.Assert(right != Empty && right is ImMapEntry<V> == false);
+                Debug.Assert(left != Empty && right != Empty, $"left:{left} != Empty && right:{right} != Empty");
                 MidEntry = entry;
                 Left     = left;
                 Right    = right;
@@ -4623,7 +4622,10 @@ namespace ImTools
         /// <summary>Right-skewed Branch of 3 - actually a branch of 2 with the right branch of 2</summary>
         internal sealed class RightyBranch3 : Branch2
         {
-            public RightyBranch3(ImMap<V> left, ImMapEntry<V> entry, ImMap<V> right) : base(left, entry, right) {}
+            public RightyBranch3(ImMap<V> left, ImMapEntry<V> entry, ImMap<V> rightBranch) : base(left, entry, rightBranch) 
+            {
+                Debug.Assert(rightBranch is Branch2, $"Right:{rightBranch} is Branch2");
+            }
 
 #if !DEBUG
             public override string ToString() => "{RB3: {"  + base.ToString() + "}";
@@ -4807,7 +4809,10 @@ namespace ImTools
         /// <summary>Left-skewed Branch of 3 - actually a branch of 2 with the left branch of 2</summary>
         internal sealed class LeftyBranch3 : Branch2
         {
-            public LeftyBranch3(ImMap<V> leftBranch, ImMapEntry<V> entry, ImMap<V> right) : base(leftBranch, entry, right) {}
+            public LeftyBranch3(ImMap<V> leftBranch, ImMapEntry<V> entry, ImMap<V> right) : base(leftBranch, entry, right) 
+            {
+                Debug.Assert(leftBranch is Branch2, $"Left:{leftBranch} is Branch2");
+            }
 
 #if !DEBUG
             public override string ToString() => "{LB3: {"  + base.ToString() + "}";

@@ -577,7 +577,7 @@ namespace ImTools.UnitTests
             size: 5000);
         }
         
-        static Gen<ImHashMap<int, int>> GenMap(int upperBound) =>
+        static Gen<ImHashMap<int, int>> GenImHashMap(int upperBound) =>
             Gen.Int[0, upperBound].ArrayUnique.SelectMany(ks =>
                 Gen.Int.Array[ks.Length].Select(vs =>
                 {
@@ -587,12 +587,22 @@ namespace ImTools.UnitTests
                     return m;
                 }));
 
+        static Gen<ImMap<int>> GenImMap(int upperBound) =>
+            Gen.Int[0, upperBound].ArrayUnique.SelectMany(arrU =>
+                Gen.Int.Array[arrU.Length].Select(arr =>
+                {
+                    var m = ImMap<int>.Empty;
+                    for (int i = 0; i < arrU.Length; i++)
+                        m = m.AddOrUpdate(arrU[i], arr[i]);
+                    return m;
+                }));
+
         // https://www.youtube.com/watch?v=G0NUOst-53U&feature=youtu.be&t=1639
         [Test]
         public void AddOrUpdate_metamorphic()
         {
             const int upperBound = 100_000;
-            Gen.Select(GenMap(upperBound), Gen.Int[0, upperBound], Gen.Int, Gen.Int[0, upperBound], Gen.Int)
+            Gen.Select(GenImHashMap(upperBound), Gen.Int[0, upperBound], Gen.Int, Gen.Int[0, upperBound], Gen.Int)
                 .Sample(t =>
                 {
                     var (m, k1, v1, k2, v2) = t;
@@ -614,7 +624,7 @@ namespace ImTools.UnitTests
         public void AddOrUpdate_metamorphic_shrinked()
         {
             const int upperBound = 100_000;
-            Gen.Select(GenMap(upperBound), Gen.Int[0, upperBound], Gen.Int, Gen.Int[0, upperBound], Gen.Int)
+            Gen.Select(GenImHashMap(upperBound), Gen.Int[0, upperBound], Gen.Int, Gen.Int[0, upperBound], Gen.Int)
                 .Sample(t =>
                 {
                     var (m, k1, v1, k2, v2) = t;
@@ -712,7 +722,7 @@ namespace ImTools.UnitTests
         public void AddOrUpdate_ModelBased()
         {
             const int upperBound = 100000;
-            Gen.SelectMany(GenMap(upperBound), m =>
+            Gen.SelectMany(GenImHashMap(upperBound), m =>
                 Gen.Select(Gen.Const(m), Gen.Int[0, upperBound], Gen.Int))
                 .Sample(t =>
                 {
@@ -724,6 +734,27 @@ namespace ImTools.UnitTests
                     var dic2 = new Dictionary<int, int>();
                     foreach (var entry in t.V0.AddOrUpdate(t.V1, t.V2).Enumerate())
                         dic2.Add(entry.Hash, entry.Value);
+                    CollectionAssert.AreEqual(dic1, dic2);
+                }
+                , size: 1000
+                , print: t => t + "\n" + string.Join("\n", t.V0.Enumerate()));
+        }
+
+        [Test]
+        public void ImMap_Remove_ModelBased()
+        {
+            const int upperBound = 100000;
+            Gen.SelectMany(GenImMap(upperBound), m =>
+                Gen.Select(Gen.Const(m), Gen.Int[0, upperBound], Gen.Int))
+                .Sample(t =>
+                {
+                    var map = t.V0.AddOrUpdate(t.V1, t.V2);
+                    var dic1 = map.Fold(new Dictionary<int, int>(), (e, d) => { d.Add(e.Hash, e.Value); return d; });
+
+                    dic1.Remove(t.V1);
+                    map = map.Remove(t.V1);
+                    var dic2 = map.Fold(new Dictionary<int, int>(), (e, d) => { d.Add(e.Hash, e.Value); return d; });
+
                     CollectionAssert.AreEqual(dic1, dic2);
                 }
                 , size: 1000
