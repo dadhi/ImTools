@@ -644,7 +644,7 @@ namespace ImTools.UnitTests
         }
 
         [Test]
-        public void ImHashMap_AddOrUpdate_metamorphic_shrinked()
+        public void ImHashMap_Remove_metamorphic()
         {
             const int upperBound = 100_000;
             Gen.Select(GenImHashMap(upperBound), Gen.Int[0, upperBound], Gen.Int, Gen.Int[0, upperBound], Gen.Int)
@@ -652,21 +652,21 @@ namespace ImTools.UnitTests
                 {
                     var (m, k1, v1, k2, v2) = t;
 
-                    var m1 = m.AddOrUpdate(k1, v1).AddOrUpdate(k2, v2);
+                    m = m.AddOrUpdate(k1, v1).AddOrUpdate(k2, v2);
 
-                    var m2 = k1 == k2 ? m.AddOrUpdate(k2, v2) : m.AddOrUpdate(k2, v2).AddOrUpdate(k1, v1);
+                    var m1 = m.Remove(k1).Remove(k2);
+                    var m2 = m.Remove(k2).Remove(k1);
                     
-                    var e1 = m1.Enumerate().OrderBy(i => i.Hash);
-                    
-                    var e2 = m2.Enumerate().OrderBy(i => i.Hash);
+                    var e1 = m1.Enumerate().Select(x => x.Hash);
+                    var e2 = m2.Enumerate().Select(x => x.Hash);
 
-                    CollectionAssert.AreEqual(e1.Select(x => x.Hash), e2.Select(x => x.Hash));
+                    CollectionAssert.AreEqual(e1, e2);
                 }, 
-                size: 100, seed: "000027FFpth8");
+                size: 5000);
         }
 
         [Test]
-        public void ImMap_AddOrUpdate_metamorphic_shrinked()
+        public void ImMap_Remove_metamorphic()
         {
             const int upperBound = 100_000;
             Gen.Select(GenImMap(upperBound), Gen.Int[0, upperBound], Gen.Int, Gen.Int[0, upperBound], Gen.Int)
@@ -674,17 +674,17 @@ namespace ImTools.UnitTests
                 {
                     var ((m, _), k1, v1, k2, v2) = t;
 
-                    var m1 = m.AddOrUpdate(k1, v1).AddOrUpdate(k2, v2);
+                    m = m.AddOrUpdate(k1, v1).AddOrUpdate(k2, v2);
 
-                    var m2 = k1 == k2 ? m.AddOrUpdate(k2, v2) : m.AddOrUpdate(k2, v2).AddOrUpdate(k1, v1);
+                    var m1 = m.Remove(k1).Remove(k2);
+                    var m2 = m.Remove(k2).Remove(k1);
                     
-                    var e1 = m1.Enumerate().OrderBy(i => i.Hash);
-                    
-                    var e2 = m2.Enumerate().OrderBy(i => i.Hash);
+                    var e1 = m1.Enumerate().Select(x => x.Hash);
+                    var e2 = m2.Enumerate().Select(x => x.Hash);
 
-                    CollectionAssert.AreEqual(e1.Select(x => x.Hash), e2.Select(x => x.Hash));
+                    CollectionAssert.AreEqual(e1, e2);
                 }, 
-                size: 100, seed: "000027FFpth8");
+                size: 5000);
         }
 
         [Test]
