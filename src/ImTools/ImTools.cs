@@ -3888,10 +3888,9 @@ namespace ImTools
         internal sealed class Leaf2 : ImMap<V>
         {
             public readonly Entry Entry0, Entry1;
-
             public Leaf2(Entry e0, Entry e1)
             {
-                Debug.Assert(e0 == null || e1 == null || e0.Hash < e1.Hash);
+                Debug.Assert(e0.Hash < e1.Hash);
                 Entry0 = e0; Entry1 = e1;
             }
 
@@ -3901,35 +3900,20 @@ namespace ImTools
             public override string ToString() => "{L2: {E0: " + Entry0 + ", E1: " + Entry1 + "}}";
 #endif
 
-            internal sealed override Entry MaxEntry() => Entry1;
             internal sealed override Entry MinEntry() => Entry0;
+            internal sealed override Entry MaxEntry() => Entry1;
 
             internal override Entry GetEntryOrNull(int hash) => 
-                Entry0?.Hash == hash ? Entry0 : Entry1?.Hash == hash ? Entry1 : null;
+                Entry0.Hash == hash ? Entry0 : Entry1.Hash == hash ? Entry1 : null;
 
-            internal override ImMap<V> AddOrGetEntry(int hash, Entry entry)
-            {
-                var e0 = Entry0;
-                var e1 = Entry1;
-                if (e0 == null)
-                    return e1 == null ? new Leaf2(null, entry)
-                        : e1.Hash == hash ? (ImMap<V>)e1
-                        : e1.Hash <  hash ? new Leaf2(entry, e1) : new Leaf2(e1, entry);
-
-                if (e1 == null)
-                    return e0.Hash == hash ? (ImMap<V>)e0
-                        :  e0.Hash <  hash ? new Leaf2(e0, entry) : new Leaf2(entry, e0);
-
-                return hash == e0.Hash ? e0
-                     : hash == e1.Hash ? e1
-                     : (ImMap<V>)new Leaf2Plus1(entry, this);
-            }
+            internal override ImMap<V> AddOrGetEntry(int hash, Entry entry) =>
+                hash == Entry0.Hash ? Entry0 : hash == Entry1.Hash ? Entry1 : (ImMap<V>)new Leaf2Plus1(entry, this);
 
             internal override ImMap<V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry) =>
                 oldEntry == Entry0 ? new Leaf2(newEntry, Entry1) : new Leaf2(Entry0, newEntry);
 
             internal override ImMap<V> RemoveEntry(Entry removedEntry) =>
-                Entry0 == removedEntry ? new Leaf2(null, Entry1) : new Leaf2(Entry0, null); // the Entry0 or Entry1 maybe null already and it is fine
+                Entry0 == removedEntry ? Entry1 : Entry0;
         }
 
         /// <summary>The leaf containing the Leaf2 plus the newest added entry.</summary>
@@ -3950,8 +3934,8 @@ namespace ImTools
             public override string ToString() => "{L21: {P: " + Plus + ", L: " + L + "}}";
 #endif
 
-            internal sealed override Entry MaxEntry() => Plus.Hash > L.Entry1.Hash ? Plus : L.Entry1;
             internal sealed override Entry MinEntry() => Plus.Hash < L.Entry0.Hash ? Plus : L.Entry0;
+            internal sealed override Entry MaxEntry() => Plus.Hash > L.Entry1.Hash ? Plus : L.Entry1;
 
             internal override Entry GetEntryOrNull(int hash)
             {
@@ -4000,15 +3984,15 @@ namespace ImTools
             public override string ToString() => "{L211: {P: " + Plus + ", L: " + L + "}}";
 #endif
 
-            internal sealed override Entry MaxEntry() 
-            {
-                var m = L.MaxEntry();
-                return Plus.Hash > m.Hash ? Plus : m;
-            }
             internal sealed override Entry MinEntry() 
             {
                 var m = L.MinEntry();
                 return Plus.Hash < m.Hash ? Plus : m;
+            }
+            internal sealed override Entry MaxEntry() 
+            {
+                var m = L.MaxEntry();
+                return Plus.Hash > m.Hash ? Plus : m;
             }
 
             internal override Entry GetEntryOrNull(int hash)
@@ -4120,8 +4104,8 @@ namespace ImTools
                 "{L2: {E0: " + Entry0 + ", E1: " + Entry1 + ", E2: " + Entry2 + ", E3: " + Entry3 + ", E4: " + Entry4 + "}}";
 #endif
 
-            internal sealed override Entry MaxEntry() => Entry4;
             internal sealed override Entry MinEntry() => Entry0;
+            internal sealed override Entry MaxEntry() => Entry4;
 
             internal override Entry GetEntryOrNull(int hash) =>
                 hash == Entry0.Hash ? Entry0 :
@@ -4172,8 +4156,8 @@ namespace ImTools
             public override string ToString() => "{L51: {P: " + Plus + ", L: " + L + "}}";
 #endif
 
-            internal sealed override Entry MaxEntry() => Plus.Hash > L.Entry4.Hash ? Plus : L.Entry4; 
             internal sealed override Entry MinEntry() => Plus.Hash < L.Entry0.Hash ? Plus : L.Entry0; 
+            internal sealed override Entry MaxEntry() => Plus.Hash > L.Entry4.Hash ? Plus : L.Entry4; 
 
             internal override Entry GetEntryOrNull(int hash)
             {
@@ -4275,16 +4259,16 @@ namespace ImTools
             public override string ToString() => "{L511: {P: " + Plus + ", L: " + L + "}}";
 #endif
 
-            internal sealed override Entry MaxEntry()
-            {
-                var m = L.MaxEntry();
-                return Plus.Hash > m.Hash ? Plus : m;
-            }
             internal sealed override Entry MinEntry()
             {
                 var m = L.MinEntry();
                 return Plus.Hash < m.Hash ? Plus : m;
             } 
+            internal sealed override Entry MaxEntry()
+            {
+                var m = L.MaxEntry();
+                return Plus.Hash > m.Hash ? Plus : m;
+            }
 
             internal override Entry GetEntryOrNull(int hash)
             {
