@@ -74,11 +74,7 @@ namespace ImTools.UnitTests
             var t = ImHashMap<int, int>.Empty;
             t= t.AddOrUpdate(1, 1).AddOrUpdate(2, 2);
 
-            var list = t.Fold(new List<int>(), (data, _, l) =>
-            {
-                l.Add(data.Value);
-                return l;
-            });
+            var list = t.Fold(new List<int>(), (data, _, l) => l.Add(data.Value));
 
             CollectionAssert.AreEqual(new[] { 1, 2 }, list);
         }
@@ -93,11 +89,7 @@ namespace ImTools.UnitTests
                 .AddOrUpdate(3, 3)
                 .AddOrUpdate(4, 4);
 
-            var list = t.Fold(new List<int>(), (data, _, l) =>
-            {
-                l.Add(data.Value);
-                return l;
-            });
+            var list = t.Fold(new List<int>(), (data, _, l) => l.Add(data.Value));
 
             CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 }, list);
         }
@@ -108,11 +100,7 @@ namespace ImTools.UnitTests
             var items = Enumerable.Range(0, 10).ToArray();
             var tree = items.Aggregate(ImHashMap<int, int>.Empty, (t, i) => t.AddOrUpdate(i, i));
 
-            var list = tree.Fold(new List<int>(), (data, _, l) =>
-            {
-                l.Add(data.Value);
-                return l;
-            });
+            var list = tree.Fold(new List<int>(), (data, _, l) => l.Add(data.Value));
 
             CollectionAssert.AreEqual(items, list);
         }
@@ -123,11 +111,7 @@ namespace ImTools.UnitTests
             var items = Enumerable.Range(0, 100).ToArray();
             var tree = items.Reverse().Aggregate(ImHashMap<int, int>.Empty, (t, i) => t.AddOrUpdate(i, i));
 
-            var list = tree.Fold(new List<int>(), (data, _, l) =>
-            {
-                l.Add(data.Value);
-                return l;
-            });
+            var list = tree.Fold(new List<int>(), (data, _, l) => l.Add(data.Value));
 
             CollectionAssert.AreEqual(items, list);
         }
@@ -138,11 +122,7 @@ namespace ImTools.UnitTests
             var items = Enumerable.Range(0, 10).ToArray();
             var tree = items.Aggregate(PartitionedHashMap.CreateEmpty<int>(), (t, i) => t.Do(x => x.AddOrUpdate(i, i)));
 
-            var list = tree.Fold(new List<int>(), (data, _, l) =>
-            {
-                l.Add(data.Value);
-                return l;
-            });
+            var list = tree.Fold(new List<int>(), (data, _, l) => l.Add(data.Value));
 
             CollectionAssert.AreEqual(items, list);
         }
