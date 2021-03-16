@@ -3800,6 +3800,7 @@ namespace ImTools
         /// <summary>The value. Maybe modified if you need the Ref{Value} semantics. 
         /// You may add the entry with the default Value to the map, and calculate and set it later (e.g. using the CAS).</summary>
         public V Value;
+
         /// <summary>Constructs the entry with the default value</summary>
         public ImMapEntry(int hash) => Hash = hash;
         /// <summary>Constructs the entry with the value</summary>
@@ -3807,11 +3808,14 @@ namespace ImTools
 
 #if !DEBUG
         /// <inheritdoc />
-        public override string ToString() => "{VE: {H: " + Hash + ", V: " + Value + "}}";
+        public override string ToString() => "{E: {H: " + Hash + ", V: " + Value + "}}";
 #endif
 
         /// <inheritdoc />
         public override int Count() => 1;
+
+        internal override ImMapEntry<V> GetMaxHashEntryOrDefault() => this;
+        internal override ImMapEntry<V> GetMinHashEntryOrDefault() => this;
 
         internal override ImMapEntry<V> GetEntryOrNull(int hash) => hash == Hash ? this : null;
 
@@ -3823,10 +3827,6 @@ namespace ImTools
 
         internal override ImMap<V> RemoveEntry(ImMapEntry<V> removedEntry) =>
             this == removedEntry ? Empty : this;
-
-        internal override ImMapEntry<V> MaxEntry() => this;
-        internal override ImMapEntry<V> MinEntry() => this;
-
     }
 
     /// <summary>The base and the holder class for the map tree leafs and branches, also defines the Empty tree.
@@ -3858,6 +3858,9 @@ namespace ImTools
         /// <summary>The count of entries in the map</summary>
         public virtual int Count() => 0;
 
+        internal virtual ImMapEntry<V> GetMinHashEntryOrDefault() => null;
+        internal virtual ImMapEntry<V> GetMaxHashEntryOrDefault() => null;
+
         /// <summary>Lookup for the entry by hash. 
         /// You need to check the returned entry type because it maybe the `HashConflictKeyValuesEntry` which contain multiple key value entries for the same hash. For the `int` key you may be sure that the `ImHashMapEntry{V}` is always returned.
         /// If nothing the method returns `null`</summary>
@@ -3873,9 +3876,6 @@ namespace ImTools
 
         /// <summary>Removes the certainly present old entry and returns the new map without it.</summary>
         internal virtual ImMap<V> RemoveEntry(ImMapEntry<V> entry) => this;
-
-        internal virtual ImMapEntry<V> MinEntry() => null;
-        internal virtual ImMapEntry<V> MaxEntry() => null;
 
         /// <summary>Leaf with 2 hash-ordered entries. Important: the both or either of entries may be null for the removed entries</summary>
         internal sealed class Leaf2 : ImMap<V>
@@ -3893,8 +3893,8 @@ namespace ImTools
             public override string ToString() => "{L2: {E0: " + Entry0 + ", E1: " + Entry1 + "}}";
 #endif
 
-            internal sealed override ImMapEntry<V> MinEntry() => Entry0;
-            internal sealed override ImMapEntry<V> MaxEntry() => Entry1;
+            internal sealed override ImMapEntry<V> GetMinHashEntryOrDefault() => Entry0;
+            internal sealed override ImMapEntry<V> GetMaxHashEntryOrDefault() => Entry1;
 
             internal override ImMapEntry<V> GetEntryOrNull(int hash) => 
                 Entry0.Hash == hash ? Entry0 : Entry1.Hash == hash ? Entry1 : null;
@@ -3927,8 +3927,8 @@ namespace ImTools
             public override string ToString() => "{L21: {P: " + Plus + ", L: " + L + "}}";
 #endif
 
-            internal sealed override ImMapEntry<V> MinEntry() => Plus.Hash < L.Entry0.Hash ? Plus : L.Entry0;
-            internal sealed override ImMapEntry<V> MaxEntry() => Plus.Hash > L.Entry1.Hash ? Plus : L.Entry1;
+            internal sealed override ImMapEntry<V> GetMinHashEntryOrDefault() => Plus.Hash < L.Entry0.Hash ? Plus : L.Entry0;
+            internal sealed override ImMapEntry<V> GetMaxHashEntryOrDefault() => Plus.Hash > L.Entry1.Hash ? Plus : L.Entry1;
 
             internal override ImMapEntry<V> GetEntryOrNull(int hash)
             {
@@ -3977,14 +3977,14 @@ namespace ImTools
             public override string ToString() => "{L211: {P: " + Plus + ", L: " + L + "}}";
 #endif
 
-            internal sealed override ImMapEntry<V> MinEntry() 
+            internal sealed override ImMapEntry<V> GetMinHashEntryOrDefault() 
             {
-                var m = L.MinEntry();
+                var m = L.GetMinHashEntryOrDefault();
                 return Plus.Hash < m.Hash ? Plus : m;
             }
-            internal sealed override ImMapEntry<V> MaxEntry() 
+            internal sealed override ImMapEntry<V> GetMaxHashEntryOrDefault() 
             {
-                var m = L.MaxEntry();
+                var m = L.GetMaxHashEntryOrDefault();
                 return Plus.Hash > m.Hash ? Plus : m;
             }
 
@@ -4097,8 +4097,8 @@ namespace ImTools
                 "{L2: {E0: " + Entry0 + ", E1: " + Entry1 + ", E2: " + Entry2 + ", E3: " + Entry3 + ", E4: " + Entry4 + "}}";
 #endif
 
-            internal sealed override ImMapEntry<V> MinEntry() => Entry0;
-            internal sealed override ImMapEntry<V> MaxEntry() => Entry4;
+            internal sealed override ImMapEntry<V> GetMinHashEntryOrDefault() => Entry0;
+            internal sealed override ImMapEntry<V> GetMaxHashEntryOrDefault() => Entry4;
 
             internal override ImMapEntry<V> GetEntryOrNull(int hash) =>
                 hash == Entry0.Hash ? Entry0 :
@@ -4149,8 +4149,8 @@ namespace ImTools
             public override string ToString() => "{L51: {P: " + Plus + ", L: " + L + "}}";
 #endif
 
-            internal sealed override ImMapEntry<V> MinEntry() => Plus.Hash < L.Entry0.Hash ? Plus : L.Entry0; 
-            internal sealed override ImMapEntry<V> MaxEntry() => Plus.Hash > L.Entry4.Hash ? Plus : L.Entry4; 
+            internal sealed override ImMapEntry<V> GetMinHashEntryOrDefault() => Plus.Hash < L.Entry0.Hash ? Plus : L.Entry0; 
+            internal sealed override ImMapEntry<V> GetMaxHashEntryOrDefault() => Plus.Hash > L.Entry4.Hash ? Plus : L.Entry4; 
 
             internal override ImMapEntry<V> GetEntryOrNull(int hash)
             {
@@ -4252,14 +4252,14 @@ namespace ImTools
             public override string ToString() => "{L511: {P: " + Plus + ", L: " + L + "}}";
 #endif
 
-            internal sealed override ImMapEntry<V> MinEntry()
+            internal sealed override ImMapEntry<V> GetMinHashEntryOrDefault()
             {
-                var m = L.MinEntry();
+                var m = L.GetMinHashEntryOrDefault();
                 return Plus.Hash < m.Hash ? Plus : m;
             } 
-            internal sealed override ImMapEntry<V> MaxEntry()
+            internal sealed override ImMapEntry<V> GetMaxHashEntryOrDefault()
             {
-                var m = L.MaxEntry();
+                var m = L.GetMaxHashEntryOrDefault();
                 return Plus.Hash > m.Hash ? Plus : m;
             }
 
@@ -4499,8 +4499,8 @@ namespace ImTools
             public override string ToString() => "{B2: {E: " + MidEntry + ", L: " + Left + ", R: " + Right + "}}";
 #endif
 
-            internal sealed override ImMapEntry<V> MinEntry() => Left .MinEntry();
-            internal sealed override ImMapEntry<V> MaxEntry() => Right.MaxEntry();
+            internal sealed override ImMapEntry<V> GetMinHashEntryOrDefault() => Left .GetMinHashEntryOrDefault();
+            internal sealed override ImMapEntry<V> GetMaxHashEntryOrDefault() => Right.GetMaxHashEntryOrDefault();
 
             internal override ImMapEntry<V> GetEntryOrNull(int hash) 
             {
@@ -4561,7 +4561,7 @@ namespace ImTools
                         // if the left node is not full yet then merge
                         if (Left is Leaf2Plus1Plus1 == false) 
                             return Left.AddOrGetEntry(mid.Hash, mid);
-                        return new Branch2(Left.RemoveEntry(removedEntry = Left.MaxEntry()), removedEntry, mid); //! the height does not change
+                        return new Branch2(Left.RemoveEntry(removedEntry = Left.GetMaxHashEntryOrDefault()), removedEntry, mid); //! the height does not change
                     }
 
                     //*rebalance needed: the branch was merged from Br2 to Br3 or to the leaf and the height decreased 
@@ -4587,7 +4587,7 @@ namespace ImTools
 
                 // case 1, downward: swap the predecessor entry (max left entry) with the mid entry, then proceed to remove the predecessor from the Left branch
                 if (removedEntry == mid)
-                    removedEntry = mid = Left.MaxEntry();
+                    removedEntry = mid = Left.GetMaxHashEntryOrDefault();
 
                 // case 1, upward
                 var newLeft = Left.RemoveEntry(removedEntry);
@@ -4595,7 +4595,7 @@ namespace ImTools
                 {
                     if (Right is Leaf2Plus1Plus1 == false) 
                         return Right.AddOrGetEntry(mid.Hash, mid);
-                    return new Branch2(mid, removedEntry = Right.MinEntry(), Right.RemoveEntry(removedEntry)); //! the height does not change
+                    return new Branch2(mid, removedEntry = Right.GetMinHashEntryOrDefault(), Right.RemoveEntry(removedEntry)); //! the height does not change
                 }
 
                 //*rebalance needed: the branch was merged from Br2 to Br3 or to the leaf and the height decreased 
@@ -4704,7 +4704,7 @@ namespace ImTools
                 var midLeft = MidEntry;
                 // case 1, downward: swap the predecessor entry (max left entry) with the mid entry, then proceed to remove the predecessor from the Left branch
                 if (removedEntry == midLeft)
-                    removedEntry = midLeft = Left.MaxEntry();
+                    removedEntry = midLeft = Left.GetMaxHashEntryOrDefault();
 
                 var rb = (Branch2)Right;
                 var middle   = rb.Left;
@@ -4717,7 +4717,7 @@ namespace ImTools
                     {
                         if (middle is Leaf2Plus1Plus1 == false) 
                             return new Branch2(middle.AddOrGetEntry(midLeft.Hash, midLeft), midRight, right); //! the height does not change
-                        return new RightyBranch3(midLeft, removedEntry = middle.MinEntry(), new Branch2(middle.RemoveEntry(removedEntry), midRight, right)); //! the height does not change
+                        return new RightyBranch3(midLeft, removedEntry = middle.GetMinHashEntryOrDefault(), new Branch2(middle.RemoveEntry(removedEntry), midRight, right)); //! the height does not change
                     }
 
                     // rebalance is needed because the branch was merged from Br2 to Br3 or to Leaf and the height decrease
@@ -4742,7 +4742,7 @@ namespace ImTools
                 }
 
                 if (removedEntry == midRight)
-                    removedEntry = midRight = middle.MaxEntry();
+                    removedEntry = midRight = middle.GetMaxHashEntryOrDefault();
 
                 if (hash < midRight.Hash)
                 {
@@ -4751,7 +4751,7 @@ namespace ImTools
                     {
                         if (right is Leaf2Plus1Plus1 == false)
                             return new Branch2(Left, midLeft, right.AddOrGetEntry(midLeft.Hash, midLeft)); // the Br3 become the Br2 but the height did not change - so no rebalance needed
-                        return new RightyBranch3(Left, midLeft, new Branch2(midRight, removedEntry = right.MinEntry(), right.RemoveEntry(removedEntry))); //! the height does not change
+                        return new RightyBranch3(Left, midLeft, new Branch2(midRight, removedEntry = right.GetMinHashEntryOrDefault(), right.RemoveEntry(removedEntry))); //! the height does not change
                     }
 
                     if (middle.GetType() == typeof(Branch2) && newMiddle.GetType() != typeof(Branch2))
@@ -4779,7 +4779,7 @@ namespace ImTools
                 {
                     if (middle is Leaf2Plus1Plus1 == false)
                         return new Branch2(Left, midLeft, middle.AddOrGetEntry(midRight.Hash, midRight));
-                    return new RightyBranch3(Left, midLeft, new Branch2(middle.RemoveEntry(removedEntry = middle.MaxEntry()), removedEntry, midRight));
+                    return new RightyBranch3(Left, midLeft, new Branch2(middle.RemoveEntry(removedEntry = middle.GetMaxHashEntryOrDefault()), removedEntry, midRight));
                 }
 
                 // right was a Br2 but now is Leaf or Br3 - means the branch height is decrease
@@ -4894,7 +4894,7 @@ namespace ImTools
 
                 // case 1, downward: swap the predecessor entry (max left entry) with the mid entry, then proceed to remove the predecessor from the Left branch
                 if (removedEntry == midLeft)
-                    removedEntry  = midLeft = left.MaxEntry();
+                    removedEntry  = midLeft = left.GetMaxHashEntryOrDefault();
 
                 if (hash < midLeft.Hash)
                 {
@@ -4903,7 +4903,7 @@ namespace ImTools
                     {
                         if (middle is Leaf2Plus1Plus1 == false) 
                             return new Branch2(middle.AddOrGetEntry(midLeft.Hash, midLeft), midRight, right); //! the height does not change
-                        return new RightyBranch3(midLeft, removedEntry = middle.MinEntry(), new Branch2(middle.RemoveEntry(removedEntry), midRight, right)); //! the height does not change
+                        return new RightyBranch3(midLeft, removedEntry = middle.GetMinHashEntryOrDefault(), new Branch2(middle.RemoveEntry(removedEntry), midRight, right)); //! the height does not change
                     }
 
                     // rebalance is needed because the branch was merged from Br2 to Br3 or to Leaf and the height decrease
@@ -4928,7 +4928,7 @@ namespace ImTools
                 }
 
                 if (removedEntry == midRight)
-                    removedEntry = midRight = middle.MaxEntry();
+                    removedEntry = midRight = middle.GetMaxHashEntryOrDefault();
 
                 if (hash < midRight.Hash)
                 {
@@ -4937,7 +4937,7 @@ namespace ImTools
                     {
                         if (right is Leaf2Plus1Plus1 == false)
                             return new Branch2(left, midLeft, right.AddOrGetEntry(midLeft.Hash, midLeft)); // the Br3 become the Br2 but the height did not change - so no rebalance needed
-                        return new RightyBranch3(left, midLeft, new Branch2(midRight, removedEntry = right.MinEntry(), right.RemoveEntry(removedEntry))); //! the height does not change
+                        return new RightyBranch3(left, midLeft, new Branch2(midRight, removedEntry = right.GetMinHashEntryOrDefault(), right.RemoveEntry(removedEntry))); //! the height does not change
                     }
 
                     if (middle.GetType() == typeof(Branch2) && newMiddle.GetType() != typeof(Branch2))
@@ -4965,7 +4965,7 @@ namespace ImTools
                 {
                     if (middle is Leaf2Plus1Plus1 == false)
                         return new Branch2(left, midLeft, middle.AddOrGetEntry(midRight.Hash, midRight));
-                    return new RightyBranch3(left, midLeft, new Branch2(middle.RemoveEntry(removedEntry = middle.MaxEntry()), removedEntry, midRight));
+                    return new RightyBranch3(left, midLeft, new Branch2(middle.RemoveEntry(removedEntry = middle.GetMaxHashEntryOrDefault()), removedEntry, midRight));
                 }
 
                 // right was a Br2 but now is Leaf or Br3 - means the branch height is decrease
