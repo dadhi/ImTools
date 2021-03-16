@@ -763,7 +763,7 @@ namespace ImTools.UnitTests
         }
 
         [Test]
-        public void AddOrUpdate_ModelBased()
+        public void ImHashMap_AddOrUpdate_ModelBased()
         {
             const int upperBound = 100000;
             Gen.SelectMany(GenImHashMap(upperBound), m =>
@@ -792,10 +792,10 @@ namespace ImTools.UnitTests
                 Gen.Select(Gen.Const(m.Item1), Gen.Int[0, upperBound], Gen.Int, Gen.Const(m.Item2)))
                 .Sample(t =>
                 {
-                    var dic1 = t.V0.Fold(new Dictionary<int, int>(), (e, _, d) => { d.Add(e.Hash, e.Value); return d; });
+                    var dic1 = t.V0.ToDictionary();
                     dic1[t.V1] = t.V2;
 
-                    var dic2 = t.V0.AddOrUpdate(t.V1, t.V2).Fold(new Dictionary<int, int>(), (e, _, d) => { d.Add(e.Hash, e.Value); return d; });
+                    var dic2 = t.V0.AddOrUpdate(t.V1, t.V2).ToDictionary();
 
                     CollectionAssert.AreEqual(dic1, dic2);
                 }
@@ -811,14 +811,14 @@ namespace ImTools.UnitTests
                 Gen.Select(Gen.Const(m.Item1), Gen.Int[0, upperBound], Gen.Int, Gen.Const(m.Item2)))
                 .Sample(t =>
                 {
-                    var dic1 = t.V0.Fold(new Dictionary<int, int>(), (e, _, d) => { d.Add(e.Hash, e.Value); return d; });
+                    var dic1 = t.V0.ToDictionary();
                     if (dic1.ContainsKey(t.V1))
                         dic1.Remove(t.V1);
 
                     var map = t.V0.AddOrUpdate(t.V1, t.V2).Remove(t.V1);
                     Assert.AreEqual(t.V0.Remove(t.V1).Count(), map.Count());
 
-                    var dic2 = map.Fold(new Dictionary<int, int>(), (e, _, d) => { d.Add(e.Hash, e.Value); return d; });
+                    var dic2 = map.ToDictionary();
                     CollectionAssert.AreEqual(dic1, dic2);
                 }
                 , size: 1000

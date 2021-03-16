@@ -97,26 +97,54 @@ namespace ImTools
     }
 
     /// <summary>Just a helper state with the number of mutable fields with the nice names ;) Maybe used together with Fold or other methods required state</summary>
-    public sealed class St<A, B, C> 
+    public sealed class St<A, B> 
     {
         /// <summary>A</summary>
         public A a;
         /// <summary>B</summary>
         public B b;
-        /// <summary>C</summary>
-        public C c;
+
+        /// <summary>Atomically puts the pooled instance back replacing the old one</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public St<A, B> Pool() 
+        {
+            Interlocked.Exchange(ref Pooled, this);
+            return this;
+        }
+
+        /// <summary>Atomically puts the pooled instance back replacing the old one</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public St<A, B> PoolClean() 
+        {
+            a = default;
+            b = default;
+            Interlocked.Exchange(ref Pooled, this);
+            return this;
+        }
+
+        internal static St<A, B> Pooled;
     } 
 
     /// <summary>State factory and helper methods</summary>
     public static class St 
     {
-        /// <summary>Creates the state out of the supplied arguments</summary>
-        public static St<A, B, C> Of<A, B, C>(A a, B b, C c) => new St<A, B, C> { a = a, b = b, c = c };
+        /// <summary>Creates the state out of the passed arguments</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static St<A, B> Of<A, B>(A a, B b) => new St<A, B> { a = a, b = b };
+
+        /// <summary>Atomically pops the pooled instance (if exist) or creates the new one and sets the fields to the passed arguments</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static St<A, B> Rent<A, B>(A a, B b) 
+        {
+            var st = Interlocked.Exchange(ref St<A, B>.Pooled, null) ?? new St<A, B>();
+            st.a = a; st.b = b;
+            return st;
+        } 
     }
 
-    /// Replacement for `Void` type which can be used as a type argument and value.
+    /// <summary>Replacement for `Void` type which can be used as a type argument and value.
     /// In traditional functional languages this type is a singleton empty record type,
-    /// e.g. `()` in Haskell https://en.wikipedia.org/wiki/Unit_type
+    /// e.g. `()` in Haskell https://en.wikipedia.org/wiki/Unit_type </summary>
     public struct Unit : IEquatable<Unit>
     {
         /// Singleton unit value - making it a lower-case so you could import `using static ImTools.Unit;` and write `return unit;`
@@ -5881,15 +5909,25 @@ namespace ImTools
             return state;
         }
 
-        /// <summary>Converts map tree to an array with the minimum allocations</summary>
+        /// <summary>Converts map to an array with the minimum allocations</summary>
         public static S[] ToArray<K, V, S>(this ImHashMap<K, V> map, Func<ImHashMapEntry<K, V>, S> selector, Stack<ImHashMap<K, V>> parents = null) =>
             map == ImHashMap<K, V>.Empty ? ArrayTools.Empty<S>() : 
-                map.Fold(new S[map.Count()], (e, i, a) => { a[i] = selector(e); return a; }, parents);
+                map.Fold(St.Rent(new S[map.Count()], selector), (e, i, s) => { s.a[i] = s.b(e); return s; }, parents).PoolClean().a;
 
-        /// <summary>Converts the map tree to an array with the minimum allocations</summary>
+        /// <summary>Converts the map to an array with the minimum allocations</summary>
         public static S[] ToArray<V, S>(this ImMap<V> map, Func<ImMapEntry<V>, S> selector, Stack<ImMap<V>> parents = null) =>
             map == ImMap<V>.Empty ? ArrayTools.Empty<S>() :
-                map.Fold(new S[map.Count()], (e, i, a) => { a[i] = selector(e); return a; }, parents);
+                map.Fold(St.Rent(new S[map.Count()], selector), (e, i, s) => { s.a[i] = s.b(e); return s; }, parents).PoolClean().a;
+
+        /// <summary>Converts the map to the dictionary</summary>
+        public static Dictionary<K, V> ToDictionary<K, V>(this ImHashMap<K, V> map, Stack<ImHashMap<K, V>> parents = null) =>
+            map == ImHashMap<K, V>.Empty ? new Dictionary<K, V>(0) :
+                map.Fold(new Dictionary<K, V>(), (e, _, d) => { d.Add(e.Key, e.Value); return d; }, parents);
+
+        /// <summary>Converts the map to the dictionary</summary>
+        public static Dictionary<int, V> ToDictionary<V>(this ImMap<V> map, Stack<ImMap<V>> parents = null) =>
+            map == ImMap<V>.Empty ? new Dictionary<int, V>(0) :
+                map.Fold(new Dictionary<int, V>(), (e, _, d) => { d.Add(e.Hash, e.Value); return d; }, parents);
 
         /// <summary>Get the key value entry if the hash and key is in the map or the default `null` value otherwise.</summary>
         [MethodImpl((MethodImplOptions)256)]
