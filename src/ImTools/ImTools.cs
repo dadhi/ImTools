@@ -102,21 +102,26 @@ namespace ImTools
         /// <summary>A</summary>
         public A a;
 
-        /// <summary>Atomically puts the pooled instance back replacing the old one</summary>
+        /// <summary>Puts the pooled instance back replacing the old one</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public St<A> Pool() 
-        {
-            Interlocked.Exchange(ref Pooled, this);
-            return this;
-        }
+        public void Pool() => Pooled = this;
 
-        /// <summary>Atomically puts the pooled instance back replacing the old one</summary>
+        /// <summary>Puts the pooled instance back replacing the old one</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public St<A> PoolClean() 
+        public void Reset() 
         {
             a = default;
             Pooled = this; // we don't need to do the atomic update here because we don't care what instance is ended up to be pooled
-            return this;
+        }
+
+        /// <summary>Puts the pooled instance back replacing the old one</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public A ResetButGetA() 
+        {
+            var a1 = a;
+            a = default;
+            Pooled = this; // we don't need to do the atomic update here because we don't care what instance is ended up to be pooled
+            return a1;
         }
 
         internal static St<A> Pooled;
@@ -132,20 +137,37 @@ namespace ImTools
 
         /// <summary>Puts the pooled instance back replacing the old one</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public St<A, B> Pool() 
-        {
-            Pooled = this;
-            return this;
-        }
+        public St<A, B> Pool() => Pooled = this;
 
         /// <summary>Puts the pooled instance back replacing the old one</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public St<A, B> Reset() 
+        public void Reset() 
         {
             a = default;
             b = default;
             Pooled = this; // we don't need to do the atomic update here because we don't care what instance is ended up to be pooled
-            return this;
+        }
+
+        /// <summary>Puts the pooled instance back replacing the old one</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public A ResetButGetA() 
+        {
+            var a1 = a;
+            a = default;
+            b = default;
+            Pooled = this; // we don't need to do the atomic update here because we don't care what instance is ended up to be pooled
+            return a1;
+        }
+
+        /// <summary>Puts the pooled instance back replacing the old one</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public B ResetButGetB() 
+        {
+            var b1 = b;
+            a = default;
+            b = default;
+            Pooled = this; // we don't need to do the atomic update here because we don't care what instance is ended up to be pooled
+            return b1;
         }
 
         internal static St<A, B> Pooled;
@@ -5964,7 +5986,7 @@ namespace ImTools
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
         public static S Fold<K, V, S>(this ImHashMap<K, V> map, S state, Func<ImHashMapEntry<K, V>, int, S, S> reduce, Stack<ImHashMap<K, V>> parents = null) =>
-            map.Each(St.Rent(state, reduce), (e, i, s) => s.a = s.b(e, i, s.a)).Reset().a;
+            map.Each(St.Rent(state, reduce), (e, i, s) => s.a = s.b(e, i, s.a)).ResetButGetA();
 
         /// <summary>Do something for each entry.
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
@@ -5976,17 +5998,17 @@ namespace ImTools
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
         public static S Fold<V, S>(this ImMap<V> map, S state, Func<ImMapEntry<V>, int, S, S> reduce, Stack<ImMap<V>> parents = null) =>
-            map.Each(St.Rent(state, reduce), (e, i, s) => s.a = s.b(e, i, s.a)).Reset().a;
+            map.Each(St.Rent(state, reduce), (e, i, s) => s.a = s.b(e, i, s.a)).ResetButGetA();
 
         /// <summary>Converts map to an array with the minimum allocations</summary>
         public static S[] ToArray<K, V, S>(this ImHashMap<K, V> map, Func<ImHashMapEntry<K, V>, S> selector, Stack<ImHashMap<K, V>> parents = null) =>
             map == ImHashMap<K, V>.Empty ? ArrayTools.Empty<S>() : 
-                map.Each(St.Rent(new S[map.Count()], selector), (e, i, s) => s.a[i] = s.b(e), parents).Reset().a;
+                map.Each(St.Rent(new S[map.Count()], selector), (e, i, s) => s.a[i] = s.b(e), parents).ResetButGetA();
 
         /// <summary>Converts the map to an array with the minimum allocations</summary>
         public static S[] ToArray<V, S>(this ImMap<V> map, Func<ImMapEntry<V>, S> selector, Stack<ImMap<V>> parents = null) =>
             map == ImMap<V>.Empty ? ArrayTools.Empty<S>() :
-                map.Each(St.Rent(new S[map.Count()], selector), (e, i, s) => s.a[i] = s.b(e), parents).Reset().a;
+                map.Each(St.Rent(new S[map.Count()], selector), (e, i, s) => s.a[i] = s.b(e), parents).ResetButGetA();
 
         /// <summary>Converts the map to the dictionary</summary>
         public static Dictionary<K, V> ToDictionary<K, V>(this ImHashMap<K, V> map, Stack<ImHashMap<K, V>> parents = null) =>
