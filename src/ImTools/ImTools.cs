@@ -97,6 +97,32 @@ namespace ImTools
     }
 
     /// <summary>Just a helper state with the number of mutable fields with the nice names ;) Maybe used together with Fold or other methods required state</summary>
+    public sealed class St<A> 
+    {
+        /// <summary>A</summary>
+        public A a;
+
+        /// <summary>Atomically puts the pooled instance back replacing the old one</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public St<A> Pool() 
+        {
+            Interlocked.Exchange(ref Pooled, this);
+            return this;
+        }
+
+        /// <summary>Atomically puts the pooled instance back replacing the old one</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public St<A> PoolClean() 
+        {
+            a = default;
+            Pooled = this; // we don't need to do the atomic update here because we don't care what instance is ended up to be pooled
+            return this;
+        }
+
+        internal static St<A> Pooled;
+    } 
+
+    /// <summary>Just a helper state with the number of mutable fields with the nice names ;) Maybe used together with Fold or other methods required state</summary>
     public sealed class St<A, B> 
     {
         /// <summary>A</summary>
@@ -118,7 +144,7 @@ namespace ImTools
         {
             a = default;
             b = default;
-            Interlocked.Exchange(ref Pooled, this);
+            Pooled = this; // we don't need to do the atomic update here because we don't care what instance is ended up to be pooled
             return this;
         }
 
@@ -128,6 +154,19 @@ namespace ImTools
     /// <summary>State factory and helper methods</summary>
     public static class St 
     {
+        /// <summary>Creates the state out of the passed arguments</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static St<A> Of<A>(A a) => new St<A> { a = a };
+
+        /// <summary>Atomically pops the pooled instance (if exist) or creates the new one and sets the fields to the passed arguments</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static St<A> Rent<A>(A a) 
+        {
+            var st = Interlocked.Exchange(ref St<A>.Pooled, null) ?? new St<A>();
+            st.a = a;
+            return st;
+        } 
+
         /// <summary>Creates the state out of the passed arguments</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static St<A, B> Of<A, B>(A a, B b) => new St<A, B> { a = a, b = b };
@@ -5486,8 +5525,8 @@ namespace ImTools
 
         /// <summary>
         /// Depth-first in-order of hash traversal as described in http://en.wikipedia.org/wiki/Tree_traversal.
-        /// The `parents` parameter allows to reuse the stack memory used for traversal between multiple enumerates.
-        /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent `Enumerate` calls</summary>
+        /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
+        /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
         public static S Each<K, V, S>(this ImHashMap<K, V> map, S state, Action<ImHashMapEntry<K, V>, int, S> reduce, Stack<ImHashMap<K, V>> parents = null)
         {
             if (map == ImHashMap<K, V>.Empty)
@@ -5715,8 +5754,8 @@ namespace ImTools
         }
 
         /// <summary>Depth-first in-order of hash traversal as described in http://en.wikipedia.org/wiki/Tree_traversal.
-        /// The `parents` parameter allows to reuse the stack memory used for traversal between multiple enumerates.
-        /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent `Enumerate` calls</summary>
+        /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
+        /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
         public static S Each<V, S>(this ImMap<V> map, S state, Action<ImMapEntry<V>, int, S> reduce, Stack<ImMap<V>> parents = null)
         {
             if (map == ImMap<V>.Empty)
@@ -5916,16 +5955,28 @@ namespace ImTools
         }
 
         /// <summary>Do something for each entry.
-        /// The `parents` parameter allows to reuse the stack memory used for traversal between multiple enumerates.
-        /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent `Enumerate` calls</summary>
+        /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
+        /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
+        public static void Each<K, V>(this ImHashMap<K, V> map, Action<ImHashMapEntry<K, V>, int> reduce, Stack<ImHashMap<K, V>> parents = null) =>
+            map.Each(reduce, (e, i, r) => r(e, i));
+
+        /// <summary>Collect something for each entry.
+        /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
+        /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
+        public static void Fold<K, V, S>(this ImHashMap<K, V> map, S state, Func<ImHashMapEntry<K, V>, int, S, S> reduce, Stack<ImHashMap<K, V>> parents = null) =>
+            map.Each(St.Of(state, reduce), (e, i, s) => s.a = s.b(e, i, s.a));
+
+        /// <summary>Do something for each entry.
+        /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
+        /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
         public static void Each<V>(this ImMap<V> map, Action<ImMapEntry<V>, int> reduce, Stack<ImMap<V>> parents = null) =>
             map.Each(reduce, (e, i, r) => r(e, i));
 
-        /// <summary>Do something for each entry.
-        /// The `parents` parameter allows to reuse the stack memory used for traversal between multiple enumerates.
-        /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent `Enumerate` calls</summary>
-        public static void Each<K, V>(this ImHashMap<K, V> map, Action<ImHashMapEntry<K, V>, int> reduce, Stack<ImHashMap<K, V>> parents = null) =>
-            map.Each(reduce, (e, i, r) => r(e, i));
+        /// <summary>Collect something for each entry.
+        /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
+        /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
+        public static void Fold<V, S>(this ImMap<V> map, S state, Func<ImMapEntry<V>, int, S, S> reduce, Stack<ImMap<V>> parents = null) =>
+            map.Each(St.Of(state, reduce), (e, i, s) => s.a = s.b(e, i, s.a));
 
         /// <summary>Converts map to an array with the minimum allocations</summary>
         public static S[] ToArray<K, V, S>(this ImHashMap<K, V> map, Func<ImHashMapEntry<K, V>, S> selector, Stack<ImHashMap<K, V>> parents = null) =>
@@ -6746,12 +6797,11 @@ namespace ImTools
         private static void RefUpdatePart<V>(ref ImMap<V> part, int hash, V value) =>
             Ref.Swap(ref part, hash, value, (x, h, v) => x.Update(h, v));
 
-        /// <summary>Enumerates all the partitions map entries in the hash order.
-        /// `parents` parameter allow to reuse the stack memory used for traversal between multiple enumerates.
-        /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent `Enumerate` calls</summary>
+        /// <summary>Do something for each entry.
+        /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
+        /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static IEnumerable<ImHashMapEntry<K, V>> Enumerate<K, V>(this ImHashMap<K, V>[] parts, 
-        ImHashMap.Stack<ImHashMap<K, V>> parents = null)
+        public static IEnumerable<ImHashMapEntry<K, V>> Enumerate<K, V>(this ImHashMap<K, V>[] parts, ImHashMap.Stack<ImHashMap<K, V>> parents = null)
         {
             if (parents == null)
                 parents = new ImHashMap.Stack<ImHashMap<K, V>>();
@@ -6764,11 +6814,44 @@ namespace ImTools
             }
         }
 
-        /// <summary> 
-        /// Depth-first in-order of hash traversal as described in http://en.wikipedia.org/wiki/Tree_traversal.
-        /// The `parents` parameter allows to reuse the stack memory used for traversal between multiple enumerates.
-        /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent `Enumerate` calls</summary>
-        public static S Fold<V, S>(this ImMap<V>[] parts, S state, Action<ImMapEntry<V>, int, S> reduce, 
+        /// <summary>Do something for each entry.
+        /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
+        /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static IEnumerable<ImMapEntry<V>> Enumerate<K, V>(this ImMap<V>[] parts, ImHashMap.Stack<ImMap<V>> parents = null)
+        {
+            if (parents == null)
+                parents = new ImHashMap.Stack<ImMap<V>>();
+            foreach (var map in parts) 
+            {
+                if (map == ImMap<V>.Empty)
+                    continue;
+                foreach (var entry in map.Enumerate(parents))
+                    yield return entry;
+            }
+        }
+
+        /// <summary>Do something for each entry.
+        /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
+        /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
+        public static S Each<K, V, S>(this ImHashMap<K, V>[] parts, S state, Action<ImHashMapEntry<K, V>, int, S> reduce, 
+            ImHashMap.Stack<ImHashMap<K, V>> parents = null)
+        {
+            if (parents == null)
+                parents = new ImHashMap.Stack<ImHashMap<K, V>>();
+            foreach (var map in parts) 
+            {
+                if (map == ImHashMap<K, V>.Empty)
+                    continue;
+                state = map.Each(state, reduce, parents);
+            }
+            return state;
+        }
+
+        /// <summary>Do something for each entry.
+        /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
+        /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
+        public static S Each<V, S>(this ImMap<V>[] parts, S state, Action<ImMapEntry<V>, int, S> reduce, 
             ImHashMap.Stack<ImMap<V>> parents = null)
         {
             if (parents == null)

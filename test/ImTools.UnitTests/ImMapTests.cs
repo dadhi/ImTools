@@ -122,7 +122,7 @@ namespace ImTools.UnitTests
             var items = Enumerable.Range(0, 10).ToArray();
             var tree = items.Aggregate(PartitionedHashMap.CreateEmpty<int>(), (t, i) => t.Do(x => x.AddOrUpdate(i, i)));
 
-            var list = tree.Fold(new List<int>(), (data, _, l) => l.Add(data.Value));
+            var list = tree.Each(new List<int>(), (data, _, l) => l.Add(data.Value));
 
             CollectionAssert.AreEqual(items, list);
         }
