@@ -215,7 +215,7 @@ namespace ImTools.UnitTests
                 .AddOrUpdate(key2, 2)
                 .AddOrUpdate(key3, 3);
 
-            var values = tree.Fold(new Dictionary<string, int>(), (data, _, dict) => dict.Do(data, (x, d) => x.Add(d.Key.Key, d.Value)));
+            var values = tree.Each(new Dictionary<string, int>(), (data, _, dict) => dict.Do(data, (x, d) => x.Add(d.Key.Key, d.Value)));
 
             Assert.That(values, Is.EqualTo(new Dictionary<string, int>
             {
@@ -297,7 +297,7 @@ namespace ImTools.UnitTests
             var list = Enumerable.Range(0, 10).ToImList();
             var tree = list.Fold(ImHashMap<int, int>.Empty, (i, t) => t.AddOrUpdate(i, i));
 
-            var enumerated = tree.Fold(new List<int>(), (data, _, l) => l.Do(data, (x, d) => x.Add(d.Value)));
+            var enumerated = tree.Each(new List<int>(), (data, _, l) => l.Do(data, (x, d) => x.Add(d.Value)));
 
             CollectionAssert.AreEqual(list.ToArray(), enumerated);
         }
@@ -308,7 +308,7 @@ namespace ImTools.UnitTests
             var list = Enumerable.Range(0, 10).ToImList();
             var tree = list.Fold(ImHashMap<int, int>.Empty, (i, t) => t.AddOrUpdate(i, i));
 
-            var enumerated = tree.Fold(new List<int>(), (data, index, l) => l.Do(index, (x, i) => x.Add(i)));
+            var enumerated = tree.Each(new List<int>(), (data, index, l) => l.Do(index, (x, i) => x.Add(i)));
 
             CollectionAssert.AreEqual(list.ToArray(), enumerated);
         }

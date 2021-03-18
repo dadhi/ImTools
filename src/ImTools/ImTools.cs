@@ -5488,7 +5488,7 @@ namespace ImTools
         /// Depth-first in-order of hash traversal as described in http://en.wikipedia.org/wiki/Tree_traversal.
         /// The `parents` parameter allows to reuse the stack memory used for traversal between multiple enumerates.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent `Enumerate` calls</summary>
-        public static S Fold<K, V, S>(this ImHashMap<K, V> map, S state, Action<ImHashMapEntry<K, V>, int, S> reduce, Stack<ImHashMap<K, V>> parents = null)
+        public static S Each<K, V, S>(this ImHashMap<K, V> map, S state, Action<ImHashMapEntry<K, V>, int, S> reduce, Stack<ImHashMap<K, V>> parents = null)
         {
             if (map == ImHashMap<K, V>.Empty)
                 return state;
@@ -5717,7 +5717,7 @@ namespace ImTools
         /// <summary>Depth-first in-order of hash traversal as described in http://en.wikipedia.org/wiki/Tree_traversal.
         /// The `parents` parameter allows to reuse the stack memory used for traversal between multiple enumerates.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent `Enumerate` calls</summary>
-        public static S Fold<V, S>(this ImMap<V> map, S state, Action<ImMapEntry<V>, int, S> reduce, Stack<ImMap<V>> parents = null)
+        public static S Each<V, S>(this ImMap<V> map, S state, Action<ImMapEntry<V>, int, S> reduce, Stack<ImMap<V>> parents = null)
         {
             if (map == ImMap<V>.Empty)
                 return state;
@@ -5919,33 +5919,33 @@ namespace ImTools
         /// The `parents` parameter allows to reuse the stack memory used for traversal between multiple enumerates.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent `Enumerate` calls</summary>
         public static void Each<V>(this ImMap<V> map, Action<ImMapEntry<V>, int> reduce, Stack<ImMap<V>> parents = null) =>
-            map.Fold(reduce, (e, i, r) => r(e, i));
+            map.Each(reduce, (e, i, r) => r(e, i));
 
         /// <summary>Do something for each entry.
         /// The `parents` parameter allows to reuse the stack memory used for traversal between multiple enumerates.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent `Enumerate` calls</summary>
         public static void Each<K, V>(this ImHashMap<K, V> map, Action<ImHashMapEntry<K, V>, int> reduce, Stack<ImHashMap<K, V>> parents = null) =>
-            map.Fold(reduce, (e, i, r) => r(e, i));
+            map.Each(reduce, (e, i, r) => r(e, i));
 
         /// <summary>Converts map to an array with the minimum allocations</summary>
         public static S[] ToArray<K, V, S>(this ImHashMap<K, V> map, Func<ImHashMapEntry<K, V>, S> selector, Stack<ImHashMap<K, V>> parents = null) =>
             map == ImHashMap<K, V>.Empty ? ArrayTools.Empty<S>() : 
-                map.Fold(St.Rent(new S[map.Count()], selector), (e, i, s) => s.a[i] = s.b(e), parents).PoolClean().a;
+                map.Each(St.Rent(new S[map.Count()], selector), (e, i, s) => s.a[i] = s.b(e), parents).PoolClean().a;
 
         /// <summary>Converts the map to an array with the minimum allocations</summary>
         public static S[] ToArray<V, S>(this ImMap<V> map, Func<ImMapEntry<V>, S> selector, Stack<ImMap<V>> parents = null) =>
             map == ImMap<V>.Empty ? ArrayTools.Empty<S>() :
-                map.Fold(St.Rent(new S[map.Count()], selector), (e, i, s) => s.a[i] = s.b(e), parents).PoolClean().a;
+                map.Each(St.Rent(new S[map.Count()], selector), (e, i, s) => s.a[i] = s.b(e), parents).PoolClean().a;
 
         /// <summary>Converts the map to the dictionary</summary>
         public static Dictionary<K, V> ToDictionary<K, V>(this ImHashMap<K, V> map, Stack<ImHashMap<K, V>> parents = null) =>
             map == ImHashMap<K, V>.Empty ? new Dictionary<K, V>(0) :
-                map.Fold(new Dictionary<K, V>(), (e, _, d) => d.Add(e.Key, e.Value), parents);
+                map.Each(new Dictionary<K, V>(), (e, _, d) => d.Add(e.Key, e.Value), parents);
 
         /// <summary>Converts the map to the dictionary</summary>
         public static Dictionary<int, V> ToDictionary<V>(this ImMap<V> map, Stack<ImMap<V>> parents = null) =>
             map == ImMap<V>.Empty ? new Dictionary<int, V>(0) :
-                map.Fold(new Dictionary<int, V>(), (e, _, d) => d.Add(e.Hash, e.Value), parents);
+                map.Each(new Dictionary<int, V>(), (e, _, d) => d.Add(e.Hash, e.Value), parents);
 
         /// <summary>Get the key value entry if the hash and key is in the map or the default `null` value otherwise.</summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -6777,7 +6777,7 @@ namespace ImTools
             {
                 if (map == ImMap<V>.Empty)
                     continue;
-                state = map.Fold(state, reduce, parents);
+                state = map.Each(state, reduce, parents);
             }
             return state;
         }
