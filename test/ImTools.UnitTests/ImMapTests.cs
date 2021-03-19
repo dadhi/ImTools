@@ -120,7 +120,7 @@ namespace ImTools.UnitTests
         public void ImMapSlots_Folded_values_should_be_returned_in_sorted_order()
         {
             var items = Enumerable.Range(0, 10).ToArray();
-            var tree = items.Aggregate(PartitionedHashMap.CreateEmpty<int>(), (t, i) => t.Do(x => x.AddOrUpdate(i, i)));
+            var tree = items.Aggregate(PartitionedMap.CreateEmpty<int>(), (t, i) => t.Do(x => x.AddOrUpdate(i, i)));
 
             var list = tree.Each(new List<int>(), (data, _, l) => l.Add(data.Value));
 

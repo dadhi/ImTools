@@ -643,7 +643,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             private ImTools.ImMap<string>[] _partMap;
             public ImTools.ImMap<string>[] AddOrUpdate_V3_PartitionedHashMap()
             {
-                var slots = ImTools.PartitionedHashMap.CreateEmpty<string>();
+                var slots = ImTools.PartitionedMap.CreateEmpty<string>();
 
                 for (var i = 0; i < Count; i++)
                     slots.AddOrUpdate(i, i.ToString());

@@ -6645,16 +6645,6 @@ namespace ImTools
             return parts;
         }
 
-        /// <summary>Creates the new collection with the empty partions</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static ImMap<V>[] CreateEmpty<V>(int partionCountOfPowerOfTwo = PARTITION_COUNT_POWER_OF_TWO)
-        {
-            var parts = new ImMap<V>[partionCountOfPowerOfTwo];
-            for (var i = 0; i < parts.Length; ++i)
-                parts[i] = ImMap<V>.Empty;
-            return parts;
-        }
-
         /// <summary>Lookup for the value by the key using the hash and checking the key with the `object.Equals` for equality, 
         /// returns the default `V` if hash, key are not found.</summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -6670,19 +6660,11 @@ namespace ImTools
         public static V GetValueOrDefault<K, V>(this ImHashMap<K, V>[] parts, K key, int partHashMask = PARTITION_HASH_MASK) =>
             parts.GetValueOrDefault(key.GetHashCode(), key, partHashMask);
 
-        /// <summary>Lookup for the value by the key using its hash and checking the key with the `object.Equals` for equality, 
-        /// returns the default `V` if hash, key are not found.</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static V GetValueOrDefault<V>(this ImMap<V>[] parts, int hash, int partHashMask = PARTITION_HASH_MASK)
-        {
-            var p = parts[hash & partHashMask];
-            return p != null && p.GetEntryOrNull(hash) is ImMapEntry<V> kv ? kv.Value : default(V);
-        }
-
         /// <summary>Lookup for the value by the key using the hash and checking the key with the `object.ReferenceEquals` for equality, 
         /// returns the default `V` if hash, key are not found.</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static V GetValueOrDefaultByReferenceEquals<K, V>(this ImHashMap<K, V>[] parts, int hash, K key, int partHashMask = PARTITION_HASH_MASK) where K : class
+        public static V GetValueOrDefaultByReferenceEquals<K, V>(this ImHashMap<K, V>[] parts, int hash, K key, 
+            int partHashMask = PARTITION_HASH_MASK) where K : class
         {
             var p = parts[hash & partHashMask];
             return p != null ? p.GetValueOrDefaultByReferenceEquals(hash, key) : default(V);
@@ -6709,8 +6691,8 @@ namespace ImTools
         /// <summary>Lookup for the value by the key using the hash code and checking the key with the `object.ReferenceEquals` for equality,
         /// returns the `true` and the found value or the `false`</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static bool TryFindByReferenceEquals<K, V>(this ImHashMap<K, V>[] parts, int hash, K key, out V value, int partHashMask = PARTITION_HASH_MASK)
-            where K : class
+        public static bool TryFindByReferenceEquals<K, V>(this ImHashMap<K, V>[] parts, int hash, K key, out V value, 
+            int partHashMask = PARTITION_HASH_MASK) where K : class
         {
             var p = parts[hash & partHashMask];
             if (p != null) 
@@ -6722,7 +6704,8 @@ namespace ImTools
         /// <summary>Lookup for the value by the key using its hash and checking the key with the `object.ReferenceEquals` for equality, 
         /// returns the default `V` if hash, key are not found.</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static V GetValueOrDefaultByReferenceEquals<K, V>(this ImHashMap<K, V>[] parts, K key, int partHashMask = PARTITION_HASH_MASK) where K : class => 
+        public static V GetValueOrDefaultByReferenceEquals<K, V>(this ImHashMap<K, V>[] parts, K key, 
+            int partHashMask = PARTITION_HASH_MASK) where K : class => 
             parts.GetValueOrDefaultByReferenceEquals(key.GetHashCode(), key, partHashMask);
 
         /// <summary>Returns the SAME partitioned maps array instance but with the NEW added or updated partion</summary>
@@ -6747,20 +6730,6 @@ namespace ImTools
 
         /// <summary>Returns the SAME partitioned maps array instance but with the NEW added or updated partion</summary>
         [MethodImpl((MethodImplOptions) 256)]
-        public static void AddOrUpdate<V>(this ImMap<V>[] parts, int hash, V value, 
-            int partHashMask = PARTITION_HASH_MASK) 
-        {
-            ref var part = ref parts[hash & partHashMask];
-            var p = part;
-            if (Interlocked.CompareExchange(ref part, p.AddOrUpdate(hash, value), p) != p)
-                RefAddOrUpdatePart(ref part, hash, value);
-        }
-
-        private static void RefAddOrUpdatePart<V>(ref ImMap<V> part, int hash, V value) =>
-            Ref.Swap(ref part, hash, value, (x, h, v) => x.AddOrUpdate(h, v));
-
-        /// <summary>Returns the SAME partitioned maps array instance but with the NEW added or updated partion</summary>
-        [MethodImpl((MethodImplOptions) 256)]
         public static void AddOrUpdate<K, V>(this ImHashMap<K, V>[] parts, int hash, K key, V value, Update<K, V> update,
             int partHashMask = PARTITION_HASH_MASK)
         {
@@ -6768,17 +6737,6 @@ namespace ImTools
             var p = part;
             if (Interlocked.CompareExchange(ref part, p.AddOrUpdate(hash, key, value, update), p) != p)
                 Ref.Swap(ref part, new ImHashMapEntry<K, V>(hash, key, value), update, (x, e, u) => x.AddOrUpdate(e.Hash, e.Key, e.Value, u));
-        }
-
-        /// <summary>Returns the SAME partitioned maps array instance but with the NEW added or updated partion</summary>
-        [MethodImpl((MethodImplOptions) 256)]
-        public static void AddOrUpdate<V>(this ImMap<V>[] parts, int hash, V value, Update<int, V> update,
-            int partHashMask = PARTITION_HASH_MASK)
-        {
-            ref var part = ref parts[hash & partHashMask];
-            var p = part;
-            if (Interlocked.CompareExchange(ref part, p.AddOrUpdate(hash, value, update), p) != p)
-                Ref.Swap(ref part, hash, value, update, (x, h, k, u) => x.AddOrUpdate(h, k, u));
         }
 
         /// <summary>Returns the SAME partitioned maps array instance but with the NEW added or the same kept partion</summary>
@@ -6800,20 +6758,6 @@ namespace ImTools
         private static void RefAddOrKeepPart<K, V>(ref ImHashMap<K, V> part, int hash, K key, V value) =>
             Ref.Swap(ref part, hash, key, value, (x, h, k, v) => x.AddOrUpdate(h, k, v));
 
-        /// <summary>Updates the map with the new value if the hash is found otherwise returns the same unchanged map.</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static void Update<V>(this ImMap<V>[] parts, int hash, V value, 
-            int partHashMask = PARTITION_HASH_MASK) 
-        {
-            ref var part = ref parts[hash & partHashMask];
-            var p = part;
-            if (Interlocked.CompareExchange(ref part, p.Update(hash, value), p) != p)
-                RefUpdatePart(ref part, hash, value);
-        }
-
-        private static void RefUpdatePart<V>(ref ImMap<V> part, int hash, V value) =>
-            Ref.Swap(ref part, hash, value, (x, h, v) => x.Update(h, v));
-
         /// <summary>Do something for each entry.
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
@@ -6825,23 +6769,6 @@ namespace ImTools
             foreach (var map in parts) 
             {
                 if (map == ImHashMap<K, V>.Empty)
-                    continue;
-                foreach (var entry in map.Enumerate(parents))
-                    yield return entry;
-            }
-        }
-
-        /// <summary>Do something for each entry.
-        /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
-        /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static IEnumerable<ImMapEntry<V>> Enumerate<K, V>(this ImMap<V>[] parts, ThreadUnsafeStack<ImMap<V>> parents = null)
-        {
-            if (parents == null)
-                parents = new ThreadUnsafeStack<ImMap<V>>();
-            foreach (var map in parts) 
-            {
-                if (map == ImMap<V>.Empty)
                     continue;
                 foreach (var entry in map.Enumerate(parents))
                     yield return entry;
@@ -6864,12 +6791,121 @@ namespace ImTools
             }
             return state;
         }
+    }
+
+    /// <summary>
+    /// The fixed array of maps (partitions) where the key first (lower) bits are used to locate the partion to lookup into.
+    /// Note: The partition array is NOT immutable and operates by swapping the updated partition with the new one.
+    /// The number of partitions may be specified by user or you can use the default number 16.
+    /// The default number 16 was selected to be not so big to pay for the few items and not so small to diminish the use of partitions.
+    /// </summary>
+    public static class PartitionedMap
+    {
+        /// <summary>The default number of partions</summary>
+        public const int PARTITION_COUNT_POWER_OF_TWO = 16;
+
+        /// <summary>The default mask to partition the key</summary>
+        public const int PARTITION_HASH_MASK = PARTITION_COUNT_POWER_OF_TWO - 1;
+
+        /// <summary>Creates the new collection with the empty partions</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMap<V>[] CreateEmpty<V>(int partionCountOfPowerOfTwo = PARTITION_COUNT_POWER_OF_TWO)
+        {
+            var parts = new ImMap<V>[partionCountOfPowerOfTwo];
+            for (var i = 0; i < parts.Length; ++i)
+                parts[i] = ImMap<V>.Empty;
+            return parts;
+        }
+
+        /// <summary>Lookup for the value by the key using its hash, returns the default `V` if hash is not found.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static V GetValueOrDefault<V>(this ImMap<V>[] parts, int hash, int partHashMask = PARTITION_HASH_MASK)
+        {
+            var p = parts[hash & partHashMask];
+            return p != null && p.GetEntryOrNull(hash) is ImMapEntry<V> kv ? kv.Value : default(V);
+        }
+
+        /// <summary>Lookup for the value by the key using the hash, returns the `true` and the found value or the `false`</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static bool TryFind<V>(this ImMap<V>[] parts, int hash, out V value, int partHashMask = PARTITION_HASH_MASK)
+        {
+            var p = parts[hash & partHashMask];
+            if (p != null) 
+                return p.TryFind(hash, out value);
+            value = default(V);
+            return false;
+        }
+
+        /// <summary>Returns the SAME partitioned maps array instance but with the NEW added or updated partion</summary>
+        [MethodImpl((MethodImplOptions) 256)]
+        public static void AddOrUpdate<V>(this ImMap<V>[] parts, int hash, V value, int partHashMask = PARTITION_HASH_MASK) 
+        {
+            ref var part = ref parts[hash & partHashMask];
+            var p = part;
+            if (Interlocked.CompareExchange(ref part, p.AddOrUpdate(hash, value), p) != p)
+                RefAddOrUpdatePart(ref part, hash, value);
+        }
+
+        private static void RefAddOrUpdatePart<V>(ref ImMap<V> part, int hash, V value) =>
+            Ref.Swap(ref part, hash, value, (x, h, v) => x.AddOrUpdate(h, v));
+
+        /// <summary>Returns the SAME partitioned maps array instance but with the NEW added or updated partion</summary>
+        [MethodImpl((MethodImplOptions) 256)]
+        public static void AddOrUpdate<V>(this ImMap<V>[] parts, int hash, V value, Update<int, V> update, int partHashMask = PARTITION_HASH_MASK)
+        {
+            ref var part = ref parts[hash & partHashMask];
+            var p = part;
+            if (Interlocked.CompareExchange(ref part, p.AddOrUpdate(hash, value, update), p) != p)
+                Ref.Swap(ref part, hash, value, update, (x, h, k, u) => x.AddOrUpdate(h, k, u));
+        }
+
+        /// <summary>Returns the SAME partitioned maps array instance but with the NEW added or the same kept partion</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static void AddOrKeep<V>(this ImMap<V>[] parts, int hash, V value, int partHashMask = PARTITION_HASH_MASK)
+        {
+            ref var part = ref parts[hash & partHashMask];
+            var p = part;
+            if (Interlocked.CompareExchange(ref part, p.AddOrKeep(hash, value), p) != p)
+                RefAddOrKeepPart(ref part, hash, value);
+        }
+
+        private static void RefAddOrKeepPart<V>(ref ImMap<V> part, int hash, V value) =>
+            Ref.Swap(ref part, hash, value, (x, h, v) => x.AddOrUpdate(h, v));
+
+        /// <summary>Updates the map with the new value if the hash is found otherwise returns the same unchanged map.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static void Update<V>(this ImMap<V>[] parts, int hash, V value, int partHashMask = PARTITION_HASH_MASK) 
+        {
+            ref var part = ref parts[hash & partHashMask];
+            var p = part;
+            if (Interlocked.CompareExchange(ref part, p.Update(hash, value), p) != p)
+                RefUpdatePart(ref part, hash, value);
+        }
+
+        private static void RefUpdatePart<V>(ref ImMap<V> part, int hash, V value) =>
+            Ref.Swap(ref part, hash, value, (x, h, v) => x.Update(h, v));
 
         /// <summary>Do something for each entry.
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
-        public static S Each<V, S>(this ImMap<V>[] parts, S state, Action<ImMapEntry<V>, int, S> reduce, 
-            ThreadUnsafeStack<ImMap<V>> parents = null)
+        [MethodImpl((MethodImplOptions)256)]
+        public static IEnumerable<ImMapEntry<V>> Enumerate<K, V>(this ImMap<V>[] parts, ThreadUnsafeStack<ImMap<V>> parents = null)
+        {
+            if (parents == null)
+                parents = new ThreadUnsafeStack<ImMap<V>>();
+            foreach (var map in parts) 
+            {
+                if (map == ImMap<V>.Empty)
+                    continue;
+                foreach (var entry in map.Enumerate(parents))
+                    yield return entry;
+            }
+        }
+
+        /// <summary>Do something for each entry.
+        /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
+        /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
+        public static S Each<V, S>(this ImMap<V>[] parts, S state, Action<ImMapEntry<V>, int, S> reduce, ThreadUnsafeStack<ImMap<V>> parents = null)
         {
             if (parents == null)
                 parents = new ThreadUnsafeStack<ImMap<V>>();
