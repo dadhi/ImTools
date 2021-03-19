@@ -2930,14 +2930,26 @@ namespace ImTools
     /// The map implementation is based on the "modified" 2-3-4 tree.</summary>
     public class ImHashMap<K, V>
     {
-        /// <summary>Empty map to start with. Exists as a single instance.</summary>
-        public static readonly ImHashMap<K, V> Empty = new ImHashMap<K, V>();
-
         /// <summary>Hide the base constructor to prevent the multiple Empty trees creation</summary>
         protected ImHashMap() { } // todo: @perf does the call to empty constructor hurt the perf?
 
+        /// <summary>Empty map to start with. Exists as a single instance.</summary>
+        public static readonly ImHashMap<K, V> Empty = new ImHashMap<K, V>();
+
+        /// <summary>Creates the map out of the entries in the final shape without wasting the memory</summary>
+        public static ImHashMap<K, V> Create(ImHashMapEntry<K, V> e0, ImHashMapEntry<K, V> e1) => 
+            e0.Hash < e1.Hash ? new Leaf2(e0, e1) : new Leaf2(e0, e1);
+
+        /// <summary>Creates the map out of the entries in the final shape without wasting the memory</summary>
+        public static ImHashMap<K, V> Create(ImHashMapEntry<K, V> e0, ImHashMapEntry<K, V> e1, ImHashMapEntry<K, V> e2) => 
+            new Leaf2Plus1(e2, (Leaf2)Create(e0, e1));
+
+        /// <summary>Creates the map out of the entries in the final shape without wasting the memory</summary>
+        public static ImHashMap<K, V> Create(ImHashMapEntry<K, V> e0, ImHashMapEntry<K, V> e1, ImHashMapEntry<K, V> e2, ImHashMapEntry<K, V> e3) => 
+            new Leaf2Plus1Plus1(e3, new Leaf2Plus1(e2, (Leaf2)Create(e0, e1)));
+
         /// <summary>Prints the map tree in JSON-ish format in release mode and enumerates the keys in DEBUG.</summary>
-        public override string ToString() 
+        public override string ToString()
         {
 #if DEBUG
             // for the debug purposes we just output the first N keys in array
@@ -3923,11 +3935,23 @@ namespace ImTools
     /// The map implementation is based on the "modified" 2-3-4 tree.</summary>
     public class ImMap<V>
     {
+        /// <summary>Hide the base constructor to prevent the multiple Empty trees creation</summary>
+        protected ImMap() { } // todo: @perf does the call to empty constructor hurt the perf?
+
         /// <summary>Empty map to start with. Exists as a single instance.</summary>
         public static readonly ImMap<V> Empty = new ImMap<V>();
 
-        /// <summary>Hide the base constructor to prevent the multiple Empty trees creation</summary>
-        protected ImMap() { } // todo: @perf does the call to empty constructor hurt the perf?
+        /// <summary>Creates the map out of the entries in the final shape without wasting the memory</summary>
+        public static ImMap<V> Create(ImMapEntry<V> e0, ImMapEntry<V> e1) => 
+            e0.Hash < e1.Hash ? new Leaf2(e0, e1) : new Leaf2(e0, e1);
+
+        /// <summary>Creates the map out of the entries in the final shape without wasting the memory</summary>
+        public static ImMap<V> Create(ImMapEntry<V> e0, ImMapEntry<V> e1, ImMapEntry<V> e2) => 
+            new Leaf2Plus1(e2, (Leaf2)Create(e0, e1));
+
+        /// <summary>Creates the map out of the entries in the final shape without wasting the memory</summary>
+        public static ImMap<V> Create(ImMapEntry<V> e0, ImMapEntry<V> e1, ImMapEntry<V> e2, ImMapEntry<V> e3) => 
+            new Leaf2Plus1Plus1(e3, new Leaf2Plus1(e2, (Leaf2)Create(e0, e1)));
 
         /// <summary>Prints the map tree in JSON-ish format in release mode and enumerates the keys in DEBUG.</summary>
         public override string ToString() 
