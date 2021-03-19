@@ -5346,205 +5346,6 @@ namespace ImTools
             }
         }
 
-        /// <summary>Enumerates all the map entries in the hash order.
-        /// `parents` parameter allows to reuse the stack memory used for traversal between multiple enumerates.
-        /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent `Enumerate` calls</summary>
-        public static IEnumerable<ImMapEntry<V>> Enumerate<V>(this ImMap<V> map, ThreadUnsafeStack<ImMap<V>> parents = null)
-        {
-            if (map == ImMap<V>.Empty)
-                yield break;
-            if (map is ImMapEntry<V> v)
-            {
-                yield return v;
-                yield break;
-            }
-
-            var count = 0;
-            while (true)
-            {
-                if (map is ImMap<V>.Branch2 b2)
-                {
-                    if (parents == null)
-                        parents = new ThreadUnsafeStack<ImMap<V>>();
-                    parents.Push(map, count++);
-                    map = b2.Left;
-                    continue;
-                }
-
-                if (map is ImMapEntry<V> l1)
-                    yield return l1;
-                else if (map is ImMap<V>.Leaf2 l2)
-                {
-                    yield return l2.Entry0;
-                    yield return l2.Entry1;
-                }
-                else if (map is ImMap<V>.Leaf2Plus1 l21)
-                {
-                    var p  = l21.Plus;
-                    var ph = p.Hash;
-                    var l  = l21.L;
-                    ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, swap = null;
-                    if (ph < e1.Hash)
-                    {
-                        swap = e1; e1 = p; p = swap;
-                        if (ph < e0.Hash)
-                        {
-                            swap = e0; e0 = e1; e1 = swap;
-                        }
-                    }
-
-                    yield return e0;
-                    yield return e1;
-                    yield return p ;
-                }
-                else if (map is ImMap<V>.Leaf2Plus1Plus1 l211)
-                {
-                    var p  = l211.Plus;
-                    var pp = l211.L.Plus;
-                    var ph = pp.Hash;
-                    var l  = l211.L.L;
-                    ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, swap = null;
-                    if (ph < e1.Hash)
-                    {
-                        swap = e1; e1 = pp; pp = swap;
-                        if (ph < e0.Hash)
-                        {
-                            swap = e0; e0 = e1; e1 = swap;
-                        }
-                    }
-
-                    ph = p.Hash;
-                    if (ph < pp.Hash)
-                    {
-                        swap = pp; pp = p; p = swap;
-                        if (ph < e1.Hash)
-                        {
-                            swap = e1; e1 = pp; pp = swap;
-                            if (ph < e0.Hash)
-                            {
-                                swap = e0; e0 = e1; e1 = swap;
-                            }
-                        }
-                    }
-
-                    yield return e0;
-                    yield return e1;
-                    yield return pp;
-                    yield return p ;
-                }
-                else if (map is ImMap<V>.Leaf5 l5)
-                {
-                    yield return l5.Entry0;
-                    yield return l5.Entry1;
-                    yield return l5.Entry2;
-                    yield return l5.Entry3;
-                    yield return l5.Entry4;
-                }
-                else if (map is ImMap<V>.Leaf5Plus1 l51)
-                {
-                    var p  = l51.Plus;
-                    var ph = p.Hash;
-                    var l  = l51.L;
-                    ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, swap = null;
-                    if (ph < e4.Hash)
-                    {
-                        swap = e4; e4 = p; p = swap;
-                        if (ph < e3.Hash)
-                        {
-                            swap = e3; e3 = e4; e4 = swap;
-                            if (ph < e2.Hash)
-                            {
-                                swap = e2; e2 = e3; e3 = swap;
-                                if (ph < e1.Hash)
-                                {
-                                    swap = e1; e1 = e2; e2 = swap;
-                                    if (ph < e0.Hash)
-                                    {
-                                        swap = e0; e0 = e1; e1 = swap;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    yield return e0;
-                    yield return e1;
-                    yield return e2;
-                    yield return e3;
-                    yield return e4;
-                    yield return p ;
-                }
-                else if (map is ImMap<V>.Leaf5Plus1Plus1 l511)
-                {
-                    var l = l511.L.L;
-                    ImMapEntry<V> 
-                        e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, p = l511.Plus, pp = l511.L.Plus, swap = null;
-                    var h = pp.Hash;
-                    if (h < e4.Hash)
-                    {
-                        swap = e4; e4 = pp; pp = swap;
-                        if (h < e3.Hash)
-                        {
-                            swap = e3; e3 = e4; e4 = swap;
-                            if (h < e2.Hash)
-                            {
-                                swap = e2; e2 = e3; e3 = swap;
-                                if (h < e1.Hash)
-                                {
-                                    swap = e1; e1 = e2; e2 = swap;
-                                    if (h < e0.Hash)
-                                    {
-                                        swap = e0; e0 = e1; e1 = swap;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    h = p.Hash;
-                    if (h < pp.Hash)
-                    {
-                        swap = pp; pp = p; p = swap;
-                        if (h < e4.Hash)
-                        {
-                            swap = e4; e4 = pp; pp = swap;
-                            if (h < e3.Hash)
-                            {
-                                swap = e3; e3 = e4; e4 = swap;
-                                if (h < e2.Hash)
-                                {
-                                    swap = e2; e2 = e3; e3 = swap;
-                                    if (h < e1.Hash)
-                                    {
-                                        swap = e1; e1 = e2; e2 = swap;
-                                        if (h < e0.Hash)
-                                        {
-                                            swap = e0; e0 = e1; e1 = swap;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    yield return e0;
-                    yield return e1;
-                    yield return e2;
-                    yield return e3;
-                    yield return e4;
-                    yield return pp;
-                    yield return p ;
-                }
-
-                if (count == 0)
-                    break; // we yield the leaf and there is nothing in stack - we are DONE!
-
-                var pb2 = (ImMap<V>.Branch2)parents.Get(--count); // otherwise get the parent
-                yield return pb2.MidEntry;
-                map = pb2.Right;
-            }
-        }
-
         /// <summary>
         /// Depth-first in-order of hash traversal as described in http://en.wikipedia.org/wiki/Tree_traversal.
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
@@ -5775,6 +5576,705 @@ namespace ImTools
             return state;
         }
 
+        /// <summary>Do something for each entry.
+        /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
+        /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
+        public static void Each<K, V>(this ImHashMap<K, V> map, Action<ImHashMapEntry<K, V>, int> reduce, ThreadUnsafeStack<ImHashMap<K, V>> parents = null) =>
+            map.Each(reduce, (e, i, r) => r(e, i));
+
+        /// <summary>Collect something for each entry.
+        /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
+        /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
+        public static S Fold<K, V, S>(this ImHashMap<K, V> map, S state, Func<ImHashMapEntry<K, V>, int, S, S> reduce, ThreadUnsafeStack<ImHashMap<K, V>> parents = null) =>
+            map.Each(St.Rent(state, reduce), (e, i, s) => s.a = s.b(e, i, s.a)).ResetButGetA();
+
+        /// <summary>Converts map to an array with the minimum allocations</summary>
+        public static S[] ToArray<K, V, S>(this ImHashMap<K, V> map, Func<ImHashMapEntry<K, V>, S> selector, ThreadUnsafeStack<ImHashMap<K, V>> parents = null) =>
+            map == ImHashMap<K, V>.Empty ? ArrayTools.Empty<S>() : 
+                map.Each(St.Rent(new S[map.Count()], selector), (e, i, s) => s.a[i] = s.b(e), parents).ResetButGetA();
+
+        /// <summary>Converts the map to the dictionary</summary>
+        public static Dictionary<K, V> ToDictionary<K, V>(this ImHashMap<K, V> map, ThreadUnsafeStack<ImHashMap<K, V>> parents = null) =>
+            map == ImHashMap<K, V>.Empty ? new Dictionary<K, V>(0) :
+                map.Each(new Dictionary<K, V>(), (e, _, d) => d.Add(e.Key, e.Value), parents);
+
+        /// <summary>Get the key value entry if the hash and key is in the map or the default `null` value otherwise.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMapEntry<K, V> GetEntryOrDefault<K, V>(this ImHashMap<K, V> map, int hash, K key)
+        {
+            var e = map.GetEntryOrDefault(hash);
+
+            if (e is ImHashMapEntry<K, V> kv)
+                return kv.Key.Equals(key) ? kv : null;
+
+            if (e is HashConflictKeyValuesEntry<K, V> hc)
+                foreach (var x in hc.Conflicts)
+                    if (x.Key.Equals(key))
+                        return x;
+
+            return null;
+        }
+
+        /// <summary>Get the key value entry if the key is in the map or the default `null` value otherwise.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMapEntry<K, V> GetEntryOrDefault<K, V>(this ImHashMap<K, V> map, K key) =>
+            GetEntryOrDefault(map, key.GetHashCode(), key);
+
+        /// <summary>Returns <see langword="true"/> if map contains the hash and key, otherwise returns <see langword="false"/></summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static bool Contains<K, V>(this ImHashMap<K, V> map, int hash, K key) => map.GetEntryOrDefault(hash, key) != null;
+
+        /// <summary>Returns <see langword="true"/> if map contains the key, otherwise returns <see langword="false"/></summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static bool Contains<K, V>(this ImHashMap<K, V> map, K key) => map.GetEntryOrDefault(key.GetHashCode(), key) != null;
+
+        /// <summary>Returns the entry ASSUMING it is present otherwise its behavior is UNDEFINED.
+        /// You can use the method after the Add and Update methods on the same map instance - because the map is immutable it is for sure contains added or updated entry.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMapEntry<K, V> GetSurePresentEntry<K, V>(this ImHashMap<K, V> map, int hash, K key)
+        {
+            var e = map.GetEntryOrDefault(hash);
+            if (e is HashConflictKeyValuesEntry<K, V> c)
+                foreach (var x in c.Conflicts) 
+                    if (x.Key.Equals(key))
+                        return x;
+
+            return (ImHashMapEntry<K, V>)e; // we don't need the comparison of the key because there is only one entry with the key
+        }
+
+        /// <summary>Lookup for the value by the key using the hash and checking the key with the `object.Equals` for equality, 
+        /// returns the default `V` if hash, key are not found.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static V GetValueOrDefault<K, V>(this ImHashMap<K, V> map, int hash, K key)
+        {
+            var e = map.GetEntryOrDefault(hash);
+            if (e is ImHashMapEntry<K, V> kv)
+            {
+                if (kv.Key.Equals(key))
+                    return kv.Value;
+            }
+            else if (e is HashConflictKeyValuesEntry<K, V> hc)
+            {
+                foreach (var x in hc.Conflicts) 
+                    if (x.Key.Equals(key))
+                        return x.Value;
+            }
+            return default(V);
+        }
+
+        /// <summary>Lookup for the value by key using its hash and checking the key with the `object.Equals` for equality, 
+        /// returns the default `V` if hash, key are not found.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static V GetValueOrDefault<K, V>(this ImHashMap<K, V> map, K key) =>
+            map.GetValueOrDefault(key.GetHashCode(), key);
+
+        /// <summary>Lookup for the value by the key using the hash and checking the key with the `object.ReferenceEquals` for equality,
+        ///  returns found value or the default value if not found</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static V GetValueOrDefaultByReferenceEquals<K, V>(this ImHashMap<K, V> map, int hash, K key) where K : class
+        {
+            var e = map.GetEntryOrDefault(hash);
+            if (e is ImHashMapEntry<K, V> kv)
+            {
+                if (kv.Key == key)
+                    return kv.Value;
+            }
+            else if (e is HashConflictKeyValuesEntry<K, V> hc)
+            {
+                foreach (var x in hc.Conflicts) 
+                    if (x.Key == key)
+                        return x.Value;
+            }
+            return default(V);
+        }
+
+        /// <summary>Lookup for the value by the key using the hash and checking the key with the `object.Equals` for equality,
+        /// returns the `true` and the found value or the `false` otherwise</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static bool TryFind<K, V>(this ImHashMap<K, V> map, int hash, K key, out V value)
+        {
+            var e = map.GetEntryOrDefault(hash);
+            if (e is ImHashMapEntry<K, V> kv)
+            {
+                if (kv.Key.Equals(key))
+                {
+                    value = kv.Value;
+                    return true;
+                }
+            }
+            else if (e is HashConflictKeyValuesEntry<K, V> hc)
+            {
+                foreach (var x in hc.Conflicts) 
+                    if (x.Key.Equals(key)) 
+                    {
+                        value = x.Value;
+                        return true;
+                    }
+            }
+
+            value = default(V);
+            return false;
+        }
+
+        /// <summary>Lookup for the value by the key using the hash and checking the key with the `object.ReferenceEquals`, 
+        /// returns the `true` and the found value or the `false` otherwise</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static bool TryFindByReferenceEquals<K, V>(this ImHashMap<K, V> map, int hash, K key, out V value) where K : class
+        {
+            var e = map.GetEntryOrDefault(hash);
+            if (e is ImHashMapEntry<K, V> kv)
+            {
+                if (kv.Key == key)
+                {
+                    value = kv.Value;
+                    return true;
+                }
+            }
+            else if (e is HashConflictKeyValuesEntry<K, V> hc)
+            {
+                foreach (var x in hc.Conflicts) 
+                    if (x.Key == key) 
+                    {
+                        value = x.Value;
+                        return true;
+                    }
+            }
+
+            value = default(V);
+            return false;
+        }
+
+        /// <summary>Lookup for the value by the key using its hash and checking the key with the `object.Equals` for equality,
+        /// returns the `true` and the found value or the `false` otherwise</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static bool TryFind<K, V>(this ImHashMap<K, V> map, K key, out V value) =>
+            map.TryFind(key.GetHashCode(), key, out value);
+
+        /// <summary>Adds or updates (no in-place mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
+        public static ImHashMap<K, V> AddOrGetEntry<K, V>(this ImHashMap<K, V> map, int hash, K key, V value)
+        {
+            var newEntry = new ImHashMapEntry<K, V>(hash, key, value);
+            if (map == ImHashMap<K, V>.Empty)
+                return newEntry;
+
+            var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
+            if (oldEntryOrMap is ImHashMap<K, V>.Entry == false)
+                return oldEntryOrMap;
+
+            if (oldEntryOrMap is ImHashMapEntry<K, V> kv)
+                return kv.Key.Equals(newEntry.Key) ? oldEntryOrMap 
+                    : map.ReplaceEntry(hash, kv, new HashConflictKeyValuesEntry<K, V>(hash, kv, newEntry));
+
+            var hc = (HashConflictKeyValuesEntry<K, V>)oldEntryOrMap;
+            var cs = hc.Conflicts;
+            var n = cs.Length;
+            var i = n - 1;
+            while (i != -1 && !key.Equals(cs[i].Key)) --i;
+            if (i != -1)
+                return cs[i];
+
+            var newConflicts = new ImHashMapEntry<K, V>[n + 1];
+            Array.Copy(cs, 0, newConflicts, 0, n);
+            newConflicts[n] = newEntry;
+            return map.ReplaceEntry(hash, hc, new HashConflictKeyValuesEntry<K, V>(hash, newConflicts));
+        }
+
+        /// <summary>Adds or updates (no in-place mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap<K, V> AddOrUpdate<K, V>(this ImHashMap<K, V> map, int hash, K key, V value) 
+        {
+            var newEntry = new ImHashMapEntry<K, V>(hash, key, value);
+            if (map == ImHashMap<K, V>.Empty)
+                return newEntry;
+
+            var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
+            if (oldEntryOrMap is ImHashMap<K, V>.Entry oldEntry)
+                return map.ReplaceEntry(hash, oldEntry, UpdateEntry(oldEntry, newEntry));
+
+            return oldEntryOrMap;
+        }
+
+        /// <summary>Adds or updates (no in-place mutation) the map with the new entry, always returning the NEW map!</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap<K, V> AddOrUpdateEntry<K, V>(this ImHashMap<K, V> map, ImHashMapEntry<K, V> newEntry) 
+        {
+            if (map == ImHashMap<K, V>.Empty)
+                return newEntry;
+
+            var hash = newEntry.Hash;
+            var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
+            if (oldEntryOrMap is ImHashMap<K, V>.Entry oldEntry)
+                return map.ReplaceEntry(hash, oldEntry, UpdateEntry(oldEntry, newEntry));
+
+            return oldEntryOrMap;
+        }
+
+        private static ImHashMap<K, V>.Entry UpdateEntry<K, V>(ImHashMap<K, V>.Entry oldEntry, ImHashMapEntry<K, V> newEntry)
+        {
+            if (oldEntry is ImHashMapEntry<K, V> kv)
+                return kv.Key.Equals(newEntry.Key) ? newEntry 
+                     : (ImHashMap<K, V>.Entry)new HashConflictKeyValuesEntry<K, V>(oldEntry.Hash, kv, newEntry);
+
+            var hc = (HashConflictKeyValuesEntry<K, V>)oldEntry;
+            var key = newEntry.Key;
+            var cs = hc.Conflicts;
+            var n = cs.Length;
+            var i = n - 1;
+            while (i != -1 && !key.Equals(cs[i].Key)) --i;
+            var newConflicts = new ImHashMapEntry<K, V>[i != -1 ? n : n + 1];
+            Array.Copy(cs, 0, newConflicts, 0, n);
+            newConflicts[i != -1 ? i : n] = newEntry;
+
+            return new HashConflictKeyValuesEntry<K, V>(oldEntry.Hash, newConflicts);
+        }
+
+        /// <summary>Adds or updates (no in-place mutation) the map with value by the passed key, always returning the NEW map!</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap<K, V> AddOrUpdate<K, V>(this ImHashMap<K, V> map, K key, V value) =>
+            map.AddOrUpdate(key.GetHashCode(), key, value);
+
+        /// <summary>Adds or updates (no in-place mutation) the map with value by the passed key, always returning the NEW map!</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap<K, V> AddOrUpdate<K, V>(this ImHashMap<K, V> map, int hash, K key, V value, Update<K, V> update) 
+        {
+            var newEntry = new ImHashMapEntry<K, V>(hash, key, value);
+            if (map == ImHashMap<K, V>.Empty)
+                return newEntry;
+
+            var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
+            if (oldEntryOrMap is ImHashMap<K, V>.Entry oldEntry)
+                return map.ReplaceEntry(hash, oldEntry, UpdateEntry(oldEntry, newEntry, update));
+
+            return oldEntryOrMap;
+        }
+
+        private static ImHashMap<K, V>.Entry UpdateEntry<K, V>(ImHashMap<K, V>.Entry oldEntry, ImHashMapEntry<K, V> newEntry, Update<K, V> update)
+        {
+            var key = newEntry.Key;
+            if (oldEntry is ImHashMapEntry<K, V> kv)
+                return kv.Key.Equals(key) ? new ImHashMapEntry<K, V>(newEntry.Hash, key, update(key, kv.Value, newEntry.Value))
+                    : (ImHashMap<K, V>.Entry)new HashConflictKeyValuesEntry<K, V>(oldEntry.Hash, kv, newEntry);
+
+            var hc = (HashConflictKeyValuesEntry<K, V>)oldEntry;
+            var cs = hc.Conflicts;
+            var n = cs.Length;
+            var i = n - 1;
+            while (i != -1 && !key.Equals(cs[i].Key)) --i;
+
+            var newConflicts = new ImHashMapEntry<K, V>[i != -1 ? n : n + 1];
+            Array.Copy(cs, 0, newConflicts, 0, n);
+            if (i != -1)
+                newConflicts[i] = new ImHashMapEntry<K, V>(newEntry.Hash, key, update(key, cs[i].Value, newEntry.Value));
+            else
+                newConflicts[n] = newEntry;
+
+            return new HashConflictKeyValuesEntry<K, V>(oldEntry.Hash, newConflicts);
+        }
+
+        /// <summary>Adds or updates (no in-place mutation) the map with value by the passed key, always returning the NEW map!</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap<K, V> AddOrUpdate<K, V>(this ImHashMap<K, V> map, K key, V value, Update<K, V> update) =>
+            map.AddOrUpdate(key.GetHashCode(), key, value, update);
+
+        /// <summary>Updates the map with the new value if the key is found otherwise returns the same unchanged map.</summary>
+        public static ImHashMap<K, V> Update<K, V>(this ImHashMap<K, V> map, int hash, K key, V value) 
+        {
+            var entry = map.GetEntryOrDefault(hash);
+            if (entry == null)
+                return map;
+
+            if (entry is ImHashMapEntry<K, V> kv)
+                return kv.Key.Equals(key) ? map.ReplaceEntry(hash, entry, new ImHashMapEntry<K, V>(hash, key, value)) : map;
+
+            var hc = (HashConflictKeyValuesEntry<K, V>)entry;
+            var cs = hc.Conflicts;
+            var n = cs.Length;
+            var i = n - 1;
+            while (i != -1 && !key.Equals(cs[i].Key)) --i;
+            if (i == -1)
+                return map;
+            
+            var newConflicts = new ImHashMapEntry<K, V>[n];
+            Array.Copy(cs, 0, newConflicts, 0, n);
+            newConflicts[i] = new ImHashMapEntry<K, V>(hash, key, value);
+
+            return map.ReplaceEntry(hash, entry, new HashConflictKeyValuesEntry<K, V>(hash, newConflicts));
+        }
+
+        /// <summary>Updates the map with the new value if the key is found otherwise returns the same unchanged map.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap<K, V> Update<K, V>(this ImHashMap<K, V> map, K key, V value) =>
+            map.Update(key.GetHashCode(), key, value);
+
+        /// <summary>Updates the map with the new value if the key is found otherwise returns the same unchanged map.</summary>
+        public static ImHashMap<K, V> UpdateToDefault<K, V>(this ImHashMap<K, V> map, int hash, K key) 
+        {
+            var entry = map.GetEntryOrDefault(hash);
+            if (entry == null)
+                return map;
+
+            if (entry is ImHashMapEntry<K, V> kv)
+                return kv.Key.Equals(key) ? map.ReplaceEntry(hash, entry, new ImHashMapEntry<K, V>(hash, key)) : map;
+
+            var hc = (HashConflictKeyValuesEntry<K, V>)entry;
+            var cs = hc.Conflicts;
+            var n = cs.Length;
+            var i = n - 1;
+            while (i != -1 && !key.Equals(cs[i].Key)) --i;
+            if (i == -1)
+                return map;
+            var newConflicts = new ImHashMapEntry<K, V>[n];
+            Array.Copy(cs, 0, newConflicts, 0, n);
+            newConflicts[i] = new ImHashMapEntry<K, V>(hash, key);
+            return map.ReplaceEntry(hash, entry, new HashConflictKeyValuesEntry<K, V>(hash, newConflicts));
+        }
+
+        /// <summary>Updates the map with the new value if the key is found otherwise returns the same unchanged map.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap<K, V> UpdateToDefault<K, V>(this ImHashMap<K, V> map, K key) =>
+            map.UpdateToDefault(key.GetHashCode(), key);
+
+        /// <summary>Updates the map with the new value and the `update` function if the key is found otherwise returns the same unchanged map.
+        /// If `update` returns the same map if the updated result is the same</summary>
+        public static ImHashMap<K, V> Update<K, V>(this ImHashMap<K, V> map, int hash, K key, V value, Update<K, V> update)
+        {
+            var entry = map.GetEntryOrDefault(hash);
+            if (entry == null)
+                return map;
+
+            if (entry is ImHashMapEntry<K, V> kv)
+                return !kv.Key.Equals(key) || ReferenceEquals(kv.Value, value = update(key, kv.Value, value)) 
+                    ? map 
+                    : map.ReplaceEntry(hash, entry, new ImHashMapEntry<K, V>(hash, key, value));
+
+            var hc = (HashConflictKeyValuesEntry<K, V>)entry;
+            var cs = hc.Conflicts;
+            var n = cs.Length;
+            var i = n - 1;
+            while (i != -1 && !key.Equals(cs[i].Key)) --i;
+            if (i == -1 || ReferenceEquals(cs[i].Value, value = update(key, cs[i].Value, value)))
+                return map;
+
+            var newConflicts = new ImHashMapEntry<K, V>[n];
+            Array.Copy(cs, 0, newConflicts, 0, n);
+            newConflicts[i] = new ImHashMapEntry<K, V>(hash, key, value);
+
+            return map.ReplaceEntry(hash, entry, new HashConflictKeyValuesEntry<K, V>(hash, newConflicts));
+        }
+
+        /// <summary>Updates the map with the new value and the `update` function if the key is found otherwise returns the same unchanged map.
+        /// If `update` returns the same map if the updated result is the same</summary>
+        public static ImHashMap<K, V> Update<K, V>(this ImHashMap<K, V> map, K key, V value, Update<K, V> update) =>
+            map.Update(key.GetHashCode(), key, value, update);
+
+        /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap<K, V> AddOrKeepEntry<K, V>(this ImHashMap<K, V> map, ImHashMapEntry<K, V> newEntry) 
+        {
+            if (map == ImHashMap<K, V>.Empty)
+                return newEntry;
+
+            var hash = newEntry.Hash;
+            var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
+            if (oldEntryOrMap is ImHashMap<K, V>.Entry oldEntry)
+            {
+                var e = KeepOrAddEntry(oldEntry, newEntry);
+                return e == oldEntry ? map : map.ReplaceEntry(hash, oldEntry, e);
+            }
+
+            return oldEntryOrMap;
+        }
+
+        /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap<K, V> AddOrKeep<K, V>(this ImHashMap<K, V> map, int hash, K key, V value)
+        {
+            var newEntry = new ImHashMapEntry<K, V>(hash, key, value); // todo: @perf newEntry may not be needed here - consider the pooling of entries here
+            if (map == ImHashMap<K, V>.Empty)
+                return newEntry;
+
+            var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
+            if (oldEntryOrMap is ImHashMap<K, V>.Entry oldEntry)
+            {
+                var e = KeepOrAddEntry(oldEntry, newEntry);
+                return e == oldEntry ? map : map.ReplaceEntry(hash, oldEntry, e);
+            }
+
+            return oldEntryOrMap;
+        }
+
+        private static ImHashMap<K, V>.Entry KeepOrAddEntry<K, V>(ImHashMap<K, V>.Entry oldEntry, ImHashMapEntry<K, V> newEntry)
+        {
+            if (oldEntry is ImHashMapEntry<K, V> kv)
+                return kv.Key.Equals(newEntry.Key) ? oldEntry : (ImHashMap<K, V>.Entry)new HashConflictKeyValuesEntry<K, V>(oldEntry.Hash, kv, newEntry);
+
+            var hc = (HashConflictKeyValuesEntry<K, V>)oldEntry;
+            var key  = newEntry.Key;
+            var cs = hc.Conflicts;
+            var n = cs.Length;
+            var i = n - 1;
+            while (i != -1 && !key.Equals(cs[i].Key)) --i;
+            if (i != -1) // return the existing map
+                return oldEntry;
+
+            var newConflicts = new ImHashMapEntry<K, V>[n + 1];
+            Array.Copy(cs, 0, newConflicts, 0, n);
+            newConflicts[n] = newEntry;
+
+            return new HashConflictKeyValuesEntry<K, V>(oldEntry.Hash, newConflicts);
+        }
+
+        /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap<K, V> AddOrKeep<K, V>(this ImHashMap<K, V> map, K key, V value) => 
+            map.AddOrKeep(key.GetHashCode(), key, value);
+
+        /// <summary>Returns the new map without the specified hash and key (if found) or returns the same map otherwise</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap<K, V> Remove<K, V>(this ImHashMap<K, V> map, int hash, K key)
+        {
+            var entryToRemove = map.GetEntryOrDefault(hash);
+            if (entryToRemove is ImHashMapEntry<K, V>)
+                return map.RemoveEntry(hash, entryToRemove);
+
+            if (entryToRemove is HashConflictKeyValuesEntry<K, V> hc)
+            {
+                var entryToReplace = RemoveEntryToReplaceOrDefault(hc, key);
+                return entryToReplace == null ? map : map.ReplaceEntry(hash, entryToRemove, entryToReplace);
+            }
+
+            return map;
+        }
+
+        private static ImHashMap<K, V>.Entry RemoveEntryToReplaceOrDefault<K, V>(HashConflictKeyValuesEntry<K, V> hc, K key)
+        {
+            var cs = hc.Conflicts;
+            var n = cs.Length;
+            var i = n - 1;
+            while (i != -1 && !cs[i].Key.Equals(key)) --i;
+            if (i != -1)
+            {
+                if (n == 2)
+                    return i == 0 ? cs[1] : cs[0];
+                var newConflicts = new ImHashMapEntry<K, V>[n -= 1]; // the new n is less by one
+                if (i > 0) // copy the 1st part
+                    Array.Copy(cs, 0, newConflicts, 0, i);
+                if (i < n) // copy the 2nd part
+                    Array.Copy(cs, i + 1, newConflicts, i, n - i);
+                return new HashConflictKeyValuesEntry<K, V>(hc.Hash, newConflicts);
+            }
+
+            return null;
+        }
+
+        /// <summary>Returns the new map without the specified hash and key (if found) or returns the same map otherwise</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap<K, V> Remove<K, V>(this ImHashMap<K, V> map, K key) =>
+            map == ImHashMap<K, V>.Empty ? map : map.Remove(key.GetHashCode(), key); // it make sense to have the empty map condition here to prevent the probably costly `GetHashCode()` for the empty map.
+    }
+
+    /// <summary>The map methods</summary>
+    public static class ImMap
+    {
+        /// <summary>Enumerates all the map entries in the hash order.
+        /// `parents` parameter allows to reuse the stack memory used for traversal between multiple enumerates.
+        /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent `Enumerate` calls</summary>
+        public static IEnumerable<ImMapEntry<V>> Enumerate<V>(this ImMap<V> map, ThreadUnsafeStack<ImMap<V>> parents = null)
+        {
+            if (map == ImMap<V>.Empty)
+                yield break;
+            if (map is ImMapEntry<V> v)
+            {
+                yield return v;
+                yield break;
+            }
+
+            var count = 0;
+            while (true)
+            {
+                if (map is ImMap<V>.Branch2 b2)
+                {
+                    if (parents == null)
+                        parents = new ThreadUnsafeStack<ImMap<V>>();
+                    parents.Push(map, count++);
+                    map = b2.Left;
+                    continue;
+                }
+
+                if (map is ImMapEntry<V> l1)
+                    yield return l1;
+                else if (map is ImMap<V>.Leaf2 l2)
+                {
+                    yield return l2.Entry0;
+                    yield return l2.Entry1;
+                }
+                else if (map is ImMap<V>.Leaf2Plus1 l21)
+                {
+                    var p  = l21.Plus;
+                    var ph = p.Hash;
+                    var l  = l21.L;
+                    ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, swap = null;
+                    if (ph < e1.Hash)
+                    {
+                        swap = e1; e1 = p; p = swap;
+                        if (ph < e0.Hash)
+                        {
+                            swap = e0; e0 = e1; e1 = swap;
+                        }
+                    }
+
+                    yield return e0;
+                    yield return e1;
+                    yield return p ;
+                }
+                else if (map is ImMap<V>.Leaf2Plus1Plus1 l211)
+                {
+                    var p  = l211.Plus;
+                    var pp = l211.L.Plus;
+                    var ph = pp.Hash;
+                    var l  = l211.L.L;
+                    ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, swap = null;
+                    if (ph < e1.Hash)
+                    {
+                        swap = e1; e1 = pp; pp = swap;
+                        if (ph < e0.Hash)
+                        {
+                            swap = e0; e0 = e1; e1 = swap;
+                        }
+                    }
+
+                    ph = p.Hash;
+                    if (ph < pp.Hash)
+                    {
+                        swap = pp; pp = p; p = swap;
+                        if (ph < e1.Hash)
+                        {
+                            swap = e1; e1 = pp; pp = swap;
+                            if (ph < e0.Hash)
+                            {
+                                swap = e0; e0 = e1; e1 = swap;
+                            }
+                        }
+                    }
+
+                    yield return e0;
+                    yield return e1;
+                    yield return pp;
+                    yield return p ;
+                }
+                else if (map is ImMap<V>.Leaf5 l5)
+                {
+                    yield return l5.Entry0;
+                    yield return l5.Entry1;
+                    yield return l5.Entry2;
+                    yield return l5.Entry3;
+                    yield return l5.Entry4;
+                }
+                else if (map is ImMap<V>.Leaf5Plus1 l51)
+                {
+                    var p  = l51.Plus;
+                    var ph = p.Hash;
+                    var l  = l51.L;
+                    ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, swap = null;
+                    if (ph < e4.Hash)
+                    {
+                        swap = e4; e4 = p; p = swap;
+                        if (ph < e3.Hash)
+                        {
+                            swap = e3; e3 = e4; e4 = swap;
+                            if (ph < e2.Hash)
+                            {
+                                swap = e2; e2 = e3; e3 = swap;
+                                if (ph < e1.Hash)
+                                {
+                                    swap = e1; e1 = e2; e2 = swap;
+                                    if (ph < e0.Hash)
+                                    {
+                                        swap = e0; e0 = e1; e1 = swap;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    yield return e0;
+                    yield return e1;
+                    yield return e2;
+                    yield return e3;
+                    yield return e4;
+                    yield return p ;
+                }
+                else if (map is ImMap<V>.Leaf5Plus1Plus1 l511)
+                {
+                    var l = l511.L.L;
+                    ImMapEntry<V> 
+                        e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, p = l511.Plus, pp = l511.L.Plus, swap = null;
+                    var h = pp.Hash;
+                    if (h < e4.Hash)
+                    {
+                        swap = e4; e4 = pp; pp = swap;
+                        if (h < e3.Hash)
+                        {
+                            swap = e3; e3 = e4; e4 = swap;
+                            if (h < e2.Hash)
+                            {
+                                swap = e2; e2 = e3; e3 = swap;
+                                if (h < e1.Hash)
+                                {
+                                    swap = e1; e1 = e2; e2 = swap;
+                                    if (h < e0.Hash)
+                                    {
+                                        swap = e0; e0 = e1; e1 = swap;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    h = p.Hash;
+                    if (h < pp.Hash)
+                    {
+                        swap = pp; pp = p; p = swap;
+                        if (h < e4.Hash)
+                        {
+                            swap = e4; e4 = pp; pp = swap;
+                            if (h < e3.Hash)
+                            {
+                                swap = e3; e3 = e4; e4 = swap;
+                                if (h < e2.Hash)
+                                {
+                                    swap = e2; e2 = e3; e3 = swap;
+                                    if (h < e1.Hash)
+                                    {
+                                        swap = e1; e1 = e2; e2 = swap;
+                                        if (h < e0.Hash)
+                                        {
+                                            swap = e0; e0 = e1; e1 = swap;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    yield return e0;
+                    yield return e1;
+                    yield return e2;
+                    yield return e3;
+                    yield return e4;
+                    yield return pp;
+                    yield return p ;
+                }
+
+                if (count == 0)
+                    break; // we yield the leaf and there is nothing in stack - we are DONE!
+
+                var pb2 = (ImMap<V>.Branch2)parents.Get(--count); // otherwise get the parent
+                yield return pb2.MidEntry;
+                map = pb2.Right;
+            }
+        }
+
         /// <summary>Depth-first in-order of hash traversal as described in http://en.wikipedia.org/wiki/Tree_traversal.
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
@@ -5979,18 +6479,6 @@ namespace ImTools
         /// <summary>Do something for each entry.
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
-        public static void Each<K, V>(this ImHashMap<K, V> map, Action<ImHashMapEntry<K, V>, int> reduce, ThreadUnsafeStack<ImHashMap<K, V>> parents = null) =>
-            map.Each(reduce, (e, i, r) => r(e, i));
-
-        /// <summary>Collect something for each entry.
-        /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
-        /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
-        public static S Fold<K, V, S>(this ImHashMap<K, V> map, S state, Func<ImHashMapEntry<K, V>, int, S, S> reduce, ThreadUnsafeStack<ImHashMap<K, V>> parents = null) =>
-            map.Each(St.Rent(state, reduce), (e, i, s) => s.a = s.b(e, i, s.a)).ResetButGetA();
-
-        /// <summary>Do something for each entry.
-        /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
-        /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
         public static void Each<V>(this ImMap<V> map, Action<ImMapEntry<V>, int> reduce, ThreadUnsafeStack<ImMap<V>> parents = null) =>
             map.Each(reduce, (e, i, r) => r(e, i));
 
@@ -6000,77 +6488,15 @@ namespace ImTools
         public static S Fold<V, S>(this ImMap<V> map, S state, Func<ImMapEntry<V>, int, S, S> reduce, ThreadUnsafeStack<ImMap<V>> parents = null) =>
             map.Each(St.Rent(state, reduce), (e, i, s) => s.a = s.b(e, i, s.a)).ResetButGetA();
 
-        /// <summary>Converts map to an array with the minimum allocations</summary>
-        public static S[] ToArray<K, V, S>(this ImHashMap<K, V> map, Func<ImHashMapEntry<K, V>, S> selector, ThreadUnsafeStack<ImHashMap<K, V>> parents = null) =>
-            map == ImHashMap<K, V>.Empty ? ArrayTools.Empty<S>() : 
-                map.Each(St.Rent(new S[map.Count()], selector), (e, i, s) => s.a[i] = s.b(e), parents).ResetButGetA();
-
         /// <summary>Converts the map to an array with the minimum allocations</summary>
         public static S[] ToArray<V, S>(this ImMap<V> map, Func<ImMapEntry<V>, S> selector, ThreadUnsafeStack<ImMap<V>> parents = null) =>
             map == ImMap<V>.Empty ? ArrayTools.Empty<S>() :
                 map.Each(St.Rent(new S[map.Count()], selector), (e, i, s) => s.a[i] = s.b(e), parents).ResetButGetA();
 
         /// <summary>Converts the map to the dictionary</summary>
-        public static Dictionary<K, V> ToDictionary<K, V>(this ImHashMap<K, V> map, ThreadUnsafeStack<ImHashMap<K, V>> parents = null) =>
-            map == ImHashMap<K, V>.Empty ? new Dictionary<K, V>(0) :
-                map.Each(new Dictionary<K, V>(), (e, _, d) => d.Add(e.Key, e.Value), parents);
-
-        /// <summary>Converts the map to the dictionary</summary>
         public static Dictionary<int, V> ToDictionary<V>(this ImMap<V> map, ThreadUnsafeStack<ImMap<V>> parents = null) =>
             map == ImMap<V>.Empty ? new Dictionary<int, V>(0) :
                 map.Each(new Dictionary<int, V>(), (e, _, d) => d.Add(e.Hash, e.Value), parents);
-
-        /// <summary>Get the key value entry if the hash and key is in the map or the default `null` value otherwise.</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMapEntry<K, V> GetEntryOrDefault<K, V>(this ImHashMap<K, V> map, int hash, K key)
-        {
-            var e = map.GetEntryOrDefault(hash);
-
-            if (e is ImHashMapEntry<K, V> kv)
-                return kv.Key.Equals(key) ? kv : null;
-
-            if (e is HashConflictKeyValuesEntry<K, V> hc)
-                foreach (var x in hc.Conflicts)
-                    if (x.Key.Equals(key))
-                        return x;
-
-            return null;
-        }
-
-        /// <summary>Get the key value entry if the key is in the map or the default `null` value otherwise.</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMapEntry<K, V> GetEntryOrDefault<K, V>(this ImHashMap<K, V> map, K key) =>
-            GetEntryOrDefault(map, key.GetHashCode(), key);
-
-        /// <summary>Returns <see langword="true"/> if map contains the hash and key, otherwise returns <see langword="false"/></summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static bool Contains<K, V>(this ImHashMap<K, V> map, int hash, K key) => map.GetEntryOrDefault(hash, key) != null;
-
-        /// <summary>Returns <see langword="true"/> if map contains the key, otherwise returns <see langword="false"/></summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static bool Contains<K, V>(this ImHashMap<K, V> map, K key) => map.GetEntryOrDefault(key.GetHashCode(), key) != null;
-
-        /// <summary>Get the key value entry if the hash and key is in the map or the default `null` value otherwise.</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static ImMapEntry<V> GetEntryOrDefault<V>(this ImMap<V> map, int hash) => map.GetEntryOrNull(hash);
-
-        /// <summary>Returns <see langword="true"/> if map contains the key, otherwise returns <see langword="false"/></summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static bool Contains<V>(this ImMap<V> map, int hash) => map.GetEntryOrNull(hash) != null;
-
-        /// <summary>Returns the entry ASSUMING it is present otherwise its behavior is UNDEFINED.
-        /// You can use the method after the Add and Update methods on the same map instance - because the map is immutable it is for sure contains added or updated entry.</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMapEntry<K, V> GetSurePresentEntry<K, V>(this ImHashMap<K, V> map, int hash, K key)
-        {
-            var e = map.GetEntryOrDefault(hash);
-            if (e is HashConflictKeyValuesEntry<K, V> c)
-                foreach (var x in c.Conflicts) 
-                    if (x.Key.Equals(key))
-                        return x;
-
-            return (ImHashMapEntry<K, V>)e; // we don't need the comparison of the key because there is only one entry with the key
-        }
 
         /// <summary>Returns the entry ASSUMING it is present otherwise its behavior is UNDEFINED.
         /// You can use the method after the Add and Update methods on the same map instance - because the map is immutable it is for sure contains added or updated entry.</summary>
@@ -6078,118 +6504,10 @@ namespace ImTools
         public static ImMapEntry<V> GetSurePresentEntry<V>(this ImMap<V> map, int hash) =>
             map.GetEntryOrNull(hash);
 
-        /// <summary>Lookup for the value by the key using the hash and checking the key with the `object.Equals` for equality, 
-        /// returns the default `V` if hash, key are not found.</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static V GetValueOrDefault<K, V>(this ImHashMap<K, V> map, int hash, K key)
-        {
-            var e = map.GetEntryOrDefault(hash);
-            if (e is ImHashMapEntry<K, V> kv)
-            {
-                if (kv.Key.Equals(key))
-                    return kv.Value;
-            }
-            else if (e is HashConflictKeyValuesEntry<K, V> hc)
-            {
-                foreach (var x in hc.Conflicts) 
-                    if (x.Key.Equals(key))
-                        return x.Value;
-            }
-            return default(V);
-        }
-
-        /// <summary>Lookup for the value by key using its hash and checking the key with the `object.Equals` for equality, 
-        /// returns the default `V` if hash, key are not found.</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static V GetValueOrDefault<K, V>(this ImHashMap<K, V> map, K key) =>
-            map.GetValueOrDefault(key.GetHashCode(), key);
-
         /// <summary>Lookup for the value by hash, returns the default `V` if hash is not found.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static V GetValueOrDefault<V>(this ImMap<V> map, int hash) =>
             map.GetEntryOrNull(hash) is ImMapEntry<V> kv ? kv.Value : default(V);
-
-        /// <summary>Lookup for the value by the key using the hash and checking the key with the `object.ReferenceEquals` for equality,
-        ///  returns found value or the default value if not found</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static V GetValueOrDefaultByReferenceEquals<K, V>(this ImHashMap<K, V> map, int hash, K key) where K : class
-        {
-            var e = map.GetEntryOrDefault(hash);
-            if (e is ImHashMapEntry<K, V> kv)
-            {
-                if (kv.Key == key)
-                    return kv.Value;
-            }
-            else if (e is HashConflictKeyValuesEntry<K, V> hc)
-            {
-                foreach (var x in hc.Conflicts) 
-                    if (x.Key == key)
-                        return x.Value;
-            }
-            return default(V);
-        }
-
-        /// <summary>Lookup for the value by the key using the hash and checking the key with the `object.Equals` for equality,
-        /// returns the `true` and the found value or the `false` otherwise</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static bool TryFind<K, V>(this ImHashMap<K, V> map, int hash, K key, out V value)
-        {
-            var e = map.GetEntryOrDefault(hash);
-            if (e is ImHashMapEntry<K, V> kv)
-            {
-                if (kv.Key.Equals(key))
-                {
-                    value = kv.Value;
-                    return true;
-                }
-            }
-            else if (e is HashConflictKeyValuesEntry<K, V> hc)
-            {
-                foreach (var x in hc.Conflicts) 
-                    if (x.Key.Equals(key)) 
-                    {
-                        value = x.Value;
-                        return true;
-                    }
-            }
-
-            value = default(V);
-            return false;
-        }
-
-        /// <summary>Lookup for the value by the key using the hash and checking the key with the `object.ReferenceEquals`, 
-        /// returns the `true` and the found value or the `false` otherwise</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static bool TryFindByReferenceEquals<K, V>(this ImHashMap<K, V> map, int hash, K key, out V value) where K : class
-        {
-            var e = map.GetEntryOrDefault(hash);
-            if (e is ImHashMapEntry<K, V> kv)
-            {
-                if (kv.Key == key)
-                {
-                    value = kv.Value;
-                    return true;
-                }
-            }
-            else if (e is HashConflictKeyValuesEntry<K, V> hc)
-            {
-                foreach (var x in hc.Conflicts) 
-                    if (x.Key == key) 
-                    {
-                        value = x.Value;
-                        return true;
-                    }
-            }
-
-            value = default(V);
-            return false;
-        }
-
-        /// <summary>Lookup for the value by the key using its hash and checking the key with the `object.Equals` for equality,
-        /// returns the `true` and the found value or the `false` otherwise</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static bool TryFind<K, V>(this ImHashMap<K, V> map, K key, out V value) =>
-            map.TryFind(key.GetHashCode(), key, out value);
 
         /// <summary>Lookup for the value by its hash, returns the `true` and the found value or the `false` otherwise</summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -6204,149 +6522,12 @@ namespace ImTools
             var e = map.GetEntryOrNull(hash);
             if (e != null)
             {
-                value = (e).Value;
+                value = e.Value;
                 return true;
             }
 
             value = default(V);
             return false;
-        }
-
-
-        /// <summary>Adds or updates (no in-place mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
-        public static ImHashMap<K, V> AddOrGetEntry<K, V>(this ImHashMap<K, V> map, int hash, K key, V value)
-        {
-            var newEntry = new ImHashMapEntry<K, V>(hash, key, value);
-            if (map == ImHashMap<K, V>.Empty)
-                return newEntry;
-
-            var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
-            if (oldEntryOrMap is ImHashMap<K, V>.Entry == false)
-                return oldEntryOrMap;
-
-            if (oldEntryOrMap is ImHashMapEntry<K, V> kv)
-                return kv.Key.Equals(newEntry.Key) ? oldEntryOrMap 
-                    : map.ReplaceEntry(hash, kv, new HashConflictKeyValuesEntry<K, V>(hash, kv, newEntry));
-
-            var hc = (HashConflictKeyValuesEntry<K, V>)oldEntryOrMap;
-            var cs = hc.Conflicts;
-            var n = cs.Length;
-            var i = n - 1;
-            while (i != -1 && !key.Equals(cs[i].Key)) --i;
-            if (i != -1)
-                return cs[i];
-
-            var newConflicts = new ImHashMapEntry<K, V>[n + 1];
-            Array.Copy(cs, 0, newConflicts, 0, n);
-            newConflicts[n] = newEntry;
-            return map.ReplaceEntry(hash, hc, new HashConflictKeyValuesEntry<K, V>(hash, newConflicts));
-        }
-
-        /// <summary>Adds or updates (no in-place mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap<K, V> AddOrUpdate<K, V>(this ImHashMap<K, V> map, int hash, K key, V value) 
-        {
-            var newEntry = new ImHashMapEntry<K, V>(hash, key, value);
-            if (map == ImHashMap<K, V>.Empty)
-                return newEntry;
-
-            var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
-            if (oldEntryOrMap is ImHashMap<K, V>.Entry oldEntry)
-                return map.ReplaceEntry(hash, oldEntry, UpdateEntry(oldEntry, newEntry));
-
-            return oldEntryOrMap;
-        }
-
-        /// <summary>Adds or updates (no in-place mutation) the map with the new entry, always returning the NEW map!</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap<K, V> AddOrUpdateEntry<K, V>(this ImHashMap<K, V> map, ImHashMapEntry<K, V> newEntry) 
-        {
-            if (map == ImHashMap<K, V>.Empty)
-                return newEntry;
-
-            var hash = newEntry.Hash;
-            var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
-            if (oldEntryOrMap is ImHashMap<K, V>.Entry oldEntry)
-                return map.ReplaceEntry(hash, oldEntry, UpdateEntry(oldEntry, newEntry));
-
-            return oldEntryOrMap;
-        }
-
-        private static ImHashMap<K, V>.Entry UpdateEntry<K, V>(ImHashMap<K, V>.Entry oldEntry, ImHashMapEntry<K, V> newEntry)
-        {
-            if (oldEntry is ImHashMapEntry<K, V> kv)
-                return kv.Key.Equals(newEntry.Key) ? newEntry 
-                     : (ImHashMap<K, V>.Entry)new HashConflictKeyValuesEntry<K, V>(oldEntry.Hash, kv, newEntry);
-
-            var hc = (HashConflictKeyValuesEntry<K, V>)oldEntry;
-            var key = newEntry.Key;
-            var cs = hc.Conflicts;
-            var n = cs.Length;
-            var i = n - 1;
-            while (i != -1 && !key.Equals(cs[i].Key)) --i;
-            var newConflicts = new ImHashMapEntry<K, V>[i != -1 ? n : n + 1];
-            Array.Copy(cs, 0, newConflicts, 0, n);
-            newConflicts[i != -1 ? i : n] = newEntry;
-
-            return new HashConflictKeyValuesEntry<K, V>(oldEntry.Hash, newConflicts);
-        }
-
-        /// <summary>Adds or updates (no in-place mutation) the map with value by the passed key, always returning the NEW map!</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap<K, V> AddOrUpdate<K, V>(this ImHashMap<K, V> map, K key, V value) =>
-            map.AddOrUpdate(key.GetHashCode(), key, value);
-
-        /// <summary>Adds or updates (no in-place mutation) the map with value by the passed key, always returning the NEW map!</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap<K, V> AddOrUpdate<K, V>(this ImHashMap<K, V> map, int hash, K key, V value, Update<K, V> update) 
-        {
-            var newEntry = new ImHashMapEntry<K, V>(hash, key, value);
-            if (map == ImHashMap<K, V>.Empty)
-                return newEntry;
-
-            var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
-            if (oldEntryOrMap is ImHashMap<K, V>.Entry oldEntry)
-                return map.ReplaceEntry(hash, oldEntry, UpdateEntry(oldEntry, newEntry, update));
-
-            return oldEntryOrMap;
-        }
-
-        private static ImHashMap<K, V>.Entry UpdateEntry<K, V>(ImHashMap<K, V>.Entry oldEntry, ImHashMapEntry<K, V> newEntry, Update<K, V> update)
-        {
-            var key = newEntry.Key;
-            if (oldEntry is ImHashMapEntry<K, V> kv)
-                return kv.Key.Equals(key) ? new ImHashMapEntry<K, V>(newEntry.Hash, key, update(key, kv.Value, newEntry.Value))
-                    : (ImHashMap<K, V>.Entry)new HashConflictKeyValuesEntry<K, V>(oldEntry.Hash, kv, newEntry);
-
-            var hc = (HashConflictKeyValuesEntry<K, V>)oldEntry;
-            var cs = hc.Conflicts;
-            var n = cs.Length;
-            var i = n - 1;
-            while (i != -1 && !key.Equals(cs[i].Key)) --i;
-
-            var newConflicts = new ImHashMapEntry<K, V>[i != -1 ? n : n + 1];
-            Array.Copy(cs, 0, newConflicts, 0, n);
-            if (i != -1)
-                newConflicts[i] = new ImHashMapEntry<K, V>(newEntry.Hash, key, update(key, cs[i].Value, newEntry.Value));
-            else
-                newConflicts[n] = newEntry;
-
-            return new HashConflictKeyValuesEntry<K, V>(oldEntry.Hash, newConflicts);
-        }
-
-        /// <summary>Adds or updates (no in-place mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static ImMap<V> AddOrUpdate<V>(this ImMap<V> map, int hash, V value)
-        {
-            var newEntry = new ImMapEntry<V>(hash, value);
-            if (map == ImMap<V>.Empty)
-                return newEntry;
-
-            var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
-            if (oldEntryOrMap is ImMapEntry<V> oldEntry)
-                return map.ReplaceEntry(hash, oldEntry, newEntry); // todo: @perf here we have a chance to compare the old and the new value and prevent the updated if the values are equal
-
-            return oldEntryOrMap;
         }
 
         /// <summary>Adds or updates (no in-place mutation) the map with the new entry, always returning the NEW map!</summary>
@@ -6357,6 +6538,21 @@ namespace ImTools
                 return newEntry;
 
             var hash = newEntry.Hash;
+            var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
+            if (oldEntryOrMap is ImMapEntry<V> oldEntry)
+                return map.ReplaceEntry(hash, oldEntry, newEntry); // todo: @perf here we have a chance to compare the old and the new value and prevent the updated if the values are equal
+
+            return oldEntryOrMap;
+        }
+
+        /// <summary>Adds or updates (no in-place mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMap<V> AddOrUpdate<V>(this ImMap<V> map, int hash, V value)
+        {
+            var newEntry = new ImMapEntry<V>(hash, value);
+            if (map == ImMap<V>.Empty)
+                return newEntry;
+
             var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
             if (oldEntryOrMap is ImMapEntry<V> oldEntry)
                 return map.ReplaceEntry(hash, oldEntry, newEntry); // todo: @perf here we have a chance to compare the old and the new value and prevent the updated if the values are equal
@@ -6379,102 +6575,6 @@ namespace ImTools
             return oldEntryOrMap;
         }
 
-        /// <summary>Adds or updates (no in-place mutation) the map with value by the passed key, always returning the NEW map!</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap<K, V> AddOrUpdate<K, V>(this ImHashMap<K, V> map, K key, V value, Update<K, V> update) =>
-            map.AddOrUpdate(key.GetHashCode(), key, value, update);
-
-        /// <summary>Updates the map with the new value if the key is found otherwise returns the same unchanged map.</summary>
-        public static ImHashMap<K, V> Update<K, V>(this ImHashMap<K, V> map, int hash, K key, V value) 
-        {
-            var entry = map.GetEntryOrDefault(hash);
-            if (entry == null)
-                return map;
-
-            if (entry is ImHashMapEntry<K, V> kv)
-                return kv.Key.Equals(key) ? map.ReplaceEntry(hash, entry, new ImHashMapEntry<K, V>(hash, key, value)) : map;
-
-            var hc = (HashConflictKeyValuesEntry<K, V>)entry;
-            var cs = hc.Conflicts;
-            var n = cs.Length;
-            var i = n - 1;
-            while (i != -1 && !key.Equals(cs[i].Key)) --i;
-            if (i == -1)
-                return map;
-            
-            var newConflicts = new ImHashMapEntry<K, V>[n];
-            Array.Copy(cs, 0, newConflicts, 0, n);
-            newConflicts[i] = new ImHashMapEntry<K, V>(hash, key, value);
-
-            return map.ReplaceEntry(hash, entry, new HashConflictKeyValuesEntry<K, V>(hash, newConflicts));
-        }
-
-        /// <summary>Updates the map with the new value if the key is found otherwise returns the same unchanged map.</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap<K, V> Update<K, V>(this ImHashMap<K, V> map, K key, V value) =>
-            map.Update(key.GetHashCode(), key, value);
-
-        /// <summary>Updates the map with the new value if the key is found otherwise returns the same unchanged map.</summary>
-        public static ImHashMap<K, V> UpdateToDefault<K, V>(this ImHashMap<K, V> map, int hash, K key) 
-        {
-            var entry = map.GetEntryOrDefault(hash);
-            if (entry == null)
-                return map;
-
-            if (entry is ImHashMapEntry<K, V> kv)
-                return kv.Key.Equals(key) ? map.ReplaceEntry(hash, entry, new ImHashMapEntry<K, V>(hash, key)) : map;
-
-            var hc = (HashConflictKeyValuesEntry<K, V>)entry;
-            var cs = hc.Conflicts;
-            var n = cs.Length;
-            var i = n - 1;
-            while (i != -1 && !key.Equals(cs[i].Key)) --i;
-            if (i == -1)
-                return map;
-            var newConflicts = new ImHashMapEntry<K, V>[n];
-            Array.Copy(cs, 0, newConflicts, 0, n);
-            newConflicts[i] = new ImHashMapEntry<K, V>(hash, key);
-            return map.ReplaceEntry(hash, entry, new HashConflictKeyValuesEntry<K, V>(hash, newConflicts));
-        }
-
-        /// <summary>Updates the map with the new value if the key is found otherwise returns the same unchanged map.</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap<K, V> UpdateToDefault<K, V>(this ImHashMap<K, V> map, K key) =>
-            map.UpdateToDefault(key.GetHashCode(), key);
-
-        /// <summary>Updates the map with the new value and the `update` function if the key is found otherwise returns the same unchanged map.
-        /// If `update` returns the same map if the updated result is the same</summary>
-        public static ImHashMap<K, V> Update<K, V>(this ImHashMap<K, V> map, int hash, K key, V value, Update<K, V> update)
-        {
-            var entry = map.GetEntryOrDefault(hash);
-            if (entry == null)
-                return map;
-
-            if (entry is ImHashMapEntry<K, V> kv)
-                return !kv.Key.Equals(key) || ReferenceEquals(kv.Value, value = update(key, kv.Value, value)) 
-                    ? map 
-                    : map.ReplaceEntry(hash, entry, new ImHashMapEntry<K, V>(hash, key, value));
-
-            var hc = (HashConflictKeyValuesEntry<K, V>)entry;
-            var cs = hc.Conflicts;
-            var n = cs.Length;
-            var i = n - 1;
-            while (i != -1 && !key.Equals(cs[i].Key)) --i;
-            if (i == -1 || ReferenceEquals(cs[i].Value, value = update(key, cs[i].Value, value)))
-                return map;
-
-            var newConflicts = new ImHashMapEntry<K, V>[n];
-            Array.Copy(cs, 0, newConflicts, 0, n);
-            newConflicts[i] = new ImHashMapEntry<K, V>(hash, key, value);
-
-            return map.ReplaceEntry(hash, entry, new HashConflictKeyValuesEntry<K, V>(hash, newConflicts));
-        }
-
-        /// <summary>Updates the map with the new value and the `update` function if the key is found otherwise returns the same unchanged map.
-        /// If `update` returns the same map if the updated result is the same</summary>
-        public static ImHashMap<K, V> Update<K, V>(this ImHashMap<K, V> map, K key, V value, Update<K, V> update) =>
-            map.Update(key.GetHashCode(), key, value, update);
-
         /// <summary>Updates the map with the new value if the hash is found otherwise returns the same unchanged map.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImMap<V> Update<V>(this ImMap<V> map, int hash, V value) 
@@ -6490,68 +6590,6 @@ namespace ImTools
             var entry = map.GetEntryOrNull(hash);
             return entry == null ? map : map.ReplaceEntry(hash, entry, new ImMapEntry<V>(hash));
         }
-
-        /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap<K, V> AddOrKeepEntry<K, V>(this ImHashMap<K, V> map, ImHashMapEntry<K, V> newEntry) 
-        {
-            if (map == ImHashMap<K, V>.Empty)
-                return newEntry;
-
-            var hash = newEntry.Hash;
-            var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
-            if (oldEntryOrMap is ImHashMap<K, V>.Entry oldEntry)
-            {
-                var e = KeepOrAddEntry(oldEntry, newEntry);
-                return e == oldEntry ? map : map.ReplaceEntry(hash, oldEntry, e);
-            }
-
-            return oldEntryOrMap;
-        }
-
-        /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap<K, V> AddOrKeep<K, V>(this ImHashMap<K, V> map, int hash, K key, V value)
-        {
-            var newEntry = new ImHashMapEntry<K, V>(hash, key, value); // todo: @perf newEntry may not be needed here - consider the pooling of entries here
-            if (map == ImHashMap<K, V>.Empty)
-                return newEntry;
-
-            var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
-            if (oldEntryOrMap is ImHashMap<K, V>.Entry oldEntry)
-            {
-                var e = KeepOrAddEntry(oldEntry, newEntry);
-                return e == oldEntry ? map : map.ReplaceEntry(hash, oldEntry, e);
-            }
-
-            return oldEntryOrMap;
-        }
-
-        private static ImHashMap<K, V>.Entry KeepOrAddEntry<K, V>(ImHashMap<K, V>.Entry oldEntry, ImHashMapEntry<K, V> newEntry)
-        {
-            if (oldEntry is ImHashMapEntry<K, V> kv)
-                return kv.Key.Equals(newEntry.Key) ? oldEntry : (ImHashMap<K, V>.Entry)new HashConflictKeyValuesEntry<K, V>(oldEntry.Hash, kv, newEntry);
-
-            var hc = (HashConflictKeyValuesEntry<K, V>)oldEntry;
-            var key  = newEntry.Key;
-            var cs = hc.Conflicts;
-            var n = cs.Length;
-            var i = n - 1;
-            while (i != -1 && !key.Equals(cs[i].Key)) --i;
-            if (i != -1) // return the existing map
-                return oldEntry;
-
-            var newConflicts = new ImHashMapEntry<K, V>[n + 1];
-            Array.Copy(cs, 0, newConflicts, 0, n);
-            newConflicts[n] = newEntry;
-
-            return new HashConflictKeyValuesEntry<K, V>(oldEntry.Hash, newConflicts);
-        }
-
-        /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap<K, V> AddOrKeep<K, V>(this ImHashMap<K, V> map, K key, V value) => 
-            map.AddOrKeep(key.GetHashCode(), key, value);
 
         /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -6574,44 +6612,6 @@ namespace ImTools
             return oldEntryOrMap is ImMapEntry<V> ? map : oldEntryOrMap;
         }
 
-        /// <summary>Returns the new map without the specified hash and key (if found) or returns the same map otherwise</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap<K, V> Remove<K, V>(this ImHashMap<K, V> map, int hash, K key)
-        {
-            var entryToRemove = map.GetEntryOrDefault(hash);
-            if (entryToRemove is ImHashMapEntry<K, V>)
-                return map.RemoveEntry(hash, entryToRemove);
-
-            if (entryToRemove is HashConflictKeyValuesEntry<K, V> hc)
-            {
-                var entryToReplace = RemoveEntryToReplaceOrDefault(hc, key);
-                return entryToReplace == null ? map : map.ReplaceEntry(hash, entryToRemove, entryToReplace);
-            }
-
-            return map;
-        }
-
-        private static ImHashMap<K, V>.Entry RemoveEntryToReplaceOrDefault<K, V>(HashConflictKeyValuesEntry<K, V> hc, K key)
-        {
-            var cs = hc.Conflicts;
-            var n = cs.Length;
-            var i = n - 1;
-            while (i != -1 && !cs[i].Key.Equals(key)) --i;
-            if (i != -1)
-            {
-                if (n == 2)
-                    return i == 0 ? cs[1] : cs[0];
-                var newConflicts = new ImHashMapEntry<K, V>[n -= 1]; // the new n is less by one
-                if (i > 0) // copy the 1st part
-                    Array.Copy(cs, 0, newConflicts, 0, i);
-                if (i < n) // copy the 2nd part
-                    Array.Copy(cs, i + 1, newConflicts, i, n - i);
-                return new HashConflictKeyValuesEntry<K, V>(hc.Hash, newConflicts);
-            }
-
-            return null;
-        }
-
         /// <summary>Returns the new map without the specified hash (if found) or returns the same map otherwise</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImMap<V> Remove<V>(this ImMap<V> map, int hash)
@@ -6619,11 +6619,6 @@ namespace ImTools
             var entryToRemove = map.GetEntryOrNull(hash);
             return entryToRemove == null ? map : map.RemoveEntry(entryToRemove);
         }
-
-        /// <summary>Returns the new map without the specified hash and key (if found) or returns the same map otherwise</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap<K, V> Remove<K, V>(this ImHashMap<K, V> map, K key) =>
-            map == ImHashMap<K, V>.Empty ? map : map.Remove(key.GetHashCode(), key); // it make sense to have the empty map condition here to prevent the probably costly `GetHashCode()` for the empty map.
     }
 
     /// <summary>
