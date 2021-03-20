@@ -3009,32 +3009,19 @@ namespace ImTools
                 this == removedEntry ? Empty : this;
         }
 
-        /// Tombstone for the removed entry. It still keeps the hash to preserve the tree operations.
-        internal sealed class RemovedEntry : Entry 
-        {
-            public RemovedEntry(int hash) : base(hash) {}
-            public override string ToString() => "{RemovedE: {H: " + Hash + "}}";
-        }
-
         /// <summary>Leaf with 2 hash-ordered entries. Important: the both or either of entries may be null for the removed entries</summary>
-        public sealed class Leaf2 : ImHashMap<K, V>
+        internal sealed class Leaf2 : ImHashMap<K, V>
         {
-            /// <summary>Left entry</summary>
-            public readonly Entry Entry0;
-            /// <summary>Right entry</summary>
-            public readonly Entry Entry1;
-            /// <summary>Constructs the leaf</summary>
+            public readonly Entry Entry0, Entry1;
             public Leaf2(Entry e0, Entry e1)
             {
                 Debug.Assert(e0.Hash < e1.Hash);
                 Entry0 = e0; Entry1 = e1;
             }
 
-            /// <inheritdoc />
-            public override int Count() => (Entry0?.Count() ?? 0) + (Entry1?.Count() ?? 0);
+            public override int Count() => Entry0.Count() + Entry1.Count();
 
 #if !DEBUG
-            /// <inheritdoc />
             public override string ToString() => "{L2: {E0: " + Entry0 + ", E1: " + Entry1 + "}}";
 #endif
 
@@ -3070,24 +3057,19 @@ namespace ImTools
         }
 
         /// <summary>The leaf containing the Leaf2 plus the newest added entry.</summary>
-        public sealed class Leaf2Plus1 : ImHashMap<K, V>
+        internal sealed class Leaf2Plus1 : ImHashMap<K, V>
         {
-            /// <summary>Plus entry</summary>
             public readonly Entry Plus;
-            /// <summary>The dangling leaf</summary>
             public readonly Leaf2 L;
-            /// <summary>Constructs the leaf</summary>
             public Leaf2Plus1(Entry plus, Leaf2 leaf)
             {
                 Plus = plus;
                 L    = leaf;
             }
 
-            /// <inheritdoc />
             public override int Count() => Plus.Count() + L.Entry0.Count() + L.Entry1.Count();
 
 #if !DEBUG
-            /// <inheritdoc />
             public override string ToString() => "{L21: {P: " + Plus + ", L: " + L + "}}";
 #endif
 
@@ -3124,25 +3106,20 @@ namespace ImTools
         }
 
         /// <summary>Leaf with the Leaf2 plus added entry, plus added entry</summary>
-        public sealed class Leaf2Plus1Plus1 : ImHashMap<K, V>
+        internal sealed class Leaf2Plus1Plus1 : ImHashMap<K, V>
         {
-            /// <summary>New entry</summary>
             public readonly Entry Plus;
-            /// <summary>The existing leaf to add entry to</summary>
             public readonly Leaf2Plus1 L;
 
-            /// <summary>Constructs the leaf</summary>
             public Leaf2Plus1Plus1(Entry plus, Leaf2Plus1 l)
             {
                 Plus = plus;
                 L = l;
             }
 
-            /// <inheritdoc />
             public override int Count() => Plus.Count() + L.Plus.Count() + L.L.Entry0.Count() + L.L.Entry1.Count();
 
 #if !DEBUG
-            /// <inheritdoc />
             public override string ToString() => "{L211: {P: " + Plus + ", L: " + L + "}}";
 #endif
 
@@ -3246,20 +3223,10 @@ namespace ImTools
         }
 
         /// <summary>Leaf with 5 hash-ordered entries</summary>
-        public sealed class Leaf5 : ImHashMap<K, V>
+        internal sealed class Leaf5 : ImHashMap<K, V>
         {
-            /// <summary>Left entry</summary>
-            public readonly Entry Entry0;
-            /// <summary>Middle-left entry</summary>
-            public readonly Entry Entry1;
-            /// <summary>Middle entry</summary>
-            public readonly Entry Entry2;
-            /// <summary>Middle-right entry</summary>
-            public readonly Entry Entry3;
-            /// <summary>Right entry</summary>
-            public readonly Entry Entry4;
+            public readonly Entry Entry0, Entry1, Entry2, Entry3, Entry4;
 
-            /// <summary>Constructs the leaf</summary>
             public Leaf5(Entry e0, Entry e1, Entry e2, Entry e3, Entry e4)
             {
                 Debug.Assert(e0.Hash < e1.Hash, "e0 < e1");
@@ -3269,11 +3236,9 @@ namespace ImTools
                 Entry0 = e0; Entry1 = e1; Entry2 = e2; Entry3 = e3; Entry4 = e4;
             }
 
-            /// <inheritdoc />
             public override int Count() => Entry0.Count() + Entry1.Count() + Entry2.Count() + Entry3.Count() + Entry4.Count();
 
 #if !DEBUG
-            /// <inheritdoc />
             public override string ToString() => 
                 "{L2: {E0: " + Entry0 + ", E1: " + Entry1 + ", E2: " + Entry2 + ", E3: " + Entry3 + ", E4: " + Entry4 + "}}";
 #endif
@@ -3313,25 +3278,20 @@ namespace ImTools
         }
 
         /// <summary>Leaf with 5 existing ordered entries plus 1 newly added entry.</summary>
-        public sealed class Leaf5Plus1 : ImHashMap<K, V>
+        internal sealed class Leaf5Plus1 : ImHashMap<K, V>
         {
-            /// <summary>New entry</summary>
             public readonly Entry Plus;
-            /// <summary>Dangling leaf</summary>
             public readonly Leaf5 L;
 
-            /// <summary>Constructs the leaf</summary>
             public Leaf5Plus1(Entry plus, Leaf5 l)
             {
                 Plus = plus;
                 L    = l;
             }
 
-            /// <inheritdoc />
             public override int Count() => Plus.Count() + L.Count();
 
 #if !DEBUG
-            /// <inheritdoc />
             public override string ToString() => "{L51: {P: " + Plus + ", L: " + L + "}}";
 #endif
 
@@ -3421,25 +3381,20 @@ namespace ImTools
         }
 
         /// <summary>Leaf with 5 existing ordered entries plus 1 newly added, plus 1 newly added.</summary>
-        public sealed class Leaf5Plus1Plus1 : ImHashMap<K, V>
+        internal sealed class Leaf5Plus1Plus1 : ImHashMap<K, V>
         {
-            /// <summary>New entry</summary>
             public readonly Entry Plus;
-            /// <summary>Dangling leaf</summary>
             public readonly Leaf5Plus1 L;
 
-            /// <summary>Constructs the leaf</summary>
             public Leaf5Plus1Plus1(Entry plus, Leaf5Plus1 l)
             {
                 Plus = plus;
                 L    = l;
             }
 
-            /// <inheritdoc />
             public override int Count() => Plus.Count() + L.Count();
 
 #if !DEBUG
-            /// <inheritdoc />
             public override string ToString() => "{L511: {P: " + Plus + ", L: " + L + "}}";
 #endif
 
@@ -3671,15 +3626,12 @@ namespace ImTools
         }
 
         /// <summary>Branch of 2 leafs or branches with entry in the middle</summary>
-        public class Branch2 : ImHashMap<K, V>
+        internal class Branch2 : ImHashMap<K, V>
         {
-            /// <summary>Left branch</summary>
             public readonly ImHashMap<K, V> Left;
-            /// <summary>Entry in the middle</summary>
             public readonly Entry MidEntry;
-            /// <summary>Right branch</summary>
             public readonly ImHashMap<K, V> Right;
-            /// <summary>Constructs</summary>
+
             public Branch2(ImHashMap<K, V> left, Entry entry, ImHashMap<K, V> right)
             {
                 Debug.Assert(left != Empty && right != Empty, $"left:{left} != Empty && right:{right} != Empty");
@@ -3688,11 +3640,9 @@ namespace ImTools
                 Right    = right;
             }
 
-            /// <inheritdoc />
-            public sealed override int Count() => (MidEntry is RemovedEntry ? 0 : 1) + Left.Count() + Right.Count();
+            public sealed override int Count() => 1 + Left.Count() + Right.Count();
 
 #if !DEBUG
-            /// <inheritdoc />
             public override string ToString() => "{B2: {E: " + MidEntry + ", L: " + Left + ", R: " + Right + "}}";
 #endif
 
@@ -3704,7 +3654,7 @@ namespace ImTools
                 var mh = MidEntry.Hash;
                 return hash > mh ? Right.GetEntryOrDefault(hash) 
                     :  hash < mh ? Left .GetEntryOrDefault(hash) 
-                    :  MidEntry is RemovedEntry ? null : MidEntry;
+                    :  MidEntry;
             }
 
             internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
@@ -3728,7 +3678,7 @@ namespace ImTools
                          ? new LeftyBranch3(newLeft, e, Right) : new Branch2(newLeft, e, Right);
                 }
 
-                return e is RemovedEntry ? new Branch2(Left, entry, Right) : (ImHashMap<K, V>)e;
+                return e;
             }
 
             internal override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry)
@@ -3818,13 +3768,14 @@ namespace ImTools
         }
 
         /// <summary>Right-skewed Branch of 3 - actually a branch of 2 with the right branch of 2</summary>
-        public sealed class RightyBranch3 : Branch2
+        internal sealed class RightyBranch3 : Branch2
         {
-            /// <summary>Creating the branch</summary>
-            public RightyBranch3(ImHashMap<K, V> left, Entry entry, ImHashMap<K, V>  right) : base(left, entry, right) {}
+            public RightyBranch3(ImHashMap<K, V> left, Entry entry, ImHashMap<K, V>  rightBranch) : base(left, entry, rightBranch)
+            {
+                Debug.Assert(rightBranch is Branch2, $"Right:{rightBranch} is Branch2");
+            }
 
 #if !DEBUG
-            /// <inheritdoc />
             public override string ToString() => "{RB3: {"  + base.ToString() + "}";
 #endif
 
@@ -3839,9 +3790,9 @@ namespace ImTools
                     mh = r.MidEntry.Hash;
                     return hash > mh ? r.Right.GetEntryOrDefault(hash) 
                         :  hash < mh ? r.Left .GetEntryOrDefault(hash) 
-                        :  r.MidEntry is RemovedEntry ? null : r.MidEntry;
+                        :  r.MidEntry;
                 }
-                return MidEntry is RemovedEntry ? null : MidEntry;
+                return MidEntry;
             }
 
             internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
@@ -3886,12 +3837,7 @@ namespace ImTools
                     return new RightyBranch3(Left, MidEntry, new Branch2(newMiddle, rb.MidEntry, rb.Right));
                 }
 
-                var e0 = MidEntry;
-                if (hash == h0)
-                    return e0 is RemovedEntry ? new RightyBranch3(Left, entry, rb) : (ImHashMap<K, V>)e0;
-
-                var e1 = rb.MidEntry;
-                return  e1 is RemovedEntry ? new RightyBranch3(Left, e0, new Branch2(rb.Left, entry, rb.Right)) : (ImHashMap<K, V>)e1;
+                return hash == h0 ? MidEntry : rb.MidEntry;
             }
 
             internal override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry)
@@ -3904,22 +3850,119 @@ namespace ImTools
 
             internal override ImHashMap<K, V> RemoveEntry(Entry removedEntry)
             {
-                var hash = removedEntry.Hash;
-                var h = MidEntry.Hash;
-                return hash > h ? new RightyBranch3(Left, MidEntry, Right.RemoveEntry(removedEntry))
-                    :  hash < h ? new RightyBranch3(Left.RemoveEntry(removedEntry), MidEntry, Right)
-                    :  new RightyBranch3(Left, new RemovedEntry(hash), Right);
+                var midLeft = MidEntry;
+                var rb = (Branch2)Right;
+                var middle   = rb.Left;
+                var midRight = rb.MidEntry;
+                var right    = rb.Right;
+
+                // case 1, downward: swap the predecessor entry (max left entry) with the mid entry, then proceed to remove the predecessor from the Left branch
+                if (removedEntry == midLeft)
+                    removedEntry = midLeft = Left.GetMaxHashEntryOrDefault();
+
+                if (removedEntry.Hash <= midLeft.Hash)
+                {
+                    var newLeft = Left.RemoveEntry(removedEntry);
+                    if (newLeft == Empty)
+                    {
+                        if (middle is Leaf2Plus1Plus1 == false) 
+                            return new Branch2(middle.AddOrGetEntry(midLeft.Hash, midLeft), midRight, right); //! the height does not change
+                        return new RightyBranch3(midLeft, removedEntry = middle.GetMinHashEntryOrDefault(), new Branch2(middle.RemoveEntry(removedEntry), midRight, right)); //! the height does not change
+                    }
+
+                    // rebalance is needed because the branch was merged from Br2 to Br3 or to Leaf and the height decrease
+                    if (Left.GetType() == typeof(Branch2) && newLeft.GetType() != typeof(Branch2))
+                    {
+                        // the hole has a 3-node as a parent and a 3-node as a sibling.
+                        if (middle is LeftyBranch3 leftyMiddle) //! the height does not change
+                        {
+                            var mlb = (Branch2)leftyMiddle.Left;
+                            return new RightyBranch3(new Branch2(newLeft, midLeft, mlb.Left), mlb.MidEntry, new Branch2(new Branch2(mlb.Right, leftyMiddle.MidEntry, leftyMiddle.Right), midRight, right));
+                        }
+
+                        // the hole has a 3-node as a parent and a 3-node as a sibling.
+                        if (middle is RightyBranch3 rightyMiddle) //! the height does not change
+                            return new RightyBranch3(new Branch2(newLeft, midLeft, rightyMiddle.Left), rightyMiddle.MidEntry, new Branch2(rightyMiddle.Right, midRight, right));
+
+                        // the hole has a 3-node as a parent and a 2-node as a sibling.
+                        return new Branch2(new RightyBranch3(newLeft, midLeft, middle), midRight, right);
+                    }
+
+                    return new RightyBranch3(newLeft, midLeft, rb); // no rebalance needed
+                }
+
+                if (removedEntry == midRight)
+                    removedEntry = midRight = middle.GetMaxHashEntryOrDefault();
+
+                if (removedEntry.Hash <= midRight.Hash)
+                {
+                    var newMiddle = middle.RemoveEntry(removedEntry);
+                    if (newMiddle == Empty)
+                    {
+                        if (right is Leaf2Plus1Plus1 == false)
+                            return new Branch2(Left, midLeft, right.AddOrGetEntry(midLeft.Hash, midLeft)); // the Br3 become the Br2 but the height did not change - so no rebalance needed
+                        return new RightyBranch3(Left, midLeft, new Branch2(midRight, removedEntry = right.GetMinHashEntryOrDefault(), right.RemoveEntry(removedEntry))); //! the height does not change
+                    }
+
+                    if (middle.GetType() == typeof(Branch2) && newMiddle.GetType() != typeof(Branch2))
+                    {
+                        // the hole has a 3-node as a parent and a 3-node as a sibling.
+                        if (right is LeftyBranch3 leftyRight) //! the height does not change
+                        {
+                            var rlb = (Branch2)leftyRight.Left;
+                            return new RightyBranch3(Left, midLeft, new Branch2(new Branch2(newMiddle, midRight, rlb.Left), rlb.MidEntry, new Branch2(rlb.Right, leftyRight.MidEntry, leftyRight.Right)));
+                        }
+
+                        // the hole has a 3-node as a parent and a 3-node as a sibling.
+                        if (right is RightyBranch3 rightyRight) //! the height does not change
+                            return new RightyBranch3(Left, midLeft, new Branch2(new Branch2(newMiddle, midRight, rightyRight.Left), rightyRight.MidEntry, rightyRight.Right));
+
+                        // the hole has a 3-node as a parent and a 2-node as a sibling.
+                        return new Branch2(Left, midLeft, new RightyBranch3(newMiddle, midRight, right));
+                    }
+
+                    return new RightyBranch3(Left, midLeft, new Branch2(newMiddle, midRight, right));
+                }
+
+                var newRight = right.RemoveEntry(removedEntry);
+                if (newRight == Empty)
+                {
+                    if (middle is Leaf2Plus1Plus1 == false)
+                        return new Branch2(Left, midLeft, middle.AddOrGetEntry(midRight.Hash, midRight));
+                    return new RightyBranch3(Left, midLeft, new Branch2(middle.RemoveEntry(removedEntry = middle.GetMaxHashEntryOrDefault()), removedEntry, midRight));
+                }
+
+                // right was a Br2 but now is Leaf or Br3 - means the branch height is decrease
+                if (right.GetType() == typeof(Branch2) && newRight.GetType() != typeof(Branch2))
+                {
+                    // the hole has a 3-node as a parent and a 3-node as a sibling.
+                    if (middle is LeftyBranch3 leftyMiddle) //! the height does not change
+                        return new RightyBranch3(Left, midLeft, new Branch2(leftyMiddle.Left, leftyMiddle.MidEntry, new Branch2(leftyMiddle.Right, midRight, newRight)));
+
+                    // the hole has a 3-node as a parent and a 3-node as a sibling.new
+                    if (middle is RightyBranch3 rightyMiddle) //! the height does not change
+                    {
+                        var rrb = (Branch2)rightyMiddle.Right;
+                        return new RightyBranch3(Left, midLeft, new Branch2(new Branch2(rightyMiddle.Left, rightyMiddle.MidEntry, rrb.Left), rrb.MidEntry, new Branch2(rrb.Right, midRight, newRight)));
+                    }
+
+                    // the hole has a 3-node as a parent and a 2-node as a sibling.
+                    return new Branch2(Left, midLeft, new LeftyBranch3(middle, midRight, newRight));
+                }
+
+                return new RightyBranch3(Left, midLeft, new Branch2(middle, midRight, newRight));
             }
         }
 
         /// <summary>Left-skewed Branch of 3 - actually a branch of 2 with the left branch of 2</summary>
-        public sealed class LeftyBranch3 : Branch2
+        internal sealed class LeftyBranch3 : Branch2
         {
-            /// <summary>Creating the branch</summary>
-            public LeftyBranch3(ImHashMap<K, V> leftBranch, Entry entry, ImHashMap<K, V> right) : base(leftBranch, entry, right) {}
+            public LeftyBranch3(ImHashMap<K, V> leftBranch, Entry entry, ImHashMap<K, V> right) : base(leftBranch, entry, right)
+            {
+                Debug.Assert(leftBranch is Branch2, $"Left:{leftBranch} is Branch2");
+            }
 
 #if !DEBUG
-            /// <inheritdoc />
             public override string ToString() => "{LB3: {"  + base.ToString() + "}";
 #endif
 
@@ -3934,9 +3977,9 @@ namespace ImTools
                     mh = l.MidEntry.Hash;
                     return hash > mh ? l.Right.GetEntryOrDefault(hash) 
                         :  hash < mh ? l.Left .GetEntryOrDefault(hash) 
-                        :  l.MidEntry is RemovedEntry ? null : l.MidEntry;
+                        :  l.MidEntry;
                 }
-                return MidEntry is RemovedEntry ? null : MidEntry;
+                return MidEntry;
             }
 
             internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
@@ -3981,11 +4024,7 @@ namespace ImTools
                     return new LeftyBranch3(new Branch2(lb.Left, lb.MidEntry, newMiddle), MidEntry, Right);
                 }
 
-                var e0 = lb.MidEntry;
-                var e1 = MidEntry;
-                return hash == h0
-                    ? (e0 is RemovedEntry ? new LeftyBranch3(new Branch2(lb.Left, entry, lb.Right), e1, Right) : (ImHashMap<K, V>)e0)
-                    : (e1 is RemovedEntry ? new LeftyBranch3(lb, entry, Right) : (ImHashMap<K, V>)e1);
+                return hash == h0 ? lb.MidEntry : MidEntry;
             }
 
             internal override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry)
@@ -3998,11 +4037,108 @@ namespace ImTools
 
             internal override ImHashMap<K, V> RemoveEntry(Entry removedEntry)
             {
-                var hash = removedEntry.Hash;
-                var h = MidEntry.Hash;
-                return hash > h ? new LeftyBranch3(Left, MidEntry, Right.RemoveEntry(removedEntry))
-                    :  hash < h ? new LeftyBranch3(Left.RemoveEntry(removedEntry), MidEntry, Right)
-                    :  new LeftyBranch3(Left, new RemovedEntry(hash), Right);
+                var lb = (Branch2)Left;
+                var left     = lb.Left;
+                var midLeft  = lb.MidEntry;
+                var middle   = lb.Right;
+                var midRight = MidEntry;
+                var right    = Right;
+
+                // case 1, downward: swap the predecessor entry (max left entry) with the mid entry, then proceed to remove the predecessor from the Left branch
+                if (removedEntry == midLeft)
+                    removedEntry  = midLeft = left.GetMaxHashEntryOrDefault();
+
+                if (removedEntry.Hash <= midLeft.Hash) // `<=` here is because of check on the above line
+                {
+                    var newLeft = left.RemoveEntry(removedEntry);
+                    if (newLeft == Empty)
+                    {
+                        if (middle is Leaf2Plus1Plus1 == false) 
+                            return new Branch2(middle.AddOrGetEntry(midLeft.Hash, midLeft), midRight, right); //! the height does not change
+                        return new RightyBranch3(midLeft, removedEntry = middle.GetMinHashEntryOrDefault(), new Branch2(middle.RemoveEntry(removedEntry), midRight, right)); //! the height does not change
+                    }
+
+                    // rebalance is needed because the branch was merged from Br2 to Br3 or to Leaf and the height decrease
+                    if (left.GetType() == typeof(Branch2) && newLeft.GetType() != typeof(Branch2))
+                    {
+                        // the hole has a 3-node as a parent and a 3-node as a sibling.
+                        if (middle is LeftyBranch3 leftyMiddle) //! the height does not change
+                        {
+                            var mlb = (Branch2)leftyMiddle.Left;
+                            return new RightyBranch3(new Branch2(newLeft, midLeft, mlb.Left), mlb.MidEntry, new Branch2(new Branch2(mlb.Right, leftyMiddle.MidEntry, leftyMiddle.Right), midRight, right));
+                        }
+
+                        // the hole has a 3-node as a parent and a 3-node as a sibling.
+                        if (middle is RightyBranch3 rightyMiddle) //! the height does not change
+                            return new RightyBranch3(new Branch2(newLeft, midLeft, rightyMiddle.Left), rightyMiddle.MidEntry, new Branch2(rightyMiddle.Right, midRight, right));
+
+                        // the hole has a 3-node as a parent and a 2-node as a sibling.
+                        return new Branch2(new RightyBranch3(newLeft, midLeft, middle), midRight, right);
+                    }
+
+                    return new LeftyBranch3(new Branch2(newLeft, midLeft, middle), midRight, Right); // no rebalance needed
+                }
+
+                if (removedEntry == midRight)
+                    removedEntry = midRight = middle.GetMaxHashEntryOrDefault();
+
+                if (removedEntry.Hash <= midRight.Hash) // `<=` here is because of check on the above line
+                {
+                    var newMiddle = middle.RemoveEntry(removedEntry);
+                    if (newMiddle == Empty)
+                    {
+                        if (right is Leaf2Plus1Plus1 == false)
+                            return new Branch2(left, midLeft, right.AddOrGetEntry(midLeft.Hash, midLeft)); // the Br3 become the Br2 but the height did not change - so no rebalance needed
+                        return new LeftyBranch3(new Branch2(left, midLeft, midRight), removedEntry = right.GetMinHashEntryOrDefault(), right.RemoveEntry(removedEntry)); //! the height does not change
+                    }
+
+                    if (middle.GetType() == typeof(Branch2) && newMiddle.GetType() != typeof(Branch2))
+                    {
+                        // the hole has a 3-node as a parent and a 3-node as a sibling.
+                        if (right is LeftyBranch3 leftyRight) //! the height does not change
+                        {
+                            var rlb = (Branch2)leftyRight.Left;
+                            return new RightyBranch3(left, midLeft, new Branch2(new Branch2(newMiddle, midRight, rlb.Left), rlb.MidEntry, new Branch2(rlb.Right, leftyRight.MidEntry, leftyRight.Right)));
+                        }
+
+                        // the hole has a 3-node as a parent and a 3-node as a sibling.
+                        if (right is RightyBranch3 rightyRight) //! the height does not change
+                            return new RightyBranch3(left, midLeft, new Branch2(new Branch2(newMiddle, midRight, rightyRight.Left), rightyRight.MidEntry, rightyRight.Right));
+
+                        // the hole has a 3-node as a parent and a 2-node as a sibling.
+                        return new Branch2(left, midLeft, new RightyBranch3(newMiddle, midRight, right));
+                    }
+
+                    return new LeftyBranch3(new Branch2(left, midLeft, newMiddle), midRight, right);
+                }
+
+                var newRight = right.RemoveEntry(removedEntry);
+                if (newRight == Empty)
+                {
+                    if (middle is Leaf2Plus1Plus1 == false)
+                        return new Branch2(left, midLeft, middle.AddOrGetEntry(midRight.Hash, midRight));
+                    return new RightyBranch3(left, midLeft, new Branch2(middle.RemoveEntry(removedEntry = middle.GetMaxHashEntryOrDefault()), removedEntry, midRight));
+                }
+
+                // right was a Br2 but now is Leaf or Br3 - means the branch height is decrease
+                if (right.GetType() == typeof(Branch2) && newRight.GetType() != typeof(Branch2))
+                {
+                    // the hole has a 3-node as a parent and a 3-node as a sibling.
+                    if (middle is LeftyBranch3 leftyMiddle) //! the height does not change
+                        return new RightyBranch3(left, midLeft, new Branch2(leftyMiddle.Left, leftyMiddle.MidEntry, new Branch2(leftyMiddle.Right, midRight, newRight)));
+
+                    // the hole has a 3-node as a parent and a 3-node as a sibling.new
+                    if (middle is RightyBranch3 rightyMiddle) //! the height does not change
+                    {
+                        var rrb = (Branch2)rightyMiddle.Right;
+                        return new RightyBranch3(left, midLeft, new Branch2(new Branch2(rightyMiddle.Left, rightyMiddle.MidEntry, rrb.Left), rrb.MidEntry, new Branch2(rrb.Right, midRight, newRight)));
+                    }
+
+                    // the hole has a 3-node as a parent and a 2-node as a sibling.
+                    return new Branch2(left, midLeft, new LeftyBranch3(middle, midRight, newRight));
+                }
+
+                return new LeftyBranch3(Left, midRight, newRight);
             }
         }
     }
