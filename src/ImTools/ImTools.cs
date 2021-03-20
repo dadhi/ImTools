@@ -2936,18 +2936,6 @@ namespace ImTools
         /// <summary>Empty map to start with. Exists as a single instance.</summary>
         public static readonly ImHashMap<K, V> Empty = new ImHashMap<K, V>();
 
-        /// <summary>Creates the map out of the entries in the final shape without wasting the memory</summary>
-        public static ImHashMap<K, V> Create(ImHashMapEntry<K, V> e0, ImHashMapEntry<K, V> e1) => 
-            e0.Hash < e1.Hash ? new Leaf2(e0, e1) : new Leaf2(e0, e1);
-
-        /// <summary>Creates the map out of the entries in the final shape without wasting the memory</summary>
-        public static ImHashMap<K, V> Create(ImHashMapEntry<K, V> e0, ImHashMapEntry<K, V> e1, ImHashMapEntry<K, V> e2) => 
-            new Leaf2Plus1(e2, (Leaf2)Create(e0, e1));
-
-        /// <summary>Creates the map out of the entries in the final shape without wasting the memory</summary>
-        public static ImHashMap<K, V> Create(ImHashMapEntry<K, V> e0, ImHashMapEntry<K, V> e1, ImHashMapEntry<K, V> e2, ImHashMapEntry<K, V> e3) => 
-            new Leaf2Plus1Plus1(e3, new Leaf2Plus1(e2, (Leaf2)Create(e0, e1)));
-
         /// <summary>Prints the map tree in JSON-ish format in release mode and enumerates the keys in DEBUG.</summary>
         public override string ToString()
         {
@@ -4190,18 +4178,6 @@ namespace ImTools
         /// <summary>Empty map to start with. Exists as a single instance.</summary>
         public static readonly ImMap<V> Empty = new ImMap<V>();
 
-        /// <summary>Creates the map out of the entries in the final shape without wasting the memory</summary>
-        public static ImMap<V> Create(ImMapEntry<V> e0, ImMapEntry<V> e1) => 
-            e0.Hash < e1.Hash ? new Leaf2(e0, e1) : new Leaf2(e0, e1);
-
-        /// <summary>Creates the map out of the entries in the final shape without wasting the memory</summary>
-        public static ImMap<V> Create(ImMapEntry<V> e0, ImMapEntry<V> e1, ImMapEntry<V> e2) => 
-            new Leaf2Plus1(e2, (Leaf2)Create(e0, e1));
-
-        /// <summary>Creates the map out of the entries in the final shape without wasting the memory</summary>
-        public static ImMap<V> Create(ImMapEntry<V> e0, ImMapEntry<V> e1, ImMapEntry<V> e2, ImMapEntry<V> e3) => 
-            new Leaf2Plus1Plus1(e3, new Leaf2Plus1(e2, (Leaf2)Create(e0, e1)));
-
         /// <summary>Prints the map tree in JSON-ish format in release mode and enumerates the keys in DEBUG.</summary>
         public override string ToString() 
         {
@@ -5391,6 +5367,18 @@ namespace ImTools
     /// <summary>The map methods</summary>
     public static class ImHashMap
     {
+        /// <summary>Creates the map out of the entries in the final shape without wasting the memory</summary>
+        public static ImHashMap<K, V> Create<K, V>(ImHashMapEntry<K, V> e0, ImHashMapEntry<K, V> e1) => 
+            e0.Hash < e1.Hash ? new ImHashMap<K, V>.Leaf2(e0, e1) : new ImHashMap<K, V>.Leaf2(e0, e1);
+
+        /// <summary>Creates the map out of the entries in the final shape without wasting the memory</summary>
+        public static ImHashMap<K, V> Create<K, V>(ImHashMapEntry<K, V> e0, ImHashMapEntry<K, V> e1, ImHashMapEntry<K, V> e2) => 
+            new ImHashMap<K, V>.Leaf2Plus1(e2, (ImHashMap<K, V>.Leaf2)Create(e0, e1));
+
+        /// <summary>Creates the map out of the entries in the final shape without wasting the memory</summary>
+        public static ImHashMap<K, V> Create<K, V>(ImHashMapEntry<K, V> e0, ImHashMapEntry<K, V> e1, ImHashMapEntry<K, V> e2, ImHashMapEntry<K, V> e3) => 
+            new ImHashMap<K, V>.Leaf2Plus1Plus1(e3, new ImHashMap<K, V>.Leaf2Plus1(e2, (ImHashMap<K, V>.Leaf2)Create(e0, e1)));
+
         /// <summary>Enumerates all the map entries in the hash order.
         /// The `parents` parameter allow sto reuse the stack memory used for traversal between multiple enumerates.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent `Enumerate` calls</summary>
@@ -6349,6 +6337,18 @@ namespace ImTools
     /// <summary>The map methods</summary>
     public static class ImMap
     {
+        /// <summary>Creates the map out of the entries in the final shape without wasting the memory</summary>
+        public static ImMap<V> Create<V>(ImMapEntry<V> e0, ImMapEntry<V> e1) => 
+            e0.Hash < e1.Hash ? new ImMap<V>.Leaf2(e0, e1) : new ImMap<V>.Leaf2(e0, e1);
+
+        /// <summary>Creates the map out of the entries in the final shape without wasting the memory</summary>
+        public static ImMap<V> Create<V>(ImMapEntry<V> e0, ImMapEntry<V> e1, ImMapEntry<V> e2) => 
+            new ImMap<V>.Leaf2Plus1(e2, (ImMap<V>.Leaf2)Create(e0, e1));
+
+        /// <summary>Creates the map out of the entries in the final shape without wasting the memory</summary>
+        public static ImMap<V> Create<V>(ImMapEntry<V> e0, ImMapEntry<V> e1, ImMapEntry<V> e2, ImMapEntry<V> e3) => 
+            new ImMap<V>.Leaf2Plus1Plus1(e3, new ImMap<V>.Leaf2Plus1(e2, (ImMap<V>.Leaf2)Create(e0, e1)));
+
         /// <summary>Enumerates all the map entries in the hash order.
         /// `parents` parameter allows to reuse the stack memory used for traversal between multiple enumerates.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent `Enumerate` calls</summary>
