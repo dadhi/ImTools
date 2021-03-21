@@ -5611,7 +5611,7 @@ namespace ImTools
         /// Depth-first in-order of hash traversal as described in http://en.wikipedia.org/wiki/Tree_traversal.
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
-        public static S Each<K, V, S>(this ImHashMap<K, V> map, S state, Action<ImHashMapEntry<K, V>, int, S> handler, ThreadUnsafeStack<ImHashMap<K, V>> parents = null)
+        public static S ForEach<K, V, S>(this ImHashMap<K, V> map, S state, Action<ImHashMapEntry<K, V>, int, S> handler, ThreadUnsafeStack<ImHashMap<K, V>> parents = null)
         {
             if (map == ImHashMap<K, V>.Empty)
                 return state;
@@ -5840,24 +5840,24 @@ namespace ImTools
         /// <summary>Do something for each entry.
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
-        public static void Each<K, V>(this ImHashMap<K, V> map, Action<ImHashMapEntry<K, V>, int> handler, ThreadUnsafeStack<ImHashMap<K, V>> parents = null) =>
-            map.Each(handler, (e, i, r) => r(e, i));
+        public static void ForEach<K, V>(this ImHashMap<K, V> map, Action<ImHashMapEntry<K, V>, int> handler, ThreadUnsafeStack<ImHashMap<K, V>> parents = null) =>
+            map.ForEach(handler, (e, i, r) => r(e, i));
 
         /// <summary>Collect something for each entry.
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
         public static S Fold<K, V, S>(this ImHashMap<K, V> map, S state, Func<ImHashMapEntry<K, V>, int, S, S> handler, ThreadUnsafeStack<ImHashMap<K, V>> parents = null) =>
-            map.Each(St.Rent(state, handler), (e, i, s) => s.a = s.b(e, i, s.a)).ResetButGetA();
+            map.ForEach(St.Rent(state, handler), (e, i, s) => s.a = s.b(e, i, s.a)).ResetButGetA();
 
         /// <summary>Converts map to an array with the minimum allocations</summary>
         public static S[] ToArray<K, V, S>(this ImHashMap<K, V> map, Func<ImHashMapEntry<K, V>, S> selector, ThreadUnsafeStack<ImHashMap<K, V>> parents = null) =>
             map == ImHashMap<K, V>.Empty ? ArrayTools.Empty<S>() : 
-                map.Each(St.Rent(new S[map.Count()], selector), (e, i, s) => s.a[i] = s.b(e), parents).ResetButGetA();
+                map.ForEach(St.Rent(new S[map.Count()], selector), (e, i, s) => s.a[i] = s.b(e), parents).ResetButGetA();
 
         /// <summary>Converts the map to the dictionary</summary>
         public static Dictionary<K, V> ToDictionary<K, V>(this ImHashMap<K, V> map, ThreadUnsafeStack<ImHashMap<K, V>> parents = null) =>
             map == ImHashMap<K, V>.Empty ? new Dictionary<K, V>(0) :
-                map.Each(new Dictionary<K, V>(), (e, _, d) => d.Add(e.Key, e.Value), parents);
+                map.ForEach(new Dictionary<K, V>(), (e, _, d) => d.Add(e.Key, e.Value), parents);
 
         /// <summary>Get the key value entry if the hash and key is in the map or the default `null` value otherwise.</summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -6551,7 +6551,7 @@ namespace ImTools
         /// <summary>Depth-first in-order of hash traversal as described in http://en.wikipedia.org/wiki/Tree_traversal.
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
-        public static S Each<V, S>(this ImMap<V> map, S state, Action<ImMapEntry<V>, int, S> handler, ThreadUnsafeStack<ImMap<V>> parents = null)
+        public static S ForEach<V, S>(this ImMap<V> map, S state, Action<ImMapEntry<V>, int, S> handler, ThreadUnsafeStack<ImMap<V>> parents = null)
         {
             if (map == ImMap<V>.Empty)
                 return state;
@@ -6752,24 +6752,24 @@ namespace ImTools
         /// <summary>Do something for each entry.
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
-        public static void Each<V>(this ImMap<V> map, Action<ImMapEntry<V>, int> handler, ThreadUnsafeStack<ImMap<V>> parents = null) =>
-            map.Each(handler, (e, i, r) => r(e, i));
+        public static void ForEach<V>(this ImMap<V> map, Action<ImMapEntry<V>, int> handler, ThreadUnsafeStack<ImMap<V>> parents = null) =>
+            map.ForEach(handler, (e, i, r) => r(e, i));
 
         /// <summary>Collect something for each entry.
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
         public static S Fold<V, S>(this ImMap<V> map, S state, Func<ImMapEntry<V>, int, S, S> handler, ThreadUnsafeStack<ImMap<V>> parents = null) =>
-            map.Each(St.Rent(state, handler), (e, i, s) => s.a = s.b(e, i, s.a)).ResetButGetA();
+            map.ForEach(St.Rent(state, handler), (e, i, s) => s.a = s.b(e, i, s.a)).ResetButGetA();
 
         /// <summary>Converts the map to an array with the minimum allocations</summary>
         public static S[] ToArray<V, S>(this ImMap<V> map, Func<ImMapEntry<V>, S> selector, ThreadUnsafeStack<ImMap<V>> parents = null) =>
             map == ImMap<V>.Empty ? ArrayTools.Empty<S>() :
-                map.Each(St.Rent(new S[map.Count()], selector), (e, i, s) => s.a[i] = s.b(e), parents).ResetButGetA();
+                map.ForEach(St.Rent(new S[map.Count()], selector), (e, i, s) => s.a[i] = s.b(e), parents).ResetButGetA();
 
         /// <summary>Converts the map to the dictionary</summary>
         public static Dictionary<int, V> ToDictionary<V>(this ImMap<V> map, ThreadUnsafeStack<ImMap<V>> parents = null) =>
             map == ImMap<V>.Empty ? new Dictionary<int, V>(0) :
-                map.Each(new Dictionary<int, V>(), (e, _, d) => d.Add(e.Hash, e.Value), parents);
+                map.ForEach(new Dictionary<int, V>(), (e, _, d) => d.Add(e.Hash, e.Value), parents);
 
         /// <summary>Returns the entry ASSUMING it is present otherwise its behavior is UNDEFINED.
         /// You can use the method after the Add and Update methods on the same map instance - because the map is immutable it is for sure contains added or updated entry.</summary>
@@ -7051,7 +7051,7 @@ namespace ImTools
         /// <summary>Do something for each entry.
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
-        public static S Each<K, V, S>(this ImHashMap<K, V>[] parts, S state, Action<ImHashMapEntry<K, V>, int, S> handler, 
+        public static S ForEach<K, V, S>(this ImHashMap<K, V>[] parts, S state, Action<ImHashMapEntry<K, V>, int, S> handler, 
             ThreadUnsafeStack<ImHashMap<K, V>> parents = null)
         {
             if (parents == null)
@@ -7060,7 +7060,7 @@ namespace ImTools
             {
                 if (map == ImHashMap<K, V>.Empty)
                     continue;
-                state = map.Each(state, handler, parents);
+                state = map.ForEach(state, handler, parents);
             }
             return state;
         }
@@ -7178,7 +7178,7 @@ namespace ImTools
         /// <summary>Do something for each entry.
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
-        public static S Each<V, S>(this ImMap<V>[] parts, S state, Action<ImMapEntry<V>, int, S> handler, ThreadUnsafeStack<ImMap<V>> parents = null)
+        public static S ForEach<V, S>(this ImMap<V>[] parts, S state, Action<ImMapEntry<V>, int, S> handler, ThreadUnsafeStack<ImMap<V>> parents = null)
         {
             if (parents == null)
                 parents = new ThreadUnsafeStack<ImMap<V>>();
@@ -7186,7 +7186,7 @@ namespace ImTools
             {
                 if (map == ImMap<V>.Empty)
                     continue;
-                state = map.Each(state, handler, parents);
+                state = map.ForEach(state, handler, parents);
             }
             return state;
         }
