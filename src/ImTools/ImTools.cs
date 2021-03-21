@@ -2905,20 +2905,17 @@ namespace ImTools
     }
 
     /// <summary>The composite containing the list of entries with the same conflicting Hash.</summary>
-    public sealed class HashConflictKeyValuesEntry<K, V> : ImHashMap<K, V>.Entry
+    internal sealed class HashConflictingEntry<K, V> : ImHashMap<K, V>.Entry
     {
-        /// <summary>The 2 and more conflicts.</summary>
         public ImHashMapEntry<K, V>[] Conflicts;
-        internal HashConflictKeyValuesEntry(int hash, params ImHashMapEntry<K, V>[] conflicts) : base(hash) => Conflicts = conflicts;
+        internal HashConflictingEntry(int hash, params ImHashMapEntry<K, V>[] conflicts) : base(hash) => Conflicts = conflicts;
 
-        /// <inheritdoc />
         public override int Count() => Conflicts.Length;
 
 #if !DEBUG
-        /// <inheritdoc />
         public override string ToString()
         {
-            var sb = new System.Text.StringBuilder("HashConflictingKVE: [");
+            var sb = new System.Text.StringBuilder("HashConflictingEntry: [");
             foreach (var x in Conflicts) 
                 sb.Append(x.ToString()).Append(", ");
             return sb.Append("]").ToString();
@@ -2931,7 +2928,7 @@ namespace ImTools
     public class ImHashMap<K, V>
     {
         /// <summary>Hide the base constructor to prevent the multiple Empty trees creation</summary>
-        protected ImHashMap() { } // todo: @perf does the call to empty constructor hurt the perf?
+        protected ImHashMap() { }
 
         /// <summary>Empty map to start with. Exists as a single instance.</summary>
         public static readonly ImHashMap<K, V> Empty = new ImHashMap<K, V>();
@@ -2943,8 +2940,8 @@ namespace ImTools
             // for the debug purposes we just output the first N keys in array
             const int n = 50;
             var count = this.Count();
-            var hashes = this.Enumerate().Take(n).Select(x => x.Hash).ToList();
-            return $"{{hashes: new int[{(count > n ? $"{n}/{count}" : "" + count)}] {{{(string.Join(", ", hashes))}}}}}";
+            var keys = this.Enumerate().Take(n).Select(x => x.Key).ToList();
+            return $"{{keys: new int[{(count > n ? $"{n}/{count}" : "" + count)}] {{{(string.Join(", ", keys))}}}}}";
 #else
             return "{}";
 #endif
@@ -2978,7 +2975,6 @@ namespace ImTools
         {
             /// <summary>The Hash</summary>
             public readonly int Hash;
-
             /// <summary>Constructs the entry with the hash</summary>
             protected Entry(int hash) => Hash = hash;
 
@@ -5389,7 +5385,7 @@ namespace ImTools
             if (map is ImHashMap<K, V>.Entry e)
             {
                 if (e is ImHashMapEntry<K, V> v) yield return v;
-                else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e).Conflicts) yield return c;
+                else foreach (var c in ((HashConflictingEntry<K, V>)e).Conflicts) yield return c;
                 yield break;
             }
 
@@ -5408,9 +5404,9 @@ namespace ImTools
                 if (map is ImHashMap<K, V>.Leaf2 l2)
                 {
                     if (l2.Entry0 is ImHashMapEntry<K, V> v0) yield return v0;
-                    else if (l2.Entry0 != null) foreach (var c in ((HashConflictKeyValuesEntry<K, V>)l2.Entry0).Conflicts) yield return c;
+                    else if (l2.Entry0 != null) foreach (var c in ((HashConflictingEntry<K, V>)l2.Entry0).Conflicts) yield return c;
                     if (l2.Entry1 is ImHashMapEntry<K, V> v1) yield return v1;
-                    else if (l2.Entry1 != null) foreach (var c in ((HashConflictKeyValuesEntry<K, V>)l2.Entry1).Conflicts) yield return c;
+                    else if (l2.Entry1 != null) foreach (var c in ((HashConflictingEntry<K, V>)l2.Entry1).Conflicts) yield return c;
                 }
                 else if (map is ImHashMap<K, V>.Leaf2Plus1 l21)
                 {
@@ -5428,11 +5424,11 @@ namespace ImTools
                     }
 
                     if (e0 is ImHashMapEntry<K, V> v0) yield return v0;
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e0).Conflicts) yield return c;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e0).Conflicts) yield return c;
                     if (e1 is ImHashMapEntry<K, V> v1) yield return v1;
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e1).Conflicts) yield return c;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e1).Conflicts) yield return c;
                     if (p  is ImHashMapEntry<K, V> v2) yield return v2;
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)p ).Conflicts) yield return c;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)p ).Conflicts) yield return c;
                 }
                 else if (map is ImHashMap<K, V>.Leaf2Plus1Plus1 l211)
                 {
@@ -5465,26 +5461,26 @@ namespace ImTools
                     }
 
                     if (e0 is ImHashMapEntry<K, V> v0) yield return v0;
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e0).Conflicts) yield return c;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e0).Conflicts) yield return c;
                     if (e1 is ImHashMapEntry<K, V> v1) yield return v1;
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e1).Conflicts) yield return c;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e1).Conflicts) yield return c;
                     if (pp is ImHashMapEntry<K, V> v2) yield return v2;
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)pp).Conflicts) yield return c;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)pp).Conflicts) yield return c;
                     if (p  is ImHashMapEntry<K, V> v3) yield return v3;
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)p).Conflicts)  yield return c;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)p).Conflicts)  yield return c;
                 }
                 else if (map is ImHashMap<K, V>.Leaf5 l5)
                 {
                     if (l5.Entry0 is ImHashMapEntry<K, V> v0) yield return v0;
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)l5.Entry0).Conflicts) yield return c;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)l5.Entry0).Conflicts) yield return c;
                     if (l5.Entry1 is ImHashMapEntry<K, V> v1) yield return v1;
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)l5.Entry1).Conflicts) yield return c;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)l5.Entry1).Conflicts) yield return c;
                     if (l5.Entry2 is ImHashMapEntry<K, V> v2) yield return v2;
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)l5.Entry2).Conflicts) yield return c;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)l5.Entry2).Conflicts) yield return c;
                     if (l5.Entry3 is ImHashMapEntry<K, V> v3) yield return v3;
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)l5.Entry3).Conflicts) yield return c;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)l5.Entry3).Conflicts) yield return c;
                     if (l5.Entry4 is ImHashMapEntry<K, V> v4) yield return v4;
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)l5.Entry4).Conflicts) yield return c;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)l5.Entry4).Conflicts) yield return c;
                 }
                 else if (map is ImHashMap<K, V>.Leaf5Plus1 l51)
                 {
@@ -5514,17 +5510,17 @@ namespace ImTools
                     }
 
                     if (e0 is ImHashMapEntry<K, V> v0) yield return v0;
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e0).Conflicts) yield return c;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e0).Conflicts) yield return c;
                     if (e1 is ImHashMapEntry<K, V> v1) yield return v1;
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e1).Conflicts) yield return c;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e1).Conflicts) yield return c;
                     if (e2 is ImHashMapEntry<K, V> v2) yield return v2;
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e2).Conflicts) yield return c;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e2).Conflicts) yield return c;
                     if (e3 is ImHashMapEntry<K, V> v3) yield return v3;
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e3).Conflicts) yield return c;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e3).Conflicts) yield return c;
                     if (e4 is ImHashMapEntry<K, V> v4) yield return v4;
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e4).Conflicts) yield return c;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e4).Conflicts) yield return c;
                     if (p  is ImHashMapEntry<K, V> v5) yield return v5;
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)p).Conflicts)  yield return c;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)p).Conflicts)  yield return c;
                 }
                 else if (map is ImHashMap<K, V>.Leaf5Plus1Plus1 l511)
                 {
@@ -5580,19 +5576,19 @@ namespace ImTools
                     }
 
                     if (e0 is ImHashMapEntry<K, V> v0) yield return v0;
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e0).Conflicts) yield return c;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e0).Conflicts) yield return c;
                     if (e1 is ImHashMapEntry<K, V> v1) yield return v1;
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e1).Conflicts) yield return c;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e1).Conflicts) yield return c;
                     if (e2 is ImHashMapEntry<K, V> v2) yield return v2;
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e2).Conflicts) yield return c;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e2).Conflicts) yield return c;
                     if (e3 is ImHashMapEntry<K, V> v3) yield return v3;
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e3).Conflicts) yield return c;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e3).Conflicts) yield return c;
                     if (e4 is ImHashMapEntry<K, V> v4) yield return v4;
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e4).Conflicts) yield return c;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e4).Conflicts) yield return c;
                     if (pp is ImHashMapEntry<K, V> v5) yield return v5;
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)pp).Conflicts) yield return c;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)pp).Conflicts) yield return c;
                     if (p  is ImHashMapEntry<K, V> v6) yield return v6;
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)p).Conflicts)  yield return c;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)p).Conflicts)  yield return c;
                 }
 
                 if (count == 0)
@@ -5601,7 +5597,7 @@ namespace ImTools
                 var pb2 = (ImHashMap<K, V>.Branch2)parents.Get(--count); // otherwise get the parent
                 if (pb2.MidEntry is ImHashMapEntry<K, V> v)
                     yield return v;
-                else if (pb2.MidEntry is HashConflictKeyValuesEntry<K, V> hkv) foreach (var c in hkv.Conflicts)
+                else if (pb2.MidEntry is HashConflictingEntry<K, V> hkv) foreach (var c in hkv.Conflicts)
                     yield return c;
                 map = pb2.Right;
             }
@@ -5619,7 +5615,7 @@ namespace ImTools
             if (map is ImHashMap<K, V>.Entry e)
             {
                 if (e is ImHashMapEntry<K, V> kv) handler(kv, 0, state);
-                else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e).Conflicts) handler(c, i++, state);
+                else foreach (var c in ((HashConflictingEntry<K, V>)e).Conflicts) handler(c, i++, state);
                 return state;
             }
 
@@ -5638,9 +5634,9 @@ namespace ImTools
                 if (map is ImHashMap<K, V>.Leaf2 l2)
                 {
                     if (l2.Entry0 is ImHashMapEntry<K, V> v0) handler(v0, i++, state);
-                    else if (l2.Entry0 != null) foreach (var c in ((HashConflictKeyValuesEntry<K, V>)l2.Entry0).Conflicts) handler(c, i++, state);
+                    else if (l2.Entry0 != null) foreach (var c in ((HashConflictingEntry<K, V>)l2.Entry0).Conflicts) handler(c, i++, state);
                     if (l2.Entry1 is ImHashMapEntry<K, V> v1) handler(v1, i++, state);
-                    else if (l2.Entry1 != null) foreach (var c in ((HashConflictKeyValuesEntry<K, V>)l2.Entry1).Conflicts) handler(c, i++, state);
+                    else if (l2.Entry1 != null) foreach (var c in ((HashConflictingEntry<K, V>)l2.Entry1).Conflicts) handler(c, i++, state);
                 }
                 else if (map is ImHashMap<K, V>.Leaf2Plus1 l21)
                 {
@@ -5658,11 +5654,11 @@ namespace ImTools
                     }
 
                     if (e0 is ImHashMapEntry<K, V> v0) handler(v0, i++, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e0).Conflicts) handler(c, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e0).Conflicts) handler(c, i++, state);
                     if (e1 is ImHashMapEntry<K, V> v1) handler(v1, i++, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e1).Conflicts) handler(c, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e1).Conflicts) handler(c, i++, state);
                     if (p  is ImHashMapEntry<K, V> v2) handler(v2, i++, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)p ).Conflicts) handler(c, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)p ).Conflicts) handler(c, i++, state);
                 }
                 else if (map is ImHashMap<K, V>.Leaf2Plus1Plus1 l211)
                 {
@@ -5695,26 +5691,26 @@ namespace ImTools
                     }
 
                     if (e0 is ImHashMapEntry<K, V> v0) handler(v0, i++, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e0).Conflicts) handler(c, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e0).Conflicts) handler(c, i++, state);
                     if (e1 is ImHashMapEntry<K, V> v1) handler(v1, i++, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e1).Conflicts) handler(c, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e1).Conflicts) handler(c, i++, state);
                     if (pp is ImHashMapEntry<K, V> v2) handler(v2, i++, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)pp).Conflicts) handler(c, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)pp).Conflicts) handler(c, i++, state);
                     if (p  is ImHashMapEntry<K, V> v3) handler(v3, i++, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)p).Conflicts)  handler(c, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)p).Conflicts)  handler(c, i++, state);
                 }
                 else if (map is ImHashMap<K, V>.Leaf5 l5)
                 {
                     if (l5.Entry0 is ImHashMapEntry<K, V> v0) handler(v0, i++, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)l5.Entry0).Conflicts) handler(c, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)l5.Entry0).Conflicts) handler(c, i++, state);
                     if (l5.Entry1 is ImHashMapEntry<K, V> v1) handler(v1, i++, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)l5.Entry1).Conflicts) handler(c, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)l5.Entry1).Conflicts) handler(c, i++, state);
                     if (l5.Entry2 is ImHashMapEntry<K, V> v2) handler(v2, i++, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)l5.Entry2).Conflicts) handler(c, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)l5.Entry2).Conflicts) handler(c, i++, state);
                     if (l5.Entry3 is ImHashMapEntry<K, V> v3) handler(v3, i++, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)l5.Entry3).Conflicts) handler(c, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)l5.Entry3).Conflicts) handler(c, i++, state);
                     if (l5.Entry4 is ImHashMapEntry<K, V> v4) handler(v4, i++, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)l5.Entry4).Conflicts) handler(c, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)l5.Entry4).Conflicts) handler(c, i++, state);
                 }
                 else if (map is ImHashMap<K, V>.Leaf5Plus1 l51)
                 {
@@ -5744,17 +5740,17 @@ namespace ImTools
                     }
 
                     if (e0 is ImHashMapEntry<K, V> v0) handler(v0, i++, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e0).Conflicts) handler(c, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e0).Conflicts) handler(c, i++, state);
                     if (e1 is ImHashMapEntry<K, V> v1) handler(v1, i++, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e1).Conflicts) handler(c, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e1).Conflicts) handler(c, i++, state);
                     if (e2 is ImHashMapEntry<K, V> v2) handler(v2, i++, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e2).Conflicts) handler(c, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e2).Conflicts) handler(c, i++, state);
                     if (e3 is ImHashMapEntry<K, V> v3) handler(v3, i++, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e3).Conflicts) handler(c, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e3).Conflicts) handler(c, i++, state);
                     if (e4 is ImHashMapEntry<K, V> v4) handler(v4, i++, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e4).Conflicts) handler(c, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e4).Conflicts) handler(c, i++, state);
                     if (p  is ImHashMapEntry<K, V> v5) handler(v5, i++, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)p).Conflicts)  handler(c, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)p).Conflicts)  handler(c, i++, state);
                 }
                 else if (map is ImHashMap<K, V>.Leaf5Plus1Plus1 l511)
                 {
@@ -5810,19 +5806,19 @@ namespace ImTools
                     }
 
                     if (e0 is ImHashMapEntry<K, V> v0) handler(v0, i++, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e0).Conflicts) handler(c, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e0).Conflicts) handler(c, i++, state);
                     if (e1 is ImHashMapEntry<K, V> v1) handler(v1, i++, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e1).Conflicts) handler(c, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e1).Conflicts) handler(c, i++, state);
                     if (e2 is ImHashMapEntry<K, V> v2) handler(v2, i++, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e2).Conflicts) handler(c, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e2).Conflicts) handler(c, i++, state);
                     if (e3 is ImHashMapEntry<K, V> v3) handler(v3, i++, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e3).Conflicts) handler(c, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e3).Conflicts) handler(c, i++, state);
                     if (e4 is ImHashMapEntry<K, V> v4) handler(v4, i++, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)e4).Conflicts) handler(c, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e4).Conflicts) handler(c, i++, state);
                     if (pp is ImHashMapEntry<K, V> v5) handler(v5, i++, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)pp).Conflicts) handler(c, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)pp).Conflicts) handler(c, i++, state);
                     if (p  is ImHashMapEntry<K, V> v6) handler(v6, i++, state);
-                    else foreach (var c in ((HashConflictKeyValuesEntry<K, V>)p).Conflicts)  handler(c, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)p).Conflicts)  handler(c, i++, state);
                 }
 
                 if (count == 0)
@@ -5830,7 +5826,7 @@ namespace ImTools
 
                 var pb2 = (ImHashMap<K, V>.Branch2)parents.Get(--count); // otherwise get the parent
                 if (pb2.MidEntry is ImHashMapEntry<K, V> kv) handler(kv, i++, state);
-                else if (pb2.MidEntry is HashConflictKeyValuesEntry<K, V> hkv) foreach (var c in hkv.Conflicts) handler(c, i++, state);
+                else if (pb2.MidEntry is HashConflictingEntry<K, V> hkv) foreach (var c in hkv.Conflicts) handler(c, i++, state);
                 map = pb2.Right;
             }
 
@@ -5868,7 +5864,7 @@ namespace ImTools
             if (e is ImHashMapEntry<K, V> kv)
                 return kv.Key.Equals(key) ? kv : null;
 
-            if (e is HashConflictKeyValuesEntry<K, V> hc)
+            if (e is HashConflictingEntry<K, V> hc)
                 foreach (var x in hc.Conflicts)
                     if (x.Key.Equals(key))
                         return x;
@@ -5895,7 +5891,7 @@ namespace ImTools
         public static ImHashMapEntry<K, V> GetSurePresentEntry<K, V>(this ImHashMap<K, V> map, int hash, K key)
         {
             var e = map.GetEntryOrDefault(hash);
-            if (e is HashConflictKeyValuesEntry<K, V> c)
+            if (e is HashConflictingEntry<K, V> c)
                 foreach (var x in c.Conflicts) 
                     if (x.Key.Equals(key))
                         return x;
@@ -5914,7 +5910,7 @@ namespace ImTools
                 if (kv.Key.Equals(key))
                     return kv.Value;
             }
-            else if (e is HashConflictKeyValuesEntry<K, V> hc)
+            else if (e is HashConflictingEntry<K, V> hc)
             {
                 foreach (var x in hc.Conflicts) 
                     if (x.Key.Equals(key))
@@ -5940,7 +5936,7 @@ namespace ImTools
                 if (kv.Key == key)
                     return kv.Value;
             }
-            else if (e is HashConflictKeyValuesEntry<K, V> hc)
+            else if (e is HashConflictingEntry<K, V> hc)
             {
                 foreach (var x in hc.Conflicts) 
                     if (x.Key == key)
@@ -5963,7 +5959,7 @@ namespace ImTools
                     return true;
                 }
             }
-            else if (e is HashConflictKeyValuesEntry<K, V> hc)
+            else if (e is HashConflictingEntry<K, V> hc)
             {
                 foreach (var x in hc.Conflicts) 
                     if (x.Key.Equals(key)) 
@@ -5991,7 +5987,7 @@ namespace ImTools
                     return true;
                 }
             }
-            else if (e is HashConflictKeyValuesEntry<K, V> hc)
+            else if (e is HashConflictingEntry<K, V> hc)
             {
                 foreach (var x in hc.Conflicts) 
                     if (x.Key == key) 
@@ -6024,9 +6020,9 @@ namespace ImTools
 
             if (oldEntryOrMap is ImHashMapEntry<K, V> kv)
                 return kv.Key.Equals(newEntry.Key) ? oldEntryOrMap 
-                    : map.ReplaceEntry(hash, kv, new HashConflictKeyValuesEntry<K, V>(hash, kv, newEntry));
+                    : map.ReplaceEntry(hash, kv, new HashConflictingEntry<K, V>(hash, kv, newEntry));
 
-            var hc = (HashConflictKeyValuesEntry<K, V>)oldEntryOrMap;
+            var hc = (HashConflictingEntry<K, V>)oldEntryOrMap;
             var cs = hc.Conflicts;
             var n = cs.Length;
             var i = n - 1;
@@ -6037,7 +6033,7 @@ namespace ImTools
             var newConflicts = new ImHashMapEntry<K, V>[n + 1];
             Array.Copy(cs, 0, newConflicts, 0, n);
             newConflicts[n] = newEntry;
-            return map.ReplaceEntry(hash, hc, new HashConflictKeyValuesEntry<K, V>(hash, newConflicts));
+            return map.ReplaceEntry(hash, hc, new HashConflictingEntry<K, V>(hash, newConflicts));
         }
 
         /// <summary>Adds or updates (no in-place mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
@@ -6074,9 +6070,9 @@ namespace ImTools
         {
             if (oldEntry is ImHashMapEntry<K, V> kv)
                 return kv.Key.Equals(newEntry.Key) ? newEntry 
-                     : (ImHashMap<K, V>.Entry)new HashConflictKeyValuesEntry<K, V>(oldEntry.Hash, kv, newEntry);
+                     : (ImHashMap<K, V>.Entry)new HashConflictingEntry<K, V>(oldEntry.Hash, kv, newEntry);
 
-            var hc = (HashConflictKeyValuesEntry<K, V>)oldEntry;
+            var hc = (HashConflictingEntry<K, V>)oldEntry;
             var key = newEntry.Key;
             var cs = hc.Conflicts;
             var n = cs.Length;
@@ -6086,7 +6082,7 @@ namespace ImTools
             Array.Copy(cs, 0, newConflicts, 0, n);
             newConflicts[i != -1 ? i : n] = newEntry;
 
-            return new HashConflictKeyValuesEntry<K, V>(oldEntry.Hash, newConflicts);
+            return new HashConflictingEntry<K, V>(oldEntry.Hash, newConflicts);
         }
 
         /// <summary>Adds or updates (no in-place mutation) the map with value by the passed key, always returning the NEW map!</summary>
@@ -6114,9 +6110,9 @@ namespace ImTools
             var key = newEntry.Key;
             if (oldEntry is ImHashMapEntry<K, V> kv)
                 return kv.Key.Equals(key) ? new ImHashMapEntry<K, V>(newEntry.Hash, key, update(key, kv.Value, newEntry.Value))
-                    : (ImHashMap<K, V>.Entry)new HashConflictKeyValuesEntry<K, V>(oldEntry.Hash, kv, newEntry);
+                    : (ImHashMap<K, V>.Entry)new HashConflictingEntry<K, V>(oldEntry.Hash, kv, newEntry);
 
-            var hc = (HashConflictKeyValuesEntry<K, V>)oldEntry;
+            var hc = (HashConflictingEntry<K, V>)oldEntry;
             var cs = hc.Conflicts;
             var n = cs.Length;
             var i = n - 1;
@@ -6129,7 +6125,7 @@ namespace ImTools
             else
                 newConflicts[n] = newEntry;
 
-            return new HashConflictKeyValuesEntry<K, V>(oldEntry.Hash, newConflicts);
+            return new HashConflictingEntry<K, V>(oldEntry.Hash, newConflicts);
         }
 
         /// <summary>Adds or updates (no in-place mutation) the map with value by the passed key, always returning the NEW map!</summary>
@@ -6147,7 +6143,7 @@ namespace ImTools
             if (entry is ImHashMapEntry<K, V> kv)
                 return kv.Key.Equals(key) ? map.ReplaceEntry(hash, entry, new ImHashMapEntry<K, V>(hash, key, value)) : map;
 
-            var hc = (HashConflictKeyValuesEntry<K, V>)entry;
+            var hc = (HashConflictingEntry<K, V>)entry;
             var cs = hc.Conflicts;
             var n = cs.Length;
             var i = n - 1;
@@ -6159,7 +6155,7 @@ namespace ImTools
             Array.Copy(cs, 0, newConflicts, 0, n);
             newConflicts[i] = new ImHashMapEntry<K, V>(hash, key, value);
 
-            return map.ReplaceEntry(hash, entry, new HashConflictKeyValuesEntry<K, V>(hash, newConflicts));
+            return map.ReplaceEntry(hash, entry, new HashConflictingEntry<K, V>(hash, newConflicts));
         }
 
         /// <summary>Updates the map with the new value if the key is found otherwise returns the same unchanged map.</summary>
@@ -6177,7 +6173,7 @@ namespace ImTools
             if (entry is ImHashMapEntry<K, V> kv)
                 return kv.Key.Equals(key) ? map.ReplaceEntry(hash, entry, new ImHashMapEntry<K, V>(hash, key)) : map;
 
-            var hc = (HashConflictKeyValuesEntry<K, V>)entry;
+            var hc = (HashConflictingEntry<K, V>)entry;
             var cs = hc.Conflicts;
             var n = cs.Length;
             var i = n - 1;
@@ -6187,7 +6183,7 @@ namespace ImTools
             var newConflicts = new ImHashMapEntry<K, V>[n];
             Array.Copy(cs, 0, newConflicts, 0, n);
             newConflicts[i] = new ImHashMapEntry<K, V>(hash, key);
-            return map.ReplaceEntry(hash, entry, new HashConflictKeyValuesEntry<K, V>(hash, newConflicts));
+            return map.ReplaceEntry(hash, entry, new HashConflictingEntry<K, V>(hash, newConflicts));
         }
 
         /// <summary>Updates the map with the new value if the key is found otherwise returns the same unchanged map.</summary>
@@ -6208,7 +6204,7 @@ namespace ImTools
                     ? map 
                     : map.ReplaceEntry(hash, entry, new ImHashMapEntry<K, V>(hash, key, value));
 
-            var hc = (HashConflictKeyValuesEntry<K, V>)entry;
+            var hc = (HashConflictingEntry<K, V>)entry;
             var cs = hc.Conflicts;
             var n = cs.Length;
             var i = n - 1;
@@ -6220,7 +6216,7 @@ namespace ImTools
             Array.Copy(cs, 0, newConflicts, 0, n);
             newConflicts[i] = new ImHashMapEntry<K, V>(hash, key, value);
 
-            return map.ReplaceEntry(hash, entry, new HashConflictKeyValuesEntry<K, V>(hash, newConflicts));
+            return map.ReplaceEntry(hash, entry, new HashConflictingEntry<K, V>(hash, newConflicts));
         }
 
         /// <summary>Updates the map with the new value and the `update` function if the key is found otherwise returns the same unchanged map.
@@ -6267,9 +6263,9 @@ namespace ImTools
         private static ImHashMap<K, V>.Entry KeepOrAddEntry<K, V>(ImHashMap<K, V>.Entry oldEntry, ImHashMapEntry<K, V> newEntry)
         {
             if (oldEntry is ImHashMapEntry<K, V> kv)
-                return kv.Key.Equals(newEntry.Key) ? oldEntry : (ImHashMap<K, V>.Entry)new HashConflictKeyValuesEntry<K, V>(oldEntry.Hash, kv, newEntry);
+                return kv.Key.Equals(newEntry.Key) ? oldEntry : (ImHashMap<K, V>.Entry)new HashConflictingEntry<K, V>(oldEntry.Hash, kv, newEntry);
 
-            var hc = (HashConflictKeyValuesEntry<K, V>)oldEntry;
+            var hc = (HashConflictingEntry<K, V>)oldEntry;
             var key  = newEntry.Key;
             var cs = hc.Conflicts;
             var n = cs.Length;
@@ -6282,7 +6278,7 @@ namespace ImTools
             Array.Copy(cs, 0, newConflicts, 0, n);
             newConflicts[n] = newEntry;
 
-            return new HashConflictKeyValuesEntry<K, V>(oldEntry.Hash, newConflicts);
+            return new HashConflictingEntry<K, V>(oldEntry.Hash, newConflicts);
         }
 
         /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
@@ -6298,7 +6294,7 @@ namespace ImTools
             if (entryToRemove is ImHashMapEntry<K, V>)
                 return map.RemoveEntry(entryToRemove);
 
-            if (entryToRemove is HashConflictKeyValuesEntry<K, V> hc)
+            if (entryToRemove is HashConflictingEntry<K, V> hc)
             {
                 var entryToReplace = RemoveEntryToReplaceOrDefault(hc, key);
                 return entryToReplace == null ? map : map.ReplaceEntry(hash, entryToRemove, entryToReplace);
@@ -6307,7 +6303,7 @@ namespace ImTools
             return map;
         }
 
-        private static ImHashMap<K, V>.Entry RemoveEntryToReplaceOrDefault<K, V>(HashConflictKeyValuesEntry<K, V> hc, K key)
+        private static ImHashMap<K, V>.Entry RemoveEntryToReplaceOrDefault<K, V>(HashConflictingEntry<K, V> hc, K key)
         {
             var cs = hc.Conflicts;
             var n = cs.Length;
@@ -6322,7 +6318,7 @@ namespace ImTools
                     Array.Copy(cs, 0, newConflicts, 0, i);
                 if (i < n) // copy the 2nd part
                     Array.Copy(cs, i + 1, newConflicts, i, n - i);
-                return new HashConflictKeyValuesEntry<K, V>(hc.Hash, newConflicts);
+                return new HashConflictingEntry<K, V>(hc.Hash, newConflicts);
             }
 
             return null;
