@@ -3006,7 +3006,7 @@ namespace ImTools
             public override int Count() => Entry0.Count() + Entry1.Count();
 
 #if !DEBUG
-            public override string ToString() => "{L2:{E0:" + Entry0 + ",E1: " + Entry1 + "}}";
+            public override string ToString() => "{L2:{E0:" + Entry0 + ",E1:" + Entry1 + "}}";
 #endif
 
             internal override Entry GetMinHashEntryOrDefault() => Entry0;
@@ -4125,7 +4125,7 @@ namespace ImTools
 
 #if !DEBUG
         /// <inheritdoc />
-        public override string ToString() => "{H: " + Hash + ", V: " + Value + "}";
+        public override string ToString() => "{H:" + Hash + ",V:" + Value + "}";
 #endif
 
         /// <inheritdoc />
@@ -4151,7 +4151,7 @@ namespace ImTools
     public class ImMap<V>
     {
         /// <summary>Hide the base constructor to prevent the multiple Empty trees creation</summary>
-        protected ImMap() { } // todo: @perf does the call to empty constructor hurt the perf?
+        protected ImMap() { }
 
         /// <summary>Empty map to start with. Exists as a single instance.</summary>
         public static readonly ImMap<V> Empty = new ImMap<V>();
@@ -4208,7 +4208,7 @@ namespace ImTools
             public override int Count() => 2;
 
 #if !DEBUG
-            public override string ToString() => "{L2: {E0: " + Entry0 + ", E1: " + Entry1 + "}}";
+            public override string ToString() => "{L2:{E0: " + Entry0 + ",E1:" + Entry1 + "}}";
 #endif
 
             internal sealed override ImMapEntry<V> GetMinHashEntryOrDefault() => Entry0;
@@ -4292,7 +4292,7 @@ namespace ImTools
             public override int Count() => 4;
 
 #if !DEBUG
-            public override string ToString() => "{L211: {P: " + Plus + ", L: " + L + "}}";
+            public override string ToString() => "{L211:{P:" + Plus + ",L:" + L + "}}";
 #endif
 
             internal sealed override ImMapEntry<V> GetMinHashEntryOrDefault() 
@@ -4412,7 +4412,7 @@ namespace ImTools
 
 #if !DEBUG
             public override string ToString() => 
-                "{L2: {E0: " + Entry0 + ", E1: " + Entry1 + ", E2: " + Entry2 + ", E3: " + Entry3 + ", E4: " + Entry4 + "}}";
+                "{L2:{E0:" + Entry0 + ",E1:" + Entry1 + ",E2:" + Entry2 + ",E3:" + Entry3 + ",E4:" + Entry4 + "}}";
 #endif
 
             internal sealed override ImMapEntry<V> GetMinHashEntryOrDefault() => Entry0;
@@ -4464,7 +4464,7 @@ namespace ImTools
             public override int Count() => 6;
 
 #if !DEBUG
-            public override string ToString() => "{L51: {P: " + Plus + ", L: " + L + "}}";
+            public override string ToString() => "{L51:{P:" + Plus + ",L:" + L + "}}";
 #endif
 
             internal sealed override ImMapEntry<V> GetMinHashEntryOrDefault() => Plus.Hash < L.Entry0.Hash ? Plus : L.Entry0; 
@@ -4567,7 +4567,7 @@ namespace ImTools
             public sealed override int Count() => 7;
 
 #if !DEBUG
-            public override string ToString() => "{L511: {P: " + Plus + ", L: " + L + "}}";
+            public override string ToString() => "{L511:{P:" + Plus + ",L:" + L + "}}";
 #endif
 
             internal sealed override ImMapEntry<V> GetMinHashEntryOrDefault()
@@ -4813,7 +4813,7 @@ namespace ImTools
             public sealed override int Count() => 1 + Left.Count() + Right.Count();
 
 #if !DEBUG
-            public override string ToString() => "{B2: {E: " + MidEntry + ", L: " + Left + ", R: " + Right + "}}";
+            public override string ToString() => "{B2:{E:" + MidEntry + ",L:" + Left + ",R:" + Right + "}}";
 #endif
 
             internal sealed override ImMapEntry<V> GetMinHashEntryOrDefault() => Left .GetMinHashEntryOrDefault();
@@ -4946,7 +4946,7 @@ namespace ImTools
             }
 
 #if !DEBUG
-            public override string ToString() => "{RB3: {"  + base.ToString() + "}";
+            public override string ToString() => "{RB3:{" + base.ToString() + "}";
 #endif
 
             internal override ImMapEntry<V> GetEntryOrNull(int hash) 
@@ -5133,7 +5133,7 @@ namespace ImTools
             }
 
 #if !DEBUG
-            public override string ToString() => "{LB3: {"  + base.ToString() + "}";
+            public override string ToString() => "{LB3:{"  + base.ToString() + "}";
 #endif
 
             internal override ImMapEntry<V> GetEntryOrNull(int hash) 
