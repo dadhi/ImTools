@@ -987,12 +987,38 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |                                   |       |               |            |            |       |         |         |         |           |
 |    Experimental_ImMap_FoldToArray | 10000 | 175,884.86 ns | 976.719 ns | 913.624 ns |  1.00 | 58.5938 | 27.8320 | 13.9160 |  342657 B |
 | Experimental_ImMap234_FoldToArray | 10000 | 205,580.33 ns | 822.305 ns | 769.185 ns |  1.17 | 58.5938 | 27.8320 | 13.9160 |  342539 B |
+
+## V3
+
+BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
+Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+.NET Core SDK=5.0.201
+  [Host]     : .NET Core 5.0.4 (CoreCLR 5.0.421.11614, CoreFX 5.0.421.11614), X64 RyuJIT
+  DefaultJob : .NET Core 5.0.4 (CoreCLR 5.0.421.11614, CoreFX 5.0.421.11614), X64 RyuJIT
+
+
+|                                 Method | Count |       Mean |    Error |   StdDev |     Median | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|--------------------------------------- |------ |-----------:|---------:|---------:|-----------:|------:|--------:|-------:|------:|------:|----------:|
+|              V2_ImMap_EnumerateToArray |     1 |   104.9 ns |  2.09 ns |  4.41 ns |   104.3 ns |  1.00 |    0.00 | 0.0254 |     - |     - |     160 B |
+| V2_ImMap_Experimental_EnumerateToArray |     1 |   114.5 ns |  2.22 ns |  5.27 ns |   112.6 ns |  1.10 |    0.09 | 0.0279 |     - |     - |     176 B |
+|              V3_ImMap_EnumerateToArray |     1 |   112.9 ns |  2.12 ns |  2.68 ns |   112.8 ns |  1.08 |    0.07 | 0.0279 |     - |     - |     176 B |
+|   V3_PartitionedImMap_EnumerateToArray |     1 |   281.7 ns |  5.47 ns |  7.49 ns |   282.8 ns |  2.71 |    0.19 | 0.0634 |     - |     - |     400 B |
+|                                        |       |            |          |          |            |       |         |        |       |       |           |
+|              V2_ImMap_EnumerateToArray |    10 |   271.7 ns |  4.43 ns |  4.14 ns |   271.3 ns |  1.00 |    0.00 | 0.0710 |     - |     - |     448 B |
+| V2_ImMap_Experimental_EnumerateToArray |    10 |   302.3 ns |  4.37 ns |  4.09 ns |   303.5 ns |  1.11 |    0.02 | 0.0739 |     - |     - |     464 B |
+|              V3_ImMap_EnumerateToArray |    10 |   304.7 ns |  5.72 ns |  9.56 ns |   302.3 ns |  1.12 |    0.03 | 0.0739 |     - |     - |     464 B |
+|   V3_PartitionedImMap_EnumerateToArray |    10 |   984.1 ns | 19.48 ns | 37.53 ns |   984.0 ns |  3.50 |    0.13 | 0.3090 |     - |     - |    1944 B |
+|                                        |       |            |          |          |            |       |         |        |       |       |           |
+|              V2_ImMap_EnumerateToArray |   100 | 1,591.0 ns | 16.91 ns | 15.82 ns | 1,596.0 ns |  1.00 |    0.00 | 0.3529 |     - |     - |    2216 B |
+| V2_ImMap_Experimental_EnumerateToArray |   100 | 1,870.2 ns | 26.62 ns | 23.59 ns | 1,871.0 ns |  1.18 |    0.02 | 0.3548 |     - |     - |    2232 B |
+|              V3_ImMap_EnumerateToArray |   100 | 1,884.1 ns | 29.87 ns | 26.48 ns | 1,887.7 ns |  1.19 |    0.02 | 0.3548 |     - |     - |    2232 B |
+|   V3_PartitionedImMap_EnumerateToArray |   100 | 4,119.9 ns | 50.21 ns | 44.51 ns | 4,125.6 ns |  2.59 |    0.04 | 0.7248 |     - |     - |    4552 B |
 */
 
             #region Populate
 
-            private ImTools.V2.ImMap<string> _map;
-            public ImTools.V2.ImMap<string> AddOrUpdate()
+            private ImTools.V2.ImMap<string> _mapV2;
+            public ImTools.V2.ImMap<string> V2_AddOrUpdate()
             {
                 var map = ImTools.V2.ImMap<string>.Empty;
 
@@ -1002,19 +1028,8 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            private ImTools.OldVersions.V1.ImMap<string> _mapV1;
-            public ImTools.OldVersions.V1.ImMap<string> AddOrUpdate_V1()
-            {
-                var map = ImTools.OldVersions.V1.ImMap<string>.Empty;
-
-                for (var i = 0; i < Count; i++)
-                    map = map.AddOrUpdate(i, i.ToString());
-
-                return map;
-            }
-
-            private ImTools.V2.Experimental.ImMap<string> _mapExp;
-            public ImTools.V2.Experimental.ImMap<string> AddOrUpdate_Exp()
+            private ImTools.V2.Experimental.ImMap<string> _mapV2Exp;
+            public ImTools.V2.Experimental.ImMap<string> V2_Exp_AddOrUpdate()
             {
                 var map = ImTools.V2.Experimental.ImMap<string>.Empty;
 
@@ -1024,26 +1039,26 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            private ImTools.V2.Experimental.ImMap<string>[] _mapSlots;
-            public ImTools.V2.Experimental.ImMap<string>[] AddOrUpdate_ImMapSlots()
+            private ImTools.ImMap<string> _mapV3;
+            public ImTools.ImMap<string> V3_AddOrUpdate()
             {
-                var slots = ImTools.V2.Experimental.ImMapSlots.CreateWithEmpty<string>();
+                var map = ImTools.ImMap<string>.Empty;
 
                 for (var i = 0; i < Count; i++)
-                    slots.AddOrUpdate(i, i.ToString());
+                    map = map.AddOrUpdate(i, i.ToString());
 
-                return slots;
+                return map;
             }
 
-            private ImTools.V2.Experimental.ImMap<string>[] _mapSlotsExp;
-            public ImTools.V2.Experimental.ImMap<string>[] AddOrUpdate_ImMapSlots_Exp()
+            private ImTools.ImMap<string>[] _mapV3Parts;
+            public ImTools.ImMap<string>[] V3_Partitioned_AddOrUpdate()
             {
-                var slots = ImTools.V2.Experimental.ImMapSlots.CreateWithEmpty<string>();
+                var parts = ImTools.PartitionedMap.CreateEmpty<string>();
 
                 for (var i = 0; i < Count; i++)
-                    slots.AddOrUpdate(i, i.ToString());
+                    parts.AddOrUpdate(i, i.ToString());
 
-                return slots;
+                return parts;
             }
 
             private DictionarySlim<int, string> _dictSlim;
@@ -1092,49 +1107,37 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
             #endregion
 
-            [Params(1, 10, 100, 1_000, 10_000)]
+            [Params(1, 10, 100)]//, 1_000, 10_000)]
             public int Count;
 
             [GlobalSetup]
             public void Populate()
             {
-                _map = AddOrUpdate();
-                _mapV1 = AddOrUpdate_V1();
-                _mapExp = AddOrUpdate_Exp();
-                // _mapExp234 = AddOrUpdate_Exp234();
-                _mapSlots = AddOrUpdate_ImMapSlots();
-                _mapSlotsExp = AddOrUpdate_ImMapSlots_Exp();
-                _dictSlim = DictSlim();
-                _dict = Dict();
+                _mapV2      = V2_AddOrUpdate();
+                _mapV2Exp   = V2_Exp_AddOrUpdate();
+                _mapV3      = V3_AddOrUpdate();
+                _mapV3Parts = V3_Partitioned_AddOrUpdate();
+                _dictSlim   = DictSlim();
+                _dict       = Dict();
                 _concurDict = ConcurrentDict();
                 _immutableDict = ImmutableDict();
             }
 
-            //[Benchmark(Baseline = true)]
-            public object ImMap_EnumerateToArray() => 
-                _map.Enumerate().ToArray();
-
-            //[Benchmark]
-            public object ImMap_V1_EnumerateToArray() =>
-                _mapV1.Enumerate().ToArray();
-
-            //[Benchmark]
-            public object ImMap_FoldToArray() =>
-                _map.Fold(new List<ImTools.V2.ImMap<string>>(), (item, list) => { list.Add(item); return list; }).ToArray();
-
-            //[Benchmark]
             [Benchmark(Baseline = true)]
-            public object Experimental_ImMap_FoldToArray() =>
-                _mapExp.Fold(new List<ImTools.V2.Experimental.ImMapEntry<string>>(), (item, list) => { list.Add(item); return list; }).ToArray();
+            public object V2_ImMap_EnumerateToArray() => 
+                _mapV2.Enumerate().ToArray();
 
+            [Benchmark]
+            public object V2_ImMap_Experimental_EnumerateToArray() =>
+                _mapV2Exp.Enumerate().ToArray();
 
-            //[Benchmark]
-            public object ImMapSlots_FoldToArray() => 
-                _mapSlots.Fold(new List<ImTools.V2.Experimental.ImMap<string>>(), (item, list) => { list.Add(item); return list; }).ToArray();
+            [Benchmark]
+            public object V3_ImMap_EnumerateToArray() =>
+                _mapV2Exp.Enumerate().ToArray();
 
-            //[Benchmark]
-            public object Experimental_ImMapSlots_FoldToArray() =>
-                _mapSlotsExp.Fold(new List<ImTools.V2.Experimental.ImMapEntry<string>>(), (item, list) => { list.Add(item); return list; }).ToArray();
+            [Benchmark]
+            public object V3_PartitionedImMap_EnumerateToArray() =>
+                _mapV3Parts.Enumerate().ToArray();
 
             //[Benchmark]
             public object DictSlim_ToArray() => _dictSlim.ToArray();

@@ -7162,7 +7162,7 @@ namespace ImTools
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static IEnumerable<ImMapEntry<V>> Enumerate<K, V>(this ImMap<V>[] parts, ThreadUnsafeStack<ImMap<V>> parents = null)
+        public static IEnumerable<ImMapEntry<V>> Enumerate<V>(this ImMap<V>[] parts, ThreadUnsafeStack<ImMap<V>> parents = null)
         {
             if (parents == null)
                 parents = new ThreadUnsafeStack<ImMap<V>>();
