@@ -5584,7 +5584,7 @@ namespace ImTools
                 var pb2 = (ImHashMap<K, V>.Branch2)parents.Get(--count); // otherwise get the parent
                 if (pb2.MidEntry is ImHashMapEntry<K, V> v)
                     yield return v;
-                else if (pb2.MidEntry is HashConflictingEntry<K, V> hkv) foreach (var c in hkv.Conflicts)
+                else foreach (var c in ((HashConflictingEntry<K, V>)pb2.MidEntry).Conflicts)
                     yield return c;
                 map = pb2.Right;
             }
@@ -5818,7 +5818,7 @@ namespace ImTools
 
                 var pb2 = (ImHashMap<K, V>.Branch2)parents.Get(--count); // otherwise get the parent
                 if (pb2.MidEntry is ImHashMapEntry<K, V> kv) handler(kv, i++, state);
-                else if (pb2.MidEntry is HashConflictingEntry<K, V> hkv) foreach (var c in hkv.Conflicts) handler(c, i++, state);
+                else foreach (var c in ((HashConflictingEntry<K, V>)pb2.MidEntry).Conflicts) handler(c, i++, state);
                 map = pb2.Right;
             }
 
