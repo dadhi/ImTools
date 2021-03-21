@@ -800,7 +800,7 @@ namespace ImTools.UnitTests
                 , print: t => t + "\nhashes: {" + string.Join(", ", t.V3) + "}");
         }
 
-        //[Test]
+        [Test]
         public void ImHashMap_Remove_ModelBased()
         {
             const int upperBound = 100000;
@@ -822,8 +822,7 @@ namespace ImTools.UnitTests
                 , print: t => 
                     "\noriginal: " + t.V0 +
                     "\nadded: "    + t.V1 +
-                    "\nkeys: {"    + string.Join(", ", t.V3) + "}" +
-                    "\ndic2: {"    + string.Join(", ", t.V0.AddOrUpdate(t.V1, t.V2).Remove(t.V1).ToDictionary().Keys) + "}");
+                    "\nkeys: {"    + string.Join(", ", t.V3) + "}");
         }
 
         [Test]

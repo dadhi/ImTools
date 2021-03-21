@@ -3006,32 +3006,17 @@ namespace ImTools
             public override int Count() => Entry0.Count() + Entry1.Count();
 
 #if !DEBUG
-            public override string ToString() => "{L2: {E0: " + Entry0 + ", E1: " + Entry1 + "}}";
+            public override string ToString() => "{L2:{E0:" + Entry0 + ",E1: " + Entry1 + "}}";
 #endif
 
             internal override Entry GetMinHashEntryOrDefault() => Entry0;
             internal override Entry GetMaxHashEntryOrDefault() => Entry1;
 
             internal override Entry GetEntryOrDefault(int hash) => 
-                Entry0?.Hash == hash ? Entry0 : Entry1?.Hash == hash ? Entry1 : null;
+                Entry0.Hash == hash ? Entry0 : Entry1.Hash == hash ? Entry1 : null;
 
-            internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
-            {
-                var e0 = Entry0;
-                var e1 = Entry1;
-                if (e0 == null)
-                    return e1 == null ? new Leaf2(null, entry)
-                        : e1.Hash == hash ? (ImHashMap<K, V>)e1
-                        : e1.Hash <  hash ? new Leaf2(entry, e1) : new Leaf2(e1, entry);
-
-                if (e1 == null)
-                    return e0.Hash == hash ? (ImHashMap<K, V>)e0
-                        :  e0.Hash <  hash ? new Leaf2(e0, entry) : new Leaf2(entry, e0);
-
-                return hash == e0.Hash ? e0
-                     : hash == e1.Hash ? e1
-                     : (ImHashMap<K, V>)new Leaf2Plus1(entry, this);
-            }
+            internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry) =>
+                hash == Entry0.Hash ? Entry0 : hash == Entry1.Hash ? Entry1 : (ImHashMap<K, V>)new Leaf2Plus1(entry, this);
 
             internal override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry) =>
                 oldEntry == Entry0 ? new Leaf2(newEntry, Entry1) : new Leaf2(Entry0, newEntry);
@@ -3054,7 +3039,7 @@ namespace ImTools
             public override int Count() => Plus.Count() + L.Entry0.Count() + L.Entry1.Count();
 
 #if !DEBUG
-            public override string ToString() => "{L21: {P: " + Plus + ", L: " + L + "}}";
+            public override string ToString() => "{L21:{P:" + Plus + ",L:" + L + "}}";
 #endif
 
             internal sealed override Entry GetMinHashEntryOrDefault() => Plus.Hash < L.Entry0.Hash ? Plus : L.Entry0;
@@ -3070,9 +3055,8 @@ namespace ImTools
 
             internal sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
             {
-                var p = Plus;
-                if (hash == p.Hash) 
-                    return p;
+                if (hash == Plus.Hash) 
+                    return Plus;
                 Entry e0 = L.Entry0, e1 = L.Entry1;
                 return hash == e0.Hash ? e0 : hash == e1.Hash ? e1 : (ImHashMap<K, V>)new Leaf2Plus1Plus1(entry, this);
             }
@@ -3104,7 +3088,7 @@ namespace ImTools
             public override int Count() => Plus.Count() + L.Plus.Count() + L.L.Entry0.Count() + L.L.Entry1.Count();
 
 #if !DEBUG
-            public override string ToString() => "{L211: {P: " + Plus + ", L: " + L + "}}";
+            public override string ToString() => "{L211:{P:" + Plus + ", L:" + L + "}}";
 #endif
 
             internal sealed override Entry GetMinHashEntryOrDefault() 
@@ -3224,7 +3208,7 @@ namespace ImTools
 
 #if !DEBUG
             public override string ToString() => 
-                "{L2: {E0: " + Entry0 + ", E1: " + Entry1 + ", E2: " + Entry2 + ", E3: " + Entry3 + ", E4: " + Entry4 + "}}";
+                "{L2:{E0:" + Entry0 + ", E1:" + Entry1 + ", E2:" + Entry2 + ",E3:" + Entry3 + ",E4:" + Entry4 + "}}";
 #endif
 
             internal sealed override Entry GetMinHashEntryOrDefault() => Entry0;
@@ -3266,7 +3250,6 @@ namespace ImTools
         {
             public readonly Entry Plus;
             public readonly Leaf5 L;
-
             public Leaf5Plus1(Entry plus, Leaf5 l)
             {
                 Plus = plus;
@@ -3276,7 +3259,7 @@ namespace ImTools
             public override int Count() => Plus.Count() + L.Count();
 
 #if !DEBUG
-            public override string ToString() => "{L51: {P: " + Plus + ", L: " + L + "}}";
+            public override string ToString() => "{L51:{P:" + Plus + ",L:" + L + "}}";
 #endif
 
             internal sealed override Entry GetMinHashEntryOrDefault() => Plus.Hash < L.Entry0.Hash ? Plus : L.Entry0; 
@@ -3369,7 +3352,6 @@ namespace ImTools
         {
             public readonly Entry Plus;
             public readonly Leaf5Plus1 L;
-
             public Leaf5Plus1Plus1(Entry plus, Leaf5Plus1 l)
             {
                 Plus = plus;
@@ -3379,7 +3361,7 @@ namespace ImTools
             public override int Count() => Plus.Count() + L.Count();
 
 #if !DEBUG
-            public override string ToString() => "{L511: {P: " + Plus + ", L: " + L + "}}";
+            public override string ToString() => "{L511:{P:" + Plus + ",L:" + L + "}}";
 #endif
 
             internal sealed override Entry GetMinHashEntryOrDefault()
@@ -3624,10 +3606,10 @@ namespace ImTools
                 Right    = right;
             }
 
-            public sealed override int Count() => 1 + Left.Count() + Right.Count();
+            public sealed override int Count() => MidEntry.Count() + Left.Count() + Right.Count();
 
 #if !DEBUG
-            public override string ToString() => "{B2: {E: " + MidEntry + ", L: " + Left + ", R: " + Right + "}}";
+            public override string ToString() => "{B2:{E:" + MidEntry + ",L:" + Left + ",R:" + Right + "}}";
 #endif
 
             internal sealed override Entry GetMinHashEntryOrDefault() => Left .GetMinHashEntryOrDefault();
@@ -3760,7 +3742,7 @@ namespace ImTools
             }
 
 #if !DEBUG
-            public override string ToString() => "{RB3: {"  + base.ToString() + "}";
+            public override string ToString() => "{RB3:{"  + base.ToString() + "}";
 #endif
 
             internal override Entry GetEntryOrDefault(int hash) 
@@ -3947,7 +3929,7 @@ namespace ImTools
             }
 
 #if !DEBUG
-            public override string ToString() => "{LB3: {"  + base.ToString() + "}";
+            public override string ToString() => "{LB3:{"  + base.ToString() + "}";
 #endif
 
             internal override Entry GetEntryOrDefault(int hash) 
@@ -5401,12 +5383,17 @@ namespace ImTools
                     continue;
                 }
                 
-                if (map is ImHashMap<K, V>.Leaf2 l2)
+                if (map is ImHashMap<K, V>.Entry l1)
+                {
+                    if (l1 is ImHashMapEntry<K, V> v0) yield return v0;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)l1).Conflicts) yield return c;
+                }
+                else if (map is ImHashMap<K, V>.Leaf2 l2)
                 {
                     if (l2.Entry0 is ImHashMapEntry<K, V> v0) yield return v0;
-                    else if (l2.Entry0 != null) foreach (var c in ((HashConflictingEntry<K, V>)l2.Entry0).Conflicts) yield return c;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)l2.Entry0).Conflicts) yield return c;
                     if (l2.Entry1 is ImHashMapEntry<K, V> v1) yield return v1;
-                    else if (l2.Entry1 != null) foreach (var c in ((HashConflictingEntry<K, V>)l2.Entry1).Conflicts) yield return c;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)l2.Entry1).Conflicts) yield return c;
                 }
                 else if (map is ImHashMap<K, V>.Leaf2Plus1 l21)
                 {
@@ -5630,13 +5617,18 @@ namespace ImTools
                     map = b2.Left;
                     continue;
                 }
-                
-                if (map is ImHashMap<K, V>.Leaf2 l2)
+
+                if (map is ImHashMap<K, V>.Entry l1)
+                {
+                    if (l1 is ImHashMapEntry<K, V> v0) handler(v0, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)l1).Conflicts) handler(c, i++, state);
+                }
+                else if (map is ImHashMap<K, V>.Leaf2 l2)
                 {
                     if (l2.Entry0 is ImHashMapEntry<K, V> v0) handler(v0, i++, state);
-                    else if (l2.Entry0 != null) foreach (var c in ((HashConflictingEntry<K, V>)l2.Entry0).Conflicts) handler(c, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)l2.Entry0).Conflicts) handler(c, i++, state);
                     if (l2.Entry1 is ImHashMapEntry<K, V> v1) handler(v1, i++, state);
-                    else if (l2.Entry1 != null) foreach (var c in ((HashConflictingEntry<K, V>)l2.Entry1).Conflicts) handler(c, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)l2.Entry1).Conflicts) handler(c, i++, state);
                 }
                 else if (map is ImHashMap<K, V>.Leaf2Plus1 l21)
                 {
