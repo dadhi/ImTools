@@ -5345,15 +5345,22 @@ namespace ImTools
     /// <summary>The map methods</summary>
     public static class ImHashMap
     {
+        /// <summary>Creates the entry to help with inference</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap<K, V> Entry<K, V>(K key, V value) => new ImHashMapEntry<K, V>(key.GetHashCode(), key, value);
+
         /// <summary>Creates the map out of the entries in the final shape without wasting the memory</summary>
+        [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap<K, V> Create<K, V>(ImHashMapEntry<K, V> e0, ImHashMapEntry<K, V> e1) => 
             e0.Hash < e1.Hash ? new ImHashMap<K, V>.Leaf2(e0, e1) : new ImHashMap<K, V>.Leaf2(e0, e1);
 
         /// <summary>Creates the map out of the entries in the final shape without wasting the memory</summary>
+        [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap<K, V> Create<K, V>(ImHashMapEntry<K, V> e0, ImHashMapEntry<K, V> e1, ImHashMapEntry<K, V> e2) => 
             new ImHashMap<K, V>.Leaf2Plus1(e2, (ImHashMap<K, V>.Leaf2)Create(e0, e1));
 
         /// <summary>Creates the map out of the entries in the final shape without wasting the memory</summary>
+        [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap<K, V> Create<K, V>(ImHashMapEntry<K, V> e0, ImHashMapEntry<K, V> e1, ImHashMapEntry<K, V> e2, ImHashMapEntry<K, V> e3) => 
             new ImHashMap<K, V>.Leaf2Plus1Plus1(e3, new ImHashMap<K, V>.Leaf2Plus1(e2, (ImHashMap<K, V>.Leaf2)Create(e0, e1)));
 

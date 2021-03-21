@@ -193,7 +193,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |              ImmutableDict_Builder_Add | 10000 | 6,083,897.19 ns | 15,221.664 ns | 14,238.354 ns |  1.38 |    0.01 | 148.4375 |  70.3125 |        - |  959776 B |
 
 
-## V3
+## V3 preview
 
 |                         Method | Count |            Mean |          Error |         StdDev |          Median | Ratio | RatioSD |     Gen 0 |    Gen 1 |    Gen 2 | Allocated |
 |------------------------------- |------ |----------------:|---------------:|---------------:|----------------:|------:|--------:|----------:|---------:|---------:|----------:|
@@ -209,34 +209,25 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |       Old_ImMap234_AddOrUpdate |    10 |       500.04 ns |       5.583 ns |       4.359 ns |       500.98 ns |  0.91 |    0.01 |    0.2384 |        - |        - |    1000 B |
 |           ImMap234_AddOrUpdate |    10 |       451.32 ns |       8.955 ns |      13.942 ns |       452.64 ns |  0.81 |    0.03 |    0.1969 |        - |        - |     824 B |
 
-|                                      Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-|-------------------------------------------- |------ |----------:|----------:|----------:|------:|--------:|-------:|------:|------:|----------:|
-| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |     1 |  28.55 ns |  0.431 ns |  0.404 ns |  1.00 |    0.00 | 0.0076 |     - |     - |      32 B |
-|                V3_ImMap_23Tree_AddOrUpdate |     1 |  28.08 ns |  0.608 ns |  0.597 ns |  0.98 |    0.02 | 0.0076 |     - |     - |      32 B |
-|                                             |       |           |           |           |       |         |        |       |       |           |
-| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |     5 | 223.56 ns |  2.870 ns |  2.684 ns |  1.00 |    0.00 | 0.0994 |     - |     - |     416 B |
-|                V3_ImMap_23Tree_AddOrUpdate |     5 | 209.95 ns |  4.236 ns |  4.160 ns |  0.94 |    0.02 | 0.0744 |     - |     - |     312 B |
-|                                             |       |           |           |           |       |         |        |       |       |           |
-| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |    10 | 661.30 ns | 10.412 ns | 12.395 ns |  1.00 |    0.00 | 0.2975 |     - |     - |    1248 B |
-|                V3_ImMap_23Tree_AddOrUpdate |    10 | 502.34 ns | 10.123 ns | 11.252 ns |  0.76 |    0.02 | 0.1793 |     - |     - |     752 B |
-
-|                                      Method | Count |        Mean |      Error |     StdDev | Ratio | RatioSD |    Gen 0 |    Gen 1 |    Gen 2 |  Allocated |
-|-------------------------------------------- |------ |------------:|-----------:|-----------:|------:|--------:|---------:|---------:|---------:|-----------:|
-| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |   100 |    15.13 us |   0.300 us |   0.533 us |  1.00 |    0.00 |   7.2632 |        - |        - |   29.72 KB |
-|                V3_ImMap_23Tree_AddOrUpdate |   100 |    16.41 us |   0.314 us |   0.656 us |  1.08 |    0.06 |   5.7068 |        - |        - |   23.31 KB |
-|                                             |       |             |            |            |       |         |          |          |          |            |
-| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate |  1000 |   264.37 us |   3.853 us |   3.604 us |  1.00 |    0.00 | 110.3516 |   0.4883 |        - |  451.78 KB |
-|                V3_ImMap_23Tree_AddOrUpdate |  1000 |   322.44 us |   4.546 us |   4.252 us |  1.22 |    0.02 | 102.0508 |   0.4883 |        - |  416.83 KB |
-|                                             |       |             |            |            |       |         |          |          |          |            |
-| V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate | 10000 | 6,744.05 us | 121.251 us | 124.515 us |  1.00 |    0.00 | 992.1875 | 289.0625 | 109.3750 | 6106.78 KB |
-|                V3_ImMap_23Tree_AddOrUpdate | 10000 | 7,255.92 us | 117.567 us | 104.220 us |  1.07 |    0.02 | 992.1875 | 289.0625 | 109.3750 | 6106.98 KB |
+## V3 RTM
 
 */
-            [Params(100, 1_000)]
+            [Params(1, 10, 100, 1_000, 10_000)]
             public int Count;
 
-            // [Benchmark(Baseline = true)]
-            public ImTools.V2.ImMap<string> V2_ImMap_AVL_AddOrUpdate()
+            [Benchmark(Baseline = true)]
+            public ImTools.ImMap<string> V3_ImMap_AddOrUpdate()
+            {
+                var map = ImTools.ImMap<string>.Empty;
+
+                for (var i = 0; i < Count; i++)
+                    map = map.AddOrUpdate(i, i.ToString());
+
+                return map;
+            }
+
+            [Benchmark]
+            public ImTools.V2.ImMap<string> V2_ImMap_AddOrUpdate()
             {
                 var map = ImTools.V2.ImMap<string>.Empty;
 
@@ -246,10 +237,19 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
+            [Benchmark]
+            public ImTools.V2.Experimental.ImMap<string>[] V3_PartitionedImMap_AddOrUpdate()
+            {
+                var slots = ImTools.V2.Experimental.ImMapSlots.CreateWithEmpty<string>();
 
-            [Benchmark(Baseline = true)]
+                for (var i = 0; i < Count; i++)
+                    slots.AddOrUpdate(i, i.ToString());
+
+                return slots;
+            }
+
             // [Benchmark]
-            public ImTools.V2.Experimental.ImMap<string> V2_ImMap_AVLOptimizedForAdd_AddOrUpdate()
+            public ImTools.V2.Experimental.ImMap<string> V2_ImMap_Experimental_AddOrUpdate()
             {
                 var map = ImTools.V2.Experimental.ImMap<string>.Empty;
 
@@ -270,28 +270,6 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return slots;
             }
 
-            [Benchmark]
-            public ImTools.ImMap<string> V3_ImMap_AddOrUpdate()
-            {
-                var map = ImTools.ImMap<string>.Empty;
-
-                for (var i = 0; i < Count; i++)
-                    map = map.AddOrUpdate(i, i.ToString());
-
-                return map;
-            }
-
-            // [Benchmark]
-            public ImTools.V2.Experimental.ImMap<string>[] V3_PartitionedImMap_AddOrUpdate()
-            {
-                var slots = ImTools.V2.Experimental.ImMapSlots.CreateWithEmpty<string>();
-
-                for (var i = 0; i < Count; i++)
-                    slots.AddOrUpdate(i, i.ToString());
-
-                return slots;
-            }
-
             // [Benchmark]
             public ImTools.V2.Experimental.ImMap<string>[] ImMapSlots_AddOrUpdate()
             {
@@ -303,7 +281,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return slots;
             }
 
-            // [Benchmark]
+            [Benchmark]
             public DictionarySlim<int, string> DictSlim_GetOrAddValueRef()
             {
                 var map = new DictionarySlim<int, string>();
@@ -314,7 +292,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            // [Benchmark]
+            [Benchmark]
             public Dictionary<int, string> Dict_TryAdd()
             {
                 var map = new Dictionary<int, string>();
@@ -325,7 +303,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public ConcurrentDictionary<int, string> ConcurrentDict_TryAdd()
             {
                 var map = new ConcurrentDictionary<int, string>();
@@ -336,7 +314,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            //[Benchmark]
+            [Benchmark]
             public ImmutableDictionary<int, string> ImmutableDict_Builder_Add()
             {
                 var builder = ImmutableDictionary.CreateBuilder<int, string>();
@@ -345,6 +323,17 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                     builder.Add(i, i.ToString());
 
                 return builder.ToImmutable();
+            }
+
+            [Benchmark]
+            public ImmutableDictionary<int, string> ImmutableDict_Add()
+            {
+                var dict = ImmutableDictionary.Create<int, string>();
+
+                for (var i = 0; i < Count; i++)
+                    dict = dict.Add(i, i.ToString());
+
+                return dict;
             }
         }
 
