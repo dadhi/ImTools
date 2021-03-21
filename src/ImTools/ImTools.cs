@@ -6765,6 +6765,11 @@ namespace ImTools
         public static ImMapEntry<V> GetSurePresentEntry<V>(this ImMap<V> map, int hash) =>
             map.GetEntryOrNull(hash);
 
+        /// <summary>Lookup for the entry by hash, returns the found entry or `null`.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMapEntry<V> GetEntryOrDefault<V>(this ImMap<V> map, int hash) =>
+            map.GetEntryOrNull(hash);
+
         /// <summary>Lookup for the value by hash, returns the default `V` if hash is not found.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static V GetValueOrDefault<V>(this ImMap<V> map, int hash) =>
