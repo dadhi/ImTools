@@ -209,7 +209,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 |       Old_ImMap234_AddOrUpdate |    10 |       500.04 ns |       5.583 ns |       4.359 ns |       500.98 ns |  0.91 |    0.01 |    0.2384 |        - |        - |    1000 B |
 |           ImMap234_AddOrUpdate |    10 |       451.32 ns |       8.955 ns |      13.942 ns |       452.64 ns |  0.81 |    0.03 |    0.1969 |        - |        - |     824 B |
 
-## V3 RTM
+## V3 Lefty/RightBranch3
 
 BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
 Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
@@ -265,22 +265,21 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 |       ImmutableDict_Builder_Add | 10000 |  4,549,800.208 ns |  46,942.6500 ns |  43,910.1840 ns |  4,550,276.56 ns |  1.02 |    0.01 |  148.4375 |  70.3125 |        - |  959776 B |
 |               ImmutableDict_Add | 10000 | 10,984,883.371 ns | 111,367.1016 ns |  98,724.0348 ns | 10,985,935.16 ns |  2.47 |    0.03 | 1468.7500 | 265.6250 | 125.0000 | 9271168 B |
 
+## V3 after switching to the normal Branch3
+
+|               Method | Count |       Mean |    Error |    StdDev | Ratio | RatioSD |     Gen 0 |    Gen 1 |    Gen 2 |  Allocated |
+|--------------------- |------ |-----------:|---------:|----------:|------:|--------:|----------:|---------:|---------:|-----------:|
+| V3_ImMap_AddOrUpdate |  1000 |   157.4 us |  3.12 us |   4.17 us |  1.00 |    0.00 |   59.3262 |   0.4883 |        - |  364.12 KB |
+| V2_ImMap_AddOrUpdate |  1000 |   190.7 us |  3.75 us |   4.74 us |  1.21 |    0.05 |   84.9609 |   0.4883 |        - |  521.63 KB |
+|                      |       |            |          |           |       |         |           |          |          |            |
+| V3_ImMap_AddOrUpdate | 10000 | 4,170.4 us | 82.34 us | 115.43 us |  1.00 |    0.00 |  843.7500 | 312.5000 | 132.8125 | 5189.13 KB |
+| V2_ImMap_AddOrUpdate | 10000 | 4,286.2 us | 71.99 us |  67.34 us |  1.02 |    0.04 | 1109.3750 | 226.5625 | 101.5625 | 6809.25 KB |
+
 */
-            [Params(1, 10, 100, 1_000, 10_000)]
+            [Params(1_000, 10_000)]
             public int Count;
 
             [Benchmark(Baseline = true)]
-            public ImTools.ImMap<string> V3_ImMap_AddOrUpdate()
-            {
-                var map = ImTools.ImMap<string>.Empty;
-
-                for (var i = 0; i < Count; i++)
-                    map = map.AddOrUpdate(i, i.ToString());
-
-                return map;
-            }
-
-            [Benchmark]
             public ImTools.V2.ImMap<string> V2_ImMap_AddOrUpdate()
             {
                 var map = ImTools.V2.ImMap<string>.Empty;
@@ -292,6 +291,17 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             }
 
             [Benchmark]
+            public ImTools.ImMap<string> V3_ImMap_AddOrUpdate()
+            {
+                var map = ImTools.ImMap<string>.Empty;
+
+                for (var i = 0; i < Count; i++)
+                    map = map.AddOrUpdate(i, i.ToString());
+
+                return map;
+            }
+
+            // [Benchmark]
             public ImTools.V2.Experimental.ImMap<string>[] V3_PartitionedImMap_AddOrUpdate()
             {
                 var slots = ImTools.V2.Experimental.ImMapSlots.CreateWithEmpty<string>();
@@ -335,7 +345,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return slots;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public DictionarySlim<int, string> DictSlim_GetOrAddValueRef()
             {
                 var map = new DictionarySlim<int, string>();
@@ -346,7 +356,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public Dictionary<int, string> Dict_TryAdd()
             {
                 var map = new Dictionary<int, string>();
@@ -357,7 +367,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ConcurrentDictionary<int, string> ConcurrentDict_TryAdd()
             {
                 var map = new ConcurrentDictionary<int, string>();
@@ -368,7 +378,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImmutableDictionary<int, string> ImmutableDict_Builder_Add()
             {
                 var builder = ImmutableDictionary.CreateBuilder<int, string>();
@@ -379,7 +389,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return builder.ToImmutable();
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImmutableDictionary<int, string> ImmutableDict_Add()
             {
                 var dict = ImmutableDictionary.Create<int, string>();
@@ -1127,7 +1137,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             public object V2_ImMap_EnumerateToArray() => 
                 _mapV2.Enumerate().ToArray();
 
-            [Benchmark]
+            // [Benchmark]
             public object V2_ImMap_Experimental_EnumerateToArray() =>
                 _mapV2Exp.Enumerate().ToArray();
 
@@ -1135,7 +1145,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             public object V3_ImMap_EnumerateToArray() =>
                 _mapV2Exp.Enumerate().ToArray();
 
-            [Benchmark]
+            // [Benchmark]
             public object V3_PartitionedImMap_EnumerateToArray() =>
                 _mapV3Parts.Enumerate().ToArray();
 

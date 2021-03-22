@@ -404,12 +404,35 @@ namespace ImTools.UnitTests
         }
 
         [Test]
-        public void AddOrUpdate_random_items_and_randomly_checking_CsCheck()
+        public void ImHashMap_AddOrUpdate_random_items_and_randomly_checking_CsCheck()
         {
             const int upperBound = 100000;
             Gen.Int[0, upperBound].Array.Sample(items =>
             {
                 var m = ImHashMap<int, int>.Empty;
+                foreach (int n in items)
+                {
+                    m = m.AddOrUpdate(n, n);
+                    Assert.AreEqual(n, m.GetValueOrDefault(n));
+                }
+                
+                foreach (int n in items)
+                    Assert.AreEqual(n, m.GetValueOrDefault(n));
+
+                // non-existing keys 
+                Assert.AreEqual(0, m.GetValueOrDefault(upperBound + 1));
+                Assert.AreEqual(0, m.GetValueOrDefault(-1));
+            }, 
+            size: 5000);
+        }
+
+        [Test]
+        public void ImMap_AddOrUpdate_random_items_and_randomly_checking_CsCheck()
+        {
+            const int upperBound = 100000;
+            Gen.Int[0, upperBound].Array.Sample(items =>
+            {
+                var m = ImMap<int>.Empty;
                 foreach (int n in items)
                 {
                     m = m.AddOrUpdate(n, n);
@@ -537,6 +560,33 @@ namespace ImTools.UnitTests
                 17883, 23657, 24329, 29524, 55791, 66175, 67389, 74867, 74946, 81350, 94477, 70414, 26499 }; 
 
             var m = ImHashMap<int, int>.Empty;
+            foreach (var i in uniqueItems)
+                m = m.AddOrUpdate(i, i);
+
+            CollectionAssert.AreEqual(uniqueItems.OrderBy(x => x), m.Enumerate().ToArray().Select(x => x.Hash));
+        }
+
+        [Test]
+        public void ImMap_Enumerate_should_work_for_the_randomized_input()
+        {
+            var uniqueItems = new[] {
+                45751, 6825, 44599, 79942, 73380, 8408, 34126, 51224, 14463, 71529, 46775, 74893, 80615, 78504, 29401, 60789, 14050, 
+                67780, 52369, 16486, 48124, 46939, 43229, 58359, 61378, 31969, 79905, 37405, 37259, 66683, 87401, 42175 };
+
+            var m = ImMap<int>.Empty;
+            foreach (var i in uniqueItems)
+                m = m.AddOrUpdate(i, i);
+
+            CollectionAssert.AreEqual(uniqueItems.OrderBy(x => x), m.Enumerate().Select(x => x.Hash));
+        }
+
+        [Test]
+        public void ImMap_Enumerate_should_work_for_the_randomized_input_2()
+        {
+            var uniqueItems = new[] {
+                17883, 23657, 24329, 29524, 55791, 66175, 67389, 74867, 74946, 81350, 94477, 70414, 26499 }; 
+
+            var m = ImMap<int>.Empty;
             foreach (var i in uniqueItems)
                 m = m.AddOrUpdate(i, i);
 
@@ -798,6 +848,24 @@ namespace ImTools.UnitTests
                 }
                 , size: 1000
                 , print: t => t + "\nhashes: {" + string.Join(", ", t.V3) + "}");
+        }
+ 
+        [Test]
+        public void ImMap_AddOrUpdate_ModelBased_FailedCase1()
+        {
+            var hashes = new[] { 73341, 68999, 1354, 50830, 94661, 21594, 27007, 21894, 35166, 68934 };
+            var added = 22189;
+            var map = ImMap<int>.Empty;
+            foreach (var h in hashes)
+                map = map.AddOrUpdate(h, h);
+
+            var dic1 = map.ToDictionary();
+            dic1[added] = added;
+
+            map = map.AddOrUpdate(added, added);
+            var dic2 = map.ToDictionary();
+
+            CollectionAssert.AreEqual(dic1, dic2);
         }
 
         [Test]

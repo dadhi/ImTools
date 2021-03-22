@@ -4834,18 +4834,22 @@ namespace ImTools
                 {
                     var right = Right;
                     var newRight = right.AddOrGetEntry(hash, entry);
-                    return newRight is ImMapEntry<V> ? newRight
-                         : right.GetType() != typeof(Branch2) && newRight.GetType() == typeof(Branch2) 
-                         ? new RightyBranch3(Left, e, newRight) : new Branch2(Left, e, newRight);
+                    if (newRight is ImMapEntry<V>)
+                        return newRight;
+                    if ((right is Branch3 || right is Leaf5Plus1Plus1) && newRight is Branch2 rb)
+                        return new Branch3(Left, e, rb.Left, rb.MidEntry, rb.Right);
+                    return new Branch2(Left, e, newRight);
                 }
 
                 if (hash < e.Hash)
                 {
                     var left = Left;
                     var newLeft = left.AddOrGetEntry(hash, entry);
-                    return newLeft is ImMapEntry<V> ? newLeft 
-                         : left.GetType() != typeof(Branch2) && newLeft.GetType() == typeof(Branch2) 
-                         ? new LeftyBranch3(newLeft, e, Right) : new Branch2(newLeft, e, Right);
+                    if (newLeft is ImMapEntry<V>)
+                        return newLeft;
+                    if ((left is Branch3 || left is Leaf5Plus1Plus1) && newLeft is Branch2 lb)
+                        return new Branch3(lb.Left, lb.MidEntry, lb.Right, e, Right);
+                    return new Branch2(newLeft, e, Right);
                 }
 
                 return e;
@@ -4882,21 +4886,15 @@ namespace ImTools
                     }
 
                     //*rebalance needed: the branch was merged from Br2 to Br3 or to the leaf and the height decreased 
-                    if (Right.GetType() == typeof(Branch2) && newRight.GetType() != typeof(Branch2))
+                    if (Right is Branch2 && newRight is Branch2 == false)
                     {
                         // the the hole has a 2-node as a parent and a 3-node as a sibling.
-                        if (Left is LeftyBranch3 ll) //! the height does not change
-                            return new Branch2(ll.Left, ll.MidEntry, new Branch2(ll.Right, mid, newRight));
-
-                        // the the hole has a 2-node as a parent and a 3-node as a sibling.
-                        if (Left is RightyBranch3 lr) //! the height does not change
-                        {
-                            var lrr = (Branch2)lr.Right;
-                            return new Branch2(new Branch2(lr.Left, lr.MidEntry, lrr.Left), lrr.MidEntry, new Branch2(lrr.Right, mid, newRight));
-                        }
+                        if (Left is Branch3 lb3) //! the height does not change
+                            return new Branch2(new Branch2(lb3.Left, lb3.Entry0, lb3.Middle), lb3.Entry1, new Branch2(lb3.Right, mid, newRight));
 
                         // the the hole has a 2-node as a parent and a 2-node as a sibling.
-                        return new LeftyBranch3(Left, mid, newRight);
+                        var lb2 = (Branch2)Left; 
+                        return new Branch3(lb2.Left, lb2.MidEntry, lb2.Right, mid, newRight);
                     }
 
                     return new Branch2(Left, mid, newRight);
@@ -4916,70 +4914,73 @@ namespace ImTools
                 }
 
                 //*rebalance needed: the branch was merged from Br2 to Br3 or to the leaf and the height decreased 
-                if (Left.GetType() == typeof(Branch2) && newLeft.GetType() != typeof(Branch2))
+                if (Left is Branch2 && newLeft is Branch2 == false)
                 {
                     // the the hole has a 2-node as a parent and a 3-node as a sibling.
-                    if (Right is LeftyBranch3 rl) //! the height does not change
-                    {
-                        var rll = (Branch2)rl.Left;
-                        return new Branch2(new Branch2(newLeft, mid, rll.Left), rll.MidEntry, new Branch2(rll.Right, rl.MidEntry, rl.Right));
-                    }
-
-                    // the the hole has a 2-node as a parent and a 3-node as a sibling.
-                    if (Right is RightyBranch3 rr) //! the height does not change
-                        return new Branch2(new Branch2(newLeft, mid, rr.Left), rr.MidEntry, rr.Right);
+                    if (Right is Branch3 rb3) //! the height does not change
+                        return new Branch2(new Branch2(newLeft, mid, rb3.Left), rb3.Entry0, new Branch2(rb3.Middle, rb3.Entry0, rb3.Right));
 
                     // the the hole has a 2-node as a parent and a 2-node as a sibling.
-                    return new RightyBranch3(newLeft, mid, Right);
+                    var rb2 = (Branch2)Right;
+                    return new Branch3(newLeft, mid, rb2.Left, rb2.MidEntry, rb2.Right);
                 }
 
                 return new Branch2(newLeft, mid, Right);
             }
         }
 
-        /// <summary>Right-skewed Branch of 3 - actually a branch of 2 with the right branch of 2</summary>
-        internal sealed class RightyBranch3 : Branch2
+        /// <summary>Branch of 3</summary>
+        internal sealed class Branch3 : ImMap<V>
         {
-            public RightyBranch3(ImMap<V> left, ImMapEntry<V> entry, ImMap<V> rightBranch) : base(left, entry, rightBranch) 
+            public readonly ImMapEntry<V> Entry0, Entry1;
+            public readonly ImMap<V> Left, Middle, Right;
+
+            public Branch3(ImMap<V> left, ImMapEntry<V> e0, ImMap<V> middle, ImMapEntry<V> e1, ImMap<V> right) 
             {
-                Debug.Assert(rightBranch is Branch2, $"Right:{rightBranch} is Branch2");
+                Debug.Assert(e0.Hash < e1.Hash, $"e0.Hash:{e0.Hash} < e1.Hash{e1.Hash}");
+                Left   = left;
+                Entry0 = e0;
+                Middle = middle;
+                Entry1 = e1;
+                Right  = right;
             }
 
+            public override int Count() => 2 + Left.Count() + Middle.Count() + Right.Count();
+
 #if !DEBUG
-            public override string ToString() => "{RB3:{" + base.ToString() + "}";
+            public override string ToString() => "{B3:{E0:" + Entry0 + ",E1:" + Entry0 + ",L:" + Left + ",M:" + Middle + ",R:" + Right + "}}";
 #endif
+
+            internal override ImMapEntry<V> GetMinHashEntryOrDefault() => Left .GetMinHashEntryOrDefault();
+            internal override ImMapEntry<V> GetMaxHashEntryOrDefault() => Right.GetMaxHashEntryOrDefault();
 
             internal override ImMapEntry<V> GetEntryOrNull(int hash) 
             {
-                var mh = MidEntry.Hash;
-                if (mh > hash)
+                var h1 = Entry1.Hash;
+                if (hash > h1)
+                    return Right.GetEntryOrNull(hash);
+                var h0 = Entry0.Hash;
+                if (hash < h0)
                     return Left.GetEntryOrNull(hash);
-                if (mh < hash)
-                {
-                    var r = (Branch2)Right;
-                    mh = r.MidEntry.Hash;
-                    return hash > mh ? r.Right.GetEntryOrNull(hash) 
-                        :  hash < mh ? r.Left .GetEntryOrNull(hash) 
-                        :  r.MidEntry;
-                }
-                return MidEntry;
+                if (h0 == hash)
+                    return Entry0;
+                if (h1 == hash)
+                    return Entry1;
+                return Middle.GetEntryOrNull(hash);
             }
 
             internal override ImMap<V> AddOrGetEntry(int hash, ImMapEntry<V> entry)
             {
-                var h0 = MidEntry.Hash;
-                var rb = (Branch2)Right;
-                var h1 = rb.MidEntry.Hash;
-                
+                int h0 = Entry0.Hash, h1 = Entry1.Hash;
                 if (hash > h1)
                 {
-                    var right = rb.Right;
+                    var right = Right;
                     var newRight = right.AddOrGetEntry(hash, entry);
                     if (newRight is ImMapEntry<V>)
                         return newRight;
-                    if (right.GetType() != typeof(Branch2) && newRight.GetType() == typeof(Branch2))
-                        return new Branch2(new Branch2(Left, MidEntry, rb.Left), rb.MidEntry, newRight);
-                    return new RightyBranch3(Left, MidEntry, new Branch2(rb.Left, rb.MidEntry, newRight));
+                    if ((right is Leaf5Plus1Plus1 || right is Branch3) && newRight is Branch2)
+                        return new Branch2(new Branch2(Left, Entry0, Middle), Entry1, newRight);
+                    return new Branch3(Left, Entry0, Middle, Entry1, newRight);
                 }
 
                 if (hash < h0)
@@ -4988,43 +4989,40 @@ namespace ImTools
                     var newLeft = left.AddOrGetEntry(hash, entry);
                     if (newLeft is ImMapEntry<V>)
                         return newLeft;
-                    if (left.GetType() != typeof(Branch2) && newLeft.GetType() == typeof(Branch2))
-                        return new Branch2(newLeft, MidEntry, rb);
-                    return new RightyBranch3(newLeft, MidEntry, rb);
+                    if ((left is Leaf5Plus1Plus1 || left is Branch3) && newLeft is Branch2)
+                        return new Branch2(newLeft, Entry0, new Branch2(Middle, Entry1, Right));
+                    return new Branch3(newLeft, Entry0, Middle, Entry1, Right);
                 }
 
                 if (hash > h0 && hash < h1)
                 {
-                    var middle = rb.Left;
+                    var middle = Middle;
                     var newMiddle = middle.AddOrGetEntry(hash, entry);
                     if (newMiddle is ImMapEntry<V>)
                         return newMiddle;
-                    if (middle.GetType() != typeof(Branch2) && newMiddle.GetType() == typeof(Branch2))
-                    {
-                        var nmb2 = (Branch2)newMiddle;
-                        return new Branch2(new Branch2(Left, MidEntry, nmb2.Left), nmb2.MidEntry, new Branch2(nmb2.Right, rb.MidEntry, rb.Right));
-                    }
-                    return new RightyBranch3(Left, MidEntry, new Branch2(newMiddle, rb.MidEntry, rb.Right));
+                    if ((middle is Leaf5Plus1Plus1 || middle is Branch3) && newMiddle is Branch2 mb)
+                        return new Branch2(new Branch2(Left, Entry0, mb.Left), mb.MidEntry, new Branch2(mb.Right, Entry1, Right));
+                    return new Branch3(Left, Entry0, newMiddle, Entry1, Right);
                 }
 
-                return hash == h0 ? MidEntry : rb.MidEntry;
+                return hash == h0 ? Entry0 : Entry1;
             }
 
             internal override ImMap<V> ReplaceEntry(int hash, ImMapEntry<V> oldEntry, ImMapEntry<V> newEntry)
             {
-                var h = MidEntry.Hash;
-                return hash > h ? new RightyBranch3(Left, MidEntry, Right.ReplaceEntry(hash, oldEntry, newEntry)) 
-                    :  hash < h ? new RightyBranch3(Left.ReplaceEntry(hash, oldEntry, newEntry), MidEntry, Right)
-                    :  new RightyBranch3(Left, newEntry, Right);
+                int h0 = Entry0.Hash, h1 = Entry1.Hash;
+                return hash > h1 ? new Branch3(Left, Entry0, Middle, Entry1, Right.ReplaceEntry(hash, oldEntry, newEntry)) 
+                    :  hash < h0 ? new Branch3(Left.ReplaceEntry(hash, oldEntry, newEntry), Entry0, Middle, Entry1, Right)
+                    :  hash > h0 && hash < h1 ? new Branch3(Left, Entry0, Middle.ReplaceEntry(hash, oldEntry, newEntry), Entry1, Right)
+                    :  oldEntry == Entry0 ? new Branch3(Left, newEntry, Middle, Entry1, Right) : new Branch3(Left, Entry0, Middle, newEntry, Right);
             }
 
             internal override ImMap<V> RemoveEntry(ImMapEntry<V> removedEntry)
             {
-                var midLeft = MidEntry;
-                var rb = (Branch2)Right;
-                var middle   = rb.Left;
-                var midRight = rb.MidEntry;
-                var right    = rb.Right;
+                var midLeft  = Entry0;
+                var middle   = Middle;
+                var midRight = Entry1;
+                var right    = Right;
 
                 // case 1, downward: swap the predecessor entry (max left entry) with the mid entry, then proceed to remove the predecessor from the Left branch
                 if (removedEntry == midLeft)
@@ -5037,28 +5035,22 @@ namespace ImTools
                     {
                         if (middle is Leaf2Plus1Plus1 == false) 
                             return new Branch2(middle.AddOrGetEntry(midLeft.Hash, midLeft), midRight, right); //! the height does not change
-                        return new RightyBranch3(midLeft, removedEntry = middle.GetMinHashEntryOrDefault(), new Branch2(middle.RemoveEntry(removedEntry), midRight, right)); //! the height does not change
+                        return new Branch3(midLeft, removedEntry = middle.GetMinHashEntryOrDefault(), middle.RemoveEntry(removedEntry), midRight, right); //! the height does not change
                     }
 
                     // rebalance is needed because the branch was merged from Br2 to Br3 or to Leaf and the height decrease
-                    if (Left.GetType() == typeof(Branch2) && newLeft.GetType() != typeof(Branch2))
+                    if (Left is Branch2 && newLeft is Branch2 == false)
                     {
                         // the hole has a 3-node as a parent and a 3-node as a sibling.
-                        if (middle is LeftyBranch3 leftyMiddle) //! the height does not change
-                        {
-                            var mlb = (Branch2)leftyMiddle.Left;
-                            return new RightyBranch3(new Branch2(newLeft, midLeft, mlb.Left), mlb.MidEntry, new Branch2(new Branch2(mlb.Right, leftyMiddle.MidEntry, leftyMiddle.Right), midRight, right));
-                        }
-
-                        // the hole has a 3-node as a parent and a 3-node as a sibling.
-                        if (middle is RightyBranch3 rightyMiddle) //! the height does not change
-                            return new RightyBranch3(new Branch2(newLeft, midLeft, rightyMiddle.Left), rightyMiddle.MidEntry, new Branch2(rightyMiddle.Right, midRight, right));
+                        if (middle is Branch3 mb3) //! the height does not change
+                            return new Branch3(new Branch2(newLeft, midLeft, mb3.Left), mb3.Entry0, new Branch2(mb3.Middle, mb3.Entry1, mb3.Right), midRight, right);
 
                         // the hole has a 3-node as a parent and a 2-node as a sibling.
-                        return new Branch2(new RightyBranch3(newLeft, midLeft, middle), midRight, right);
+                        var mb2 = (Branch2)middle;
+                        return new Branch2(new Branch3(newLeft, midLeft, mb2.Left, mb2.MidEntry, mb2.Right), midRight, right);
                     }
 
-                    return new RightyBranch3(newLeft, midLeft, rb); // no rebalance needed
+                    return new Branch3(newLeft, midLeft, middle, midRight, right); // no rebalance needed
                 }
 
                 if (removedEntry == midRight)
@@ -5071,27 +5063,21 @@ namespace ImTools
                     {
                         if (right is Leaf2Plus1Plus1 == false)
                             return new Branch2(Left, midLeft, right.AddOrGetEntry(midLeft.Hash, midLeft)); // the Br3 become the Br2 but the height did not change - so no rebalance needed
-                        return new RightyBranch3(Left, midLeft, new Branch2(midRight, removedEntry = right.GetMinHashEntryOrDefault(), right.RemoveEntry(removedEntry))); //! the height does not change
+                        return new Branch3(Left, midLeft, midRight, removedEntry = right.GetMinHashEntryOrDefault(), right.RemoveEntry(removedEntry)); //! the height does not change
                     }
 
-                    if (middle.GetType() == typeof(Branch2) && newMiddle.GetType() != typeof(Branch2))
+                    if (middle is Branch2 && newMiddle is Branch2 == false)
                     {
                         // the hole has a 3-node as a parent and a 3-node as a sibling.
-                        if (right is LeftyBranch3 leftyRight) //! the height does not change
-                        {
-                            var rlb = (Branch2)leftyRight.Left;
-                            return new RightyBranch3(Left, midLeft, new Branch2(new Branch2(newMiddle, midRight, rlb.Left), rlb.MidEntry, new Branch2(rlb.Right, leftyRight.MidEntry, leftyRight.Right)));
-                        }
-
-                        // the hole has a 3-node as a parent and a 3-node as a sibling.
-                        if (right is RightyBranch3 rightyRight) //! the height does not change
-                            return new RightyBranch3(Left, midLeft, new Branch2(new Branch2(newMiddle, midRight, rightyRight.Left), rightyRight.MidEntry, rightyRight.Right));
+                        if (right is Branch3 rb3) //! the height does not change
+                            return new Branch3(Left, midLeft, new Branch2(newMiddle, midRight, rb3.Left), rb3.Entry0, new Branch2(rb3.Middle, rb3.Entry1, rb3.Right));
 
                         // the hole has a 3-node as a parent and a 2-node as a sibling.
-                        return new Branch2(Left, midLeft, new RightyBranch3(newMiddle, midRight, right));
+                        var rb2 = (Branch2)right;
+                        return new Branch2(Left, midLeft, new Branch3(newMiddle, midRight, rb2.Left, rb2.MidEntry, rb2.Right));
                     }
 
-                    return new RightyBranch3(Left, midLeft, new Branch2(newMiddle, midRight, right));
+                    return new Branch3(Left, midLeft, newMiddle, midRight, right);
                 }
 
                 var newRight = right.RemoveEntry(removedEntry);
@@ -5099,216 +5085,22 @@ namespace ImTools
                 {
                     if (middle is Leaf2Plus1Plus1 == false)
                         return new Branch2(Left, midLeft, middle.AddOrGetEntry(midRight.Hash, midRight));
-                    return new RightyBranch3(Left, midLeft, new Branch2(middle.RemoveEntry(removedEntry = middle.GetMaxHashEntryOrDefault()), removedEntry, midRight));
+                    return new Branch3(Left, midLeft, middle.RemoveEntry(removedEntry = middle.GetMaxHashEntryOrDefault()), removedEntry, midRight);
                 }
 
                 // right was a Br2 but now is Leaf or Br3 - means the branch height is decrease
                 if (right.GetType() == typeof(Branch2) && newRight.GetType() != typeof(Branch2))
                 {
-                    // the hole has a 3-node as a parent and a 3-node as a sibling.
-                    if (middle is LeftyBranch3 leftyMiddle) //! the height does not change
-                        return new RightyBranch3(Left, midLeft, new Branch2(leftyMiddle.Left, leftyMiddle.MidEntry, new Branch2(leftyMiddle.Right, midRight, newRight)));
-
                     // the hole has a 3-node as a parent and a 3-node as a sibling.new
-                    if (middle is RightyBranch3 rightyMiddle) //! the height does not change
-                    {
-                        var rrb = (Branch2)rightyMiddle.Right;
-                        return new RightyBranch3(Left, midLeft, new Branch2(new Branch2(rightyMiddle.Left, rightyMiddle.MidEntry, rrb.Left), rrb.MidEntry, new Branch2(rrb.Right, midRight, newRight)));
-                    }
+                    if (middle is Branch3 mb3) //! the height does not change
+                        return new Branch3(Left, midLeft, new Branch2(mb3.Left, mb3.Entry0, mb3.Middle), mb3.Entry1, new Branch2(mb3.Right, midRight, newRight));
 
                     // the hole has a 3-node as a parent and a 2-node as a sibling.
-                    return new Branch2(Left, midLeft, new LeftyBranch3(middle, midRight, newRight));
+                    var mb2 = (Branch2)middle;
+                    return new Branch2(Left, midLeft, new Branch3(mb2.Left, mb2.MidEntry, mb2.Right, midRight, newRight));
                 }
 
-                return new RightyBranch3(Left, midLeft, new Branch2(middle, midRight, newRight));
-            }
-        }
-
-        /// <summary>Left-skewed Branch of 3 - actually a branch of 2 with the left branch of 2</summary>
-        internal sealed class LeftyBranch3 : Branch2
-        {
-            public LeftyBranch3(ImMap<V> leftBranch, ImMapEntry<V> entry, ImMap<V> right) : base(leftBranch, entry, right) 
-            {
-                Debug.Assert(leftBranch is Branch2, $"Left:{leftBranch} is Branch2");
-            }
-
-#if !DEBUG
-            public override string ToString() => "{LB3:{"  + base.ToString() + "}";
-#endif
-
-            internal override ImMapEntry<V> GetEntryOrNull(int hash) 
-            {
-                var mh = MidEntry.Hash;
-                if (mh < hash)
-                    return Right.GetEntryOrNull(hash);
-                if (mh > hash)
-                {
-                    var l = (Branch2)Left;
-                    mh = l.MidEntry.Hash;
-                    return hash > mh ? l.Right.GetEntryOrNull(hash) 
-                        :  hash < mh ? l.Left .GetEntryOrNull(hash) 
-                        :  l.MidEntry;
-                }
-                return MidEntry;
-            }
-
-            internal override ImMap<V> AddOrGetEntry(int hash, ImMapEntry<V> entry)
-            {
-                var lb = (Branch2)Left;
-                var h0 = lb.MidEntry.Hash;
-                var h1 = MidEntry.Hash;
-                
-                if (hash > h1)
-                {
-                    var right = Right;
-                    var newRight = right.AddOrGetEntry(hash, entry);
-                    if (newRight is ImMapEntry<V>)
-                        return newRight;
-                    if (right.GetType() != typeof(Branch2) && newRight.GetType() == typeof(Branch2))
-                        return new Branch2(lb, MidEntry, newRight);
-                    return new LeftyBranch3(lb, MidEntry, newRight);
-                }
-
-                if (hash < h0)
-                {
-                    var left = lb.Left;
-                    var newLeft = left.AddOrGetEntry(hash, entry);
-                    if (newLeft is ImMapEntry<V>)
-                        return newLeft;
-                    if (left.GetType() != typeof(Branch2) && newLeft.GetType() == typeof(Branch2))
-                        return new Branch2(newLeft, lb.MidEntry, new Branch2(lb.Right, MidEntry, Right));
-                    return new LeftyBranch3(new Branch2(newLeft, lb.MidEntry, lb.Right), MidEntry, Right);
-                }
-
-                if (hash > h0 && hash < h1)
-                {
-                    var middle = lb.Right;
-                    var newMiddle = middle.AddOrGetEntry(hash, entry);
-                    if (newMiddle is ImMapEntry<V>)
-                        return newMiddle;
-                    if (middle.GetType() != typeof(Branch2) && newMiddle.GetType() == typeof(Branch2))
-                    {
-                        var nmb2 = (Branch2)newMiddle;
-                        return new Branch2(new Branch2(lb.Left, lb.MidEntry, nmb2.Left), nmb2.MidEntry, new Branch2(nmb2.Right, MidEntry, Right));
-                    }
-                    return new LeftyBranch3(new Branch2(lb.Left, lb.MidEntry, newMiddle), MidEntry, Right);
-                }
-
-                return hash == h0 ? lb.MidEntry : MidEntry;
-            }
-
-            internal override ImMap<V> ReplaceEntry(int hash, ImMapEntry<V> oldEntry, ImMapEntry<V> newEntry)
-            {
-                var h = MidEntry.Hash;
-                return hash > h ? new LeftyBranch3(Left, MidEntry, Right.ReplaceEntry(hash, oldEntry, newEntry))
-                    :  hash < h ? new LeftyBranch3(Left.ReplaceEntry(hash, oldEntry, newEntry), MidEntry, Right)
-                    :  new LeftyBranch3(Left, newEntry, Right);
-            }
-
-            internal override ImMap<V> RemoveEntry(ImMapEntry<V> removedEntry)
-            {
-                var lb = (Branch2)Left;
-                var left     = lb.Left;
-                var midLeft  = lb.MidEntry;
-                var middle   = lb.Right;
-                var midRight = MidEntry;
-                var right    = Right;
-
-                // case 1, downward: swap the predecessor entry (max left entry) with the mid entry, then proceed to remove the predecessor from the Left branch
-                if (removedEntry == midLeft)
-                    removedEntry  = midLeft = left.GetMaxHashEntryOrDefault();
-
-                if (removedEntry.Hash <= midLeft.Hash) // `<=` here is because of check on the above line
-                {
-                    var newLeft = left.RemoveEntry(removedEntry);
-                    if (newLeft == Empty)
-                    {
-                        if (middle is Leaf2Plus1Plus1 == false) 
-                            return new Branch2(middle.AddOrGetEntry(midLeft.Hash, midLeft), midRight, right); //! the height does not change
-                        return new RightyBranch3(midLeft, removedEntry = middle.GetMinHashEntryOrDefault(), new Branch2(middle.RemoveEntry(removedEntry), midRight, right)); //! the height does not change
-                    }
-
-                    // rebalance is needed because the branch was merged from Br2 to Br3 or to Leaf and the height decrease
-                    if (left.GetType() == typeof(Branch2) && newLeft.GetType() != typeof(Branch2))
-                    {
-                        // the hole has a 3-node as a parent and a 3-node as a sibling.
-                        if (middle is LeftyBranch3 leftyMiddle) //! the height does not change
-                        {
-                            var mlb = (Branch2)leftyMiddle.Left;
-                            return new RightyBranch3(new Branch2(newLeft, midLeft, mlb.Left), mlb.MidEntry, new Branch2(new Branch2(mlb.Right, leftyMiddle.MidEntry, leftyMiddle.Right), midRight, right));
-                        }
-
-                        // the hole has a 3-node as a parent and a 3-node as a sibling.
-                        if (middle is RightyBranch3 rightyMiddle) //! the height does not change
-                            return new RightyBranch3(new Branch2(newLeft, midLeft, rightyMiddle.Left), rightyMiddle.MidEntry, new Branch2(rightyMiddle.Right, midRight, right));
-
-                        // the hole has a 3-node as a parent and a 2-node as a sibling.
-                        return new Branch2(new RightyBranch3(newLeft, midLeft, middle), midRight, right);
-                    }
-
-                    return new LeftyBranch3(new Branch2(newLeft, midLeft, middle), midRight, Right); // no rebalance needed
-                }
-
-                if (removedEntry == midRight)
-                    removedEntry = midRight = middle.GetMaxHashEntryOrDefault();
-
-                if (removedEntry.Hash <= midRight.Hash) // `<=` here is because of check on the above line
-                {
-                    var newMiddle = middle.RemoveEntry(removedEntry);
-                    if (newMiddle == Empty)
-                    {
-                        if (right is Leaf2Plus1Plus1 == false)
-                            return new Branch2(left, midLeft, right.AddOrGetEntry(midLeft.Hash, midLeft)); // the Br3 become the Br2 but the height did not change - so no rebalance needed
-                        return new LeftyBranch3(new Branch2(left, midLeft, midRight), removedEntry = right.GetMinHashEntryOrDefault(), right.RemoveEntry(removedEntry)); //! the height does not change
-                    }
-
-                    if (middle.GetType() == typeof(Branch2) && newMiddle.GetType() != typeof(Branch2))
-                    {
-                        // the hole has a 3-node as a parent and a 3-node as a sibling.
-                        if (right is LeftyBranch3 leftyRight) //! the height does not change
-                        {
-                            var rlb = (Branch2)leftyRight.Left;
-                            return new RightyBranch3(left, midLeft, new Branch2(new Branch2(newMiddle, midRight, rlb.Left), rlb.MidEntry, new Branch2(rlb.Right, leftyRight.MidEntry, leftyRight.Right)));
-                        }
-
-                        // the hole has a 3-node as a parent and a 3-node as a sibling.
-                        if (right is RightyBranch3 rightyRight) //! the height does not change
-                            return new RightyBranch3(left, midLeft, new Branch2(new Branch2(newMiddle, midRight, rightyRight.Left), rightyRight.MidEntry, rightyRight.Right));
-
-                        // the hole has a 3-node as a parent and a 2-node as a sibling.
-                        return new Branch2(left, midLeft, new RightyBranch3(newMiddle, midRight, right));
-                    }
-
-                    return new LeftyBranch3(new Branch2(left, midLeft, newMiddle), midRight, right);
-                }
-
-                var newRight = right.RemoveEntry(removedEntry);
-                if (newRight == Empty)
-                {
-                    if (middle is Leaf2Plus1Plus1 == false)
-                        return new Branch2(left, midLeft, middle.AddOrGetEntry(midRight.Hash, midRight));
-                    return new RightyBranch3(left, midLeft, new Branch2(middle.RemoveEntry(removedEntry = middle.GetMaxHashEntryOrDefault()), removedEntry, midRight));
-                }
-
-                // right was a Br2 but now is Leaf or Br3 - means the branch height is decrease
-                if (right.GetType() == typeof(Branch2) && newRight.GetType() != typeof(Branch2))
-                {
-                    // the hole has a 3-node as a parent and a 3-node as a sibling.
-                    if (middle is LeftyBranch3 leftyMiddle) //! the height does not change
-                        return new RightyBranch3(left, midLeft, new Branch2(leftyMiddle.Left, leftyMiddle.MidEntry, new Branch2(leftyMiddle.Right, midRight, newRight)));
-
-                    // the hole has a 3-node as a parent and a 3-node as a sibling.new
-                    if (middle is RightyBranch3 rightyMiddle) //! the height does not change
-                    {
-                        var rrb = (Branch2)rightyMiddle.Right;
-                        return new RightyBranch3(left, midLeft, new Branch2(new Branch2(rightyMiddle.Left, rightyMiddle.MidEntry, rrb.Left), rrb.MidEntry, new Branch2(rrb.Right, midRight, newRight)));
-                    }
-
-                    // the hole has a 3-node as a parent and a 2-node as a sibling.
-                    return new Branch2(left, midLeft, new LeftyBranch3(middle, midRight, newRight));
-                }
-
-                return new LeftyBranch3(Left, midRight, newRight);
+                return new Branch3(Left, midLeft, middle, midRight, newRight);
             }
         }
     }
@@ -5337,6 +5129,40 @@ namespace ImTools
         {
             var count = items.Length;
             var newItems = new T[count << 1]; // count * 2
+            Array.Copy(items, 0, newItems, 0, count);
+            return newItems;
+        }
+    }
+
+    /// <summary>Helper stack wrapper for the array</summary>
+    public sealed class MapParentStack
+    {
+        private const int DefaultInitialCapacity = 4;
+        private object[] _items;
+
+        /// <summary>Creates the list of the `DefaultInitialCapacity`</summary>
+        public static MapParentStack Create() => new MapParentStack();
+
+        private MapParentStack() => _items = new object[DefaultInitialCapacity];
+
+        /// <summary>Pushes the item</summary>
+        public void Push(object item, int count)
+        {
+            if (count >= _items.Length)
+                _items = Expand(_items);
+            _items[count] = item;
+        }
+
+        /// <summary>Gets the item by index</summary>
+        public object Get(int index) => _items[index];
+
+        /// <summary>Gets the item by index</summary>
+        public object Set(int index, object x) => _items[index] = x;
+
+        private static object[] Expand(object[] items)
+        {
+            var count = items.Length;
+            var newItems = new object[count << 1]; // count * 2
             Array.Copy(items, 0, newItems, 0, count);
             return newItems;
         }
@@ -5836,23 +5662,23 @@ namespace ImTools
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
         public static void ForEach<K, V>(this ImHashMap<K, V> map, Action<ImHashMapEntry<K, V>, int> handler, ThreadUnsafeStack<ImHashMap<K, V>> parents = null) =>
-            map.ForEach(handler, (e, i, r) => r(e, i));
+            map.ForEach(handler, (e, i, r) => r(e, i), parents);
 
         /// <summary>Collect something for each entry.
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
         public static S Fold<K, V, S>(this ImHashMap<K, V> map, S state, Func<ImHashMapEntry<K, V>, int, S, S> handler, ThreadUnsafeStack<ImHashMap<K, V>> parents = null) =>
-            map.ForEach(St.Rent(state, handler), (e, i, s) => s.a = s.b(e, i, s.a)).ResetButGetA();
+            map.ForEach(St.Rent(state, handler), (e, i, s) => s.a = s.b(e, i, s.a), parents).ResetButGetA();
 
         /// <summary>Converts map to an array with the minimum allocations</summary>
-        public static S[] ToArray<K, V, S>(this ImHashMap<K, V> map, Func<ImHashMapEntry<K, V>, S> selector, ThreadUnsafeStack<ImHashMap<K, V>> parents = null) =>
+        public static S[] ToArray<K, V, S>(this ImHashMap<K, V> map, Func<ImHashMapEntry<K, V>, S> selector) =>
             map == ImHashMap<K, V>.Empty ? ArrayTools.Empty<S>() : 
-                map.ForEach(St.Rent(new S[map.Count()], selector), (e, i, s) => s.a[i] = s.b(e), parents).ResetButGetA();
+                map.ForEach(St.Rent(new S[map.Count()], selector), (e, i, s) => s.a[i] = s.b(e)).ResetButGetA();
 
         /// <summary>Converts the map to the dictionary</summary>
-        public static Dictionary<K, V> ToDictionary<K, V>(this ImHashMap<K, V> map, ThreadUnsafeStack<ImHashMap<K, V>> parents = null) =>
+        public static Dictionary<K, V> ToDictionary<K, V>(this ImHashMap<K, V> map) =>
             map == ImHashMap<K, V>.Empty ? new Dictionary<K, V>(0) :
-                map.ForEach(new Dictionary<K, V>(), (e, _, d) => d.Add(e.Key, e.Value), parents);
+                map.ForEach(new Dictionary<K, V>(), (e, _, d) => d.Add(e.Key, e.Value));
 
         /// <summary>Get the key value entry if the hash and key is in the map or the default `null` value otherwise.</summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -6344,10 +6170,16 @@ namespace ImTools
         public static ImMap<V> Create<V>(ImMapEntry<V> e0, ImMapEntry<V> e1, ImMapEntry<V> e2, ImMapEntry<V> e3) => 
             new ImMap<V>.Leaf2Plus1Plus1(e3, new ImMap<V>.Leaf2Plus1(e2, (ImMap<V>.Leaf2)Create(e0, e1)));
 
+        private sealed class GoRightInBranch3<V> 
+        {
+            public ImMap<V>.Branch3 Br3;
+            public GoRightInBranch3(ImMap<V>.Branch3 br3) => Br3 = br3;
+        }
+
         /// <summary>Enumerates all the map entries in the hash order.
         /// `parents` parameter allows to reuse the stack memory used for traversal between multiple enumerates.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent `Enumerate` calls</summary>
-        public static IEnumerable<ImMapEntry<V>> Enumerate<V>(this ImMap<V> map, ThreadUnsafeStack<ImMap<V>> parents = null)
+        public static IEnumerable<ImMapEntry<V>> Enumerate<V>(this ImMap<V> map, MapParentStack parents = null)
         {
             if (map == ImMap<V>.Empty)
                 yield break;
@@ -6363,9 +6195,18 @@ namespace ImTools
                 if (map is ImMap<V>.Branch2 b2)
                 {
                     if (parents == null)
-                        parents = new ThreadUnsafeStack<ImMap<V>>();
+                        parents = MapParentStack.Create();
                     parents.Push(map, count++);
                     map = b2.Left;
+                    continue;
+                }
+
+                if (map is ImMap<V>.Branch3 b3)
+                {
+                    if (parents == null)
+                        parents = MapParentStack.Create();
+                    parents.Push(map, count++);
+                    map = b3.Left;
                     continue;
                 }
 
@@ -6537,16 +6378,31 @@ namespace ImTools
                 if (count == 0)
                     break; // we yield the leaf and there is nothing in stack - we are DONE!
 
-                var pb2 = (ImMap<V>.Branch2)parents.Get(--count); // otherwise get the parent
-                yield return pb2.MidEntry;
-                map = pb2.Right;
+                var b = parents.Get(--count); // otherwise get the parent
+                if (b is ImMap<V>.Branch2 pb2)
+                {
+                    yield return pb2.MidEntry;
+                    map = pb2.Right;
+                }
+                else if (b is ImMap<V>.Branch3 pb3)
+                {
+                    yield return pb3.Entry0;
+                    parents.Set(count++, new GoRightInBranch3<V>(pb3));
+                    map = pb3.Middle;
+                }
+                else 
+                {
+                    var br3 = ((GoRightInBranch3<V>)b).Br3; // todo: @perf here is the opportunity to reuse the freed GoRightInBranch3
+                    yield return br3.Entry1;
+                    map = br3.Right;
+                }
             }
         }
 
         /// <summary>Depth-first in-order of hash traversal as described in http://en.wikipedia.org/wiki/Tree_traversal.
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
-        public static S ForEach<V, S>(this ImMap<V> map, S state, Action<ImMapEntry<V>, int, S> handler, ThreadUnsafeStack<ImMap<V>> parents = null)
+        public static S ForEach<V, S>(this ImMap<V> map, S state, Action<ImMapEntry<V>, int, S> handler, MapParentStack parents = null)
         {
             if (map == ImMap<V>.Empty)
                 return state;
@@ -6562,9 +6418,17 @@ namespace ImTools
                 if (map is ImMap<V>.Branch2 b2)
                 {
                     if (parents == null)
-                        parents = new ThreadUnsafeStack<ImMap<V>>();
+                        parents = MapParentStack.Create();
                     parents.Push(map, count++);
                     map = b2.Left;
+                    continue;
+                }
+                if (map is ImMap<V>.Branch3 b3)
+                {
+                    if (parents == null)
+                        parents = MapParentStack.Create();
+                    parents.Push(map, count++);
+                    map = b3.Left;
                     continue;
                 }
                 
@@ -6736,9 +6600,24 @@ namespace ImTools
                 if (count == 0)
                     break; // we yield the leaf and there is nothing in stack - we are DONE!
 
-                var pb2 = (ImMap<V>.Branch2)parents.Get(--count); // otherwise get the parent
-                handler(pb2.MidEntry, i++, state);
-                map = pb2.Right;
+                var b = parents.Get(--count); // otherwise get the parent
+                if (b is ImMap<V>.Branch2 pb2)
+                {
+                    handler(pb2.MidEntry, i++, state);
+                    map = pb2.Right;
+                }
+                else if (b is ImMap<V>.Branch3 pb3)
+                {
+                    handler(pb3.Entry0, i++, state);
+                    parents.Set(count++, new GoRightInBranch3<V>(pb3));
+                    map = pb3.Middle;
+                }
+                else 
+                {
+                    var br3 = ((GoRightInBranch3<V>)b).Br3; // todo: @perf here is the opportunity to reuse the freed GoRightInBranch3 
+                    handler(br3.Entry1, i++, state);
+                    map = br3.Right;
+                }
             }
 
             return state;
@@ -6747,24 +6626,24 @@ namespace ImTools
         /// <summary>Do something for each entry.
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
-        public static void ForEach<V>(this ImMap<V> map, Action<ImMapEntry<V>, int> handler, ThreadUnsafeStack<ImMap<V>> parents = null) =>
-            map.ForEach(handler, (e, i, r) => r(e, i));
+        public static void ForEach<V>(this ImMap<V> map, Action<ImMapEntry<V>, int> handler, MapParentStack parents = null) =>
+            map.ForEach(handler, (e, i, r) => r(e, i), parents);
 
         /// <summary>Collect something for each entry.
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
-        public static S Fold<V, S>(this ImMap<V> map, S state, Func<ImMapEntry<V>, int, S, S> handler, ThreadUnsafeStack<ImMap<V>> parents = null) =>
-            map.ForEach(St.Rent(state, handler), (e, i, s) => s.a = s.b(e, i, s.a)).ResetButGetA();
+        public static S Fold<V, S>(this ImMap<V> map, S state, Func<ImMapEntry<V>, int, S, S> handler, MapParentStack parents = null) =>
+            map.ForEach(St.Rent(state, handler), (e, i, s) => s.a = s.b(e, i, s.a), parents).ResetButGetA();
 
         /// <summary>Converts the map to an array with the minimum allocations</summary>
-        public static S[] ToArray<V, S>(this ImMap<V> map, Func<ImMapEntry<V>, S> selector, ThreadUnsafeStack<ImMap<V>> parents = null) =>
+        public static S[] ToArray<V, S>(this ImMap<V> map, Func<ImMapEntry<V>, S> selector) =>
             map == ImMap<V>.Empty ? ArrayTools.Empty<S>() :
-                map.ForEach(St.Rent(new S[map.Count()], selector), (e, i, s) => s.a[i] = s.b(e), parents).ResetButGetA();
+                map.ForEach(St.Rent(new S[map.Count()], selector), (e, i, s) => s.a[i] = s.b(e)).ResetButGetA();
 
         /// <summary>Converts the map to the dictionary</summary>
-        public static Dictionary<int, V> ToDictionary<V>(this ImMap<V> map, ThreadUnsafeStack<ImMap<V>> parents = null) =>
+        public static Dictionary<int, V> ToDictionary<V>(this ImMap<V> map) =>
             map == ImMap<V>.Empty ? new Dictionary<int, V>(0) :
-                map.ForEach(new Dictionary<int, V>(), (e, _, d) => d.Add(e.Hash, e.Value), parents);
+                map.ForEach(new Dictionary<int, V>(), (e, _, d) => d.Add(e.Hash, e.Value));
 
         /// <summary>Returns the entry ASSUMING it is present otherwise its behavior is UNDEFINED.
         /// You can use the method after the Add and Update methods on the same map instance - because the map is immutable it is for sure contains added or updated entry.</summary>
@@ -7162,10 +7041,10 @@ namespace ImTools
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static IEnumerable<ImMapEntry<V>> Enumerate<V>(this ImMap<V>[] parts, ThreadUnsafeStack<ImMap<V>> parents = null)
+        public static IEnumerable<ImMapEntry<V>> Enumerate<V>(this ImMap<V>[] parts, MapParentStack parents = null)
         {
             if (parents == null)
-                parents = new ThreadUnsafeStack<ImMap<V>>();
+                parents = MapParentStack.Create();
             foreach (var map in parts) 
             {
                 if (map == ImMap<V>.Empty)
@@ -7178,10 +7057,10 @@ namespace ImTools
         /// <summary>Do something for each entry.
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
-        public static S ForEach<V, S>(this ImMap<V>[] parts, S state, Action<ImMapEntry<V>, int, S> handler, ThreadUnsafeStack<ImMap<V>> parents = null)
+        public static S ForEach<V, S>(this ImMap<V>[] parts, S state, Action<ImMapEntry<V>, int, S> handler, MapParentStack parents = null)
         {
             if (parents == null)
-                parents = new ThreadUnsafeStack<ImMap<V>>();
+                parents = MapParentStack.Create();
             foreach (var map in parts) 
             {
                 if (map == ImMap<V>.Empty)
