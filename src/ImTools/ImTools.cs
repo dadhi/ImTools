@@ -6173,7 +6173,6 @@ namespace ImTools
         private sealed class GoRightInBranch3<V> 
         {
             public ImMap<V>.Branch3 Br3;
-            public GoRightInBranch3(ImMap<V>.Branch3 br3) => Br3 = br3;
         }
 
         /// <summary>Enumerates all the map entries in the hash order.
@@ -6190,6 +6189,7 @@ namespace ImTools
             }
 
             var count = 0;
+            GoRightInBranch3<V> br3Wrapper = null;
             while (true)
             {
                 if (map is ImMap<V>.Branch2 b2)
@@ -6387,14 +6387,18 @@ namespace ImTools
                 else if (b is ImMap<V>.Branch3 pb3)
                 {
                     yield return pb3.Entry0;
-                    parents.Set(count++, new GoRightInBranch3<V>(pb3));
+                    if (br3Wrapper == null)
+                        br3Wrapper = new GoRightInBranch3<V>();
+                    br3Wrapper.Br3 = pb3;
+                    parents.Set(count++, br3Wrapper);
+                    br3Wrapper = null; // set to null to mark that the wrapper is in use and longer shared
                     map = pb3.Middle;
                 }
                 else 
                 {
-                    var br3 = ((GoRightInBranch3<V>)b).Br3; // todo: @perf here is the opportunity to reuse the freed GoRightInBranch3
-                    yield return br3.Entry1;
-                    map = br3.Right;
+                    br3Wrapper = (GoRightInBranch3<V>)b;
+                    yield return br3Wrapper.Br3.Entry1;
+                    map = br3Wrapper.Br3.Right;
                 }
             }
         }
@@ -6411,6 +6415,8 @@ namespace ImTools
                 handler(v, 0, state);
                 return state;
             }
+
+            GoRightInBranch3<V> br3Wrapper = null;
 
             int count = 0, i = 0;
             while (true)
@@ -6609,14 +6615,18 @@ namespace ImTools
                 else if (b is ImMap<V>.Branch3 pb3)
                 {
                     handler(pb3.Entry0, i++, state);
-                    parents.Set(count++, new GoRightInBranch3<V>(pb3));
+                    if (br3Wrapper == null)
+                        br3Wrapper = new GoRightInBranch3<V>();
+                    br3Wrapper.Br3 = pb3;
+                    parents.Set(count++, br3Wrapper);
+                    br3Wrapper = null; // set to null to mark that the wrapper is in use and longer shared
                     map = pb3.Middle;
                 }
                 else 
                 {
-                    var br3 = ((GoRightInBranch3<V>)b).Br3; // todo: @perf here is the opportunity to reuse the freed GoRightInBranch3 
-                    handler(br3.Entry1, i++, state);
-                    map = br3.Right;
+                    br3Wrapper = (GoRightInBranch3<V>)b;
+                    handler(br3Wrapper.Br3.Entry1, i++, state);
+                    map = br3Wrapper.Br3.Right;
                 }
             }
 
