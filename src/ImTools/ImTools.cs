@@ -4344,8 +4344,13 @@ namespace ImTools
             }
         }
 
+        internal abstract class OnTheVergeOfBalance : ImMap<V>
+        {
+            internal abstract ImMap<V> AddOrGetEntry(int hash, ref ImMapEntry<V> entry, ref ImMap<V> splitRight);
+        }
+
         /// <summary>Leaf with 5 existing ordered entries plus 1 newly added, plus 1 newly added.</summary>
-        internal sealed class Leaf5Plus1Plus1 : ImMap<V>
+        internal sealed class Leaf5Plus1Plus1 : OnTheVergeOfBalance
         {
             public readonly ImMapEntry<V> Plus;
             public readonly Leaf5Plus1 L;
@@ -4389,6 +4394,15 @@ namespace ImTools
             }
 
             internal override ImMap<V> AddOrGetEntry(int hash, ImMapEntry<V> entry)
+            {
+                ImMap<V> splitRight = null;
+                var entryOrNewMap = AddOrGetEntry(hash, ref entry, ref splitRight);
+                if (splitRight != null)
+                    return new Branch2(entryOrNewMap, entry, splitRight);
+                return entryOrNewMap;
+            }
+
+            internal override ImMap<V> AddOrGetEntry(int hash, ref ImMapEntry<V> entry, ref ImMap<V> splitRight)
             {
                 var p = Plus;
                 var ph = p.Hash;
@@ -4494,11 +4508,16 @@ namespace ImTools
                     }
                 }
 
-                if (right)
-                    return new Branch2(l, pp, new Leaf2(p, e));
                 if (left)
-                    return new Branch2(new Leaf2(e0, e1), e2, l);
-                return new Branch2(new Leaf5(e0, e1, e2, e3, e4), pp, new Leaf2(p, e));
+                {
+                    entry = e2;
+                    splitRight = l;
+                    return new Leaf2(e0, e1);
+                }
+
+                entry = pp;
+                splitRight = new Leaf2(p, e);
+                return right ? l : new Leaf5(e0, e1, e2, e3, e4);
             }
 
             internal override ImMap<V> ReplaceEntry(int hash, ImMapEntry<V> oldEntry, ImMapEntry<V> newEntry)
@@ -4622,26 +4641,43 @@ namespace ImTools
             internal override ImMap<V> AddOrGetEntry(int hash, ImMapEntry<V> entry)
             {
                 var e = MidEntry;
+                ImMap<V> newBranch = null;
                 if (hash > e.Hash)
                 {
                     var right = Right;
-                    var newRight = right.AddOrGetEntry(hash, entry);
-                    if (newRight is ImMapEntry<V>)
-                        return newRight;
-                    if ((right is Branch3 || right is Leaf5Plus1Plus1) && newRight is Branch2 rb)
-                        return new Branch3(Left, e, rb.Left, rb.MidEntry, rb.Right);
-                    return new Branch2(Left, e, newRight);
+                    if (right is OnTheVergeOfBalance r) 
+                    {
+                        ImMap<V> splitRight = null;
+                        newBranch = r.AddOrGetEntry(hash, ref entry, ref splitRight);
+                        if (splitRight != null)
+                            return new Branch3(Left, e, newBranch, entry, splitRight);
+                        if (newBranch is ImMapEntry<V>)
+                            return newBranch;
+                        return new Branch2(Left, e, newBranch);
+                    }
+                    newBranch = right.AddOrGetEntry(hash, entry);
+                    if (newBranch is ImMapEntry<V>)
+                        return newBranch;
+                    return new Branch2(Left, e, newBranch);
                 }
 
                 if (hash < e.Hash)
                 {
                     var left = Left;
-                    var newLeft = left.AddOrGetEntry(hash, entry);
-                    if (newLeft is ImMapEntry<V>)
-                        return newLeft;
-                    if ((left is Branch3 || left is Leaf5Plus1Plus1) && newLeft is Branch2 lb)
-                        return new Branch3(lb.Left, lb.MidEntry, lb.Right, e, Right);
-                    return new Branch2(newLeft, e, Right);
+                    if (left is OnTheVergeOfBalance l) 
+                    {
+                        ImMap<V> splitRight = null;
+                        newBranch = l.AddOrGetEntry(hash, ref entry, ref splitRight);
+                        if (splitRight != null)
+                            return new Branch3(newBranch, entry, splitRight, e, Right);
+                        if (newBranch is ImMapEntry<V>)
+                            return newBranch;
+                        return new Branch2(newBranch, e, Right);
+                    }
+                    newBranch = left.AddOrGetEntry(hash, entry);
+                    if (newBranch is ImMapEntry<V>)
+                        return newBranch;
+                    return new Branch2(newBranch, e, Right);
                 }
 
                 return e;
@@ -4722,7 +4758,7 @@ namespace ImTools
         }
 
         /// <summary>Branch of 3 with 2 nodes in between</summary>
-        internal sealed class Branch3 : ImMap<V>
+        internal sealed class Branch3 : OnTheVergeOfBalance
         {
             public readonly ImMapEntry<V> Entry0, Entry1;
             public readonly ImMap<V> Left, Middle, Right;
@@ -4763,6 +4799,15 @@ namespace ImTools
 
             internal override ImMap<V> AddOrGetEntry(int hash, ImMapEntry<V> entry)
             {
+                ImMap<V> splitRight = null;
+                var newBranch = AddOrGetEntry(hash, ref entry, ref splitRight);
+                if (splitRight == null)
+                    return newBranch;
+                return new Branch2(newBranch, entry, splitRight);
+            }
+
+            internal override ImMap<V> AddOrGetEntry(int hash, ref ImMapEntry<V> entry, ref ImMap<V> splitRight)
+            {
                 int h0 = Entry0.Hash, h1 = Entry1.Hash;
                 if (hash > h1)
                 {
@@ -4770,8 +4815,12 @@ namespace ImTools
                     var newRight = right.AddOrGetEntry(hash, entry);
                     if (newRight is ImMapEntry<V>)
                         return newRight;
-                    if ((right is Leaf5Plus1Plus1 || right is Branch3) && newRight is Branch2)
-                        return new Branch2(new Branch2(Left, Entry0, Middle), Entry1, newRight);
+                    if (right is OnTheVergeOfBalance && newRight is Branch2)
+                    {
+                        entry = Entry1;
+                        splitRight = newRight;
+                        return new Branch2(Left, Entry0, Middle);
+                    }
                     return new Branch3(Left, Entry0, Middle, Entry1, newRight);
                 }
 
@@ -4781,20 +4830,39 @@ namespace ImTools
                     var newLeft = left.AddOrGetEntry(hash, entry);
                     if (newLeft is ImMapEntry<V>)
                         return newLeft;
-                    if ((left is Leaf5Plus1Plus1 || left is Branch3) && newLeft is Branch2)
-                        return new Branch2(newLeft, Entry0, new Branch2(Middle, Entry1, Right));
+                    if (left is OnTheVergeOfBalance && newLeft is Branch2)
+                    {
+                        entry = Entry0;
+                        splitRight = new Branch2(Middle, Entry1, Right);
+                        return newLeft;
+                    }
+
                     return new Branch3(newLeft, Entry0, Middle, Entry1, Right);
                 }
 
                 if (hash > h0 && hash < h1)
                 {
                     var middle = Middle;
-                    var newMiddle = middle.AddOrGetEntry(hash, entry);
-                    if (newMiddle is ImMapEntry<V>)
-                        return newMiddle;
-                    if ((middle is Leaf5Plus1Plus1 || middle is Branch3) && newMiddle is Branch2 mb)
-                        return new Branch2(new Branch2(Left, Entry0, mb.Left), mb.MidEntry, new Branch2(mb.Right, Entry1, Right));
-                    return new Branch3(Left, Entry0, newMiddle, Entry1, Right);
+                    ImMap<V> newBranch = null;
+                    if (middle is OnTheVergeOfBalance m)
+                    {
+                        ImMap<V> splitMiddleRight = null;
+                        newBranch = m.AddOrGetEntry(hash, ref entry, ref splitMiddleRight);
+                        if (splitMiddleRight != null)
+                        {
+                            // entry = entry;
+                            splitRight = new Branch2(splitMiddleRight, Entry1, Right);
+                            return new Branch2(Left, Entry0, newBranch);
+                        }
+                        if (newBranch is ImMapEntry<V>)
+                            return newBranch;
+                        return new Branch3(Left, Entry0, newBranch, Entry1, Right);
+                    }
+
+                    newBranch = middle.AddOrGetEntry(hash, entry);
+                    if (newBranch is ImMapEntry<V>)
+                        return newBranch;
+                    return new Branch3(Left, Entry0, newBranch, Entry1, Right);
                 }
 
                 return hash == h0 ? Entry0 : Entry1;

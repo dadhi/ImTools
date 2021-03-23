@@ -450,6 +450,25 @@ namespace ImTools.UnitTests
         }
 
         [Test]
+        public void ImMap_AddOrUpdate_random_items_and_randomly_checking_CsCheck_FiledCase1()
+        {
+            var hashes = new[] { 98470, 31912, 32917, 40383, 23438, 70273, 47956, 43609, 10213, 2236, 20614 };
+            var m = ImMap<int>.Empty;
+            foreach (int h in hashes)
+            {
+                m = m.AddOrUpdate(h, h);
+                Assert.AreEqual(h, m.GetValueOrDefault(h));
+            }
+            
+            foreach (int h in hashes)
+                Assert.AreEqual(h, m.GetValueOrDefault(h));
+
+            // non-existing keys
+            Assert.AreEqual(0, m.GetValueOrDefault(0));
+            Assert.AreEqual(0, m.GetValueOrDefault(-1));
+        }
+
+        [Test]
         public void AddOrUpdate_random_items_and_randomly_checking_CsCheck_shrinked()
         {
             const int upperBound = 100000;
@@ -606,7 +625,7 @@ namespace ImTools.UnitTests
         }
 
         [Test]
-        public void AddOrKeep_random_items_and_randomly_checking_CsCheck()
+        public void ImHashMap_AddOrKeep_random_items_and_randomly_checking_CsCheck()
         {
             const int upperBound = 100000;
             Gen.Int[0, upperBound].Array.Sample(items =>
