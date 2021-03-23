@@ -5839,13 +5839,13 @@ namespace ImTools
         public static bool TryFind<K, V>(this ImHashMap<K, V> map, K key, out V value) =>
             map.TryFind(key.GetHashCode(), key, out value);
 
-        /// <summary>Adds or updates (no in-place mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
-        public static ImHashMap<K, V> AddOrGetEntry<K, V>(this ImHashMap<K, V> map, int hash, K key, V value)
+        /// <summary>Adds the entry and returns the new map or if the hash is present then return the found entry, so you may check the result `if (res is ImHashMapEntry{K,V} entry)`</summary>
+        public static ImHashMap<K, V> AddOrGetEntry<K, V>(this ImHashMap<K, V> map, ImHashMapEntry<K, V> newEntry)
         {
-            var newEntry = new ImHashMapEntry<K, V>(hash, key, value);
             if (map == ImHashMap<K, V>.Empty)
                 return newEntry;
 
+            var hash = newEntry.Hash;
             var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
             if (oldEntryOrMap is ImHashMap<K, V>.Entry == false)
                 return oldEntryOrMap;
@@ -5854,6 +5854,7 @@ namespace ImTools
                 return kv.Key.Equals(newEntry.Key) ? oldEntryOrMap 
                     : map.ReplaceEntry(hash, kv, new HashConflictingEntry<K, V>(hash, kv, newEntry));
 
+            var key = newEntry.Key;
             var hc = (HashConflictingEntry<K, V>)oldEntryOrMap;
             var cs = hc.Conflicts;
             var n = cs.Length;
@@ -5867,6 +5868,10 @@ namespace ImTools
             newConflicts[n] = newEntry;
             return map.ReplaceEntry(hash, hc, new HashConflictingEntry<K, V>(hash, newConflicts));
         }
+
+        /// <summary>Adds the entry and returns the new map or if the hash is present then return the found entry, so you may check the result `if (res is ImHashMapEntry{K,V} entry)`</summary>
+        public static ImHashMap<K, V> AddOrGetEntry<K, V>(this ImHashMap<K, V> map, int hash, K key, V value) =>
+            map.AddOrGetEntry(new ImHashMapEntry<K, V>(hash, key, value));
 
         /// <summary>Adds or updates (no in-place mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -6699,7 +6704,7 @@ namespace ImTools
             return false;
         }
 
-        /// <summary>Adds the entry and returns the new map or if the hash is present then return the found entry, so you may check the result `if (res is ImMapEntry<V> entry)`</summary>
+        /// <summary>Adds the entry and returns the new map or if the hash is present then return the found entry, so you may check the result `if (res is ImMapEntry{V} entry)`</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImMap<V> AddOrGetEntry<V>(this ImMap<V> map, ImMapEntry<V> newEntry) =>
             map == ImMap<V>.Empty ? newEntry : map.AddOrGetEntry(newEntry.Hash, newEntry);
