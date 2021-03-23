@@ -6699,6 +6699,11 @@ namespace ImTools
             return false;
         }
 
+        /// <summary>Adds the entry and returns the new map or if the hash is present then return the found entry, so you may check the result `if (res is ImMapEntry<V> entry)`</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMap<V> AddOrGetEntry<V>(this ImMap<V> map, ImMapEntry<V> newEntry) =>
+            map == ImMap<V>.Empty ? newEntry : map.AddOrGetEntry(newEntry.Hash, newEntry);
+
         /// <summary>Adds or updates (no in-place mutation) the map with the new entry, always returning the NEW map!</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImMap<V> AddOrUpdateEntry<V>(this ImMap<V> map, ImMapEntry<V> newEntry)
