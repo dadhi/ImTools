@@ -1686,7 +1686,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             #endregion
 
             [Benchmark(Baseline = true)]
-            public string V2_ImHashMap_foreach() 
+            public object V2_ImHashMap_foreach() 
             {
                 var s = "";
                 foreach (var x in _mapV2.Enumerate())
