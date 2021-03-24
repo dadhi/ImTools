@@ -14,12 +14,11 @@ Split from the [DryIoc](https://github.com/dadhi/dryioc).
 
 ## Benchmarks
 
-The comparison is done against the `ImMap` V1 version, the V2 `ImMapSlots` bucketed version 
-and a variety of BCL C# collections including the experimental `Microsoft.Collections.Extensions.DictionarySlim<K, V>`.
+The comparison is done against the previous V2 and the variety of BCL C# collections including the experimental `Microsoft.Collections.Extensions.DictionarySlim<K, V>`.
 
-__Note:__ Keep in mind that immutable collections have a different use-case and a thread-safety guarantees compared to the 
+__Important:__ Keep in mind that immutable collections have a different use-case and a thread-safety guarantees compared to the 
 `Dictionary`, `DictionarySlim` or even `ConcurrentDictionary`. The closest comparable would be the `ImmutableDictionary`. 
-The benchmarks do not take the collection "nature" into account and run though a simplest available API path.
+The benchmarks do not take the collections "nature" into account and run through the simplest available API path.
 
 *Benchmark environment*:
 
@@ -160,7 +159,7 @@ items into the `ImHashMap<Type, string>`:
 |         ImmutableDict_foreach |  1000 | 99,156.35 ns | 1,962.968 ns | 2,181.834 ns | 98,166.03 ns |  4.17 |    0.11 |      - |     - |     - |         - |
 ```
 
-### ImMap V2 with small string values
+### ImMap with small string values
 
 `ImMap<string>` stores the `int` keys and `string` values.
 
