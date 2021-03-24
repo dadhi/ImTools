@@ -4,7 +4,7 @@
 
         <Product>ImTools</Product>
         <VersionPrefix>3.0.0</VersionPrefix>
-        <VersionSuffix>preview-01</VersionSuffix>
+        <VersionSuffix></VersionSuffix>
 
         <AssemblyName>$(Product)</AssemblyName>
         <AssemblyTitle>$(AssemblyName) $(TargetFramework)</AssemblyTitle>
@@ -23,7 +23,8 @@
 ## v3.0.0 Major feature release
 
 - Minimizing the target frameworks to the net45 and netstandard2.0
-- Added fast and more memory efficient ImMap and ImHashMap based on 2-3-4 tree (#32, #35)
+- Added fast and more memory efficient ImMap and ImHashMap based on 2-3 tree (#32, #35)
+- Extended the map API with AddOrGetEntry, Count, ToArray, and ToDictionary methods, and more
 
 ]]>
     </PackageReleaseNotes>

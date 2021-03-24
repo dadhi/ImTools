@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
     <metadata minClientVersion="3.3.0">
         <id>ImTools</id>
-        <version>3.0.0-preview-01</version>
+        <version>3.0.0</version>
         <authors>Maksim Volkau</authors>
         <copyright>Copyright © 2016-2021 Maksim Volkau</copyright>
         <projectUrl>https://github.com/dadhi/ImTools</projectUrl>
@@ -20,7 +20,8 @@
 ## v3.0.0 Major feature release
 
 - Minimizing the target frameworks to the net45 and netstandard2.0
-- Added fast and more memory efficient ImMap and ImHashMap based on 2-3-4 tree (#32, #35)
+- Added fast and more memory efficient ImMap and ImHashMap based on 2-3 tree (#32, #35)
+- Extended the map API with AddOrGetEntry, Count, ToArray, and ToDictionary methods, and more
 
 ]]>
         </releaseNotes>
