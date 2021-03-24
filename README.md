@@ -164,6 +164,7 @@ items into the `ImHashMap<Type, string>`:
 
 `ImMap<string>` stores the `int` keys and `string` values.
 
+
 #### ImMap Population
 
 [The benchmark](https://github.com/dadhi/ImTools/blob/master/playground/ImTools.Benchmarks/ImMapBenchmarks.cs) inserts from 1 to 10 000 of items into the `ImMap<string>`:
@@ -223,6 +224,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 |               ImmutableDict_Add | 10000 | 11,641,070.08 ns | 207,715.718 ns | 213,308.750 ns | 11,612,375.78 ns |  2.63 |    0.08 | 1468.7500 | 265.6250 | 125.0000 | 9271168 B |
 ```
 
+
 #### ImMap Lookup
 
 [The benchmark](https://github.com/dadhi/ImTools/blob/master/playground/ImTools.Benchmarks/ImMapBenchmarks.cs) lookups for the last added index in the `ImMap<string>` 
@@ -274,6 +276,7 @@ containing the specified Count of elements.
 
 **Interpreting results:** `ImMap` holds very good against `ImmutableDictionary` sibling and even against `Dictionary`(s) up to certain count, 
 indicating that immutable collection could be quite fast for lookups.
+
 
 #### ImMap Enumeration
 
