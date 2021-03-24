@@ -661,10 +661,10 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
                 return map;
             }
 
-            private ImTools.ImHashMap<int, string> _map;
-            public ImTools.ImHashMap<int, string> AddOrUpdate_V3_ImMap()
+            private ImTools.ImMap<string> _mapV3;
+            public ImTools.ImMap<string> AddOrUpdate_V3_ImMap()
             {
-                var map = ImTools.ImHashMap<int, string>.Empty;
+                var map = ImTools.ImMap<string>.Empty;
 
                 for (var i = 0; i < Count; i++)
                     map = map.AddOrUpdate(i, i.ToString());
@@ -750,7 +750,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 
                 _mapV2 = AddOrUpdate();
                 // _mapExp = AddOrUpdate_Exp();
-                _map = AddOrUpdate_V3_ImMap();
+                _mapV3 = AddOrUpdate_V3_ImMap();
                 // _mapSlots = AddOrUpdate_ImMapSlots();
                 _partMap = AddOrUpdate_V3_PartitionedHashMap();
                 _dictSlim = DictSlim();
@@ -776,7 +776,7 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
             [Benchmark]
             public string V3_ImMap_TryFind()
             {
-                _map.TryFind(LookupMaxKey, out var result);
+                _mapV3.TryFind(LookupMaxKey, out var result);
                 return result;
             }
 
