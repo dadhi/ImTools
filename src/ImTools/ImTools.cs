@@ -2924,7 +2924,7 @@ namespace ImTools
     }
 
     /// <summary>The base and the holder class for the map tree leafs and branches, also defines the Empty tree.
-    /// The map implementation is based on the "modified" 2-3-4 tree.</summary>
+    /// The map implementation is based on the "modified" 2-3 tree.</summary>
     public class ImHashMap<K, V>
     {
         /// <summary>Hide the base constructor to prevent the multiple Empty trees creation</summary>
@@ -4031,7 +4031,7 @@ namespace ImTools
     }
 
     /// <summary>The base and the holder class for the map tree leafs and branches, also defines the Empty tree.
-    /// The map implementation is based on the "modified" 2-3-4 tree.</summary>
+    /// The map implementation is based on the "modified" 2-3 tree.</summary>
     public class ImMap<V>
     {
         /// <summary>Hide the base constructor to prevent the multiple Empty trees creation</summary>
