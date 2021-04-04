@@ -1907,7 +1907,7 @@ namespace ImTools
             {
                 var c0 = condition(source[0]);
                 var c1 = condition(source[1]);
-                return c0 && c1 ? new[] { source[0], source[1] } : c0 ? new[] { source[0] } : c1 ? new[] { source[1] } : Empty<T>();
+                return c0 && c1 ? source : c0 ? new[] { source[0] } : c1 ? new[] { source[1] } : Empty<T>();
             }
 
             var matchStart = 0;
@@ -1944,7 +1944,7 @@ namespace ImTools
             {
                 var c0 = condition(state, source[0]);
                 var c1 = condition(state, source[1]);
-                return c0 && c1 ? new[] { source[0], source[1] } : c0 ? new[] { source[0] } : c1 ? new[] { source[1] } : Empty<T>();
+                return c0 && c1 ? source : c0 ? new[] { source[0] } : c1 ? new[] { source[1] } : Empty<T>();
             }
 
             var matchStart = 0;
@@ -1981,7 +1981,7 @@ namespace ImTools
             {
                 var c0 = condition(a, b, source[0]);
                 var c1 = condition(a, b, source[1]);
-                return c0 && c1 ? new[] { source[0], source[1] } : c0 ? new[] { source[0] } : c1 ? new[] { source[1] } : Empty<T>();
+                return c0 && c1 ? source : c0 ? new[] { source[0] } : c1 ? new[] { source[1] } : Empty<T>();
             }
 
             var matchStart = 0;
