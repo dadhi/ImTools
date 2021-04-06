@@ -1610,8 +1610,8 @@ namespace ImTools
             return copy;
         }
 
-        /// <summary>Returns new array consisting from all items from source array then all items from added array.
-        /// If source is null or empty, then added array will be returned. If added is null or empty, then source will be returned.</summary>
+        /// <summary>Returns the new array consisting from all items from source array then the all items from added array.
+        /// If source is null or empty then the added array will be returned. If added is null or empty then the source will be returned.</summary>
         public static T[] Append<T>(this T[] source, params T[] added)
         {
             if (added == null || added.Length == 0)
@@ -1647,13 +1647,36 @@ namespace ImTools
             return result;
         }
 
-        /// <summary>Returns new array with <paramref name="value"/> appended</summary>
+        /// <summary>Returns the new array consisting from all items from source array then the all items from added array.
+        /// Assumes that both arrays are non-empty to avoid the checks.</summary>
+        public static T[] AppendNonEmpty<T>(this T[] source, params T[] added)
+        {
+            var result = new T[source.Length + added.Length];
+            Array.Copy(source, 0, result, 0, source.Length);
+            if (added.Length == 1)
+                result[source.Length] = added[0];
+            else
+                Array.Copy(added, 0, result, source.Length, added.Length);
+            return result;
+        }
+
+        /// <summary>Returns new array with <paramref name="value"/> appended. Assumes that `source` is not empty to avoid the checks.</summary>
         public static T[] AppendToNonEmpty<T>(this T[] source, T value)
         {
             var count = source.Length;
             var result = new T[count + 1];
             Array.Copy(source, 0, result, 0, count);
             result[count] = value;
+            return result;
+        }
+
+        /// <summary>Returns new array with <paramref name="value"/> prepended. Assumes that `source` is not empty to avoid the checks.</summary>
+        public static T[] PrependToNonEmpty<T>(this T[] source, T value)
+        {
+            var count = source.Length;
+            var result = new T[count + 1];
+            Array.Copy(source, 0, result, 1, count);
+            result[0] = value;
             return result;
         }
 
