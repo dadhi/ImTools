@@ -35,7 +35,7 @@ namespace ImTools.Benchmarks
             //BenchmarkRunner.Run<DelegateVsInterfaceStruct.MapEnumerableRange>();
             //BenchmarkRunner.Run<CustomEqualityComparerBenchmarks>();
 
-            BenchmarkRunner.Run<ArrayCopy_vs_ManualIndexedSet_for_small_arrays>();
+            BenchmarkRunner.Run<ArrayCopy_vs_ManualIndexedSet_for_small_arrays.ArraysOrReferences>();
         }
     }
 }
