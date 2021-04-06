@@ -16,7 +16,7 @@ namespace ImTools.Benchmarks
             // BenchmarkRunner.Run<ImMapBenchmarks.Populate>();
             // BenchmarkRunner.Run<ImMapBenchmarks.Lookup>();
             // BenchmarkRunner.Run<ImMapBenchmarks.LookupMissing>();
-            BenchmarkRunner.Run<ImMapBenchmarks.Enumerate>();
+            // BenchmarkRunner.Run<ImMapBenchmarks.Enumerate>();
 
             // BenchmarkRunner.Run<ImHashMapBenchmarks.Populate>();
             // BenchmarkRunner.Run<ImHashMapBenchmarks.Lookup>();
@@ -34,6 +34,8 @@ namespace ImTools.Benchmarks
             //BenchmarkRunner.Run<DelegateVsInterfaceStruct.MapArray>();
             //BenchmarkRunner.Run<DelegateVsInterfaceStruct.MapEnumerableRange>();
             //BenchmarkRunner.Run<CustomEqualityComparerBenchmarks>();
+
+            BenchmarkRunner.Run<ArrayCopy_vs_ManualIndexedSet_for_small_arrays>();
         }
     }
 }

@@ -1597,16 +1597,18 @@ namespace ImTools
         public static IList<T> ToListOrSelf<T>(this IEnumerable<T> source) =>
             source == null ? Empty<T>() : source as IList<T> ?? source.ToList();
 
-        /// <summary>
-        /// Array copy
-        /// </summary>
+        /// <summary>Array copy</summary>
         public static T[] Copy<T>(this T[] items)
         {
-            if (items == null)
-                return null;
-            var copy = new T[items.Length];
-            for (var i = 0; i < copy.Length; i++)
-                copy[i] = items[i];
+            if (items == null || items.Length == 0)
+                return items;
+            var count = items.Length;
+            var copy = new T[count];
+            if (count < 6)
+                for (var i = 0; i < count; ++i)
+                    copy[i] = items[i];
+            else
+                Array.Copy(items, copy, count);
             return copy;
         }
 
@@ -1618,13 +1620,19 @@ namespace ImTools
                 return source;
             if (source == null || source.Length == 0)
                 return added;
-
-            var result = new T[source.Length + added.Length];
-            Array.Copy(source, 0, result, 0, source.Length);
-            if (added.Length == 1)
-                result[source.Length] = added[0];
+            var sourceCount = source.Length;
+            var addedCount  = added.Length;
+            var result = new T[sourceCount + addedCount];
+            if (sourceCount < 6)
+                for (var i = 0; i < sourceCount; ++i)
+                    result[i] = source[i];
             else
-                Array.Copy(added, 0, result, source.Length, added.Length);
+                Array.Copy(source, 0, result, 0, sourceCount);
+            if (addedCount < 6)
+                for (var i = 0; i < addedCount; ++i)
+                    result[sourceCount + i] = added[i];
+            else
+                Array.Copy(added, 0, result, sourceCount, addedCount);
             return result;
         }
 
@@ -1639,10 +1647,10 @@ namespace ImTools
         {
             if (source == null || source.Length == 0)
                 return new[] { value };
-            var sourceLength = source.Length;
-            index = index < 0 ? sourceLength : index;
-            var result = new T[index < sourceLength ? sourceLength : sourceLength + 1];
-            Array.Copy(source, result, sourceLength);
+            var sourceCount = source.Length;
+            index = index < 0 ? sourceCount : index;
+            var result = new T[index < sourceCount ? sourceCount : sourceCount + 1];
+            Array.Copy(source, result, sourceCount);
             result[index] = value;
             return result;
         }
@@ -1651,12 +1659,19 @@ namespace ImTools
         /// Assumes that both arrays are non-empty to avoid the checks.</summary>
         public static T[] AppendNonEmpty<T>(this T[] source, params T[] added)
         {
-            var result = new T[source.Length + added.Length];
-            Array.Copy(source, 0, result, 0, source.Length);
-            if (added.Length == 1)
-                result[source.Length] = added[0];
+            var sourceCount = source.Length;
+            var addedCount  = added.Length;
+            var result = new T[sourceCount + addedCount];
+            if (sourceCount < 6)
+                for (var i = 0; i < sourceCount; ++i)
+                    result[i] = source[i];
             else
-                Array.Copy(added, 0, result, source.Length, added.Length);
+                Array.Copy(source, 0, result, 0, sourceCount);
+            if (addedCount < 6)
+                for (var i = 0; i < addedCount; ++i)
+                    result[sourceCount + i] = added[i];
+            else
+                Array.Copy(added, 0, result, sourceCount, addedCount);
             return result;
         }
 
@@ -1665,7 +1680,11 @@ namespace ImTools
         {
             var count = source.Length;
             var result = new T[count + 1];
-            Array.Copy(source, 0, result, 0, count);
+            if (count < 6)
+                for (var i = 0; i < count; ++i)
+                    result[i] = source[i];
+            else
+                Array.Copy(source, 0, result, 0, count);
             result[count] = value;
             return result;
         }
@@ -1675,7 +1694,11 @@ namespace ImTools
         {
             var count = source.Length;
             var result = new T[count + 1];
-            Array.Copy(source, 0, result, 1, count);
+            if (count < 6)
+                for (var i = 0; i < count; ++i)
+                    result[i + 1] = source[i];
+            else
+                Array.Copy(source, 0, result, 1, count);
             result[0] = value;
             return result;
         }
