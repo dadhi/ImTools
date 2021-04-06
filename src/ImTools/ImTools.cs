@@ -1647,6 +1647,16 @@ namespace ImTools
             return result;
         }
 
+        /// <summary>Returns new array with <paramref name="value"/> appended</summary>
+        public static T[] AppendToNonEmpty<T>(this T[] source, T value)
+        {
+            var count = source.Length;
+            var result = new T[count + 1];
+            Array.Copy(source, 0, result, 0, count);
+            result[count] = value;
+            return result;
+        }
+
         /// <summary>Calls predicate on each item in <paramref name="source"/> array until predicate returns true,
         /// then method will return this item index, or if predicate returns false for each item, method will return -1.</summary>
         public static int IndexOf<T>(this T[] source, Func<T, bool> predicate)
@@ -1915,7 +1925,7 @@ namespace ImTools
             var matchFound = false;
             var i = 0;
             for (; i < source.Length; ++i)
-                if (!(matchFound = condition(source[i])))
+                if (!(matchFound = condition(source[i]))) // todo: @unclear check what will happen if the `matchFound` is set back to false
                 {
                     // for accumulated matched items
                     if (i != 0 && i > matchStart)
@@ -5731,6 +5741,11 @@ namespace ImTools
             map == ImHashMap<K, V>.Empty ? ArrayTools.Empty<S>() : 
                 map.ForEach(St.Rent(new S[map.Count()], selector), (e, i, s) => s.a[i] = s.b(e)).ResetButGetA();
 
+        /// <summary>Converts map to an array with the minimum allocations</summary>
+        public static ImHashMapEntry<K, V>[] ToArray<K, V>(this ImHashMap<K, V> map) =>
+            map == ImHashMap<K, V>.Empty ? ArrayTools.Empty<ImHashMapEntry<K, V>>() : 
+                map.ForEach(new ImHashMapEntry<K, V>[map.Count()], (e, i, a) => a[i] = e);
+
         /// <summary>Converts the map to the dictionary</summary>
         public static Dictionary<K, V> ToDictionary<K, V>(this ImHashMap<K, V> map) =>
             map == ImHashMap<K, V>.Empty ? new Dictionary<K, V>(0) :
@@ -6699,6 +6714,10 @@ namespace ImTools
         public static S[] ToArray<V, S>(this ImMap<V> map, Func<ImMapEntry<V>, S> selector) =>
             map == ImMap<V>.Empty ? ArrayTools.Empty<S>() :
                 map.ForEach(St.Rent(new S[map.Count()], selector), (e, i, s) => s.a[i] = s.b(e)).ResetButGetA();
+
+        /// <summary>Converts the map to an array with the minimum allocations</summary>
+        public static ImMapEntry<V>[] ToArray<K, V>(this ImMap<V> map) =>
+            map == ImMap<V>.Empty ? ArrayTools.Empty<ImMapEntry<V>>() : map.ForEach(new ImMapEntry<V>[map.Count()], (e, i, a) => a[i] = e);
 
         /// <summary>Converts the map to the dictionary</summary>
         public static Dictionary<int, V> ToDictionary<V>(this ImMap<V> map) =>
