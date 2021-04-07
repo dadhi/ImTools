@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Threading;
 
 using BenchmarkDotNet.Attributes;
 
@@ -412,16 +413,51 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 |       ConcurrentDictionary_TryAdd |  1000 | 171,835.0 ns |  3,414.78 ns |  4,787.04 ns | 174,681.6 ns |  0.60 |    0.02 |  41.2598 | 14.6484 |     - |  260056 B |
 |         ImmutableDict_Builder_Add |  1000 | 445,419.2 ns |  4,140.17 ns |  3,872.72 ns | 445,259.3 ns |  1.55 |    0.03 |   9.7656 |  1.9531 |     - |   64208 B |
 |                 ImmutableDict_Add |  1000 | 815,930.7 ns | 15,795.06 ns | 17,556.16 ns | 810,772.7 ns |  2.83 |    0.06 | 105.4688 | 24.4141 |     - |  662168 B |
+
+## Against static TypeDictionary by @rogeralsing (need to substract the cost of enumerating the array when adding items to ImHashMap and PartitionedHashMap)
+
+BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
+Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+.NET Core SDK=5.0.201
+  [Host]     : .NET Core 5.0.4 (CoreCLR 5.0.421.11614, CoreFX 5.0.421.11614), X64 RyuJIT
+  DefaultJob : .NET Core 5.0.4 (CoreCLR 5.0.421.11614, CoreFX 5.0.421.11614), X64 RyuJIT
+
+|                            Method | Count |     Mean |    Error |   StdDev | Ratio | RatioSD |  Gen 0 |  Gen 1 | Gen 2 | Allocated |
+|---------------------------------- |------ |---------:|---------:|---------:|------:|--------:|-------:|-------:|------:|----------:|
+|          V3_ImHashMap_AddOrUpdate |     5 | 117.9 ns |  2.33 ns |  2.69 ns |  1.00 |    0.00 | 0.0675 |      - |     - |     424 B |
+| V3_PartitionedHashMap_AddOrUpdate |     5 | 162.5 ns |  3.34 ns |  6.75 ns |  1.38 |    0.07 | 0.0675 |      - |     - |     424 B |
+|                TypeDictionary_Add |     5 | 178.9 ns |  3.66 ns |  6.69 ns |  1.54 |    0.06 | 0.1402 | 0.0007 |     - |     880 B |
+|                       Dict_TryAdd |     5 | 187.0 ns |  3.76 ns |  5.74 ns |  1.59 |    0.07 | 0.0739 |      - |     - |     464 B |
+
+|          V3_ImHashMap_AddOrUpdate |    10 | 321.8 ns |  6.48 ns | 10.10 ns |  1.00 |    0.00 | 0.1593 | 0.0005 |     - |    1000 B |
+| V3_PartitionedHashMap_AddOrUpdate |    10 | 287.6 ns |  5.76 ns | 11.09 ns |  0.90 |    0.04 | 0.1144 | 0.0005 |     - |     720 B |
+|                TypeDictionary_Add |    10 | 292.1 ns |  5.83 ns |  7.78 ns |  0.91 |    0.04 | 0.1402 | 0.0005 |     - |     880 B |
+|                       Dict_TryAdd |    10 | 371.1 ns |  7.40 ns | 14.78 ns |  1.14 |    0.06 | 0.1578 |      - |     - |     992 B |
+
+|          V3_ImHashMap_AddOrUpdate |    20 | 864.3 ns | 16.66 ns | 22.24 ns |  1.00 |    0.00 | 0.3977 | 0.0029 |     - |    2496 B |
+| V3_PartitionedHashMap_AddOrUpdate |    20 | 523.1 ns |  4.68 ns |  4.15 ns |  0.60 |    0.02 | 0.2031 | 0.0010 |     - |    1280 B |
+|                TypeDictionary_Add |    20 | 492.6 ns |  4.73 ns |  4.19 ns |  0.57 |    0.02 | 0.1402 |      - |     - |     880 B |
+|                       Dict_TryAdd |    20 | 666.1 ns | 10.66 ns |  8.90 ns |  0.77 |    0.02 | 0.3309 | 0.0019 |     - |    2080 B |
+
 */
-            [Params(1, 10, 100, 1000)]
+            // [Params(1, 10, 100, 1000)]
+            [Params(5)]
             public int Count;
 
-            [Benchmark(Baseline = true)]
+            private Type[] _types;
+
+            [GlobalSetup]
+            public void Setup()
+            {
+                _types = _keys.Take(Count).ToArray();
+            }
+
+            // [Benchmark(Baseline = true)]
             public ImTools.V2.ImHashMap<Type, string> V2_ImHashMap_AddOrUpdate()
             {
                 var map = ImTools.V2.ImHashMap<Type, string>.Empty;
 
-                foreach (var key in _keys.Take(Count))
+                foreach (var key in _types)
                     map = map.AddOrUpdate(key, "a");
 
                 return map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
@@ -432,7 +468,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             {
                 var map = ImTools.V2.ImHashMapSlots.CreateWithEmpty<Type, string>();
 
-                foreach (var key in _keys.Take(Count))
+                foreach (var key in _types)
                     map.AddOrUpdate(key, "a");
 
                 map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
@@ -444,18 +480,18 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             {
                 var map = ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>>.Empty;
 
-                foreach (var key in _keys.Take(Count))
+                foreach (var key in _types)
                     map = map.AddOrUpdate(key.GetHashCode(), key, "a");
 
                 return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
             }
 
-            [Benchmark]
+            [Benchmark(Baseline = true)]
             public ImTools.ImHashMap<Type, string> V3_ImHashMap_AddOrUpdate()
             {
                 var map = ImTools.ImHashMap<Type, string>.Empty;
 
-                foreach (var key in _keys.Take(Count))
+                foreach (var key in _types)
                     map = map.AddOrUpdate(key.GetHashCode(), key, "a");
 
                 return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
@@ -466,7 +502,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             {
                 var map = PartitionedHashMap.CreateEmpty<Type, string>();
 
-                foreach (var key in _keys.Take(Count))
+                foreach (var key in _types)
                     map.AddOrUpdate(key, "a");
 
                 map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
@@ -478,7 +514,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             {
                 var map = ImTools.V2.Experimental.ImMapSlots.CreateWithEmpty<ImTools.V2.Experimental.ImMap.KValue<Type>>();
 
-                foreach (var key in _keys.Take(Count))
+                foreach (var key in _types)
                     map.AddOrUpdate(key.GetHashCode(), new ImTools.V2.Experimental.ImMap.KValue<Type>(key, "a"));
 
                 map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), new ImTools.V2.Experimental.ImMap.KValue<Type>(typeof(ImHashMapBenchmarks), "!"));
@@ -490,19 +526,19 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             {
                 var map = ImTools.V2.Experimental.ImMapSlots.CreateWithEmpty<ImTools.V2.Experimental.ImMap.KValue<Type>>(64);
 
-                foreach (var key in _keys.Take(Count))
+                foreach (var key in _types)
                     map.AddOrUpdate(key.GetHashCode(), new ImTools.V2.Experimental.ImMap.KValue<Type>(key, "a"), 63);
 
                 map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), new ImTools.V2.Experimental.ImMap.KValue<Type>(typeof(ImHashMapBenchmarks), "!"), 63);
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public DictionarySlim<TypeVal, string> DictSlim_TryAdd()
             {
                 var map = new DictionarySlim<TypeVal, string>();
 
-                foreach (var key in _keys.Take(Count))
+                foreach (var key in _types)
                     map.GetOrAddValueRef(key) = "a";
 
                 map.GetOrAddValueRef(typeof(ImHashMapBenchmarks)) = "!";
@@ -514,45 +550,130 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             {
                 var map = new Dictionary<Type, string>();
 
-                foreach (var key in _keys.Take(Count))
+                foreach (var key in _types)
                     map.TryAdd(key, "a");
 
                 map.TryAdd(typeof(ImHashMapBenchmarks), "!");
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ConcurrentDictionary<Type, string> ConcurrentDictionary_TryAdd()
             {
                 var map = new ConcurrentDictionary<Type, string>();
 
-                foreach (var key in _keys.Take(Count))
+                foreach (var key in _types)
                     map.TryAdd(key, "a");
 
                 map.TryAdd(typeof(ImHashMapBenchmarks), "!");
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImmutableDictionary<Type, string> ImmutableDict_Builder_Add()
             {
                 var builder = ImmutableDictionary.CreateBuilder<Type, string>();
 
-                foreach (var key in _keys.Take(Count))
+                foreach (var key in _types)
                     builder.Add(key, "a");
                 builder.Add(typeof(ImHashMapBenchmarks), "!");
                 return builder.ToImmutable();
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImmutableDictionary<Type, string> ImmutableDict_Add()
             {
                 var map = ImmutableDictionary<Type, string>.Empty;
 
-                foreach (var key in _keys.Take(Count))
+                foreach (var key in _types)
                     map = map.Add(key, "a");
 
                 return map.Add(typeof(ImHashMapBenchmarks), "!");
+            }
+
+            [Benchmark]
+            public TypeDictionary<string> TypeDictionary_Add()
+            {
+                var map = new TypeDictionary<string>();
+
+                map.Add<A1>("a");
+                map.Add<A2>("a");
+                map.Add<A3>("a");
+                map.Add<A4>("a");
+                map.Add<A5>("a");
+                // map.Add<A6>("a");
+                // map.Add<A7>("a");
+                // map.Add<A8>("a");
+                // map.Add<A9>("a");
+                // map.Add<A10>("a");
+                // map.Add<B1>("a");
+                // map.Add<B2>("a");
+                // map.Add<B3>("a");
+                // map.Add<B4>("a");
+                // map.Add<B5>("a");
+                // map.Add<B6>("a");
+                // map.Add<B7>("a");
+                // map.Add<B8>("a");
+                // map.Add<B9>("a");
+                // map.Add<B10>("a");
+
+                map.Add<ImHashMapBenchmarks>("!");
+
+                return map;
+            }
+        }
+
+        class A1 {}
+        class A2 {}
+        class A3 {}
+        class A4 {}
+        class A5 {}
+        class A6 {}
+        class A7 {}
+        class A8 {}
+        class A9 {}
+        class A10 {}
+        class B1 {}
+        class B2 {}
+        class B3 {}
+        class B4 {}
+        class B5 {}
+        class B6 {}
+        class B7 {}
+        class B8 {}
+        class B9 {}
+        class B10 {}
+
+        public class TypeDictionary<TValue>
+        {
+            // ReSharper disable once StaticMemberInGenericType
+            private static int typeIndex;
+            private readonly object _lockObject = new();
+
+            private TValue[] _values = new TValue[100];
+
+            public void Add<TKey>(TValue value)
+            {
+                lock (_lockObject)
+                {
+                    var id = TypeKey<TKey>.Id;
+                    if (id >= _values.Length) Array.Resize(ref _values, id * 2);
+
+                    _values[id] = value;
+                }
+            }
+
+            public TValue? Get<TKey>()
+            {
+                var id = TypeKey<TKey>.Id;
+                return id >= _values.Length ? default : _values[id];
+            }
+
+            // ReSharper disable once UnusedTypeParameter
+            private static class TypeKey<TKey>
+            {
+                // ReSharper disable once StaticMemberInGenericType
+                internal static readonly int Id = Interlocked.Increment(ref typeIndex);
             }
         }
 
@@ -1122,20 +1243,46 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 |       DictionarySlim_TryGetValue |  1000 |  6.893 ns | 0.1590 ns | 0.1410 ns |  0.45 |    0.01 |     - |     - |     - |         - |
 |           Dictionary_TryGetValue |  1000 | 18.230 ns | 0.2012 ns | 0.1882 ns |  1.20 |    0.02 |     - |     - |     - |         - |
 | ConcurrentDictionary_TryGetValue |  1000 | 14.920 ns | 0.2296 ns | 0.2035 ns |  0.98 |    0.01 |     - |     - |     - |         - |
-|             ImmutableDict_TryGet |  1000 | 29.555 ns | 0.5926 ns | 0.5543 ns |  1.95 |    0.04 |     - |     - |     - |         - |*/
-            [Params(1, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
+|             ImmutableDict_TryGet |  1000 | 29.555 ns | 0.5926 ns | 0.5543 ns |  1.95 |    0.04 |     - |     - |     - |         - |
+
+
+## Against static TypeDictionary by @rogeralsing (need to substract the cost of enumerating the array when adding items to ImHashMap and PartitionedHashMap)
+
+BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
+Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+.NET Core SDK=5.0.201
+  [Host]     : .NET Core 5.0.4 (CoreCLR 5.0.421.11614, CoreFX 5.0.421.11614), X64 RyuJIT
+  DefaultJob : .NET Core 5.0.4 (CoreCLR 5.0.421.11614, CoreFX 5.0.421.11614), X64 RyuJIT
+
+|                                  Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|---------------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+|          V3_ImHashMap_GetValueOrDefault |     5 |  4.497 ns | 0.1607 ns | 0.1578 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V3_PartitionedHashMap_GetValueOrDefault |     5 |  4.763 ns | 0.1675 ns | 0.1484 ns |  1.06 |    0.05 |     - |     - |     - |         - |
+|                        TypeDict_TryFind |     5 |  3.198 ns | 0.1221 ns | 0.1406 ns |  0.71 |    0.03 |     - |     - |     - |         - |
+|                  Dictionary_TryGetValue |     5 | 16.248 ns | 0.3500 ns | 0.3102 ns |  3.61 |    0.12 |     - |     - |     - |         - |
+
+|          V3_ImHashMap_GetValueOrDefault |    10 |  5.569 ns | 0.1801 ns | 0.2751 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V3_PartitionedHashMap_GetValueOrDefault |    10 |  5.016 ns | 0.1509 ns | 0.1178 ns |  0.89 |    0.05 |     - |     - |     - |         - |
+|                        TypeDict_TryFind |    10 |  2.513 ns | 0.0824 ns | 0.0688 ns |  0.45 |    0.03 |     - |     - |     - |         - |
+|                  Dictionary_TryGetValue |    10 | 15.954 ns | 0.3234 ns | 0.3025 ns |  2.85 |    0.17 |     - |     - |     - |         - |
+
+|          V3_ImHashMap_GetValueOrDefault |    20 |  6.747 ns | 0.1964 ns | 0.2017 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V3_PartitionedHashMap_GetValueOrDefault |    20 |  3.985 ns | 0.1034 ns | 0.0863 ns |  0.59 |    0.02 |     - |     - |     - |         - |
+|                        TypeDict_TryFind |    20 |  2.476 ns | 0.1174 ns | 0.1257 ns |  0.37 |    0.02 |     - |     - |     - |         - |
+|                  Dictionary_TryGetValue |    20 | 17.766 ns | 0.4131 ns | 0.3865 ns |  2.64 |    0.11 |     - |     - |     - |         - |
+
+*/
+            // [Params(1, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
+            [Params(20)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             public int Count;
 
             [GlobalSetup]
             public void Populate()
             {
                 _mapV2 = V2_AddOrUpdate();
-                // _mapSlots = ImHashMapSlots_AddOrUpdate();
-                // _mapExp = Experimental_ImHashMap_AddOrUpdate();
                 _mapV3 = V3_ImHashMap_AddOrUpdate();
-                _partMap234 = V3_PartitionedHashMap_AddOrUpdate();
-                // _mapSlotsExp32 = Experimental_ImHashMapSlots32_AddOrUpdate();
-                // _mapSlotsExp64 = Experimental_ImHashMapSlots64_AddOrUpdate();
+                _partMap23 = V3_PartitionedHashMap_AddOrUpdate();
+                _typeDict = TypeDictionary_Add();
                 _dict = Dict();
                 _dictSlim = DictSlim();
                 _concurrentDict = ConcurrentDict();
@@ -1190,7 +1337,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
             }
 
-            private ImTools.ImHashMap<Type, string>[] _partMap234;
+            private ImTools.ImHashMap<Type, string>[] _partMap23;
             public ImTools.ImHashMap<Type, string>[] V3_PartitionedHashMap_AddOrUpdate()
             {
                 var map = PartitionedHashMap.CreateEmpty<Type, string>();
@@ -1200,6 +1347,18 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 
                 map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
                 return map;
+            }
+
+            private ImTools.ImHashMap<Type, string>[] _partMap23_32;
+            public ImTools.ImHashMap<Type, string>[] V3_PartitionedHashMap32_AddOrUpdate()
+            {
+                var maps = PartitionedHashMap.CreateEmpty<Type, string>(32);
+
+                foreach (var key in _keys.Take(Count))
+                    maps.AddOrUpdate(key.GetHashCode(), key, "a", 31);
+
+                maps.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!", 31);
+                return maps;
             }
 
             public ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>>[] Experimental_ImHashMapSlots32_AddOrUpdate()
@@ -1280,11 +1439,43 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 
             private ImmutableDictionary<Type, string> _immutableDict;
 
+            public TypeDictionary<string> TypeDictionary_Add()
+            {
+                var map = new TypeDictionary<string>();
+
+                map.Add<A1>("a");
+                map.Add<A2>("a");
+                map.Add<A3>("a");
+                map.Add<A4>("a");
+                map.Add<A5>("a");
+                // map.Add<A6>("a");
+                // map.Add<A7>("a");
+                // map.Add<A8>("a");
+                // map.Add<A9>("a");
+                // map.Add<A10>("a");
+                // map.Add<B1>("a");
+                // map.Add<B2>("a");
+                // map.Add<B3>("a");
+                // map.Add<B4>("a");
+                // map.Add<B5>("a");
+                // map.Add<B6>("a");
+                // map.Add<B7>("a");
+                // map.Add<B8>("a");
+                // map.Add<B9>("a");
+                // map.Add<B10>("a");
+
+                map.Add<ImHashMapBenchmarks>("!");
+
+                return map;
+            }
+
+            private TypeDictionary<string> _typeDict;
+
             #endregion
 
             public static Type LookupKey = typeof(ImHashMapBenchmarks);
 
-            [Benchmark(Baseline = true)]
+            // [Benchmark(Baseline = true)]
             public string V2_ImHashMap_AVL_TryFind()
             {
                 _mapV2.TryFind(LookupKey, out var result);
@@ -1306,12 +1497,28 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return (string)result;
             }
 
-            [Benchmark]
-            public string V3_ImHashMap_23Tree_TryFind()
+            // [Benchmark]
+            public string V3_ImHashMap_TryFind()
             {
                 _mapV3.TryFind(LookupKey.GetHashCode(), LookupKey, out var result);
                 return result;
             }
+
+            [Benchmark(Baseline = true)]
+            public string V3_ImHashMap_GetValueOrDefault() =>
+                _mapV3.GetValueOrDefaultByReferenceEquals(LookupKey.GetHashCode(), LookupKey);
+
+            [Benchmark]
+            public string V3_PartitionedHashMap_GetValueOrDefault() =>
+                _partMap23.GetValueOrDefaultByReferenceEquals(LookupKey);
+
+            // [Benchmark]
+            public string V3_PartitionedHashMap32_GetValueOrDefault() =>
+                _partMap23_32.GetValueOrDefaultByReferenceEquals(LookupKey, 31);
+
+            [Benchmark]
+            public string TypeDict_TryFind() =>
+                _typeDict.Get<ImHashMapBenchmarks>();
 
             // [Benchmark]
             // public string V3_ImHashMap_23Tree_TryFind_SIMPLIFIED()
@@ -1322,11 +1529,11 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             //     return ((ImTools.Experimental.ImHashMap234<Type, string>.KeyValueEntry)entry).Value;
             // }
 
-            [Benchmark]
+            // [Benchmark]
             public string V3_PartitionedHashMap_TryFind()
             {
                 var hash = LookupKey.GetHashCode();
-                _partMap234[hash & PartitionedHashMap.PARTITION_HASH_MASK].TryFind(hash, LookupKey, out var result);
+                _partMap23[hash & PartitionedHashMap.PARTITION_HASH_MASK].TryFind(hash, LookupKey, out var result);
                 return result;
             }
 
@@ -1346,7 +1553,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return (string)result;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public string DictionarySlim_TryGetValue()
             {
                 _dictSlim.TryGetValue(LookupKey, out var result);
@@ -1360,14 +1567,14 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return result;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public string ConcurrentDictionary_TryGetValue()
             {
                 _concurrentDict.TryGetValue(LookupKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public string ImmutableDict_TryGet()
             {
                 _immutableDict.TryGetValue(LookupKey, out var result);
