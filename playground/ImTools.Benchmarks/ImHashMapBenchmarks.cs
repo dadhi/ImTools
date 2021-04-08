@@ -648,7 +648,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
         {
             // ReSharper disable once StaticMemberInGenericType
             private static int typeIndex;
-            private readonly object _lockObject = new();
+            private readonly object _lockObject = new object();
 
             private TValue[] _values = new TValue[100];
 
@@ -657,13 +657,13 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 lock (_lockObject)
                 {
                     var id = TypeKey<TKey>.Id;
-                    if (id >= _values.Length) Array.Resize(ref _values, id * 2);
-
+                    if (id >= _values.Length) 
+                        Array.Resize(ref _values, id * 2);
                     _values[id] = value;
                 }
             }
 
-            public TValue? Get<TKey>()
+            public TValue Get<TKey>()
             {
                 var id = TypeKey<TKey>.Id;
                 return id >= _values.Length ? default : _values[id];
