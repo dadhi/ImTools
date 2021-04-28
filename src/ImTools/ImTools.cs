@@ -5770,6 +5770,279 @@ namespace ImTools
             return state;
         }
 
+        /// <summary></summary>
+        public interface IHandler<K, V, S>
+        {
+            /// <summary></summary>
+            void Invoke(ImHashMapEntry<K, V> entry, int i, S state);
+        }
+
+        /// <summary>
+        /// Depth-first in-order of hash traversal as described in http://en.wikipedia.org/wiki/Tree_traversal.
+        /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
+        /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
+        public static S ForEach_Struct<K, V, S, THandler>(this ImHashMap<K, V> map, S state, THandler handler, MapParentStack parents = null)
+            where THandler : struct, IHandler<K, V, S>
+        {
+            if (map == ImHashMap<K, V>.Empty)
+                return state;
+            var i = 0;
+            if (map is ImHashMap<K, V>.Entry e)
+            {
+                if (e is ImHashMapEntry<K, V> kv) handler.Invoke(kv, 0, state);
+                else foreach (var c in ((HashConflictingEntry<K, V>)e).Conflicts) handler.Invoke(c, i++, state);
+                return state;
+            }
+
+            var count = 0;
+            GoRightInBranch3<K, V> br3Wrapper = null;
+            while (true)
+            {
+                if (map is ImHashMap<K, V>.Branch2 b2)
+                {
+                    if (parents == null)
+                        parents = new MapParentStack();
+                    parents.Push(map, count++);
+                    map = b2.Left;
+                    continue;
+                }
+                if (map is ImHashMap<K, V>.Branch3 b3)
+                {
+                    if (parents == null)
+                        parents = new MapParentStack();
+                    parents.Push(map, count++);
+                    map = b3.Left;
+                    continue;
+                }
+
+                if (map is ImHashMap<K, V>.Entry l1)
+                {
+                    if (l1 is ImHashMapEntry<K, V> v0) handler.Invoke(v0, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)l1).Conflicts) handler.Invoke(c, i++, state);
+                }
+                else if (map is ImHashMap<K, V>.Leaf2 l2)
+                {
+                    if (l2.Entry0 is ImHashMapEntry<K, V> v0) handler.Invoke(v0, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)l2.Entry0).Conflicts) handler.Invoke(c, i++, state);
+                    if (l2.Entry1 is ImHashMapEntry<K, V> v1) handler.Invoke(v1, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)l2.Entry1).Conflicts) handler.Invoke(c, i++, state);
+                }
+                else if (map is ImHashMap<K, V>.Leaf2Plus1 l21)
+                {
+                    var p  = l21.Plus;
+                    var ph = p.Hash;
+                    var l  = l21.L;
+                    ImHashMap<K, V>.Entry e0 = l.Entry0, e1 = l.Entry1, swap = null;
+                    if (ph < e1.Hash)
+                    {
+                        swap = e1; e1 = p; p = swap;
+                        if (ph < e0.Hash)
+                        {
+                            swap = e0; e0 = e1; e1 = swap;
+                        }
+                    }
+
+                    if (e0 is ImHashMapEntry<K, V> v0) handler.Invoke(v0, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e0).Conflicts) handler.Invoke(c, i++, state);
+                    if (e1 is ImHashMapEntry<K, V> v1) handler.Invoke(v1, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e1).Conflicts) handler.Invoke(c, i++, state);
+                    if (p  is ImHashMapEntry<K, V> v2) handler.Invoke(v2, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)p ).Conflicts) handler.Invoke(c, i++, state);
+                }
+                else if (map is ImHashMap<K, V>.Leaf2Plus1Plus1 l211)
+                {
+                    var p  = l211.Plus;
+                    var pp = l211.L.Plus;
+                    var ph = pp.Hash;
+                    var l  = l211.L.L;
+                    ImHashMap<K, V>.Entry e0 = l.Entry0, e1 = l.Entry1, swap = null;
+                    if (ph < e1.Hash)
+                    {
+                        swap = e1; e1 = pp; pp = swap;
+                        if (ph < e0.Hash)
+                        {
+                            swap = e0; e0 = e1; e1 = swap;
+                        }
+                    }
+
+                    ph = p.Hash;
+                    if (ph < pp.Hash)
+                    {
+                        swap = pp; pp = p; p = swap;
+                        if (ph < e1.Hash)
+                        {
+                            swap = e1; e1 = pp; pp = swap;
+                            if (ph < e0.Hash)
+                            {
+                                swap = e0; e0 = e1; e1 = swap;
+                            }
+                        }
+                    }
+
+                    if (e0 is ImHashMapEntry<K, V> v0) handler.Invoke(v0, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e0).Conflicts) handler.Invoke(c, i++, state);
+                    if (e1 is ImHashMapEntry<K, V> v1) handler.Invoke(v1, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e1).Conflicts) handler.Invoke(c, i++, state);
+                    if (pp is ImHashMapEntry<K, V> v2) handler.Invoke(v2, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)pp).Conflicts) handler.Invoke(c, i++, state);
+                    if (p  is ImHashMapEntry<K, V> v3) handler.Invoke(v3, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)p).Conflicts)  handler.Invoke(c, i++, state);
+                }
+                else if (map is ImHashMap<K, V>.Leaf5 l5)
+                {
+                    if (l5.Entry0 is ImHashMapEntry<K, V> v0) handler.Invoke(v0, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)l5.Entry0).Conflicts) handler.Invoke(c, i++, state);
+                    if (l5.Entry1 is ImHashMapEntry<K, V> v1) handler.Invoke(v1, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)l5.Entry1).Conflicts) handler.Invoke(c, i++, state);
+                    if (l5.Entry2 is ImHashMapEntry<K, V> v2) handler.Invoke(v2, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)l5.Entry2).Conflicts) handler.Invoke(c, i++, state);
+                    if (l5.Entry3 is ImHashMapEntry<K, V> v3) handler.Invoke(v3, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)l5.Entry3).Conflicts) handler.Invoke(c, i++, state);
+                    if (l5.Entry4 is ImHashMapEntry<K, V> v4) handler.Invoke(v4, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)l5.Entry4).Conflicts) handler.Invoke(c, i++, state);
+                }
+                else if (map is ImHashMap<K, V>.Leaf5Plus1 l51)
+                {
+                    var p  = l51.Plus;
+                    var ph = p.Hash;
+                    var l  = l51.L;
+                    ImHashMap<K, V>.Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, swap = null;
+                    if (ph < e4.Hash)
+                    {
+                        swap = e4; e4 = p; p = swap;
+                        if (ph < e3.Hash)
+                        {
+                            swap = e3; e3 = e4; e4 = swap;
+                            if (ph < e2.Hash)
+                            {
+                                swap = e2; e2 = e3; e3 = swap;
+                                if (ph < e1.Hash)
+                                {
+                                    swap = e1; e1 = e2; e2 = swap;
+                                    if (ph < e0.Hash)
+                                    {
+                                        swap = e0; e0 = e1; e1 = swap;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (e0 is ImHashMapEntry<K, V> v0) handler.Invoke(v0, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e0).Conflicts) handler.Invoke(c, i++, state);
+                    if (e1 is ImHashMapEntry<K, V> v1) handler.Invoke(v1, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e1).Conflicts) handler.Invoke(c, i++, state);
+                    if (e2 is ImHashMapEntry<K, V> v2) handler.Invoke(v2, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e2).Conflicts) handler.Invoke(c, i++, state);
+                    if (e3 is ImHashMapEntry<K, V> v3) handler.Invoke(v3, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e3).Conflicts) handler.Invoke(c, i++, state);
+                    if (e4 is ImHashMapEntry<K, V> v4) handler.Invoke(v4, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e4).Conflicts) handler.Invoke(c, i++, state);
+                    if (p  is ImHashMapEntry<K, V> v5) handler.Invoke(v5, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)p).Conflicts)  handler.Invoke(c, i++, state);
+                }
+                else if (map is ImHashMap<K, V>.Leaf5Plus1Plus1 l511)
+                {
+                    var l = l511.L.L;
+                    ImHashMap<K, V>.Entry 
+                        e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, p = l511.Plus, pp = l511.L.Plus, swap = null;
+                    var h = pp.Hash;
+                    if (h < e4.Hash)
+                    {
+                        swap = e4; e4 = pp; pp = swap;
+                        if (h < e3.Hash)
+                        {
+                            swap = e3; e3 = e4; e4 = swap;
+                            if (h < e2.Hash)
+                            {
+                                swap = e2; e2 = e3; e3 = swap;
+                                if (h < e1.Hash)
+                                {
+                                    swap = e1; e1 = e2; e2 = swap;
+                                    if (h < e0.Hash)
+                                    {
+                                        swap = e0; e0 = e1; e1 = swap;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    h = p.Hash;
+                    if (h < pp.Hash)
+                    {
+                        swap = pp; pp = p; p = swap;
+                        if (h < e4.Hash)
+                        {
+                            swap = e4; e4 = pp; pp = swap;
+                            if (h < e3.Hash)
+                            {
+                                swap = e3; e3 = e4; e4 = swap;
+                                if (h < e2.Hash)
+                                {
+                                    swap = e2; e2 = e3; e3 = swap;
+                                    if (h < e1.Hash)
+                                    {
+                                        swap = e1; e1 = e2; e2 = swap;
+                                        if (h < e0.Hash)
+                                        {
+                                            swap = e0; e0 = e1; e1 = swap;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (e0 is ImHashMapEntry<K, V> v0) handler.Invoke(v0, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e0).Conflicts) handler.Invoke(c, i++, state);
+                    if (e1 is ImHashMapEntry<K, V> v1) handler.Invoke(v1, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e1).Conflicts) handler.Invoke(c, i++, state);
+                    if (e2 is ImHashMapEntry<K, V> v2) handler.Invoke(v2, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e2).Conflicts) handler.Invoke(c, i++, state);
+                    if (e3 is ImHashMapEntry<K, V> v3) handler.Invoke(v3, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e3).Conflicts) handler.Invoke(c, i++, state);
+                    if (e4 is ImHashMapEntry<K, V> v4) handler.Invoke(v4, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)e4).Conflicts) handler.Invoke(c, i++, state);
+                    if (pp is ImHashMapEntry<K, V> v5) handler.Invoke(v5, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)pp).Conflicts) handler.Invoke(c, i++, state);
+                    if (p  is ImHashMapEntry<K, V> v6) handler.Invoke(v6, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)p).Conflicts)  handler.Invoke(c, i++, state);
+                }
+
+                if (count == 0)
+                    break; // we yield the leaf and there is nothing in stack - we are DONE!
+
+                var b = parents.Get(--count); // otherwise get the parent
+                if (b is ImHashMap<K,V>.Branch2 pb2)
+                {
+                    if (pb2.MidEntry is ImHashMapEntry<K, V> v) handler.Invoke(v, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)pb2.MidEntry).Conflicts) handler.Invoke(c, i++, state);
+                    map = pb2.Right;
+                }
+                else if (b is ImHashMap<K, V>.Branch3 pb3)
+                {
+                    if (pb3.Entry0 is ImHashMapEntry<K, V> v) handler.Invoke(v, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)pb3.Entry0).Conflicts) handler.Invoke(c, i++, state);
+                    if (br3Wrapper == null)
+                        br3Wrapper = new GoRightInBranch3<K, V>();
+                    br3Wrapper.Br3 = pb3;
+                    parents.Set(count++, br3Wrapper);
+                    br3Wrapper = null; // set to null to mark that the wrapper is in use and longer shared
+                    map = pb3.Middle;
+                }
+                else 
+                {
+                    br3Wrapper = (GoRightInBranch3<K, V>)b;
+                    if (br3Wrapper.Br3.Entry1 is ImHashMapEntry<K, V> v) handler.Invoke(v, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)br3Wrapper.Br3.Entry1).Conflicts) handler.Invoke(c, i++, state);
+                    map = br3Wrapper.Br3.Right;
+                }
+            }
+
+            return state;
+        }
+
         /// <summary>Do something for each entry.
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
@@ -5791,6 +6064,19 @@ namespace ImTools
         public static ImHashMapEntry<K, V>[] ToArray<K, V>(this ImHashMap<K, V> map) =>
             map == ImHashMap<K, V>.Empty ? ArrayTools.Empty<ImHashMapEntry<K, V>>() : 
                 map.ForEach(new ImHashMapEntry<K, V>[map.Count()], (e, i, a) => a[i] = e);
+
+        /// <summary>Converts map to an array with the minimum allocations</summary>
+        public static ImHashMapEntry<K, V>[] ToArray_Struct<K, V>(this ImHashMap<K, V> map) =>
+            map == ImHashMap<K, V>.Empty ? ArrayTools.Empty<ImHashMapEntry<K, V>>() : 
+                map.ForEach_Struct(new ImHashMapEntry<K, V>[map.Count()], default(ToArrayHandler<K, V>));
+
+        /// <summary></summary>
+        public struct ToArrayHandler<K, V> : IHandler<K, V, ImHashMapEntry<K, V>[]>
+        {
+            /// <summary></summary>
+            [MethodImpl((MethodImplOptions)256)]
+            public void Invoke(ImHashMapEntry<K, V> entry, int i, ImHashMapEntry<K, V>[] state) => state[i] = entry;
+        }
 
         /// <summary>Converts the map to the dictionary</summary>
         public static Dictionary<K, V> ToDictionary<K, V>(this ImHashMap<K, V> map) =>

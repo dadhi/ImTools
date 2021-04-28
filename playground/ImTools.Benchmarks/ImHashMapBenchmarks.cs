@@ -1829,7 +1829,6 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             }
 
             private ImTools.ImHashMap<Type, string> _mapV3;
-
             public ImTools.ImHashMap<Type, string> V3_ImHashMap_AddOrUpdate()
             {
                 var map = ImTools.ImHashMap<Type, string>.Empty;
@@ -1953,6 +1952,65 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 foreach (var x in _immutableDict)
                     s = x.Value;
                 return s;
+            }
+        }
+
+        [MemoryDiagnoser]
+        public class ToArray
+        {
+            /*
+            BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
+            Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+            .NET Core SDK=5.0.202
+            [Host]     : .NET Core 5.0.5 (CoreCLR 5.0.521.16609, CoreFX 5.0.521.16609), X64 RyuJIT
+            DefaultJob : .NET Core 5.0.5 (CoreCLR 5.0.521.16609, CoreFX 5.0.521.16609), X64 RyuJIT
+
+
+            |                Method | Count |      Mean |    Error |    StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+            |---------------------- |------ |----------:|---------:|----------:|------:|--------:|-------:|------:|------:|----------:|
+            |           UsingLambda |     1 |  29.07 ns | 0.672 ns |  1.722 ns |  1.00 |    0.00 | 0.0051 |     - |     - |      32 B |
+            |    UsingGenericStruct |     1 |  27.87 ns | 0.657 ns |  1.660 ns |  0.96 |    0.08 | 0.0051 |     - |     - |      32 B |
+            | UsingNonGenericStruct |     1 |  15.11 ns | 0.391 ns |  0.930 ns |  0.52 |    0.05 | 0.0051 |     - |     - |      32 B |
+            |                       |       |           |          |           |       |         |        |       |       |           |
+            |           UsingLambda |    10 | 159.52 ns | 3.168 ns |  5.379 ns |  1.00 |    0.00 | 0.0293 |     - |     - |     184 B |
+            |    UsingGenericStruct |    10 | 195.96 ns | 4.683 ns | 13.435 ns |  1.28 |    0.09 | 0.0293 |     - |     - |     184 B |
+            | UsingNonGenericStruct |    10 | 134.08 ns | 2.785 ns |  7.578 ns |  0.85 |    0.06 | 0.0293 |     - |     - |     184 B |
+            */
+            [Params(1, 10)]//, 100, 1_000)]
+            public int Count;
+
+            [GlobalSetup]
+            public void Populate()
+            {
+                _mapV3 = V3_ImHashMap_AddOrUpdate();
+            }
+
+            [Benchmark(Baseline = true)]
+            public object UsingLambda() => _mapV3.ToArray();
+
+            [Benchmark]
+            public object UsingGenericStruct() => _mapV3.ToArray_Struct();
+
+            [Benchmark]
+            public object UsingNonGenericStruct() => 
+                _mapV3.ForEach_Struct(new ImTools.ImHashMapEntry<Type, string>[_mapV3.Count()], default(ToArrayHandler));
+
+            public struct ToArrayHandler : ImTools.ImHashMap.IHandler<Type, string, ImTools.ImHashMapEntry<Type, string>[]>
+            {
+                /// <summary></summary>
+                public void Invoke(ImTools.ImHashMapEntry<Type, string> entry, int i, ImTools.ImHashMapEntry<Type, string>[] state) => state[i] = entry;
+            }
+
+
+            private ImTools.ImHashMap<Type, string> _mapV3;
+            public ImTools.ImHashMap<Type, string> V3_ImHashMap_AddOrUpdate()
+            {
+                var map = ImTools.ImHashMap<Type, string>.Empty;
+
+                foreach (var key in _keys.Take(Count))
+                    map = map.AddOrUpdate(key.GetHashCode(), key, "a");
+
+                return map;
             }
         }
     }
