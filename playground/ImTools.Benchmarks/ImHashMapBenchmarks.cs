@@ -441,7 +441,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 
 */
             // [Params(1, 10, 100, 1000)]
-            [Params(5)]
+            [Params(10)]
             public int Count;
 
             private Type[] _types;
@@ -498,6 +498,17 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             }
 
             [Benchmark]
+            public ImTools.ImMap<KeyValuePair<Type, string>> V3_ImMap_AddOrUpdate()
+            {
+                var map = ImTools.ImMap<KeyValuePair<Type, string>>.Empty;
+
+                foreach (var key in _types)
+                    map = map.AddOrUpdate(key.GetHashCode(), new KeyValuePair<Type, string>(key, "a"));
+
+                return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), new KeyValuePair<Type, string>(typeof(ImHashMapBenchmarks), "!"));
+            }
+
+            // [Benchmark]
             public ImTools.ImHashMap<Type, string>[] V3_PartitionedHashMap_AddOrUpdate()
             {
                 var map = PartitionedHashMap.CreateEmpty<Type, string>();
@@ -545,7 +556,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public Dictionary<Type, string> Dict_TryAdd()
             {
                 var map = new Dictionary<Type, string>();
@@ -591,7 +602,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return map.Add(typeof(ImHashMapBenchmarks), "!");
             }
 
-            [Benchmark]
+            // [Benchmark]
             public TypeDictionary<string> TypeDictionary_Add()
             {
                 var map = new TypeDictionary<string>();
@@ -1989,18 +2000,14 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             public object UsingLambda() => _mapV3.ToArray();
 
             [Benchmark]
-            public object UsingGenericStruct() => _mapV3.ToArray_Struct();
-
-            [Benchmark]
             public object UsingNonGenericStruct() => 
-                _mapV3.ForEach_Struct(new ImTools.ImHashMapEntry<Type, string>[_mapV3.Count()], default(ToArrayHandler));
+                _mapV3.ForEach(new ImTools.ImHashMapEntry<Type, string>[_mapV3.Count()], default(ToArrayHandler));
 
             public struct ToArrayHandler : ImTools.ImHashMap.IHandler<Type, string, ImTools.ImHashMapEntry<Type, string>[]>
             {
                 /// <summary></summary>
                 public void Invoke(ImTools.ImHashMapEntry<Type, string> entry, int i, ImTools.ImHashMapEntry<Type, string>[] state) => state[i] = entry;
             }
-
 
             private ImTools.ImHashMap<Type, string> _mapV3;
             public ImTools.ImHashMap<Type, string> V3_ImHashMap_AddOrUpdate()

@@ -5,7 +5,7 @@
 - Windows, Linux, MacOS [![CI build](https://ci.appveyor.com/api/projects/status/el9echuqfnl86u53?svg=true)](https://ci.appveyor.com/project/MaksimVolkau/imtools/branch/master)
 - Lib package [![NuGet Badge](https://buildstats.info/nuget/ImTools.dll)](https://www.nuget.org/packages/ImTools.dll)
 - Code package [![NuGet Badge](https://buildstats.info/nuget/ImTools)](https://www.nuget.org/packages/ImTools)
-- Latest release [![latest release](https://img.shields.io/badge/latest%20release-v3.0.0-green)](https://github.com/dadhi/ImTools/releases/tag/v3.0.0) 
+- Latest release [![latest release](https://img.shields.io/badge/latest%20release-v3.1.0-green)](https://github.com/dadhi/ImTools/releases/tag/v3.1.0) 
 
 Fast and memory-efficient immutable collections and helper data structures.
 
@@ -93,32 +93,32 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 ```md
 |                           Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
 |--------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
-|         V2_ImHashMap_AVL_TryFind |     1 |  5.100 ns | 0.1212 ns | 0.1134 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-|      V3_ImHashMap_23Tree_TryFind |     1 |  5.539 ns | 0.1676 ns | 0.1568 ns |  1.09 |    0.03 |     - |     - |     - |         - |
+|               V2_ImHashMap_yFind |     1 |  5.100 ns | 0.1212 ns | 0.1134 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|             V3_ImHashMap_TryFind |     1 |  5.539 ns | 0.1676 ns | 0.1568 ns |  1.09 |    0.03 |     - |     - |     - |         - |
 |    V3_PartitionedHashMap_TryFind |     1 |  5.813 ns | 0.1844 ns | 0.1973 ns |  1.13 |    0.04 |     - |     - |     - |         - |
 |       DictionarySlim_TryGetValue |     1 |  6.614 ns | 0.0839 ns | 0.0744 ns |  1.29 |    0.03 |     - |     - |     - |         - |
 |           Dictionary_TryGetValue |     1 | 16.495 ns | 0.1270 ns | 0.1126 ns |  3.23 |    0.06 |     - |     - |     - |         - |
 | ConcurrentDictionary_TryGetValue |     1 | 12.715 ns | 0.1584 ns | 0.1323 ns |  2.49 |    0.05 |     - |     - |     - |         - |
 |             ImmutableDict_TryGet |     1 | 22.615 ns | 0.3097 ns | 0.2418 ns |  4.42 |    0.08 |     - |     - |     - |         - |
 |                                  |       |           |           |           |       |         |       |       |       |           |
-|         V2_ImHashMap_AVL_TryFind |    10 |  6.270 ns | 0.1421 ns | 0.1187 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-|      V3_ImHashMap_23Tree_TryFind |    10 |  6.597 ns | 0.1095 ns | 0.1024 ns |  1.06 |    0.02 |     - |     - |     - |         - |
+|             V2_ImHashMap_TryFind |    10 |  6.270 ns | 0.1421 ns | 0.1187 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|             V3_ImHashMap_TryFind |    10 |  6.597 ns | 0.1095 ns | 0.1024 ns |  1.06 |    0.02 |     - |     - |     - |         - |
 |    V3_PartitionedHashMap_TryFind |    10 |  5.416 ns | 0.0908 ns | 0.0805 ns |  0.87 |    0.02 |     - |     - |     - |         - |
 |       DictionarySlim_TryGetValue |    10 |  7.543 ns | 0.1274 ns | 0.1064 ns |  1.20 |    0.02 |     - |     - |     - |         - |
 |           Dictionary_TryGetValue |    10 | 16.907 ns | 0.1892 ns | 0.1769 ns |  2.70 |    0.05 |     - |     - |     - |         - |
 | ConcurrentDictionary_TryGetValue |    10 | 12.694 ns | 0.1740 ns | 0.1453 ns |  2.03 |    0.04 |     - |     - |     - |         - |
 |             ImmutableDict_TryGet |    10 | 24.049 ns | 0.3034 ns | 0.2838 ns |  3.84 |    0.07 |     - |     - |     - |         - |
 |                                  |       |           |           |           |       |         |       |       |       |           |
-|         V2_ImHashMap_AVL_TryFind |   100 |  9.459 ns | 0.2667 ns | 0.2739 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-|      V3_ImHashMap_23Tree_TryFind |   100 |  9.526 ns | 0.1814 ns | 0.1697 ns |  1.01 |    0.03 |     - |     - |     - |         - |
+|             V2_ImHashMap_TryFind |   100 |  9.459 ns | 0.2667 ns | 0.2739 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|             V3_ImHashMap_TryFind |   100 |  9.526 ns | 0.1814 ns | 0.1697 ns |  1.01 |    0.03 |     - |     - |     - |         - |
 |    V3_PartitionedHashMap_TryFind |   100 |  5.827 ns | 0.0867 ns | 0.0768 ns |  0.62 |    0.02 |     - |     - |     - |         - |
 |       DictionarySlim_TryGetValue |   100 |  6.897 ns | 0.1033 ns | 0.0967 ns |  0.73 |    0.02 |     - |     - |     - |         - |
 |           Dictionary_TryGetValue |   100 | 18.189 ns | 0.2100 ns | 0.1640 ns |  1.92 |    0.06 |     - |     - |     - |         - |
 | ConcurrentDictionary_TryGetValue |   100 | 13.412 ns | 0.2041 ns | 0.1909 ns |  1.42 |    0.04 |     - |     - |     - |         - |
 |             ImmutableDict_TryGet |   100 | 26.023 ns | 0.3854 ns | 0.3417 ns |  2.76 |    0.08 |     - |     - |     - |         - |
 |                                  |       |           |           |           |       |         |       |       |       |           |
-|         V2_ImHashMap_AVL_TryFind |  1000 | 15.172 ns | 0.2617 ns | 0.2320 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-|      V3_ImHashMap_23Tree_TryFind |  1000 | 14.473 ns | 0.2030 ns | 0.1799 ns |  0.95 |    0.01 |     - |     - |     - |         - |
+|             V2_ImHashMap_TryFind |  1000 | 15.172 ns | 0.2617 ns | 0.2320 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|             V3_ImHashMap_TryFind |  1000 | 14.473 ns | 0.2030 ns | 0.1799 ns |  0.95 |    0.01 |     - |     - |     - |         - |
 |    V3_PartitionedHashMap_TryFind |  1000 |  8.182 ns | 0.0809 ns | 0.0756 ns |  0.54 |    0.01 |     - |     - |     - |         - |
 |       DictionarySlim_TryGetValue |  1000 |  6.893 ns | 0.1590 ns | 0.1410 ns |  0.45 |    0.01 |     - |     - |     - |         - |
 |           Dictionary_TryGetValue |  1000 | 18.230 ns | 0.2012 ns | 0.1882 ns |  1.20 |    0.02 |     - |     - |     - |         - |

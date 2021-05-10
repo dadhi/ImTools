@@ -5770,10 +5770,10 @@ namespace ImTools
             return state;
         }
 
-        /// <summary></summary>
+        /// <summary>Struct handler to allow inlining of the Invoke implementation. Important: will be inlined only with the non-generic implementation</summary>
         public interface IHandler<K, V, S>
         {
-            /// <summary></summary>
+            /// <summary>Handler code</summary>
             void Invoke(ImHashMapEntry<K, V> entry, int i, S state);
         }
 
@@ -5781,7 +5781,7 @@ namespace ImTools
         /// Depth-first in-order of hash traversal as described in http://en.wikipedia.org/wiki/Tree_traversal.
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
-        public static S ForEach_Struct<K, V, S, THandler>(this ImHashMap<K, V> map, S state, THandler handler, MapParentStack parents = null)
+        public static S ForEach<K, V, S, THandler>(this ImHashMap<K, V> map, S state, THandler handler, MapParentStack parents = null)
             where THandler : struct, IHandler<K, V, S>
         {
             if (map == ImHashMap<K, V>.Empty)
@@ -6064,19 +6064,6 @@ namespace ImTools
         public static ImHashMapEntry<K, V>[] ToArray<K, V>(this ImHashMap<K, V> map) =>
             map == ImHashMap<K, V>.Empty ? ArrayTools.Empty<ImHashMapEntry<K, V>>() : 
                 map.ForEach(new ImHashMapEntry<K, V>[map.Count()], (e, i, a) => a[i] = e);
-
-        /// <summary>Converts map to an array with the minimum allocations</summary>
-        public static ImHashMapEntry<K, V>[] ToArray_Struct<K, V>(this ImHashMap<K, V> map) =>
-            map == ImHashMap<K, V>.Empty ? ArrayTools.Empty<ImHashMapEntry<K, V>>() : 
-                map.ForEach_Struct(new ImHashMapEntry<K, V>[map.Count()], default(ToArrayHandler<K, V>));
-
-        /// <summary></summary>
-        public struct ToArrayHandler<K, V> : IHandler<K, V, ImHashMapEntry<K, V>[]>
-        {
-            /// <summary></summary>
-            [MethodImpl((MethodImplOptions)256)]
-            public void Invoke(ImHashMapEntry<K, V> entry, int i, ImHashMapEntry<K, V>[] state) => state[i] = entry;
-        }
 
         /// <summary>Converts the map to the dictionary</summary>
         public static Dictionary<K, V> ToDictionary<K, V>(this ImHashMap<K, V> map) =>
