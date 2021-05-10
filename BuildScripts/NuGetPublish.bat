@@ -1,6 +1,6 @@
 @echo off
 
-set PACKAGES=..\.dist\packages
+set PACKAGES=.dist\packages
 set SOURCE=https://api.nuget.org/v3/index.json
 set /p APIKEY=<"..\ApiKey.txt"
 
