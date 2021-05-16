@@ -3078,10 +3078,10 @@ namespace ImTools
         /// <summary>Returns the found entry with the same hash or the new map with added new entry.
         /// Note that the empty map will return the entry the same as if the entry was found - so the consumer should check for the empty map.
         /// Note that the method cannot return the `null` - when the existing entry is not found it will alway be the new map with the added entry.</summary>
-        internal virtual ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry) => entry;
+        public virtual ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry) => entry;
 
         /// <summary>Returns the new map with old entry replaced by the new entry. Note that the old entry should be present.</summary>
-        internal virtual ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry) => this;
+        public virtual ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry) => this;
 
         /// <summary>Removes the certainly present old entry and returns the new map without it.</summary>
         internal virtual ImHashMap<K, V> RemoveEntry(Entry entry) => this;
@@ -3099,10 +3099,12 @@ namespace ImTools
 
             internal sealed override Entry GetEntryOrNull(int hash) => hash == Hash ? this : null;
 
-            internal sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry) =>
+            /// <inheritdoc />
+            public sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry) =>
                 hash > Hash ? new Leaf2(this, entry) : hash < Hash ? new Leaf2(entry, this) : (ImHashMap<K, V>)this;
 
-            internal sealed override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry) => 
+            /// <inheritdoc />
+            public sealed override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry) => 
                 this == oldEntry ? newEntry : oldEntry;
 
             internal sealed override ImHashMap<K, V> RemoveEntry(Entry removedEntry) =>
@@ -3131,10 +3133,10 @@ namespace ImTools
             internal override Entry GetEntryOrNull(int hash) => 
                 Entry0.Hash == hash ? Entry0 : Entry1.Hash == hash ? Entry1 : null;
 
-            internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry) =>
+            public override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry) =>
                 hash == Entry0.Hash ? Entry0 : hash == Entry1.Hash ? Entry1 : (ImHashMap<K, V>)new Leaf2Plus1(entry, this);
 
-            internal override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry) =>
+            public override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry) =>
                 oldEntry == Entry0 ? new Leaf2(newEntry, Entry1) : new Leaf2(Entry0, newEntry);
 
             internal override ImHashMap<K, V> RemoveEntry(Entry removedEntry) =>
@@ -3169,7 +3171,7 @@ namespace ImTools
                 return e0.Hash == hash ? e0 : e1.Hash == hash ? e1 : null;
             }
 
-            internal sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
+            public sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
             {
                 if (hash == Plus.Hash) 
                     return Plus;
@@ -3177,7 +3179,7 @@ namespace ImTools
                 return hash == e0.Hash ? e0 : hash == e1.Hash ? e1 : (ImHashMap<K, V>)new Leaf2Plus1Plus1(entry, this);
             }
 
-            internal sealed override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry) =>
+            public sealed override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry) =>
                 oldEntry == Plus     ? new Leaf2Plus1(newEntry, L) :
                 oldEntry == L.Entry0 ? new Leaf2Plus1(Plus, new Leaf2(newEntry, L.Entry1)) :
                                        new Leaf2Plus1(Plus, new Leaf2(L.Entry0, newEntry));
@@ -3228,7 +3230,7 @@ namespace ImTools
                 return e0.Hash == hash ? e0 : e1.Hash == hash ? e1 : null;
             }
 
-            internal sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
+            public sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
             {
                 var p = Plus;
                 var ph = p.Hash;
@@ -3292,7 +3294,7 @@ namespace ImTools
                 return new Leaf5(e0, e1, pp, p, e);
             }
 
-            internal sealed override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry) =>
+            public sealed override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry) =>
                 oldEntry == Plus       ? new Leaf2Plus1Plus1(newEntry, L) :
                 oldEntry == L.Plus     ? new Leaf2Plus1Plus1(Plus, new Leaf2Plus1(newEntry, L.L)) :
                 oldEntry == L.L.Entry0 ? new Leaf2Plus1Plus1(Plus, new Leaf2Plus1(L.Plus, new Leaf2(newEntry, L.L.Entry1))) :
@@ -3338,7 +3340,7 @@ namespace ImTools
                 hash == Entry4.Hash ? Entry4 :
                 null;
 
-            internal sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry) =>
+            public sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry) =>
                 hash == Entry0.Hash ? Entry0 :
                 hash == Entry1.Hash ? Entry1 :
                 hash == Entry2.Hash ? Entry2 :
@@ -3346,7 +3348,7 @@ namespace ImTools
                 hash == Entry4.Hash ? Entry4 :
                 (ImHashMap<K, V>)new Leaf5Plus1(entry, this);
 
-            internal sealed override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry) =>
+            public sealed override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry) =>
                 oldEntry == Entry0 ? new Leaf5(newEntry, Entry1, Entry2, Entry3, Entry4) : 
                 oldEntry == Entry1 ? new Leaf5(Entry0, newEntry, Entry2, Entry3, Entry4) :
                 oldEntry == Entry2 ? new Leaf5(Entry0, Entry1, newEntry, Entry3, Entry4) :
@@ -3394,7 +3396,7 @@ namespace ImTools
                     :  null;
             }
 
-            internal sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
+            public sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
             {
                 var p = Plus;
                 var ph = p.Hash;
@@ -3409,7 +3411,7 @@ namespace ImTools
                     :  (ImHashMap<K, V>)new Leaf5Plus1Plus1(entry, this);
             }
 
-            internal sealed override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry)
+            public sealed override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry)
             {
                 var p = Plus;
                 if (oldEntry == p)
@@ -3511,7 +3513,7 @@ namespace ImTools
                     :  null;
             }
 
-            internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
+            public override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
             {
                 ImHashMap<K, V> splitRight = null;
                 var entryOrNewMap = AddOrGetEntry(hash, ref entry, ref splitRight);
@@ -3639,7 +3641,7 @@ namespace ImTools
             }
 
 
-            internal sealed override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry)
+            public sealed override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry)
             {
                 var p = Plus;
                 if (p == oldEntry)
@@ -3759,7 +3761,7 @@ namespace ImTools
                     :  MidEntry;
             }
 
-            internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
+            public override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
             {
                 var e = MidEntry;
                 ImHashMap<K, V> newBranch = null;
@@ -3794,7 +3796,7 @@ namespace ImTools
                 return e;
             }
 
-            internal override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry)
+            public override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry)
             {
                 var h = MidEntry.Hash;
                 return hash > h ? new Branch2(Left, MidEntry, Right.ReplaceEntry(hash, oldEntry, newEntry))
@@ -3908,7 +3910,7 @@ namespace ImTools
                 return Middle.GetEntryOrNull(hash);
             }
 
-            internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
+            public override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
             {
                 var h1 = Entry1.Hash;
                 if (hash > h1)
@@ -4012,7 +4014,7 @@ namespace ImTools
                 return hash == h0 ? Entry0 : Entry1;
             }
 
-            internal override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry)
+            public override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry)
             {
                 int h0 = Entry0.Hash, h1 = Entry1.Hash;
                 return hash > h1 ? new Branch3(Left, Entry0, Middle, Entry1, Right.ReplaceEntry(hash, oldEntry, newEntry)) 
@@ -6322,7 +6324,8 @@ namespace ImTools
             return oldEntryOrMap;
         }
 
-        private static ImHashMap<K, V>.Entry UpdateEntry<K, V>(ImHashMap<K, V>.Entry oldEntry, ImHashMapEntry<K, V> newEntry, Update<K, V> update)
+        /// <summary>Updates the possibly the conflicted entry with the new key and value entry using the provided update function.</summary>
+        public static ImHashMap<K, V>.Entry UpdateEntry<K, V>(ImHashMap<K, V>.Entry oldEntry, ImHashMapEntry<K, V> newEntry, Update<K, V> update)
         {
             var key = newEntry.Key;
             if (oldEntry is ImHashMapEntry<K, V> kv)

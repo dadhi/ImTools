@@ -11,6 +11,7 @@ using Microsoft.Collections.Extensions;
 using ImTools;
 using ImTools.V2;
 using ImTools.V2.Experimental;
+using System.Runtime.CompilerServices;
 
 namespace Playground
 {
@@ -2020,5 +2021,105 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 return map;
             }
         }
+
+        [MemoryDiagnoser]
+        public class GetAndUpdate_vs_AddOrGetAndReplace
+        {
+/*
+BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
+Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+.NET Core SDK=5.0.202
+  [Host]     : .NET Core 5.0.5 (CoreCLR 5.0.521.16609, CoreFX 5.0.521.16609), X64 RyuJIT
+  DefaultJob : .NET Core 5.0.5 (CoreCLR 5.0.521.16609, CoreFX 5.0.521.16609), X64 RyuJIT
+
+## Initial results
+
+|                                            Method | Count |     Mean |    Error |   StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|-------------------------------------------------- |------ |---------:|---------:|---------:|------:|--------:|-------:|------:|------:|----------:|
+|                              Get_then_AddOrUpdate |     1 | 29.34 ns | 0.397 ns | 0.371 ns |  1.00 |    0.00 | 0.0114 |     - |     - |      72 B |
+|                             AddOrGet_then_Replace |     1 | 25.17 ns | 0.568 ns | 0.504 ns |  0.86 |    0.02 | 0.0114 |     - |     - |      72 B |
+| AddOrGet_then_Replace_inlined_without_lambda_cost |     1 | 24.05 ns | 0.316 ns | 0.296 ns |  0.82 |    0.01 | 0.0115 |     - |     - |      72 B |
+|                                                   |       |          |          |          |       |         |        |       |       |           |
+|                              Get_then_AddOrUpdate |     5 | 32.54 ns | 0.725 ns | 0.917 ns |  1.00 |    0.00 | 0.0114 |     - |     - |      72 B |
+|                             AddOrGet_then_Replace |     5 | 26.16 ns | 0.584 ns | 0.546 ns |  0.80 |    0.03 | 0.0114 |     - |     - |      72 B |
+| AddOrGet_then_Replace_inlined_without_lambda_cost |     5 | 25.00 ns | 0.266 ns | 0.236 ns |  0.76 |    0.02 | 0.0114 |     - |     - |      72 B |
+|                                                   |       |          |          |          |       |         |        |       |       |           |
+|                              Get_then_AddOrUpdate |    10 | 51.65 ns | 1.085 ns | 0.962 ns |  1.00 |    0.00 | 0.0178 |     - |     - |     112 B |
+|                             AddOrGet_then_Replace |    10 | 48.35 ns | 0.521 ns | 0.487 ns |  0.94 |    0.02 | 0.0178 |     - |     - |     112 B |
+| AddOrGet_then_Replace_inlined_without_lambda_cost |    10 | 38.43 ns | 0.861 ns | 2.144 ns |  0.79 |    0.05 | 0.0178 |     - |     - |     112 B |
+|                                                   |       |          |          |          |       |         |        |       |       |           |
+|                              Get_then_AddOrUpdate |    50 | 91.46 ns | 1.870 ns | 2.079 ns |  1.00 |    0.00 | 0.0370 |     - |     - |     232 B |
+|                             AddOrGet_then_Replace |    50 | 85.13 ns | 1.755 ns | 2.573 ns |  0.94 |    0.03 | 0.0370 |     - |     - |     232 B |
+| AddOrGet_then_Replace_inlined_without_lambda_cost |    50 | 85.02 ns | 1.775 ns | 1.823 ns |  0.93 |    0.03 | 0.0370 |     - |     - |     232 B |
+
+*/
+            [Params(1, 5, 10, 50)]//, 100, 1_000)]
+            public int Count;
+
+            [GlobalSetup]
+            public void Populate()
+            {
+                _map = V3_ImHashMap_AddOrUpdate();
+            }
+
+            [Benchmark(Baseline = true)]
+            public object Get_then_AddOrUpdate()
+            {
+                var key = typeof(GlobalSetupAttribute);
+                var hash = key.GetHashCode();
+                var val = "!";
+                var m = _map;
+                var s = m.GetValueOrDefault(hash, key);
+                if (s != null)
+                    s = Handle(s, val);
+                else
+                    s = val;
+
+                return m.AddOrUpdate(hash, key, s); 
+            }
+
+            [Benchmark]
+            public object AddOrGet_then_Replace()
+            {
+                var key = typeof(GlobalSetupAttribute);
+                var hash = key.GetHashCode();
+                var val = "!";
+
+                return _map.AddOrUpdate(hash, key, val, (_, o, n) => Handle(o, n));
+            }
+
+            [Benchmark]
+            public object AddOrGet_then_Replace_inlined_without_lambda_cost()
+            {
+                var key = typeof(GlobalSetupAttribute);
+                var hash = key.GetHashCode();
+                var val = "!";
+                var m = _map;
+
+                var newEntry = new ImTools.ImHashMapEntry<Type, string>(hash, key, val);
+                if (m == ImTools.ImHashMap<Type, string>.Empty)
+                    return newEntry;
+
+                var oldEntryOrMap = m.AddOrGetEntry(hash, newEntry);
+                if (oldEntryOrMap is ImTools.ImHashMap<Type, string>.Entry oldEntry)
+                    return m.ReplaceEntry(hash, oldEntry, ImTools.ImHashMap.UpdateEntry(oldEntry, newEntry, (_, o, n) => Handle(o, n)));
+
+                return oldEntryOrMap;
+            }
+
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            static string Handle(string a, string b) => a + b;
+
+            private ImTools.ImHashMap<Type, string> _map;
+            public ImTools.ImHashMap<Type, string> V3_ImHashMap_AddOrUpdate()
+            {
+                var map = ImTools.ImHashMap<Type, string>.Empty;
+
+                foreach (var key in _keys.Take(Count))
+                    map = map.AddOrUpdate(key.GetHashCode(), key, "a");
+
+                return map;
+            }
+          }
     }
 }
