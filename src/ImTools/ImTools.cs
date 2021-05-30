@@ -3020,12 +3020,16 @@ namespace ImTools
         /// <summary>Constructs the entry with the key and value</summary>
         public ImHashMapEntry(int hash, K key, V value) : base(hash) 
         {
-            Key = key;
+            Key   = key;
             Value = value;
         }
 
         /// <inheritdoc />
         public override int Count() => 1;
+
+        /// <inheritdoc />
+        public override Entry GetEntryOrNull(int hash, K key) =>
+            Hash == hash && Key.Equals(key) ? this : null;
 
 #if !DEBUG
         /// <inheritdoc />
@@ -3040,6 +3044,15 @@ namespace ImTools
         internal HashConflictingEntry(int hash, params ImHashMapEntry<K, V>[] conflicts) : base(hash) => Conflicts = conflicts;
 
         public override int Count() => Conflicts.Length;
+
+        /// <inheritdoc />
+        public override Entry GetEntryOrNull(int hash, K key)
+        {
+            var cs = Conflicts;
+            var i = cs.Length - 1;
+            while (i != -1 && !key.Equals(cs[i].Key)) --i;
+            return i != -1 ? this : null;
+        }
 
 #if !DEBUG
         public override string ToString()
@@ -3111,6 +3124,9 @@ namespace ImTools
             internal override Entry GetMaxHashEntryOrDefault() => this;
 
             internal sealed override Entry GetEntryOrNull(int hash) => hash == Hash ? this : null;
+
+            /// <summary>Lookup for the entry by Hash and Key</summary>
+            public abstract Entry GetEntryOrNull(int hash, K key);
 
             /// <inheritdoc />
             public sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry) =>
