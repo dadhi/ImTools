@@ -1663,7 +1663,11 @@ namespace ImTools
             var sourceCount = source.Length;
             index = index < 0 ? sourceCount : index;
             var result = new T[index < sourceCount ? sourceCount : sourceCount + 1];
-            Array.Copy(source, result, sourceCount);
+            if (sourceCount < 6)
+                for (var i = 0; i < sourceCount; ++i)
+                    result[i] = source[i];
+            else
+                Array.Copy(source, 0, result, 0, sourceCount);
             result[index] = value;
             return result;
         }
@@ -3031,6 +3035,10 @@ namespace ImTools
         public override Entry GetEntryOrNull(int hash, K key) =>
             Hash == hash && Key.Equals(key) ? this : null;
 
+        /// <inheritdoc />
+        public override Entry Update(ImHashMapEntry<K, V> newEntry) =>
+            Key.Equals(newEntry.Key) ? newEntry : this.WithConflicting(newEntry);
+
 #if !DEBUG
         /// <inheritdoc />
         public override string ToString() => "{H: " + Hash + ", K: " + Key + ", V: " + Value + "}";
@@ -3052,6 +3060,17 @@ namespace ImTools
             var i = cs.Length - 1;
             while (i != -1 && !key.Equals(cs[i].Key)) --i;
             return i != -1 ? this : null;
+        }
+
+        /// <inheritdoc />
+        public override Entry Update(ImHashMapEntry<K, V> newEntry)
+        {
+            var key = newEntry.Key;
+            var cs = Conflicts;
+            var n = cs.Length;
+            var i = n - 1;
+            while (i != -1 && !key.Equals(cs[i].Key)) --i;
+            return new HashConflictingEntry<K, V>(Hash, cs.AppendOrUpdate(newEntry, i));
         }
 
 #if !DEBUG
@@ -3127,6 +3146,9 @@ namespace ImTools
 
             /// <summary>Lookup for the entry by Hash and Key</summary>
             public abstract Entry GetEntryOrNull(int hash, K key);
+
+            /// <summary>Updating the entry with the new one</summary>
+            public abstract Entry Update(ImHashMapEntry<K, V> newEntry);
 
             /// <inheritdoc />
             public sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry) =>
@@ -5272,6 +5294,11 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMapEntry<K, V> Entry<K, V>(int hash, K key, V value) => new ImHashMapEntry<K, V>(hash, key, value);
 
+        /// <summary>Creates the conflicting entry out of two entries</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        internal static ImHashMap<K, V>.Entry WithConflicting<K, V>(this ImHashMapEntry<K, V> one, ImHashMapEntry<K, V> two) => 
+            new HashConflictingEntry<K, V>(one.Hash, one, two);
+
         private sealed class GoRightInBranch3<K, V> 
         {
             public ImHashMap<K, V>.Branch3 Br3;
@@ -6296,7 +6323,7 @@ namespace ImTools
 
             var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
             if (oldEntryOrMap is ImHashMap<K, V>.Entry oldEntry)
-                return map.ReplaceEntry(hash, oldEntry, UpdateEntry(oldEntry, newEntry));
+                return map.ReplaceEntry(hash, oldEntry, oldEntry.Update(newEntry));
 
             return oldEntryOrMap;
         }
@@ -6311,28 +6338,9 @@ namespace ImTools
             var hash = newEntry.Hash;
             var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
             if (oldEntryOrMap is ImHashMap<K, V>.Entry oldEntry)
-                return map.ReplaceEntry(hash, oldEntry, UpdateEntry(oldEntry, newEntry));
+                return map.ReplaceEntry(hash, oldEntry, oldEntry.Update(newEntry));
 
             return oldEntryOrMap;
-        }
-
-        private static ImHashMap<K, V>.Entry UpdateEntry<K, V>(ImHashMap<K, V>.Entry oldEntry, ImHashMapEntry<K, V> newEntry)
-        {
-            if (oldEntry is ImHashMapEntry<K, V> kv)
-                return kv.Key.Equals(newEntry.Key) ? newEntry 
-                     : (ImHashMap<K, V>.Entry)new HashConflictingEntry<K, V>(oldEntry.Hash, kv, newEntry);
-
-            var hc = (HashConflictingEntry<K, V>)oldEntry;
-            var key = newEntry.Key;
-            var cs = hc.Conflicts;
-            var n = cs.Length;
-            var i = n - 1;
-            while (i != -1 && !key.Equals(cs[i].Key)) --i;
-            var newConflicts = new ImHashMapEntry<K, V>[i != -1 ? n : n + 1];
-            Array.Copy(cs, 0, newConflicts, 0, n);
-            newConflicts[i != -1 ? i : n] = newEntry;
-
-            return new HashConflictingEntry<K, V>(oldEntry.Hash, newConflicts);
         }
 
         /// <summary>Adds or updates (no in-place mutation) the map with value by the passed key, always returning the NEW map!</summary>
