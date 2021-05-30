@@ -4129,6 +4129,8 @@ namespace ImTools
     {
         /// <summary>The hash.</summary>
         public readonly int Hash;
+        /// <summary>The Key is actually the Hash for this entry and the vice versa.</summary>
+        public int Key => Hash;
         /// <summary>The value. Maybe modified if you need the Ref{Value} semantics. 
         /// You may add the entry with the default Value to the map, and calculate and set it later (e.g. using the CAS).</summary>
         public V Value;
