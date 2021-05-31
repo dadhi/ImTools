@@ -1681,6 +1681,20 @@ namespace ImTools
             return result;
         }
 
+        /// <summary>Updates the item in the copy of the array. The array should be non-empty.</summary>
+        public static T[] UpdateNonEmpty<T>(this T[] source, T value, int index)
+        {
+            var sourceCount = source.Length;
+            var result = new T[sourceCount];
+            if (sourceCount < 6)
+                for (var i = 0; i < sourceCount; ++i)
+                    result[i] = source[i];
+            else
+                Array.Copy(source, 0, result, 0, sourceCount);
+            result[index] = value;
+            return result;
+        }
+
         /// <summary>Returns the new array consisting from all items from source array then the all items from added array.
         /// Assumes that both arrays are non-empty to avoid the checks.</summary>
         public static T[] AppendNonEmpty<T>(this T[] source, params T[] added)
@@ -6397,9 +6411,8 @@ namespace ImTools
             var cs = ((HashConflictingEntry<K, V>)entry).Conflicts;
             var i = cs.Length - 1;
             while (i != -1 && !key.Equals(cs[i].Key)) --i;
-            if (i == -1)
-                return map;
-            return map.ReplaceEntry(hash, entry, new HashConflictingEntry<K, V>(hash, cs.AppendOrUpdate(new ImHashMapEntry<K, V>(hash, key, value), i)));
+            return i == -1 ? map :
+                map.ReplaceEntry(hash, entry, new HashConflictingEntry<K, V>(hash, cs.UpdateNonEmpty(new ImHashMapEntry<K, V>(hash, key, value), i)));
         }
 
         /// <summary>Updates the map with the new value if the key is found otherwise returns the same unchanged map.</summary>
@@ -6420,8 +6433,8 @@ namespace ImTools
             var cs = ((HashConflictingEntry<K, V>)entry).Conflicts;
             var i = cs.Length - 1;
             while (i != -1 && !key.Equals(cs[i].Key)) --i;
-            return i == -1 ? map : 
-                map.ReplaceEntry(hash, entry, new HashConflictingEntry<K, V>(hash, cs.AppendOrUpdate(new ImHashMapEntry<K, V>(hash, key), i)));
+            return i == -1 ? map :
+                map.ReplaceEntry(hash, entry, new HashConflictingEntry<K, V>(hash, cs.UpdateNonEmpty(new ImHashMapEntry<K, V>(hash, key), i)));
         }
 
         /// <summary>Updates the map with the new value if the key is found otherwise returns the same unchanged map.</summary>
@@ -6447,7 +6460,7 @@ namespace ImTools
             while (i != -1 && !key.Equals(cs[i].Key)) --i;
             if (i == -1 || ReferenceEquals(cs[i].Value, value = update(key, cs[i].Value, value)))
                 return map;
-            return map.ReplaceEntry(hash, entry, new HashConflictingEntry<K, V>(hash, cs.AppendOrUpdate(new ImHashMapEntry<K, V>(hash, key, value), i)));
+            return map.ReplaceEntry(hash, entry, new HashConflictingEntry<K, V>(hash, cs.UpdateNonEmpty(new ImHashMapEntry<K, V>(hash, key, value), i)));
         }
 
         /// <summary>Updates the map with the new value and the `update` function if the key is found otherwise returns the same unchanged map.
