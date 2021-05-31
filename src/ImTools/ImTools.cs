@@ -3062,6 +3062,14 @@ namespace ImTools
         public override Entry Update(ImHashMapEntry<K, V> newEntry) =>
             Key.Equals(newEntry.Key) ? newEntry : this.WithConflicting(newEntry);
 
+        /// <inheritdoc />
+        public override Entry UpdateOrKeep(ImHashMapEntry<K, V> newEntry, Func<ImHashMapEntry<K, V>, ImHashMapEntry<K, V>, bool> tryUpdateNewEntry)
+        {
+            if (!Key.Equals(newEntry.Key))
+                return this.WithConflicting(newEntry);
+            return tryUpdateNewEntry(this, newEntry) ? newEntry : this;
+        }
+
 #if !DEBUG
         /// <inheritdoc />
         public override string ToString() => "{H: " + Hash + ", K: " + Key + ", V: " + Value + "}";
@@ -3090,10 +3098,25 @@ namespace ImTools
         {
             var key = newEntry.Key;
             var cs = Conflicts;
-            var n = cs.Length;
-            var i = n - 1;
+            var i = cs.Length - 1;
             while (i != -1 && !key.Equals(cs[i].Key)) --i;
             return new HashConflictingEntry<K, V>(Hash, cs.AppendOrUpdate(newEntry, i));
+        }
+
+        /// <inheritdoc />
+        public override Entry UpdateOrKeep(ImHashMapEntry<K, V> newEntry, Func<ImHashMapEntry<K, V>, ImHashMapEntry<K, V>, bool> tryUpdateNewEntry)
+        {
+            var key = newEntry.Key;
+            var cs = Conflicts;
+            var i = cs.Length - 1;
+            while (i != -1 && !key.Equals(cs[i].Key)) --i;
+            if (i == -1)
+                return new HashConflictingEntry<K, V>(Hash, cs.AppendToNonEmpty(newEntry));
+
+            if (tryUpdateNewEntry(cs[i], newEntry))
+                return new HashConflictingEntry<K, V>(Hash, cs.UpdateNonEmpty(newEntry, i));
+
+            return this;
         }
 
 #if !DEBUG
@@ -3172,6 +3195,9 @@ namespace ImTools
 
             /// <summary>Updating the entry with the new one</summary>
             public abstract Entry Update(ImHashMapEntry<K, V> newEntry);
+
+            /// <summary>Updating the entry with the new one using the `update` method</summary>
+            public abstract Entry UpdateOrKeep(ImHashMapEntry<K, V> newEntry, Func<ImHashMapEntry<K, V>, ImHashMapEntry<K, V>, bool> tryUpdateNewEntry);
 
             /// <inheritdoc />
             public sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry) =>
