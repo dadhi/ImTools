@@ -3055,7 +3055,7 @@ namespace ImTools
         public override int Count() => 1;
 
         /// <inheritdoc />
-        public override Entry GetEntryOrNull(int hash, K key) =>
+        public override ImHashMapEntry<K, V> GetEntryOrNull(int hash, K key) =>
             Hash == hash && Key.Equals(key) ? this : null;
 
         /// <inheritdoc />
@@ -3085,12 +3085,12 @@ namespace ImTools
         public override int Count() => Conflicts.Length;
 
         /// <inheritdoc />
-        public override Entry GetEntryOrNull(int hash, K key)
+        public override ImHashMapEntry<K, V> GetEntryOrNull(int hash, K key)
         {
             var cs = Conflicts;
             var i = cs.Length - 1;
             while (i != -1 && !key.Equals(cs[i].Key)) --i;
-            return i != -1 ? this : null;
+            return i != -1 ? cs[i] : null;
         }
 
         /// <inheritdoc />
@@ -3191,7 +3191,7 @@ namespace ImTools
             internal sealed override Entry GetEntryOrNull(int hash) => hash == Hash ? this : null;
 
             /// <summary>Lookup for the entry by Hash and Key</summary>
-            public abstract Entry GetEntryOrNull(int hash, K key);
+            public abstract ImHashMapEntry<K, V> GetEntryOrNull(int hash, K key);
 
             /// <summary>Updating the entry with the new one</summary>
             public abstract Entry Update(ImHashMapEntry<K, V> newEntry);
