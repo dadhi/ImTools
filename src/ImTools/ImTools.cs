@@ -87,6 +87,15 @@ namespace ImTools
         /// you may rewrite it without allocations as `instance.ToFunc{A, R}`
         /// </summary> 
         public static R ToFunc<T, R>(this R result, T ignoredArg) => result;
+
+        /// <summary>Performant swapper</summary>
+        [MethodImpl(256)]
+        public static void Swap<T>(ref T a, ref T b)
+        {
+            var t = a;
+            a = b;
+            b = t;
+        }
     }
 
     /// <summary>Helpers for lazy instantiations</summary>
@@ -3301,43 +3310,36 @@ namespace ImTools
                 if (hash == e1.Hash)
                     return e1;
 
-                Entry swap = null;
                 if (pph < e1.Hash)
                 {
-                    swap = e1; e1 = pp; pp = swap;
+                    Fun.Swap(ref e1, ref pp);
                     if (pph < e0.Hash)
-                    {
-                        swap = e0; e0 = e1; e1 = swap;
-                    }
+                        Fun.Swap(ref e0, ref e1);
                 }
 
                 if (ph < pp.Hash)
                 {
-                    swap = pp; pp = p; p = swap;
+                    Fun.Swap(ref p, ref pp);
                     if (ph < e1.Hash)
                     {
-                        swap = e1; e1 = pp; pp = swap;
+                        Fun.Swap(ref pp, ref e1);
                         if (ph < e0.Hash)
-                        {
-                            swap = e0; e0 = e1; e1 = swap;
-                        }
+                            Fun.Swap(ref e1, ref e0);
                     }
                 }
 
                 Entry e = entry;
                 if (hash < p.Hash)
                 {
-                    swap = p; p = e; e = swap;
+                    Fun.Swap(ref e, ref p);
                     if (hash < pp.Hash)
                     {
-                        swap = pp; pp = p; p = swap;
+                        Fun.Swap(ref p, ref pp);
                         if (hash < e1.Hash)
                         {
-                            swap = e1; e1 = pp; pp = swap;
+                            Fun.Swap(ref pp, ref e1);
                             if (hash < e0.Hash)
-                            {
-                                swap = e0; e0 = e1; e1 = swap;
-                            }
+                                Fun.Swap(ref e1, ref e0);
                         }
                     }
                 }
