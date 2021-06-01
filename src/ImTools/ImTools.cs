@@ -3063,11 +3063,11 @@ namespace ImTools
             Key.Equals(newEntry.Key) ? newEntry : this.WithConflicting(newEntry);
 
         /// <inheritdoc />
-        public override Entry UpdateOrKeep(ImHashMapEntry<K, V> newEntry, Func<ImHashMapEntry<K, V>, ImHashMapEntry<K, V>, bool> tryUpdateNewEntry)
+        public override Entry UpdateOrKeep<S>(S state, ImHashMapEntry<K, V> newEntry, UpdaterOrKeeper<S> updateOrKeep)
         {
             if (!Key.Equals(newEntry.Key))
                 return this.WithConflicting(newEntry);
-            return tryUpdateNewEntry(this, newEntry) ? newEntry : this;
+            return updateOrKeep(state, this, newEntry) != this ? newEntry : this;
         }
 
 #if !DEBUG
@@ -3104,7 +3104,7 @@ namespace ImTools
         }
 
         /// <inheritdoc />
-        public override Entry UpdateOrKeep(ImHashMapEntry<K, V> newEntry, Func<ImHashMapEntry<K, V>, ImHashMapEntry<K, V>, bool> tryUpdateNewEntry)
+        public override Entry UpdateOrKeep<S>(S state, ImHashMapEntry<K, V> newEntry, UpdaterOrKeeper<S> updateOrKeep)
         {
             var key = newEntry.Key;
             var cs = Conflicts;
@@ -3113,7 +3113,8 @@ namespace ImTools
             if (i == -1)
                 return new HashConflictingEntry<K, V>(Hash, cs.AppendToNonEmpty(newEntry));
 
-            if (tryUpdateNewEntry(cs[i], newEntry))
+            var oldEntry = cs[i];
+            if (updateOrKeep(state, oldEntry, newEntry) != oldEntry)
                 return new HashConflictingEntry<K, V>(Hash, cs.UpdateNonEmpty(newEntry, i));
 
             return this;
@@ -3177,6 +3178,9 @@ namespace ImTools
         /// <summary>Removes the certainly present old entry and returns the new map without it.</summary>
         internal virtual ImHashMap<K, V> RemoveEntry(Entry entry) => this;
 
+        /// <summary>The delegate is supposed to return entry different from the oldEntry to update, and return the oldEntry to keep it.</summary>
+        public delegate ImHashMapEntry<K, V> UpdaterOrKeeper<S>(S state, ImHashMapEntry<K, V> oldEntry, ImHashMapEntry<K, V> newEntry);
+
         /// <summary>The base map entry for holding the hash and payload</summary>
         public abstract class Entry : ImHashMap<K, V>
         {
@@ -3197,7 +3201,7 @@ namespace ImTools
             public abstract Entry Update(ImHashMapEntry<K, V> newEntry);
 
             /// <summary>Updating the entry with the new one using the `update` method</summary>
-            public abstract Entry UpdateOrKeep(ImHashMapEntry<K, V> newEntry, Func<ImHashMapEntry<K, V>, ImHashMapEntry<K, V>, bool> tryUpdateNewEntry);
+            public abstract Entry UpdateOrKeep<S>(S state, ImHashMapEntry<K, V> newEntry, UpdaterOrKeeper<S> updateOrKeep);
 
             /// <inheritdoc />
             public sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry) =>
@@ -5340,6 +5344,14 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         internal static ImHashMap<K, V>.Entry WithConflicting<K, V>(this ImHashMapEntry<K, V> one, ImHashMapEntry<K, V> two) => 
             new HashConflictingEntry<K, V>(one.Hash, one, two);
+
+        /// <summary>Sets the value and returns the entry</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMapEntry<K, V> SetValue<K, V>(this ImHashMapEntry<K, V> e, V value) 
+        {
+            e.Value = value;
+            return e;
+        }
 
         private sealed class GoRightInBranch3<K, V> 
         {
