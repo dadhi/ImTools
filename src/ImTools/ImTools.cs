@@ -2327,11 +2327,20 @@ namespace ImTools
         public T Swap(Func<T, T> getNewValue) =>
             Ref.Swap(ref _value, getNewValue);
 
-        /// Option without allocation for capturing `a` in closure of `getNewValue`
-        public T Swap<A>(A a, Func<T, A, T> getNewValue) => Ref.Swap(ref _value, a, getNewValue);
+        /// <summary>Swap with the additional state <paramref name="a"/> required for the delegate <paramref name="getNewValue"/>.
+        /// May prevent closure creation for the delegate</summary>
+        public T Swap<A>(A a, Func<T, A, T> getNewValue, int retryCountUntilThrow = Ref.RETRY_COUNT_UNTIL_THROW) => 
+             Ref.Swap(ref _value, a, getNewValue, retryCountUntilThrow);
 
-        /// Option without allocation for capturing `a` and `b` in closure of `getNewValue`
-        public T Swap<A, B>(A a, B b, Func<T, A, B, T> getNewValue) => Ref.Swap(ref _value, a, b, getNewValue);
+        /// <summary>Swap with the additional state <paramref name="a"/>, <paramref name="b"/> required for the delegate <paramref name="getNewValue"/>.
+        /// May prevent closure creation for the delegate</summary>
+        public T Swap<A, B>(A a, B b, Func<T, A, B, T> getNewValue, int retryCountUntilThrow = Ref.RETRY_COUNT_UNTIL_THROW) => 
+             Ref.Swap(ref _value, a, b, getNewValue, retryCountUntilThrow);
+
+        /// <summary>Swap with the additional state <paramref name="a"/> required for the delegate <paramref name="getNewValue"/>.
+        /// May prevent closure creation for the delegate</summary>
+        public T SwapAndGetNewValue<A>(A a, Func<T, A, T> getNewValue, int retryCountUntilThrow = Ref.RETRY_COUNT_UNTIL_THROW) => 
+             Ref.SwapAndGetNewValue(ref _value, a, getNewValue, retryCountUntilThrow);
 
         /// <summary>Just sets new value ignoring any intermingled changes and returns the original value</summary>
         /// <param name="newValue"></param> <returns>old value</returns>
@@ -2501,13 +2510,21 @@ namespace ImTools
     public static class Hasher
     {
         /// <summary>Combines hashes of two fields</summary>
-        public static int Combine<T1, T2>(T1 a, T2 b) =>
-            Combine(a?.GetHashCode() ?? 0, b?.GetHashCode() ?? 0);
+        public static int Combine<T1, T2>(T1 a, T2 b) 
+        {
+            var bh = b?.GetHashCode() ?? 0;
+            if (ReferenceEquals(a, null))
+                return bh;
+            var ah = a.GetHashCode();
+            if (ah == 0)
+                return bh;
+            return Combine(ah, bh);
+        }
 
         /// <summary>Inspired by System.Tuple.CombineHashCodes</summary>
+        [MethodImpl((MethodImplOptions)256)]
         public static int Combine(int h1, int h2)
         {
-            if (h1 == 0) return h2;
             unchecked
             {
                 return (h1 << 5) + h1 ^ h2;
@@ -2706,9 +2723,9 @@ namespace ImTools
         /// <summary>Enumerates the list.</summary>
         public IEnumerable<T> Enumerate()
         {
-            if (IsEmpty)
+            if (Tail == null)
                 yield break;
-            for (var list = this; !list.IsEmpty; list = list.Tail)
+            for (var list = this; list.Tail != null; list = list.Tail)
                 yield return list.Head;
         }
 
@@ -2721,7 +2738,6 @@ namespace ImTools
             : "[" + Head + "," + Tail.Head + "," + Tail.Tail.Head + ", ...]";
 
         private ImList() { }
-
         private ImList(T head, ImList<T> tail)
         {
             Head = head;
@@ -3035,7 +3051,7 @@ namespace ImTools
     public delegate V Update<K, V>(K key, V oldValue, V newValue);
 
     /// <summary>Entry containing the Key and Value in addition to the Hash</summary>
-    public sealed class ImHashMapEntry<K, V> : ImHashMap<K, V>.Entry
+    public class ImHashMapEntry<K, V> : ImHashMap<K, V>.Entry
     {
         /// <summary>The key</summary>
         public readonly K Key;
@@ -3052,18 +3068,18 @@ namespace ImTools
         }
 
         /// <inheritdoc />
-        public override int Count() => 1;
+        public sealed override int Count() => 1;
 
         /// <inheritdoc />
-        public override ImHashMapEntry<K, V> GetEntryOrNull(int hash, K key) =>
+        public sealed override ImHashMapEntry<K, V> GetEntryOrNull(int hash, K key) =>
             Hash == hash && Key.Equals(key) ? this : null;
 
         /// <inheritdoc />
-        public override Entry Update(ImHashMapEntry<K, V> newEntry) =>
+        public sealed override Entry Update(ImHashMapEntry<K, V> newEntry) =>
             Key.Equals(newEntry.Key) ? newEntry : this.WithConflicting(newEntry);
 
         /// <inheritdoc />
-        public override Entry UpdateOrKeep<S>(S state, ImHashMapEntry<K, V> newEntry, UpdaterOrKeeper<S> updateOrKeep)
+        public sealed override Entry UpdateOrKeep<S>(S state, ImHashMapEntry<K, V> newEntry, UpdaterOrKeeper<S> updateOrKeep)
         {
             if (!Key.Equals(newEntry.Key))
                 return this.WithConflicting(newEntry);
@@ -4209,7 +4225,7 @@ namespace ImTools
     }
 
     /// <summary>Entry containing the Value in addition to the Hash</summary>
-    public sealed class ImMapEntry<V> : ImMap<V>
+    public class ImMapEntry<V> : ImMap<V>
     {
         /// <summary>The hash.</summary>
         public readonly int Hash;
@@ -4230,20 +4246,20 @@ namespace ImTools
 #endif
 
         /// <inheritdoc />
-        public override int Count() => 1;
+        public sealed override int Count() => 1;
 
-        internal override ImMapEntry<V> GetMaxHashEntryOrDefault() => this;
-        internal override ImMapEntry<V> GetMinHashEntryOrDefault() => this;
+        internal sealed override ImMapEntry<V> GetMaxHashEntryOrDefault() => this;
+        internal sealed override ImMapEntry<V> GetMinHashEntryOrDefault() => this;
 
-        internal override ImMapEntry<V> GetEntryOrNull(int hash) => hash == Hash ? this : null;
+        internal sealed override ImMapEntry<V> GetEntryOrNull(int hash) => hash == Hash ? this : null;
 
-        internal override ImMap<V> AddOrGetEntry(int hash, ImMapEntry<V> entry) =>
+        internal sealed override ImMap<V> AddOrGetEntry(int hash, ImMapEntry<V> entry) =>
             hash > Hash ? new Leaf2(this, entry) : hash < Hash ? new Leaf2(entry, this) : (ImMap<V>)this;
 
-        internal override ImMap<V> ReplaceEntry(int hash, ImMapEntry<V> oldEntry, ImMapEntry<V> newEntry) => 
+        internal sealed override ImMap<V> ReplaceEntry(int hash, ImMapEntry<V> oldEntry, ImMapEntry<V> newEntry) => 
             this == oldEntry ? newEntry : oldEntry;
 
-        internal override ImMap<V> RemoveEntry(ImMapEntry<V> removedEntry) =>
+        internal sealed override ImMap<V> RemoveEntry(ImMapEntry<V> removedEntry) =>
             this == removedEntry ? Empty : this;
     }
 
