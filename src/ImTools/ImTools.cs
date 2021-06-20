@@ -6363,16 +6363,16 @@ namespace ImTools
                 return newEntry;
 
             var hash = newEntry.Hash;
-            var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
-            if (oldEntryOrMap is ImHashMap<K, V>.Entry == false)
-                return oldEntryOrMap;
+            var mapOrOldEntry = map.AddOrGetEntry(hash, newEntry);
+            if (mapOrOldEntry is ImHashMap<K, V>.Entry == false)
+                return mapOrOldEntry;
 
-            if (oldEntryOrMap is ImHashMapEntry<K, V> kv)
-                return kv.Key.Equals(newEntry.Key) ? oldEntryOrMap 
+            if (mapOrOldEntry is ImHashMapEntry<K, V> kv)
+                return kv.Key.Equals(newEntry.Key) ? mapOrOldEntry 
                     : map.ReplaceEntry(hash, kv, new HashConflictingEntry<K, V>(hash, kv, newEntry));
 
             var key = newEntry.Key;
-            var hc = (HashConflictingEntry<K, V>)oldEntryOrMap;
+            var hc = (HashConflictingEntry<K, V>)mapOrOldEntry;
             var cs = hc.Conflicts;
             var n = cs.Length;
             var i = n - 1;
@@ -6521,14 +6521,14 @@ namespace ImTools
                 return newEntry;
 
             var hash = newEntry.Hash;
-            var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
-            if (oldEntryOrMap is ImHashMap<K, V>.Entry oldEntry)
+            var mapOrOldEntry = map.AddOrGetEntry(hash, newEntry);
+            if (mapOrOldEntry is ImHashMap<K, V>.Entry oldEntry)
             {
                 var e = KeepOrAddEntry(oldEntry, newEntry);
                 return e == oldEntry ? map : map.ReplaceEntry(hash, oldEntry, e);
             }
 
-            return oldEntryOrMap;
+            return mapOrOldEntry;
         }
 
         /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
@@ -6539,14 +6539,14 @@ namespace ImTools
             if (map == ImHashMap<K, V>.Empty)
                 return newEntry;
 
-            var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
-            if (oldEntryOrMap is ImHashMap<K, V>.Entry oldEntry)
+            var mapOrOldEntry = map.AddOrGetEntry(hash, newEntry);
+            if (mapOrOldEntry is ImHashMap<K, V>.Entry oldEntry)
             {
                 var e = KeepOrAddEntry(oldEntry, newEntry);
                 return e == oldEntry ? map : map.ReplaceEntry(hash, oldEntry, e);
             }
 
-            return oldEntryOrMap;
+            return mapOrOldEntry;
         }
 
         private static ImHashMap<K, V>.Entry KeepOrAddEntry<K, V>(ImHashMap<K, V>.Entry oldEntry, ImHashMapEntry<K, V> newEntry)
@@ -7210,10 +7210,8 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public static ImMap<V> AddOrKeepEntry<V>(this ImMap<V> map, ImMapEntry<V> newEntry) 
         {
-            if (map == ImMap<V>.Empty)
-                return newEntry;
             var mapOrOldEntry = map.AddOrGetEntry(newEntry.Hash, newEntry);
-            return mapOrOldEntry is ImMapEntry<V> ? map : mapOrOldEntry;
+            return mapOrOldEntry is ImMapEntry<V> && mapOrOldEntry != newEntry ? map : mapOrOldEntry;
         }
 
         /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the hash is already present</summary>
@@ -7221,10 +7219,8 @@ namespace ImTools
         public static ImMap<V> AddOrKeep<V>(this ImMap<V> map, int hash, V value) 
         {
             var newEntry = new ImMapEntry<V>(hash, value); // todo: @perf newEntry may not be needed here - consider the pooling of entries here
-            if (map == ImMap<V>.Empty)
-                return newEntry;
             var mapOrOldEntry = map.AddOrGetEntry(hash, newEntry);
-            return mapOrOldEntry is ImMapEntry<V> ? map : mapOrOldEntry;
+            return mapOrOldEntry is ImMapEntry<V> && mapOrOldEntry != newEntry ? map : mapOrOldEntry;
         }
 
         /// <summary>Returns the new map without the specified hash (if found) or returns the same map otherwise</summary>
