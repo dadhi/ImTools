@@ -6517,12 +6517,9 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap<K, V> AddOrKeepEntry<K, V>(this ImHashMap<K, V> map, ImHashMapEntry<K, V> newEntry) 
         {
-            if (map == ImHashMap<K, V>.Empty)
-                return newEntry;
-
             var hash = newEntry.Hash;
             var mapOrOldEntry = map.AddOrGetEntry(hash, newEntry);
-            if (mapOrOldEntry is ImHashMap<K, V>.Entry oldEntry)
+            if (mapOrOldEntry is ImHashMap<K, V>.Entry oldEntry && oldEntry != newEntry)
             {
                 var e = KeepOrAddEntry(oldEntry, newEntry);
                 return e == oldEntry ? map : map.ReplaceEntry(hash, oldEntry, e);
@@ -6536,11 +6533,8 @@ namespace ImTools
         public static ImHashMap<K, V> AddOrKeep<K, V>(this ImHashMap<K, V> map, int hash, K key, V value)
         {
             var newEntry = new ImHashMapEntry<K, V>(hash, key, value); // todo: @perf newEntry may not be needed here - consider the pooling of entries here
-            if (map == ImHashMap<K, V>.Empty)
-                return newEntry;
-
             var mapOrOldEntry = map.AddOrGetEntry(hash, newEntry);
-            if (mapOrOldEntry is ImHashMap<K, V>.Entry oldEntry)
+            if (mapOrOldEntry is ImHashMap<K, V>.Entry oldEntry && oldEntry != newEntry)
             {
                 var e = KeepOrAddEntry(oldEntry, newEntry);
                 return e == oldEntry ? map : map.ReplaceEntry(hash, oldEntry, e);
