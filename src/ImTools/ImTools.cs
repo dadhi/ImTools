@@ -3370,6 +3370,9 @@ namespace ImTools
                 if (hash == e1.Hash)
                     return e1;
 
+                // e0 and e1 are already sorted e0 < e1, we need to insert the pp, p, e into them in the right order,
+                // so the result should be e0 < e1 < pp < p < e
+
                 if (pph < e1.Hash)
                 {
                     Fun.Swap(ref e1, ref pp);
@@ -6385,32 +6388,24 @@ namespace ImTools
 
         /// <summary>Adds or updates (no in-place mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap<K, V> AddOrUpdate<K, V>(this ImHashMap<K, V> map, int hash, K key, V value) 
+        public static ImHashMap<K, V> AddOrUpdate<K, V>(this ImHashMap<K, V> map, int hash, K key, V value)
         {
             var newEntry = new ImHashMapEntry<K, V>(hash, key, value);
-            if (map == ImHashMap<K, V>.Empty)
-                return newEntry;
-
-            var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
-            if (oldEntryOrMap is ImHashMap<K, V>.Entry oldEntry)
-                return map.ReplaceEntry(hash, oldEntry, oldEntry.Update(newEntry));
-
-            return oldEntryOrMap;
+            var mapOrOldEntry = map.AddOrGetEntry(hash, newEntry);
+            return mapOrOldEntry is ImHashMap<K, V>.Entry oldEntry
+                ? oldEntry == newEntry ? newEntry : map.ReplaceEntry(hash, oldEntry, oldEntry.Update(newEntry)) 
+                : mapOrOldEntry;
         }
 
         /// <summary>Adds or updates (no in-place mutation) the map with the new entry, always returning the NEW map!</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap<K, V> AddOrUpdateEntry<K, V>(this ImHashMap<K, V> map, ImHashMapEntry<K, V> newEntry) 
         {
-            if (map == ImHashMap<K, V>.Empty)
-                return newEntry;
-
             var hash = newEntry.Hash;
-            var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
-            if (oldEntryOrMap is ImHashMap<K, V>.Entry oldEntry)
-                return map.ReplaceEntry(hash, oldEntry, oldEntry.Update(newEntry));
-
-            return oldEntryOrMap;
+            var mapOrOldEntry = map.AddOrGetEntry(hash, newEntry);
+            return mapOrOldEntry is ImHashMap<K, V>.Entry oldEntry 
+                ? oldEntry == newEntry ? newEntry : map.ReplaceEntry(hash, oldEntry, oldEntry.Update(newEntry)) 
+                : mapOrOldEntry;
         }
 
         /// <summary>Adds or updates (no in-place mutation) the map with value by the passed key, always returning the NEW map!</summary>
@@ -6423,18 +6418,14 @@ namespace ImTools
         public static ImHashMap<K, V> AddOrUpdate<K, V>(this ImHashMap<K, V> map, int hash, K key, V value, Update<K, V> update) 
         {
             var newEntry = new ImHashMapEntry<K, V>(hash, key, value);
-            if (map == ImHashMap<K, V>.Empty)
-                return newEntry;
-
-            var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
-            if (oldEntryOrMap is ImHashMap<K, V>.Entry oldEntry)
-                return map.ReplaceEntry(hash, oldEntry, UpdateEntry(oldEntry, newEntry, update));
-
-            return oldEntryOrMap;
+            var mapOrOldEntry = map.AddOrGetEntry(hash, newEntry);
+            return mapOrOldEntry is ImHashMap<K, V>.Entry oldEntry
+                ? oldEntry == newEntry ? newEntry : map.ReplaceEntry(hash, oldEntry, UpdateEntry(oldEntry, newEntry, update))
+                : mapOrOldEntry;
         }
 
         /// <summary>Updates the possibly the conflicted entry with the new key and value entry using the provided update function.</summary>
-        public static ImHashMap<K, V>.Entry UpdateEntry<K, V>(ImHashMap<K, V>.Entry oldEntry, ImHashMapEntry<K, V> newEntry, Update<K, V> update)
+        internal static ImHashMap<K, V>.Entry UpdateEntry<K, V>(ImHashMap<K, V>.Entry oldEntry, ImHashMapEntry<K, V> newEntry, Update<K, V> update)
         {
             var key = newEntry.Key;
             if (oldEntry is ImHashMapEntry<K, V> kv)

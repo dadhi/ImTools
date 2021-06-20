@@ -440,9 +440,15 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 |                TypeDictionary_Add |    20 | 492.6 ns |  4.73 ns |  4.19 ns |  0.57 |    0.02 | 0.1402 |      - |     - |     880 B |
 |                       Dict_TryAdd |    20 | 666.1 ns | 10.66 ns |  8.90 ns |  0.77 |    0.02 | 0.3309 | 0.0019 |     - |    2080 B |
 
+## Small condition optimization
+
+|                   Method | Count |     Mean |   Error |  StdDev | Ratio | RatioSD |  Gen 0 |  Gen 1 | Gen 2 | Allocated |
+|------------------------- |------ |---------:|--------:|--------:|------:|--------:|-------:|-------:|------:|----------:|
+| V3_ImHashMap_AddOrUpdate |    10 | 317.7 ns | 2.16 ns | 2.02 ns |  1.00 |    0.00 | 0.1593 | 0.0005 |     - |    1000 B |
+| V2_ImHashMap_AddOrUpdate |    10 | 617.4 ns | 6.60 ns | 5.51 ns |  1.94 |    0.02 | 0.3605 | 0.0019 |     - |    2264 B |
 */
-            // [Params(1, 10, 100, 1000)]
-            [Params(10)]
+            [Params(1, 5, 10, 100, 1000)]
+            // [Params(10)]
             public int Count;
 
             private Type[] _types;
@@ -453,7 +459,41 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 _types = _keys.Take(Count).ToArray();
             }
 
-            // [Benchmark(Baseline = true)]
+            [Benchmark(Baseline = true)]
+            public ImTools.ImHashMap<Type, string> V3_ImHashMap_AddOrUpdate()
+            {
+                var map = ImTools.ImHashMap<Type, string>.Empty;
+
+                foreach (var key in _types)
+                    map = map.AddOrUpdate(key.GetHashCode(), key, "a");
+
+                return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
+            }
+
+            // [Benchmark]
+            public ImTools.ImMap<KeyValuePair<Type, string>> V3_ImMap_AddOrUpdate()
+            {
+                var map = ImTools.ImMap<KeyValuePair<Type, string>>.Empty;
+
+                foreach (var key in _types)
+                    map = map.AddOrUpdate(key.GetHashCode(), new KeyValuePair<Type, string>(key, "a"));
+
+                return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), new KeyValuePair<Type, string>(typeof(ImHashMapBenchmarks), "!"));
+            }
+
+            // [Benchmark]
+            public ImTools.ImHashMap<Type, string>[] V3_PartitionedHashMap_AddOrUpdate()
+            {
+                var map = PartitionedHashMap.CreateEmpty<Type, string>();
+
+                foreach (var key in _types)
+                    map.AddOrUpdate(key, "a");
+
+                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+                return map;
+            }
+
+            [Benchmark]
             public ImTools.V2.ImHashMap<Type, string> V2_ImHashMap_AddOrUpdate()
             {
                 var map = ImTools.V2.ImHashMap<Type, string>.Empty;
@@ -485,40 +525,6 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                     map = map.AddOrUpdate(key.GetHashCode(), key, "a");
 
                 return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
-            }
-
-            [Benchmark(Baseline = true)]
-            public ImTools.ImHashMap<Type, string> V3_ImHashMap_AddOrUpdate()
-            {
-                var map = ImTools.ImHashMap<Type, string>.Empty;
-
-                foreach (var key in _types)
-                    map = map.AddOrUpdate(key.GetHashCode(), key, "a");
-
-                return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
-            }
-
-            [Benchmark]
-            public ImTools.ImMap<KeyValuePair<Type, string>> V3_ImMap_AddOrUpdate()
-            {
-                var map = ImTools.ImMap<KeyValuePair<Type, string>>.Empty;
-
-                foreach (var key in _types)
-                    map = map.AddOrUpdate(key.GetHashCode(), new KeyValuePair<Type, string>(key, "a"));
-
-                return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), new KeyValuePair<Type, string>(typeof(ImHashMapBenchmarks), "!"));
-            }
-
-            // [Benchmark]
-            public ImTools.ImHashMap<Type, string>[] V3_PartitionedHashMap_AddOrUpdate()
-            {
-                var map = PartitionedHashMap.CreateEmpty<Type, string>();
-
-                foreach (var key in _types)
-                    map.AddOrUpdate(key, "a");
-
-                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
-                return map;
             }
 
             // [Benchmark]
@@ -2053,7 +2059,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 | AddOrGet_then_Replace_inlined_without_lambda_cost |    50 | 85.02 ns | 1.775 ns | 1.823 ns |  0.93 |    0.03 | 0.0370 |     - |     - |     232 B |
 
 */
-            [Params(1, 5, 10, 50)]//, 100, 1_000)]
+            [Params(1, 5, 10)]//, 50, 100, 1_000)]
             public int Count;
 
             [GlobalSetup]
@@ -2086,25 +2092,6 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 var val = "!";
 
                 return _map.AddOrUpdate(hash, key, val, (_, o, n) => Handle(o, n));
-            }
-
-            [Benchmark]
-            public object AddOrGet_then_Replace_inlined_without_lambda_cost()
-            {
-                var key = typeof(GlobalSetupAttribute);
-                var hash = key.GetHashCode();
-                var val = "!";
-                var m = _map;
-
-                var newEntry = new ImTools.ImHashMapEntry<Type, string>(hash, key, val);
-                if (m == ImTools.ImHashMap<Type, string>.Empty)
-                    return newEntry;
-
-                var oldEntryOrMap = m.AddOrGetEntry(hash, newEntry);
-                if (oldEntryOrMap is ImTools.ImHashMap<Type, string>.Entry oldEntry)
-                    return m.ReplaceEntry(hash, oldEntry, ImTools.ImHashMap.UpdateEntry(oldEntry, newEntry, (_, o, n) => Handle(o, n)));
-
-                return oldEntryOrMap;
             }
 
             [MethodImpl(MethodImplOptions.NoInlining)]
