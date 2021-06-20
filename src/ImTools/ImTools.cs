@@ -7000,8 +7000,7 @@ namespace ImTools
                 else if (map is ImMap<V>.Leaf5Plus1Plus1 l511)
                 {
                     var l = l511.L.L;
-                    ImMapEntry<V> 
-                        e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, p = l511.Plus, pp = l511.L.Plus, swap = null;
+                    ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, p = l511.Plus, pp = l511.L.Plus, swap = null;
                     var h = pp.Hash;
                     if (h < e4.Hash)
                     {
@@ -7162,15 +7161,11 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public static ImMap<V> AddOrUpdateEntry<V>(this ImMap<V> map, ImMapEntry<V> newEntry)
         {
-            if (map == ImMap<V>.Empty)
-                return newEntry;
-
             var hash = newEntry.Hash;
-            var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
-            if (oldEntryOrMap is ImMapEntry<V> oldEntry)
-                return map.ReplaceEntry(hash, oldEntry, newEntry); // todo: @perf here we have a chance to compare the old and the new value and prevent the updated if the values are equal
-
-            return oldEntryOrMap;
+            var mapOrOldEntry = map.AddOrGetEntry(hash, newEntry);
+            return mapOrOldEntry is ImMapEntry<V> oldEntry
+                ? oldEntry == newEntry ? newEntry : map.ReplaceEntry(hash, oldEntry, newEntry) // todo: @perf here we have a chance to compare the old and the new value and prevent the updated if the values are equal
+                : mapOrOldEntry;
         }
 
         /// <summary>Adds or updates (no in-place mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
@@ -7178,14 +7173,10 @@ namespace ImTools
         public static ImMap<V> AddOrUpdate<V>(this ImMap<V> map, int hash, V value)
         {
             var newEntry = new ImMapEntry<V>(hash, value);
-            if (map == ImMap<V>.Empty)
-                return newEntry;
-
-            var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
-            if (oldEntryOrMap is ImMapEntry<V> oldEntry)
-                return map.ReplaceEntry(hash, oldEntry, newEntry); // todo: @perf here we have a chance to compare the old and the new value and prevent the updated if the values are equal
-
-            return oldEntryOrMap;
+            var mapOrOldEntry = map.AddOrGetEntry(hash, newEntry);
+            return mapOrOldEntry is ImMapEntry<V> oldEntry
+                ? oldEntry == newEntry ? newEntry : map.ReplaceEntry(hash, oldEntry, newEntry) // todo: @perf here we have a chance to compare the old and the new value and prevent the updated if the values are equal
+                : mapOrOldEntry;
         }
 
         /// <summary>Adds or updates (no in-place mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
@@ -7193,14 +7184,10 @@ namespace ImTools
         public static ImMap<V> AddOrUpdate<V>(this ImMap<V> map, int hash, V value, Update<int, V> update)
         {
             var newEntry = new ImMapEntry<V>(hash, value);
-            if (map == ImMap<V>.Empty)
-                return newEntry;
-
-            var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
-            if (oldEntryOrMap is ImMapEntry<V> oldEntry)
-                return map.ReplaceEntry(hash, oldEntry, new ImMapEntry<V>(hash, update(hash, oldEntry.Value, value))); // todo: @perf here we have a chance to compare the old and the new value and prevent the updated if the values are equal
-
-            return oldEntryOrMap;
+            var mapOrOldEntry = map.AddOrGetEntry(hash, newEntry);
+            return mapOrOldEntry is ImMapEntry<V> oldEntry
+                ? oldEntry == newEntry ? newEntry : map.ReplaceEntry(hash, oldEntry, new ImMapEntry<V>(hash, update(hash, oldEntry.Value, value))) // todo: @perf here we have a chance to compare the old and the new value and prevent the updated if the values are equal
+                : mapOrOldEntry;
         }
 
         /// <summary>Updates the map with the new value if the hash is found otherwise returns the same unchanged map.</summary>
@@ -7225,8 +7212,8 @@ namespace ImTools
         {
             if (map == ImMap<V>.Empty)
                 return newEntry;
-            var oldEntryOrMap = map.AddOrGetEntry(newEntry.Hash, newEntry);
-            return oldEntryOrMap is ImMapEntry<V> ? map : oldEntryOrMap;
+            var mapOrOldEntry = map.AddOrGetEntry(newEntry.Hash, newEntry);
+            return mapOrOldEntry is ImMapEntry<V> ? map : mapOrOldEntry;
         }
 
         /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the hash is already present</summary>
@@ -7236,8 +7223,8 @@ namespace ImTools
             var newEntry = new ImMapEntry<V>(hash, value); // todo: @perf newEntry may not be needed here - consider the pooling of entries here
             if (map == ImMap<V>.Empty)
                 return newEntry;
-            var oldEntryOrMap = map.AddOrGetEntry(hash, newEntry);
-            return oldEntryOrMap is ImMapEntry<V> ? map : oldEntryOrMap;
+            var mapOrOldEntry = map.AddOrGetEntry(hash, newEntry);
+            return mapOrOldEntry is ImMapEntry<V> ? map : mapOrOldEntry;
         }
 
         /// <summary>Returns the new map without the specified hash (if found) or returns the same map otherwise</summary>
