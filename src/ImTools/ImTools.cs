@@ -5326,11 +5326,11 @@ namespace ImTools
         public MapParentStack() => _items = new object[DefaultInitialCapacity];
 
         /// <summary>Pushes the item</summary>
-        public void Push(object item, int count)
+        public void Put(object item, int index)
         {
-            if (count >= _items.Length)
+            if (index >= _items.Length)
                 _items = Expand(_items);
-            _items[count] = item;
+            _items[index] = item;
         }
 
         /// <summary>Gets the item by index</summary>
@@ -5392,7 +5392,7 @@ namespace ImTools
                 {
                     if (parents == null)
                         parents = new MapParentStack();
-                    parents.Push(map, count++);
+                    parents.Put(map, count++);
                     map = b2.Left;
                     continue;
                 }
@@ -5400,7 +5400,7 @@ namespace ImTools
                 {
                     if (parents == null)
                         parents = new MapParentStack();
-                    parents.Push(map, count++);
+                    parents.Put(map, count++);
                     map = b3.Left;
                     continue;
                 }
@@ -5616,7 +5616,7 @@ namespace ImTools
                     if (pb3.Entry0 is ImHashMapEntry<K, V> v) yield return v;
                     else foreach (var c in ((HashConflictingEntry<K, V>)pb3.Entry0).Conflicts) yield return c;
                     map = pb3.Middle;
-                    parents.Push(_enumerationB3Tombstone, ++count);
+                    parents.Put(_enumerationB3Tombstone, ++count);
                     ++count;
                 }
                 else
@@ -5652,7 +5652,7 @@ namespace ImTools
                 {
                     if (parents == null)
                         parents = new MapParentStack();
-                    parents.Push(map, count++);
+                    parents.Put(map, count++);
                     map = b2.Left;
                     continue;
                 }
@@ -5660,7 +5660,7 @@ namespace ImTools
                 {
                     if (parents == null)
                         parents = new MapParentStack();
-                    parents.Push(map, count++);
+                    parents.Put(map, count++);
                     map = b3.Left;
                     continue;
                 }
@@ -5876,7 +5876,7 @@ namespace ImTools
                     if (pb3.Entry0 is ImHashMapEntry<K, V> v) handler(v, i++, state);
                     else foreach (var c in ((HashConflictingEntry<K, V>)pb3.Entry0).Conflicts) handler(c, i++, state);
                     map = pb3.Middle;
-                    parents.Push(_enumerationB3Tombstone, ++count);
+                    parents.Put(_enumerationB3Tombstone, ++count);
                     ++count;
                 }
                 else
@@ -6340,7 +6340,7 @@ namespace ImTools
                 {
                     if (parents == null)
                         parents = new MapParentStack();
-                    parents.Push(map, count++);
+                    parents.Put(map, count++);
                     map = b2.Left;
                     continue;
                 }
@@ -6349,7 +6349,7 @@ namespace ImTools
                 {
                     if (parents == null)
                         parents = new MapParentStack();
-                    parents.Push(map, count++);
+                    parents.Put(map, count++);
                     map = b3.Left;
                     continue;
                 }
@@ -6532,7 +6532,7 @@ namespace ImTools
                     var pb3 = (ImMap<V>.Branch3)b;
                     yield return pb3.Entry0;
                     map = pb3.Middle;
-                    parents.Push(_enumerationB3Tombstone, ++count);
+                    parents.Put(_enumerationB3Tombstone, ++count);
                     ++count;
                 }
                 else
@@ -6564,7 +6564,7 @@ namespace ImTools
                 {
                     if (parents == null)
                         parents = new MapParentStack();
-                    parents.Push(map, count++);
+                    parents.Put(map, count++);
                     map = b2.Left;
                     continue;
                 }
@@ -6572,7 +6572,7 @@ namespace ImTools
                 {
                     if (parents == null)
                         parents = new MapParentStack();
-                    parents.Push(map, count++);
+                    parents.Put(map, count++);
                     map = b3.Left;
                     continue;
                 }
@@ -6755,7 +6755,7 @@ namespace ImTools
                     var pb3 = (ImMap<V>.Branch3)b;
                     handler(pb3.Entry0, i++, state);
                     map = pb3.Middle;
-                    parents.Push(_enumerationB3Tombstone, ++count);
+                    parents.Put(_enumerationB3Tombstone, ++count);
                     ++count;
                 }
                 else
