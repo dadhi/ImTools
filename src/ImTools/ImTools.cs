@@ -6365,15 +6365,13 @@ namespace ImTools
             {
                 if (oldEntry is ImHashMapEntry<K, V> kv)
                     return kv.Key.Equals(newEntry.Key) ? oldEntry 
-                        : map.ReplaceEntry(hash, kv, new HashConflictingEntry<K, V>(hash, kv, newEntry));
+                        : map.ReplaceEntry(hash, oldEntry, new HashConflictingEntry<K, V>(hash, kv, newEntry));
 
                 var key = newEntry.Key;
                 var cs = ((HashConflictingEntry<K, V>)oldEntry).Conflicts;
                 var i = cs.Length - 1;
                 while (i != -1 && !key.Equals(cs[i].Key)) --i;
-                if (i != -1)
-                    return cs[i];
-                return map.ReplaceEntry(hash, oldEntry, new HashConflictingEntry<K, V>(hash, cs.AppendToNonEmpty(newEntry)));
+                return i != -1 ? cs[i] : map.ReplaceEntry(hash, oldEntry, new HashConflictingEntry<K, V>(hash, cs.AppendToNonEmpty(newEntry)));
             }
             return mapOrOldEntry;
         }
@@ -6524,7 +6522,7 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap<K, V> AddOrKeep<K, V>(this ImHashMap<K, V> map, int hash, K key, V value)
         {
-            var newEntry = new ImHashMapEntry<K, V>(hash, key, value); // todo: @perf newEntry may not be needed here - consider the pooling of entries here
+            var newEntry = new ImHashMapEntry<K, V>(hash, key, value);
             var mapOrOldEntry = map.AddOrGetEntry(hash, newEntry);
             if (mapOrOldEntry is ImHashMap<K, V>.Entry oldEntry && oldEntry != newEntry)
             {
@@ -7143,7 +7141,7 @@ namespace ImTools
             var hash = newEntry.Hash;
             var mapOrOldEntry = map.AddOrGetEntry(hash, newEntry);
             return mapOrOldEntry is ImMapEntry<V> oldEntry
-                ? oldEntry == newEntry ? newEntry : map.ReplaceEntry(hash, oldEntry, newEntry) // todo: @perf here we have a chance to compare the old and the new value and prevent the updated if the values are equal
+                ? oldEntry == newEntry ? newEntry : map.ReplaceEntry(hash, oldEntry, newEntry)
                 : mapOrOldEntry;
         }
 
@@ -7154,7 +7152,7 @@ namespace ImTools
             var newEntry = new ImMapEntry<V>(hash, value);
             var mapOrOldEntry = map.AddOrGetEntry(hash, newEntry);
             return mapOrOldEntry is ImMapEntry<V> oldEntry
-                ? oldEntry == newEntry ? newEntry : map.ReplaceEntry(hash, oldEntry, newEntry) // todo: @perf here we have a chance to compare the old and the new value and prevent the updated if the values are equal
+                ? oldEntry == newEntry ? newEntry : map.ReplaceEntry(hash, oldEntry, newEntry)
                 : mapOrOldEntry;
         }
 
@@ -7165,7 +7163,7 @@ namespace ImTools
             var newEntry = new ImMapEntry<V>(hash, value);
             var mapOrOldEntry = map.AddOrGetEntry(hash, newEntry);
             return mapOrOldEntry is ImMapEntry<V> oldEntry
-                ? oldEntry == newEntry ? newEntry : map.ReplaceEntry(hash, oldEntry, new ImMapEntry<V>(hash, update(hash, oldEntry.Value, value))) // todo: @perf here we have a chance to compare the old and the new value and prevent the updated if the values are equal
+                ? oldEntry == newEntry ? newEntry : map.ReplaceEntry(hash, oldEntry, new ImMapEntry<V>(hash, update(hash, oldEntry.Value, value)))
                 : mapOrOldEntry;
         }
 
@@ -7197,7 +7195,7 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public static ImMap<V> AddOrKeep<V>(this ImMap<V> map, int hash, V value) 
         {
-            var newEntry = new ImMapEntry<V>(hash, value); // todo: @perf newEntry may not be needed here - consider the pooling of entries here
+            var newEntry = new ImMapEntry<V>(hash, value);
             var mapOrOldEntry = map.AddOrGetEntry(hash, newEntry);
             return mapOrOldEntry is ImMapEntry<V> && mapOrOldEntry != newEntry ? map : mapOrOldEntry;
         }
