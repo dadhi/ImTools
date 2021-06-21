@@ -1793,6 +1793,23 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 |            Dictionary_foreach |  1000 |  5,319.86 ns |    51.684 ns |    45.817 ns |  5,308.36 ns |  0.22 |    0.00 |      - |     - |     - |         - |
 |  ConcurrentDictionary_foreach |  1000 | 38,718.40 ns |   466.979 ns |   389.949 ns | 38,728.64 ns |  1.63 |    0.03 |      - |     - |     - |      64 B |
 |         ImmutableDict_foreach |  1000 | 99,156.35 ns | 1,962.968 ns | 2,181.834 ns | 98,166.03 ns |  4.17 |    0.11 |      - |     - |     - |         - |
+
+## V3.2
+
+|               Method | Count |         Mean |      Error |     StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|--------------------- |------ |-------------:|-----------:|-----------:|------:|--------:|-------:|------:|------:|----------:|
+| V3_ImHashMap_foreach |     1 |     49.59 ns |   0.758 ns |   0.633 ns |  1.00 |    0.00 | 0.0255 |     - |     - |     160 B |
+| V2_ImHashMap_foreach |     1 |     45.96 ns |   0.273 ns |   0.242 ns |  0.93 |    0.01 | 0.0166 |     - |     - |     104 B |
+|                      |       |              |            |            |       |         |        |       |       |           |
+| V3_ImHashMap_foreach |    10 |    214.40 ns |   3.915 ns |   3.662 ns |  1.00 |    0.00 | 0.0381 |     - |     - |     240 B |
+| V2_ImHashMap_foreach |    10 |    204.50 ns |   0.963 ns |   0.854 ns |  0.95 |    0.02 | 0.0203 |     - |     - |     128 B |
+|                      |       |              |            |            |       |         |        |       |       |           |
+| V3_ImHashMap_foreach |   100 |  2,072.90 ns |  40.826 ns |  41.926 ns |  1.00 |    0.00 | 0.0496 |     - |     - |     328 B |
+| V2_ImHashMap_foreach |   100 |  2,206.31 ns |  29.262 ns |  25.940 ns |  1.07 |    0.03 | 0.0229 |     - |     - |     160 B |
+|                      |       |              |            |            |       |         |        |       |       |           |
+| V3_ImHashMap_foreach |  1000 | 21,043.39 ns | 298.240 ns | 232.846 ns |  1.00 |    0.00 | 0.0305 |     - |     - |     328 B |
+| V2_ImHashMap_foreach |  1000 | 21,484.35 ns | 168.389 ns | 149.272 ns |  1.02 |    0.01 | 0.0305 |     - |     - |     192 B |
+
 */
             [Params(1, 10, 100, 1_000)]
             public int Count;
@@ -1910,15 +1927,6 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             #endregion
 
             [Benchmark(Baseline = true)]
-            public object V2_ImHashMap_foreach() 
-            {
-                var s = "";
-                foreach (var x in _mapV2.Enumerate())
-                    s = x.Value;
-                return s;
-            }
-
-            [Benchmark]
             public object V3_ImHashMap_foreach()
             {
                 var s = "";
@@ -1927,7 +1935,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 return s;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public object V3_PartitionedHashMap_foreach()
             {
                 var s = "";
@@ -1937,6 +1945,15 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             }
 
             [Benchmark]
+            public object V2_ImHashMap_foreach() 
+            {
+                var s = "";
+                foreach (var x in _mapV2.Enumerate())
+                    s = x.Value;
+                return s;
+            }
+
+            // [Benchmark]
             public object DictionarySlim_foreach()
             {
                 var s = "";
@@ -1945,7 +1962,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 return s;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public object Dictionary_foreach()
             {
                 var s = "";
@@ -1954,7 +1971,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 return s;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public object ConcurrentDictionary_foreach()
             {
                 var s = "";
@@ -1963,7 +1980,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 return s;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public object ImmutableDict_foreach()
             {
                 var s = "";
@@ -2005,16 +2022,6 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 
             [Benchmark(Baseline = true)]
             public object UsingLambda() => _mapV3.ToArray();
-
-            [Benchmark]
-            public object UsingNonGenericStruct() => 
-                _mapV3.ForEach(new ImTools.ImHashMapEntry<Type, string>[_mapV3.Count()], default(ToArrayHandler));
-
-            public struct ToArrayHandler : ImTools.ImHashMap.IHandler<Type, string, ImTools.ImHashMapEntry<Type, string>[]>
-            {
-                /// <summary></summary>
-                public void Invoke(ImTools.ImHashMapEntry<Type, string> entry, int i, ImTools.ImHashMapEntry<Type, string>[] state) => state[i] = entry;
-            }
 
             private ImTools.ImHashMap<Type, string> _mapV3;
             public ImTools.ImHashMap<Type, string> V3_ImHashMap_AddOrUpdate()

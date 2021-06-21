@@ -1,7 +1,5 @@
-using System;
 using System.Diagnostics;
 using System.Linq;
-using System.Collections.Generic;
 using NUnit.Framework;
 using CsCheck;
 
