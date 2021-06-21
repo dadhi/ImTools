@@ -6318,7 +6318,7 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public static ImMapEntry<V> Entry<V>(int hash, V value) => new ImMapEntry<V>(hash, value);
 
-        internal static readonly object EnumerationB3Tombstone = new object();
+        private static readonly object _enumerationB3Tombstone = new object();
 
         /// <summary>Enumerates all the map entries in the hash order.
         /// `parents` parameter allows to reuse the stack memory used for traversal between multiple enumerates.
@@ -6334,7 +6334,6 @@ namespace ImTools
             }
 
             var count = 0;
-            // GoRightInBranch3<V> br3Wrapper = null;
             while (true)
             {
                 if (map is ImMap<V>.Branch2 b2)
@@ -6528,12 +6527,12 @@ namespace ImTools
                     yield return pb2.MidEntry;
                     map = pb2.Right;
                 }
-                else if (b != EnumerationB3Tombstone)
+                else if (b != _enumerationB3Tombstone)
                 {
                     var pb3 = (ImMap<V>.Branch3)b;
                     yield return pb3.Entry0;
                     map = pb3.Middle;
-                    parents.Push(EnumerationB3Tombstone, ++count);
+                    parents.Push(_enumerationB3Tombstone, ++count);
                     ++count;
                 }
                 else
@@ -6751,12 +6750,12 @@ namespace ImTools
                     handler(pb2.MidEntry, i++, state);
                     map = pb2.Right;
                 }
-                else if (b != EnumerationB3Tombstone)
+                else if (b != _enumerationB3Tombstone)
                 {
                     var pb3 = (ImMap<V>.Branch3)b;
                     handler(pb3.Entry0, i++, state);
                     map = pb3.Middle;
-                    parents.Push(EnumerationB3Tombstone, ++count);
+                    parents.Push(_enumerationB3Tombstone, ++count);
                     ++count;
                 }
                 else
