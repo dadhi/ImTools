@@ -5336,9 +5336,6 @@ namespace ImTools
         /// <summary>Gets the item by index</summary>
         public object Get(int index) => _items[index];
 
-        /// <summary>Gets the item by index</summary>
-        public object Set(int index, object x) => _items[index] = x;
-
         private static object[] Expand(object[] items)
         {
             var count = items.Length;
