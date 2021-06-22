@@ -6428,10 +6428,10 @@ namespace ImTools
                     var p  = l51.Plus;
                     var ph = p.Hash;
                     var l  = l51.L;
-                    ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, swap = null;
+                    ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4;
                     if (ph < e4.Hash)
                     {
-                        swap = e4; e4 = p; p = swap;
+                        var swap = e4; e4 = p; p = swap;
                         if (ph < e3.Hash)
                         {
                             swap = e3; e3 = e4; e4 = swap;
