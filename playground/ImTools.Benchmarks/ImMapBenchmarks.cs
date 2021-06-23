@@ -265,22 +265,31 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 |       ImmutableDict_Builder_Add | 10000 |  4,656,480.71 ns |  71,840.690 ns |  59,990.230 ns |  4,643,750.78 ns |  1.05 |    0.02 |  148.4375 |  70.3125 |        - |  959776 B |
 |               ImmutableDict_Add | 10000 | 11,641,070.08 ns | 207,715.718 ns | 213,308.750 ns | 11,612,375.78 ns |  2.63 |    0.08 | 1468.7500 | 265.6250 | 125.0000 | 9271168 B |
 
+### @wip: ImMax
+
+|               Method | Count |            Mean |         Error |        StdDev | Ratio | RatioSD |     Gen 0 |    Gen 1 |    Gen 2 | Allocated |
+|--------------------- |------ |----------------:|--------------:|--------------:|------:|--------:|----------:|---------:|---------:|----------:|
+| V3_ImMap_AddOrUpdate |     1 |        13.08 ns |      0.089 ns |      0.079 ns |  1.00 |    0.00 |    0.0051 |        - |        - |      32 B |
+| V2_ImMap_AddOrUpdate |     1 |        13.98 ns |      0.248 ns |      0.232 ns |  1.07 |    0.02 |    0.0076 |        - |        - |      48 B |
+|                      |       |                 |               |               |       |         |           |          |          |           |
+| V3_ImMap_AddOrUpdate |    10 |       294.43 ns |      3.098 ns |      2.898 ns |  1.00 |    0.00 |    0.1249 |        - |        - |     784 B |
+| V2_ImMap_AddOrUpdate |    10 |       552.47 ns |      4.603 ns |      4.305 ns |  1.88 |    0.02 |    0.2823 |        - |        - |    1776 B |
+|                      |       |                 |               |               |       |         |           |          |          |           |
+| V3_ImMap_AddOrUpdate |   100 |    10,310.16 ns |    195.364 ns |    182.744 ns |  1.00 |    0.00 |    3.7689 |   0.1068 |        - |   23672 B |
+| V2_ImMap_AddOrUpdate |   100 |    11,801.52 ns |    208.475 ns |    184.808 ns |  1.15 |    0.03 |    5.9357 |   0.2441 |        - |   37296 B |
+|                      |       |                 |               |               |       |         |           |          |          |           |
+| V3_ImMap_AddOrUpdate |  1000 |   200,289.77 ns |  3,877.022 ns |  4,148.370 ns |  1.00 |    0.00 |   62.7441 |   1.2207 |        - |  394184 B |
+| V2_ImMap_AddOrUpdate |  1000 |   193,306.02 ns |  1,094.388 ns |  1,023.691 ns |  0.97 |    0.02 |   84.9609 |   0.4883 |        - |  534144 B |
+|                      |       |                 |               |               |       |         |           |          |          |           |
+| V3_ImMap_AddOrUpdate | 10000 | 4,594,232.92 ns | 49,228.901 ns | 46,048.744 ns |  1.00 |    0.00 |  882.8125 | 335.9375 | 117.1875 | 5538768 B |
+| V2_ImMap_AddOrUpdate | 10000 | 4,226,092.24 ns | 34,037.023 ns | 31,838.252 ns |  0.92 |    0.01 | 1109.3750 | 226.5625 | 101.5625 | 6972672 B |
+
 */
             [Params(1, 10, 100, 1_000, 10_000)]
+            // [Params(100)]
             public int Count;
 
             [Benchmark(Baseline = true)]
-            public ImTools.V2.ImMap<string> V2_ImMap_AddOrUpdate()
-            {
-                var map = ImTools.V2.ImMap<string>.Empty;
-
-                for (var i = 0; i < Count; i++)
-                    map = map.AddOrUpdate(i, i.ToString());
-
-                return map;
-            }
-
-            [Benchmark]
             public ImTools.ImMap<string> V3_ImMap_AddOrUpdate()
             {
                 var map = ImTools.ImMap<string>.Empty;
@@ -291,7 +300,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImTools.V2.Experimental.ImMap<string>[] V3_PartitionedImMap_AddOrUpdate()
             {
                 var slots = ImTools.V2.Experimental.ImMapSlots.CreateWithEmpty<string>();
@@ -300,6 +309,17 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                     slots.AddOrUpdate(i, i.ToString());
 
                 return slots;
+            }
+
+            [Benchmark]
+            public ImTools.V2.ImMap<string> V2_ImMap_AddOrUpdate()
+            {
+                var map = ImTools.V2.ImMap<string>.Empty;
+
+                for (var i = 0; i < Count; i++)
+                    map = map.AddOrUpdate(i, i.ToString());
+
+                return map;
             }
 
             // [Benchmark]
@@ -335,7 +355,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return slots;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public DictionarySlim<int, string> DictSlim_GetOrAddValueRef()
             {
                 var map = new DictionarySlim<int, string>();
@@ -346,7 +366,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public Dictionary<int, string> Dict_TryAdd()
             {
                 var map = new Dictionary<int, string>();
@@ -357,7 +377,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ConcurrentDictionary<int, string> ConcurrentDict_TryAdd()
             {
                 var map = new ConcurrentDictionary<int, string>();
@@ -368,7 +388,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImmutableDictionary<int, string> ImmutableDict_Builder_Add()
             {
                 var builder = ImmutableDictionary.CreateBuilder<int, string>();
@@ -379,7 +399,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return builder.ToImmutable();
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImmutableDictionary<int, string> ImmutableDict_Add()
             {
                 var dict = ImmutableDictionary.Create<int, string>();
