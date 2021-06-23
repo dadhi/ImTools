@@ -421,7 +421,7 @@ namespace ImTools.UnitTests
                 Assert.AreEqual(0, m.GetValueOrDefault(upperBound + 1));
                 Assert.AreEqual(0, m.GetValueOrDefault(-1));
             }, 
-            size: 5000);
+            iter: 5000);
         }
 
         [Test]
@@ -444,7 +444,22 @@ namespace ImTools.UnitTests
                 Assert.AreEqual(0, m.GetValueOrDefault(upperBound + 1));
                 Assert.AreEqual(0, m.GetValueOrDefault(-1));
             }, 
-            size: 5000);
+            iter: 5000);
+        }
+
+        [Test]
+        public void ImMap_AddOrUpdate_random_items_and_randomly_checking_CsCheck_FailedCase2()
+        {
+            var items = new[] { 81827, 98388, 55336, 13449, 96388, 3895, 7794, 98331, 44532, 94862, 89412, 25144, 18434, 44532, 58167 };
+            var m = ImMap<int>.Empty;
+            foreach (int n in items)
+            {
+                m = m.AddOrUpdate(n, n);
+                Assert.AreEqual(n, m.GetValueOrDefault(n));
+            }
+
+            foreach (int n in items)
+                Assert.AreEqual(n, m.GetValueOrDefault(n));
         }
 
         [Test]
@@ -496,7 +511,7 @@ namespace ImTools.UnitTests
                 Assert.AreEqual(0, m.GetValueOrDefault(upperBound + 1));
                 Assert.AreEqual(0, m.GetValueOrDefault(-1));
             }, 
-            size: 5000, seed: "0ZPySr9kwyWr");
+            iter: 5000, seed: "0ZPySr9kwyWr");
         }
 
         [Test]
@@ -642,7 +657,7 @@ namespace ImTools.UnitTests
                 Assert.AreEqual(0, m.GetValueOrDefault(upperBound + 1));
                 Assert.AreEqual(0, m.GetValueOrDefault(-1));
             }, 
-            size: 5000);
+            iter: 5000);
         }
         
         static Gen<(ImHashMap<int, int>, int[])> GenImHashMap(int upperBound) =>
@@ -685,7 +700,7 @@ namespace ImTools.UnitTests
 
                     CollectionAssert.AreEqual(e1.Select(x => x.Hash), e2.Select(x => x.Hash));
                 }, 
-                size: 5000);
+                iter: 5000);
         }
 
         [Test]
@@ -707,7 +722,7 @@ namespace ImTools.UnitTests
 
                     CollectionAssert.AreEqual(e1.Select(x => x.Hash), e2.Select(x => x.Hash));
                 }, 
-                size: 5000);
+                iter: 5000);
         }
 
         [Test]
@@ -729,7 +744,7 @@ namespace ImTools.UnitTests
 
                     CollectionAssert.AreEqual(e1, e2);
                 }, 
-                size: 5000);
+                iter: 5000);
         }
 
         [Test]
@@ -751,7 +766,7 @@ namespace ImTools.UnitTests
 
                     CollectionAssert.AreEqual(e1, e2);
                 }, 
-                size: 5000);
+                iter: 5000);
         }
 
         [Test]
@@ -844,7 +859,7 @@ namespace ImTools.UnitTests
 
                     CollectionAssert.AreEqual(dic1, dic2);
                 }
-                , size: 1000
+                , iter: 1000
                 , print: t => t + "\n" + string.Join("\n", t.V0.Enumerate()));
         }
 
@@ -863,7 +878,7 @@ namespace ImTools.UnitTests
 
                     CollectionAssert.AreEqual(dic1, dic2);
                 }
-                , size: 1000
+                , iter: 1000
                 , print: t => t + "\nhashes: {" + string.Join(", ", t.V3) + "}");
         }
  
@@ -903,7 +918,7 @@ namespace ImTools.UnitTests
                     var dic2 = map.ToDictionary();
                     CollectionAssert.AreEqual(dic1, dic2);
                 }
-                , size: 1000
+                , iter: 1000
                 , print: t => 
                     "\noriginal: " + t.V0 +
                     "\nadded: "    + t.V1 +
@@ -947,7 +962,7 @@ namespace ImTools.UnitTests
                     var dic2 = map.ToDictionary();
                     CollectionAssert.AreEqual(dic1, dic2);
                 }
-                , size: 1000
+                , iter: 1000
                 , print: t => t + "\n" + "keys: {" + string.Join(", ", t.V3) + "}");
         }
 
