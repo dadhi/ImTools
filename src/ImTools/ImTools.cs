@@ -4254,6 +4254,9 @@ namespace ImTools
         internal sealed override ImMapEntry<V> GetMaxHashEntryOrDefault() => this;
         internal sealed override ImMapEntry<V> GetMinHashEntryOrDefault() => this;
 
+        internal sealed override ImMap<V> AddMinHashEntry(ImMapEntry<V> leftEntry) => new Leaf2(leftEntry, this);
+        internal sealed override ImMap<V> AddMaxHashEntry(ImMapEntry<V> rightEntry) => new Leaf2(this, rightEntry);
+
         internal sealed override ImMapEntry<V> GetEntryOrNull(int hash) => hash == Hash ? this : null;
 
         internal sealed override ImMap<V> AddOrGetEntry(int hash, ImMapEntry<V> entry) =>
@@ -4299,6 +4302,9 @@ namespace ImTools
         internal virtual ImMapEntry<V> GetMinHashEntryOrDefault() => null;
         internal virtual ImMapEntry<V> GetMaxHashEntryOrDefault() => null;
 
+        internal virtual ImMap<V> AddMinHashEntry(ImMapEntry<V> leftEntry)  => throw new InvalidOperationException($"Not supposed to add the left entry `{leftEntry}` to the Empty map or the Branch2/3");
+        internal virtual ImMap<V> AddMaxHashEntry(ImMapEntry<V> rightEntry) => throw new InvalidOperationException($"Not supposed to add the right entry `{rightEntry}` to the Empty map or the Branch2/3");
+
         /// <summary>Lookup for the entry by hash. 
         /// You need to check the returned entry type because it maybe the `HashConflictKeyValuesEntry` which contain multiple key value entries for the same hash. For the `int` key you may be sure that the `ImHashMapEntry{V}` is always returned.
         /// If nothing the method returns `null`</summary>
@@ -4331,8 +4337,11 @@ namespace ImTools
             public override string ToString() => "{L2:{E0: " + Entry0 + ",E1:" + Entry1 + "}}";
 #endif
 
-            internal sealed override ImMapEntry<V> GetMinHashEntryOrDefault() => Entry0;
-            internal sealed override ImMapEntry<V> GetMaxHashEntryOrDefault() => Entry1;
+            internal override ImMapEntry<V> GetMinHashEntryOrDefault() => Entry0;
+            internal override ImMapEntry<V> GetMaxHashEntryOrDefault() => Entry1;
+
+            internal override ImMap<V> AddMinHashEntry(ImMapEntry<V> leftEntry) => new Leaf2Plus1(leftEntry, this);
+            internal override ImMap<V> AddMaxHashEntry(ImMapEntry<V> rightEntry) => new Leaf2Plus1(rightEntry, this);
 
             internal override ImMapEntry<V> GetEntryOrNull(int hash) => 
                 Entry0.Hash == hash ? Entry0 : Entry1.Hash == hash ? Entry1 : null;
@@ -4365,8 +4374,11 @@ namespace ImTools
             public override string ToString() => "{L21: {P: " + Plus + ", L: " + L + "}}";
 #endif
 
-            internal sealed override ImMapEntry<V> GetMinHashEntryOrDefault() => Plus.Hash < L.Entry0.Hash ? Plus : L.Entry0;
-            internal sealed override ImMapEntry<V> GetMaxHashEntryOrDefault() => Plus.Hash > L.Entry1.Hash ? Plus : L.Entry1;
+            internal override ImMapEntry<V> GetMinHashEntryOrDefault() => Plus.Hash < L.Entry0.Hash ? Plus : L.Entry0;
+            internal override ImMapEntry<V> GetMaxHashEntryOrDefault() => Plus.Hash > L.Entry1.Hash ? Plus : L.Entry1;
+
+            internal override ImMap<V> AddMinHashEntry(ImMapEntry<V> leftEntry) => new Leaf2Plus1Plus1(leftEntry, this);
+            internal override ImMap<V> AddMaxHashEntry(ImMapEntry<V> rightEntry) => new Leaf2Plus1Plus1(rightEntry, this);
 
             internal override ImMapEntry<V> GetEntryOrNull(int hash)
             {
@@ -4415,15 +4427,71 @@ namespace ImTools
             public override string ToString() => "{L211:{P:" + Plus + ",L:" + L + "}}";
 #endif
 
-            internal sealed override ImMapEntry<V> GetMinHashEntryOrDefault() 
+            internal override ImMapEntry<V> GetMinHashEntryOrDefault() 
             {
-                var m = L.GetMinHashEntryOrDefault();
+                var m = L.GetMinHashEntryOrDefault(); // todo: @perf inline
                 return Plus.Hash < m.Hash ? Plus : m;
             }
-            internal sealed override ImMapEntry<V> GetMaxHashEntryOrDefault() 
+            internal override ImMapEntry<V> GetMaxHashEntryOrDefault() 
             {
-                var m = L.GetMaxHashEntryOrDefault();
+                var m = L.GetMaxHashEntryOrDefault(); // todo: @perf inline
                 return Plus.Hash > m.Hash ? Plus : m;
+            }
+
+            internal override ImMap<V> AddMinHashEntry(ImMapEntry<V> leftEntry)
+            {
+                var l = L.L;
+                ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, pp = L.Plus, p = Plus, swap = null;
+                int pph = pp.Hash, ph = p.Hash;
+                if (pph < e1.Hash)
+                {
+                    swap = e1; e1 = pp; pp = swap;
+                    if (pph < e0.Hash)
+                    {
+                        swap = e0; e0 = e1; e1 = swap;
+                    }
+                }
+                if (ph < pp.Hash)
+                {
+                    swap = pp; pp = p; p = swap;
+                    if (ph < e1.Hash)
+                    {
+                        swap = e1; e1 = pp; pp = swap;
+                        if (ph < e0.Hash)
+                        {
+                            swap = e0; e0 = e1; e1 = swap;
+                        }
+                    }
+                }
+                return new Leaf5(leftEntry, e0, e1, pp, p);
+            }
+
+            internal override ImMap<V> AddMaxHashEntry(ImMapEntry<V> rightEntry)
+            {
+                var l = L.L;
+                ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, pp = L.Plus, p = Plus, swap = null;
+                int pph = pp.Hash, ph = p.Hash;
+                if (pph < e1.Hash)
+                {
+                    swap = e1; e1 = pp; pp = swap;
+                    if (pph < e0.Hash)
+                    {
+                        swap = e0; e0 = e1; e1 = swap;
+                    }
+                }
+                if (ph < pp.Hash)
+                {
+                    swap = pp; pp = p; p = swap;
+                    if (ph < e1.Hash)
+                    {
+                        swap = e1; e1 = pp; pp = swap;
+                        if (ph < e0.Hash)
+                        {
+                            swap = e0; e0 = e1; e1 = swap;
+                        }
+                    }
+                }
+                return new Leaf5(e0, e1, pp, p, rightEntry);
             }
 
             internal override ImMapEntry<V> GetEntryOrNull(int hash)
@@ -4432,7 +4500,8 @@ namespace ImTools
                     return Plus;
                 if (hash == L.Plus.Hash) 
                     return L.Plus;
-                ImMapEntry<V> e0 = L.L.Entry0, e1 = L.L.Entry1;
+                var l = L.L;
+                ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1;
                 return e0.Hash == hash ? e0 : e1.Hash == hash ? e1 : null;
             }
 
@@ -4535,8 +4604,11 @@ namespace ImTools
                 "{L2:{E0:" + Entry0 + ",E1:" + Entry1 + ",E2:" + Entry2 + ",E3:" + Entry3 + ",E4:" + Entry4 + "}}";
 #endif
 
-            internal sealed override ImMapEntry<V> GetMinHashEntryOrDefault() => Entry0;
-            internal sealed override ImMapEntry<V> GetMaxHashEntryOrDefault() => Entry4;
+            internal override ImMapEntry<V> GetMinHashEntryOrDefault() => Entry0;
+            internal override ImMapEntry<V> GetMaxHashEntryOrDefault() => Entry4;
+
+            internal override ImMap<V> AddMinHashEntry(ImMapEntry<V> leftEntry) => new Leaf5Plus1(leftEntry, this);
+            internal override ImMap<V> AddMaxHashEntry(ImMapEntry<V> rightEntry) => new Leaf5Plus1(rightEntry, this);
 
             internal override ImMapEntry<V> GetEntryOrNull(int hash) =>
                 hash == Entry0.Hash ? Entry0 :
@@ -4587,8 +4659,11 @@ namespace ImTools
             public override string ToString() => "{L51:{P:" + Plus + ",L:" + L + "}}";
 #endif
 
-            internal sealed override ImMapEntry<V> GetMinHashEntryOrDefault() => Plus.Hash < L.Entry0.Hash ? Plus : L.Entry0; 
-            internal sealed override ImMapEntry<V> GetMaxHashEntryOrDefault() => Plus.Hash > L.Entry4.Hash ? Plus : L.Entry4; 
+            internal override ImMapEntry<V> GetMinHashEntryOrDefault() => Plus.Hash < L.Entry0.Hash ? Plus : L.Entry0; 
+            internal override ImMapEntry<V> GetMaxHashEntryOrDefault() => Plus.Hash > L.Entry4.Hash ? Plus : L.Entry4; 
+
+            internal override ImMap<V> AddMinHashEntry(ImMapEntry<V> leftEntry) => new Leaf5Plus1Plus1(leftEntry, this);
+            internal override ImMap<V> AddMaxHashEntry(ImMapEntry<V> rightEntry) => new Leaf5Plus1Plus1(rightEntry, this);
 
             internal override ImMapEntry<V> GetEntryOrNull(int hash)
             {
@@ -4682,7 +4757,6 @@ namespace ImTools
         {
             public readonly ImMapEntry<V> Plus;
             public readonly Leaf5Plus1 L;
-
             public Leaf5Plus1Plus1(ImMapEntry<V> plus, Leaf5Plus1 l)
             {
                 Plus = plus;
@@ -4697,13 +4771,13 @@ namespace ImTools
 
             internal sealed override ImMapEntry<V> GetMinHashEntryOrDefault()
             {
-                var m = L.GetMinHashEntryOrDefault();
-                return Plus.Hash < m.Hash ? Plus : m;
+                ImMapEntry<V> p = Plus, pp = L.Plus, e0 = L.L.Entry0;
+                return p.Hash < pp.Hash ? (p.Hash < e0.Hash ? p : e0) : (pp.Hash < e0.Hash ? pp : e0);
             } 
             internal sealed override ImMapEntry<V> GetMaxHashEntryOrDefault()
             {
-                var m = L.GetMaxHashEntryOrDefault();
-                return Plus.Hash > m.Hash ? Plus : m;
+                ImMapEntry<V> p = Plus, pp = L.Plus, e4 = L.L.Entry4;
+                return p.Hash > pp.Hash ? (p.Hash > e4.Hash ? p : e4) : (pp.Hash > e4.Hash ? pp : e4);
             }
 
             internal override ImMapEntry<V> GetEntryOrNull(int hash)
@@ -4713,11 +4787,11 @@ namespace ImTools
                 if (hash == L.Plus.Hash)
                     return L.Plus;
                 var l = L.L;
-                return hash == l.Entry0.Hash ? l.Entry0 
-                    :  hash == l.Entry1.Hash ? l.Entry1 
-                    :  hash == l.Entry2.Hash ? l.Entry2 
-                    :  hash == l.Entry3.Hash ? l.Entry3 
-                    :  hash == l.Entry4.Hash ? l.Entry4 
+                return hash == l.Entry0.Hash ? l.Entry0
+                    :  hash == l.Entry1.Hash ? l.Entry1
+                    :  hash == l.Entry2.Hash ? l.Entry2
+                    :  hash == l.Entry3.Hash ? l.Entry3
+                    :  hash == l.Entry4.Hash ? l.Entry4
                     :  null;
             }
 
@@ -4848,6 +4922,52 @@ namespace ImTools
                 return right ? l : new Leaf5(e0, e1, e2, e3, e4);
             }
 
+            internal ImMap<V> AddEntry(int hash, ref ImMapEntry<V> entry, ref ImMap<V> splitRight)
+            {
+                ImMapEntry<V> p = Plus, pp = L.Plus;
+                int ph = p.Hash, pph = pp.Hash;
+
+                var l = L.L;
+                ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4;
+
+                var right = hash > e4.Hash && ph > e4.Hash && pph > e4.Hash;
+                var left  = !right && hash < e0.Hash && ph < e0.Hash && pph < e0.Hash;
+
+                ImMapEntry<V> swap = null;
+                if (pph < e4.Hash) { swap = e4; e4 = pp; pp = swap;
+                if (pph < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
+                if (pph < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
+                if (pph < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
+                if (pph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}
+
+                if (ph < pp.Hash) { swap = pp; pp = p;  p  = swap;
+                if (ph < e4.Hash) { swap = e4; e4 = pp; pp = swap;
+                if (ph < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
+                if (ph < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
+                if (ph < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
+                if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}}
+
+                ImMapEntry<V> e = entry;
+                if (hash < p.Hash)  { swap = p;  p  = e;  e  = swap;
+                if (hash < pp.Hash) { swap = pp; pp = p;  p  = swap;
+                if (hash < e4.Hash) { swap = e4; e4 = pp; pp = swap;
+                if (hash < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
+                if (hash < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
+                if (hash < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
+                if (hash < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}}}
+
+                if (left)
+                {
+                    entry = e2;
+                    splitRight = l;
+                    return new Leaf2(e0, e1);
+                }
+
+                entry = pp;
+                splitRight = new Leaf2(p, e);
+                return right ? l : new Leaf5(e0, e1, e2, e3, e4);
+            }
+
             internal override ImMap<V> ReplaceEntry(int hash, ImMapEntry<V> oldEntry, ImMapEntry<V> newEntry)
             {
                 var p = Plus;
@@ -4866,6 +4986,50 @@ namespace ImTools
                     oldEntry == e2 ? new Leaf5Plus1Plus1(p, new Leaf5Plus1(pp, new Leaf5(e0, e1, newEntry, e3, e4))) :
                     oldEntry == e3 ? new Leaf5Plus1Plus1(p, new Leaf5Plus1(pp, new Leaf5(e0, e1, e2, newEntry, e4))) :
                                      new Leaf5Plus1Plus1(p, new Leaf5Plus1(pp, new Leaf5(e0, e1, e2, e3, newEntry)));
+            }
+
+            internal ImMap<V> RemoveMinHashEntryAndAddNewEntry(ImMapEntry<V> minEntry, ImMapEntry<V> newEntry)
+            {
+                var p = Plus;
+                if (p == minEntry)
+                    return new Leaf5Plus1Plus1(newEntry, L);
+
+                var pp = L.Plus;
+                if (pp == minEntry)
+                    return new Leaf5Plus1Plus1(p, new Leaf5Plus1(newEntry, L.L));
+
+                var l = L.L;
+                ImMapEntry<V> e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4;
+                var hash = newEntry.Hash;
+                l = hash < e1.Hash ? new Leaf5(newEntry, e1, e2, e3, e4)
+                :   hash < e2.Hash ? new Leaf5(e1, newEntry, e2, e3, e4)
+                :   hash < e3.Hash ? new Leaf5(e1, e2, newEntry, e3, e4)
+                :   hash < e4.Hash ? new Leaf5(e1, e2, e3, newEntry, e4)
+                :                    new Leaf5(e1, e2, e3, e4, newEntry);
+
+                return new Leaf5Plus1Plus1(p, new Leaf5Plus1(pp, l));
+            }
+
+            internal ImMap<V> RemoveMaxHashEntryAndAddNewEntry(ImMapEntry<V> maxEntry, ImMapEntry<V> newEntry)
+            {
+                var p = Plus;
+                if (p == maxEntry)
+                    return new Leaf5Plus1Plus1(newEntry, L);
+
+                var pp = L.Plus;
+                if (pp == maxEntry)
+                    return new Leaf5Plus1Plus1(p, new Leaf5Plus1(newEntry, L.L));
+
+                var l = L.L;
+                ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3;
+                var hash = newEntry.Hash;
+                l = hash < e0.Hash ? new Leaf5(newEntry, e0, e1, e2, e3)
+                :   hash < e1.Hash ? new Leaf5(e0, newEntry, e1, e2, e3)
+                :   hash < e2.Hash ? new Leaf5(e0, e1, newEntry, e2, e3)
+                :   hash < e3.Hash ? new Leaf5(e0, e1, e2, newEntry, e3)
+                :                    new Leaf5(e0, e1, e2, e3, newEntry);
+
+                return new Leaf5Plus1Plus1(p, new Leaf5Plus1(pp, l));
             }
 
             internal override ImMap<V> RemoveEntry(ImMapEntry<V> removedEntry)
@@ -4936,11 +5100,11 @@ namespace ImTools
             }
         }
 
+        /// <summary>The 2 branches with the node in between</summary>
         internal class Branch2 : ImMap<V>
         {
             public readonly ImMapEntry<V> MidEntry;
             public readonly ImMap<V> Left, Right;
-
             public Branch2(ImMap<V> left, ImMapEntry<V> entry, ImMap<V> right)
             {
                 Debug.Assert(left != Empty && right != Empty, $"left:{left} != Empty && right:{right} != Empty");
@@ -4955,7 +5119,7 @@ namespace ImTools
             public override string ToString() => "{B2:{E:" + MidEntry + ",L:" + Left + ",R:" + Right + "}}";
 #endif
 
-            internal sealed override ImMapEntry<V> GetMinHashEntryOrDefault() => Left .GetMinHashEntryOrDefault();
+            internal sealed override ImMapEntry<V> GetMinHashEntryOrDefault() => Left.GetMinHashEntryOrDefault();
             internal sealed override ImMapEntry<V> GetMaxHashEntryOrDefault() => Right.GetMaxHashEntryOrDefault();
 
             internal override ImMapEntry<V> GetEntryOrNull(int hash) 
@@ -4968,37 +5132,57 @@ namespace ImTools
 
             internal override ImMap<V> AddOrGetEntry(int hash, ImMapEntry<V> entry)
             {
-                var e = MidEntry;
+                var me = MidEntry;
                 ImMap<V> newBranch = null;
-                if (hash > e.Hash)
+                if (hash > me.Hash)
                 {
                     var right = Right;
                     if (right is OnTheVergeOfBalance r) 
                     {
+                        // optimizing: when trying to add entry into filled-up right leaf but the Left branch is not filled yet, 
+                        // let's rotate by adding current middle entry into the Left and use the just added entry as the new middle.
+                        if (r is Leaf5Plus1Plus1 rl && Left is OnTheVergeOfBalance == false)
+                        {
+                            // first check that the new entry does not have the duplicate in the Right where we suppose to add it
+                            var sameHashEntry = rl.GetEntryOrNull(hash);
+                            if (sameHashEntry != null) // we may just return the found entry already
+                                return sameHashEntry;
+                            return new Branch2Plus1(entry, this);
+                        }
+
                         ImMap<V> splitRight = null;
                         newBranch = r.AddOrGetEntry(hash, ref entry, ref splitRight);
                         if (splitRight != null)
-                            return new Branch3(Left, e, newBranch, entry, splitRight);
+                            return new Branch3(Left, me, newBranch, entry, splitRight);
                     }
                     else newBranch = right.AddOrGetEntry(hash, entry);
-                    return newBranch is ImMapEntry<V> ? newBranch : new Branch2(Left, e, newBranch);
+                    return newBranch is ImMapEntry<V> ? newBranch : new Branch2(Left, me, newBranch);
                 }
 
-                if (hash < e.Hash)
+                if (hash < me.Hash)
                 {
                     var left = Left;
                     if (left is OnTheVergeOfBalance l) 
                     {
+                        if (l is Leaf5Plus1Plus1 ll && Right is Leaf5Plus1Plus1 == false)
+                        {
+                            // first check that the new entry does not have the duplicate in the Right where we suppose to add it
+                            var sameHashEntry = ll.GetEntryOrNull(hash);
+                            if (sameHashEntry != null) // we may just return the found entry already
+                                return sameHashEntry;
+                            return new Branch2Plus1(entry, this);
+                        }
+
                         ImMap<V> splitRight = null;
                         newBranch = l.AddOrGetEntry(hash, ref entry, ref splitRight);
                         if (splitRight != null)
-                            return new Branch3(newBranch, entry, splitRight, e, Right);
+                            return new Branch3(newBranch, entry, splitRight, me, Right);
                     }
                     else newBranch = left.AddOrGetEntry(hash, entry);
-                    return newBranch is ImMapEntry<V> ? newBranch : new Branch2(newBranch, e, Right);
+                    return newBranch is ImMapEntry<V> ? newBranch : new Branch2(newBranch, me, Right);
                 }
 
-                return e;
+                return me;
             }
 
             internal override ImMap<V> ReplaceEntry(int hash, ImMapEntry<V> oldEntry, ImMapEntry<V> newEntry)
@@ -5074,8 +5258,158 @@ namespace ImTools
                 return new Branch2(newLeft, mid, Right);
             }
         }
+        /// <summary>The 2 branches with the node in between</summary>
+        internal class Branch2Plus1 : ImMap<V>
+        {
+            public readonly ImMapEntry<V> Plus;
+            public readonly Branch2 B;
+            public Branch2Plus1(ImMapEntry<V> plus, Branch2 branch)
+            {
+                Plus = plus;
+                B  = branch;
+            }
 
-        /// <summary>Branch of 3 with 2 nodes in between</summary>
+            public sealed override int Count() => 1 + B.Count();
+
+#if !DEBUG
+            public override string ToString() => "{B21:{Plus:" + Plus + ",B:" + B + "}}";
+#endif
+
+            internal sealed override ImMapEntry<V> GetMinHashEntryOrDefault()
+            {
+                var m = B.GetMinHashEntryOrDefault();
+                return m.Hash < Plus.Hash ? m : Plus;
+            }
+
+            internal sealed override ImMapEntry<V> GetMaxHashEntryOrDefault()
+            {
+                var m = B.GetMaxHashEntryOrDefault();
+                return m.Hash > Plus.Hash ? m : Plus;
+            }
+
+            internal override ImMapEntry<V> GetEntryOrNull(int hash) =>
+                Plus.Hash == hash ? Plus : B.GetEntryOrNull(hash);
+
+            internal override ImMap<V> AddOrGetEntry(int hash, ImMapEntry<V> entry)
+            {
+                var ph = Plus.Hash;
+                if (ph == hash) // ok, fast return here
+                    return Plus; 
+
+                var b = B;
+                var me = b.MidEntry;
+                ImMap<V> newBranch = null;
+                if (hash > me.Hash)
+                {
+                    var right = b.Right;
+                    ImMap<V> splitRight = null;
+                    if (right is OnTheVergeOfBalance r)
+                    {
+                        newBranch = r.AddOrGetEntry(hash, ref entry, ref splitRight);
+                        if (splitRight == null)
+                            return newBranch; // we know that the `r` is Leaf so the only possibility why `splitRight` is null because the same hash entry is found 
+
+                        Debug.Assert(ph > me.Hash, "Because right was on the verge of balance and the fact that the other branch is not on the verge was the reason of Branch2Plus1 creation");
+                        return ph > entry.Hash
+                            ? new Branch3(b.Left, me, newBranch, entry, splitRight is Leaf2 l2 ? new Leaf2Plus1(Plus, l2) : (ImMap<V>)new Leaf5Plus1(Plus, (Leaf5)splitRight))
+                            : new Branch3(b.Left, me, newBranch is Leaf5 l5 ? new Leaf5Plus1(Plus, l5) : (ImMap<V>)new Leaf2Plus1(Plus, (Leaf2)newBranch), entry, splitRight);
+                    }
+
+                    // right is not on the verge, then the Plus would be added to the left
+                    newBranch = right.AddOrGetEntry(hash, entry);
+                    if (newBranch is ImMapEntry<V>)
+                        return newBranch;
+
+                    entry = Plus;
+                    var newLeft = ((Leaf5Plus1Plus1)b.Left).AddEntry(ph, ref entry, ref splitRight);
+                    return new Branch3(newLeft, entry, splitRight, me, newBranch);
+                }
+
+                if (hash < me.Hash)
+                {
+                    var left = b.Left;
+                    ImMap<V> splitRight = null;
+                    if (left is OnTheVergeOfBalance l) 
+                    {
+                        newBranch = l.AddOrGetEntry(hash, ref entry, ref splitRight);
+                        if (splitRight == null)
+                            return newBranch; // we know that the `r` is Leaf so the only possibility why `splitRight` is null because the same hash entry is found
+
+                        return ph < entry.Hash
+                            ? new Branch3(newBranch is Leaf5 l5 ? new Leaf5Plus1(Plus, l5) : (ImMap<V>)new Leaf2Plus1(Plus, (Leaf2)newBranch), entry, splitRight,  me, b.Right)
+                            : new Branch3(newBranch, entry, splitRight is Leaf2 l2 ? new Leaf2Plus1(Plus, l2) : (ImMap<V>)new Leaf5Plus1(Plus, (Leaf5)splitRight), me, b.Right);
+                    }
+
+                    newBranch = left.AddOrGetEntry(hash, entry);
+                    if (newBranch is ImMapEntry<V>)
+                        return newBranch;
+
+                    entry = Plus;
+                    var newMiddle = ((Leaf5Plus1Plus1)b.Right).AddEntry(ph, ref entry, ref splitRight);
+                    return new Branch3(newBranch, me, newMiddle, entry, splitRight);
+                }
+
+                return me;
+            }
+
+            internal override ImMap<V> ReplaceEntry(int hash, ImMapEntry<V> oldEntry, ImMapEntry<V> newEntry) =>
+                oldEntry == Plus ? new Branch2Plus1(newEntry, B) : new Branch2Plus1(Plus, (Branch2)B.ReplaceEntry(hash, oldEntry, newEntry));
+
+            internal override ImMap<V> RemoveEntry(ImMapEntry<V> removedEntry)
+            {
+                if (removedEntry == Plus) 
+                    return B;
+                var b = B;
+                ImMapEntry<V> p = Plus, m = b.MidEntry;
+                if (removedEntry == m)
+                {
+                    if (b.Right is Leaf5Plus1Plus1 rl)
+                    {
+                        var rightMin = rl.GetMinHashEntryOrDefault();
+                        return rightMin.Hash > p.Hash
+                            ? new Branch2(b.Left, p, rl)
+                            : new Branch2(b.Left, rightMin, rl.RemoveMinHashEntryAndAddNewEntry(rightMin, p));
+                    }
+                    var ll = (Leaf5Plus1Plus1)b.Left;
+                    var leftMax = ll.GetMaxHashEntryOrDefault();
+                    return leftMax.Hash < p.Hash
+                        ? new Branch2(ll, p, b.Right)
+                        : new Branch2(ll.RemoveMaxHashEntryAndAddNewEntry(leftMax, p), leftMax, b.Right);
+                }
+
+                if (removedEntry.Hash > m.Hash)
+                {
+                    if (b.Right is Leaf5Plus1Plus1 rl)
+                        return new Branch2(b.Left, m, rl.RemoveEntry(removedEntry).AddOrGetEntry(p.Hash, p));
+                    var newRight = b.Right.RemoveEntry(removedEntry);
+                    if (newRight == Empty)
+                    {
+                        var ll = (Leaf5Plus1Plus1)b.Left;
+                        var leftMax = ll.GetMaxHashEntryOrDefault();
+                        return leftMax.Hash < p.Hash
+                            ? new Branch2(ll.RemoveEntry(leftMax), leftMax, p)
+                            : new Branch2(ll.RemoveEntry(leftMax), p, leftMax);
+                    }
+                    return new Branch2Plus1(p, new Branch2(b.Left, m, newRight));
+                }
+                {
+                    if (b.Left is Leaf5Plus1Plus1 ll)
+                        return new Branch2(ll.RemoveEntry(removedEntry).AddOrGetEntry(p.Hash, p), m, b.Right);
+                    var newLeft = b.Left.RemoveEntry(removedEntry);
+                    if (newLeft == Empty)
+                    {
+                        var rl = (Leaf5Plus1Plus1)b.Right;
+                        var rightMin = rl.GetMinHashEntryOrDefault();
+                        return rightMin.Hash > p.Hash
+                            ? new Branch2(p, rightMin, rl.RemoveEntry(rightMin))
+                            : new Branch2(rightMin, p, rl.RemoveEntry(rightMin));
+                    }
+                    return new Branch2Plus1(p, new Branch2(newLeft, m, b.Right));
+                }
+            }
+        }
+
+        /// <summary>The 3 branches with the 2 nodes in between</summary>
         internal sealed class Branch3 : OnTheVergeOfBalance
         {
             public readonly ImMapEntry<V> Entry0, Entry1;
@@ -6333,6 +6667,7 @@ namespace ImTools
                 yield break;
             }
 
+            ImMap<V>.Branch2Plus1 b21LeftWasEnumerated = null;
             var count = 0;
             while (true)
             {
@@ -6354,61 +6689,106 @@ namespace ImTools
                     continue;
                 }
 
-                if (map is ImMapEntry<V> l1)
-                    yield return l1;
-                else if (map is ImMap<V>.Leaf2 l2)
+                if (b21LeftWasEnumerated != null || map is ImMap<V>.Branch2Plus1)
+                {
+                    ImMap<V>.Leaf5Plus1Plus1 l511 = null;
+                    ImMapEntry<V> pl = null, mid = null;
+                    if (b21LeftWasEnumerated != null)
+                    {
+                        yield return b21LeftWasEnumerated.B.MidEntry;
+                        l511 = (ImMap<V>.Leaf5Plus1Plus1)b21LeftWasEnumerated.B.Right;
+                        pl   = b21LeftWasEnumerated.Plus;
+                        b21LeftWasEnumerated = null; // we done with the branch
+                        map  = ImMap<V>.Empty;       // forcing to skip leaves below
+                    }
+                    else 
+                    {
+                        var b21 = (ImMap<V>.Branch2Plus1)map;
+                        if (b21.B.Right is ImMap<V>.Leaf5Plus1Plus1) // so we need to enumerate the left as a normal branch2 with the code below.
+                        {
+                            b21LeftWasEnumerated = b21;
+                            map = b21.B.Left;
+                        }
+                        else // we need to sort out the left side with Plus entry
+                        {
+                            l511 = (ImMap<V>.Leaf5Plus1Plus1)b21.B.Left;
+                            mid  = b21.B.MidEntry;
+                            pl   = b21.Plus;
+                            map  = b21.B.Right; // it is a leaf so, no need to continue, just proceed with the leafs below
+                         }
+                    }
+
+                    if (l511 != null)
+                    {
+                        var l = l511.L.L;
+                        ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, p = l511.Plus, pp = l511.L.Plus, swap = null;
+                        var h = pp.Hash;
+                        if (h < e4.Hash) { swap = e4; e4 = pp; pp = swap;
+                        if (h < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
+                        if (h < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
+                        if (h < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
+                        if (h < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}
+
+                        h     = p.Hash;
+                        if (h < pp.Hash) { swap = pp; pp = p;  p  = swap;
+                        if (h < e4.Hash) { swap = e4; e4 = pp; pp = swap;
+                        if (h < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
+                        if (h < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
+                        if (h < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
+                        if (h < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}}
+
+                        h     = pl.Hash;
+                        if (h < p.Hash)  { swap = p;  p = pl;  pl = swap;
+                        if (h < pp.Hash) { swap = pp; pp = p;  p  = swap;
+                        if (h < e4.Hash) { swap = e4; e4 = pp; pp = swap;
+                        if (h < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
+                        if (h < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
+                        if (h < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
+                        if (h < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}}}
+
+                        yield return e0;
+                        yield return e1;
+                        yield return e2;
+                        yield return e3;
+                        yield return e4;
+                        yield return pp;
+                        yield return p ;
+                        yield return pl;
+
+                        if (mid != null)
+                            yield return mid;
+                    }
+                }
+
+                if (map is ImMap<V>.Leaf2 l2)
                 {
                     yield return l2.Entry0;
                     yield return l2.Entry1;
                 }
                 else if (map is ImMap<V>.Leaf2Plus1 l21)
                 {
-                    var p  = l21.Plus;
-                    var ph = p.Hash;
                     var l  = l21.L;
-                    ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, swap = null;
-                    if (ph < e1.Hash)
-                    {
-                        swap = e1; e1 = p; p = swap;
-                        if (ph < e0.Hash)
-                        {
-                            swap = e0; e0 = e1; e1 = swap;
-                        }
-                    }
+                    ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, pp = l21.Plus, swap = null;
+                    var ph = pp.Hash;
+                    if (ph < e1.Hash) { swap = e1; e1 = pp; pp = swap;
+                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}
 
                     yield return e0;
                     yield return e1;
-                    yield return p ;
+                    yield return pp ;
                 }
                 else if (map is ImMap<V>.Leaf2Plus1Plus1 l211)
                 {
-                    var p  = l211.Plus;
-                    var pp = l211.L.Plus;
-                    var ph = pp.Hash;
                     var l  = l211.L.L;
-                    ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, swap = null;
-                    if (ph < e1.Hash)
-                    {
-                        swap = e1; e1 = pp; pp = swap;
-                        if (ph < e0.Hash)
-                        {
-                            swap = e0; e0 = e1; e1 = swap;
-                        }
-                    }
+                    ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, pp = l211.L.Plus, p = l211.Plus, swap = null;
+                    var ph = pp.Hash;
+                    if (ph < e1.Hash) { swap = e1; e1 = pp; pp = swap;
+                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}
 
                     ph = p.Hash;
-                    if (ph < pp.Hash)
-                    {
-                        swap = pp; pp = p; p = swap;
-                        if (ph < e1.Hash)
-                        {
-                            swap = e1; e1 = pp; pp = swap;
-                            if (ph < e0.Hash)
-                            {
-                                swap = e0; e0 = e1; e1 = swap;
-                            }
-                        }
-                    }
+                    if (ph < pp.Hash) { swap = pp; pp = p;  p  = swap;
+                    if (ph < e1.Hash) { swap = e1; e1 = pp; pp = swap;
+                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}
 
                     yield return e0;
                     yield return e1;
@@ -6425,89 +6805,41 @@ namespace ImTools
                 }
                 else if (map is ImMap<V>.Leaf5Plus1 l51)
                 {
-                    var p  = l51.Plus;
-                    var ph = p.Hash;
                     var l  = l51.L;
-                    ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4;
-                    if (ph < e4.Hash)
-                    {
-                        var swap = e4; e4 = p; p = swap;
-                        if (ph < e3.Hash)
-                        {
-                            swap = e3; e3 = e4; e4 = swap;
-                            if (ph < e2.Hash)
-                            {
-                                swap = e2; e2 = e3; e3 = swap;
-                                if (ph < e1.Hash)
-                                {
-                                    swap = e1; e1 = e2; e2 = swap;
-                                    if (ph < e0.Hash)
-                                    {
-                                        swap = e0; e0 = e1; e1 = swap;
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, pp = l51.Plus, swap = null;
+                    var ph = pp.Hash;
+                    if (ph < e4.Hash) { swap = e4; e4 = pp; pp = swap;
+                    if (ph < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
+                    if (ph < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
+                    if (ph < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
+                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}
 
                     yield return e0;
                     yield return e1;
                     yield return e2;
                     yield return e3;
                     yield return e4;
-                    yield return p ;
+                    yield return pp ;
                 }
                 else if (map is ImMap<V>.Leaf5Plus1Plus1 l511)
                 {
                     var l = l511.L.L;
                     ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, p = l511.Plus, pp = l511.L.Plus, swap = null;
-                    var h = pp.Hash;
-                    if (h < e4.Hash)
-                    {
-                        swap = e4; e4 = pp; pp = swap;
-                        if (h < e3.Hash)
-                        {
-                            swap = e3; e3 = e4; e4 = swap;
-                            if (h < e2.Hash)
-                            {
-                                swap = e2; e2 = e3; e3 = swap;
-                                if (h < e1.Hash)
-                                {
-                                    swap = e1; e1 = e2; e2 = swap;
-                                    if (h < e0.Hash)
-                                    {
-                                        swap = e0; e0 = e1; e1 = swap;
-                                    }
-                                }
-                            }
-                        }
-                    }
 
-                    h = p.Hash;
-                    if (h < pp.Hash)
-                    {
-                        swap = pp; pp = p; p = swap;
-                        if (h < e4.Hash)
-                        {
-                            swap = e4; e4 = pp; pp = swap;
-                            if (h < e3.Hash)
-                            {
-                                swap = e3; e3 = e4; e4 = swap;
-                                if (h < e2.Hash)
-                                {
-                                    swap = e2; e2 = e3; e3 = swap;
-                                    if (h < e1.Hash)
-                                    {
-                                        swap = e1; e1 = e2; e2 = swap;
-                                        if (h < e0.Hash)
-                                        {
-                                            swap = e0; e0 = e1; e1 = swap;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    var ph = pp.Hash;
+                    if (ph < e4.Hash) { swap = e4; e4 = pp; pp = swap;
+                    if (ph < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
+                    if (ph < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
+                    if (ph < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
+                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}
+
+                    ph     = p.Hash;
+                    if (ph < pp.Hash) { swap = pp; pp = p;  p  = swap;
+                    if (ph < e4.Hash) { swap = e4; e4 = pp; pp = swap;
+                    if (ph < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
+                    if (ph < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
+                    if (ph < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
+                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}}
 
                     yield return e0;
                     yield return e1;
@@ -6517,6 +6849,12 @@ namespace ImTools
                     yield return pp;
                     yield return p ;
                 }
+                else if (map is ImMapEntry<V> l1) // it the last choice here because it is very unlikely situation - only of you Remove from the leaf2
+                    yield return l1;
+
+
+                if (b21LeftWasEnumerated != null)
+                    continue;
 
                 if (count == 0)
                     break; // we yield the leaf and there is nothing in stack - we are DONE!
@@ -6557,6 +6895,7 @@ namespace ImTools
                 return state;
             }
 
+            ImMap<V>.Branch2Plus1 b21LeftWasEnumerated = null;
             int count = 0, i = 0;
             while (true)
             {
@@ -6568,6 +6907,7 @@ namespace ImTools
                     map = b2.Left;
                     continue;
                 }
+
                 if (map is ImMap<V>.Branch3 b3)
                 {
                     if (parents == null)
@@ -6576,62 +6916,107 @@ namespace ImTools
                     map = b3.Left;
                     continue;
                 }
-                
-                if (map is ImMapEntry<V> l1)
-                    handler(l1, i++, state);
-                else if (map is ImMap<V>.Leaf2 l2)
+
+                if (b21LeftWasEnumerated != null || map is ImMap<V>.Branch2Plus1)
+                {
+                    ImMap<V>.Leaf5Plus1Plus1 l511 = null;
+                    ImMapEntry<V> pl = null, mid = null;
+                    if (b21LeftWasEnumerated != null)
+                    {
+                        handler(b21LeftWasEnumerated.B.MidEntry, i++, state);
+                        l511 = (ImMap<V>.Leaf5Plus1Plus1)b21LeftWasEnumerated.B.Right;
+                        pl   = b21LeftWasEnumerated.Plus;
+                        b21LeftWasEnumerated = null; // we done with the branch
+                        map  = ImMap<V>.Empty;       // forcing to skip leaves below
+                    }
+                    else 
+                    {
+                        var b21 = (ImMap<V>.Branch2Plus1)map;
+                        if (b21.B.Right is ImMap<V>.Leaf5Plus1Plus1) // so we need to enumerate the left as a normal branch2 with the code below.
+                        {
+                            b21LeftWasEnumerated = b21;
+                            map = b21.B.Left;
+                        }
+                        else // we need to sort out the left side with Plus entry
+                        {
+                            l511 = (ImMap<V>.Leaf5Plus1Plus1)b21.B.Left;
+                            mid  = b21.B.MidEntry;
+                            pl   = b21.Plus;
+                            map  = b21.B.Right; // it is a leaf so, no need to continue, just proceed with the leafs below
+                         }
+                    }
+
+                    if (l511 != null)
+                    {
+                        var l = l511.L.L;
+                        ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, p = l511.Plus, pp = l511.L.Plus, swap = null;
+                        var h = pp.Hash;
+                        if (h < e4.Hash) { swap = e4; e4 = pp; pp = swap;
+                        if (h < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
+                        if (h < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
+                        if (h < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
+                        if (h < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}
+
+                        h     = p.Hash;
+                        if (h < pp.Hash) { swap = pp; pp = p;  p  = swap;
+                        if (h < e4.Hash) { swap = e4; e4 = pp; pp = swap;
+                        if (h < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
+                        if (h < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
+                        if (h < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
+                        if (h < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}}
+
+                        h     = pl.Hash;
+                        if (h < p.Hash)  { swap = p;  p = pl;  pl = swap;
+                        if (h < pp.Hash) { swap = pp; pp = p;  p  = swap;
+                        if (h < e4.Hash) { swap = e4; e4 = pp; pp = swap;
+                        if (h < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
+                        if (h < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
+                        if (h < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
+                        if (h < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}}}
+
+                        handler(e0, i++, state);
+                        handler(e1, i++, state);
+                        handler(e2, i++, state);
+                        handler(e3, i++, state);
+                        handler(e4, i++, state);
+                        handler(pp, i++, state);
+                        handler(p , i++, state);
+                        handler(pl, i++, state);
+
+                        if (mid != null)
+                            handler(mid, i++, state);
+                    }
+                }
+
+                if (map is ImMap<V>.Leaf2 l2)
                 {
                     handler(l2.Entry0, i++, state);
                     handler(l2.Entry1, i++, state);
                 }
                 else if (map is ImMap<V>.Leaf2Plus1 l21)
                 {
-                    var p  = l21.Plus;
-                    var ph = p.Hash;
                     var l  = l21.L;
-                    ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, swap = null;
-                    if (ph < e1.Hash)
-                    {
-                        swap = e1; e1 = p; p = swap;
-                        if (ph < e0.Hash)
-                        {
-                            swap = e0; e0 = e1; e1 = swap;
-                        }
-                    }
+                    ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, pp = l21.Plus, swap = null;
+                    var ph = pp.Hash;
+                    if (ph < e1.Hash) { swap = e1; e1 = pp; pp = swap;
+                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}
 
                     handler(e0, i++, state);
                     handler(e1, i++, state);
-                    handler(p,  i++, state);
+                    handler(pp, i++, state);
                 }
                 else if (map is ImMap<V>.Leaf2Plus1Plus1 l211)
                 {
-                    var p  = l211.Plus;
-                    var pp = l211.L.Plus;
-                    var ph = pp.Hash;
                     var l  = l211.L.L;
-                    ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, swap = null;
-                    if (ph < e1.Hash)
-                    {
-                        swap = e1; e1 = pp; pp = swap;
-                        if (ph < e0.Hash)
-                        {
-                            swap = e0; e0 = e1; e1 = swap;
-                        }
-                    }
+                    ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, pp = l211.L.Plus, p = l211.Plus, swap = null;
+                    var ph = pp.Hash;
+                    if (ph < e1.Hash) { swap = e1; e1 = pp; pp = swap;
+                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}
 
                     ph = p.Hash;
-                    if (ph < pp.Hash)
-                    {
-                        swap = pp; pp = p; p = swap;
-                        if (ph < e1.Hash)
-                        {
-                            swap = e1; e1 = pp; pp = swap;
-                            if (ph < e0.Hash)
-                            {
-                                swap = e0; e0 = e1; e1 = swap;
-                            }
-                        }
-                    }
+                    if (ph < pp.Hash) { swap = pp; pp = p;  p  = swap;
+                    if (ph < e1.Hash) { swap = e1; e1 = pp; pp = swap;
+                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}
 
                     handler(e0, i++, state);
                     handler(e1, i++, state);
@@ -6648,89 +7033,41 @@ namespace ImTools
                 }
                 else if (map is ImMap<V>.Leaf5Plus1 l51)
                 {
-                    var p  = l51.Plus;
-                    var ph = p.Hash;
                     var l  = l51.L;
-                    ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, swap = null;
-                    if (ph < e4.Hash)
-                    {
-                        swap = e4; e4 = p; p = swap;
-                        if (ph < e3.Hash)
-                        {
-                            swap = e3; e3 = e4; e4 = swap;
-                            if (ph < e2.Hash)
-                            {
-                                swap = e2; e2 = e3; e3 = swap;
-                                if (ph < e1.Hash)
-                                {
-                                    swap = e1; e1 = e2; e2 = swap;
-                                    if (ph < e0.Hash)
-                                    {
-                                        swap = e0; e0 = e1; e1 = swap;
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, pp = l51.Plus, swap = null;
+                    var ph = pp.Hash;
+                    if (ph < e4.Hash) { swap = e4; e4 = pp; pp = swap;
+                    if (ph < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
+                    if (ph < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
+                    if (ph < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
+                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}
 
                     handler(e0, i++, state);
                     handler(e1, i++, state);
                     handler(e2, i++, state);
                     handler(e3, i++, state);
                     handler(e4, i++, state);
-                    handler(p , i++, state);
+                    handler(pp, i++, state);
                 }
                 else if (map is ImMap<V>.Leaf5Plus1Plus1 l511)
                 {
                     var l = l511.L.L;
                     ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, p = l511.Plus, pp = l511.L.Plus, swap = null;
-                    var h = pp.Hash;
-                    if (h < e4.Hash)
-                    {
-                        swap = e4; e4 = pp; pp = swap;
-                        if (h < e3.Hash)
-                        {
-                            swap = e3; e3 = e4; e4 = swap;
-                            if (h < e2.Hash)
-                            {
-                                swap = e2; e2 = e3; e3 = swap;
-                                if (h < e1.Hash)
-                                {
-                                    swap = e1; e1 = e2; e2 = swap;
-                                    if (h < e0.Hash)
-                                    {
-                                        swap = e0; e0 = e1; e1 = swap;
-                                    }
-                                }
-                            }
-                        }
-                    }
 
-                    h = p.Hash;
-                    if (h < pp.Hash)
-                    {
-                        swap = pp; pp = p; p = swap;
-                        if (h < e4.Hash)
-                        {
-                            swap = e4; e4 = pp; pp = swap;
-                            if (h < e3.Hash)
-                            {
-                                swap = e3; e3 = e4; e4 = swap;
-                                if (h < e2.Hash)
-                                {
-                                    swap = e2; e2 = e3; e3 = swap;
-                                    if (h < e1.Hash)
-                                    {
-                                        swap = e1; e1 = e2; e2 = swap;
-                                        if (h < e0.Hash)
-                                        {
-                                            swap = e0; e0 = e1; e1 = swap;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    var ph = pp.Hash;
+                    if (ph < e4.Hash) { swap = e4; e4 = pp; pp = swap;
+                    if (ph < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
+                    if (ph < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
+                    if (ph < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
+                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}
+
+                    ph     = p.Hash;
+                    if (ph < pp.Hash) { swap = pp; pp = p;  p  = swap;
+                    if (ph < e4.Hash) { swap = e4; e4 = pp; pp = swap;
+                    if (ph < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
+                    if (ph < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
+                    if (ph < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
+                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}}
 
                     handler(e0, i++, state);
                     handler(e1, i++, state);
@@ -6740,6 +7077,11 @@ namespace ImTools
                     handler(pp, i++, state);
                     handler(p , i++, state);
                 }
+                else if (map is ImMapEntry<V> l1)
+                    handler(l1, i++, state);
+
+                if (b21LeftWasEnumerated != null)
+                    continue;
 
                 if (count == 0)
                     break; // we yield the leaf and there is nothing in stack - we are DONE!

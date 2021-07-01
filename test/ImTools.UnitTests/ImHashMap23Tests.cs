@@ -288,6 +288,7 @@ namespace ImTools.UnitTests
             m = m.AddOrUpdate(14, "14");
             Assert.AreEqual("14",  m.GetValueOrDefault(14));
             Assert.AreEqual(14, m.Count());
+            CollectionAssert.AreEquivalent(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 }, m.Enumerate().Select(x => x.Hash));
 
             m = m.AddOrUpdate(15, "15");
             m = m.AddOrUpdate(16, "16");
@@ -319,7 +320,7 @@ namespace ImTools.UnitTests
             Assert.IsNull(rr.GetValueOrDefault(21));
         }
 
-        public class XKey<K> 
+        public class XKey<K>
         {
             public K Key;
             public XKey(K k) => Key = k;
