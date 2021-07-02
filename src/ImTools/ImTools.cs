@@ -5287,8 +5287,15 @@ namespace ImTools
                 return m.Hash > Plus.Hash ? m : Plus;
             }
 
-            internal override ImMapEntry<V> GetEntryOrNull(int hash) =>
-                Plus.Hash == hash ? Plus : B.GetEntryOrNull(hash);
+            internal override ImMapEntry<V> GetEntryOrNull(int hash)
+            {
+                if (Plus.Hash == hash)
+                    return Plus;
+                var mh = B.MidEntry.Hash;
+                return hash > mh ? B.Right.GetEntryOrNull(hash)
+                    :  hash < mh ? B.Left .GetEntryOrNull(hash)
+                    :  B.MidEntry;
+            }
 
             internal override ImMap<V> AddOrGetEntry(int hash, ImMapEntry<V> entry)
             {
