@@ -4296,6 +4296,9 @@ namespace ImTools
         /// <summary>The count of entries in the map</summary>
         public virtual int Count() => 0;
 
+        /// <summary>`true` if node is branch</summary>
+        public virtual bool IsBranch => false;
+
         internal virtual ImMapEntry<V> GetMinHashEntryOrDefault() => null;
         internal virtual ImMapEntry<V> GetMaxHashEntryOrDefault() => null;
 
@@ -4770,21 +4773,21 @@ namespace ImTools
                 if (pph < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
                 if (pph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}
 
-                if (ph < pp.Hash) { swap = pp; pp = p;  p  = swap;
-                if (ph < e4.Hash) { swap = e4; e4 = pp; pp = swap;
-                if (ph < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
-                if (ph < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
-                if (ph < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
-                if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}}
+                if (ph < pp.Hash)  { swap = pp; pp = p;  p  = swap;
+                if (ph < e4.Hash)  { swap = e4; e4 = pp; pp = swap;
+                if (ph < e3.Hash)  { swap = e3; e3 = e4; e4 = swap;
+                if (ph < e2.Hash)  { swap = e2; e2 = e3; e3 = swap;
+                if (ph < e1.Hash)  { swap = e1; e1 = e2; e2 = swap;
+                if (ph < e0.Hash)  { swap = e0; e0 = e1; e1 = swap; }}}}}}
 
                 ImMapEntry<V> e = entry;
-                if (hash < p.Hash)  { swap = p;  p  = e;  e  = swap;
-                if (hash < pp.Hash) { swap = pp; pp = p;  p  = swap;
-                if (hash < e4.Hash) { swap = e4; e4 = pp; pp = swap;
-                if (hash < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
-                if (hash < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
-                if (hash < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
-                if (hash < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}}}
+                if (hash < p.Hash) { swap = p;  p  = e;  e  = swap;
+                if (hash < pp.Hash){ swap = pp; pp = p;  p  = swap;
+                if (hash < e4.Hash){ swap = e4; e4 = pp; pp = swap;
+                if (hash < e3.Hash){ swap = e3; e3 = e4; e4 = swap;
+                if (hash < e2.Hash){ swap = e2; e2 = e3; e3 = swap;
+                if (hash < e1.Hash){ swap = e1; e1 = e2; e2 = swap;
+                if (hash < e0.Hash){ swap = e0; e0 = e1; e1 = swap; }}}}}}}
 
                 if (left)
                 {
@@ -4900,7 +4903,7 @@ namespace ImTools
         }
 
         /// <summary>The 2 branches with the node in between</summary>
-        internal class Branch2 : ImMap<V>
+        internal sealed class Branch2 : ImMap<V>
         {
             public readonly ImMapEntry<V> MidEntry;
             public readonly ImMap<V> Left, Right;
@@ -4912,14 +4915,16 @@ namespace ImTools
                 Right    = right;
             }
 
-            public sealed override int Count() => 1 + Left.Count() + Right.Count();
+            public override int Count() => 1 + Left.Count() + Right.Count();
+            public override bool IsBranch => true;
+
 
 #if !DEBUG
             public override string ToString() => "{B2:{E:" + MidEntry + ",L:" + Left + ",R:" + Right + "}}";
 #endif
 
-            internal sealed override ImMapEntry<V> GetMinHashEntryOrDefault() => Left.GetMinHashEntryOrDefault();
-            internal sealed override ImMapEntry<V> GetMaxHashEntryOrDefault() => Right.GetMaxHashEntryOrDefault();
+            internal override ImMapEntry<V> GetMinHashEntryOrDefault() => Left.GetMinHashEntryOrDefault();
+            internal override ImMapEntry<V> GetMaxHashEntryOrDefault() => Right.GetMaxHashEntryOrDefault();
 
             internal override ImMapEntry<V> GetEntryOrNull(int hash) 
             {
@@ -5057,7 +5062,7 @@ namespace ImTools
             }
         }
         /// <summary>The 2 branches with the node in between</summary>
-        internal class Branch2Plus1 : ImMap<V>
+        internal sealed class Branch2Plus1 : ImMap<V>
         {
             public readonly ImMapEntry<V> Plus;
             public readonly Branch2 B;
@@ -5067,13 +5072,14 @@ namespace ImTools
                 B  = branch;
             }
 
-            public sealed override int Count() => 1 + B.Count();
+            public override int Count() => 1 + B.Count();
+            public override bool IsBranch => true;
 
 #if !DEBUG
             public override string ToString() => "{B21:{Plus:" + Plus + ",B:" + B + "}}";
 #endif
 
-            internal sealed override ImMapEntry<V> GetMinHashEntryOrDefault()
+            internal override ImMapEntry<V> GetMinHashEntryOrDefault()
             {
                 var m = B.GetMinHashEntryOrDefault();
                 return m.Hash < Plus.Hash ? m : Plus;
@@ -5231,6 +5237,7 @@ namespace ImTools
             }
 
             public override int Count() => 2 + Left.Count() + Middle.Count() + Right.Count();
+            public override bool IsBranch => true;
 
 #if !DEBUG
             public override string ToString() => "{B3:{E0:" + Entry0 + ",E1:" + Entry0 + ",L:" + Left + ",M:" + Middle + ",R:" + Right + "}}";
