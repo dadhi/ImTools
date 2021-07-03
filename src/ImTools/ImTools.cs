@@ -3846,7 +3846,7 @@ namespace ImTools
         }
 
         /// <summary>Branch of 2 leafs or branches with entry in the middle</summary>
-        internal class Branch2 : ImHashMap<K, V>
+        internal sealed class Branch2 : ImHashMap<K, V>
         {
             public readonly ImHashMap<K, V> Left;
             public readonly Entry MidEntry;
@@ -3860,14 +3860,14 @@ namespace ImTools
                 Right    = right;
             }
 
-            public sealed override int Count() => MidEntry.Count() + Left.Count() + Right.Count();
+            public override int Count() => MidEntry.Count() + Left.Count() + Right.Count();
 
 #if !DEBUG
             public override string ToString() => "{B2:{E:" + MidEntry + ",L:" + Left + ",R:" + Right + "}}";
 #endif
 
-            internal sealed override Entry GetMinHashEntryOrDefault() => Left .GetMinHashEntryOrDefault();
-            internal sealed override Entry GetMaxHashEntryOrDefault() => Right.GetMaxHashEntryOrDefault();
+            internal override Entry GetMinHashEntryOrDefault() => Left .GetMinHashEntryOrDefault();
+            internal override Entry GetMaxHashEntryOrDefault() => Right.GetMaxHashEntryOrDefault();
 
             internal override Entry GetEntryOrNull(int hash) 
             {
