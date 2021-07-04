@@ -5081,13 +5081,13 @@ namespace ImTools
 
             internal override ImMapEntry<V> GetMinHashEntryOrDefault()
             {
-                var m = B.GetMinHashEntryOrDefault();
+                var m = B.Left.GetMinHashEntryOrDefault();
                 return m.Hash < Plus.Hash ? m : Plus;
             }
 
             internal sealed override ImMapEntry<V> GetMaxHashEntryOrDefault()
             {
-                var m = B.GetMaxHashEntryOrDefault();
+                var m = B.Right.GetMaxHashEntryOrDefault();
                 return m.Hash > Plus.Hash ? m : Plus;
             }
 
@@ -5108,9 +5108,9 @@ namespace ImTools
                     return Plus; 
 
                 var b = B;
-                var me = b.MidEntry;
+                var m = b.MidEntry;
                 ImMap<V> newBranch = null;
-                if (hash > me.Hash)
+                if (hash > m.Hash)
                 {
                     var right = b.Right;
                     ImMap<V> splitRight = null;
@@ -5120,10 +5120,10 @@ namespace ImTools
                         if (splitRight == null)
                             return newBranch; // we know that the `r` is Leaf so the only possibility why `splitRight` is null because the same hash entry is found 
 
-                        Debug.Assert(ph > me.Hash, "Because right was on the verge of balance and the fact that the other branch is not on the verge was the reason of Branch2Plus1 creation");
+                        Debug.Assert(ph > m.Hash, "Because right was on the verge of balance and the fact that the other branch is not on the verge was the reason of Branch2Plus1 creation");
                         return ph > entry.Hash
-                            ? new Branch3(b.Left, me, newBranch, entry, splitRight is Leaf2 l2 ? new Leaf2Plus1(Plus, l2) : (ImMap<V>)new Leaf5Plus1(Plus, (Leaf5)splitRight))
-                            : new Branch3(b.Left, me, newBranch is Leaf5 l5 ? new Leaf5Plus1(Plus, l5) : (ImMap<V>)new Leaf2Plus1(Plus, (Leaf2)newBranch), entry, splitRight);
+                            ? new Branch3(b.Left, m, newBranch, entry, splitRight is Leaf2 l2 ? new Leaf2Plus1(Plus, l2) : (ImMap<V>)new Leaf5Plus1(Plus, (Leaf5)splitRight))
+                            : new Branch3(b.Left, m, newBranch is Leaf5 l5 ? new Leaf5Plus1(Plus, l5) : (ImMap<V>)new Leaf2Plus1(Plus, (Leaf2)newBranch), entry, splitRight);
                     }
 
                     // right is not on the verge, then the Plus would be added to the left
@@ -5133,10 +5133,10 @@ namespace ImTools
 
                     entry = Plus;
                     var newLeft = ((Leaf5Plus1Plus1)b.Left).AddEntry(ph, ref entry, ref splitRight);
-                    return new Branch3(newLeft, entry, splitRight, me, newBranch);
+                    return new Branch3(newLeft, entry, splitRight, m, newBranch);
                 }
 
-                if (hash < me.Hash)
+                if (hash < m.Hash)
                 {
                     var left = b.Left;
                     ImMap<V> splitRight = null;
@@ -5147,8 +5147,8 @@ namespace ImTools
                             return newBranch; // we know that the `r` is Leaf so the only possibility why `splitRight` is null because the same hash entry is found
 
                         return ph < entry.Hash
-                            ? new Branch3(newBranch is Leaf5 l5 ? new Leaf5Plus1(Plus, l5) : (ImMap<V>)new Leaf2Plus1(Plus, (Leaf2)newBranch), entry, splitRight,  me, b.Right)
-                            : new Branch3(newBranch, entry, splitRight is Leaf2 l2 ? new Leaf2Plus1(Plus, l2) : (ImMap<V>)new Leaf5Plus1(Plus, (Leaf5)splitRight), me, b.Right);
+                            ? new Branch3(newBranch is Leaf5 l5 ? new Leaf5Plus1(Plus, l5) : (ImMap<V>)new Leaf2Plus1(Plus, (Leaf2)newBranch), entry, splitRight,  m, b.Right)
+                            : new Branch3(newBranch, entry, splitRight is Leaf2 l2 ? new Leaf2Plus1(Plus, l2) : (ImMap<V>)new Leaf5Plus1(Plus, (Leaf5)splitRight), m, b.Right);
                     }
 
                     newBranch = left.AddOrGetEntry(hash, entry);
@@ -5157,10 +5157,10 @@ namespace ImTools
 
                     entry = Plus;
                     var newMiddle = ((Leaf5Plus1Plus1)b.Right).AddEntry(ph, ref entry, ref splitRight);
-                    return new Branch3(newBranch, me, newMiddle, entry, splitRight);
+                    return new Branch3(newBranch, m, newMiddle, entry, splitRight);
                 }
 
-                return me;
+                return m;
             }
 
             internal override ImMap<V> ReplaceEntry(int hash, ImMapEntry<V> oldEntry, ImMapEntry<V> newEntry) =>
