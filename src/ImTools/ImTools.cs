@@ -4757,16 +4757,13 @@ namespace ImTools
 
             internal ImMap<V> AddEntry(int hash, ref ImMapEntry<V> entry, ref ImMap<V> splitRight)
             {
-                ImMapEntry<V> p = Plus, pp = L.Plus;
-                int ph = p.Hash, pph = pp.Hash;
-
                 var l = L.L;
-                ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4;
+                ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, pp = L.Plus, p = Plus, swap = null;
+                int ph = p.Hash, pph = pp.Hash;
 
                 var right = hash > e4.Hash && ph > e4.Hash && pph > e4.Hash;
                 var left  = !right && hash < e0.Hash && ph < e0.Hash && pph < e0.Hash;
 
-                ImMapEntry<V> swap = null;
                 if (pph < e4.Hash) { swap = e4; e4 = pp; pp = swap;
                 if (pph < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
                 if (pph < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
@@ -4780,7 +4777,7 @@ namespace ImTools
                 if (ph < e1.Hash)  { swap = e1; e1 = e2; e2 = swap;
                 if (ph < e0.Hash)  { swap = e0; e0 = e1; e1 = swap; }}}}}}
 
-                ImMapEntry<V> e = entry;
+                ImMapEntry<V> e = entry; // store the entry original value cause we may change it for the result
                 if (hash < p.Hash) { swap = p;  p  = e;  e  = swap;
                 if (hash < pp.Hash){ swap = pp; pp = p;  p  = swap;
                 if (hash < e4.Hash){ swap = e4; e4 = pp; pp = swap;
