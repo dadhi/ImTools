@@ -4420,13 +4420,13 @@ namespace ImTools
 
             internal override ImMapEntry<V> GetMinHashEntryOrDefault() 
             {
-                var m = L.GetMinHashEntryOrDefault(); // todo: @perf inline
-                return Plus.Hash < m.Hash ? Plus : m;
+                ImMapEntry<V> p = Plus, pp = L.Plus, e0 = L.L.Entry0;
+                return p.Hash < pp.Hash ? (p.Hash < e0.Hash ? p : e0) : (pp.Hash < e0.Hash ? pp : e0);
             }
             internal override ImMapEntry<V> GetMaxHashEntryOrDefault() 
             {
-                var m = L.GetMaxHashEntryOrDefault(); // todo: @perf inline
-                return Plus.Hash > m.Hash ? Plus : m;
+                ImMapEntry<V> p = Plus, pp = L.Plus, e1 = L.L.Entry1;
+                return p.Hash > pp.Hash ? (p.Hash > e1.Hash ? p : e1) : (pp.Hash > e1.Hash ? pp : e1);
             }
 
             internal override ImMapEntry<V> GetEntryOrNull(int hash)
