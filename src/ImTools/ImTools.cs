@@ -5114,9 +5114,9 @@ namespace ImTools
                 {
                     var right = b.Right;
                     ImMap<V> splitRight = null;
-                    if (right is OnTheVergeOfBalance r)
+                    if (right is Leaf5Plus1Plus1 rl)
                     {
-                        newBranch = r.AddOrGetEntry(hash, ref entry, ref splitRight);
+                        newBranch = rl.AddOrGetEntry(hash, ref entry, ref splitRight);
                         if (splitRight == null)
                             return newBranch; // we know that the `r` is Leaf so the only possibility why `splitRight` is null because the same hash entry is found 
 
@@ -5140,9 +5140,9 @@ namespace ImTools
                 {
                     var left = b.Left;
                     ImMap<V> splitRight = null;
-                    if (left is OnTheVergeOfBalance l) 
+                    if (left is Leaf5Plus1Plus1 ll) 
                     {
-                        newBranch = l.AddOrGetEntry(hash, ref entry, ref splitRight);
+                        newBranch = ll.AddOrGetEntry(hash, ref entry, ref splitRight);
                         if (splitRight == null)
                             return newBranch; // we know that the `r` is Leaf so the only possibility why `splitRight` is null because the same hash entry is found
 
