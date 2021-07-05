@@ -333,8 +333,8 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 | V2_ImMap_AddOrUpdate | 10000 | 4,222,610.3 ns | 41,294.12 ns | 38,626.54 ns |  0.98 |    0.01 | 1109.3750 | 226.5625 | 101.5625 | 6809.25 KB |
 
 */
-            [Params(14, 100, 1_000, 10_000)]
-            // [Params(1, 10, 100, 1_000, 10_000)]
+            // [Params(14, 100, 1_000, 10_000)]
+            [Params(1, 10, 100, 1_000, 10_000)]
             // [Params(100)]
             public int Count;
 
@@ -823,20 +823,6 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             }
 
             [Benchmark(Baseline = true)]
-            public string V2_ImMap_TryFind()
-            {
-                _mapV2.TryFind(LookupMaxKey, out var result);
-                return result;
-            }
-
-            // [Benchmark]
-            public string Experimental_ImMap_TryFind()
-            {
-                _mapExp.TryFind(LookupMaxKey, out var result);
-                return result;
-            }
-
-            [Benchmark]
             public string V3_ImMap_TryFind()
             {
                 _mapV3.TryFind(LookupMaxKey, out var result);
@@ -847,6 +833,20 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             public string V3_PartitionedImMap_TryFind()
             {
                 _partMapV3[LookupMaxKey & ImTools.V2.Experimental.ImMapSlots.KEY_MASK_TO_FIND_SLOT].TryFind(LookupMaxKey, out var result);
+                return result;
+            }
+
+            [Benchmark]
+            public string V2_ImMap_TryFind()
+            {
+                _mapV2.TryFind(LookupMaxKey, out var result);
+                return result;
+            }
+
+            // [Benchmark]
+            public string Experimental_ImMap_TryFind()
+            {
+                _mapExp.TryFind(LookupMaxKey, out var result);
                 return result;
             }
 
