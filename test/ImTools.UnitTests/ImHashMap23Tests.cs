@@ -770,6 +770,28 @@ namespace ImTools.UnitTests
                 iter: 5000);
         }
 
+        [Test, Ignore("todo: @fix me")]
+        public void ImMap_Remove_metamorphic_failure_case_with_Branch2Plus1()
+        {
+            const int upperBound = 100_000;
+            Gen.Select(GenImMap(upperBound), Gen.Int[0, upperBound], Gen.Int, Gen.Int[0, upperBound], Gen.Int)
+                .Sample(t =>
+                {
+                    var ((m, _), k1, v1, k2, v2) = t;
+
+                    m = m.AddOrUpdate(k1, v1).AddOrUpdate(k2, v2);
+
+                    var m1 = m.Remove(k1).Remove(k2);
+                    var m2 = m.Remove(k2).Remove(k1);
+
+                    var e1 = m1.Enumerate().Select(x => x.Hash);
+                    var e2 = m2.Enumerate().Select(x => x.Hash);
+
+                    CollectionAssert.AreEqual(e1, e2);
+                }, 
+                iter: 5000, seed: "1wsRNkSYY1N4");
+        }
+
         [Test]
         public void AddOrUpdate_metamorphic_shrinked_manually_case_1()
         {

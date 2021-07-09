@@ -34,6 +34,7 @@ namespace ImTools
     using System.Threading;
     using System.Diagnostics;
     using System.Runtime.CompilerServices; // For [MethodImpl(AggressiveInlining)]
+    using System.Collections;
 
     /// <summary>Helpers for functional composition</summary>
     public static class Fun
@@ -5445,8 +5446,10 @@ namespace ImTools
                         if (right is Branch3 rb3) //! the height does not change
                             return new Branch3(Left, midLeft, new Branch2(newMiddle, midRight, rb3.Left), rb3.Entry0, new Branch2(rb3.Middle, rb3.Entry1, rb3.Right));
 
+                        // if (right is Branch2 
+
                         // the hole has a 3-node as a parent and a 2-node as a sibling.
-                        var rb2 = (Branch2)right;
+                        var rb2 = (Branch2)right; // todo: @fix for the Branch2Plus1
                         return new Branch2(Left, midLeft, new Branch3(newMiddle, midRight, rb2.Left, rb2.MidEntry, rb2.Right));
                     }
 
@@ -5502,6 +5505,45 @@ namespace ImTools
         {
             var count = items.Length;
             var newItems = new object[count << 1]; // count * 2
+            Array.Copy(items, 0, newItems, 0, count);
+            return newItems;
+        }
+    }
+
+    /// <summary>Helper stack wrapper for the array</summary>
+    public sealed class ImMapParentStack<V>
+    {
+        /// <summary>Entry in a stack</summary>
+        public struct Entry
+        {
+            /// <summary>The next entry to traverse</summary>
+            public ImMapEntry<V> NextEntry;
+            /// <summary>The next branch to traverse</summary>
+            public ImMap<V>      NextBranch;
+        }
+
+        private const int DefaultInitialCapacity = 4;
+
+        /// <summary>The items</summary>
+        public Entry[] Items;
+
+        /// <summary>Creates the list of the `DefaultInitialCapacity`</summary>
+        public ImMapParentStack(int capacity = DefaultInitialCapacity) => Items = new Entry[capacity];
+
+        /// <summary>Pushes the item</summary>
+        public void Put(int index, ImMapEntry<V> entry, ImMap<V> branch)
+        {
+            if (index >= Items.Length)
+                Items = Expand(Items);
+            ref var e = ref Items[index];
+            e.NextEntry  = entry;
+            e.NextBranch = branch;
+        }
+
+        private static Entry[] Expand(Entry[] items)
+        {
+            var count = items.Length;
+            var newItems = new Entry[count << 1]; // count * 2
             Array.Copy(items, 0, newItems, 0, count);
             return newItems;
         }
@@ -6482,233 +6524,604 @@ namespace ImTools
 
         private static readonly object _enumerationB3Tombstone = new object();
 
-        /// <summary>Enumerates all the map entries in the hash order.
-        /// `parents` parameter allows to reuse the stack memory used for traversal between multiple enumerates.
-        /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent `Enumerate` calls</summary>
-        public static IEnumerable<ImMapEntry<V>> Enumerate<V>(this ImMap<V> map, MapParentStack parents = null)
+        internal struct ImMapStack<V>
         {
-            if (map == ImMap<V>.Empty)
-                yield break;
-            if (map is ImMapEntry<V> v)
+            ImMapEntry<V> e0, e1, e2, e3, e4, e5, e6, e7;//, e8, e9, e10, e11, e12, e13, e14, e15;
+            ImMap<V> b0, b1, b2, b3, b4, b5, b6, b7;//, b8, b9, b10, b11, b12, b13, b14, b15;
+            ImMapParentStack<V> _deeper;
+            const byte _deeperStartsAtLevel = 8;
+            public void Put(ushort i, ImMapEntry<V> e, ImMap<V> b)
             {
-                yield return v;
-                yield break;
+                switch(i)
+                {
+                    case 0: e0 = e; b0 = b; break;
+                    case 1: e1 = e; b1 = b; break;
+                    case 2: e2 = e; b2 = b; break;
+                    case 3: e3 = e; b3 = b; break;
+                    case 4: e4 = e; b4 = b; break;
+                    case 5: e5 = e; b5 = b; break;
+                    case 6: e6 = e; b6 = b; break;
+                    case 7: e7 = e; b7 = b; break;
+                    default:
+                        if (_deeper == null)
+                            _deeper = new ImMapParentStack<V>(8);
+                        _deeper.Put(i - _deeperStartsAtLevel, e, b);
+                        break;
+                }
             }
 
-            ImMap<V>.Branch2Plus1 b21LeftWasEnumerated = null;
-            var count = 0;
-            while (true)
+            public void Put(ushort i, ImMapEntry<V> e, ImMap<V> b, ImMapEntry<V> eNext, ImMap<V> bNext)
             {
-                if (map is ImMap<V>.Branch2 b2)
+                switch(i)
                 {
-                    if (parents == null)
-                        parents = new MapParentStack();
-                    parents.Put(map, count++);
-                    map = b2.Left;
-                    continue;
+                    case 0: e0 = e; b0 = b; e1 = eNext; b1 = bNext; break;
+                    case 1: e1 = e; b1 = b; e2 = eNext; b2 = bNext; break;
+                    case 2: e2 = e; b2 = b; e3 = eNext; b3 = bNext; break;
+                    case 3: e3 = e; b3 = b; e4 = eNext; b4 = bNext; break;
+                    case 4: e4 = e; b4 = b; e5 = eNext; b5 = bNext; break;
+                    case 5: e5 = e; b5 = b; e6 = eNext; b6 = bNext; break;
+                    case 6: e6 = e; b6 = b; e7 = eNext; b7 = bNext; break;
+                    case 7: e7 = e; b7 = b;
+                        if (_deeper == null) _deeper = new ImMapParentStack<V>(8);
+                        _deeper.Put(i + 1 - _deeperStartsAtLevel, eNext, bNext);
+                        break;
+                    default:
+                        if (_deeper == null) _deeper = new ImMapParentStack<V>(8);
+                        _deeper.Put(i -     _deeperStartsAtLevel, e, b);
+                        _deeper.Put(i + 1 - _deeperStartsAtLevel, eNext, bNext);
+                        break;
                 }
+            }
 
-                if (map is ImMap<V>.Branch3 b3)
+            public void Get(ushort i, ref ImMapEntry<V> e, ref ImMap<V> b)
+            {
+                switch (i)
                 {
-                    if (parents == null)
-                        parents = new MapParentStack();
-                    parents.Put(map, count++);
-                    map = b3.Left;
-                    continue;
-                }
-
-                if (b21LeftWasEnumerated != null || map is ImMap<V>.Branch2Plus1)
-                {
-                    ImMap<V>.Leaf5Plus1Plus1 l511 = null;
-                    ImMapEntry<V> pl = null, mid = null;
-                    if (b21LeftWasEnumerated != null)
-                    {
-                        yield return b21LeftWasEnumerated.B.MidEntry;
-                        l511 = (ImMap<V>.Leaf5Plus1Plus1)b21LeftWasEnumerated.B.Right;
-                        pl   = b21LeftWasEnumerated.Plus;
-                        b21LeftWasEnumerated = null; // we done with the branch
-                        map  = ImMap<V>.Empty;       // forcing to skip leaves below
-                    }
-                    else 
-                    {
-                        var b21 = (ImMap<V>.Branch2Plus1)map;
-                        if (b21.B.Right is ImMap<V>.Leaf5Plus1Plus1) // so we need to enumerate the left as a normal branch2 with the code below.
-                        {
-                            b21LeftWasEnumerated = b21;
-                            map = b21.B.Left;
-                        }
-                        else // we need to sort out the left side with Plus entry
-                        {
-                            l511 = (ImMap<V>.Leaf5Plus1Plus1)b21.B.Left;
-                            mid  = b21.B.MidEntry;
-                            pl   = b21.Plus;
-                            map  = b21.B.Right; // it is a leaf so, no need to continue, just proceed with the leafs below
-                         }
-                    }
-
-                    if (l511 != null)
-                    {
-                        var l = l511.L.L;
-                        ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, p = l511.Plus, pp = l511.L.Plus, swap = null;
-                        var h = pp.Hash;
-                        if (h < e4.Hash) { swap = e4; e4 = pp; pp = swap;
-                        if (h < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
-                        if (h < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
-                        if (h < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
-                        if (h < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}
-
-                        h     = p.Hash;
-                        if (h < pp.Hash) { swap = pp; pp = p;  p  = swap;
-                        if (h < e4.Hash) { swap = e4; e4 = pp; pp = swap;
-                        if (h < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
-                        if (h < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
-                        if (h < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
-                        if (h < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}}
-
-                        h     = pl.Hash;
-                        if (h < p.Hash)  { swap = p;  p = pl;  pl = swap;
-                        if (h < pp.Hash) { swap = pp; pp = p;  p  = swap;
-                        if (h < e4.Hash) { swap = e4; e4 = pp; pp = swap;
-                        if (h < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
-                        if (h < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
-                        if (h < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
-                        if (h < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}}}
-
-                        yield return e0;
-                        yield return e1;
-                        yield return e2;
-                        yield return e3;
-                        yield return e4;
-                        yield return pp;
-                        yield return p ;
-                        yield return pl;
-
-                        if (mid != null)
-                            yield return mid;
-                    }
-                }
-
-                if (map is ImMap<V>.Leaf2 l2)
-                {
-                    yield return l2.Entry0;
-                    yield return l2.Entry1;
-                }
-                else if (map is ImMap<V>.Leaf2Plus1 l21)
-                {
-                    var l  = l21.L;
-                    ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, pp = l21.Plus, swap = null;
-                    var ph = pp.Hash;
-                    if (ph < e1.Hash) { swap = e1; e1 = pp; pp = swap;
-                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}
-
-                    yield return e0;
-                    yield return e1;
-                    yield return pp ;
-                }
-                else if (map is ImMap<V>.Leaf2Plus1Plus1 l211)
-                {
-                    var l  = l211.L.L;
-                    ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, pp = l211.L.Plus, p = l211.Plus, swap = null;
-                    var ph = pp.Hash;
-                    if (ph < e1.Hash) { swap = e1; e1 = pp; pp = swap;
-                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}
-
-                    ph = p.Hash;
-                    if (ph < pp.Hash) { swap = pp; pp = p;  p  = swap;
-                    if (ph < e1.Hash) { swap = e1; e1 = pp; pp = swap;
-                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}
-
-                    yield return e0;
-                    yield return e1;
-                    yield return pp;
-                    yield return p ;
-                }
-                else if (map is ImMap<V>.Leaf5 l5)
-                {
-                    yield return l5.Entry0;
-                    yield return l5.Entry1;
-                    yield return l5.Entry2;
-                    yield return l5.Entry3;
-                    yield return l5.Entry4;
-                }
-                else if (map is ImMap<V>.Leaf5Plus1 l51)
-                {
-                    var l  = l51.L;
-                    ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, pp = l51.Plus, swap = null;
-                    var ph = pp.Hash;
-                    if (ph < e4.Hash) { swap = e4; e4 = pp; pp = swap;
-                    if (ph < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
-                    if (ph < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
-                    if (ph < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
-                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}
-
-                    yield return e0;
-                    yield return e1;
-                    yield return e2;
-                    yield return e3;
-                    yield return e4;
-                    yield return pp ;
-                }
-                else if (map is ImMap<V>.Leaf5Plus1Plus1 l511)
-                {
-                    var l = l511.L.L;
-                    ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, p = l511.Plus, pp = l511.L.Plus, swap = null;
-
-                    var ph = pp.Hash;
-                    if (ph < e4.Hash) { swap = e4; e4 = pp; pp = swap;
-                    if (ph < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
-                    if (ph < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
-                    if (ph < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
-                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}
-
-                    ph     = p.Hash;
-                    if (ph < pp.Hash) { swap = pp; pp = p;  p  = swap;
-                    if (ph < e4.Hash) { swap = e4; e4 = pp; pp = swap;
-                    if (ph < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
-                    if (ph < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
-                    if (ph < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
-                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}}
-
-                    yield return e0;
-                    yield return e1;
-                    yield return e2;
-                    yield return e3;
-                    yield return e4;
-                    yield return pp;
-                    yield return p ;
-                }
-                else if (map is ImMapEntry<V> l1) // it the last choice here because it is very unlikely situation - only of you Remove from the leaf2
-                    yield return l1;
-
-
-                if (b21LeftWasEnumerated != null)
-                    continue;
-
-                if (count == 0)
-                    break; // we yield the leaf and there is nothing in stack - we are DONE!
-
-                var b = parents.Get(--count); // otherwise get the parent
-                if (b is ImMap<V>.Branch2 pb2)
-                {
-                    yield return pb2.MidEntry;
-                    map = pb2.Right;
-                }
-                else if (b != _enumerationB3Tombstone)
-                {
-                    var pb3 = (ImMap<V>.Branch3)b;
-                    yield return pb3.Entry0;
-                    map = pb3.Middle;
-                    parents.Put(_enumerationB3Tombstone, ++count);
-                    ++count;
-                }
-                else
-                {
-                    var pb3 = (ImMap<V>.Branch3)parents.Get(--count);
-                    yield return pb3.Entry1;
-                    map = pb3.Right;
+                    case 0: e = e0; b = b0; break;
+                    case 1: e = e1; b = b1; break;
+                    case 2: e = e2; b = b2; break;
+                    case 3: e = e3; b = b3; break;
+                    case 4: e = e4; b = b4; break;
+                    case 5: e = e5; b = b5; break;
+                    case 6: e = e6; b = b6; break;
+                    case 7: e = e7; b = b7; break;
+                    default:
+                        Debug.Assert(_deeper != null, "Expecting the `deeper` parent stack created before accessing it here at level " + i);
+                        ref var p = ref _deeper.Items[i - _deeperStartsAtLevel];
+                        e = p.NextEntry; b = p.NextBranch;
+                        break;
                 }
             }
         }
+
+        /// <summary>Non-allocating enumerator</summary>
+        public struct ImMapEnumerable<V> : IEnumerable<ImMapEntry<V>>, IEnumerable
+        {
+            private readonly ImMap<V> _map;
+
+            /// <summary>Constructor</summary>
+            public ImMapEnumerable(ImMap<V> map) => _map = map;
+
+            /// <summary>Returns non-allocating enumerator</summary>
+            public ImMapEnumerator<V> GetEnumerator() => new ImMapEnumerator<V> { _map = _map };
+
+            IEnumerator<ImMapEntry<V>> IEnumerable<ImMapEntry<V>>.GetEnumerator() => new ImMapEnumerator<V> { _map = _map };
+            IEnumerator IEnumerable.GetEnumerator() => new ImMapEnumerator<V> { _map = _map };
+        }
+
+        /// <summary>Enumerator on stack, without allocation</summary>
+        public struct ImMapEnumerator<V> : IEnumerator<ImMapEntry<V>>, IDisposable, IEnumerator
+        {
+            internal ImMap<V> _map;
+            private short _state;
+            private ushort _index;
+            private ImMapStack<V> _ps;
+            private ImMap<V> _nextBranch;
+            private ImMap<V>.Branch2Plus1 _b21LeftWasEnumerated;
+
+            private ImMapEntry<V> _a, _b, _c, _d, _e, _f, _g, _h, _current;
+
+            /// <summary></summary>
+            public ImMapEntry<V> Current => _current;
+            object IEnumerator.Current => _current;
+
+            /// <summary></summary>
+            public bool MoveNext()
+            {
+                ImMap<V>.Leaf5Plus1Plus1 b21FullLeaf511;
+                switch (_state)
+                {
+                    case 0:
+                        _state = -1;
+                        if (_map == ImMap<V>.Empty)
+                            return false;
+                        if (_map is ImMapEntry<V> singleEntryMap)
+                        {
+                            _current = singleEntryMap; _state = 1;
+                            return true;
+                        }
+                        goto Label0;
+                    case 1: _state = -1; _current = null; return false;
+                    case 2:
+                    {
+                        _state = -1;
+                        b21FullLeaf511 = (ImMap<V>.Leaf5Plus1Plus1)_b21LeftWasEnumerated.B.Right;
+                        _g = _b21LeftWasEnumerated.Plus;
+                        _b21LeftWasEnumerated = null;
+                        _map = ImMap<V>.Empty;
+                        goto SortLeaf511Label;
+                    }
+                    case 3:
+                    {
+                        _current = _a;
+                        _state = 4;
+                        return true;
+                    }
+                    case 4:
+                    {
+                        _current = _b;
+                        _state = 5;
+                        return true;
+                    }
+                    case 5:
+                    {
+                        _current = _c;
+                        _state = 6;
+                        return true;
+                    }
+                    case 6:
+                    {
+                        _current = _d;
+                        _state = 7;
+                        return true;
+                    }
+                    case 7:
+                    {
+                        _current = _e;
+                        _state = 8;
+                        return true;
+                    }
+                    case 8:
+                    {
+                        _current = _f;
+                        _state = 9;
+                        return true;
+                    }
+                    case 9:
+                    {
+                        _current = _g;
+                        _state = 10;
+                        return true;
+                    }
+                    case 10:
+                    {
+                        _state = -1;
+                        if (_h == null)
+                            goto Label2;
+                        _current = _h;
+                        _state = 11;
+                        return true;
+                    }
+                    case 11:
+                    {
+                        _state = -1;
+                        goto Label2;
+                    }
+                    case 12:
+                    {
+                        _current = _a;
+                        _state = 13;
+                        return true;
+                    }
+                    case 13:
+                    {
+                        _state = -1;
+                        goto Label3;
+                    }
+                    case 14:
+                    {
+                        _current = _h;
+                        _state = 15;
+                        return true;
+                    }
+                    case 15:
+                    {
+                        _current = _g;
+                        _state = 16;
+                        return true;
+                    }
+                    case 16:
+                    {
+                        _state = -1;
+                        _h = null;
+                        _g = null;
+                        goto Label3;
+                    }
+                    case 17:
+                    {
+                        _current = _g;
+                        _state = 18;
+                        return true;
+                    }
+                    case 18:
+                    {
+                        _current = _h;
+                        _state = 19;
+                        return true;
+                    }
+                    case 19:
+                    {
+                        _current = _e;
+                        _state = 20;
+                        return true;
+                    }
+                    case 20:
+                    {
+                        _state = -1;
+                        _g = null;
+                        _h = null;
+                        _e = null;
+                        goto Label3;
+                    }
+                    case 21:
+                    {
+                        _current = _a;
+                        _state = 22;
+                        return true;
+                    }
+                    case 22:
+                    {
+                        _current = _b;
+                        _state = 23;
+                        return true;
+                    }
+                    case 23:
+                    {
+                        _current = _c;
+                        _state = 24;
+                        return true;
+                    }
+                    case 24:
+                    {
+                        _current = _d;
+                        _state = 25;
+                        return true;
+                    }
+                    case 25:
+                    {
+                        _state = -1;
+                        break;
+                    }
+                    case 26:
+                    {
+                        _current = _e;
+                        _state = 27;
+                        return true;
+                    }
+                    case 27:
+                    {
+                        _current = _h;
+                        _state = 28;
+                        return true;
+                    }
+                    case 28:
+                    {
+                        _current = _g;
+                        _state = 29;
+                        return true;
+                    }
+                    case 29:
+                    {
+                        _current = _f;
+                        _state = 30;
+                        return true;
+                    }
+                    case 30:
+                    {
+                        _current = _d;
+                        _state = 31;
+                        return true;
+                    }
+                    case 31:
+                    {
+                        _state = -1;
+                        _e = null;
+                        _h = null;
+                        _g = null;
+                        _f = null;
+                        _d = null;
+                        break;
+                    }
+                    case 32:
+                    {
+                        _current = _d;
+                        _state = 33;
+                        return true;
+                    }
+                    case 33:
+                    {
+                        _current = _f;
+                        _state = 34;
+                        return true;
+                    }
+                    case 34:
+                    {
+                        _current = _g;
+                        _state = 35;
+                        return true;
+                    }
+                    case 35:
+                    {
+                        _current = _h;
+                        _state = 36;
+                        return true;
+                    }
+                    case 36:
+                    {
+                        _current = _c;
+                        _state = 37;
+                        return true;
+                    }
+                    case 37:
+                    {
+                        _current = _e;
+                        _state = 38;
+                        return true;
+                    }
+                    case 38:
+                    {
+                        _state = -1;
+                        _d = null;
+                        _f = null;
+                        _g = null;
+                        _h = null;
+                        _e = null;
+                        _c = null;
+                        break;
+                    }
+                    case 39:
+                    {
+                        _state = -1;
+                        break;
+                    }
+                    case 40:
+                    {
+                        _state = -1;
+                        _map = _nextBranch;
+                        _a = null;
+                        _nextBranch = null;
+                        goto Label0;
+                    }
+                    default:
+                        return false;
+                }
+            Label6:
+                _a = null; _b = null; _c = null; _d = null;
+            Label3:
+                if (_b21LeftWasEnumerated == null)
+                {
+                    if (_index == 0)
+                        return false;
+                    _ps.Get(--_index, ref _current, ref _nextBranch);
+                    _state = 40;
+                    return true;
+                }
+            Label0:
+                while (true)
+                {
+                    if (_map is ImMap<V>.Branch2 branch2)
+                    {
+                        _ps.Put(_index++, branch2.MidEntry, branch2.Right);
+                        _map = branch2.Left;
+                    }
+                    else if (_map is ImMap<V>.Branch3 branch3)
+                    {
+                        _ps.Put(_index++, branch3.Entry1, branch3.Right);
+                        _ps.Put(_index++, branch3.Entry0, branch3.Middle);
+                        _map = branch3.Left;
+                    }
+                    else break;
+                }
+
+                if (_b21LeftWasEnumerated == null && !(_map is ImMap<V>.Branch2Plus1))
+                    goto AllLeafsAndEntryLabel;
+
+                _g = null; _h = null;
+                if (_b21LeftWasEnumerated != null)
+                {
+                    _current = _b21LeftWasEnumerated.B.MidEntry;
+                    _state = 2;
+                    return true;
+                }
+
+                var branch2Plus1 = (ImMap<V>.Branch2Plus1)_map;
+                var b21b = branch2Plus1.B;
+                if (b21b.Right is ImMap<V>.Leaf5Plus1Plus1)
+                {
+                    _b21LeftWasEnumerated = branch2Plus1;
+                    _map = b21b.Left;
+                    goto B21NotFilledLeftLeafLabel;
+                }
+
+                b21FullLeaf511 = (ImMap<V>.Leaf5Plus1Plus1)b21b.Left;
+                _h   = b21b.MidEntry;
+                _g   = branch2Plus1.Plus;
+                _map = b21b.Right;
+
+            SortLeaf511Label:
+            {
+                var l = b21FullLeaf511.L.L;
+                ImMapEntry<V> e0 = l.Entry0, swap = null;
+                _a = l.Entry1;
+                _b = l.Entry2;
+                _c = l.Entry3;
+                _d = l.Entry4;
+                _f = b21FullLeaf511.Plus;
+                _e = b21FullLeaf511.L.Plus;
+
+                int hash = _e.Hash;
+                if (hash < _d.Hash) { swap = _d; _d = _e; _e = swap;
+                if (hash < _c.Hash) { swap = _c; _c = _d; _d = swap;
+                if (hash < _b.Hash) { swap = _b; _b = _c; _c = swap;
+                if (hash < _a.Hash) { swap = _a; _a = _b; _b = swap;
+                if (hash < e0.Hash) { swap = e0; e0 = _a; _a = swap; }}}}}
+
+                hash = _f.Hash;
+                if (hash < _e.Hash) { swap = _e; _e = _f; _f = swap;
+                if (hash < _d.Hash) { swap = _d; _d = _e; _e = swap;
+                if (hash < _c.Hash) { swap = _c; _c = _d; _d = swap;
+                if (hash < _b.Hash) { swap = _b; _b = _c; _c = swap;
+                if (hash < _a.Hash) { swap = _a; _a = _b; _b = swap;
+                if (hash < e0.Hash) { swap = e0; e0 = _a; _a = swap; }}}}}}
+
+                hash = _g.Hash; // _g contains the B21.Plus entry
+                if (hash < _f.Hash) { swap = _f; _f = _g; _g = swap;
+                if (hash < _e.Hash) { swap = _e; _e = _f; _f = swap;
+                if (hash < _d.Hash) { swap = _d; _d = _e; _e = swap;
+                if (hash < _c.Hash) { swap = _c; _c = _d; _d = swap;
+                if (hash < _b.Hash) { swap = _b; _b = _c; _c = swap;
+                if (hash < _a.Hash) { swap = _a; _a = _b; _b = swap;
+                if (hash < e0.Hash) { swap = e0; e0 = _a; _a = swap; }}}}}}}
+
+                _current = e0;
+                _state = 3;
+                return true;
+            }
+            Label2:
+                _a = null; _b = null; _c = null; _d = null; _e = null; _f = null;
+
+            B21NotFilledLeftLeafLabel:
+                _g = null; _h = null;
+
+            AllLeafsAndEntryLabel:
+                var leafOrEntryMap = _map;
+                if (leafOrEntryMap is ImMap<V>.Leaf2 l2)
+                {
+                    _current = l2.Entry0;
+                    _a       = l2.Entry1;
+                    _state = 12;
+                    return true;
+                }
+
+                if (leafOrEntryMap is ImMap<V>.Leaf2Plus1 l21)
+                {
+                    var l = l21.L;
+                    ImMapEntry<V> e0 = l.Entry0, swap = null;
+                    _h = l.Entry1;
+                    _g = l21.Plus;
+
+                    var hash = _g.Hash;
+                    if (hash < _h.Hash) { swap = _h; _h = _g; _g = swap;
+                    if (hash < e0.Hash) { swap = e0; e0 = _h; _h = swap; }}
+
+                    _current = e0;
+                    _state = 14;
+                    return true;
+                }
+
+                if (leafOrEntryMap is ImMap<V>.Leaf2Plus1Plus1 l211)
+                {
+                    var l1 = l211.L.L;
+                    ImMapEntry<V> e0 = l1.Entry0, swap = null;
+                    _g = l1.Entry1;
+                    _h = l211.L.Plus;
+                    _e = l211.Plus;
+
+                    var hash = _h.Hash;
+                    if (hash < _g.Hash) { swap = _g; _g = _h; _h = swap;
+                    if (hash < e0.Hash) { swap = e0; e0 = _g; _g = swap; }}
+
+                    hash = _e.Hash;
+                    if (hash < _h.Hash) { swap = _h; _h = _e; _e = swap;
+                    if (hash < _g.Hash) { swap = _g; _g = _h; _h = swap;
+                    if (hash < e0.Hash) { swap = e0; e0 = _g; _g = swap; }}}
+
+                    _current = e0;
+                    _state = 17;
+                    return true;
+                }
+
+                if (leafOrEntryMap is ImMap<V>.Leaf5 l5)
+                {
+                    _current = l5.Entry0;
+                    _a = l5.Entry1;
+                    _b = l5.Entry2;
+                    _c = l5.Entry3;
+                    _d = l5.Entry4;
+                    _state = 21;
+                    return true;
+                }
+
+                if (leafOrEntryMap is ImMap<V>.Leaf5Plus1 l51)
+                {
+                    var leaf5 = l51.L;
+                    ImMapEntry<V> e0 = leaf5.Entry0, swap = null;
+                    _e = leaf5.Entry1;
+                    _h = leaf5.Entry2;
+                    _g = leaf5.Entry3;
+                    _f = leaf5.Entry4;
+                    _d = l51.Plus;
+
+                    int hash = _d.Hash;
+                    if (hash < _f.Hash) { swap = _f; _f = _d; _d = swap;
+                    if (hash < _g.Hash) { swap = _g; _g = _f; _f = swap;
+                    if (hash < _h.Hash) { swap = _h; _h = _g; _g = swap;
+                    if (hash < _e.Hash) { swap = _e; _e = _h; _h = swap;
+                    if (hash < e0.Hash) { swap = e0; e0 = _e; _e = swap; }}}}}
+
+                    _current = e0;
+                    _state = 26;
+                    return true;
+                }
+
+                if (leafOrEntryMap is ImMap<V>.Leaf5Plus1Plus1 l511)
+                {
+                    var leaf51 = l511.L.L;
+                    ImMapEntry<V> e0 = leaf51.Entry0, swap = null;
+                    _d = leaf51.Entry1;
+                    _f = leaf51.Entry2;
+                    _g = leaf51.Entry3;
+                    _h = leaf51.Entry4;
+                    _c = l511.L.Plus;
+                    _e = l511.Plus;
+
+                    var hash = _c.Hash;
+                    if (hash < _h.Hash) { swap = _h; _h = _c; _c = swap;
+                    if (hash < _g.Hash) { swap = _g; _g = _h; _h = swap;
+                    if (hash < _f.Hash) { swap = _f; _f = _g; _g = swap;
+                    if (hash < _d.Hash) { swap = _d; _d = _f; _f = swap;
+                    if (hash < e0.Hash) { swap = e0; e0 = _d; _d = swap; }}}}}
+
+                    hash = _e.Hash;
+                    if (hash < _c.Hash) { swap = _c; _c = _e; _e = swap;
+                    if (hash < _h.Hash) { swap = _h; _h = _c; _c = swap;
+                    if (hash < _g.Hash) { swap = _g; _g = _h; _h = swap;
+                    if (hash < _f.Hash) { swap = _f; _f = _g; _g = swap;
+                    if (hash < _d.Hash) { swap = _d; _d = _f; _f = swap;
+                    if (hash < e0.Hash) { swap = e0; e0 = _d; _d = swap; }}}}}}
+
+                    _current = e0; _state = 32;
+                    return true;
+                }
+
+                if (leafOrEntryMap is ImMapEntry<V> e)
+                {
+                    _current = e; _state = 39;
+                    return true;
+                }
+
+                goto Label6;
+            }
+
+            bool IEnumerator.MoveNext() => MoveNext();
+            void IEnumerator.Reset() => throw new NotSupportedException();
+            void IDisposable.Dispose() { }
+        }
+
+        /// <summary>Enumerates all the map entries in the hash order.
+        /// `parents` parameter allows to reuse the stack memory used for traversal between multiple enumerates.
+        /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent `Enumerate` calls</summary>
+        public static ImMapEnumerable<V> Enumerate<V>(this ImMap<V> map) => new ImMapEnumerable<V>(map);
 
         /// <summary>Depth-first in-order of hash traversal as described in http://en.wikipedia.org/wiki/Tree_traversal.
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
@@ -7353,15 +7766,13 @@ namespace ImTools
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static IEnumerable<ImMapEntry<V>> Enumerate<V>(this ImMap<V>[] parts, MapParentStack parents = null)
+        public static IEnumerable<ImMapEntry<V>> Enumerate<V>(this ImMap<V>[] parts)
         {
-            if (parents == null)
-                parents = new MapParentStack();
             foreach (var map in parts) 
             {
                 if (map == ImMap<V>.Empty)
                     continue;
-                foreach (var entry in map.Enumerate(parents))
+                foreach (var entry in map.Enumerate())
                     yield return entry;
             }
         }

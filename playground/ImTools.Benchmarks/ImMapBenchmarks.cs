@@ -1201,10 +1201,9 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             [GlobalSetup]
             public void Populate()
             {
-                _mapV2      = V2_AddOrUpdate();
-                // _mapV2Exp   = V2_Exp_AddOrUpdate();
                 _mapV3      = V3_AddOrUpdate();
-                _mapPartV3 = V3_PartitionedMap_AddOrUpdate();
+                _mapV2      = V2_AddOrUpdate();
+                _mapPartV3  = V3_PartitionedMap_AddOrUpdate();
                 _dictSlim   = DictSlim();
                 _dict       = Dict();
                 _concurDict = ConcurrentDict();
@@ -1212,6 +1211,15 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             }
 
             [Benchmark(Baseline = true)]
+            public object V3_ImMap_foreach()
+            {
+                var s = "";
+                foreach (var x in _mapV3.Enumerate())
+                    s = x.Value;
+                return s;
+            }
+
+            [Benchmark]
             public object V2_ImMap_foreach()
             {
                 var s = "";
@@ -1224,16 +1232,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             public object V2_ImMap_Experimental_EnumerateToArray() =>
                 _mapV2Exp.Enumerate().ToArray();
 
-            [Benchmark]
-            public object V3_ImMap_foreach()
-            {
-                var s = "";
-                foreach (var x in _mapV3.Enumerate())
-                    s = x.Value;
-                return s;
-            }
-
-            [Benchmark]
+            // [Benchmark]
             public object V3_PartitionedImMap_foreach()
             {
                 var s = "";
@@ -1242,7 +1241,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return s;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public object DictSlim_foreach()
             {
                 var s = "";
@@ -1251,7 +1250,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return s;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public object Dict_foreach()
             {
                 var s = "";
@@ -1260,7 +1259,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return s;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public object ConcurrentDict_foreach()
             {
                 var s = "";
@@ -1269,7 +1268,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return s;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public object ImmutableDict_foreach()
             {
                 var s = "";
