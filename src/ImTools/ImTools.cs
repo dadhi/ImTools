@@ -6563,12 +6563,13 @@ namespace ImTools
                     case 6: e6 = e; b6 = b; e7 = eNext; b7 = bNext; break;
                     case 7: e7 = e; b7 = b;
                         if (_deeper == null) _deeper = new ImMapParentStack<V>(8);
-                        _deeper.Put(i + 1 - _deeperStartsAtLevel, eNext, bNext);
+                        _deeper.Put(0, eNext, bNext);
                         break;
                     default:
                         if (_deeper == null) _deeper = new ImMapParentStack<V>(8);
-                        _deeper.Put(i -     _deeperStartsAtLevel, e, b);
-                        _deeper.Put(i + 1 - _deeperStartsAtLevel, eNext, bNext);
+                        i -= _deeperStartsAtLevel;
+                        _deeper.Put(i, e, b);
+                        _deeper.Put(i + 1, eNext, bNext);
                         break;
                 }
             }
@@ -6916,8 +6917,8 @@ namespace ImTools
                     }
                     else if (_map is ImMap<V>.Branch3 branch3)
                     {
-                        _ps.Put(_index++, branch3.Entry1, branch3.Right);
-                        _ps.Put(_index++, branch3.Entry0, branch3.Middle);
+                        _ps.Put(_index, branch3.Entry1, branch3.Right, branch3.Entry0, branch3.Middle);
+                        _index += 2;
                         _map = branch3.Left;
                     }
                     else break;
