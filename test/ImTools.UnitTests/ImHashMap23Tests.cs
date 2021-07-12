@@ -770,7 +770,7 @@ namespace ImTools.UnitTests
                 iter: 5000);
         }
 
-        [Test, Ignore("todo: @fix me")]
+        [Test]
         public void ImMap_Remove_metamorphic_failure_case_with_Branch2Plus1()
         {
             const int upperBound = 100_000;

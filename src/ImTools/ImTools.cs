@@ -5015,20 +5015,25 @@ namespace ImTools
                     if (newRight == Empty)
                     {
                         // if the left node is not full yet then merge
-                        if (Left is Leaf5Plus1Plus1 == false) 
+                        if (Left is Leaf5Plus1Plus1 == false)
                             return Left.AddOrGetEntry(mid.Hash, mid);
-                        return new Branch2(Left.RemoveEntry(removedEntry = Left.GetMaxHashEntryOrDefault()), removedEntry, mid); //! the height does not change
+                        removedEntry = Left.GetMaxHashEntryOrDefault(); // todo: @perf combine `GetMaxHashEntryOrDefault` with `RemoveEntry`
+                        return new Branch2(Left.RemoveEntry(removedEntry), removedEntry, mid); //! the height does not change
                     }
 
                     //*rebalance needed: the branch was merged from Br2 to Br3 or to the leaf and the height decreased 
                     if (Right is Branch2 && newRight is Branch2 == false)
                     {
+                        var left = Left;
                         // the the hole has a 2-node as a parent and a 3-node as a sibling.
-                        if (Left is Branch3 lb3) //! the height does not change
+                        if (left is Branch3 lb3) //! the height does not change
                             return new Branch2(new Branch2(lb3.Left, lb3.Entry0, lb3.Middle), lb3.Entry1, new Branch2(lb3.Right, mid, newRight));
 
+                        if (left is Branch2Plus1 lb21)
+                            return new Branch3(lb21.ToSplitBranch2(out var lMid, out var lRight), lMid, lRight, mid, newRight);
+
                         // the the hole has a 2-node as a parent and a 2-node as a sibling.
-                        var lb2 = (Branch2)Left; 
+                        var lb2 = (Branch2)left; 
                         return new Branch3(lb2.Left, lb2.MidEntry, lb2.Right, mid, newRight);
                     }
 
@@ -5045,18 +5050,23 @@ namespace ImTools
                 {
                     if (Right is Leaf5Plus1Plus1 == false) 
                         return Right.AddOrGetEntry(mid.Hash, mid);
-                    return new Branch2(mid, removedEntry = Right.GetMinHashEntryOrDefault(), Right.RemoveEntry(removedEntry)); //! the height does not change
+                    removedEntry = Right.GetMinHashEntryOrDefault();
+                    return new Branch2(mid, removedEntry, Right.RemoveEntry(removedEntry)); //! the height does not change
                 }
 
                 //*rebalance needed: the branch was merged from Br2 to Br3 or to the leaf and the height decreased 
                 if (Left is Branch2 && newLeft is Branch2 == false)
                 {
+                    var right = Right;
                     // the the hole has a 2-node as a parent and a 3-node as a sibling.
-                    if (Right is Branch3 rb3) //! the height does not change
+                    if (right is Branch3 rb3) //! the height does not change
                         return new Branch2(new Branch2(newLeft, mid, rb3.Left), rb3.Entry0, new Branch2(rb3.Middle, rb3.Entry0, rb3.Right));
 
+                    if (right is Branch2Plus1 rb21)
+                        return new Branch3(newLeft, mid, rb21.ToSplitBranch2(out var rMid, out var rRight), rMid, rRight);
+
                     // the the hole has a 2-node as a parent and a 2-node as a sibling.
-                    var rb2 = (Branch2)Right;
+                    var rb2 = (Branch2)right;
                     return new Branch3(newLeft, mid, rb2.Left, rb2.MidEntry, rb2.Right);
                 }
 
@@ -5080,6 +5090,30 @@ namespace ImTools
 #if !DEBUG
             public override string ToString() => "{B21:{Plus:" + Plus + ",B:" + B + "}}";
 #endif
+
+            internal ImMap<V> ToSplitBranch2(out ImMapEntry<V> newMid, out ImMap<V> newRight)
+            {
+                var b = B;
+                var m = b.MidEntry;
+                var l511 = b.Left as Leaf5Plus1Plus1;
+                if (l511 != null)
+                {
+                    newRight = b.Right.AddOrGetEntry(m.Hash, m); // @perf replace with the AddEntry method
+                    newMid   = l511.GetMaxHashEntryOrDefault();
+                    if (newMid.Hash > Plus.Hash)
+                        return l511.RemoveMaxHashEntryAndAddNewEntry(newMid, Plus);
+                    newMid   = Plus;
+                    return l511;
+                }
+
+                newRight = l511 = (Leaf5Plus1Plus1)b.Right;
+                newMid = l511.GetMinHashEntryOrDefault();
+                if (newMid.Hash < Plus.Hash)
+                    newRight = l511.RemoveMaxHashEntryAndAddNewEntry(newMid, Plus);
+                else
+                    newMid = Plus;
+                return b.Left.AddOrGetEntry(m.Hash, m); // @perf replace with the AddEntry method
+            }
 
             internal override ImMapEntry<V> GetMinHashEntryOrDefault()
             {
@@ -5393,10 +5427,8 @@ namespace ImTools
 
             internal override ImMap<V> RemoveEntry(ImMapEntry<V> removedEntry)
             {
-                var midLeft  = Entry0;
-                var middle   = Middle;
-                var midRight = Entry1;
-                var right    = Right;
+                ImMapEntry<V> midLeft = Entry0, midRight = Entry1;
+                ImMap<V> middle = Middle, right = Right;
 
                 // case 1, downward: swap the predecessor entry (max left entry) with the mid entry, then proceed to remove the predecessor from the Left branch
                 if (removedEntry == midLeft)
@@ -5418,6 +5450,9 @@ namespace ImTools
                         // the hole has a 3-node as a parent and a 3-node as a sibling.
                         if (middle is Branch3 mb3) //! the height does not change
                             return new Branch3(new Branch2(newLeft, midLeft, mb3.Left), mb3.Entry0, new Branch2(mb3.Middle, mb3.Entry1, mb3.Right), midRight, right);
+
+                        if (middle is Branch2Plus1 mb21)
+                            return new Branch2(new Branch3(newLeft, midLeft, mb21.ToSplitBranch2(out var mMid, out var mRight), mMid, mRight), midRight, right);
 
                         // the hole has a 3-node as a parent and a 2-node as a sibling.
                         var mb2 = (Branch2)middle;
@@ -5446,10 +5481,11 @@ namespace ImTools
                         if (right is Branch3 rb3) //! the height does not change
                             return new Branch3(Left, midLeft, new Branch2(newMiddle, midRight, rb3.Left), rb3.Entry0, new Branch2(rb3.Middle, rb3.Entry1, rb3.Right));
 
-                        // if (right is Branch2 
+                        if (right is Branch2Plus1 rb21)
+                            return new Branch2(Left, midLeft, new Branch3(newMiddle, midRight, rb21.ToSplitBranch2(out var rMid, out var rRight), rMid, rRight));
 
                         // the hole has a 3-node as a parent and a 2-node as a sibling.
-                        var rb2 = (Branch2)right; // todo: @fix for the Branch2Plus1
+                        var rb2 = (Branch2)right;
                         return new Branch2(Left, midLeft, new Branch3(newMiddle, midRight, rb2.Left, rb2.MidEntry, rb2.Right));
                     }
 
@@ -5470,6 +5506,9 @@ namespace ImTools
                     // the hole has a 3-node as a parent and a 3-node as a sibling.new
                     if (middle is Branch3 mb3) //! the height does not change
                         return new Branch3(Left, midLeft, new Branch2(mb3.Left, mb3.Entry0, mb3.Middle), mb3.Entry1, new Branch2(mb3.Right, midRight, newRight));
+
+                    if (middle is Branch2Plus1 mb21)
+                        return new Branch2(Left, midLeft, new Branch3(mb21.ToSplitBranch2(out var mMid, out var mRight), mMid, mRight, midRight, newRight));
 
                     // the hole has a 3-node as a parent and a 2-node as a sibling.
                     var mb2 = (Branch2)middle;
