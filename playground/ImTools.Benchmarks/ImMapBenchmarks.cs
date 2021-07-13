@@ -1101,6 +1101,17 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 |                Dict_foreach | 10000 |    43,573.72 ns |   346.780 ns |   307.412 ns |  0.33 |    0.01 |      - |     - |     - |         - |
 |      ConcurrentDict_foreach | 10000 |   172,744.46 ns | 1,332.215 ns | 1,246.155 ns |  1.31 |    0.02 |      - |     - |     - |      64 B |
 |       ImmutableDict_foreach | 10000 | 1,004,398.75 ns | 9,309.202 ns | 7,773.605 ns |  7.59 |    0.16 |      - |     - |     - |         - |
+
+### ToArray vs EnumerateToArray
+
+|                    Method | Count |      Mean |    Error |   StdDev |    Median | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|-------------------------- |------ |----------:|---------:|---------:|----------:|------:|--------:|-------:|------:|------:|----------:|
+|          V3_ImMap_ToArray |     1 |  23.97 ns | 0.608 ns | 1.782 ns |  23.43 ns |  1.00 |    0.00 | 0.0051 |     - |     - |      32 B |
+| V3_ImMap_EnumerateToArray |     1 |  62.71 ns | 1.358 ns | 3.897 ns |  62.68 ns |  2.63 |    0.25 | 0.0050 |     - |     - |      32 B |
+|                           |       |           |          |          |           |       |         |        |       |       |           |
+|          V3_ImMap_ToArray |    10 | 111.30 ns | 2.243 ns | 3.144 ns | 111.83 ns |  1.00 |    0.00 | 0.0293 |     - |     - |     184 B |
+| V3_ImMap_EnumerateToArray |    10 | 189.22 ns | 3.861 ns | 7.347 ns | 190.82 ns |  1.70 |    0.07 | 0.0165 |     - |     - |     104 B |
+
 */
 
             #region Populate
@@ -1195,7 +1206,8 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 
             #endregion
 
-            [Params(1, 10, 100, 1_000, 10_000)]
+            [Params(1, 10)]//, 100, 1_000, 10_000)]
+            // [Params(1, 10, 100, 1_000, 10_000)]
             public int Count;
 
             [GlobalSetup]
@@ -1210,7 +1222,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 _immutableDict = ImmutableDict();
             }
 
-            [Benchmark(Baseline = true)]
+            // [Benchmark(Baseline = true)]
             public object V3_ImMap_foreach()
             {
                 var s = "";
@@ -1219,7 +1231,20 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return s;
             }
 
+            [Benchmark(Baseline = true)]
+            public object V3_ImMap_ToArray() => ImTools.ImMap.ToArray<string>(_mapV3);
+
             [Benchmark]
+            public object V3_ImMap_EnumerateToArray()
+            {
+                var a = new ImTools.ImMapEntry<string>[_mapV3.Count()];
+                var i = 0;
+                foreach (var x in _mapV3.Enumerate())
+                    a[i++] = x;
+                return a;
+            }
+
+            // [Benchmark]
             public object V2_ImMap_foreach()
             {
                 var s = "";

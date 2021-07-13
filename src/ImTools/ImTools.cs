@@ -7410,7 +7410,7 @@ namespace ImTools
                 map.ForEach(St.Rent(new S[map.Count()], selector), (e, i, s) => s.a[i] = s.b(e)).ResetButGetA();
 
         /// <summary>Converts the map to an array with the minimum allocations</summary>
-        public static ImMapEntry<V>[] ToArray<K, V>(this ImMap<V> map) =>
+        public static ImMapEntry<V>[] ToArray<V>(this ImMap<V> map) =>
             map == ImMap<V>.Empty ? ArrayTools.Empty<ImMapEntry<V>>() : map.ForEach(new ImMapEntry<V>[map.Count()], (e, i, a) => a[i] = e);
 
         /// <summary>Converts the map to the dictionary</summary>
