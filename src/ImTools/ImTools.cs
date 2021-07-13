@@ -4212,7 +4212,7 @@ namespace ImTools
                 }
 
                 // right was a Br2 but now is Leaf or Br3 - means the branch height is decrease
-                if (right.GetType() == typeof(Branch2) && newRight.GetType() != typeof(Branch2))
+                if (right is Branch2 && newRight is Branch2 == false)
                 {
                     // the hole has a 3-node as a parent and a 3-node as a sibling.new
                     if (middle is Branch3 mb3) //! the height does not change
@@ -5501,7 +5501,7 @@ namespace ImTools
                 }
 
                 // right was a Br2 but now is Leaf or Br3 - means the branch height is decrease
-                if (right.GetType() == typeof(Branch2) && newRight.GetType() != typeof(Branch2))
+                if (right is Branch2 && newRight is Branch2 == false)
                 {
                     // the hole has a 3-node as a parent and a 3-node as a sibling.new
                     if (middle is Branch3 mb3) //! the height does not change
