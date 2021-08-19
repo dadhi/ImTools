@@ -1618,7 +1618,7 @@ namespace ImTools
                 for (var i = 0; i < count; ++i)
                     copy[i] = items[i];
             else
-                Array.Copy(items, copy, count);
+                Array.Copy(items, 0, copy, 0, count);
             return copy;
         }
 
@@ -1631,7 +1631,7 @@ namespace ImTools
                 for (var i = 0; i < count; ++i)
                     copy[i] = items[i];
             else
-                Array.Copy(items, copy, count);
+                Array.Copy(items, 0, copy, 0, count);
             return copy;
         }
 
@@ -2710,8 +2710,21 @@ namespace ImTools
         {
             var count = items.Length;
             var newItems = new T[count << 1]; // count x 2
-            Array.Copy(items, 0, newItems, 0, count);
+            if (count < 6)
+                for (var i = 0; i < count; ++i)
+                    newItems[i] = items[i];
+            else
+                Array.Copy(items, 0, newItems, 0, count);
             return newItems;
+        }
+
+        ///<summary>Creates the final array out of the list, so that you cannot use after that!</summary>
+        public T[] BuildArray()
+        {
+            var items = Items;
+            if (Count < items.Length)
+                Array.Resize(ref items, Count); 
+            return items;
         }
 
         /// <inheritdoc />
