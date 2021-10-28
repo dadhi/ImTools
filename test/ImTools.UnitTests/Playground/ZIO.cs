@@ -131,7 +131,6 @@ namespace ImTools.UnitTests.Playground
 		public readonly struct Unit {}
 		public static readonly Unit unit = default(Unit); 
 			
-        // Construction
         public static Z<A> Val<A>(this A a) => new ZVal<A>(a);
         public static Z<A> Get<A>(Func<A> getA) => new ZLazy<A>(getA);
 		public static Z<Unit> Do(Action act) => new ZLazy<Unit>(() => { act(); return unit; });
@@ -152,8 +151,7 @@ namespace ImTools.UnitTests.Playground
 			from af in za.Fork()
 			from b in zb
 			from a in af.Join()
-			select (a, b);
-			
+			select (a, b);	
     }
 
     public static class ZLinq
