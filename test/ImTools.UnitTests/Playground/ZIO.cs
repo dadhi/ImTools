@@ -135,13 +135,13 @@ namespace ImTools.UnitTests.Playground
 
     public static class Z
     {
-		public readonly struct u { public static readonly u nit = default(u); }
-		public static readonly u unit = u.nit; 
+		public readonly struct Unit {}
+		public static readonly Unit unit = default(Unit); 
 			
         // Construction
         public static Z<A> Val<A>(this A a) => new ZVal<A>(a);
         public static Z<A> Get<A>(Func<A> getA) => new ZLazy<A>(getA);
-		public static Z<u> Do(Action act) => new ZLazy<u>(() => { act(); return unit; });
+		public static Z<Unit> Do(Action act) => new ZLazy<Unit>(() => { act(); return unit; });
         public static Z<A> Async<A>(Action<Action<A>> act) => new ZAsync<A>(act); // TODO @wip convert Action<Action<A>> to more general Func<Func<A, ?>, ?> or provide the separate case class 
 
         public static Z<B> To<A, B>(this Z<A> za, Func<A, B> map) => new ZMap<A, B>(za, map);
