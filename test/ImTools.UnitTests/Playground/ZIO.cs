@@ -1,3 +1,9 @@
+// The source repository
+// https://github.com/dadhi/ImTools/blob/zio_from_scratch/test/ImTools.UnitTests/Playground/ZIO.cs
+
+// ZIO from scratch 1 and a bit of 2
+// 
+
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,57 +17,40 @@ namespace ImTools.UnitTests.Playground
         void Run(Action<A> consume);
     }
 
-    // TODO @perf don't optimize too much until the classes are converted to the pure case records and Run is implemented as a iterative loop with pattern matching over the cases, preventing the callbacks StackOverflow
-
-    public sealed class ZVal<A> : Z<A>
+    // TODO @perf don't optimize too much until Run is implemented as a iterative loop with pattern matching over the cases, preventing the StackOverflowException
+	
+    public sealed record ZVal<A>(A Value) : Z<A>
     {
-        public readonly A Value;
-        public ZVal(A value) => Value = value; 
         public void Run(Action<A> consume) => consume(Value);
     }
 
-    public sealed class ZLazy<A> : Z<A>
+    public sealed record ZLazy<A>(Func<A> Get) : Z<A>
     {
-        public readonly Func<A> GetValue;
-        public ZLazy(Func<A> getValue) => GetValue = getValue; 
-        public void Run(Action<A> consume) => consume(GetValue());
+        public void Run(Action<A> consume) => consume(Get());
     }
 
-    public sealed class ZAsync<A> : Z<A>
-    {
-        public readonly Action<Action<A>> Act;
-        public ZAsync(Action<Action<A>> act) => Act = act; 
+    public sealed record ZAsync<A>(Action<Action<A>> Act) : Z<A>
+    { 
         public void Run(Action<A> consume) => Act(consume);
     }
 	
-	public sealed class ZFork<A> : Z<ZFiber<A>>
-    {
-        public readonly Z<A> Za;
-        public ZFork(Z<A> za) => Za = za; 
+	public sealed record ZFork<A>(Z<A> Za) : Z<ZFiber<A>>
+    { 
         public void Run(Action<ZFiber<A>> consume) => consume(new ZFiberImpl<A>(Za));
 	}
 
-    public sealed class ZMap<A, B> : Z<B>
+    public sealed record ZMap<A, B>(Z<A> Za, Func<A, B> M) : Z<B>
     {
-        public readonly Z<A> Za;
-        public readonly Func<A, B> M;
-        public ZMap(Z<A> za, Func<A, B> m) { Za = za; M = m; } 
         public void Run(Action<B> consume) => Za.Run(a => consume(M(a)));
     }
 
-    public sealed class ZThen<A, B> : Z<B>
+    public sealed record ZThen<A, B>(Z<A> Za, Func<A, Z<B>> From) : Z<B>
     {
-        public readonly Z<A> Za;
-        public readonly Func<A, Z<B>> From;
-        public ZThen(Z<A> za, Func<A, Z<B>> @from) { Za = za; From = @from; }
         public void Run(Action<B> consume) => Za.Run(a => From(a).Run(consume));
     }
 
-    public sealed class ZZip<A, B> : Z<(A, B)>
-    {
-        public readonly Z<A> Za;
-        public readonly Z<B> Zb;
-        public ZZip(Z<A> za, Z<B> zb) { Za = za; Zb = zb; } 
+    public sealed record ZZip<A, B>(Z<A> Za, Z<B> Zb) : Z<(A, B)>
+    { 
         public void Run(Action<(A, B)> consume) => Za.Run(a => Zb.Run(b => consume((a, b))));
     }
 	
