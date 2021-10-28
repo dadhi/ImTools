@@ -1,7 +1,11 @@
 // The source repository
 // https://github.com/dadhi/ImTools/blob/zio_from_scratch/test/ImTools.UnitTests/Playground/ZIO.cs
 
-// ZIO from scratch 1 and a bit of 2
+// Parts:
+// 1 - https://youtu.be/wsTIcHxJMeQ 
+// 2 - https://youtu.be/g8Tuqldu2AE
+
+// Includes the part 1 and a bit of 2 (atomic fiber state update):
 // 
 
 using System;
