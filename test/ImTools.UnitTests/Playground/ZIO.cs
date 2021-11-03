@@ -6,7 +6,11 @@
 // 2 - https://youtu.be/g8Tuqldu2AE
 
 // Includes the part 1 and a bit of 2 (atomic fiber state update):
-// 
+// [ ] Stack safety
+// [ ] Performance
+// [ ] Work around the Task.Run or SynchronizaionContext
+// [ ] Error handling
+// [ ] Environment
 
 using System;
 using System.Threading;
@@ -20,17 +24,34 @@ namespace ImTools.UnitTests.Playground
     {
         void Run(Action<A> consume);
     }
-
-    // TODO @perf don't optimize too much until Run is implemented as a iterative loop with pattern matching over the cases, preventing the StackOverflowException
 	
+	abstract class ZImpl<A> : Z<A>
+	{
+		public void Run(Action<A> consume)
+		{
+			switch (this)
+			{
+				case ZVal<A>(var val): 
+					consume(val);
+					break;
+				case ZLazy<A>(var getVal):
+					consume(getVal());
+					break;
+				case ZAsync<A>(var act):
+					act(consume);
+					break;
+			}
+		}
+	} 
+
     public sealed record ZVal<A>(A Value) : Z<A>
     {
         public void Run(Action<A> consume) => consume(Value);
     }
 
-    public sealed record ZLazy<A>(Func<A> Get) : Z<A>
+    public sealed record ZLazy<A>(Func<A> GetValue) : Z<A>
     {
-        public void Run(Action<A> consume) => consume(Get());
+        public void Run(Action<A> consume) => consume(GetValue());
     }
 
     public sealed record ZAsync<A>(Action<Action<A>> Act) : Z<A>
@@ -53,10 +74,12 @@ namespace ImTools.UnitTests.Playground
         public void Run(Action<B> consume) => Za.Run(a => From(a).Run(consume));
     }
 
+/*
     public sealed record ZZip<A, B>(Z<A> Za, Z<B> Zb) : Z<(A, B)>
     { 
         public void Run(Action<(A, B)> consume) => Za.Run(a => Zb.Run(b => consume((a, b))));
     }
+*/
 	
 	public interface ZFiber<out A>
 	{
@@ -128,7 +151,7 @@ namespace ImTools.UnitTests.Playground
 
     public static class Z
     {
-		public readonly struct Unit {}
+		public readonly struct Unit { public override string ToString() => "(unit)"; }
 		public static readonly Unit unit = default(Unit); 
 			
         public static Z<A> Val<A>(this A a) => new ZVal<A>(a);
@@ -143,15 +166,21 @@ namespace ImTools.UnitTests.Playground
         /// <summary>This is Bind, SelectMany or FlatMap... but I want to be unique and go with Then for now as it seems to have a more precise meaning IMHO</summary>
         public static Z<B> Then<A, B>(this Z<A> za, Func<A, Z<B>> from) => new ZThen<A, B>(za, from);
 
-        public static Z<(A, B)> Zip<A, B>(this Z<A> za, Z<B> zb) => new ZZip<A, B>(za, zb);
-
+        public static Z<(A, B)> Zip<A, B>(this Z<A> za, Z<B> zb) => za.Then(a => zb.Then(b => Val((a, b))));
+		
+		public static Z<C> ZipWith<A, B, C>(this Z<A> za, Z<B> zb, Func<A, B, C> zip) => za.Then(a => zb.Then(b => Val(zip(a, b))));
+		
+		public static Z<A> And<A, B>(this Z<A> za, Z<B> zb) => za.Then(a => zb.Then(_ => Val(a)));
+		
+		public static Z<A> RepeatN<A>(this Z<A> za, int n) => n <= 0 ? za : za.And(za.RepeatN(n - 1));
+		
         public static Z<ZFiber<A>> Fork<A>(this Z<A> za) => new ZFork<A>(za);
 		
         public static Z<(A, B)> ZipPar<A, B>(this Z<A> za, Z<B> zb) => 
 			from af in za.Fork()
 			from b in zb
 			from a in af.Join()
-			select (a, b);	
+			select (a, b);		
     }
 
     public static class ZLinq
@@ -165,7 +194,7 @@ namespace ImTools.UnitTests.Playground
     public class Tests
     {
 		int _id;
-		public int Id() => Interlocked.Increment(ref _id);   
+		int Id() => Interlocked.Increment(ref _id);   
 		
         public Z<string> Map_small() =>
            	Z.Val(42).To(x => x + "!");
@@ -219,6 +248,8 @@ namespace ImTools.UnitTests.Playground
 			from x in Z.ZipPar(Async_sleep(), Async_sleep())
 			from _1 in Z.Do(() => WriteLine("After ZipPar"))
 			select x.Item1 + x.Item2 + 3;
+		
+		public Z<Unit> Repeat(int n) => Z.Do(() => WriteLine("HOWDY")).RepeatN(n);
     }
 	
 	public class Program
@@ -228,6 +259,8 @@ namespace ImTools.UnitTests.Playground
 			var t = new Tests();
 			
 			void run<A>(Z<A> z, string name = "") { WriteLine(name + " >> "); z.Run(x => WriteLine(x)); Write("\n"); }
+			
+			run(t.Repeat(3), nameof(t.Repeat));
 			
 			run(t.Map_small(),   nameof(t.Map_small));
 			run(t.Async_sleep(), nameof(t.Async_sleep));
