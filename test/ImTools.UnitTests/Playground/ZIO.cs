@@ -6,7 +6,7 @@
 // 2 - https://youtu.be/g8Tuqldu2AE
 
 // Includes the part 1 and a bit of 2 (atomic fiber state update):
-// [ ] Stack safety
+// [ ] Stack safety / the stack is big though - I got the stack overflow on repating the Do(() => WriteLine("x")) 87253 times
 // [ ] Performance
 // [ ] Work around the Task.Run or SynchronizaionContext
 // [ ] Error handling
@@ -20,41 +20,91 @@ using static ImTools.UnitTests.Playground.Z;
 
 namespace ImTools.UnitTests.Playground
 {
-	public interface Z<out A>
+	public interface ZErased {}
+	public interface Z<out A> : ZErased
     {
         void Run(Action<A> consume);
     }
 	
-	abstract class ZImpl<A> : Z<A>
+	public abstract record ZImpl<A> : Z<A>
 	{
+		sealed record ContStack(Func<A, ZErased> Cont, ContStack Rest);
+		ContStack _stack;
+	
 		public void Run(Action<A> consume)
 		{
-			switch (this)
+			ZErased z = this; 
+			var loop = true;
+			while (loop)
 			{
-				case ZVal<A>(var val): 
-					consume(val);
-					break;
-				case ZLazy<A>(var getVal):
-					consume(getVal());
-					break;
-				case ZAsync<A>(var act):
-					act(consume);
-					break;
+				switch (z)
+				{
+					case ZVal<A>(var val):
+					{
+						if (_stack is ContStack(var cont, var rest))
+						{
+							_stack = rest;
+							z = cont(val);
+						}
+						else 
+						{
+							consume(val);
+							loop = false;
+						}
+						break;
+					}
+					case ZLazy<A>(var getVal): 
+					{
+						if (_stack is ContStack(var cont, var rest)) 
+						{
+							_stack = rest;
+							z = cont(getVal());
+						}
+						else 
+						{
+							consume(getVal());
+							loop = false;
+						}
+						break;
+					}
+					case ZThen<A> t:
+					{
+						_stack = new ContStack(t.Cont, _stack);
+						z = t.Za;
+						break;
+					}
+				}
 			}
 		}
 	} 
 
-    public sealed record ZVal<A>(A Value) : Z<A>
-    {
-        public void Run(Action<A> consume) => consume(Value);
-    }
+
+    public sealed record ZVal<A>(A Value) : ZImpl<A>;
 
     public sealed record ZLazy<A>(Func<A> GetValue) : Z<A>
     {
         public void Run(Action<A> consume) => consume(GetValue());
     }
 
-    public sealed record ZAsync<A>(Action<Action<A>> Act) : Z<A>
+	interface ZThen<A>
+	{
+		Z<A> Za { get; }
+		Func<A, ZErased> Cont { get; }
+	}
+
+    public sealed record ZThen<A, B>(Z<A> Za, Func<A, Z<B>> Cont) : Z<B>, ZThen<A>
+    {
+		Z<A> ZThen<A>.Za => Za; 
+		Func<A, ZErased> ZThen<A>.Cont => Cont;
+        public void Run(Action<B> consume) => Za.Run(a => Cont(a).Run(consume));
+    }
+
+    public sealed record ZMap<A, B>(Z<A> Za, Func<A, B> M) : Z<B>
+    {
+        public void Run(Action<B> consume) => Za.Run(a => consume(M(a)));
+    }
+
+	public sealed record ZAsync<A>(Action<Action<A>> Act) : Z<A>
     { 
         public void Run(Action<A> consume) => Act(consume);
     }
@@ -63,16 +113,6 @@ namespace ImTools.UnitTests.Playground
     { 
         public void Run(Action<ZFiber<A>> consume) => consume(new ZFiberImpl<A>(Za));
 	}
-
-    public sealed record ZMap<A, B>(Z<A> Za, Func<A, B> M) : Z<B>
-    {
-        public void Run(Action<B> consume) => Za.Run(a => consume(M(a)));
-    }
-
-    public sealed record ZThen<A, B>(Z<A> Za, Func<A, Z<B>> From) : Z<B>
-    {
-        public void Run(Action<B> consume) => Za.Run(a => From(a).Run(consume));
-    }
 
 /*
     public sealed record ZZip<A, B>(Z<A> Za, Z<B> Zb) : Z<(A, B)>
@@ -151,8 +191,12 @@ namespace ImTools.UnitTests.Playground
 
     public static class Z
     {
-		public readonly struct Unit { public override string ToString() => "(unit)"; }
-		public static readonly Unit unit = default(Unit); 
+		public sealed record Unit 
+		{
+			Unit() {}
+			public override string ToString() => "(unit)";
+		}
+		public static readonly Unit unit = default(Unit);
 			
         public static Z<A> Val<A>(this A a) => new ZVal<A>(a);
         public static Z<A> Get<A>(Func<A> getA) => new ZLazy<A>(getA);
@@ -249,7 +293,8 @@ namespace ImTools.UnitTests.Playground
 			from _1 in Z.Do(() => WriteLine("After ZipPar"))
 			select x.Item1 + x.Item2 + 3;
 		
-		public Z<Unit> Repeat(int n) => Z.Do(() => WriteLine("HOWDY")).RepeatN(n);
+		private int _count = 0; 
+		public Z<Unit> Repeat(int n) => Z.Do(() => WriteLine("HOWDY " + (++_count))).RepeatN(n);
     }
 	
 	public class Program
@@ -260,7 +305,8 @@ namespace ImTools.UnitTests.Playground
 			
 			void run<A>(Z<A> z, string name = "") { WriteLine(name + " >> "); z.Run(x => WriteLine(x)); Write("\n"); }
 			
-			run(t.Repeat(3), nameof(t.Repeat));
+			run(t.Repeat(3), nameof(t.Repeat)); // works
+			//run(t.Repeat(15000), nameof(t.Repeat)); // SO
 			
 			run(t.Map_small(),   nameof(t.Map_small));
 			run(t.Async_sleep(), nameof(t.Async_sleep));
