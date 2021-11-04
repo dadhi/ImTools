@@ -28,80 +28,93 @@ namespace ImTools.UnitTests.Playground
 	
 	public abstract record ZImpl<A> : Z<A>
 	{
-		sealed record ContStack(Func<A, ZErased> Cont, ContStack Rest);
+		sealed record ContStack(Func<object, ZErased> Cont, ContStack Rest);
 		ContStack _stack;
 	
 		public void Run(Action<A> consume)
 		{
-			ZErased z = this; 
+			ZErased z = this;
 			var loop = true;
 			while (loop)
 			{
 				switch (z)
 				{
-					case ZVal<A>(var val):
+					case ZVal v:
 					{
 						if (_stack is ContStack(var cont, var rest))
 						{
+							z = cont(v.Value);
 							_stack = rest;
-							z = cont(val);
 						}
 						else 
 						{
-							consume(val);
+							consume((A)v.Value);
 							loop = false;
 						}
 						break;
 					}
-					case ZLazy<A>(var getVal): 
+					case ZLazy l: 
 					{
 						if (_stack is ContStack(var cont, var rest)) 
 						{
+							z = cont(l.GetValue());
 							_stack = rest;
-							z = cont(getVal());
 						}
 						else 
 						{
-							consume(getVal());
+							consume((A)l.GetValue());
 							loop = false;
 						}
 						break;
 					}
-					case ZThen<A> t:
+					case ZThen t:
 					{
-						_stack = new ContStack(t.Cont, _stack);
 						z = t.Za;
+						_stack = new ContStack(t.Cont, _stack);
 						break;
 					}
+					case var x:
+						WriteLine("Z____: " + x);
+						WriteLine("Stack: " + _stack);
+						loop = false;
+						break;
 				}
+				WriteLine("loop: " + loop);
 			}
 		}
 	} 
 
 
-    public sealed record ZVal<A>(A Value) : ZImpl<A>;
-
-    public sealed record ZLazy<A>(Func<A> GetValue) : Z<A>
-    {
-        public void Run(Action<A> consume) => consume(GetValue());
-    }
-
-	interface ZThen<A>
+	interface ZVal 
 	{
-		Z<A> Za { get; }
-		Func<A, ZErased> Cont { get; }
+		object Value { get; }
 	}
 
-    public sealed record ZThen<A, B>(Z<A> Za, Func<A, Z<B>> Cont) : Z<B>, ZThen<A>
-    {
-		Z<A> ZThen<A>.Za => Za; 
-		Func<A, ZErased> ZThen<A>.Cont => Cont;
-        public void Run(Action<B> consume) => Za.Run(a => Cont(a).Run(consume));
-    }
+	public sealed record ZVal<A>(A Value) : ZImpl<A>, ZVal 
+	{
+		object ZVal.Value => Value;
+	}
 
-    public sealed record ZMap<A, B>(Z<A> Za, Func<A, B> M) : Z<B>
+	interface ZLazy 
+	{
+		Func<object> GetValue { get; }
+	}
+
+	public sealed record ZLazy<A>(Func<A> GetValue) : ZImpl<A>, ZLazy
+	{
+		Func<object> ZLazy.GetValue => () => GetValue();
+	}
+
+	interface ZThen
+	{
+		ZErased Za { get; }
+		Func<object, ZErased> Cont { get; }
+	}
+
+    public sealed record ZThen<A, B>(Z<A> Za, Func<A, Z<B>> Cont) : ZImpl<B>, ZThen
     {
-        public void Run(Action<B> consume) => Za.Run(a => consume(M(a)));
+		ZErased ZThen.Za => Za;
+		Func<object, ZErased> ZThen.Cont => a => Cont((A)a);
     }
 
 	public sealed record ZAsync<A>(Action<Action<A>> Act) : Z<A>
@@ -113,13 +126,6 @@ namespace ImTools.UnitTests.Playground
     { 
         public void Run(Action<ZFiber<A>> consume) => consume(new ZFiberImpl<A>(Za));
 	}
-
-/*
-    public sealed record ZZip<A, B>(Z<A> Za, Z<B> Zb) : Z<(A, B)>
-    { 
-        public void Run(Action<(A, B)> consume) => Za.Run(a => Zb.Run(b => consume((a, b))));
-    }
-*/
 	
 	public interface ZFiber<out A>
 	{
@@ -203,19 +209,16 @@ namespace ImTools.UnitTests.Playground
 		public static Z<Unit> Do(Action act) => new ZLazy<Unit>(() => { act(); return unit; });
         public static Z<A> Async<A>(Action<Action<A>> act) => new ZAsync<A>(act); // TODO @wip convert Action<Action<A>> to more general Func<Func<A, ?>, ?> or provide the separate case class 
 
-        public static Z<B> To<A, B>(this Z<A> za, Func<A, B> map) => new ZMap<A, B>(za, map);
-        public static Z<B> ToVal<A, B>(this Z<A> za, B b) => new ZMap<A, B>(za, _ => b); // TODO @perf optimize allocations
-        public static Z<B> ToGet<A, B>(this Z<A> za, Func<B> getB) => new ZMap<A, B>(za, _ => getB()); // TODO @perf optimize allocations
-
-        /// <summary>This is Bind, SelectMany or FlatMap... but I want to be unique and go with Then for now as it seems to have a more precise meaning IMHO</summary>
+		/// <summary>This is Bind, SelectMany or FlatMap... but I want to be unique and go with Then for now as it seems to have a more precise meaning IMHO</summary>
         public static Z<B> Then<A, B>(this Z<A> za, Func<A, Z<B>> from) => new ZThen<A, B>(za, from);
 
-        public static Z<(A, B)> Zip<A, B>(this Z<A> za, Z<B> zb) => za.Then(a => zb.Then(b => Val((a, b))));
-		
-		public static Z<C> ZipWith<A, B, C>(this Z<A> za, Z<B> zb, Func<A, B, C> zip) => za.Then(a => zb.Then(b => Val(zip(a, b))));
-		
-		public static Z<A> And<A, B>(this Z<A> za, Z<B> zb) => za.Then(a => zb.Then(_ => Val(a)));
-		
+        public static Z<B> To<A, B>(this Z<A> za, Func<A, B> map) => za.Then(a => map(a).Val());
+        public static Z<B> ToVal<A, B>(this Z<A> za, B b) => za.Then(_ => b.Val()); // TODO @perf optimize allocations
+        public static Z<B> ToGet<A, B>(this Z<A> za, Func<B> getB) => za.Then(_ => getB().Val()); // TODO @perf optimize allocations
+
+        public static Z<(A, B)> Zip<A, B>(this Z<A> za, Z<B> zb) => za.Then(a => zb.Then(b => Val((a, b))));		
+		public static Z<C> ZipWith<A, B, C>(this Z<A> za, Z<B> zb, Func<A, B, C> zip) => za.Then(a => zb.Then(b => zip(a, b).Val()));
+		public static Z<A> And<A, B>(this Z<A> za, Z<B> zb) => za.Then(a => zb.Then(_ => a.Val()));
 		public static Z<A> RepeatN<A>(this Z<A> za, int n) => n <= 0 ? za : za.And(za.RepeatN(n - 1));
 		
         public static Z<ZFiber<A>> Fork<A>(this Z<A> za) => new ZFork<A>(za);
@@ -304,22 +307,23 @@ namespace ImTools.UnitTests.Playground
 			var t = new Tests();
 			
 			void run<A>(Z<A> z, string name = "") { WriteLine(name + " >> "); z.Run(x => WriteLine(x)); Write("\n"); }
-			
-			run(t.Repeat(3), nameof(t.Repeat)); // works
-			//run(t.Repeat(15000), nameof(t.Repeat)); // SO
-			
+
+			//run(t.Repeat(3),     nameof(t.Repeat));
+			//run(t.Repeat(15000), nameof(t.Repeat)); // should not StackOverflow
+
 			run(t.Map_small(),   nameof(t.Map_small));
-			run(t.Async_sleep(), nameof(t.Async_sleep));
-			run(t.Async_seq(),   nameof(t.Async_seq));
+
+			//run(t.Async_sleep(), nameof(t.Async_sleep));
+			//run(t.Async_seq(),   nameof(t.Async_seq));
 			
-			run(t.Async_fork(),  nameof(t.Async_fork));
-			Thread.Sleep(1500);
+			//run(t.Async_fork(),  nameof(t.Async_fork));
+			//Thread.Sleep(1500);
 
 			//run(t.Get_sleep(),   nameof(t.Get_sleep));
 			//run(t.Get_seq(),     nameof(t.Get_seq));
 		
-			run(t.Zip_par(),     nameof(t.Zip_par));
-			Thread.Sleep(1500);
+			//run(t.Zip_par(),     nameof(t.Zip_par));
+			//Thread.Sleep(1500);
 			
 			WriteLine("==DONE==");
 		}
