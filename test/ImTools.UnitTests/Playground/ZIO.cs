@@ -4,7 +4,7 @@
 // Parts:
 // [X] 1 - https://youtu.be/wsTIcHxJMeQ 
 // [X] 2 - https://youtu.be/g8Tuqldu2AE
-// [X] 3 - https://youtu.be/0IU9mGO_9Rw
+// [ ] 3 - https://youtu.be/0IU9mGO_9Rw
 
 // Includes the part 1 and a bit of 2 (atomic fiber state update):
 // [X] Stack safety / the stack is big though - I got the stack overflow on repating the Do(() => WriteLine("x")) 87253 times
