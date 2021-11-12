@@ -2,11 +2,13 @@
 // https://github.com/dadhi/ImTools/blob/zio_from_scratch/test/ImTools.UnitTests/Playground/ZIO.cs
 
 // Parts:
-// 1 - https://youtu.be/wsTIcHxJMeQ 
-// 2 - https://youtu.be/g8Tuqldu2AE
+// [X] 1 - https://youtu.be/wsTIcHxJMeQ 
+// [X] 2 - https://youtu.be/g8Tuqldu2AE
+// [X] 3 - https://youtu.be/0IU9mGO_9Rw
 
 // Includes the part 1 and a bit of 2 (atomic fiber state update):
-// [ ] Stack safety / the stack is big though - I got the stack overflow on repating the Do(() => WriteLine("x")) 87253 times
+// [X] Stack safety / the stack is big though - I got the stack overflow on repating the Do(() => WriteLine("x")) 87253 times
+// [ ] Make it work with async/await see how it is done in https://github.com/yuretz/FreeAwait/tree/master/src/FreeAwait
 // [ ] Performance
 // [ ] Work around the Task.Run or SynchronizaionContext
 // [ ] Error handling
@@ -15,12 +17,14 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+//using System.Runtime.CompilerServices;
 using static System.Console;
 using static ImTools.UnitTests.Playground.Z;
 
 namespace ImTools.UnitTests.Playground
 {
 	public interface ZErased {}
+
 	public interface Z<out A> : ZErased
     {
         void Run(Action<A> consume);
@@ -29,58 +33,56 @@ namespace ImTools.UnitTests.Playground
 	public abstract record ZImpl<A> : Z<A>
 	{
 		sealed record ContStack(Func<object, ZErased> Cont, ContStack Rest);
-		ContStack _stack;
 	
 		public void Run(Action<A> consume)
 		{
+			ContStack _stack = null;
 			ZErased z = this;
-			var loop = true;
-			while (loop)
+			void runLoop()
 			{
-				switch (z)
+				var loop = true;
+				while (loop)
 				{
-					case ZVal v:
+					switch (z)
 					{
-						if (_stack is ContStack(var cont, var rest))
+						case ZVal or ZLazy: 
 						{
-							z = cont(v.Value);
-							_stack = rest;
+							var val = z is ZVal v ? v.Value : ((ZLazy)z).GetValue();
+							if (_stack is ContStack(var cont, var rest)) 
+							{
+								z = cont(val);
+								_stack = rest;
+							}
+							else 
+							{
+								consume((A)val);
+								loop = false;
+							}
+							break;
 						}
-						else 
+						case ZThen t:
 						{
-							consume((A)v.Value);
+							z = t.Za;
+							_stack = new ContStack(t.Cont, _stack);
+							break;
+						}
+						case ZAsync<A> ac:
+						{
 							loop = false;
+							if (_stack == null)
+								ac.Act(consume);
+							else
+								ac.Act(a => 
+								{
+									z = a.Val();
+									runLoop();
+								});
+							break;
 						}
-						break;
 					}
-					case ZLazy l: 
-					{
-						if (_stack is ContStack(var cont, var rest)) 
-						{
-							z = cont(l.GetValue());
-							_stack = rest;
-						}
-						else 
-						{
-							consume((A)l.GetValue());
-							loop = false;
-						}
-						break;
-					}
-					case ZThen t:
-					{
-						z = t.Za;
-						_stack = new ContStack(t.Cont, _stack);
-						break;
-					}
-					case var x:
-						WriteLine("Z____: " + x);
-						WriteLine("Stack: " + _stack);
-						loop = false;
-						break;
 				}
-				WriteLine("loop: " + loop);
 			}
+			runLoop();
 		}
 	} 
 
@@ -117,15 +119,7 @@ namespace ImTools.UnitTests.Playground
 		Func<object, ZErased> ZThen.Cont => a => Cont((A)a);
     }
 
-	public sealed record ZAsync<A>(Action<Action<A>> Act) : Z<A>
-    { 
-        public void Run(Action<A> consume) => Act(consume);
-    }
-	
-	public sealed record ZFork<A>(Z<A> Za) : Z<ZFiber<A>>
-    { 
-        public void Run(Action<ZFiber<A>> consume) => consume(new ZFiberImpl<A>(Za));
-	}
+	public sealed record ZAsync<A>(Action<Action<A>> Act) : ZImpl<A>;
 	
 	public interface ZFiber<out A>
 	{
@@ -139,7 +133,7 @@ namespace ImTools.UnitTests.Playground
 		sealed record Callbacks(Action<A> Act, Callbacks Rest) : State;
 		
 		State _state;
-		public readonly Z<A> Za;
+		public Z<A> Za { get; }
 		
 		public ZFiberImpl(Z<A> za) 
 		{
@@ -221,7 +215,7 @@ namespace ImTools.UnitTests.Playground
 		public static Z<A> And<A, B>(this Z<A> za, Z<B> zb) => za.Then(a => zb.Then(_ => a.Val()));
 		public static Z<A> RepeatN<A>(this Z<A> za, int n) => n <= 0 ? za : za.And(za.RepeatN(n - 1));
 		
-        public static Z<ZFiber<A>> Fork<A>(this Z<A> za) => new ZFork<A>(za);
+        public static Z<ZFiber<A>> Fork<A>(this Z<A> za) => Get(() => new ZFiberImpl<A>(za));
 		
         public static Z<(A, B)> ZipPar<A, B>(this Z<A> za, Z<B> zb) => 
 			from af in za.Fork()
@@ -237,7 +231,7 @@ namespace ImTools.UnitTests.Playground
         public static Z<R> SelectMany<A, B, R>(this Z<A> za, Func<A, Z<B>> getZb, Func<A, B, R> project) =>
             za.Then(a => getZb(a).Then(b => project(a, b).Val()));
     }
-    
+	    
     public class Tests
     {
 		int _id;
@@ -250,8 +244,8 @@ namespace ImTools.UnitTests.Playground
             Async<int>(run =>
 			{
 				var id = Id();
-                WriteLine($"Sleeping {id}");
-                Thread.Sleep(500);
+                WriteLine($"Sleep for 300 - {id}");
+                Thread.Sleep(300);
                 WriteLine($"Woken {id}");
                 run(42);
             });
@@ -261,9 +255,9 @@ namespace ImTools.UnitTests.Playground
             Get(() => 
 			{
 				var id = Id();
-                WriteLine($"Sleeping {id}");
+                WriteLine($"Sleep for 300 - {id}");
                 Thread.Sleep(300);
-				WriteLine($"Woken {id}");
+				WriteLine($"Woken - {id}");
                 return 43;
             });
 		
@@ -285,9 +279,9 @@ namespace ImTools.UnitTests.Playground
             from _ in Z.Do(() => WriteLine("Before Async_fork.."))
 			from fa in Async_sleep().Fork()
 			from fb in Async_sleep().Fork()
-			from _1 in Z.Do(() => WriteLine("After Async_fork"))
 			from a in fa.Join()
 			from b in fb.Join()
+			from _1 in Z.Do(() => WriteLine("After Async_fork"))
 			select a + b + 2;
 		
 		public Z<int> Zip_par() =>
@@ -308,22 +302,25 @@ namespace ImTools.UnitTests.Playground
 			
 			void run<A>(Z<A> z, string name = "") { WriteLine(name + " >> "); z.Run(x => WriteLine(x)); Write("\n"); }
 
+			//run(t.Map_small(),   nameof(t.Map_small));
+
 			//run(t.Repeat(3),     nameof(t.Repeat));
 			//run(t.Repeat(15000), nameof(t.Repeat)); // should not StackOverflow
-
-			run(t.Map_small(),   nameof(t.Map_small));
 
 			//run(t.Async_sleep(), nameof(t.Async_sleep));
 			//run(t.Async_seq(),   nameof(t.Async_seq));
 			
-			//run(t.Async_fork(),  nameof(t.Async_fork));
-			//Thread.Sleep(1500);
+			run(t.Async_fork(),  nameof(t.Async_fork));
+			WriteLine("Major sleep for 1000");
+			Thread.Sleep(1000);
 
 			//run(t.Get_sleep(),   nameof(t.Get_sleep));
 			//run(t.Get_seq(),     nameof(t.Get_seq));
 		
-			//run(t.Zip_par(),     nameof(t.Zip_par));
-			//Thread.Sleep(1500);
+			run(t.Zip_par(),     nameof(t.Zip_par));
+
+			WriteLine("Major sleep for 200");
+			Thread.Sleep(200);
 			
 			WriteLine("==DONE==");
 		}
