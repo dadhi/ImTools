@@ -129,66 +129,49 @@ namespace ImTools.UnitTests.Playground
 	sealed class ZFiberImpl<A> : ZFiber<A>
 	{			
 		abstract record State;
-		sealed record Result(A A) : State;
+		sealed record Done(A Value) : State;
 		sealed record Callbacks(Action<A> Act, Callbacks Rest) : State;
 		
 		State _state;
 		public Z<A> Za { get; }
 		
+		void Complete(A a)
+		{
+			var s = Interlocked.Exchange(ref _state, new Done(a));
+			if (s is Callbacks (var act, var rest))
+				for (; act != null; act = rest.Act)
+					act(a);
+		}
+		
+		void Await(Action<A> callback)
+		{
+			var spinWait = new SpinWait();
+			while (true)
+			{
+				var s = _state;
+				if (s is Done done)
+				{
+					callback(done.Value);
+					break;
+				}
+				
+				var callbacks = new Callbacks(callback, s as Callbacks);
+				if (Interlocked.CompareExchange(ref _state, callbacks, s) == s)
+					break;
+
+				spinWait.SpinOnce();
+			}
+		}
+		
 		public ZFiberImpl(Z<A> za) 
 		{
 			Za = za;
-			// todo: @wip change to the SynchronizationContext.Post or the async/await flow to proceed on the same context when not forked
-			// todo: @wip What about task returned by Task.Run, cancellation, etc.
-			Task.Run(() => Za.Run(a => 
-			{
-				var state = Interlocked.Exchange(ref _state, new Result(a));
-				if (state is Callbacks (var act, var rest))
-					for (; act != null; act = rest.Act)
-						act(a);
-			}));
+			Task.Run(() => Za.Run(Complete));
 		}
 
-		public Z<A> Join() => _state switch
-		{
-			Result r => r.A.Val(),
-			_ => Z.Async<A>(act => Tools.Swap(ref _state, act, (a, s) => 
-			{
-				if (s is Result res)
-				{
-					a(res.A);
-					return s;
-				}
-				return new Callbacks(a, s as Callbacks);
-			}))
-		};
+		public Z<A> Join() => Z.Async<A>(Await);
 	}
 	
-	internal static class Tools
-	{
-		public static T Swap<A, T>(ref T value, A a, Func<A, T, T> getNewValue, int retryCountUntilThrow = 50)
-            where T : class
-        {
-            var spinWait = new SpinWait();
-            var retryCount = 0;
-            while (true)
-            {
-                var oldValue = value;
-                var newValue = getNewValue(a, oldValue);
-                if (Interlocked.CompareExchange(ref value, newValue, oldValue) == oldValue)
-                    return oldValue;
-
-                if (++retryCount > retryCountUntilThrow)
-                    ThrowRetryCountExceeded(retryCountUntilThrow);
-                spinWait.SpinOnce();
-            }
-        }
-		
-		private static void ThrowRetryCountExceeded(int retryCountExceeded) =>
-            throw new InvalidOperationException(
-                $"Ref retried to Update for {retryCountExceeded} times But there is always someone else intervened.");
-	}
-
     public static class Z
     {
 		public sealed record Unit 
@@ -213,7 +196,7 @@ namespace ImTools.UnitTests.Playground
         public static Z<(A, B)> Zip<A, B>(this Z<A> za, Z<B> zb) => za.Then(a => zb.Then(b => Val((a, b))));		
 		public static Z<C> ZipWith<A, B, C>(this Z<A> za, Z<B> zb, Func<A, B, C> zip) => za.Then(a => zb.Then(b => zip(a, b).Val()));
 		public static Z<A> And<A, B>(this Z<A> za, Z<B> zb) => za.Then(a => zb.Then(_ => a.Val()));
-		public static Z<A> RepeatN<A>(this Z<A> za, int n) => n <= 0 ? za : za.And(za.RepeatN(n - 1));
+		public static Z<A> RepeatN<A>(this Z<A> za, int n) => n <= 1 ? za : za.And(za.RepeatN(n - 1));
 		
         public static Z<ZFiber<A>> Fork<A>(this Z<A> za) => Get(() => new ZFiberImpl<A>(za));
 		
@@ -289,9 +272,23 @@ namespace ImTools.UnitTests.Playground
 			from x in Z.ZipPar(Async_sleep(), Async_sleep())
 			from _1 in Z.Do(() => WriteLine("After ZipPar"))
 			select x.Item1 + x.Item2 + 3;
-		
-		private int _count = 0; 
-		public Z<Unit> Repeat(int n) => Z.Do(() => WriteLine("HOWDY " + (++_count))).RepeatN(n);
+
+		public Z<int> Async_counter()
+		{
+			var i = 0;
+            return 
+				from b in Z.Do(() => WriteLine("Before Async_counter.."))
+				from x in Z.Do(() => Interlocked.Increment(ref i)).Fork().RepeatN(100)
+				from w in Z.Do(() => Thread.Sleep(500))
+				from a in Z.Do(() => WriteLine("After Async_counter and sleep for 500"))
+				select i;
+		}
+
+		public Z<Unit> Repeat(int n) 
+		{
+			var i = 0; 
+			return Z.Do(() => WriteLine("HOWDY " + (++i))).RepeatN(n);
+		}
     }
 	
 	public class Program
@@ -302,25 +299,25 @@ namespace ImTools.UnitTests.Playground
 			
 			void run<A>(Z<A> z, string name = "") { WriteLine(name + " >> "); z.Run(x => WriteLine(x)); Write("\n"); }
 
-			//run(t.Map_small(),   nameof(t.Map_small));
+			run(t.Async_counter(), nameof(t.Async_counter));
+			
+			run(t.Map_small(),   nameof(t.Map_small));
 
-			//run(t.Repeat(3),     nameof(t.Repeat));
+			run(t.Repeat(3),     nameof(t.Repeat));
 			//run(t.Repeat(15000), nameof(t.Repeat)); // should not StackOverflow
 
-			//run(t.Async_sleep(), nameof(t.Async_sleep));
-			//run(t.Async_seq(),   nameof(t.Async_seq));
+			run(t.Async_sleep(), nameof(t.Async_sleep));
+			run(t.Async_seq(),   nameof(t.Async_seq));
 			
 			run(t.Async_fork(),  nameof(t.Async_fork));
 			WriteLine("Major sleep for 1000");
 			Thread.Sleep(1000);
 
-			//run(t.Get_sleep(),   nameof(t.Get_sleep));
-			//run(t.Get_seq(),     nameof(t.Get_seq));
+			run(t.Get_sleep(),   nameof(t.Get_sleep));
+			run(t.Get_seq(),     nameof(t.Get_seq));
 		
 			run(t.Zip_par(),     nameof(t.Zip_par));
-
-			WriteLine("Major sleep for 200");
-			Thread.Sleep(200);
+			// don't need to sleep here because par executes the right on the current thread
 			
 			WriteLine("==DONE==");
 		}
