@@ -4,9 +4,9 @@
 // Parts:
 // [X] 1 - https://youtu.be/wsTIcHxJMeQ 
 // [X] 2 - https://youtu.be/g8Tuqldu2AE
-// [ ] 3 - https://youtu.be/0IU9mGO_9Rw
+// [WIP] 3 - https://youtu.be/0IU9mGO_9Rw
 
-// Includes the part 1 and a bit of 2 (atomic fiber state update):
+// TODO:
 // [X] Stack safety / the stack is big though - I got the stack overflow on repating the Do(() => WriteLine("x")) 87253 times
 // [ ] Make it work with async/await see how it is done in https://github.com/yuretz/FreeAwait/tree/master/src/FreeAwait
 // [ ] Performance
@@ -16,7 +16,7 @@
 
 using System;
 using System.Threading;
-using System.Threading.Tasks;
+//using System.Threading.Tasks;
 //using System.Runtime.CompilerServices;
 using static System.Console;
 using static ImTools.UnitTests.Playground.Z;
@@ -32,60 +32,14 @@ namespace ImTools.UnitTests.Playground
 	
 	public abstract record ZImpl<A> : Z<A>
 	{
-		sealed record ContStack(Func<object, ZErased> Cont, ContStack Rest);
-	
 		public void Run(Action<A> consume)
 		{
-			ContStack _stack = null;
-			ZErased z = this;
-			void runLoop()
-			{
-				var loop = true;
-				while (loop)
-				{
-					switch (z)
-					{
-						case ZVal or ZLazy: 
-						{
-							var val = z is ZVal v ? v.Value : ((ZLazy)z).GetValue();
-							if (_stack is ContStack(var cont, var rest)) 
-							{
-								z = cont(val);
-								_stack = rest;
-							}
-							else 
-							{
-								consume((A)val);
-								loop = false;
-							}
-							break;
-						}
-						case ZThen t:
-						{
-							z = t.Za;
-							_stack = new ContStack(t.Cont, _stack);
-							break;
-						}
-						case ZAsync<A> ac:
-						{
-							loop = false;
-							if (_stack == null)
-								ac.Act(consume);
-							else
-								ac.Act(a => 
-								{
-									z = a.Val();
-									runLoop();
-								});
-							break;
-						}
-					}
-				}
-			}
-			runLoop();
+			var z = this.Then(a => Z.Do(() => consume(a)));
+			
+			// todo: @api await the fiber context - so make it awaitable
+			new ZFiberContext<Empty>(z);
 		}
 	} 
-
 
 	interface ZVal 
 	{
@@ -124,16 +78,25 @@ namespace ImTools.UnitTests.Playground
 	public interface ZFiber<out A>
 	{
 		Z<A> Join();
+		Z<Empty> Interrupt() => throw new NotImplementedException("todo");
 	}
 
-	sealed class ZFiberImpl<A> : ZFiber<A>
-	{			
-		abstract record State;
-		sealed record Done(A Value) : State;
-		sealed record Callbacks(Action<A> Act, Callbacks Rest) : State;
+	sealed record class ZFiberContext<A> : ZFiber<A>
+	{	
+		public ZErased Za { get; private set; }
+		public ZFiberContext(Z<A> za)
+		{
+			Za = za;
+			RunLoop(); //Task.Run(RunLoop);
+		}
+					
+		abstract record EvalState;
+		sealed record Done(A Value) : EvalState;
+		sealed record Callbacks(Action<A> Act, Callbacks Rest) : EvalState;	
+		EvalState _state;
 		
-		State _state;
-		public Z<A> Za { get; }
+		sealed record ContStack(Func<object, ZErased> Cont, ContStack Rest);
+		ContStack _stack;
 		
 		void Complete(A a)
 		{
@@ -163,27 +126,65 @@ namespace ImTools.UnitTests.Playground
 			}
 		}
 		
-		public ZFiberImpl(Z<A> za) 
-		{
-			Za = za;
-			Task.Run(() => Za.Run(Complete));
-		}
-
 		public Z<A> Join() => Z.Async<A>(Await);
+		
+		void RunLoop()
+		{
+			var loop = true;
+			while (loop)
+			{
+				switch (Za)
+				{
+					case ZVal or ZLazy: 
+					{
+						var val = Za is ZVal v ? v.Value : ((ZLazy)Za).GetValue();
+						if (_stack is ContStack(var cont, var rest)) 
+						{
+							Za = cont(val);
+							_stack = rest;
+						}
+						else 
+						{
+							Complete((A)val);
+							loop = false;
+						}
+						break;
+					}
+					case ZThen t:
+					{
+						Za = t.Za;
+						_stack = new ContStack(t.Cont, _stack);
+						break;
+					}
+					case ZAsync<A> ac:
+					{
+						loop = false;
+						if (_stack == null)
+							ac.Act(Complete);
+						else
+							ac.Act(a => 
+							{
+								Za = a.Val();
+								RunLoop();
+							});
+						break;
+					}
+				}
+			}
+		}
 	}
-	
+		
     public static class Z
     {
-		public sealed record Unit 
+		public sealed record Empty 
 		{
-			Unit() {}
-			public override string ToString() => "(unit)";
+			public override string ToString() => "(empty)";
 		}
-		public static readonly Unit unit = default(Unit);
+		public static readonly Empty empty = default(Empty);
 			
         public static Z<A> Val<A>(this A a) => new ZVal<A>(a);
         public static Z<A> Get<A>(Func<A> getA) => new ZLazy<A>(getA);
-		public static Z<Unit> Do(Action act) => new ZLazy<Unit>(() => { act(); return unit; });
+		public static Z<Empty> Do(Action act) => new ZLazy<Empty>(() => { act(); return empty; });
         public static Z<A> Async<A>(Action<Action<A>> act) => new ZAsync<A>(act); // TODO @wip convert Action<Action<A>> to more general Func<Func<A, ?>, ?> or provide the separate case class 
 
 		/// <summary>This is Bind, SelectMany or FlatMap... but I want to be unique and go with Then for now as it seems to have a more precise meaning IMHO</summary>
@@ -198,7 +199,7 @@ namespace ImTools.UnitTests.Playground
 		public static Z<A> And<A, B>(this Z<A> za, Z<B> zb) => za.Then(a => zb.Then(_ => a.Val()));
 		public static Z<A> RepeatN<A>(this Z<A> za, int n) => n <= 1 ? za : za.And(za.RepeatN(n - 1));
 		
-        public static Z<ZFiber<A>> Fork<A>(this Z<A> za) => Get(() => new ZFiberImpl<A>(za));
+        public static Z<ZFiber<A>> Fork<A>(this Z<A> za) => Get(() => new ZFiberContext<A>(za));
 		
         public static Z<(A, B)> ZipPar<A, B>(this Z<A> za, Z<B> zb) => 
 			from af in za.Fork()
@@ -284,7 +285,7 @@ namespace ImTools.UnitTests.Playground
 				select i;
 		}
 
-		public Z<Unit> Repeat(int n) 
+		public Z<Empty> Repeat(int n) 
 		{
 			var i = 0; 
 			return Z.Do(() => WriteLine("HOWDY " + (++i))).RepeatN(n);
@@ -306,15 +307,15 @@ namespace ImTools.UnitTests.Playground
 			run(t.Repeat(3),     nameof(t.Repeat));
 			//run(t.Repeat(15000), nameof(t.Repeat)); // should not StackOverflow
 
-			run(t.Async_sleep(), nameof(t.Async_sleep));
-			run(t.Async_seq(),   nameof(t.Async_seq));
+		//	run(t.Async_sleep(), nameof(t.Async_sleep));
+			//run(t.Async_seq(),   nameof(t.Async_seq));
 			
 			run(t.Async_fork(),  nameof(t.Async_fork));
-			WriteLine("Major sleep for 1000");
-			Thread.Sleep(1000);
+			//WriteLine("Major sleep for 1000");
+			//Thread.Sleep(1000);
 
-			run(t.Get_sleep(),   nameof(t.Get_sleep));
-			run(t.Get_seq(),     nameof(t.Get_seq));
+			//run(t.Get_sleep(),   nameof(t.Get_sleep));
+			//run(t.Get_seq(),     nameof(t.Get_seq));
 		
 			run(t.Zip_par(),     nameof(t.Zip_par));
 			// don't need to sleep here because par executes the right on the current thread
