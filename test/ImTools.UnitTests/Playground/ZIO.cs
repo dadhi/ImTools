@@ -78,7 +78,7 @@ namespace ImTools.UnitTests.Playground
 	public interface ZFiber<out A>
 	{
 		Z<A> Join();
-		Z<Empty> Interrupt() => throw new NotImplementedException("todo");
+		//Z<Empty> Interrupt() => throw new NotImplementedException("todo");
 	}
 
 	sealed record ZFiberContext<A> : ZFiber<A>
@@ -294,7 +294,7 @@ namespace ImTools.UnitTests.Playground
 	
 	public class Program
 	{
-		public static void Main()
+		public static void ZMain()
 		{
 			var t = new Tests();
 			
