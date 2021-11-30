@@ -81,7 +81,7 @@ namespace ImTools.UnitTests.Playground
 		Z<Empty> Interrupt() => throw new NotImplementedException("todo");
 	}
 
-	sealed record class ZFiberContext<A> : ZFiber<A>
+	sealed record ZFiberContext<A> : ZFiber<A>
 	{	
 		public ZErased Za { get; private set; }
 		public ZFiberContext(Z<A> za)
