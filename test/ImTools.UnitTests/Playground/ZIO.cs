@@ -8,6 +8,7 @@
 
 // TODO:
 // [X] Stack safety / the stack is big though - I got the stack overflow on repating the Do(() => WriteLine("x")) 87253 times
+// [X] Reduce allocations on the lambda clusures and therefore improve the perf
 // [ ] Make it work with async/await see how it is done in https://github.com/yuretz/FreeAwait/tree/master/src/FreeAwait
 // [ ] Performance
 // [ ] Work around the Task.Run or SynchronizaionContext
@@ -16,7 +17,7 @@
 
 using System;
 using System.Threading;
-//using System.Threading.Tasks;
+using System.Threading.Tasks;
 //using System.Runtime.CompilerServices;
 using static System.Console;
 using static ImTools.UnitTests.Playground.Z;
@@ -34,7 +35,7 @@ namespace ImTools.UnitTests.Playground
 	{
 		public void Run(Action<A> consume)
 		{
-			var z = this.Then(a => Z.Do(() => consume(a)));
+			var z = this.Then(consume, (consume_, a) => Z.Do(a, consume_));
 			
 			// todo: @api await the fiber context - so make it awaitable
 			new ZFiberContext<Empty>(z);
@@ -58,9 +59,24 @@ namespace ImTools.UnitTests.Playground
 
 	public sealed record ZLazy<A>(Func<A> GetValue) : ZImpl<A>, ZLazy
 	{
-		Func<object> ZLazy.GetValue => () => GetValue();
+		Func<object> ZLazy.GetValue { get; } = () => GetValue();
 	}
 
+	public sealed record ZLazy<S, A>(S State, Func<S, A> GetValue) : ZImpl<A>, ZLazy
+	{
+		Func<object> ZLazy.GetValue { get; } = () => GetValue(State);
+	}
+
+	public sealed record ZLazyDo(Action Act) : ZImpl<Empty>, ZLazy
+	{
+		Func<object> ZLazy.GetValue { get; } = () => { Act(); return empty; };
+	}
+
+	public sealed record ZLazyDo<S>(S State, Action<S> Act) : ZImpl<Empty>, ZLazy
+	{
+		Func<object> ZLazy.GetValue { get; } = () => { Act(State); return empty; };
+	}
+	
 	interface ZThen
 	{
 		ZErased Za { get; }
@@ -70,10 +86,30 @@ namespace ImTools.UnitTests.Playground
     public sealed record ZThen<A, B>(Z<A> Za, Func<A, Z<B>> Cont) : ZImpl<B>, ZThen
     {
 		ZErased ZThen.Za => Za;
-		Func<object, ZErased> ZThen.Cont => a => Cont((A)a);
+		Func<object, ZErased> ZThen.Cont { get; } = a => Cont((A)a);
+    }
+	
+	public sealed record ZThen<S, A, B>(Z<A> Za, S State, Func<S, A, Z<B>> Cont) : ZImpl<B>, ZThen
+    {
+		ZErased ZThen.Za => Za;
+		Func<object, ZErased> ZThen.Cont { get; } = a => Cont(State, (A)a);
     }
 
-	public sealed record ZAsync<A>(Action<Action<A>> Act) : ZImpl<A>;
+	public sealed record ZThen<S1, S2, A, B>(Z<A> Za, S1 State1, S2 State2, Func<S1, S2, A, Z<B>> Cont) : ZImpl<B>, ZThen
+    {
+		ZErased ZThen.Za => Za;
+		Func<object, ZErased> ZThen.Cont { get; } = a => Cont(State1, State2, (A)a);
+    }
+
+	interface ZAsync
+	{
+		Action<Action<object>> Act { get; }
+	}
+
+	public sealed record ZAsync<A>(Action<Action<A>> Act) : ZImpl<A>, ZAsync
+	{
+		Action<Action<object>> ZAsync.Act { get; } = act => Act(a => act(a));
+	}
 	
 	public interface ZFiber<out A>
 	{
@@ -87,7 +123,7 @@ namespace ImTools.UnitTests.Playground
 		public ZFiberContext(Z<A> za)
 		{
 			Za = za;
-			RunLoop(); //Task.Run(RunLoop);
+			Task.Run(RunLoop);
 		}
 					
 		abstract record EvalState;
@@ -108,67 +144,78 @@ namespace ImTools.UnitTests.Playground
 		
 		void Await(Action<A> callback)
 		{
-			var spinWait = new SpinWait();
-			while (true)
+			if (_state is Done doneFast)
+				callback(doneFast.Value);
+			else
 			{
-				var s = _state;
-				if (s is Done done)
+				var spinWait = new SpinWait();
+				while (true)
 				{
-					callback(done.Value);
-					break;
-				}
-				
-				var callbacks = new Callbacks(callback, s as Callbacks);
-				if (Interlocked.CompareExchange(ref _state, callbacks, s) == s)
-					break;
+					var s = _state;
+					if (s is Done done)
+					{
+						callback(done.Value);
+						break;
+					}
 
-				spinWait.SpinOnce();
-			}
+					var callbacks = new Callbacks(callback, s as Callbacks);
+					if (Interlocked.CompareExchange(ref _state, callbacks, s) == s)
+						break;
+
+					spinWait.SpinOnce();
+				}
+			}		
 		}
 		
 		public Z<A> Join() => Z.Async<A>(Await);
+		
+		// returns true to proceed 
+		private bool CompleteOrProceedWith(object val)
+		{
+			if (_stack is ContStack(var cont, var rest)) 
+			{
+				Za = cont(val);
+				_stack = rest;
+				return true;
+			}
+			Complete((A)val);
+			return false;
+		}
 		
 		void RunLoop()
 		{
 			var loop = true;
 			while (loop)
 			{
-				switch (Za)
+				switch(Za)
 				{
-					case ZVal or ZLazy: 
-					{
-						var val = Za is ZVal v ? v.Value : ((ZLazy)Za).GetValue();
-						if (_stack is ContStack(var cont, var rest)) 
-						{
-							Za = cont(val);
-							_stack = rest;
-						}
-						else 
-						{
-							Complete((A)val);
-							loop = false;
-						}
+					case ZVal v:
+						loop = CompleteOrProceedWith(v.Value);
 						break;
-					}
+
+					case ZLazy l:
+						loop = CompleteOrProceedWith(l.GetValue());
+						break;
+
 					case ZThen t:
-					{
 						Za = t.Za;
 						_stack = new ContStack(t.Cont, _stack);
 						break;
-					}
-					case ZAsync<A> ac:
-					{
+
+					case ZAsync a:
 						loop = false;
 						if (_stack == null)
-							ac.Act(Complete);
+							a.Act(x => Complete((A)x));
 						else
-							ac.Act(a => 
+							a.Act(x => 
 							{
-								Za = a.Val();
+								Za = x.Val();
 								RunLoop();
 							});
 						break;
-					}
+
+					case var unknown:
+						throw new InvalidOperationException("RunLoop does not recongnize " + unknown);
 				}
 			}
 		}
@@ -176,36 +223,71 @@ namespace ImTools.UnitTests.Playground
 		
     public static class Z
     {
+		public static ZFiber<A> RunUnsafeFiber<A>(this Z<A> za) => new ZFiberContext<A>(za);
+		
+		public static A RunUnsafe<A>(this Z<A> za)
+		{
+			using var e = new AutoResetEvent(false);
+			A result = default;
+			RunUnsafeFiber(za.Then(a => Z.Do(() => {
+				result = a;
+				e.Set();
+			})));
+			e.WaitOne();
+			return result;
+		}
+			
+        public static Z<A> Val<A>(this A a) => new ZVal<A>(a);
+        
+		public static Z<A> Get<A>(Func<A> getA) => new ZLazy<A>(getA);
+		public static Z<A> Get<S, A>(S state, Func<S, A> getA) => new ZLazy<S, A>(state, getA);
+		
+		public static Z<Empty> Do(Action act) => new ZLazyDo(act);
+		public static Z<Empty> Do<S>(in S state, Action<S> act) => new ZLazyDo<S>(state, act);
+		
+		// todo: @perf @mem optimize
+		//public static Z<Empty> DoWith<S>(S state, Action<S> act) => Get(act, ac => { ac(); return empty; });
+		
+        public static Z<A> Async<A>(Action<Action<A>> act) => new ZAsync<A>(act); // TODO @wip convert Action<Action<A>> to more general Func<Func<A, ?>, ?> or provide the separate case class 
+
+		/// <summary>This is Bind, SelectMany or FlatMap... but I want to be unique and go with Then for now as it seems to have a more precise meaning IMHO</summary>
+        public static Z<B> Then<A, B>(this Z<A> za, Func<A, Z<B>> @from) => new ZThen<A, B>(za, @from);
+		public static Z<B> Then<S, A, B>(this Z<A> za, S s, Func<S, A, Z<B>> @from) => new ZThen<S, A, B>(za, s, @from);
+		public static Z<B> Then<S1, S2, A, B>(this Z<A> za, S1 s1, S2 s2, Func<S1, S2, A, Z<B>> @from) => new ZThen<S1, S2, A, B>(za, s1, s2, @from);
+
+        public static Z<B> To<A, B>(this Z<A> za, Func<A, B> map) => za.Then(map, (map_, a) => map_(a).Val());
+		
+        public static Z<B> ToVal<A, B>(this Z<A> za, B b) => za.Then(b, (b_, _) => b_.Val());
+        public static Z<B> ToGet<A, B>(this Z<A> za, Func<B> getB) => za.Then(getB, (getB_, _) => getB_().Val());
+
+        public static Z<(A, B)> Zip<A, B>(this Z<A> za, Z<B> zb) => za.Then(zb, (zb_, a) => zb_.Then(a, (a_, b) => Val((a_, b))));		
+		
+		public static Z<C> ZipWith<A, B, C>(this Z<A> za, Z<B> zb, Func<A, B, C> zip) => za.Then(zip, zb, (zip_, zb_, a) => zb.Then(zip_, a, (zip__, a_, b) => zip__(a_, b).Val()));
+		
+		public static Z<A> And<A, B>(this Z<A> za, Z<B> zb) => za.Then(zb, (zb_, a) => zb_.Then(a, (a_, _) => a_.Val()));
+		
+		public static Z<A> RepeatN<A>(this Z<A> za, int n) => n <= 1 ? za : za.And(za.RepeatN(n - 1));
+		
+        public static Z<ZFiber<A>> Fork<A>(this Z<A> za) => Get(za, z => new ZFiberContext<A>(z));
+		
+		// Here is the reference implementation of ZipPar with Linq paying the memory allocations and performance for the sugar clarity
+        // public static Z<(A, B)> ZipPar2<A, B>(this Z<A> za, Z<B> zb) => 
+		//	   from zaForked in za.Fork()
+		//	   from b in zb
+		//	   from a in zaForked.Join()
+		//	   select (a, b);
+		//
+		public static Z<(A, B)> ZipPar<A, B>(this Z<A> za, Z<B> zb) => 
+			za.Fork().Then(zb, (zb_, zaForked) => 
+			zb_.Then(zaForked, (zaForked_, b) => 
+            zaForked_.Join().Then(b, (b_, a) => 
+            Val((a, b_)))));
+				
 		public sealed record Empty 
 		{
 			public override string ToString() => "(empty)";
 		}
 		public static readonly Empty empty = default(Empty);
-			
-        public static Z<A> Val<A>(this A a) => new ZVal<A>(a);
-        public static Z<A> Get<A>(Func<A> getA) => new ZLazy<A>(getA);
-		public static Z<Empty> Do(Action act) => new ZLazy<Empty>(() => { act(); return empty; });
-        public static Z<A> Async<A>(Action<Action<A>> act) => new ZAsync<A>(act); // TODO @wip convert Action<Action<A>> to more general Func<Func<A, ?>, ?> or provide the separate case class 
-
-		/// <summary>This is Bind, SelectMany or FlatMap... but I want to be unique and go with Then for now as it seems to have a more precise meaning IMHO</summary>
-        public static Z<B> Then<A, B>(this Z<A> za, Func<A, Z<B>> from) => new ZThen<A, B>(za, from);
-
-        public static Z<B> To<A, B>(this Z<A> za, Func<A, B> map) => za.Then(a => map(a).Val());
-        public static Z<B> ToVal<A, B>(this Z<A> za, B b) => za.Then(_ => b.Val()); // TODO @perf optimize allocations
-        public static Z<B> ToGet<A, B>(this Z<A> za, Func<B> getB) => za.Then(_ => getB().Val()); // TODO @perf optimize allocations
-
-        public static Z<(A, B)> Zip<A, B>(this Z<A> za, Z<B> zb) => za.Then(a => zb.Then(b => Val((a, b))));		
-		public static Z<C> ZipWith<A, B, C>(this Z<A> za, Z<B> zb, Func<A, B, C> zip) => za.Then(a => zb.Then(b => zip(a, b).Val()));
-		public static Z<A> And<A, B>(this Z<A> za, Z<B> zb) => za.Then(a => zb.Then(_ => a.Val()));
-		public static Z<A> RepeatN<A>(this Z<A> za, int n) => n <= 1 ? za : za.And(za.RepeatN(n - 1));
-		
-        public static Z<ZFiber<A>> Fork<A>(this Z<A> za) => Get(() => new ZFiberContext<A>(za));
-		
-        public static Z<(A, B)> ZipPar<A, B>(this Z<A> za, Z<B> zb) => 
-			from af in za.Fork()
-			from b in zb
-			from a in af.Join()
-			select (a, b);		
     }
 
     public static class ZLinq
@@ -213,7 +295,7 @@ namespace ImTools.UnitTests.Playground
         public static Z<R> Select<A, R>(this Z<A> za, Func<A, R> selector) => za.To(selector);
         public static Z<R> SelectMany<A, R>(this Z<A> za, Func<A, Z<R>> next) => za.Then(next);
         public static Z<R> SelectMany<A, B, R>(this Z<A> za, Func<A, Z<B>> getZb, Func<A, B, R> project) =>
-            za.Then(a => getZb(a).Then(b => project(a, b).Val()));
+            za.Then(getZb, project, (getZb_, project_, a) => getZb_(a).Then(project_, a, (project__, a_, b) => project__(a_, b).Val()));
     }
 	    
     public class Tests
@@ -228,8 +310,8 @@ namespace ImTools.UnitTests.Playground
             Async<int>(run =>
 			{
 				var id = Id();
-                WriteLine($"Sleep for 300 - {id}");
-                Thread.Sleep(300);
+                WriteLine($"Sleep for 50ms - {id}");
+                Thread.Sleep(50);
                 WriteLine($"Woken {id}");
                 run(42);
             });
@@ -239,8 +321,8 @@ namespace ImTools.UnitTests.Playground
             Get(() => 
 			{
 				var id = Id();
-                WriteLine($"Sleep for 300 - {id}");
-                Thread.Sleep(300);
+                WriteLine($"Sleep for 50ms - {id}");
+                Thread.Sleep(50);
 				WriteLine($"Woken - {id}");
                 return 43;
             });
@@ -280,8 +362,8 @@ namespace ImTools.UnitTests.Playground
             return 
 				from b in Z.Do(() => WriteLine("Before Async_counter.."))
 				from x in Z.Do(() => Interlocked.Increment(ref i)).Fork().RepeatN(100)
-				from w in Z.Do(() => Thread.Sleep(500))
-				from a in Z.Do(() => WriteLine("After Async_counter and sleep for 500"))
+				from w in Z.Do(() => Thread.Sleep(50))
+				from a in Z.Do(() => WriteLine("After Async_counter and sleep for 50ms"))
 				select i;
 		}
 
@@ -298,7 +380,13 @@ namespace ImTools.UnitTests.Playground
 		{
 			var t = new Tests();
 			
-			void run<A>(Z<A> z, string name = "") { WriteLine(name + " >> "); z.Run(x => WriteLine(x)); Write("\n"); }
+			void run<A>(Z<A> za, string name = "") 
+			{ 
+				WriteLine(name + " >> "); 
+				var a = za.RunUnsafe();
+				WriteLine(a); 
+				WriteLine(); 
+			}
 
 			run(t.Async_counter(), nameof(t.Async_counter));
 			
@@ -307,18 +395,12 @@ namespace ImTools.UnitTests.Playground
 			run(t.Repeat(3),     nameof(t.Repeat));
 			//run(t.Repeat(15000), nameof(t.Repeat)); // should not StackOverflow
 
-		//	run(t.Async_sleep(), nameof(t.Async_sleep));
-			//run(t.Async_seq(),   nameof(t.Async_seq));
+			run(t.Async_sleep(), nameof(t.Async_sleep));
+			run(t.Async_seq(),   nameof(t.Async_seq));
 			
 			run(t.Async_fork(),  nameof(t.Async_fork));
-			//WriteLine("Major sleep for 1000");
-			//Thread.Sleep(1000);
 
-			//run(t.Get_sleep(),   nameof(t.Get_sleep));
-			//run(t.Get_seq(),     nameof(t.Get_seq));
-		
 			run(t.Zip_par(),     nameof(t.Zip_par));
-			// don't need to sleep here because par executes the right on the current thread
 			
 			WriteLine("==DONE==");
 		}
