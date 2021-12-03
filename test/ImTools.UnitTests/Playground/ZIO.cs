@@ -54,63 +54,68 @@ namespace ImTools.UnitTests.Playground
 
 	interface ZLazy 
 	{
-		Func<object> GetValue { get; }
+		object GetValue();
 	}
 
 	public sealed record ZLazy<A>(Func<A> GetValue) : ZImpl<A>, ZLazy
 	{
-		Func<object> ZLazy.GetValue { get; } = () => GetValue();
+		object ZLazy.GetValue() => GetValue();
 	}
 
 	public sealed record ZLazy<S, A>(S State, Func<S, A> GetValue) : ZImpl<A>, ZLazy
 	{
-		Func<object> ZLazy.GetValue { get; } = () => GetValue(State);
+		object ZLazy.GetValue() => GetValue(State);
 	}
 
 	public sealed record ZLazyDo(Action Act) : ZImpl<Empty>, ZLazy
 	{
-		Func<object> ZLazy.GetValue { get; } = () => { Act(); return empty; };
+		object ZLazy.GetValue() { Act(); return empty; }
 	}
 
 	public sealed record ZLazyDo<S>(S State, Action<S> Act) : ZImpl<Empty>, ZLazy
 	{
-		Func<object> ZLazy.GetValue { get; } = () => { Act(State); return empty; };
+		object ZLazy.GetValue() { Act(State); return empty; }
 	}
 	
 	interface ZThen
 	{
 		ZErased Za { get; }
-		Func<object, ZErased> Cont { get; }
+		ZErased Cont(object a);
 	}
 
     public sealed record ZThen<A, B>(Z<A> Za, Func<A, Z<B>> Cont) : ZImpl<B>, ZThen
     {
 		ZErased ZThen.Za => Za;
-		Func<object, ZErased> ZThen.Cont { get; } = a => Cont((A)a);
+		ZErased ZThen.Cont(object a) => Cont((A)a);
     }
 	
 	public sealed record ZThen<S, A, B>(Z<A> Za, S State, Func<S, A, Z<B>> Cont) : ZImpl<B>, ZThen
     {
 		ZErased ZThen.Za => Za;
-		Func<object, ZErased> ZThen.Cont { get; } = a => Cont(State, (A)a);
+		ZErased ZThen.Cont(object a) => Cont(State, (A)a);
     }
 
 	public sealed record ZThen<S1, S2, A, B>(Z<A> Za, S1 State1, S2 State2, Func<S1, S2, A, Z<B>> Cont) : ZImpl<B>, ZThen
     {
 		ZErased ZThen.Za => Za;
-		Func<object, ZErased> ZThen.Cont { get; } = a => Cont(State1, State2, (A)a);
+		ZErased ZThen.Cont(object a) => Cont(State1, State2, (A)a);
     }
 
 	interface ZAsync
 	{
-		Action<Action<object>> Act { get; }
+		void Schedule(object state, Action<object, object> run);
 	}
 
-	public sealed record ZAsync<A>(Action<Action<A>> Act) : ZImpl<A>, ZAsync
+	public sealed record ZAsync<A>(Action<object, object, Action<object, object, A>> Schedule) : ZImpl<A>, ZAsync
 	{
-		Action<Action<object>> ZAsync.Act { get; } = act => Act(a => act(a));
+		void ZAsync.Schedule(object state, Action<object, object> run) => Schedule(run, state, (run_, state_, a) => ((Action<object, object>)run_)(state_, a));
 	}
-	
+
+	public sealed record ZAsync<S, A>(S State, Action<S, object, object, Action<object, object, A>> Schedule) : ZImpl<A>, ZAsync
+	{
+		void ZAsync.Schedule(object state, Action<object, object> run) => Schedule(State, run, state, (run_, state_, a) => ((Action<object, object>)run_)(state_, a));
+	}
+		
 	public interface ZFiber<out A>
 	{
 		Z<A> Join();
@@ -125,61 +130,67 @@ namespace ImTools.UnitTests.Playground
 			Za = za;
 			Task.Run(RunLoop);
 		}
-					
+		
+		sealed record ContStack(ZThen Cont, ContStack Rest);
+		ContStack _stack;
+
 		abstract record EvalState;
 		sealed record Done(A Value) : EvalState;
-		sealed record Callbacks(Action<A> Act, Callbacks Rest) : EvalState;	
+		sealed record Callbacks(Action<object, object, A> Act, object P0, object P1, Callbacks Rest) : EvalState;	
 		EvalState _state;
-		
-		sealed record ContStack(Func<object, ZErased> Cont, ContStack Rest);
-		ContStack _stack;
 		
 		void Complete(A a)
 		{
 			var s = Interlocked.Exchange(ref _state, new Done(a));
-			if (s is Callbacks (var act, var rest))
-				for (; act != null; act = rest.Act)
-					act(a);
+			while (s is Callbacks (var act, var p0, var p1, var rest))
+			{
+				act(p0, p1, a);
+				s = rest;
+			}
 		}
 		
-		void Await(Action<A> callback)
+		public Z<A> Join() => Z.Async<ZFiberContext<A>, A>(this, (f, _, __, run) => 
 		{
-			if (_state is Done doneFast)
-				callback(doneFast.Value);
+			if (f._state is Done doneFast)
+				run(_, __, doneFast.Value);
 			else
 			{
 				var spinWait = new SpinWait();
 				while (true)
 				{
-					var s = _state;
+					var s = f._state;
 					if (s is Done done)
 					{
-						callback(done.Value);
+						run(_, __, done.Value);
 						break;
 					}
 
-					var callbacks = new Callbacks(callback, s as Callbacks);
-					if (Interlocked.CompareExchange(ref _state, callbacks, s) == s)
+					var callbacks = new Callbacks(run, _, __, s as Callbacks);
+					if (Interlocked.CompareExchange(ref f._state, callbacks, s) == s)
 						break;
 
 					spinWait.SpinOnce();
 				}
-			}		
-		}
-		
-		public Z<A> Join() => Z.Async<A>(Await);
+			}				
+		});
 		
 		// returns true to proceed 
 		private bool CompleteOrProceedWith(object val)
 		{
 			if (_stack is ContStack(var cont, var rest)) 
 			{
-				Za = cont(val);
+				Za = cont.Cont(val);
 				_stack = rest;
 				return true;
 			}
 			Complete((A)val);
 			return false;
+		}
+		
+		void Resume(ZErased startZa)
+		{ 
+			Za = startZa;
+			RunLoop();
 		}
 		
 		void RunLoop()
@@ -199,19 +210,15 @@ namespace ImTools.UnitTests.Playground
 
 					case ZThen t:
 						Za = t.Za;
-						_stack = new ContStack(t.Cont, _stack);
+						_stack = new ContStack(t, _stack);
 						break;
 
 					case ZAsync a:
 						loop = false;
 						if (_stack == null)
-							a.Act(x => Complete((A)x));
+							a.Schedule(this, (f, x) => ((ZFiberContext<A>)f).Complete((A)x));
 						else
-							a.Act(x => 
-							{
-								Za = x.Val();
-								RunLoop();
-							});
+							a.Schedule(this, (f, x) => ((ZFiberContext<A>)f).Resume(x.Val()));
 						break;
 
 					case var unknown:
@@ -244,12 +251,10 @@ namespace ImTools.UnitTests.Playground
 		
 		public static Z<Empty> Do(Action act) => new ZLazyDo(act);
 		public static Z<Empty> Do<S>(in S state, Action<S> act) => new ZLazyDo<S>(state, act);
+				
+        public static Z<A> Async<A>(Action<object, object, Action<object, object, A>> schedule) => new ZAsync<A>(schedule);
+		public static Z<A> Async<S, A>(in S state, Action<S, object, object, Action<object, object, A>> schedule) => new ZAsync<S, A>(state, schedule);
 		
-		// todo: @perf @mem optimize
-		//public static Z<Empty> DoWith<S>(S state, Action<S> act) => Get(act, ac => { ac(); return empty; });
-		
-        public static Z<A> Async<A>(Action<Action<A>> act) => new ZAsync<A>(act); // TODO @wip convert Action<Action<A>> to more general Func<Func<A, ?>, ?> or provide the separate case class 
-
 		/// <summary>This is Bind, SelectMany or FlatMap... but I want to be unique and go with Then for now as it seems to have a more precise meaning IMHO</summary>
         public static Z<B> Then<A, B>(this Z<A> za, Func<A, Z<B>> @from) => new ZThen<A, B>(za, @from);
 		public static Z<B> Then<S, A, B>(this Z<A> za, S s, Func<S, A, Z<B>> @from) => new ZThen<S, A, B>(za, s, @from);
@@ -307,16 +312,15 @@ namespace ImTools.UnitTests.Playground
            	Z.Val(42).To(x => x + "!");
 
         public Z<int> Async_sleep() =>
-            Async<int>(run =>
+            Async<int>((_, __, run) =>
 			{
 				var id = Id();
                 WriteLine($"Sleep for 50ms - {id}");
                 Thread.Sleep(50);
                 WriteLine($"Woken {id}");
-                run(42);
+                run(_, __, 42);
             });
 
-		
 		public Z<int> Get_sleep() =>
             Get(() => 
 			{
