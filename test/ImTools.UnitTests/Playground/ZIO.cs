@@ -9,9 +9,11 @@
 // TODO:
 // [X] Stack safety / the stack is big though - I got the stack overflow on repating the Do(() => WriteLine("x")) 87253 times
 // [X] Reduce allocations on the lambda clusures and therefore improve the perf
+// [X] Allow to pass your async code scheduler Task.Run or SynchronizaionContext
+// [ ] Catch errors from the Async task runner or Task
+// [?] Ergonomics - less noise in API surface, more ortogonal and simple to understand implementation 
 // [ ] Make it work with async/await see how it is done in https://github.com/yuretz/FreeAwait/tree/master/src/FreeAwait
 // [ ] Performance
-// [ ] Work around the Task.Run or SynchronizaionContext
 // [ ] Error handling
 // [ ] Environment
 
@@ -38,7 +40,7 @@ namespace ImTools.UnitTests.Playground
 			var z = this.Then(consume, (consume_, a) => Z.Do(a, consume_));
 			
 			// todo: @api await the fiber context - so make it awaitable
-			new ZFiberContext<Empty>(z);
+			new ZFiberContext<Empty>(z, Z.DefaultFiberRunner);
 		}
 	} 
 
@@ -81,6 +83,16 @@ namespace ImTools.UnitTests.Playground
 	{
 		object ZLazy.GetValue() { Act(State1, State2); return empty; }
 	}
+	
+	interface ZFork 
+	{
+		object GetFiber(Func<Action, object> runner);
+	}
+	
+	public sealed record ZFork<A>(Z<A> Za, Func<Z<A>, Func<Action, object>, ZFiber<A>> GetFiber) : ZImpl<ZFiber<A>>, ZFork
+	{
+		object ZFork.GetFiber(Func<Action, object> runner) => GetFiber(Za, runner);
+	}	
 	
 	interface ZThen
 	{
@@ -135,10 +147,15 @@ namespace ImTools.UnitTests.Playground
 	sealed record ZFiberContext<A> : ZFiber<A>
 	{	
 		public ZErased Za { get; private set; }
-		public ZFiberContext(Z<A> za)
+		public readonly Func<Action, object> Runner;
+		
+		public readonly object _work; // todo: @wip what to do with this?
+		
+		public ZFiberContext(Z<A> za, Func<Action, object> runner)
 		{
 			Za = za;
-			Task.Run(RunLoop);
+			Runner = runner;
+			_work = Runner(RunLoop);
 		}
 		
 		sealed record ContStack(ZThen Cont, ContStack Rest);
@@ -185,7 +202,7 @@ namespace ImTools.UnitTests.Playground
 		});
 		
 		// returns true to proceed 
-		private bool CompleteOrProceedWith(object val)
+		private bool Continue(object val)
 		{
 			if (_stack is ContStack(var cont, var rest)) 
 			{
@@ -197,9 +214,9 @@ namespace ImTools.UnitTests.Playground
 			return false;
 		}
 		
-		void Resume(ZErased startZa)
+		void Resume(ZErased za)
 		{ 
-			Za = startZa;
+			Za = za;
 			RunLoop();
 		}
 		
@@ -211,11 +228,15 @@ namespace ImTools.UnitTests.Playground
 				switch(Za)
 				{
 					case ZVal v:
-						loop = CompleteOrProceedWith(v.Value);
+						loop = Continue(v.Value);
 						break;
 
 					case ZLazy l:
-						loop = CompleteOrProceedWith(l.GetValue());
+						loop = Continue(l.GetValue());
+						break;
+
+					case ZFork f:
+						loop = Continue(f.GetFiber(Runner));
 						break;
 
 					case ZThen t:
@@ -240,7 +261,9 @@ namespace ImTools.UnitTests.Playground
 		
     public static class Z
     {
-		public static ZFiber<A> RunUnsafeFiber<A>(this Z<A> za) => new ZFiberContext<A>(za);
+		public static readonly Func<Action, object> DefaultFiberRunner = Task.Run; 
+		
+		public static ZFiber<A> RunUnsafeFiber<A>(this Z<A> za) => new ZFiberContext<A>(za, DefaultFiberRunner);
 		
 		sealed class Box<A> { public A Ab; public Box(A a) => Ab = a; }
 		sealed class Box<A, B> { public A Ab; public B Bb; public Box(A a, B b){ Ab = a; Bb = b; } }
@@ -290,7 +313,8 @@ namespace ImTools.UnitTests.Playground
 
 		public static Z<A> Async<S, A>(in S state, Action<S, Action<A>> schedule) => new ZAsyncFriendly<S, A>(state, schedule);
 
-        public static Z<ZFiber<A>> Fork<A>(this Z<A> za) => Get(za, z => new ZFiberContext<A>(z));
+		// todo: @perf @mem we may potentially reuse FiberContext when the RunLoop done or on Join?
+        public static Z<ZFiber<A>> Fork<A>(this Z<A> za) => new ZFork<A>(za, (z, runner) => new ZFiberContext<A>(z, runner));
 		
 		// Here is the reference implementation of ZipPar with Linq paying the memory allocations and performance for the sugar clarity
         // public static Z<(A, B)> ZipPar2<A, B>(this Z<A> za, Z<B> zb) => 
@@ -422,7 +446,7 @@ namespace ImTools.UnitTests.Playground
 
 			run(t.Zip_par(),     nameof(t.Zip_par));
 			
-			WriteLine("==DONE==");
+			WriteLine("==SUCCESS!==");
 		}
 	}
 }
