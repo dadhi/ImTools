@@ -92,7 +92,9 @@ namespace ImTools.UnitTests.Playground
 	public sealed record ZFork<A>(Z<A> Za, Func<Z<A>, Func<Action, object>, ZFiber<A>> GetFiber) : ZImpl<ZFiber<A>>, ZFork
 	{
 		object ZFork.GetFiber(Func<Action, object> runner) => GetFiber(Za, runner);
-	}	
+	}
+	
+	public sealed record ZShift(Func<Action, object> Runner) : ZImpl<Empty> {}
 	
 	interface ZThen
 	{
@@ -147,7 +149,7 @@ namespace ImTools.UnitTests.Playground
 	sealed record ZFiberContext<A> : ZFiber<A>
 	{	
 		public ZErased Za { get; private set; }
-		public readonly Func<Action, object> Runner;
+		public Func<Action, object> Runner { get; private set; }
 		
 		public readonly object _work; // todo: @wip what to do with this?
 		
@@ -238,6 +240,11 @@ namespace ImTools.UnitTests.Playground
 					case ZFork f:
 						loop = Continue(f.GetFiber(Runner));
 						break;
+						
+					case ZShift s:
+						Runner = s.Runner;
+						loop = Continue(empty);
+						break;
 
 					case ZThen t:
 						Za = t.Za;
@@ -315,6 +322,8 @@ namespace ImTools.UnitTests.Playground
 
 		// todo: @perf @mem we may potentially reuse FiberContext when the RunLoop done or on Join?
         public static Z<ZFiber<A>> Fork<A>(this Z<A> za) => new ZFork<A>(za, (z, runner) => new ZFiberContext<A>(z, runner));
+		
+		public static Z<Empty> Shift(Func<Action, object> runner) => new ZShift(runner);
 		
 		// Here is the reference implementation of ZipPar with Linq paying the memory allocations and performance for the sugar clarity
         // public static Z<(A, B)> ZipPar2<A, B>(this Z<A> za, Z<B> zb) => 
