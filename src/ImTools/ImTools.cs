@@ -3215,7 +3215,7 @@ namespace ImTools
 
         /// <summary>Returns the found entry with the same hash or the new map with added new entry.
         /// Note that the empty map will return the entry the same as if the entry was found - so the consumer should check for the empty map.
-        /// Note that the method cannot return the `null` - when the existing entry is not found it will alway be the new map with the added entry.</summary>
+        /// Note that the method cannot return the `null` - when the existing entry is not found it will always be the new map with the added entry.</summary>
         public virtual ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry) => entry;
 
         /// <summary>Returns the new map with old entry replaced by the new entry. Note that the old entry should be present.</summary>
@@ -4339,7 +4339,7 @@ namespace ImTools
 
         /// <summary>Returns the found entry with the same hash or the new map with added new entry.
         /// Note that the empty map will return the entry the same as if the entry was found - so the consumer should check for the empty map.
-        /// Note that the method cannot return the `null` - when the existing entry is not found it will alway be the new map with the added entry.</summary>
+        /// Note that the method cannot return the `null` - when the existing entry is not found it will always be the new map with the added entry.</summary>
         internal virtual ImMap<V> AddOrGetEntry(int hash, ImMapEntry<V> entry) => entry;
 
         /// <summary>Returns the new map with old entry replaced by the new entry. Note that the old entry should be present.</summary>
