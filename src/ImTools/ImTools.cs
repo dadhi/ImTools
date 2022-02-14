@@ -4005,7 +4005,7 @@ namespace ImTools
                 {
                     // the the hole has a 2-node as a parent and a 3-node as a sibling.
                     if (Right is Branch3 rb3) //! the height does not change
-                        return new Branch2(new Branch2(newLeft, mid, rb3.Left), rb3.Entry0, new Branch2(rb3.Middle, rb3.Entry0, rb3.Right));
+                        return new Branch2(new Branch2(newLeft, mid, rb3.Left), rb3.Entry0, new Branch2(rb3.Middle, rb3.Entry1, rb3.Right));
 
                     // the the hole has a 2-node as a parent and a 2-node as a sibling.
                     var rb2 = (Branch2)Right;
@@ -5089,7 +5089,7 @@ namespace ImTools
                     var right = Right;
                     // the the hole has a 2-node as a parent and a 3-node as a sibling.
                     if (right is Branch3 rb3) //! the height does not change
-                        return new Branch2(new Branch2(newLeft, mid, rb3.Left), rb3.Entry0, new Branch2(rb3.Middle, rb3.Entry0, rb3.Right));
+                        return new Branch2(new Branch2(newLeft, mid, rb3.Left), rb3.Entry0, new Branch2(rb3.Middle, rb3.Entry1, rb3.Right));
 
                     if (right is Branch2Plus1 rb21)
                         return new Branch3(newLeft, mid, rb21.ToSplitBranch2(out var rMid, out var rRight), rMid, rRight);
