@@ -5151,7 +5151,7 @@ namespace ImTools
                 newRight = l511 = (Leaf5Plus1Plus1)b.Right;
                 newMid = l511.GetMinHashEntryOrDefault();
                 if (newMid.Hash < Plus.Hash)
-                    newRight = l511.RemoveMaxHashEntryAndAddNewEntry(newMid, Plus);
+                    newRight = l511.RemoveMinHashEntryAndAddNewEntry(newMid, Plus);
                 else
                     newMid = Plus;
                 return b.Left.AddOrGetEntry(m.Hash, m); // @perf replace with the AddEntry method
