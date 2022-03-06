@@ -2,10 +2,10 @@
     <PropertyGroup>
         <!--Set to true to minimize number of target frameworks, to fasten the build :-) -->
         <DevMode>true</DevMode>
-        <LangVersion>8.0</LangVersion>
+        <LangVersion>10.0</LangVersion>
 
         <Authors>Maksim Volkau</Authors>
-        <Copyright>Copyright © 2016-2021 Maksim Volkau</Copyright>
+        <Copyright>Copyright © 2016-2022 Maksim Volkau</Copyright>
 
         <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
         <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
