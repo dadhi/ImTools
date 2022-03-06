@@ -107,7 +107,7 @@ namespace ImTools
     }
 
     /// <summary>Just a helper state with the number of mutable fields with the nice names ;) Maybe used together with Fold or other methods required state</summary>
-    public sealed class St<A> 
+    public sealed class St<A>
     {
         /// <summary>A</summary>
         public A a;
@@ -118,7 +118,7 @@ namespace ImTools
 
         /// <summary>Puts the pooled instance back replacing the old one</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public void Reset() 
+        public void Reset()
         {
             a = default;
             Pooled = this; // we don't need to do the atomic update here because we don't care what instance is ended up to be pooled
@@ -126,7 +126,7 @@ namespace ImTools
 
         /// <summary>Puts the pooled instance back replacing the old one</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public A ResetButGetA() 
+        public A ResetButGetA()
         {
             var a1 = a;
             a = default;
@@ -135,10 +135,10 @@ namespace ImTools
         }
 
         internal static St<A> Pooled;
-    } 
+    }
 
     /// <summary>Just a helper state with the number of mutable fields with the nice names ;) Maybe used together with Fold or other methods required state</summary>
-    public sealed class St<A, B> 
+    public sealed class St<A, B>
     {
         /// <summary>A</summary>
         public A a;
@@ -151,7 +151,7 @@ namespace ImTools
 
         /// <summary>Puts the pooled instance back replacing the old one</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public void Reset() 
+        public void Reset()
         {
             a = default;
             b = default;
@@ -160,7 +160,7 @@ namespace ImTools
 
         /// <summary>Puts the pooled instance back replacing the old one</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public A ResetButGetA() 
+        public A ResetButGetA()
         {
             var a1 = a;
             a = default;
@@ -171,7 +171,7 @@ namespace ImTools
 
         /// <summary>Puts the pooled instance back replacing the old one</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public B ResetButGetB() 
+        public B ResetButGetB()
         {
             var b1 = b;
             a = default;
@@ -181,10 +181,10 @@ namespace ImTools
         }
 
         internal static St<A, B> Pooled;
-    } 
+    }
 
     /// <summary>State factory and helper methods</summary>
-    public static class St 
+    public static class St
     {
         /// <summary>Creates the state out of the passed arguments</summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -192,12 +192,12 @@ namespace ImTools
 
         /// <summary>Atomically pops the pooled instance (if exist) or creates the new one and sets the fields to the passed arguments</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static St<A> Rent<A>(A a) 
+        public static St<A> Rent<A>(A a)
         {
             var st = Interlocked.Exchange(ref St<A>.Pooled, null) ?? new St<A>();
             st.a = a;
             return st;
-        } 
+        }
 
         /// <summary>Creates the state out of the passed arguments</summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -205,12 +205,12 @@ namespace ImTools
 
         /// <summary>Atomically pops the pooled instance (if exist) or creates the new one and sets the fields to the passed arguments</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static St<A, B> Rent<A, B>(A a, B b) 
+        public static St<A, B> Rent<A, B>(A a, B b)
         {
             var st = Interlocked.Exchange(ref St<A, B>.Pooled, null) ?? new St<A, B>();
             st.a = a; st.b = b;
             return st;
-        } 
+        }
     }
 
     /// <summary>Replacement for `Void` type which can be used as a type argument and value.
@@ -1172,7 +1172,7 @@ namespace ImTools
         public interface union
         {
             Tag Tag { get; }
-            R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, 
+            R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
                 Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9);
         }
 
@@ -1193,7 +1193,7 @@ namespace ImTools
             public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case1; }
 
             [MethodImpl((MethodImplOptions)256)]
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, 
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
                 Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9) => map1(Case);
 
             public T1 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
@@ -1212,7 +1212,7 @@ namespace ImTools
             public static implicit operator case2(T2 x) => new case2(x);
 
             public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case2; }
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, 
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
                 Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9) => map2(Case);
 
             public T2 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
@@ -1231,7 +1231,7 @@ namespace ImTools
             public static implicit operator case3(T3 x) => new case3(x);
 
             public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case3; }
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, 
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
                 Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9) => map3(Case);
 
             public T3 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
@@ -1250,7 +1250,7 @@ namespace ImTools
             public static implicit operator case4(T4 x) => new case4(x);
 
             public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case4; }
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, 
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
                 Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9) => map4(Case);
 
             public T4 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
@@ -1269,7 +1269,7 @@ namespace ImTools
             public static implicit operator case5(T5 x) => new case5(x);
 
             public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case5; }
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, 
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
                 Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9) => map5(Case);
 
             public T5 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
@@ -1288,7 +1288,7 @@ namespace ImTools
             public static implicit operator case6(T6 x) => new case6(x);
 
             public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case6; }
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, 
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
                 Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9) => map6(Case);
 
             public T6 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
@@ -1307,7 +1307,7 @@ namespace ImTools
             public static implicit operator case7(T7 x) => new case7(x);
 
             public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case7; }
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, 
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
                 Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9) => map7(Case);
 
             public T7 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
@@ -1326,7 +1326,7 @@ namespace ImTools
             public static implicit operator case8(T8 x) => new case8(x);
 
             public Tag Tag { [MethodImpl((MethodImplOptions)256)] get => Tag.Case8; }
-            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, 
+            public R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
                 Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9) => map8(Case);
 
             public T8 Value { [MethodImpl((MethodImplOptions)256)] get => Case; }
@@ -1644,7 +1644,7 @@ namespace ImTools
             if (source == null || source.Length == 0)
                 return added;
             var sourceCount = source.Length;
-            var addedCount  = added.Length;
+            var addedCount = added.Length;
             var result = new T[sourceCount + addedCount];
             if (sourceCount < 6)
                 for (var i = 0; i < sourceCount; ++i)
@@ -1701,7 +1701,7 @@ namespace ImTools
         public static T[] AppendNonEmpty<T>(this T[] source, params T[] added)
         {
             var sourceCount = source.Length;
-            var addedCount  = added.Length;
+            var addedCount = added.Length;
             var result = new T[sourceCount + addedCount];
             if (sourceCount < 6)
                 for (var i = 0; i < sourceCount; ++i)
@@ -2346,17 +2346,17 @@ namespace ImTools
 
         /// <summary>Swap with the additional state <paramref name="a"/> required for the delegate <paramref name="getNewValue"/>.
         /// May prevent closure creation for the delegate</summary>
-        public T Swap<A>(A a, Func<T, A, T> getNewValue, int retryCountUntilThrow = Ref.RETRY_COUNT_UNTIL_THROW) => 
+        public T Swap<A>(A a, Func<T, A, T> getNewValue, int retryCountUntilThrow = Ref.RETRY_COUNT_UNTIL_THROW) =>
              Ref.Swap(ref _value, a, getNewValue, retryCountUntilThrow);
 
         /// <summary>Swap with the additional state <paramref name="a"/>, <paramref name="b"/> required for the delegate <paramref name="getNewValue"/>.
         /// May prevent closure creation for the delegate</summary>
-        public T Swap<A, B>(A a, B b, Func<T, A, B, T> getNewValue, int retryCountUntilThrow = Ref.RETRY_COUNT_UNTIL_THROW) => 
+        public T Swap<A, B>(A a, B b, Func<T, A, B, T> getNewValue, int retryCountUntilThrow = Ref.RETRY_COUNT_UNTIL_THROW) =>
              Ref.Swap(ref _value, a, b, getNewValue, retryCountUntilThrow);
 
         /// <summary>Swap with the additional state <paramref name="a"/> required for the delegate <paramref name="getNewValue"/>.
         /// May prevent closure creation for the delegate</summary>
-        public T SwapAndGetNewValue<A>(A a, Func<T, A, T> getNewValue, int retryCountUntilThrow = Ref.RETRY_COUNT_UNTIL_THROW) => 
+        public T SwapAndGetNewValue<A>(A a, Func<T, A, T> getNewValue, int retryCountUntilThrow = Ref.RETRY_COUNT_UNTIL_THROW) =>
              Ref.SwapAndGetNewValue(ref _value, a, getNewValue, retryCountUntilThrow);
 
         /// <summary>Just sets new value ignoring any intermingled changes and returns the original value</summary>
@@ -2430,8 +2430,8 @@ namespace ImTools
         /// <summary>Swap with the additional state <paramref name="a"/> required for the delegate <paramref name="getNewValue"/>.
         /// May prevent closure creation for the delegate</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static T Swap<T, A>(ref T value, A a, Func<T, A, T> getNewValue, 
-            int retryCountUntilThrow = RETRY_COUNT_UNTIL_THROW) 
+        public static T Swap<T, A>(ref T value, A a, Func<T, A, T> getNewValue,
+            int retryCountUntilThrow = RETRY_COUNT_UNTIL_THROW)
             where T : class
         {
             var spinWait = new SpinWait();
@@ -2527,7 +2527,7 @@ namespace ImTools
     public static class Hasher
     {
         /// <summary>Combines hashes of two fields</summary>
-        public static int Combine<T1, T2>(T1 a, T2 b) 
+        public static int Combine<T1, T2>(T1 a, T2 b)
         {
             var bh = b?.GetHashCode() ?? 0;
             if (ReferenceEquals(a, null))
@@ -2723,7 +2723,7 @@ namespace ImTools
         {
             var items = Items;
             if (Count < items.Length)
-                Array.Resize(ref items, Count); 
+                Array.Resize(ref items, Count);
             return items;
         }
 
@@ -3091,9 +3091,9 @@ namespace ImTools
         /// <summary>Constructs the entry with the key and value</summary>
         public ImHashMapEntry(int hash, K key) : base(hash) => Key = key;
         /// <summary>Constructs the entry with the key and value</summary>
-        public ImHashMapEntry(int hash, K key, V value) : base(hash) 
+        public ImHashMapEntry(int hash, K key, V value) : base(hash)
         {
-            Key   = key;
+            Key = key;
             Value = value;
         }
 
@@ -3259,7 +3259,7 @@ namespace ImTools
                 return newEntry;
             }
 
-            internal sealed override ImHashMap<K, V> RemoveEntry(Entry removedEntry) 
+            internal sealed override ImHashMap<K, V> RemoveEntry(Entry removedEntry)
             {
                 Debug.Assert(this == removedEntry, "When down to the entry, the removedEntry should be present in the entry.");
                 return Empty;
@@ -3285,7 +3285,7 @@ namespace ImTools
             internal override Entry GetMinHashEntryOrDefault() => Entry0;
             internal override Entry GetMaxHashEntryOrDefault() => Entry1;
 
-            internal override Entry GetEntryOrNull(int hash) => 
+            internal override Entry GetEntryOrNull(int hash) =>
                 Entry0.Hash == hash ? Entry0 : Entry1.Hash == hash ? Entry1 : null;
 
             public override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry) =>
@@ -3306,7 +3306,7 @@ namespace ImTools
             public Leaf2Plus1(Entry plus, Leaf2 leaf)
             {
                 Plus = plus;
-                L    = leaf;
+                L = leaf;
             }
 
             public override int Count() => Plus.Count() + L.Entry0.Count() + L.Entry1.Count();
@@ -3320,7 +3320,7 @@ namespace ImTools
 
             internal override Entry GetEntryOrNull(int hash)
             {
-                if (hash == Plus.Hash) 
+                if (hash == Plus.Hash)
                     return Plus;
                 Entry e0 = L.Entry0, e1 = L.Entry1;
                 return e0.Hash == hash ? e0 : e1.Hash == hash ? e1 : null;
@@ -3328,20 +3328,20 @@ namespace ImTools
 
             public sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
             {
-                if (hash == Plus.Hash) 
+                if (hash == Plus.Hash)
                     return Plus;
                 Entry e0 = L.Entry0, e1 = L.Entry1;
                 return hash == e0.Hash ? e0 : hash == e1.Hash ? e1 : (ImHashMap<K, V>)new Leaf2Plus1Plus1(entry, this);
             }
 
             internal sealed override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry) =>
-                oldEntry == Plus     ? new Leaf2Plus1(newEntry, L) :
+                oldEntry == Plus ? new Leaf2Plus1(newEntry, L) :
                 oldEntry == L.Entry0 ? new Leaf2Plus1(Plus, new Leaf2(newEntry, L.Entry1)) :
                                        new Leaf2Plus1(Plus, new Leaf2(L.Entry0, newEntry));
 
             internal override ImHashMap<K, V> RemoveEntry(Entry removedEntry) =>
                 removedEntry == Plus ? L :
-                removedEntry == L.Entry0 ? 
+                removedEntry == L.Entry0 ?
                     (Plus.Hash < L.Entry1.Hash ? new Leaf2(Plus, L.Entry1) : new Leaf2(L.Entry1, Plus)) :
                     (Plus.Hash < L.Entry0.Hash ? new Leaf2(Plus, L.Entry0) : new Leaf2(L.Entry0, Plus));
         }
@@ -3364,12 +3364,12 @@ namespace ImTools
             public override string ToString() => "{L211:{P:" + Plus + ", L:" + L + "}}";
 #endif
 
-            internal sealed override Entry GetMinHashEntryOrDefault() 
+            internal sealed override Entry GetMinHashEntryOrDefault()
             {
                 var m = L.GetMinHashEntryOrDefault();
                 return Plus.Hash < m.Hash ? Plus : m;
             }
-            internal sealed override Entry GetMaxHashEntryOrDefault() 
+            internal sealed override Entry GetMaxHashEntryOrDefault()
             {
                 var m = L.GetMaxHashEntryOrDefault();
                 return Plus.Hash > m.Hash ? Plus : m;
@@ -3377,9 +3377,9 @@ namespace ImTools
 
             internal override Entry GetEntryOrNull(int hash)
             {
-                if (hash == Plus.Hash) 
+                if (hash == Plus.Hash)
                     return Plus;
-                if (hash == L.Plus.Hash) 
+                if (hash == L.Plus.Hash)
                     return L.Plus;
                 Entry e0 = L.L.Entry0, e1 = L.L.Entry1;
                 return e0.Hash == hash ? e0 : e1.Hash == hash ? e1 : null;
@@ -3446,15 +3446,15 @@ namespace ImTools
             }
 
             internal sealed override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry) =>
-                oldEntry == Plus       ? new Leaf2Plus1Plus1(newEntry, L) :
-                oldEntry == L.Plus     ? new Leaf2Plus1Plus1(Plus, new Leaf2Plus1(newEntry, L.L)) :
+                oldEntry == Plus ? new Leaf2Plus1Plus1(newEntry, L) :
+                oldEntry == L.Plus ? new Leaf2Plus1Plus1(Plus, new Leaf2Plus1(newEntry, L.L)) :
                 oldEntry == L.L.Entry0 ? new Leaf2Plus1Plus1(Plus, new Leaf2Plus1(L.Plus, new Leaf2(newEntry, L.L.Entry1))) :
                                          new Leaf2Plus1Plus1(Plus, new Leaf2Plus1(L.Plus, new Leaf2(L.L.Entry0, newEntry)));
 
             internal override ImHashMap<K, V> RemoveEntry(Entry removedEntry) =>
-                removedEntry == Plus ? L : 
+                removedEntry == Plus ? L :
                 removedEntry == L.Plus ? new Leaf2Plus1(Plus, L.L) :
-                removedEntry == L.L.Entry0 ? 
+                removedEntry == L.L.Entry0 ?
                     (L.Plus.Hash < L.L.Entry1.Hash ? new Leaf2Plus1(Plus, new Leaf2(L.Plus, L.L.Entry1)) : new Leaf2Plus1(Plus, new Leaf2(L.L.Entry1, L.Plus))) :
                     (L.Plus.Hash < L.L.Entry0.Hash ? new Leaf2Plus1(Plus, new Leaf2(L.Plus, L.L.Entry0)) : new Leaf2Plus1(Plus, new Leaf2(L.L.Entry0, L.Plus)));
         }
@@ -3500,14 +3500,14 @@ namespace ImTools
                 (ImHashMap<K, V>)new Leaf5Plus1(entry, this);
 
             internal sealed override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry) =>
-                oldEntry == Entry0 ? new Leaf5(newEntry, Entry1, Entry2, Entry3, Entry4) : 
+                oldEntry == Entry0 ? new Leaf5(newEntry, Entry1, Entry2, Entry3, Entry4) :
                 oldEntry == Entry1 ? new Leaf5(Entry0, newEntry, Entry2, Entry3, Entry4) :
                 oldEntry == Entry2 ? new Leaf5(Entry0, Entry1, newEntry, Entry3, Entry4) :
                 oldEntry == Entry3 ? new Leaf5(Entry0, Entry1, Entry2, newEntry, Entry4) :
                                      new Leaf5(Entry0, Entry1, Entry2, Entry3, newEntry);
 
             internal override ImHashMap<K, V> RemoveEntry(Entry removedEntry) =>
-                removedEntry == Entry0 ? new Leaf2Plus1Plus1(Entry4, new Leaf2Plus1(Entry3, new Leaf2(Entry1, Entry2))) : 
+                removedEntry == Entry0 ? new Leaf2Plus1Plus1(Entry4, new Leaf2Plus1(Entry3, new Leaf2(Entry1, Entry2))) :
                 removedEntry == Entry1 ? new Leaf2Plus1Plus1(Entry4, new Leaf2Plus1(Entry3, new Leaf2(Entry0, Entry2))) :
                 removedEntry == Entry2 ? new Leaf2Plus1Plus1(Entry4, new Leaf2Plus1(Entry3, new Leaf2(Entry0, Entry1))) :
                 removedEntry == Entry3 ? new Leaf2Plus1Plus1(Entry4, new Leaf2Plus1(Entry2, new Leaf2(Entry0, Entry1))) :
@@ -3522,7 +3522,7 @@ namespace ImTools
             public Leaf5Plus1(Entry plus, Leaf5 l)
             {
                 Plus = plus;
-                L    = l;
+                L = l;
             }
 
             public override int Count() => Plus.Count() + L.Count();
@@ -3531,20 +3531,20 @@ namespace ImTools
             public override string ToString() => "{L51:{P:" + Plus + ",L:" + L + "}}";
 #endif
 
-            internal sealed override Entry GetMinHashEntryOrDefault() => Plus.Hash < L.Entry0.Hash ? Plus : L.Entry0; 
-            internal sealed override Entry GetMaxHashEntryOrDefault() => Plus.Hash > L.Entry4.Hash ? Plus : L.Entry4; 
+            internal sealed override Entry GetMinHashEntryOrDefault() => Plus.Hash < L.Entry0.Hash ? Plus : L.Entry0;
+            internal sealed override Entry GetMaxHashEntryOrDefault() => Plus.Hash > L.Entry4.Hash ? Plus : L.Entry4;
 
             internal override Entry GetEntryOrNull(int hash)
             {
-                if (hash == Plus.Hash) 
-                    return Plus; 
+                if (hash == Plus.Hash)
+                    return Plus;
                 var l = L;
-                return hash == l.Entry0.Hash ? l.Entry0 
-                    :  hash == l.Entry1.Hash ? l.Entry1 
-                    :  hash == l.Entry2.Hash ? l.Entry2 
-                    :  hash == l.Entry3.Hash ? l.Entry3 
-                    :  hash == l.Entry4.Hash ? l.Entry4 
-                    :  null;
+                return hash == l.Entry0.Hash ? l.Entry0
+                    : hash == l.Entry1.Hash ? l.Entry1
+                    : hash == l.Entry2.Hash ? l.Entry2
+                    : hash == l.Entry3.Hash ? l.Entry3
+                    : hash == l.Entry4.Hash ? l.Entry4
+                    : null;
             }
 
             public sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
@@ -3553,13 +3553,13 @@ namespace ImTools
                 var ph = p.Hash;
                 if (ph == hash)
                     return p;
-                var l = L; 
+                var l = L;
                 return hash == l.Entry0.Hash ? l.Entry0
-                    :  hash == l.Entry1.Hash ? l.Entry1 
-                    :  hash == l.Entry2.Hash ? l.Entry2
-                    :  hash == l.Entry3.Hash ? l.Entry3
-                    :  hash == l.Entry4.Hash ? l.Entry4
-                    :  (ImHashMap<K, V>)new Leaf5Plus1Plus1(entry, this);
+                    : hash == l.Entry1.Hash ? l.Entry1
+                    : hash == l.Entry2.Hash ? l.Entry2
+                    : hash == l.Entry3.Hash ? l.Entry3
+                    : hash == l.Entry4.Hash ? l.Entry4
+                    : (ImHashMap<K, V>)new Leaf5Plus1Plus1(entry, this);
             }
 
             internal sealed override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry)
@@ -3567,13 +3567,13 @@ namespace ImTools
                 var p = Plus;
                 if (oldEntry == p)
                     return new Leaf5Plus1(newEntry, L);
-                var l = L; 
+                var l = L;
                 Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4;
-                return oldEntry == e0 ? new Leaf5Plus1(p, new Leaf5(newEntry, e1, e2, e3, e4)) 
-                    :  oldEntry == e1 ? new Leaf5Plus1(p, new Leaf5(e0, newEntry, e2, e3, e4)) 
-                    :  oldEntry == e2 ? new Leaf5Plus1(p, new Leaf5(e0, e1, newEntry, e3, e4)) 
-                    :  oldEntry == e3 ? new Leaf5Plus1(p, new Leaf5(e0, e1, e2, newEntry, e4)) 
-                    :                   new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3, newEntry));
+                return oldEntry == e0 ? new Leaf5Plus1(p, new Leaf5(newEntry, e1, e2, e3, e4))
+                    : oldEntry == e1 ? new Leaf5Plus1(p, new Leaf5(e0, newEntry, e2, e3, e4))
+                    : oldEntry == e2 ? new Leaf5Plus1(p, new Leaf5(e0, e1, newEntry, e3, e4))
+                    : oldEntry == e3 ? new Leaf5Plus1(p, new Leaf5(e0, e1, e2, newEntry, e4))
+                    : new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3, newEntry));
             }
 
             internal override ImHashMap<K, V> RemoveEntry(Entry removedEntry)
@@ -3583,7 +3583,7 @@ namespace ImTools
                     return L;
 
                 var ph = p.Hash;
-                var l = L; 
+                var l = L;
                 Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, swap = null;
 
                 if (ph < e4.Hash)
@@ -3608,11 +3608,11 @@ namespace ImTools
                 }
 
                 return removedEntry == e0 ? new Leaf5(e1, e2, e3, e4, p)
-                    :  removedEntry == e1 ? new Leaf5(e0, e2, e3, e4, p)
-                    :  removedEntry == e2 ? new Leaf5(e0, e1, e3, e4, p)
-                    :  removedEntry == e3 ? new Leaf5(e0, e1, e2, e4, p)
-                    :  removedEntry == e4 ? new Leaf5(e0, e1, e2, e3, p)
-                    :                       new Leaf5(e0, e1, e2, e3, e4);
+                    : removedEntry == e1 ? new Leaf5(e0, e2, e3, e4, p)
+                    : removedEntry == e2 ? new Leaf5(e0, e1, e3, e4, p)
+                    : removedEntry == e3 ? new Leaf5(e0, e1, e2, e4, p)
+                    : removedEntry == e4 ? new Leaf5(e0, e1, e2, e3, p)
+                    : new Leaf5(e0, e1, e2, e3, e4);
             }
         }
 
@@ -3629,7 +3629,7 @@ namespace ImTools
             public Leaf5Plus1Plus1(Entry plus, Leaf5Plus1 l)
             {
                 Plus = plus;
-                L    = l;
+                L = l;
             }
 
             public override int Count() => Plus.Count() + L.Count();
@@ -3642,7 +3642,7 @@ namespace ImTools
             {
                 var m = L.GetMinHashEntryOrDefault();
                 return Plus.Hash < m.Hash ? Plus : m;
-            } 
+            }
             internal sealed override Entry GetMaxHashEntryOrDefault()
             {
                 var m = L.GetMaxHashEntryOrDefault();
@@ -3656,12 +3656,12 @@ namespace ImTools
                 if (hash == L.Plus.Hash)
                     return L.Plus;
                 var l = L.L;
-                return hash == l.Entry0.Hash ? l.Entry0 
-                    :  hash == l.Entry1.Hash ? l.Entry1 
-                    :  hash == l.Entry2.Hash ? l.Entry2 
-                    :  hash == l.Entry3.Hash ? l.Entry3 
-                    :  hash == l.Entry4.Hash ? l.Entry4 
-                    :  null;
+                return hash == l.Entry0.Hash ? l.Entry0
+                    : hash == l.Entry1.Hash ? l.Entry1
+                    : hash == l.Entry2.Hash ? l.Entry2
+                    : hash == l.Entry3.Hash ? l.Entry3
+                    : hash == l.Entry4.Hash ? l.Entry4
+                    : null;
             }
 
             public override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
@@ -3700,7 +3700,7 @@ namespace ImTools
                     return e4;
 
                 var right = hash > e4.Hash && ph > e4.Hash && pph > e4.Hash;
-                var left  = !right && hash < e0.Hash && ph < e0.Hash && pph < e0.Hash;
+                var left = !right && hash < e0.Hash && ph < e0.Hash && pph < e0.Hash;
 
                 Entry swap = null;
                 if (pph < e4.Hash)
@@ -3824,7 +3824,7 @@ namespace ImTools
 
                 var l = L.L;
                 Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, swap = null;
-                int pph = pp.Hash, ph = p.Hash; 
+                int pph = pp.Hash, ph = p.Hash;
                 if (pph < e4.Hash)
                 {
                     swap = e4; e4 = pp; pp = swap;
@@ -3870,13 +3870,13 @@ namespace ImTools
                     }
                 }
 
-                return removedEntry == e0 ? new Leaf5Plus1(p, new Leaf5(e1, e2, e3, e4, pp)) 
-                    :  removedEntry == e1 ? new Leaf5Plus1(p, new Leaf5(e0, e2, e3, e4, pp))
-                    :  removedEntry == e2 ? new Leaf5Plus1(p, new Leaf5(e0, e1, e3, e4, pp))
-                    :  removedEntry == e3 ? new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e4, pp))
-                    :  removedEntry == e4 ? new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3, pp))
-                    :  removedEntry == pp ? new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3, e4))
-                    :                       new Leaf5Plus1(pp,new Leaf5(e0, e1, e2, e3, e4));
+                return removedEntry == e0 ? new Leaf5Plus1(p, new Leaf5(e1, e2, e3, e4, pp))
+                    : removedEntry == e1 ? new Leaf5Plus1(p, new Leaf5(e0, e2, e3, e4, pp))
+                    : removedEntry == e2 ? new Leaf5Plus1(p, new Leaf5(e0, e1, e3, e4, pp))
+                    : removedEntry == e3 ? new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e4, pp))
+                    : removedEntry == e4 ? new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3, pp))
+                    : removedEntry == pp ? new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3, e4))
+                    : new Leaf5Plus1(pp, new Leaf5(e0, e1, e2, e3, e4));
             }
         }
 
@@ -3891,8 +3891,8 @@ namespace ImTools
             {
                 Debug.Assert(left != Empty && right != Empty, $"left:{left} != Empty && right:{right} != Empty");
                 MidEntry = entry;
-                Left     = left;
-                Right    = right;
+                Left = left;
+                Right = right;
             }
 
             public override int Count() => MidEntry.Count() + Left.Count() + Right.Count();
@@ -3901,15 +3901,15 @@ namespace ImTools
             public override string ToString() => "{B2:{E:" + MidEntry + ",L:" + Left + ",R:" + Right + "}}";
 #endif
 
-            internal override Entry GetMinHashEntryOrDefault() => Left .GetMinHashEntryOrDefault();
+            internal override Entry GetMinHashEntryOrDefault() => Left.GetMinHashEntryOrDefault();
             internal override Entry GetMaxHashEntryOrDefault() => Right.GetMaxHashEntryOrDefault();
 
-            internal override Entry GetEntryOrNull(int hash) 
+            internal override Entry GetEntryOrNull(int hash)
             {
                 var h = MidEntry.Hash;
-                return hash > h ? Right.GetEntryOrNull(hash) 
-                    :  hash < h ? Left .GetEntryOrNull(hash) 
-                    :  MidEntry;
+                return hash > h ? Right.GetEntryOrNull(hash)
+                    : hash < h ? Left.GetEntryOrNull(hash)
+                    : MidEntry;
             }
 
             public override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
@@ -3919,7 +3919,7 @@ namespace ImTools
                 if (hash > e.Hash)
                 {
                     var right = Right;
-                    if (right is OnTheVergeOfBalance r) 
+                    if (right is OnTheVergeOfBalance r)
                     {
                         ImHashMap<K, V> splitRight = null;
                         newBranch = r.AddOrGetEntry(hash, ref entry, ref splitRight);
@@ -3933,7 +3933,7 @@ namespace ImTools
                 if (hash < e.Hash)
                 {
                     var left = Left;
-                    if (left is OnTheVergeOfBalance l) 
+                    if (left is OnTheVergeOfBalance l)
                     {
                         ImHashMap<K, V> splitRight = null;
                         newBranch = l.AddOrGetEntry(hash, ref entry, ref splitRight);
@@ -3951,11 +3951,11 @@ namespace ImTools
             {
                 var h = MidEntry.Hash;
                 return hash > h ? new Branch2(Left, MidEntry, Right.ReplaceEntry(hash, oldEntry, newEntry))
-                    :  hash < h ? new Branch2(Left.ReplaceEntry(hash, oldEntry, newEntry), MidEntry, Right)
-                    :  new Branch2(Left, newEntry, Right);
+                    : hash < h ? new Branch2(Left.ReplaceEntry(hash, oldEntry, newEntry), MidEntry, Right)
+                    : new Branch2(Left, newEntry, Right);
             }
 
-            internal override ImHashMap<K, V> RemoveEntry(Entry removedEntry) 
+            internal override ImHashMap<K, V> RemoveEntry(Entry removedEntry)
             {
                 // The downward phase for deleting an element from a 2-3 tree is the same as the downward phase
                 // for inserting an element except for the case when the element to be deleted is equal to the value in
@@ -3972,7 +3972,7 @@ namespace ImTools
                     if (newRight == Empty)
                     {
                         // if the left node is not full yet then merge
-                        if (Left is Leaf5Plus1Plus1 == false) 
+                        if (Left is Leaf5Plus1Plus1 == false)
                             return Left.AddOrGetEntry(mid.Hash, mid);
                         return new Branch2(Left.RemoveEntry(removedEntry = Left.GetMaxHashEntryOrDefault()), removedEntry, mid); //! the height does not change
                     }
@@ -3985,7 +3985,7 @@ namespace ImTools
                             return new Branch2(new Branch2(lb3.Left, lb3.Entry0, lb3.Middle), lb3.Entry1, new Branch2(lb3.Right, mid, newRight));
 
                         // the the hole has a 2-node as a parent and a 2-node as a sibling.
-                        var lb2 = (Branch2)Left; 
+                        var lb2 = (Branch2)Left;
                         return new Branch3(lb2.Left, lb2.MidEntry, lb2.Right, mid, newRight);
                     }
 
@@ -4000,7 +4000,7 @@ namespace ImTools
                 var newLeft = Left.RemoveEntry(removedEntry);
                 if (newLeft == Empty)
                 {
-                    if (Right is Leaf5Plus1Plus1 == false) 
+                    if (Right is Leaf5Plus1Plus1 == false)
                         return Right.AddOrGetEntry(mid.Hash, mid);
                     return new Branch2(mid, removedEntry = Right.GetMinHashEntryOrDefault(), Right.RemoveEntry(removedEntry)); //! the height does not change
                 }
@@ -4027,14 +4027,14 @@ namespace ImTools
             public readonly Entry Entry0, Entry1;
             public readonly ImHashMap<K, V> Left, Middle, Right;
 
-            public Branch3(ImHashMap<K, V> left, Entry e0, ImHashMap<K, V> middle, Entry e1, ImHashMap<K, V> right) 
+            public Branch3(ImHashMap<K, V> left, Entry e0, ImHashMap<K, V> middle, Entry e1, ImHashMap<K, V> right)
             {
                 Debug.Assert(e0.Hash < e1.Hash, $"e0.Hash:{e0.Hash} < e1.Hash{e1.Hash}");
-                Left   = left;
+                Left = left;
                 Entry0 = e0;
                 Middle = middle;
                 Entry1 = e1;
-                Right  = right;
+                Right = right;
             }
 
             public override int Count() => Entry0.Count() + Entry1.Count() + Left.Count() + Middle.Count() + Right.Count();
@@ -4043,10 +4043,10 @@ namespace ImTools
             public override string ToString() => "{B3:{E0:" + Entry0 + ",E1:" + Entry0 + ",L:" + Left + ",M:" + Middle + ",R:" + Right + "}}";
 #endif
 
-            internal override Entry GetMinHashEntryOrDefault() => Left .GetMinHashEntryOrDefault();
+            internal override Entry GetMinHashEntryOrDefault() => Left.GetMinHashEntryOrDefault();
             internal override Entry GetMaxHashEntryOrDefault() => Right.GetMaxHashEntryOrDefault();
 
-            internal override Entry GetEntryOrNull(int hash) 
+            internal override Entry GetEntryOrNull(int hash)
             {
                 var h1 = Entry1.Hash;
                 if (hash > h1)
@@ -4168,18 +4168,18 @@ namespace ImTools
             internal override ImHashMap<K, V> ReplaceEntry(int hash, Entry oldEntry, Entry newEntry)
             {
                 int h0 = Entry0.Hash, h1 = Entry1.Hash;
-                return hash > h1 ? new Branch3(Left, Entry0, Middle, Entry1, Right.ReplaceEntry(hash, oldEntry, newEntry)) 
-                    :  hash < h0 ? new Branch3(Left.ReplaceEntry(hash, oldEntry, newEntry), Entry0, Middle, Entry1, Right)
-                    :  hash > h0 && hash < h1 ? new Branch3(Left, Entry0, Middle.ReplaceEntry(hash, oldEntry, newEntry), Entry1, Right)
-                    :  hash == h0 ? new Branch3(Left, newEntry, Middle, Entry1, Right) : new Branch3(Left, Entry0, Middle, newEntry, Right);
+                return hash > h1 ? new Branch3(Left, Entry0, Middle, Entry1, Right.ReplaceEntry(hash, oldEntry, newEntry))
+                    : hash < h0 ? new Branch3(Left.ReplaceEntry(hash, oldEntry, newEntry), Entry0, Middle, Entry1, Right)
+                    : hash > h0 && hash < h1 ? new Branch3(Left, Entry0, Middle.ReplaceEntry(hash, oldEntry, newEntry), Entry1, Right)
+                    : hash == h0 ? new Branch3(Left, newEntry, Middle, Entry1, Right) : new Branch3(Left, Entry0, Middle, newEntry, Right);
             }
 
             internal override ImHashMap<K, V> RemoveEntry(Entry removedEntry)
             {
-                var midLeft  = Entry0;
-                var middle   = Middle;
+                var midLeft = Entry0;
+                var middle = Middle;
                 var midRight = Entry1;
-                var right    = Right;
+                var right = Right;
 
                 // case 1, downward: swap the predecessor entry (max left entry) with the mid entry, then proceed to remove the predecessor from the Left branch
                 if (removedEntry == midLeft)
@@ -4190,7 +4190,7 @@ namespace ImTools
                     var newLeft = Left.RemoveEntry(removedEntry);
                     if (newLeft == Empty)
                     {
-                        if (middle is Leaf5Plus1Plus1 == false) 
+                        if (middle is Leaf5Plus1Plus1 == false)
                             return new Branch2(middle.AddOrGetEntry(midLeft.Hash, midLeft), midRight, right); //! the height does not change
                         return new Branch3(midLeft, removedEntry = middle.GetMinHashEntryOrDefault(), middle.RemoveEntry(removedEntry), midRight, right); //! the height does not change
                     }
@@ -4318,7 +4318,7 @@ namespace ImTools
         public static readonly ImMap<V> Empty = new ImMap<V>();
 
         /// <summary>Prints the map tree in JSON-ish format in release mode and enumerates the keys in DEBUG.</summary>
-        public override string ToString() 
+        public override string ToString()
         {
 #if DEBUG
             // for the debug purposes we just output the first N keys in array
@@ -4379,7 +4379,7 @@ namespace ImTools
             internal override ImMapEntry<V> GetMinHashEntryOrDefault() => Entry0;
             internal override ImMapEntry<V> GetMaxHashEntryOrDefault() => Entry1;
 
-            internal override ImMapEntry<V> GetEntryOrNull(int hash) => 
+            internal override ImMapEntry<V> GetEntryOrNull(int hash) =>
                 Entry0.Hash == hash ? Entry0 : Entry1.Hash == hash ? Entry1 : null;
 
             internal override ImMap<V> AddOrGetEntry(int hash, ImMapEntry<V> entry) =>
@@ -4401,7 +4401,7 @@ namespace ImTools
             public Leaf2Plus1(ImMapEntry<V> plus, Leaf2 leaf)
             {
                 Plus = plus;
-                L    = leaf;
+                L = leaf;
             }
 
             public override int Count() => 3;
@@ -4415,7 +4415,7 @@ namespace ImTools
 
             internal override ImMapEntry<V> GetEntryOrNull(int hash)
             {
-                if (hash == Plus.Hash) 
+                if (hash == Plus.Hash)
                     return Plus;
                 ImMapEntry<V> e0 = L.Entry0, e1 = L.Entry1;
                 return e0.Hash == hash ? e0 : e1.Hash == hash ? e1 : null;
@@ -4424,14 +4424,14 @@ namespace ImTools
             internal override ImMap<V> AddOrGetEntry(int hash, ImMapEntry<V> entry)
             {
                 var p = Plus;
-                if (hash == p.Hash) 
+                if (hash == p.Hash)
                     return p;
                 ImMapEntry<V> e0 = L.Entry0, e1 = L.Entry1;
                 return hash == e0.Hash ? e0 : hash == e1.Hash ? e1 : (ImMap<V>)new Leaf2Plus1Plus1(entry, this);
             }
 
             internal override ImMap<V> ReplaceEntry(int hash, ImMapEntry<V> oldEntry, ImMapEntry<V> newEntry) =>
-                oldEntry == Plus     ? new Leaf2Plus1(newEntry, L) :
+                oldEntry == Plus ? new Leaf2Plus1(newEntry, L) :
                 oldEntry == L.Entry0 ? new Leaf2Plus1(Plus, new Leaf2(newEntry, L.Entry1)) :
                                        new Leaf2Plus1(Plus, new Leaf2(L.Entry0, newEntry));
 
@@ -4460,12 +4460,12 @@ namespace ImTools
             public override string ToString() => "{L211:{P:" + Plus + ",L:" + L + "}}";
 #endif
 
-            internal override ImMapEntry<V> GetMinHashEntryOrDefault() 
+            internal override ImMapEntry<V> GetMinHashEntryOrDefault()
             {
                 ImMapEntry<V> p = Plus, pp = L.Plus, e0 = L.L.Entry0;
                 return p.Hash < pp.Hash ? (p.Hash < e0.Hash ? p : e0) : (pp.Hash < e0.Hash ? pp : e0);
             }
-            internal override ImMapEntry<V> GetMaxHashEntryOrDefault() 
+            internal override ImMapEntry<V> GetMaxHashEntryOrDefault()
             {
                 ImMapEntry<V> p = Plus, pp = L.Plus, e1 = L.L.Entry1;
                 return p.Hash > pp.Hash ? (p.Hash > e1.Hash ? p : e1) : (pp.Hash > e1.Hash ? pp : e1);
@@ -4473,9 +4473,9 @@ namespace ImTools
 
             internal override ImMapEntry<V> GetEntryOrNull(int hash)
             {
-                if (hash == Plus.Hash) 
+                if (hash == Plus.Hash)
                     return Plus;
-                if (hash == L.Plus.Hash) 
+                if (hash == L.Plus.Hash)
                     return L.Plus;
                 var l = L.L;
                 ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1;
@@ -4503,32 +4503,50 @@ namespace ImTools
                     return e1;
 
                 ImMapEntry<V> swap = null;
-                if (pph < e1.Hash) { swap = e1; e1 = pp; pp = swap;
-                if (pph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}
+                if (pph < e1.Hash)
+                {
+                    swap = e1; e1 = pp; pp = swap;
+                    if (pph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
+                }
 
-                if (ph < pp.Hash)  { swap = pp; pp = p;  p  = swap;
-                if (ph < e1.Hash)  { swap = e1; e1 = pp; pp = swap;
-                if (ph < e0.Hash)  { swap = e0; e0 = e1; e1 = swap; }}}
+                if (ph < pp.Hash)
+                {
+                    swap = pp; pp = p; p = swap;
+                    if (ph < e1.Hash)
+                    {
+                        swap = e1; e1 = pp; pp = swap;
+                        if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
+                    }
+                }
 
                 ImMapEntry<V> e = entry;
-                if (hash < p.Hash) { swap = p;  p =  e;  e  = swap;
-                if (hash < pp.Hash){ swap = pp; pp = p;  p  = swap;
-                if (hash < e1.Hash){ swap = e1; e1 = pp; pp = swap;
-                if (hash < e0.Hash){ swap = e0; e0 = e1; e1 = swap; }}}}
+                if (hash < p.Hash)
+                {
+                    swap = p; p = e; e = swap;
+                    if (hash < pp.Hash)
+                    {
+                        swap = pp; pp = p; p = swap;
+                        if (hash < e1.Hash)
+                        {
+                            swap = e1; e1 = pp; pp = swap;
+                            if (hash < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
+                        }
+                    }
+                }
 
                 return new Leaf5(e0, e1, pp, p, e);
             }
 
             internal override ImMap<V> ReplaceEntry(int hash, ImMapEntry<V> oldEntry, ImMapEntry<V> newEntry) =>
-                oldEntry == Plus       ? new Leaf2Plus1Plus1(newEntry, L) :
-                oldEntry == L.Plus     ? new Leaf2Plus1Plus1(Plus, new Leaf2Plus1(newEntry, L.L)) :
+                oldEntry == Plus ? new Leaf2Plus1Plus1(newEntry, L) :
+                oldEntry == L.Plus ? new Leaf2Plus1Plus1(Plus, new Leaf2Plus1(newEntry, L.L)) :
                 oldEntry == L.L.Entry0 ? new Leaf2Plus1Plus1(Plus, new Leaf2Plus1(L.Plus, new Leaf2(newEntry, L.L.Entry1))) :
                                          new Leaf2Plus1Plus1(Plus, new Leaf2Plus1(L.Plus, new Leaf2(L.L.Entry0, newEntry)));
 
             internal override ImMap<V> RemoveEntry(ImMapEntry<V> removedEntry) =>
-                removedEntry == Plus ? L : 
+                removedEntry == Plus ? L :
                 removedEntry == L.Plus ? new Leaf2Plus1(Plus, L.L) :
-                removedEntry == L.L.Entry0 ? 
+                removedEntry == L.L.Entry0 ?
                     (L.Plus.Hash < L.L.Entry1.Hash ? new Leaf2Plus1(Plus, new Leaf2(L.Plus, L.L.Entry1)) : new Leaf2Plus1(Plus, new Leaf2(L.L.Entry1, L.Plus))) :
                     (L.Plus.Hash < L.L.Entry0.Hash ? new Leaf2Plus1(Plus, new Leaf2(L.Plus, L.L.Entry0)) : new Leaf2Plus1(Plus, new Leaf2(L.L.Entry0, L.Plus)));
         }
@@ -4574,14 +4592,14 @@ namespace ImTools
                 (ImMap<V>)new Leaf5Plus1(entry, this);
 
             internal override ImMap<V> ReplaceEntry(int hash, ImMapEntry<V> oldEntry, ImMapEntry<V> newEntry) =>
-                oldEntry == Entry0 ? new Leaf5(newEntry, Entry1, Entry2, Entry3, Entry4) : 
+                oldEntry == Entry0 ? new Leaf5(newEntry, Entry1, Entry2, Entry3, Entry4) :
                 oldEntry == Entry1 ? new Leaf5(Entry0, newEntry, Entry2, Entry3, Entry4) :
                 oldEntry == Entry2 ? new Leaf5(Entry0, Entry1, newEntry, Entry3, Entry4) :
                 oldEntry == Entry3 ? new Leaf5(Entry0, Entry1, Entry2, newEntry, Entry4) :
                                      new Leaf5(Entry0, Entry1, Entry2, Entry3, newEntry);
 
             internal override ImMap<V> RemoveEntry(ImMapEntry<V> removedEntry) =>
-                removedEntry == Entry0 ? new Leaf2Plus1Plus1(Entry4, new Leaf2Plus1(Entry3, new Leaf2(Entry1, Entry2))) : 
+                removedEntry == Entry0 ? new Leaf2Plus1Plus1(Entry4, new Leaf2Plus1(Entry3, new Leaf2(Entry1, Entry2))) :
                 removedEntry == Entry1 ? new Leaf2Plus1Plus1(Entry4, new Leaf2Plus1(Entry3, new Leaf2(Entry0, Entry2))) :
                 removedEntry == Entry2 ? new Leaf2Plus1Plus1(Entry4, new Leaf2Plus1(Entry3, new Leaf2(Entry0, Entry1))) :
                 removedEntry == Entry3 ? new Leaf2Plus1Plus1(Entry4, new Leaf2Plus1(Entry2, new Leaf2(Entry0, Entry1))) :
@@ -4597,7 +4615,7 @@ namespace ImTools
             public Leaf5Plus1(ImMapEntry<V> plus, Leaf5 l)
             {
                 Plus = plus;
-                L    = l;
+                L = l;
             }
 
             public override int Count() => 6;
@@ -4606,20 +4624,20 @@ namespace ImTools
             public override string ToString() => "{L51:{P:" + Plus + ",L:" + L + "}}";
 #endif
 
-            internal override ImMapEntry<V> GetMinHashEntryOrDefault() => Plus.Hash < L.Entry0.Hash ? Plus : L.Entry0; 
-            internal override ImMapEntry<V> GetMaxHashEntryOrDefault() => Plus.Hash > L.Entry4.Hash ? Plus : L.Entry4; 
+            internal override ImMapEntry<V> GetMinHashEntryOrDefault() => Plus.Hash < L.Entry0.Hash ? Plus : L.Entry0;
+            internal override ImMapEntry<V> GetMaxHashEntryOrDefault() => Plus.Hash > L.Entry4.Hash ? Plus : L.Entry4;
 
             internal override ImMapEntry<V> GetEntryOrNull(int hash)
             {
-                if (hash == Plus.Hash) 
-                    return Plus; 
+                if (hash == Plus.Hash)
+                    return Plus;
                 var l = L;
-                return hash == l.Entry0.Hash ? l.Entry0 
-                    :  hash == l.Entry1.Hash ? l.Entry1 
-                    :  hash == l.Entry2.Hash ? l.Entry2 
-                    :  hash == l.Entry3.Hash ? l.Entry3 
-                    :  hash == l.Entry4.Hash ? l.Entry4 
-                    :  null;
+                return hash == l.Entry0.Hash ? l.Entry0
+                    : hash == l.Entry1.Hash ? l.Entry1
+                    : hash == l.Entry2.Hash ? l.Entry2
+                    : hash == l.Entry3.Hash ? l.Entry3
+                    : hash == l.Entry4.Hash ? l.Entry4
+                    : null;
             }
 
             internal override ImMap<V> AddOrGetEntry(int hash, ImMapEntry<V> entry)
@@ -4628,13 +4646,13 @@ namespace ImTools
                 var ph = p.Hash;
                 if (ph == hash)
                     return p;
-                var l = L; 
+                var l = L;
                 return hash == l.Entry0.Hash ? l.Entry0
-                    :  hash == l.Entry1.Hash ? l.Entry1 
-                    :  hash == l.Entry2.Hash ? l.Entry2
-                    :  hash == l.Entry3.Hash ? l.Entry3
-                    :  hash == l.Entry4.Hash ? l.Entry4
-                    :  (ImMap<V>)new Leaf5Plus1Plus1(entry, this);
+                    : hash == l.Entry1.Hash ? l.Entry1
+                    : hash == l.Entry2.Hash ? l.Entry2
+                    : hash == l.Entry3.Hash ? l.Entry3
+                    : hash == l.Entry4.Hash ? l.Entry4
+                    : (ImMap<V>)new Leaf5Plus1Plus1(entry, this);
             }
 
             internal override ImMap<V> ReplaceEntry(int hash, ImMapEntry<V> oldEntry, ImMapEntry<V> newEntry)
@@ -4642,13 +4660,13 @@ namespace ImTools
                 var p = Plus;
                 if (oldEntry == p)
                     return new Leaf5Plus1(newEntry, L);
-                var l = L; 
+                var l = L;
                 ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4;
-                return oldEntry == e0 ? new Leaf5Plus1(p, new Leaf5(newEntry, e1, e2, e3, e4)) 
-                    :  oldEntry == e1 ? new Leaf5Plus1(p, new Leaf5(e0, newEntry, e2, e3, e4)) 
-                    :  oldEntry == e2 ? new Leaf5Plus1(p, new Leaf5(e0, e1, newEntry, e3, e4)) 
-                    :  oldEntry == e3 ? new Leaf5Plus1(p, new Leaf5(e0, e1, e2, newEntry, e4)) 
-                    :                   new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3, newEntry));
+                return oldEntry == e0 ? new Leaf5Plus1(p, new Leaf5(newEntry, e1, e2, e3, e4))
+                    : oldEntry == e1 ? new Leaf5Plus1(p, new Leaf5(e0, newEntry, e2, e3, e4))
+                    : oldEntry == e2 ? new Leaf5Plus1(p, new Leaf5(e0, e1, newEntry, e3, e4))
+                    : oldEntry == e3 ? new Leaf5Plus1(p, new Leaf5(e0, e1, e2, newEntry, e4))
+                    : new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3, newEntry));
             }
 
             internal override ImMap<V> RemoveEntry(ImMapEntry<V> removedEntry)
@@ -4658,21 +4676,33 @@ namespace ImTools
                     return L;
 
                 var ph = p.Hash;
-                var l = L; 
+                var l = L;
                 ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, swap = null;
 
-                if (ph < e4.Hash) { swap = e4; e4 = p;  p  = swap;
-                if (ph < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
-                if (ph < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
-                if (ph < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
-                if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}
+                if (ph < e4.Hash)
+                {
+                    swap = e4; e4 = p; p = swap;
+                    if (ph < e3.Hash)
+                    {
+                        swap = e3; e3 = e4; e4 = swap;
+                        if (ph < e2.Hash)
+                        {
+                            swap = e2; e2 = e3; e3 = swap;
+                            if (ph < e1.Hash)
+                            {
+                                swap = e1; e1 = e2; e2 = swap;
+                                if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
+                            }
+                        }
+                    }
+                }
 
                 return removedEntry == e0 ? new Leaf5(e1, e2, e3, e4, p)
-                    :  removedEntry == e1 ? new Leaf5(e0, e2, e3, e4, p)
-                    :  removedEntry == e2 ? new Leaf5(e0, e1, e3, e4, p)
-                    :  removedEntry == e3 ? new Leaf5(e0, e1, e2, e4, p)
-                    :  removedEntry == e4 ? new Leaf5(e0, e1, e2, e3, p)
-                    :                       new Leaf5(e0, e1, e2, e3, e4);
+                    : removedEntry == e1 ? new Leaf5(e0, e2, e3, e4, p)
+                    : removedEntry == e2 ? new Leaf5(e0, e1, e3, e4, p)
+                    : removedEntry == e3 ? new Leaf5(e0, e1, e2, e4, p)
+                    : removedEntry == e4 ? new Leaf5(e0, e1, e2, e3, p)
+                    : new Leaf5(e0, e1, e2, e3, e4);
             }
         }
 
@@ -4684,7 +4714,7 @@ namespace ImTools
             public Leaf5Plus1Plus1(ImMapEntry<V> plus, Leaf5Plus1 l)
             {
                 Plus = plus;
-                L    = l;
+                L = l;
             }
 
             public sealed override int Count() => 7;
@@ -4697,7 +4727,7 @@ namespace ImTools
             {
                 ImMapEntry<V> p = Plus, pp = L.Plus, e0 = L.L.Entry0;
                 return p.Hash < pp.Hash ? (p.Hash < e0.Hash ? p : e0) : (pp.Hash < e0.Hash ? pp : e0);
-            } 
+            }
             internal sealed override ImMapEntry<V> GetMaxHashEntryOrDefault()
             {
                 ImMapEntry<V> p = Plus, pp = L.Plus, e4 = L.L.Entry4;
@@ -4712,11 +4742,11 @@ namespace ImTools
                     return L.Plus;
                 var l = L.L;
                 return hash == l.Entry0.Hash ? l.Entry0
-                    :  hash == l.Entry1.Hash ? l.Entry1
-                    :  hash == l.Entry2.Hash ? l.Entry2
-                    :  hash == l.Entry3.Hash ? l.Entry3
-                    :  hash == l.Entry4.Hash ? l.Entry4
-                    :  null;
+                    : hash == l.Entry1.Hash ? l.Entry1
+                    : hash == l.Entry2.Hash ? l.Entry2
+                    : hash == l.Entry3.Hash ? l.Entry3
+                    : hash == l.Entry4.Hash ? l.Entry4
+                    : null;
             }
 
             internal override ImMap<V> AddOrGetEntry(int hash, ImMapEntry<V> entry)
@@ -4755,30 +4785,75 @@ namespace ImTools
                     return e4;
 
                 var right = hash > e4.Hash && ph > e4.Hash && pph > e4.Hash;
-                var left  = !right && hash < e0.Hash && ph < e0.Hash && pph < e0.Hash;
+                var left = !right && hash < e0.Hash && ph < e0.Hash && pph < e0.Hash;
 
                 ImMapEntry<V> swap = null;
-                if (pph < e4.Hash) { swap = e4; e4 = pp; pp = swap;
-                if (pph < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
-                if (pph < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
-                if (pph < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
-                if (pph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}
+                if (pph < e4.Hash)
+                {
+                    swap = e4; e4 = pp; pp = swap;
+                    if (pph < e3.Hash)
+                    {
+                        swap = e3; e3 = e4; e4 = swap;
+                        if (pph < e2.Hash)
+                        {
+                            swap = e2; e2 = e3; e3 = swap;
+                            if (pph < e1.Hash)
+                            {
+                                swap = e1; e1 = e2; e2 = swap;
+                                if (pph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
+                            }
+                        }
+                    }
+                }
 
-                if (ph < pp.Hash)  { swap = pp; pp = p;  p  = swap;
-                if (ph < e4.Hash)  { swap = e4; e4 = pp; pp = swap;
-                if (ph < e3.Hash)  { swap = e3; e3 = e4; e4 = swap;
-                if (ph < e2.Hash)  { swap = e2; e2 = e3; e3 = swap;
-                if (ph < e1.Hash)  { swap = e1; e1 = e2; e2 = swap;
-                if (ph < e0.Hash)  { swap = e0; e0 = e1; e1 = swap; }}}}}}
+                if (ph < pp.Hash)
+                {
+                    swap = pp; pp = p; p = swap;
+                    if (ph < e4.Hash)
+                    {
+                        swap = e4; e4 = pp; pp = swap;
+                        if (ph < e3.Hash)
+                        {
+                            swap = e3; e3 = e4; e4 = swap;
+                            if (ph < e2.Hash)
+                            {
+                                swap = e2; e2 = e3; e3 = swap;
+                                if (ph < e1.Hash)
+                                {
+                                    swap = e1; e1 = e2; e2 = swap;
+                                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
+                                }
+                            }
+                        }
+                    }
+                }
 
                 ImMapEntry<V> e = entry;
-                if (hash < p.Hash) { swap = p;  p = e;   e = swap;
-                if (hash < pp.Hash){ swap = pp; pp = p;  p = swap;
-                if (hash < e4.Hash){ swap = e4; e4 = pp; pp = swap;
-                if (hash < e3.Hash){ swap = e3; e3 = e4; e4 = swap;
-                if (hash < e2.Hash){ swap = e2; e2 = e3; e3 = swap;
-                if (hash < e1.Hash){ swap = e1; e1 = e2; e2 = swap;
-                if (hash < e0.Hash){ swap = e0; e0 = e1; e1 = swap; }}}}}}}
+                if (hash < p.Hash)
+                {
+                    swap = p; p = e; e = swap;
+                    if (hash < pp.Hash)
+                    {
+                        swap = pp; pp = p; p = swap;
+                        if (hash < e4.Hash)
+                        {
+                            swap = e4; e4 = pp; pp = swap;
+                            if (hash < e3.Hash)
+                            {
+                                swap = e3; e3 = e4; e4 = swap;
+                                if (hash < e2.Hash)
+                                {
+                                    swap = e2; e2 = e3; e3 = swap;
+                                    if (hash < e1.Hash)
+                                    {
+                                        swap = e1; e1 = e2; e2 = swap;
+                                        if (hash < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
 
                 if (left)
                 {
@@ -4799,29 +4874,74 @@ namespace ImTools
                 int ph = p.Hash, pph = pp.Hash;
 
                 var right = hash > e4.Hash && ph > e4.Hash && pph > e4.Hash;
-                var left  = !right && hash < e0.Hash && ph < e0.Hash && pph < e0.Hash;
+                var left = !right && hash < e0.Hash && ph < e0.Hash && pph < e0.Hash;
 
-                if (pph < e4.Hash) { swap = e4; e4 = pp; pp = swap;
-                if (pph < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
-                if (pph < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
-                if (pph < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
-                if (pph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}
+                if (pph < e4.Hash)
+                {
+                    swap = e4; e4 = pp; pp = swap;
+                    if (pph < e3.Hash)
+                    {
+                        swap = e3; e3 = e4; e4 = swap;
+                        if (pph < e2.Hash)
+                        {
+                            swap = e2; e2 = e3; e3 = swap;
+                            if (pph < e1.Hash)
+                            {
+                                swap = e1; e1 = e2; e2 = swap;
+                                if (pph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
+                            }
+                        }
+                    }
+                }
 
-                if (ph < pp.Hash)  { swap = pp; pp = p;  p  = swap;
-                if (ph < e4.Hash)  { swap = e4; e4 = pp; pp = swap;
-                if (ph < e3.Hash)  { swap = e3; e3 = e4; e4 = swap;
-                if (ph < e2.Hash)  { swap = e2; e2 = e3; e3 = swap;
-                if (ph < e1.Hash)  { swap = e1; e1 = e2; e2 = swap;
-                if (ph < e0.Hash)  { swap = e0; e0 = e1; e1 = swap; }}}}}}
+                if (ph < pp.Hash)
+                {
+                    swap = pp; pp = p; p = swap;
+                    if (ph < e4.Hash)
+                    {
+                        swap = e4; e4 = pp; pp = swap;
+                        if (ph < e3.Hash)
+                        {
+                            swap = e3; e3 = e4; e4 = swap;
+                            if (ph < e2.Hash)
+                            {
+                                swap = e2; e2 = e3; e3 = swap;
+                                if (ph < e1.Hash)
+                                {
+                                    swap = e1; e1 = e2; e2 = swap;
+                                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
+                                }
+                            }
+                        }
+                    }
+                }
 
                 ImMapEntry<V> e = entry; // store the entry original value cause we may change it for the result
-                if (hash < p.Hash) { swap = p;  p  = e;  e  = swap;
-                if (hash < pp.Hash){ swap = pp; pp = p;  p  = swap;
-                if (hash < e4.Hash){ swap = e4; e4 = pp; pp = swap;
-                if (hash < e3.Hash){ swap = e3; e3 = e4; e4 = swap;
-                if (hash < e2.Hash){ swap = e2; e2 = e3; e3 = swap;
-                if (hash < e1.Hash){ swap = e1; e1 = e2; e2 = swap;
-                if (hash < e0.Hash){ swap = e0; e0 = e1; e1 = swap; }}}}}}}
+                if (hash < p.Hash)
+                {
+                    swap = p; p = e; e = swap;
+                    if (hash < pp.Hash)
+                    {
+                        swap = pp; pp = p; p = swap;
+                        if (hash < e4.Hash)
+                        {
+                            swap = e4; e4 = pp; pp = swap;
+                            if (hash < e3.Hash)
+                            {
+                                swap = e3; e3 = e4; e4 = swap;
+                                if (hash < e2.Hash)
+                                {
+                                    swap = e2; e2 = e3; e3 = swap;
+                                    if (hash < e1.Hash)
+                                    {
+                                        swap = e1; e1 = e2; e2 = swap;
+                                        if (hash < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
 
                 if (left)
                 {
@@ -4869,10 +4989,10 @@ namespace ImTools
                 ImMapEntry<V> e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4;
                 var hash = newEntry.Hash;
                 l = hash < e1.Hash ? new Leaf5(newEntry, e1, e2, e3, e4)
-                :   hash < e2.Hash ? new Leaf5(e1, newEntry, e2, e3, e4)
-                :   hash < e3.Hash ? new Leaf5(e1, e2, newEntry, e3, e4)
-                :   hash < e4.Hash ? new Leaf5(e1, e2, e3, newEntry, e4)
-                :                    new Leaf5(e1, e2, e3, e4, newEntry);
+                : hash < e2.Hash ? new Leaf5(e1, newEntry, e2, e3, e4)
+                : hash < e3.Hash ? new Leaf5(e1, e2, newEntry, e3, e4)
+                : hash < e4.Hash ? new Leaf5(e1, e2, e3, newEntry, e4)
+                : new Leaf5(e1, e2, e3, e4, newEntry);
 
                 return new Leaf5Plus1Plus1(p, new Leaf5Plus1(pp, l));
             }
@@ -4891,10 +5011,10 @@ namespace ImTools
                 ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3;
                 var hash = newEntry.Hash;
                 l = hash < e0.Hash ? new Leaf5(newEntry, e0, e1, e2, e3)
-                :   hash < e1.Hash ? new Leaf5(e0, newEntry, e1, e2, e3)
-                :   hash < e2.Hash ? new Leaf5(e0, e1, newEntry, e2, e3)
-                :   hash < e3.Hash ? new Leaf5(e0, e1, e2, newEntry, e3)
-                :                    new Leaf5(e0, e1, e2, e3, newEntry);
+                : hash < e1.Hash ? new Leaf5(e0, newEntry, e1, e2, e3)
+                : hash < e2.Hash ? new Leaf5(e0, e1, newEntry, e2, e3)
+                : hash < e3.Hash ? new Leaf5(e0, e1, e2, newEntry, e3)
+                : new Leaf5(e0, e1, e2, e3, newEntry);
 
                 return new Leaf5Plus1Plus1(p, new Leaf5Plus1(pp, l));
             }
@@ -4913,26 +5033,53 @@ namespace ImTools
                 ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, swap = null;
                 int pph = pp.Hash, ph = p.Hash;
 
-                if (pph < e4.Hash) { swap = e4; e4 = pp; pp = swap;
-                if (pph < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
-                if (pph < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
-                if (pph < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
-                if (pph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}
+                if (pph < e4.Hash)
+                {
+                    swap = e4; e4 = pp; pp = swap;
+                    if (pph < e3.Hash)
+                    {
+                        swap = e3; e3 = e4; e4 = swap;
+                        if (pph < e2.Hash)
+                        {
+                            swap = e2; e2 = e3; e3 = swap;
+                            if (pph < e1.Hash)
+                            {
+                                swap = e1; e1 = e2; e2 = swap;
+                                if (pph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
+                            }
+                        }
+                    }
+                }
 
-                if (ph < pp.Hash)  { swap = pp; pp = p;  p  = swap;
-                if (ph < e4.Hash)  { swap = e4; e4 = pp; pp = swap;
-                if (ph < e3.Hash)  { swap = e3; e3 = e4; e4 = swap;
-                if (ph < e2.Hash)  { swap = e2; e2 = e3; e3 = swap;
-                if (ph < e1.Hash)  { swap = e1; e1 = e2; e2 = swap;
-                if (ph < e0.Hash)  { swap = e0; e0 = e1; e1 = swap; }}}}}}
+                if (ph < pp.Hash)
+                {
+                    swap = pp; pp = p; p = swap;
+                    if (ph < e4.Hash)
+                    {
+                        swap = e4; e4 = pp; pp = swap;
+                        if (ph < e3.Hash)
+                        {
+                            swap = e3; e3 = e4; e4 = swap;
+                            if (ph < e2.Hash)
+                            {
+                                swap = e2; e2 = e3; e3 = swap;
+                                if (ph < e1.Hash)
+                                {
+                                    swap = e1; e1 = e2; e2 = swap;
+                                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
+                                }
+                            }
+                        }
+                    }
+                }
 
-                return removedEntry == e0 ? new Leaf5Plus1(p, new Leaf5(e1, e2, e3, e4, pp)) 
-                    :  removedEntry == e1 ? new Leaf5Plus1(p, new Leaf5(e0, e2, e3, e4, pp))
-                    :  removedEntry == e2 ? new Leaf5Plus1(p, new Leaf5(e0, e1, e3, e4, pp))
-                    :  removedEntry == e3 ? new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e4, pp))
-                    :  removedEntry == e4 ? new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3, pp))
-                    :  removedEntry == pp ? new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3, e4))
-                    :                       new Leaf5Plus1(pp,new Leaf5(e0, e1, e2, e3, e4));
+                return removedEntry == e0 ? new Leaf5Plus1(p, new Leaf5(e1, e2, e3, e4, pp))
+                    : removedEntry == e1 ? new Leaf5Plus1(p, new Leaf5(e0, e2, e3, e4, pp))
+                    : removedEntry == e2 ? new Leaf5Plus1(p, new Leaf5(e0, e1, e3, e4, pp))
+                    : removedEntry == e3 ? new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e4, pp))
+                    : removedEntry == e4 ? new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3, pp))
+                    : removedEntry == pp ? new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3, e4))
+                    : new Leaf5Plus1(pp, new Leaf5(e0, e1, e2, e3, e4));
             }
         }
 
@@ -4945,8 +5092,8 @@ namespace ImTools
             {
                 Debug.Assert(left != Empty && right != Empty, $"left:{left} != Empty && right:{right} != Empty");
                 MidEntry = entry;
-                Left     = left;
-                Right    = right;
+                Left = left;
+                Right = right;
             }
 
             public override int Count() => 1 + Left.Count() + Right.Count();
@@ -4960,12 +5107,12 @@ namespace ImTools
             internal override ImMapEntry<V> GetMinHashEntryOrDefault() => Left.GetMinHashEntryOrDefault();
             internal override ImMapEntry<V> GetMaxHashEntryOrDefault() => Right.GetMaxHashEntryOrDefault();
 
-            internal override ImMapEntry<V> GetEntryOrNull(int hash) 
+            internal override ImMapEntry<V> GetEntryOrNull(int hash)
             {
                 var mh = MidEntry.Hash;
-                return hash > mh ? Right.GetEntryOrNull(hash) 
-                    :  hash < mh ? Left .GetEntryOrNull(hash) 
-                    :  MidEntry;
+                return hash > mh ? Right.GetEntryOrNull(hash)
+                    : hash < mh ? Left.GetEntryOrNull(hash)
+                    : MidEntry;
             }
 
             internal override ImMap<V> AddOrGetEntry(int hash, ImMapEntry<V> entry)
@@ -5035,11 +5182,11 @@ namespace ImTools
             {
                 var h = MidEntry.Hash;
                 return hash > h ? new Branch2(Left, MidEntry, Right.ReplaceEntry(hash, oldEntry, newEntry))
-                    :  hash < h ? new Branch2(Left.ReplaceEntry(hash, oldEntry, newEntry), MidEntry, Right)
-                    :  new Branch2(Left, newEntry, Right);
+                    : hash < h ? new Branch2(Left.ReplaceEntry(hash, oldEntry, newEntry), MidEntry, Right)
+                    : new Branch2(Left, newEntry, Right);
             }
 
-            internal override ImMap<V> RemoveEntry(ImMapEntry<V> removedEntry) 
+            internal override ImMap<V> RemoveEntry(ImMapEntry<V> removedEntry)
             {
                 // The downward phase for deleting an element from a 2-3 tree is the same as the downward phase
                 // for inserting an element except for the case when the element to be deleted is equal to the value in
@@ -5053,7 +5200,7 @@ namespace ImTools
                 if (removedEntry.Hash > mid.Hash)
                 {
                     // if we done to the Entry then we don't even need to call the Remove
-                    if (Right is ImMapEntry<V>)  
+                    if (Right is ImMapEntry<V>)
                     {
                         // if the left node is not full yet then merge
                         if (Left is Leaf5Plus1Plus1 == false)
@@ -5075,7 +5222,7 @@ namespace ImTools
                             return new Branch3(lb21.ToSplitBranch2(out var lMid, out var lRight), lMid, lRight, mid, newRight);
 
                         // the the hole has a 2-node as a parent and a 2-node as a sibling.
-                        var lb2 = (Branch2)left; 
+                        var lb2 = (Branch2)left;
                         return new Branch3(lb2.Left, lb2.MidEntry, lb2.Right, mid, newRight);
                     }
 
@@ -5090,7 +5237,7 @@ namespace ImTools
                 var newLeft = Left.RemoveEntry(removedEntry);
                 if (newLeft == Empty)
                 {
-                    if (Right is Leaf5Plus1Plus1 == false) 
+                    if (Right is Leaf5Plus1Plus1 == false)
                         return Right.AddOrGetEntry(mid.Hash, mid);
                     removedEntry = Right.GetMinHashEntryOrDefault();
                     return new Branch2(mid, removedEntry, Right.RemoveEntry(removedEntry)); //! the height does not change
@@ -5123,7 +5270,7 @@ namespace ImTools
             public Branch2Plus1(ImMapEntry<V> plus, Branch2 branch)
             {
                 Plus = plus;
-                B  = branch;
+                B = branch;
             }
 
             public override int Count() => 1 + B.Count();
@@ -5141,10 +5288,10 @@ namespace ImTools
                 if (l511 != null)
                 {
                     newRight = b.Right.AddOrGetEntry(m.Hash, m); // @perf replace with the AddEntry method
-                    newMid   = l511.GetMaxHashEntryOrDefault();
+                    newMid = l511.GetMaxHashEntryOrDefault();
                     if (newMid.Hash > Plus.Hash)
                         return l511.RemoveMaxHashEntryAndAddNewEntry(newMid, Plus);
-                    newMid   = Plus;
+                    newMid = Plus;
                     return l511;
                 }
 
@@ -5175,15 +5322,15 @@ namespace ImTools
                     return Plus;
                 var mh = B.MidEntry.Hash;
                 return hash > mh ? B.Right.GetEntryOrNull(hash)
-                    :  hash < mh ? B.Left .GetEntryOrNull(hash)
-                    :  B.MidEntry;
+                    : hash < mh ? B.Left.GetEntryOrNull(hash)
+                    : B.MidEntry;
             }
 
             internal override ImMap<V> AddOrGetEntry(int hash, ImMapEntry<V> entry)
             {
                 var ph = Plus.Hash;
                 if (ph == hash) // ok, fast return here
-                    return Plus; 
+                    return Plus;
 
                 var b = B;
                 var m = b.MidEntry;
@@ -5218,14 +5365,14 @@ namespace ImTools
                 {
                     var left = b.Left;
                     ImMap<V> splitRight = null;
-                    if (left is Leaf5Plus1Plus1 ll) 
+                    if (left is Leaf5Plus1Plus1 ll)
                     {
                         newBranch = ll.AddOrGetEntry(hash, ref entry, ref splitRight);
                         if (splitRight == null)
                             return newBranch; // we know that the `r` is Leaf so the only possibility why `splitRight` is null because the same hash entry is found
 
                         return ph < entry.Hash
-                            ? new Branch3(newBranch is Leaf5 l5 ? new Leaf5Plus1(Plus, l5) : (ImMap<V>)new Leaf2Plus1(Plus, (Leaf2)newBranch), entry, splitRight,  m, b.Right)
+                            ? new Branch3(newBranch is Leaf5 l5 ? new Leaf5Plus1(Plus, l5) : (ImMap<V>)new Leaf2Plus1(Plus, (Leaf2)newBranch), entry, splitRight, m, b.Right)
                             : new Branch3(newBranch, entry, splitRight is Leaf2 l2 ? new Leaf2Plus1(Plus, l2) : (ImMap<V>)new Leaf5Plus1(Plus, (Leaf5)splitRight), m, b.Right);
                     }
 
@@ -5246,7 +5393,7 @@ namespace ImTools
 
             internal override ImMap<V> RemoveEntry(ImMapEntry<V> removedEntry)
             {
-                if (removedEntry == Plus) 
+                if (removedEntry == Plus)
                     return B;
                 var b = B;
                 ImMapEntry<V> p = Plus, m = b.MidEntry;
@@ -5304,14 +5451,14 @@ namespace ImTools
             public readonly ImMapEntry<V> Entry0, Entry1;
             public readonly ImMap<V> Left, Middle, Right;
 
-            public Branch3(ImMap<V> left, ImMapEntry<V> e0, ImMap<V> middle, ImMapEntry<V> e1, ImMap<V> right) 
+            public Branch3(ImMap<V> left, ImMapEntry<V> e0, ImMap<V> middle, ImMapEntry<V> e1, ImMap<V> right)
             {
                 Debug.Assert(e0.Hash < e1.Hash, $"e0.Hash:{e0.Hash} < e1.Hash{e1.Hash}");
-                Left   = left;
+                Left = left;
                 Entry0 = e0;
                 Middle = middle;
                 Entry1 = e1;
-                Right  = right;
+                Right = right;
             }
 
             public override int Count() => 2 + Left.Count() + Middle.Count() + Right.Count();
@@ -5321,10 +5468,10 @@ namespace ImTools
             public override string ToString() => "{B3:{E0:" + Entry0 + ",E1:" + Entry0 + ",L:" + Left + ",M:" + Middle + ",R:" + Right + "}}";
 #endif
 
-            internal override ImMapEntry<V> GetMinHashEntryOrDefault() => Left .GetMinHashEntryOrDefault();
+            internal override ImMapEntry<V> GetMinHashEntryOrDefault() => Left.GetMinHashEntryOrDefault();
             internal override ImMapEntry<V> GetMaxHashEntryOrDefault() => Right.GetMaxHashEntryOrDefault();
 
-            internal override ImMapEntry<V> GetEntryOrNull(int hash) 
+            internal override ImMapEntry<V> GetEntryOrNull(int hash)
             {
                 var h1 = Entry1.Hash;
                 if (hash > h1)
@@ -5461,10 +5608,10 @@ namespace ImTools
             internal override ImMap<V> ReplaceEntry(int hash, ImMapEntry<V> oldEntry, ImMapEntry<V> newEntry)
             {
                 int h0 = Entry0.Hash, h1 = Entry1.Hash;
-                return hash > h1 ? new Branch3(Left, Entry0, Middle, Entry1, Right.ReplaceEntry(hash, oldEntry, newEntry)) 
-                    :  hash < h0 ? new Branch3(Left.ReplaceEntry(hash, oldEntry, newEntry), Entry0, Middle, Entry1, Right)
-                    :  hash > h0 && hash < h1 ? new Branch3(Left, Entry0, Middle.ReplaceEntry(hash, oldEntry, newEntry), Entry1, Right)
-                    :  hash == h0 ? new Branch3(Left, newEntry, Middle, Entry1, Right) : new Branch3(Left, Entry0, Middle, newEntry, Right);
+                return hash > h1 ? new Branch3(Left, Entry0, Middle, Entry1, Right.ReplaceEntry(hash, oldEntry, newEntry))
+                    : hash < h0 ? new Branch3(Left.ReplaceEntry(hash, oldEntry, newEntry), Entry0, Middle, Entry1, Right)
+                    : hash > h0 && hash < h1 ? new Branch3(Left, Entry0, Middle.ReplaceEntry(hash, oldEntry, newEntry), Entry1, Right)
+                    : hash == h0 ? new Branch3(Left, newEntry, Middle, Entry1, Right) : new Branch3(Left, Entry0, Middle, newEntry, Right);
             }
 
             internal override ImMap<V> RemoveEntry(ImMapEntry<V> removedEntry)
@@ -5481,7 +5628,7 @@ namespace ImTools
                     var newLeft = Left.RemoveEntry(removedEntry);
                     if (newLeft == Empty)
                     {
-                        if (middle is Leaf5Plus1Plus1 == false) 
+                        if (middle is Leaf5Plus1Plus1 == false)
                             return new Branch2(middle.AddOrGetEntry(midLeft.Hash, midLeft), midRight, right); //! the height does not change
                         return new Branch3(midLeft, removedEntry = middle.GetMinHashEntryOrDefault(), middle.RemoveEntry(removedEntry), midRight, right); //! the height does not change
                     }
@@ -5600,7 +5747,7 @@ namespace ImTools
             /// <summary>The next entry to traverse</summary>
             public ImMapEntry<V> NextEntry;
             /// <summary>The next branch to traverse</summary>
-            public ImMap<V>      NextBranch;
+            public ImMap<V> NextBranch;
         }
 
         private const int DefaultInitialCapacity = 4;
@@ -5617,7 +5764,7 @@ namespace ImTools
             if (index >= Items.Length)
                 Items = Expand(Items);
             ref var e = ref Items[index];
-            e.NextEntry  = entry;
+            e.NextEntry = entry;
             e.NextBranch = branch;
         }
 
@@ -5643,12 +5790,12 @@ namespace ImTools
 
         /// <summary>Creates the conflicting entry out of two entries</summary>
         [MethodImpl((MethodImplOptions)256)]
-        internal static ImHashMap<K, V>.Entry WithConflicting<K, V>(this ImHashMapEntry<K, V> one, ImHashMapEntry<K, V> two) => 
+        internal static ImHashMap<K, V>.Entry WithConflicting<K, V>(this ImHashMapEntry<K, V> one, ImHashMapEntry<K, V> two) =>
             new HashConflictingEntry<K, V>(one.Hash, one, two);
 
         /// <summary>Sets the value and returns the entry</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMapEntry<K, V> SetValue<K, V>(this ImHashMapEntry<K, V> e, V value) 
+        public static ImHashMapEntry<K, V> SetValue<K, V>(this ImHashMapEntry<K, V> e, V value)
         {
             e.Value = value;
             return e;
@@ -5704,9 +5851,9 @@ namespace ImTools
                 }
                 else if (map is ImHashMap<K, V>.Leaf2Plus1 l21)
                 {
-                    var p  = l21.Plus;
+                    var p = l21.Plus;
                     var ph = p.Hash;
-                    var l  = l21.L;
+                    var l = l21.L;
                     ImHashMap<K, V>.Entry e0 = l.Entry0, e1 = l.Entry1, swap = null;
                     if (ph < e1.Hash)
                     {
@@ -5721,15 +5868,15 @@ namespace ImTools
                     else foreach (var c in ((HashConflictingEntry<K, V>)e0).Conflicts) yield return c;
                     if (e1 is ImHashMapEntry<K, V> v1) yield return v1;
                     else foreach (var c in ((HashConflictingEntry<K, V>)e1).Conflicts) yield return c;
-                    if (p  is ImHashMapEntry<K, V> v2) yield return v2;
-                    else foreach (var c in ((HashConflictingEntry<K, V>)p ).Conflicts) yield return c;
+                    if (p is ImHashMapEntry<K, V> v2) yield return v2;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)p).Conflicts) yield return c;
                 }
                 else if (map is ImHashMap<K, V>.Leaf2Plus1Plus1 l211)
                 {
-                    var p  = l211.Plus;
+                    var p = l211.Plus;
                     var pp = l211.L.Plus;
                     var ph = pp.Hash;
-                    var l  = l211.L.L;
+                    var l = l211.L.L;
                     ImHashMap<K, V>.Entry e0 = l.Entry0, e1 = l.Entry1, swap = null;
                     if (ph < e1.Hash)
                     {
@@ -5760,8 +5907,8 @@ namespace ImTools
                     else foreach (var c in ((HashConflictingEntry<K, V>)e1).Conflicts) yield return c;
                     if (pp is ImHashMapEntry<K, V> v2) yield return v2;
                     else foreach (var c in ((HashConflictingEntry<K, V>)pp).Conflicts) yield return c;
-                    if (p  is ImHashMapEntry<K, V> v3) yield return v3;
-                    else foreach (var c in ((HashConflictingEntry<K, V>)p).Conflicts)  yield return c;
+                    if (p is ImHashMapEntry<K, V> v3) yield return v3;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)p).Conflicts) yield return c;
                 }
                 else if (map is ImHashMap<K, V>.Leaf5 l5)
                 {
@@ -5778,9 +5925,9 @@ namespace ImTools
                 }
                 else if (map is ImHashMap<K, V>.Leaf5Plus1 l51)
                 {
-                    var p  = l51.Plus;
+                    var p = l51.Plus;
                     var ph = p.Hash;
-                    var l  = l51.L;
+                    var l = l51.L;
                     ImHashMap<K, V>.Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, swap = null;
                     if (ph < e4.Hash)
                     {
@@ -5813,13 +5960,13 @@ namespace ImTools
                     else foreach (var c in ((HashConflictingEntry<K, V>)e3).Conflicts) yield return c;
                     if (e4 is ImHashMapEntry<K, V> v4) yield return v4;
                     else foreach (var c in ((HashConflictingEntry<K, V>)e4).Conflicts) yield return c;
-                    if (p  is ImHashMapEntry<K, V> v5) yield return v5;
-                    else foreach (var c in ((HashConflictingEntry<K, V>)p).Conflicts)  yield return c;
+                    if (p is ImHashMapEntry<K, V> v5) yield return v5;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)p).Conflicts) yield return c;
                 }
                 else if (map is ImHashMap<K, V>.Leaf5Plus1Plus1 l511)
                 {
                     var l = l511.L.L;
-                    ImHashMap<K, V>.Entry 
+                    ImHashMap<K, V>.Entry
                         e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, p = l511.Plus, pp = l511.L.Plus, swap = null;
                     var h = pp.Hash;
                     if (h < e4.Hash)
@@ -5881,15 +6028,15 @@ namespace ImTools
                     else foreach (var c in ((HashConflictingEntry<K, V>)e4).Conflicts) yield return c;
                     if (pp is ImHashMapEntry<K, V> v5) yield return v5;
                     else foreach (var c in ((HashConflictingEntry<K, V>)pp).Conflicts) yield return c;
-                    if (p  is ImHashMapEntry<K, V> v6) yield return v6;
-                    else foreach (var c in ((HashConflictingEntry<K, V>)p).Conflicts)  yield return c;
+                    if (p is ImHashMapEntry<K, V> v6) yield return v6;
+                    else foreach (var c in ((HashConflictingEntry<K, V>)p).Conflicts) yield return c;
                 }
 
                 if (count == 0)
                     break; // we yield the leaf and there is nothing in stack - we are DONE!
 
                 var b = parents.Get(--count); // otherwise get the parent
-                if (b is ImHashMap<K,V>.Branch2 pb2)
+                if (b is ImHashMap<K, V>.Branch2 pb2)
                 {
                     if (pb2.MidEntry is ImHashMapEntry<K, V> v) yield return v;
                     else foreach (var c in ((HashConflictingEntry<K, V>)pb2.MidEntry).Conflicts) yield return c;
@@ -5964,9 +6111,9 @@ namespace ImTools
                 }
                 else if (map is ImHashMap<K, V>.Leaf2Plus1 l21)
                 {
-                    var p  = l21.Plus;
+                    var p = l21.Plus;
                     var ph = p.Hash;
-                    var l  = l21.L;
+                    var l = l21.L;
                     ImHashMap<K, V>.Entry e0 = l.Entry0, e1 = l.Entry1, swap = null;
                     if (ph < e1.Hash)
                     {
@@ -5981,15 +6128,15 @@ namespace ImTools
                     else foreach (var c in ((HashConflictingEntry<K, V>)e0).Conflicts) handler(c, i++, state);
                     if (e1 is ImHashMapEntry<K, V> v1) handler(v1, i++, state);
                     else foreach (var c in ((HashConflictingEntry<K, V>)e1).Conflicts) handler(c, i++, state);
-                    if (p  is ImHashMapEntry<K, V> v2) handler(v2, i++, state);
-                    else foreach (var c in ((HashConflictingEntry<K, V>)p ).Conflicts) handler(c, i++, state);
+                    if (p is ImHashMapEntry<K, V> v2) handler(v2, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)p).Conflicts) handler(c, i++, state);
                 }
                 else if (map is ImHashMap<K, V>.Leaf2Plus1Plus1 l211)
                 {
-                    var p  = l211.Plus;
+                    var p = l211.Plus;
                     var pp = l211.L.Plus;
                     var ph = pp.Hash;
-                    var l  = l211.L.L;
+                    var l = l211.L.L;
                     ImHashMap<K, V>.Entry e0 = l.Entry0, e1 = l.Entry1, swap = null;
                     if (ph < e1.Hash)
                     {
@@ -6020,8 +6167,8 @@ namespace ImTools
                     else foreach (var c in ((HashConflictingEntry<K, V>)e1).Conflicts) handler(c, i++, state);
                     if (pp is ImHashMapEntry<K, V> v2) handler(v2, i++, state);
                     else foreach (var c in ((HashConflictingEntry<K, V>)pp).Conflicts) handler(c, i++, state);
-                    if (p  is ImHashMapEntry<K, V> v3) handler(v3, i++, state);
-                    else foreach (var c in ((HashConflictingEntry<K, V>)p).Conflicts)  handler(c, i++, state);
+                    if (p is ImHashMapEntry<K, V> v3) handler(v3, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)p).Conflicts) handler(c, i++, state);
                 }
                 else if (map is ImHashMap<K, V>.Leaf5 l5)
                 {
@@ -6038,9 +6185,9 @@ namespace ImTools
                 }
                 else if (map is ImHashMap<K, V>.Leaf5Plus1 l51)
                 {
-                    var p  = l51.Plus;
+                    var p = l51.Plus;
                     var ph = p.Hash;
-                    var l  = l51.L;
+                    var l = l51.L;
                     ImHashMap<K, V>.Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, swap = null;
                     if (ph < e4.Hash)
                     {
@@ -6073,13 +6220,13 @@ namespace ImTools
                     else foreach (var c in ((HashConflictingEntry<K, V>)e3).Conflicts) handler(c, i++, state);
                     if (e4 is ImHashMapEntry<K, V> v4) handler(v4, i++, state);
                     else foreach (var c in ((HashConflictingEntry<K, V>)e4).Conflicts) handler(c, i++, state);
-                    if (p  is ImHashMapEntry<K, V> v5) handler(v5, i++, state);
-                    else foreach (var c in ((HashConflictingEntry<K, V>)p).Conflicts)  handler(c, i++, state);
+                    if (p is ImHashMapEntry<K, V> v5) handler(v5, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)p).Conflicts) handler(c, i++, state);
                 }
                 else if (map is ImHashMap<K, V>.Leaf5Plus1Plus1 l511)
                 {
                     var l = l511.L.L;
-                    ImHashMap<K, V>.Entry 
+                    ImHashMap<K, V>.Entry
                         e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, p = l511.Plus, pp = l511.L.Plus, swap = null;
                     var h = pp.Hash;
                     if (h < e4.Hash)
@@ -6141,15 +6288,15 @@ namespace ImTools
                     else foreach (var c in ((HashConflictingEntry<K, V>)e4).Conflicts) handler(c, i++, state);
                     if (pp is ImHashMapEntry<K, V> v5) handler(v5, i++, state);
                     else foreach (var c in ((HashConflictingEntry<K, V>)pp).Conflicts) handler(c, i++, state);
-                    if (p  is ImHashMapEntry<K, V> v6) handler(v6, i++, state);
-                    else foreach (var c in ((HashConflictingEntry<K, V>)p).Conflicts)  handler(c, i++, state);
+                    if (p is ImHashMapEntry<K, V> v6) handler(v6, i++, state);
+                    else foreach (var c in ((HashConflictingEntry<K, V>)p).Conflicts) handler(c, i++, state);
                 }
 
                 if (count == 0)
                     break; // we yield the leaf and there is nothing in stack - we are DONE!
 
                 var b = parents.Get(--count); // otherwise get the parent
-                if (b is ImHashMap<K,V>.Branch2 pb2)
+                if (b is ImHashMap<K, V>.Branch2 pb2)
                 {
                     if (pb2.MidEntry is ImHashMapEntry<K, V> v) handler(v, i++, state);
                     else foreach (var c in ((HashConflictingEntry<K, V>)pb2.MidEntry).Conflicts) handler(c, i++, state);
@@ -6190,12 +6337,12 @@ namespace ImTools
 
         /// <summary>Converts map to an array with the minimum allocations</summary>
         public static S[] ToArray<K, V, S>(this ImHashMap<K, V> map, Func<ImHashMapEntry<K, V>, S> selector) =>
-            map == ImHashMap<K, V>.Empty ? ArrayTools.Empty<S>() : 
+            map == ImHashMap<K, V>.Empty ? ArrayTools.Empty<S>() :
                 map.ForEach(St.Rent(new S[map.Count()], selector), (e, i, s) => s.a[i] = s.b(e)).ResetButGetA();
 
         /// <summary>Converts map to an array with the minimum allocations</summary>
         public static ImHashMapEntry<K, V>[] ToArray<K, V>(this ImHashMap<K, V> map) =>
-            map == ImHashMap<K, V>.Empty ? ArrayTools.Empty<ImHashMapEntry<K, V>>() : 
+            map == ImHashMap<K, V>.Empty ? ArrayTools.Empty<ImHashMapEntry<K, V>>() :
                 map.ForEach(new ImHashMapEntry<K, V>[map.Count()], (e, i, a) => a[i] = e);
 
         /// <summary>Converts the map to the dictionary</summary>
@@ -6240,7 +6387,7 @@ namespace ImTools
         {
             var e = map.GetEntryOrNull(hash);
             if (e is HashConflictingEntry<K, V> c)
-                foreach (var x in c.Conflicts) 
+                foreach (var x in c.Conflicts)
                     if (x.Key.Equals(key))
                         return x;
 
@@ -6260,7 +6407,7 @@ namespace ImTools
             }
             else if (e is HashConflictingEntry<K, V> hc)
             {
-                foreach (var x in hc.Conflicts) 
+                foreach (var x in hc.Conflicts)
                     if (x.Key.Equals(key))
                         return x.Value;
             }
@@ -6286,7 +6433,7 @@ namespace ImTools
             }
             else if (e is HashConflictingEntry<K, V> hc)
             {
-                foreach (var x in hc.Conflicts) 
+                foreach (var x in hc.Conflicts)
                     if (x.Key == key)
                         return x.Value;
             }
@@ -6309,8 +6456,8 @@ namespace ImTools
             }
             else if (e is HashConflictingEntry<K, V> hc)
             {
-                foreach (var x in hc.Conflicts) 
-                    if (x.Key.Equals(key)) 
+                foreach (var x in hc.Conflicts)
+                    if (x.Key.Equals(key))
                     {
                         value = x.Value;
                         return true;
@@ -6337,8 +6484,8 @@ namespace ImTools
             }
             else if (e is HashConflictingEntry<K, V> hc)
             {
-                foreach (var x in hc.Conflicts) 
-                    if (x.Key == key) 
+                foreach (var x in hc.Conflicts)
+                    if (x.Key == key)
                     {
                         value = x.Value;
                         return true;
@@ -6364,7 +6511,7 @@ namespace ImTools
             if (mapOrOldEntry is ImHashMap<K, V>.Entry oldEntry && oldEntry != newEntry)
             {
                 if (oldEntry is ImHashMapEntry<K, V> kv)
-                    return kv.Key.Equals(newEntry.Key) ? oldEntry 
+                    return kv.Key.Equals(newEntry.Key) ? oldEntry
                         : map.ReplaceEntry(hash, oldEntry, new HashConflictingEntry<K, V>(hash, kv, newEntry));
 
                 var key = newEntry.Key;
@@ -6383,18 +6530,18 @@ namespace ImTools
             var newEntry = new ImHashMapEntry<K, V>(hash, key, value);
             var mapOrOldEntry = map.AddOrGetEntry(hash, newEntry);
             return mapOrOldEntry is ImHashMap<K, V>.Entry oldEntry
-                ? oldEntry == newEntry ? newEntry : map.ReplaceEntry(hash, oldEntry, oldEntry.Update(newEntry)) 
+                ? oldEntry == newEntry ? newEntry : map.ReplaceEntry(hash, oldEntry, oldEntry.Update(newEntry))
                 : mapOrOldEntry;
         }
 
         /// <summary>Adds or updates (no in-place mutation) the map with the new entry, always returning the NEW map!</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap<K, V> AddOrUpdateEntry<K, V>(this ImHashMap<K, V> map, ImHashMapEntry<K, V> newEntry) 
+        public static ImHashMap<K, V> AddOrUpdateEntry<K, V>(this ImHashMap<K, V> map, ImHashMapEntry<K, V> newEntry)
         {
             var hash = newEntry.Hash;
             var mapOrOldEntry = map.AddOrGetEntry(hash, newEntry);
-            return mapOrOldEntry is ImHashMap<K, V>.Entry oldEntry 
-                ? oldEntry == newEntry ? newEntry : map.ReplaceEntry(hash, oldEntry, oldEntry.Update(newEntry)) 
+            return mapOrOldEntry is ImHashMap<K, V>.Entry oldEntry
+                ? oldEntry == newEntry ? newEntry : map.ReplaceEntry(hash, oldEntry, oldEntry.Update(newEntry))
                 : mapOrOldEntry;
         }
 
@@ -6405,7 +6552,7 @@ namespace ImTools
 
         /// <summary>Adds or updates (no in-place mutation) the map with value by the passed key, always returning the NEW map!</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap<K, V> AddOrUpdate<K, V>(this ImHashMap<K, V> map, int hash, K key, V value, Update<K, V> update) 
+        public static ImHashMap<K, V> AddOrUpdate<K, V>(this ImHashMap<K, V> map, int hash, K key, V value, Update<K, V> update)
         {
             var newEntry = new ImHashMapEntry<K, V>(hash, key, value);
             var mapOrOldEntry = map.AddOrGetEntry(hash, newEntry);
@@ -6434,7 +6581,7 @@ namespace ImTools
             map.AddOrUpdate(key.GetHashCode(), key, value, update);
 
         /// <summary>Updates the map with the new value if the key is found otherwise returns the same unchanged map.</summary>
-        public static ImHashMap<K, V> Update<K, V>(this ImHashMap<K, V> map, int hash, K key, V value) 
+        public static ImHashMap<K, V> Update<K, V>(this ImHashMap<K, V> map, int hash, K key, V value)
         {
             var entry = map.GetEntryOrNull(hash);
             if (entry == null)
@@ -6456,7 +6603,7 @@ namespace ImTools
             map.Update(key.GetHashCode(), key, value);
 
         /// <summary>Updates the map with the new value if the key is found otherwise returns the same unchanged map.</summary>
-        public static ImHashMap<K, V> UpdateToDefault<K, V>(this ImHashMap<K, V> map, int hash, K key) 
+        public static ImHashMap<K, V> UpdateToDefault<K, V>(this ImHashMap<K, V> map, int hash, K key)
         {
             var entry = map.GetEntryOrNull(hash);
             if (entry == null)
@@ -6486,8 +6633,8 @@ namespace ImTools
                 return map;
 
             if (entry is ImHashMapEntry<K, V> kv)
-                return !kv.Key.Equals(key) || ReferenceEquals(kv.Value, value = update(key, kv.Value, value)) 
-                    ? map 
+                return !kv.Key.Equals(key) || ReferenceEquals(kv.Value, value = update(key, kv.Value, value))
+                    ? map
                     : map.ReplaceEntry(hash, entry, new ImHashMapEntry<K, V>(hash, key, value));
 
             var cs = ((HashConflictingEntry<K, V>)entry).Conflicts;
@@ -6505,7 +6652,7 @@ namespace ImTools
 
         /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap<K, V> AddOrKeepEntry<K, V>(this ImHashMap<K, V> map, ImHashMapEntry<K, V> newEntry) 
+        public static ImHashMap<K, V> AddOrKeepEntry<K, V>(this ImHashMap<K, V> map, ImHashMapEntry<K, V> newEntry)
         {
             var hash = newEntry.Hash;
             var mapOrOldEntry = map.AddOrGetEntry(hash, newEntry);
@@ -6538,7 +6685,7 @@ namespace ImTools
             if (oldEntry is ImHashMapEntry<K, V> kv)
                 return kv.Key.Equals(newEntry.Key) ? oldEntry : (ImHashMap<K, V>.Entry)new HashConflictingEntry<K, V>(oldEntry.Hash, kv, newEntry);
 
-            var key  = newEntry.Key;
+            var key = newEntry.Key;
             var cs = ((HashConflictingEntry<K, V>)oldEntry).Conflicts;
             var i = cs.Length - 1;
             while (i != -1 && !key.Equals(cs[i].Key)) --i;
@@ -6549,7 +6696,7 @@ namespace ImTools
 
         /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap<K, V> AddOrKeep<K, V>(this ImHashMap<K, V> map, K key, V value) => 
+        public static ImHashMap<K, V> AddOrKeep<K, V>(this ImHashMap<K, V> map, K key, V value) =>
             map.AddOrKeep(key.GetHashCode(), key, value);
 
         /// <summary>Returns the new map without the specified hash and key (if found) or returns the same map otherwise</summary>
@@ -6613,7 +6760,7 @@ namespace ImTools
             const byte _deeperStartsAtLevel = 8;
             public void Put(ushort i, ImMapEntry<V> e, ImMap<V> b)
             {
-                switch(i)
+                switch (i)
                 {
                     case 0: e0 = e; b0 = b; break;
                     case 1: e1 = e; b1 = b; break;
@@ -6633,7 +6780,7 @@ namespace ImTools
 
             public void Put(ushort i, ImMapEntry<V> e, ImMap<V> b, ImMapEntry<V> eNext, ImMap<V> bNext)
             {
-                switch(i)
+                switch (i)
                 {
                     case 0: e0 = e; b0 = b; e1 = eNext; b1 = bNext; break;
                     case 1: e1 = e; b1 = b; e2 = eNext; b2 = bNext; break;
@@ -6642,7 +6789,8 @@ namespace ImTools
                     case 4: e4 = e; b4 = b; e5 = eNext; b5 = bNext; break;
                     case 5: e5 = e; b5 = b; e6 = eNext; b6 = bNext; break;
                     case 6: e6 = e; b6 = b; e7 = eNext; b7 = bNext; break;
-                    case 7: e7 = e; b7 = b;
+                    case 7:
+                        e7 = e; b7 = b;
                         if (_deeper == null) _deeper = new ImMapParentStack<V>(8);
                         _deeper.Put(0, eNext, bNext);
                         break;
@@ -6725,255 +6873,255 @@ namespace ImTools
                         goto Label0;
                     case 1: _state = -1; _current = null; return false;
                     case 2:
-                    {
-                        _state = -1;
-                        b21FullLeaf511 = (ImMap<V>.Leaf5Plus1Plus1)_b21LeftWasEnumerated.B.Right;
-                        _g = _b21LeftWasEnumerated.Plus;
-                        _b21LeftWasEnumerated = null;
-                        _map = ImMap<V>.Empty;
-                        goto SortLeaf511Label;
-                    }
+                        {
+                            _state = -1;
+                            b21FullLeaf511 = (ImMap<V>.Leaf5Plus1Plus1)_b21LeftWasEnumerated.B.Right;
+                            _g = _b21LeftWasEnumerated.Plus;
+                            _b21LeftWasEnumerated = null;
+                            _map = ImMap<V>.Empty;
+                            goto SortLeaf511Label;
+                        }
                     case 3:
-                    {
-                        _current = _a;
-                        _state = 4;
-                        return true;
-                    }
+                        {
+                            _current = _a;
+                            _state = 4;
+                            return true;
+                        }
                     case 4:
-                    {
-                        _current = _b;
-                        _state = 5;
-                        return true;
-                    }
+                        {
+                            _current = _b;
+                            _state = 5;
+                            return true;
+                        }
                     case 5:
-                    {
-                        _current = _c;
-                        _state = 6;
-                        return true;
-                    }
+                        {
+                            _current = _c;
+                            _state = 6;
+                            return true;
+                        }
                     case 6:
-                    {
-                        _current = _d;
-                        _state = 7;
-                        return true;
-                    }
+                        {
+                            _current = _d;
+                            _state = 7;
+                            return true;
+                        }
                     case 7:
-                    {
-                        _current = _e;
-                        _state = 8;
-                        return true;
-                    }
+                        {
+                            _current = _e;
+                            _state = 8;
+                            return true;
+                        }
                     case 8:
-                    {
-                        _current = _f;
-                        _state = 9;
-                        return true;
-                    }
+                        {
+                            _current = _f;
+                            _state = 9;
+                            return true;
+                        }
                     case 9:
-                    {
-                        _current = _g;
-                        _state = 10;
-                        return true;
-                    }
+                        {
+                            _current = _g;
+                            _state = 10;
+                            return true;
+                        }
                     case 10:
-                    {
-                        _state = -1;
-                        if (_h == null)
-                            goto Label2;
-                        _current = _h;
-                        _state = 11;
-                        return true;
-                    }
+                        {
+                            _state = -1;
+                            if (_h == null)
+                                goto Label2;
+                            _current = _h;
+                            _state = 11;
+                            return true;
+                        }
                     case 11:
-                    {
-                        _state = -1;
-                        goto Label2;
-                    }
+                        {
+                            _state = -1;
+                            goto Label2;
+                        }
                     case 12:
-                    {
-                        _current = _a;
-                        _state = 13;
-                        return true;
-                    }
+                        {
+                            _current = _a;
+                            _state = 13;
+                            return true;
+                        }
                     case 13:
-                    {
-                        _state = -1;
-                        goto Label3;
-                    }
+                        {
+                            _state = -1;
+                            goto Label3;
+                        }
                     case 14:
-                    {
-                        _current = _h;
-                        _state = 15;
-                        return true;
-                    }
+                        {
+                            _current = _h;
+                            _state = 15;
+                            return true;
+                        }
                     case 15:
-                    {
-                        _current = _g;
-                        _state = 16;
-                        return true;
-                    }
+                        {
+                            _current = _g;
+                            _state = 16;
+                            return true;
+                        }
                     case 16:
-                    {
-                        _state = -1;
-                        _h = null;
-                        _g = null;
-                        goto Label3;
-                    }
+                        {
+                            _state = -1;
+                            _h = null;
+                            _g = null;
+                            goto Label3;
+                        }
                     case 17:
-                    {
-                        _current = _g;
-                        _state = 18;
-                        return true;
-                    }
+                        {
+                            _current = _g;
+                            _state = 18;
+                            return true;
+                        }
                     case 18:
-                    {
-                        _current = _h;
-                        _state = 19;
-                        return true;
-                    }
+                        {
+                            _current = _h;
+                            _state = 19;
+                            return true;
+                        }
                     case 19:
-                    {
-                        _current = _e;
-                        _state = 20;
-                        return true;
-                    }
+                        {
+                            _current = _e;
+                            _state = 20;
+                            return true;
+                        }
                     case 20:
-                    {
-                        _state = -1;
-                        _g = null;
-                        _h = null;
-                        _e = null;
-                        goto Label3;
-                    }
+                        {
+                            _state = -1;
+                            _g = null;
+                            _h = null;
+                            _e = null;
+                            goto Label3;
+                        }
                     case 21:
-                    {
-                        _current = _a;
-                        _state = 22;
-                        return true;
-                    }
+                        {
+                            _current = _a;
+                            _state = 22;
+                            return true;
+                        }
                     case 22:
-                    {
-                        _current = _b;
-                        _state = 23;
-                        return true;
-                    }
+                        {
+                            _current = _b;
+                            _state = 23;
+                            return true;
+                        }
                     case 23:
-                    {
-                        _current = _c;
-                        _state = 24;
-                        return true;
-                    }
+                        {
+                            _current = _c;
+                            _state = 24;
+                            return true;
+                        }
                     case 24:
-                    {
-                        _current = _d;
-                        _state = 25;
-                        return true;
-                    }
+                        {
+                            _current = _d;
+                            _state = 25;
+                            return true;
+                        }
                     case 25:
-                    {
-                        _state = -1;
-                        break;
-                    }
+                        {
+                            _state = -1;
+                            break;
+                        }
                     case 26:
-                    {
-                        _current = _e;
-                        _state = 27;
-                        return true;
-                    }
+                        {
+                            _current = _e;
+                            _state = 27;
+                            return true;
+                        }
                     case 27:
-                    {
-                        _current = _h;
-                        _state = 28;
-                        return true;
-                    }
+                        {
+                            _current = _h;
+                            _state = 28;
+                            return true;
+                        }
                     case 28:
-                    {
-                        _current = _g;
-                        _state = 29;
-                        return true;
-                    }
+                        {
+                            _current = _g;
+                            _state = 29;
+                            return true;
+                        }
                     case 29:
-                    {
-                        _current = _f;
-                        _state = 30;
-                        return true;
-                    }
+                        {
+                            _current = _f;
+                            _state = 30;
+                            return true;
+                        }
                     case 30:
-                    {
-                        _current = _d;
-                        _state = 31;
-                        return true;
-                    }
+                        {
+                            _current = _d;
+                            _state = 31;
+                            return true;
+                        }
                     case 31:
-                    {
-                        _state = -1;
-                        _e = null;
-                        _h = null;
-                        _g = null;
-                        _f = null;
-                        _d = null;
-                        break;
-                    }
+                        {
+                            _state = -1;
+                            _e = null;
+                            _h = null;
+                            _g = null;
+                            _f = null;
+                            _d = null;
+                            break;
+                        }
                     case 32:
-                    {
-                        _current = _d;
-                        _state = 33;
-                        return true;
-                    }
+                        {
+                            _current = _d;
+                            _state = 33;
+                            return true;
+                        }
                     case 33:
-                    {
-                        _current = _f;
-                        _state = 34;
-                        return true;
-                    }
+                        {
+                            _current = _f;
+                            _state = 34;
+                            return true;
+                        }
                     case 34:
-                    {
-                        _current = _g;
-                        _state = 35;
-                        return true;
-                    }
+                        {
+                            _current = _g;
+                            _state = 35;
+                            return true;
+                        }
                     case 35:
-                    {
-                        _current = _h;
-                        _state = 36;
-                        return true;
-                    }
+                        {
+                            _current = _h;
+                            _state = 36;
+                            return true;
+                        }
                     case 36:
-                    {
-                        _current = _c;
-                        _state = 37;
-                        return true;
-                    }
+                        {
+                            _current = _c;
+                            _state = 37;
+                            return true;
+                        }
                     case 37:
-                    {
-                        _current = _e;
-                        _state = 38;
-                        return true;
-                    }
+                        {
+                            _current = _e;
+                            _state = 38;
+                            return true;
+                        }
                     case 38:
-                    {
-                        _state = -1;
-                        _d = null;
-                        _f = null;
-                        _g = null;
-                        _h = null;
-                        _e = null;
-                        _c = null;
-                        break;
-                    }
+                        {
+                            _state = -1;
+                            _d = null;
+                            _f = null;
+                            _g = null;
+                            _h = null;
+                            _e = null;
+                            _c = null;
+                            break;
+                        }
                     case 39:
-                    {
-                        _state = -1;
-                        break;
-                    }
+                        {
+                            _state = -1;
+                            break;
+                        }
                     case 40:
-                    {
-                        _state = -1;
-                        _map = _nextBranch;
-                        _a = null;
-                        _nextBranch = null;
-                        goto Label0;
-                    }
+                        {
+                            _state = -1;
+                            _map = _nextBranch;
+                            _a = null;
+                            _nextBranch = null;
+                            goto Label0;
+                        }
                     default:
                         return false;
                 }
@@ -7026,49 +7174,94 @@ namespace ImTools
                 }
 
                 b21FullLeaf511 = (ImMap<V>.Leaf5Plus1Plus1)b21b.Left;
-                _h   = b21b.MidEntry;
-                _g   = branch2Plus1.Plus;
+                _h = b21b.MidEntry;
+                _g = branch2Plus1.Plus;
                 _map = b21b.Right;
 
             SortLeaf511Label:
-            {
-                var l = b21FullLeaf511.L.L;
-                ImMapEntry<V> e0 = l.Entry0, swap = null;
-                _a = l.Entry1;
-                _b = l.Entry2;
-                _c = l.Entry3;
-                _d = l.Entry4;
-                _f = b21FullLeaf511.Plus;
-                _e = b21FullLeaf511.L.Plus;
+                {
+                    var l = b21FullLeaf511.L.L;
+                    ImMapEntry<V> e0 = l.Entry0, swap = null;
+                    _a = l.Entry1;
+                    _b = l.Entry2;
+                    _c = l.Entry3;
+                    _d = l.Entry4;
+                    _f = b21FullLeaf511.Plus;
+                    _e = b21FullLeaf511.L.Plus;
 
-                int hash = _e.Hash;
-                if (hash < _d.Hash) { swap = _d; _d = _e; _e = swap;
-                if (hash < _c.Hash) { swap = _c; _c = _d; _d = swap;
-                if (hash < _b.Hash) { swap = _b; _b = _c; _c = swap;
-                if (hash < _a.Hash) { swap = _a; _a = _b; _b = swap;
-                if (hash < e0.Hash) { swap = e0; e0 = _a; _a = swap; }}}}}
+                    int hash = _e.Hash;
+                    if (hash < _d.Hash)
+                    {
+                        swap = _d; _d = _e; _e = swap;
+                        if (hash < _c.Hash)
+                        {
+                            swap = _c; _c = _d; _d = swap;
+                            if (hash < _b.Hash)
+                            {
+                                swap = _b; _b = _c; _c = swap;
+                                if (hash < _a.Hash)
+                                {
+                                    swap = _a; _a = _b; _b = swap;
+                                    if (hash < e0.Hash) { swap = e0; e0 = _a; _a = swap; }
+                                }
+                            }
+                        }
+                    }
 
-                hash = _f.Hash;
-                if (hash < _e.Hash) { swap = _e; _e = _f; _f = swap;
-                if (hash < _d.Hash) { swap = _d; _d = _e; _e = swap;
-                if (hash < _c.Hash) { swap = _c; _c = _d; _d = swap;
-                if (hash < _b.Hash) { swap = _b; _b = _c; _c = swap;
-                if (hash < _a.Hash) { swap = _a; _a = _b; _b = swap;
-                if (hash < e0.Hash) { swap = e0; e0 = _a; _a = swap; }}}}}}
+                    hash = _f.Hash;
+                    if (hash < _e.Hash)
+                    {
+                        swap = _e; _e = _f; _f = swap;
+                        if (hash < _d.Hash)
+                        {
+                            swap = _d; _d = _e; _e = swap;
+                            if (hash < _c.Hash)
+                            {
+                                swap = _c; _c = _d; _d = swap;
+                                if (hash < _b.Hash)
+                                {
+                                    swap = _b; _b = _c; _c = swap;
+                                    if (hash < _a.Hash)
+                                    {
+                                        swap = _a; _a = _b; _b = swap;
+                                        if (hash < e0.Hash) { swap = e0; e0 = _a; _a = swap; }
+                                    }
+                                }
+                            }
+                        }
+                    }
 
-                hash = _g.Hash; // _g contains the B21.Plus entry
-                if (hash < _f.Hash) { swap = _f; _f = _g; _g = swap;
-                if (hash < _e.Hash) { swap = _e; _e = _f; _f = swap;
-                if (hash < _d.Hash) { swap = _d; _d = _e; _e = swap;
-                if (hash < _c.Hash) { swap = _c; _c = _d; _d = swap;
-                if (hash < _b.Hash) { swap = _b; _b = _c; _c = swap;
-                if (hash < _a.Hash) { swap = _a; _a = _b; _b = swap;
-                if (hash < e0.Hash) { swap = e0; e0 = _a; _a = swap; }}}}}}}
+                    hash = _g.Hash; // _g contains the B21.Plus entry
+                    if (hash < _f.Hash)
+                    {
+                        swap = _f; _f = _g; _g = swap;
+                        if (hash < _e.Hash)
+                        {
+                            swap = _e; _e = _f; _f = swap;
+                            if (hash < _d.Hash)
+                            {
+                                swap = _d; _d = _e; _e = swap;
+                                if (hash < _c.Hash)
+                                {
+                                    swap = _c; _c = _d; _d = swap;
+                                    if (hash < _b.Hash)
+                                    {
+                                        swap = _b; _b = _c; _c = swap;
+                                        if (hash < _a.Hash)
+                                        {
+                                            swap = _a; _a = _b; _b = swap;
+                                            if (hash < e0.Hash) { swap = e0; e0 = _a; _a = swap; }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
 
-                _current = e0;
-                _state = 3;
-                return true;
-            }
+                    _current = e0;
+                    _state = 3;
+                    return true;
+                }
             Label2:
                 _a = null; _b = null; _c = null; _d = null; _e = null; _f = null;
 
@@ -7080,7 +7273,7 @@ namespace ImTools
                 if (leafOrEntryMap is ImMap<V>.Leaf2 l2)
                 {
                     _current = l2.Entry0;
-                    _a       = l2.Entry1;
+                    _a = l2.Entry1;
                     _state = 12;
                     return true;
                 }
@@ -7093,8 +7286,11 @@ namespace ImTools
                     _g = l21.Plus;
 
                     var hash = _g.Hash;
-                    if (hash < _h.Hash) { swap = _h; _h = _g; _g = swap;
-                    if (hash < e0.Hash) { swap = e0; e0 = _h; _h = swap; }}
+                    if (hash < _h.Hash)
+                    {
+                        swap = _h; _h = _g; _g = swap;
+                        if (hash < e0.Hash) { swap = e0; e0 = _h; _h = swap; }
+                    }
 
                     _current = e0;
                     _state = 14;
@@ -7110,13 +7306,22 @@ namespace ImTools
                     _e = l211.Plus;
 
                     var hash = _h.Hash;
-                    if (hash < _g.Hash) { swap = _g; _g = _h; _h = swap;
-                    if (hash < e0.Hash) { swap = e0; e0 = _g; _g = swap; }}
+                    if (hash < _g.Hash)
+                    {
+                        swap = _g; _g = _h; _h = swap;
+                        if (hash < e0.Hash) { swap = e0; e0 = _g; _g = swap; }
+                    }
 
                     hash = _e.Hash;
-                    if (hash < _h.Hash) { swap = _h; _h = _e; _e = swap;
-                    if (hash < _g.Hash) { swap = _g; _g = _h; _h = swap;
-                    if (hash < e0.Hash) { swap = e0; e0 = _g; _g = swap; }}}
+                    if (hash < _h.Hash)
+                    {
+                        swap = _h; _h = _e; _e = swap;
+                        if (hash < _g.Hash)
+                        {
+                            swap = _g; _g = _h; _h = swap;
+                            if (hash < e0.Hash) { swap = e0; e0 = _g; _g = swap; }
+                        }
+                    }
 
                     _current = e0;
                     _state = 17;
@@ -7145,11 +7350,23 @@ namespace ImTools
                     _d = l51.Plus;
 
                     int hash = _d.Hash;
-                    if (hash < _f.Hash) { swap = _f; _f = _d; _d = swap;
-                    if (hash < _g.Hash) { swap = _g; _g = _f; _f = swap;
-                    if (hash < _h.Hash) { swap = _h; _h = _g; _g = swap;
-                    if (hash < _e.Hash) { swap = _e; _e = _h; _h = swap;
-                    if (hash < e0.Hash) { swap = e0; e0 = _e; _e = swap; }}}}}
+                    if (hash < _f.Hash)
+                    {
+                        swap = _f; _f = _d; _d = swap;
+                        if (hash < _g.Hash)
+                        {
+                            swap = _g; _g = _f; _f = swap;
+                            if (hash < _h.Hash)
+                            {
+                                swap = _h; _h = _g; _g = swap;
+                                if (hash < _e.Hash)
+                                {
+                                    swap = _e; _e = _h; _h = swap;
+                                    if (hash < e0.Hash) { swap = e0; e0 = _e; _e = swap; }
+                                }
+                            }
+                        }
+                    }
 
                     _current = e0;
                     _state = 26;
@@ -7168,19 +7385,46 @@ namespace ImTools
                     _e = l511.Plus;
 
                     var hash = _c.Hash;
-                    if (hash < _h.Hash) { swap = _h; _h = _c; _c = swap;
-                    if (hash < _g.Hash) { swap = _g; _g = _h; _h = swap;
-                    if (hash < _f.Hash) { swap = _f; _f = _g; _g = swap;
-                    if (hash < _d.Hash) { swap = _d; _d = _f; _f = swap;
-                    if (hash < e0.Hash) { swap = e0; e0 = _d; _d = swap; }}}}}
+                    if (hash < _h.Hash)
+                    {
+                        swap = _h; _h = _c; _c = swap;
+                        if (hash < _g.Hash)
+                        {
+                            swap = _g; _g = _h; _h = swap;
+                            if (hash < _f.Hash)
+                            {
+                                swap = _f; _f = _g; _g = swap;
+                                if (hash < _d.Hash)
+                                {
+                                    swap = _d; _d = _f; _f = swap;
+                                    if (hash < e0.Hash) { swap = e0; e0 = _d; _d = swap; }
+                                }
+                            }
+                        }
+                    }
 
                     hash = _e.Hash;
-                    if (hash < _c.Hash) { swap = _c; _c = _e; _e = swap;
-                    if (hash < _h.Hash) { swap = _h; _h = _c; _c = swap;
-                    if (hash < _g.Hash) { swap = _g; _g = _h; _h = swap;
-                    if (hash < _f.Hash) { swap = _f; _f = _g; _g = swap;
-                    if (hash < _d.Hash) { swap = _d; _d = _f; _f = swap;
-                    if (hash < e0.Hash) { swap = e0; e0 = _d; _d = swap; }}}}}}
+                    if (hash < _c.Hash)
+                    {
+                        swap = _c; _c = _e; _e = swap;
+                        if (hash < _h.Hash)
+                        {
+                            swap = _h; _h = _c; _c = swap;
+                            if (hash < _g.Hash)
+                            {
+                                swap = _g; _g = _h; _h = swap;
+                                if (hash < _f.Hash)
+                                {
+                                    swap = _f; _f = _g; _g = swap;
+                                    if (hash < _d.Hash)
+                                    {
+                                        swap = _d; _d = _f; _f = swap;
+                                        if (hash < e0.Hash) { swap = e0; e0 = _d; _d = swap; }
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     _current = e0; _state = 32;
                     return true;
@@ -7248,11 +7492,11 @@ namespace ImTools
                     {
                         handler(b21LeftWasEnumerated.B.MidEntry, i++, state);
                         l511 = (ImMap<V>.Leaf5Plus1Plus1)b21LeftWasEnumerated.B.Right;
-                        pl   = b21LeftWasEnumerated.Plus;
+                        pl = b21LeftWasEnumerated.Plus;
                         b21LeftWasEnumerated = null; // we done with the branch
-                        map  = ImMap<V>.Empty;       // forcing to skip leaves below
+                        map = ImMap<V>.Empty;       // forcing to skip leaves below
                     }
-                    else 
+                    else
                     {
                         var b21 = (ImMap<V>.Branch2Plus1)map;
                         if (b21.B.Right is ImMap<V>.Leaf5Plus1Plus1) // so we need to enumerate the left as a normal branch2 with the code below.
@@ -7263,10 +7507,10 @@ namespace ImTools
                         else // we need to sort out the left side with Plus entry
                         {
                             l511 = (ImMap<V>.Leaf5Plus1Plus1)b21.B.Left;
-                            mid  = b21.B.MidEntry;
-                            pl   = b21.Plus;
-                            map  = b21.B.Right; // it is a leaf so, no need to continue, just proceed with the leafs below
-                         }
+                            mid = b21.B.MidEntry;
+                            pl = b21.Plus;
+                            map = b21.B.Right; // it is a leaf so, no need to continue, just proceed with the leafs below
+                        }
                     }
 
                     if (l511 != null)
@@ -7274,28 +7518,73 @@ namespace ImTools
                         var l = l511.L.L;
                         ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, p = l511.Plus, pp = l511.L.Plus, swap = null;
                         var h = pp.Hash;
-                        if (h < e4.Hash) { swap = e4; e4 = pp; pp = swap;
-                        if (h < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
-                        if (h < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
-                        if (h < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
-                        if (h < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}
+                        if (h < e4.Hash)
+                        {
+                            swap = e4; e4 = pp; pp = swap;
+                            if (h < e3.Hash)
+                            {
+                                swap = e3; e3 = e4; e4 = swap;
+                                if (h < e2.Hash)
+                                {
+                                    swap = e2; e2 = e3; e3 = swap;
+                                    if (h < e1.Hash)
+                                    {
+                                        swap = e1; e1 = e2; e2 = swap;
+                                        if (h < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
+                                    }
+                                }
+                            }
+                        }
 
-                        h     = p.Hash;
-                        if (h < pp.Hash) { swap = pp; pp = p;  p  = swap;
-                        if (h < e4.Hash) { swap = e4; e4 = pp; pp = swap;
-                        if (h < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
-                        if (h < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
-                        if (h < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
-                        if (h < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}}
+                        h = p.Hash;
+                        if (h < pp.Hash)
+                        {
+                            swap = pp; pp = p; p = swap;
+                            if (h < e4.Hash)
+                            {
+                                swap = e4; e4 = pp; pp = swap;
+                                if (h < e3.Hash)
+                                {
+                                    swap = e3; e3 = e4; e4 = swap;
+                                    if (h < e2.Hash)
+                                    {
+                                        swap = e2; e2 = e3; e3 = swap;
+                                        if (h < e1.Hash)
+                                        {
+                                            swap = e1; e1 = e2; e2 = swap;
+                                            if (h < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
+                                        }
+                                    }
+                                }
+                            }
+                        }
 
-                        h     = pl.Hash;
-                        if (h < p.Hash)  { swap = p;  p = pl;  pl = swap;
-                        if (h < pp.Hash) { swap = pp; pp = p;  p  = swap;
-                        if (h < e4.Hash) { swap = e4; e4 = pp; pp = swap;
-                        if (h < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
-                        if (h < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
-                        if (h < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
-                        if (h < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}}}
+                        h = pl.Hash;
+                        if (h < p.Hash)
+                        {
+                            swap = p; p = pl; pl = swap;
+                            if (h < pp.Hash)
+                            {
+                                swap = pp; pp = p; p = swap;
+                                if (h < e4.Hash)
+                                {
+                                    swap = e4; e4 = pp; pp = swap;
+                                    if (h < e3.Hash)
+                                    {
+                                        swap = e3; e3 = e4; e4 = swap;
+                                        if (h < e2.Hash)
+                                        {
+                                            swap = e2; e2 = e3; e3 = swap;
+                                            if (h < e1.Hash)
+                                            {
+                                                swap = e1; e1 = e2; e2 = swap;
+                                                if (h < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
 
                         handler(e0, i++, state);
                         handler(e1, i++, state);
@@ -7303,7 +7592,7 @@ namespace ImTools
                         handler(e3, i++, state);
                         handler(e4, i++, state);
                         handler(pp, i++, state);
-                        handler(p , i++, state);
+                        handler(p, i++, state);
                         handler(pl, i++, state);
 
                         if (mid != null)
@@ -7318,11 +7607,14 @@ namespace ImTools
                 }
                 else if (map is ImMap<V>.Leaf2Plus1 l21)
                 {
-                    var l  = l21.L;
+                    var l = l21.L;
                     ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, pp = l21.Plus, swap = null;
                     var ph = pp.Hash;
-                    if (ph < e1.Hash) { swap = e1; e1 = pp; pp = swap;
-                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}
+                    if (ph < e1.Hash)
+                    {
+                        swap = e1; e1 = pp; pp = swap;
+                        if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
+                    }
 
                     handler(e0, i++, state);
                     handler(e1, i++, state);
@@ -7330,21 +7622,30 @@ namespace ImTools
                 }
                 else if (map is ImMap<V>.Leaf2Plus1Plus1 l211)
                 {
-                    var l  = l211.L.L;
+                    var l = l211.L.L;
                     ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, pp = l211.L.Plus, p = l211.Plus, swap = null;
                     var ph = pp.Hash;
-                    if (ph < e1.Hash) { swap = e1; e1 = pp; pp = swap;
-                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}
+                    if (ph < e1.Hash)
+                    {
+                        swap = e1; e1 = pp; pp = swap;
+                        if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
+                    }
 
                     ph = p.Hash;
-                    if (ph < pp.Hash) { swap = pp; pp = p;  p  = swap;
-                    if (ph < e1.Hash) { swap = e1; e1 = pp; pp = swap;
-                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}
+                    if (ph < pp.Hash)
+                    {
+                        swap = pp; pp = p; p = swap;
+                        if (ph < e1.Hash)
+                        {
+                            swap = e1; e1 = pp; pp = swap;
+                            if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
+                        }
+                    }
 
                     handler(e0, i++, state);
                     handler(e1, i++, state);
                     handler(pp, i++, state);
-                    handler(p,  i++, state);
+                    handler(p, i++, state);
                 }
                 else if (map is ImMap<V>.Leaf5 l5)
                 {
@@ -7356,14 +7657,26 @@ namespace ImTools
                 }
                 else if (map is ImMap<V>.Leaf5Plus1 l51)
                 {
-                    var l  = l51.L;
+                    var l = l51.L;
                     ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, pp = l51.Plus, swap = null;
                     var ph = pp.Hash;
-                    if (ph < e4.Hash) { swap = e4; e4 = pp; pp = swap;
-                    if (ph < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
-                    if (ph < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
-                    if (ph < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
-                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}
+                    if (ph < e4.Hash)
+                    {
+                        swap = e4; e4 = pp; pp = swap;
+                        if (ph < e3.Hash)
+                        {
+                            swap = e3; e3 = e4; e4 = swap;
+                            if (ph < e2.Hash)
+                            {
+                                swap = e2; e2 = e3; e3 = swap;
+                                if (ph < e1.Hash)
+                                {
+                                    swap = e1; e1 = e2; e2 = swap;
+                                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
+                                }
+                            }
+                        }
+                    }
 
                     handler(e0, i++, state);
                     handler(e1, i++, state);
@@ -7378,19 +7691,46 @@ namespace ImTools
                     ImMapEntry<V> e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, p = l511.Plus, pp = l511.L.Plus, swap = null;
 
                     var ph = pp.Hash;
-                    if (ph < e4.Hash) { swap = e4; e4 = pp; pp = swap;
-                    if (ph < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
-                    if (ph < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
-                    if (ph < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
-                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}
+                    if (ph < e4.Hash)
+                    {
+                        swap = e4; e4 = pp; pp = swap;
+                        if (ph < e3.Hash)
+                        {
+                            swap = e3; e3 = e4; e4 = swap;
+                            if (ph < e2.Hash)
+                            {
+                                swap = e2; e2 = e3; e3 = swap;
+                                if (ph < e1.Hash)
+                                {
+                                    swap = e1; e1 = e2; e2 = swap;
+                                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
+                                }
+                            }
+                        }
+                    }
 
-                    ph     = p.Hash;
-                    if (ph < pp.Hash) { swap = pp; pp = p;  p  = swap;
-                    if (ph < e4.Hash) { swap = e4; e4 = pp; pp = swap;
-                    if (ph < e3.Hash) { swap = e3; e3 = e4; e4 = swap;
-                    if (ph < e2.Hash) { swap = e2; e2 = e3; e3 = swap;
-                    if (ph < e1.Hash) { swap = e1; e1 = e2; e2 = swap;
-                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }}}}}}
+                    ph = p.Hash;
+                    if (ph < pp.Hash)
+                    {
+                        swap = pp; pp = p; p = swap;
+                        if (ph < e4.Hash)
+                        {
+                            swap = e4; e4 = pp; pp = swap;
+                            if (ph < e3.Hash)
+                            {
+                                swap = e3; e3 = e4; e4 = swap;
+                                if (ph < e2.Hash)
+                                {
+                                    swap = e2; e2 = e3; e3 = swap;
+                                    if (ph < e1.Hash)
+                                    {
+                                        swap = e1; e1 = e2; e2 = swap;
+                                        if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     handler(e0, i++, state);
                     handler(e1, i++, state);
@@ -7398,7 +7738,7 @@ namespace ImTools
                     handler(e3, i++, state);
                     handler(e4, i++, state);
                     handler(pp, i++, state);
-                    handler(p , i++, state);
+                    handler(p, i++, state);
                 }
                 else if (map is ImMapEntry<V> l1)
                     handler(l1, i++, state);
@@ -7544,7 +7884,7 @@ namespace ImTools
 
         /// <summary>Updates the map with the new value if the hash is found otherwise returns the same unchanged map.</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImMap<V> Update<V>(this ImMap<V> map, int hash, V value) 
+        public static ImMap<V> Update<V>(this ImMap<V> map, int hash, V value)
         {
             var entry = map.GetEntryOrNull(hash);
             return entry == null ? map : map.ReplaceEntry(hash, entry, new ImMapEntry<V>(hash, value));
@@ -7560,7 +7900,7 @@ namespace ImTools
 
         /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImMap<V> AddOrKeepEntry<V>(this ImMap<V> map, ImMapEntry<V> newEntry) 
+        public static ImMap<V> AddOrKeepEntry<V>(this ImMap<V> map, ImMapEntry<V> newEntry)
         {
             var mapOrOldEntry = map.AddOrGetEntry(newEntry.Hash, newEntry);
             return mapOrOldEntry is ImMapEntry<V> && mapOrOldEntry != newEntry ? map : mapOrOldEntry;
@@ -7568,7 +7908,7 @@ namespace ImTools
 
         /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the hash is already present</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImMap<V> AddOrKeep<V>(this ImMap<V> map, int hash, V value) 
+        public static ImMap<V> AddOrKeep<V>(this ImMap<V> map, int hash, V value)
         {
             var newEntry = new ImMapEntry<V>(hash, value);
             var mapOrOldEntry = map.AddOrGetEntry(hash, newEntry);
@@ -7638,7 +7978,7 @@ namespace ImTools
         public static bool TryFind<K, V>(this ImHashMap<K, V>[] parts, int hash, K key, out V value, int partHashMask = PARTITION_HASH_MASK)
         {
             var p = parts[hash & partHashMask];
-            if (p != null) 
+            if (p != null)
                 return p.TryFind(hash, key, out value);
             value = default(V);
             return false;
@@ -7653,11 +7993,11 @@ namespace ImTools
         /// <summary>Lookup for the value by the key using the hash code and checking the key with the `object.ReferenceEquals` for equality,
         /// returns the `true` and the found value or the `false`</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static bool TryFindByReferenceEquals<K, V>(this ImHashMap<K, V>[] parts, int hash, K key, out V value, 
+        public static bool TryFindByReferenceEquals<K, V>(this ImHashMap<K, V>[] parts, int hash, K key, out V value,
             int partHashMask = PARTITION_HASH_MASK) where K : class
         {
             var p = parts[hash & partHashMask];
-            if (p != null) 
+            if (p != null)
                 return p.TryFindByReferenceEquals(hash, key, out value);
             value = default(V);
             return false;
@@ -7666,7 +8006,7 @@ namespace ImTools
         /// <summary>Lookup for the value by the key using its hash and checking the key with the `object.ReferenceEquals` for equality, 
         /// returns the default `V` if hash, key are not found.</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static V GetValueOrDefaultByReferenceEquals<K, V>(this ImHashMap<K, V>[] parts, K key, int partHashMask = PARTITION_HASH_MASK) where K : class => 
+        public static V GetValueOrDefaultByReferenceEquals<K, V>(this ImHashMap<K, V>[] parts, K key, int partHashMask = PARTITION_HASH_MASK) where K : class =>
             parts.GetValueOrDefaultByReferenceEquals(key.GetHashCode(), key, partHashMask);
 
         /// <summary>Returns the SAME partitioned maps array instance but with the NEW added or updated partion</summary>
@@ -7680,7 +8020,7 @@ namespace ImTools
         }
 
         /// <summary>Returns the SAME partitioned maps array instance but with the NEW added or updated partion</summary>
-        [MethodImpl((MethodImplOptions) 256)]
+        [MethodImpl((MethodImplOptions)256)]
         public static void AddOrUpdate<K, V>(this ImHashMap<K, V>[] parts, K key, V value, int partHashMask = PARTITION_HASH_MASK) =>
             parts.AddOrUpdate(key.GetHashCode(), key, value, partHashMask);
 
@@ -7688,7 +8028,7 @@ namespace ImTools
             Ref.Swap(ref part, hash, key, value, (x, h, k, v) => x.AddOrUpdate(h, k, v));
 
         /// <summary>Returns the SAME partitioned maps array instance but with the NEW added or updated partion</summary>
-        [MethodImpl((MethodImplOptions) 256)]
+        [MethodImpl((MethodImplOptions)256)]
         public static void AddOrUpdate<K, V>(this ImHashMap<K, V>[] parts, int hash, K key, V value, Update<K, V> update,
             int partHashMask = PARTITION_HASH_MASK)
         {
@@ -7709,8 +8049,8 @@ namespace ImTools
         }
 
         /// <summary>Returns the SAME partitioned maps array instance but with the NEW added or the same kept partion</summary>
-        [MethodImpl((MethodImplOptions) 256)]
-        public static void AddOrKeep<K, V>(this ImHashMap<K, V>[] parts, K key, V value, 
+        [MethodImpl((MethodImplOptions)256)]
+        public static void AddOrKeep<K, V>(this ImHashMap<K, V>[] parts, K key, V value,
             int partHashMask = PARTITION_HASH_MASK) =>
             parts.AddOrKeep(key.GetHashCode(), key, value, partHashMask);
 
@@ -7725,7 +8065,7 @@ namespace ImTools
         {
             if (parents == null)
                 parents = new MapParentStack();
-            foreach (var map in parts) 
+            foreach (var map in parts)
             {
                 if (map == ImHashMap<K, V>.Empty)
                     continue;
@@ -7737,12 +8077,12 @@ namespace ImTools
         /// <summary>Do something for each entry.
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
-        public static S ForEach<K, V, S>(this ImHashMap<K, V>[] parts, S state, Action<ImHashMapEntry<K, V>, int, S> handler, 
+        public static S ForEach<K, V, S>(this ImHashMap<K, V>[] parts, S state, Action<ImHashMapEntry<K, V>, int, S> handler,
             MapParentStack parents = null)
         {
             if (parents == null)
                 parents = new MapParentStack();
-            foreach (var map in parts) 
+            foreach (var map in parts)
             {
                 if (map == ImHashMap<K, V>.Empty)
                     continue;
@@ -7789,15 +8129,15 @@ namespace ImTools
         public static bool TryFind<V>(this ImMap<V>[] parts, int hash, out V value, int partHashMask = PARTITION_HASH_MASK)
         {
             var p = parts[hash & partHashMask];
-            if (p != null) 
+            if (p != null)
                 return p.TryFind(hash, out value);
             value = default(V);
             return false;
         }
 
         /// <summary>Returns the SAME partitioned maps array instance but with the NEW added or updated partion</summary>
-        [MethodImpl((MethodImplOptions) 256)]
-        public static void AddOrUpdate<V>(this ImMap<V>[] parts, int hash, V value, int partHashMask = PARTITION_HASH_MASK) 
+        [MethodImpl((MethodImplOptions)256)]
+        public static void AddOrUpdate<V>(this ImMap<V>[] parts, int hash, V value, int partHashMask = PARTITION_HASH_MASK)
         {
             ref var part = ref parts[hash & partHashMask];
             var p = part;
@@ -7809,7 +8149,7 @@ namespace ImTools
             Ref.Swap(ref part, hash, value, (x, h, v) => x.AddOrUpdate(h, v));
 
         /// <summary>Returns the SAME partitioned maps array instance but with the NEW added or updated partion</summary>
-        [MethodImpl((MethodImplOptions) 256)]
+        [MethodImpl((MethodImplOptions)256)]
         public static void AddOrUpdate<V>(this ImMap<V>[] parts, int hash, V value, Update<int, V> update, int partHashMask = PARTITION_HASH_MASK)
         {
             ref var part = ref parts[hash & partHashMask];
@@ -7833,7 +8173,7 @@ namespace ImTools
 
         /// <summary>Updates the map with the new value if the hash is found otherwise returns the same unchanged map.</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static void Update<V>(this ImMap<V>[] parts, int hash, V value, int partHashMask = PARTITION_HASH_MASK) 
+        public static void Update<V>(this ImMap<V>[] parts, int hash, V value, int partHashMask = PARTITION_HASH_MASK)
         {
             ref var part = ref parts[hash & partHashMask];
             var p = part;
@@ -7850,7 +8190,7 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public static IEnumerable<ImMapEntry<V>> Enumerate<V>(this ImMap<V>[] parts)
         {
-            foreach (var map in parts) 
+            foreach (var map in parts)
             {
                 if (map == ImMap<V>.Empty)
                     continue;
@@ -7866,7 +8206,7 @@ namespace ImTools
         {
             if (parents == null)
                 parents = new MapParentStack();
-            foreach (var map in parts) 
+            foreach (var map in parts)
             {
                 if (map == ImMap<V>.Empty)
                     continue;
