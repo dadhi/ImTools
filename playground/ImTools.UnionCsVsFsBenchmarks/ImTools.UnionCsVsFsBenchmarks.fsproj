@@ -15,7 +15,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\ImTools\ImTools.csproj" />
+        <!-- <ProjectReference Include="..\..\src\ImTools\ImTools.csproj" /> -->
+        <ProjectReference Include="..\ImTools.UnionPlayground\ImTools.UnionPlayground.csproj" />
     </ItemGroup>
 
 </Project>
