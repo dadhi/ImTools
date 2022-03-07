@@ -1810,6 +1810,29 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 | V3_ImHashMap_foreach |  1000 | 21,043.39 ns | 298.240 ns | 232.846 ns |  1.00 |    0.00 | 0.0305 |     - |     - |     328 B |
 | V2_ImHashMap_foreach |  1000 | 21,484.35 ns | 168.389 ns | 149.272 ns |  1.02 |    0.01 | 0.0305 |     - |     - |     192 B |
 
+## V4.0 - baseline
+
+BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
+Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical cores
+.NET Core SDK=6.0.102
+  [Host]     : .NET Core 6.0.2 (CoreCLR 6.0.222.6406, CoreFX 6.0.222.6406), X64 RyuJIT
+  DefaultJob : .NET Core 6.0.2 (CoreCLR 6.0.222.6406, CoreFX 6.0.222.6406), X64 RyuJIT
+
+
+|                 Method | Count |         Mean |        Error |       StdDev |       Median | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|----------------------- |------ |-------------:|-------------:|-------------:|-------------:|------:|--------:|-------:|------:|------:|----------:|
+| V3_ImHashMap_Enumerate |     1 |     78.29 ns |     3.211 ns |     9.417 ns |     74.97 ns |  1.00 |    0.00 | 0.0509 |     - |     - |     160 B |
+|   Dictionary_Enumerate |     1 |     23.15 ns |     0.712 ns |     2.008 ns |     22.54 ns |  0.30 |    0.04 |      - |     - |     - |         - |
+|                        |       |              |              |              |              |       |         |        |       |       |           |
+| V3_ImHashMap_Enumerate |    10 |    351.19 ns |     7.127 ns |    20.791 ns |    344.93 ns |  1.00 |    0.00 | 0.0763 |     - |     - |     240 B |
+|   Dictionary_Enumerate |    10 |     92.85 ns |     1.957 ns |     4.128 ns |     91.81 ns |  0.27 |    0.02 |      - |     - |     - |         - |
+|                        |       |              |              |              |              |       |         |        |       |       |           |
+| V3_ImHashMap_Enumerate |   100 |  3,049.03 ns |    64.798 ns |   186.958 ns |  2,987.63 ns |  1.00 |    0.00 | 0.0763 |     - |     - |     240 B |
+|   Dictionary_Enumerate |   100 |    844.11 ns |    16.992 ns |    38.698 ns |    837.12 ns |  0.28 |    0.02 |      - |     - |     - |         - |
+|                        |       |              |              |              |              |       |         |        |       |       |           |
+| V3_ImHashMap_Enumerate |  1000 | 34,113.03 ns | 1,105.023 ns | 3,116.738 ns | 33,509.27 ns |  1.00 |    0.00 | 0.1221 |     - |     - |     480 B |
+|   Dictionary_Enumerate |  1000 | 14,166.55 ns |   237.173 ns |   221.852 ns | 14,124.19 ns |  0.43 |    0.03 |      - |     - |     - |         - |
+
 */
             [Params(1, 10, 100, 1_000)]
             public int Count;
@@ -1927,7 +1950,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             #endregion
 
             [Benchmark(Baseline = true)]
-            public object V3_ImHashMap_foreach()
+            public object V3_ImHashMap_Enumerate()
             {
                 var s = "";
                 foreach (var x in _mapV3.Enumerate())
@@ -1936,7 +1959,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             }
 
             // [Benchmark]
-            public object V3_PartitionedHashMap_foreach()
+            public object V3_PartitionedHashMap_Enumerate()
             {
                 var s = "";
                 foreach (var x in _mapPartV3.Enumerate())
@@ -1944,8 +1967,8 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 return s;
             }
 
-            [Benchmark]
-            public object V2_ImHashMap_foreach() 
+            // [Benchmark]
+            public object V2_ImHashMap_Enumerate() 
             {
                 var s = "";
                 foreach (var x in _mapV2.Enumerate())
@@ -1954,7 +1977,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             }
 
             // [Benchmark]
-            public object DictionarySlim_foreach()
+            public object DictionarySlim_Enumerate()
             {
                 var s = "";
                 foreach (var x in _dictSlim)
@@ -1962,8 +1985,8 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
                 return s;
             }
 
-            // [Benchmark]
-            public object Dictionary_foreach()
+            [Benchmark]
+            public object Dictionary_Enumerate()
             {
                 var s = "";
                 foreach (var x in _dict)
@@ -1981,7 +2004,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             }
 
             // [Benchmark]
-            public object ImmutableDict_foreach()
+            public object ImmutableDict_Enumerate()
             {
                 var s = "";
                 foreach (var x in _immutableDict)
