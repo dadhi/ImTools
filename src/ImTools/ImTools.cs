@@ -3017,7 +3017,7 @@ namespace ImTools
         public V Value;
 
         /// <summary>Constructs the entry with the default value</summary>
-        protected ImMapEntry(int hash) : base(hash) {}
+        protected ImMapEntry(int hash) : base(hash) { }
         /// <summary>Constructs the entry with the value</summary>
         protected ImMapEntry(int hash, V value) : base(hash) => Value = value;
 
@@ -3026,7 +3026,7 @@ namespace ImTools
 
         internal override Entry RemoveOrKeepWithTheSameHash(K key) => this;
 
-        internal override int ForEach<S>(S state, int startIndex, Action<ImMapEntry<K, V>, int, S> handler) 
+        internal override int ForEach<S>(S state, int startIndex, Action<ImMapEntry<K, V>, int, S> handler)
         {
             handler(this, startIndex, state);
             return startIndex + 1;
@@ -3047,7 +3047,7 @@ namespace ImTools
         /// <summary>Constructs the entry with the default value</summary>
         public VEntry(int hash) : base(hash) { }
         /// <summary>Constructs the entry with the value</summary>
-        public VEntry(int hash, V value) : base(hash, value) {}
+        public VEntry(int hash, V value) : base(hash, value) { }
 
         internal override ImMapEntry<int, V> GetOrNull(int key) => key == Hash ? this : null;
         internal override ImMapEntry<int, V> GetOrNullWithTheSameHash(int key) => this;
@@ -3070,10 +3070,10 @@ namespace ImTools
         internal override ImMapEntry<K, V> GetOrNull(K key) =>
             _key.Equals(key) ? this : null;
 
-        internal override ImMapEntry<K, V> GetOrNullWithTheSameHash(K key) => 
+        internal override ImMapEntry<K, V> GetOrNullWithTheSameHash(K key) =>
             _key.Equals(key) ? this : null;
 
-        internal override Entry AddWithTheSameHash(Entry newEntry) => 
+        internal override Entry AddWithTheSameHash(Entry newEntry) =>
             new HashConflictingEntry(Hash, this, (KVEntry<K, V>)newEntry);
 
         internal override Entry ReplaceOrAddWithTheSameHash(Entry newEntry) =>
@@ -5731,7 +5731,7 @@ namespace ImTools
         }
 
         /// <summary>Non-allocating enumerator</summary>
-        public struct ImMapEnumerable<K, V> : IEnumerable<ImMap<K, V>.Entry>, IEnumerable
+        public struct ImMapEnumerable<K, V> : IEnumerable<ImMapEntry<K, V>>, IEnumerable
         {
             private readonly ImMap<K, V> _map;
 
@@ -5741,12 +5741,12 @@ namespace ImTools
             /// <summary>Returns non-allocating enumerator</summary>
             public ImMapEnumerator<K, V> GetEnumerator() => new ImMapEnumerator<K, V> { _map = _map };
 
-            IEnumerator<ImMap<K, V>.Entry> IEnumerable<ImMap<K, V>.Entry>.GetEnumerator() => new ImMapEnumerator<K, V> { _map = _map };
+            IEnumerator<ImMapEntry<K, V>> IEnumerable<ImMapEntry<K, V>>.GetEnumerator() => new ImMapEnumerator<K, V> { _map = _map };
             IEnumerator IEnumerable.GetEnumerator() => new ImMapEnumerator<K, V> { _map = _map };
         }
 
         /// <summary>Enumerator on stack, without allocation</summary>
-        public struct ImMapEnumerator<K, V> : IEnumerator<ImMap<K, V>.Entry>, IDisposable, IEnumerator
+        public struct ImMapEnumerator<K, V> : IEnumerator<ImMapEntry<K, V>>, IDisposable, IEnumerator
         {
             internal ImMap<K, V> _map;
             private short _state;
@@ -5755,7 +5755,8 @@ namespace ImTools
             private ImMap<K, V> _nextBranch;
             private ImMap<K, V>.Branch2Plus1 _b21LeftWasEnumerated;
 
-            private ImMap<K, V>.Entry _a, _b, _c, _d, _e, _f, _g, _h, _current;
+            private ImMap<K, V>.Entry _a, _b, _c, _d, _e, _f, _g, _h;
+            private ImMapEntry<K, V> _current;
 
             /// <inheritdoc />
             public ImMap<K, V>.Entry Current => _current;
@@ -5772,7 +5773,7 @@ namespace ImTools
                         if (_map == ImMap<K, V>.Empty)
                             return false;
                         // todo: @wip implement enumeration for hash conflicting entry
-                        if (_map is ImMap<K, V>.Entry singleEntryMap)
+                        if (_map is ImMapEntry<K, V> singleEntryMap)
                         {
                             _current = singleEntryMap; _state = 1;
                             return true;
@@ -6705,8 +6706,8 @@ namespace ImTools
 
         /// <summary>Converts the map to the dictionary</summary>
         public static Dictionary<K, V> ToDictionary<K, V>(this ImMap<K, V> map) =>
-            map == ImMap<K, V>.Empty 
-                ? new Dictionary<K, V>(0) 
+            map == ImMap<K, V>.Empty
+                ? new Dictionary<K, V>(0)
                 : map.ForEach(new Dictionary<K, V>(), (e, _, d) => d.Add(e.Key, e.Value));
 
         /// <summary>Returns the entry ASSUMING it is present otherwise its behavior is UNDEFINED.
@@ -6851,7 +6852,7 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public static ImMap<int, V> AddOrUpdate<V>(this ImMap<int, V> map, int hash, V value) =>
             map.AddOrUpdateEntry(NewEntry(hash, value));
-        
+
         /// <summary>Adds or updates (no in-place mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImMap<int, V> AddOrUpdate<V>(this ImMap<int, V> map, int hash, V value, Update<int, V> update)
@@ -7332,25 +7333,38 @@ namespace ImTools
 
         /// <summary>Creates the new collection with the empty partions</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImMap<V>[] CreateEmpty<V>(int partionCountOfPowerOfTwo = PARTITION_COUNT_POWER_OF_TWO)
+        public static ImMap<K, V>[] CreateEmpty<K, V>(int partionCountOfPowerOfTwo = PARTITION_COUNT_POWER_OF_TWO)
         {
-            var parts = new ImMap<V>[partionCountOfPowerOfTwo];
+            var parts = new ImMap<K, V>[partionCountOfPowerOfTwo];
             for (var i = 0; i < parts.Length; ++i)
-                parts[i] = ImMap<V>.Empty;
+                parts[i] = ImMap<K, V>.Empty;
             return parts;
         }
 
-        /// <summary>Lookup for the value by the key using its hash, returns the default `V` if hash is not found.</summary>
+        /// <summary>Lookup for the value by the key using its hash, returns the default `V` if not found.</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static V GetValueOrDefault<V>(this ImMap<V>[] parts, int hash, int partHashMask = PARTITION_HASH_MASK)
+        public static V GetValueOrDefault<V>(this ImMap<int, V>[] parts, int hash, int partHashMask = PARTITION_HASH_MASK)
         {
             var p = parts[hash & partHashMask];
-            return p != null && p.GetEntryOrNull(hash) is ImMapEntry<V> kv ? kv.Value : default(V);
+            return p != null && p.GetEntryOrNull(hash) is ImMapEntry<int, V> kv ? kv.Value : default(V);
         }
+
+        /// <summary>Lookup for the value by the key and its hash, returns the default `V` if not found.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static V GetValueOrDefault<K, V>(this ImMap<K, V>[] parts, int hash, K key, int partHashMask = PARTITION_HASH_MASK)
+        {
+            var p = parts[hash & partHashMask];
+            return p != null ? p.GetValueOrDefault(hash, key) : default(V);
+        }
+
+        /// <summary>Lookup for the value by the key and its hash, returns the default `V` if not found.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static V GetValueOrDefault<K, V>(this ImMap<K, V>[] parts, K key, int partHashMask = PARTITION_HASH_MASK) =>
+            parts.GetValueOrDefault(key.GetHashCode(), key, partHashMask);
 
         /// <summary>Lookup for the value by the key using the hash, returns the `true` and the found value or the `false`</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static bool TryFind<V>(this ImMap<V>[] parts, int hash, out V value, int partHashMask = PARTITION_HASH_MASK)
+        public static bool TryFind<V>(this ImMap<int, V>[] parts, int hash, out V value, int partHashMask = PARTITION_HASH_MASK)
         {
             var p = parts[hash & partHashMask];
             if (p != null)
@@ -7359,9 +7373,25 @@ namespace ImTools
             return false;
         }
 
+        /// <summary>Lookup for the value by the key and the hash, returns the `true` and the found value or the `false`</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static bool TryFind<K, V>(this ImMap<K, V>[] parts, int hash, K key, out V value, int partHashMask = PARTITION_HASH_MASK)
+        {
+            var p = parts[hash & partHashMask];
+            if (p != null)
+                return p.TryFind(hash, key, out value);
+            value = default(V);
+            return false;
+        }
+
+        /// <summary>Lookup for the value by the key and the hash, returns the `true` and the found value or the `false`</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static bool TryFind<K, V>(this ImMap<K, V>[] parts, K key, out V value, int partHashMask = PARTITION_HASH_MASK) =>
+            parts.TryFind(key.GetHashCode(), key, out value, partHashMask);
+
         /// <summary>Returns the SAME partitioned maps array instance but with the NEW added or updated partion</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static void AddOrUpdate<V>(this ImMap<V>[] parts, int hash, V value, int partHashMask = PARTITION_HASH_MASK)
+        public static void AddOrUpdate<V>(this ImMap<int, V>[] parts, int hash, V value, int partHashMask = PARTITION_HASH_MASK)
         {
             ref var part = ref parts[hash & partHashMask];
             var p = part;
@@ -7369,12 +7399,12 @@ namespace ImTools
                 RefAddOrUpdatePart(ref part, hash, value);
         }
 
-        private static void RefAddOrUpdatePart<V>(ref ImMap<V> part, int hash, V value) =>
+        private static void RefAddOrUpdatePart<V>(ref ImMap<int, V> part, int hash, V value) =>
             Ref.Swap(ref part, hash, value, (x, h, v) => x.AddOrUpdate(h, v));
 
         /// <summary>Returns the SAME partitioned maps array instance but with the NEW added or updated partion</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static void AddOrUpdate<V>(this ImMap<V>[] parts, int hash, V value, Update<int, V> update, int partHashMask = PARTITION_HASH_MASK)
+        public static void AddOrUpdate<V>(this ImMap<int, V>[] parts, int hash, V value, Update<int, V> update, int partHashMask = PARTITION_HASH_MASK)
         {
             ref var part = ref parts[hash & partHashMask];
             var p = part;
@@ -7384,7 +7414,7 @@ namespace ImTools
 
         /// <summary>Returns the SAME partitioned maps array instance but with the NEW added or the same kept partion</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static void AddOrKeep<V>(this ImMap<V>[] parts, int hash, V value, int partHashMask = PARTITION_HASH_MASK)
+        public static void AddOrKeep<V>(this ImMap<int, V>[] parts, int hash, V value, int partHashMask = PARTITION_HASH_MASK)
         {
             ref var part = ref parts[hash & partHashMask];
             var p = part;
@@ -7392,12 +7422,12 @@ namespace ImTools
                 RefAddOrKeepPart(ref part, hash, value);
         }
 
-        private static void RefAddOrKeepPart<V>(ref ImMap<V> part, int hash, V value) =>
+        private static void RefAddOrKeepPart<V>(ref ImMap<int, V> part, int hash, V value) =>
             Ref.Swap(ref part, hash, value, (x, h, v) => x.AddOrUpdate(h, v));
 
         /// <summary>Updates the map with the new value if the hash is found otherwise returns the same unchanged map.</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static void Update<V>(this ImMap<V>[] parts, int hash, V value, int partHashMask = PARTITION_HASH_MASK)
+        public static void Update<V>(this ImMap<int, V>[] parts, int hash, V value, int partHashMask = PARTITION_HASH_MASK)
         {
             ref var part = ref parts[hash & partHashMask];
             var p = part;
@@ -7405,18 +7435,18 @@ namespace ImTools
                 RefUpdatePart(ref part, hash, value);
         }
 
-        private static void RefUpdatePart<V>(ref ImMap<V> part, int hash, V value) =>
+        private static void RefUpdatePart<V>(ref ImMap<int, V> part, int hash, V value) =>
             Ref.Swap(ref part, hash, value, (x, h, v) => x.Update(h, v));
 
         /// <summary>Do something for each entry.
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static IEnumerable<ImMapEntry<V>> Enumerate<V>(this ImMap<V>[] parts)
+        public static IEnumerable<ImMapEntry<K, V>> Enumerate<K, V>(this ImMap<K, V>[] parts)
         {
             foreach (var map in parts)
             {
-                if (map == ImMap<V>.Empty)
+                if (map == ImMap<K, V>.Empty)
                     continue;
                 foreach (var entry in map.Enumerate())
                     yield return entry;
@@ -7426,13 +7456,13 @@ namespace ImTools
         /// <summary>Do something for each entry.
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
         /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
-        public static S ForEach<V, S>(this ImMap<V>[] parts, S state, Action<ImMapEntry<V>, int, S> handler, MapParentStack parents = null)
+        public static S ForEach<K, V, S>(this ImMap<K, V>[] parts, S state, Action<ImMapEntry<K, V>, int, S> handler, MapParentStack parents = null)
         {
             if (parents == null)
                 parents = new MapParentStack();
             foreach (var map in parts)
             {
-                if (map == ImMap<V>.Empty)
+                if (map == ImMap<K, V>.Empty)
                     continue;
                 state = map.ForEach(state, handler, parents);
             }
