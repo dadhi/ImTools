@@ -6,7 +6,7 @@ using NUnit.Framework;
 namespace ImTools.UnitTests
 {
     [TestFixture]
-    public class ImHashMapTests
+    public class IntHashMapTests
     {
         [Test]
         public void Can_store_and_retrieve_value_from_map()
@@ -127,7 +127,7 @@ namespace ImTools.UnitTests
         {
             var tree = ImHashMap<Type, string>.Empty;
 
-            var key = typeof(ImHashMapTests);
+            var key = typeof(IntHashMapTests);
             var value = "test";
 
             tree = tree.AddOrUpdate(key, value);
@@ -141,7 +141,7 @@ namespace ImTools.UnitTests
         {
             var tree = ImHashMap<Type, string>.Empty;
 
-            var key = typeof(ImHashMapTests);
+            var key = typeof(IntHashMapTests);
             var value = "test";
 
             tree = tree.AddOrUpdate(key, value);
