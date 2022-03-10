@@ -157,63 +157,6 @@ namespace ImTools.UnitTests
         }
 
         [Test]
-        public void Can_use_int_key_tree_to_represent_general_HashTree_with_possible_hash_conflicts()
-        {
-            var tree = ImMap<KeyValuePair<Type, string>[]>.Empty;
-
-            var key = typeof(ImMapTests);
-            var keyHash = key.GetHashCode();
-            var value = "test";
-
-            KeyValuePair<Type, string>[] Update(int _, KeyValuePair<Type, string>[] oldValue, KeyValuePair<Type, string>[] newValue)
-            {
-                var newItem = newValue[0];
-                var oldItemCount = oldValue.Length;
-                for (var i = 0; i < oldItemCount; i++)
-                {
-                    if (oldValue[i].Key == newItem.Key)
-                    {
-                        var updatedItems = new KeyValuePair<Type, string>[oldItemCount];
-                        Array.Copy(oldValue, updatedItems, updatedItems.Length);
-                        updatedItems[i] = newItem;
-                        return updatedItems;
-                    }
-                }
-
-                var addedItems = new KeyValuePair<Type, string>[oldItemCount + 1];
-                Array.Copy(oldValue, addedItems, addedItems.Length);
-                addedItems[oldItemCount] = newItem;
-                return addedItems;
-            }
-
-            tree = tree.AddOrUpdate(keyHash, new[] {new KeyValuePair<Type, string>(key, value)}, Update);
-            tree = tree.AddOrUpdate(keyHash, new[] {new KeyValuePair<Type, string>(key, value)}, Update);
-
-            string result = null;
-
-            var items = tree.GetValueOrDefault(keyHash);
-            if (items != null)
-            {
-                var firstItem = items[0];
-                if (firstItem.Key == key)
-                    result = firstItem.Value;
-                else if (items.Length > 1)
-                {
-                    for (var i = 1; i < items.Length; i++)
-                    {
-                        if (items[i].Key == key)
-                        {
-                            result = items[i].Value;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            Assert.That(result, Is.EqualTo("test"));
-        }
-
-        [Test]
         public void Remove_from_one_node_tree()
         {
             var tree = ImHashMap<int, string>.Empty.AddOrUpdate(0, "a");

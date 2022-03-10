@@ -7078,9 +7078,9 @@ namespace ImTools
 
         /// <summary>Creates the new collection with the empty partions</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap<K, V>[] CreateEmpty<K, V>(int partionCountOfPowerOfTwo = PARTITION_COUNT_POWER_OF_TWO)
+        public static ImHashMap<K, V>[] CreateEmpty<K, V>(int partitionCountOfPowerOfTwo = PARTITION_COUNT_POWER_OF_TWO)
         {
-            var parts = new ImHashMap<K, V>[partionCountOfPowerOfTwo];
+            var parts = new ImHashMap<K, V>[partitionCountOfPowerOfTwo];
             for (var i = 0; i < parts.Length; ++i)
                 parts[i] = ImHashMap<K, V>.Empty;
             return parts;
@@ -7246,11 +7246,21 @@ namespace ImTools
 
         /// <summary>Creates the new collection with the empty partions</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImMap<K, V>[] CreateEmpty<K, V>(int partionCountOfPowerOfTwo = PARTITION_COUNT_POWER_OF_TWO)
+        public static ImMap<K, V>[] CreateEmpty<K, V>(int partitionCountOfPowerOfTwo = PARTITION_COUNT_POWER_OF_TWO)
         {
-            var parts = new ImMap<K, V>[partionCountOfPowerOfTwo];
+            var parts = new ImMap<K, V>[partitionCountOfPowerOfTwo];
             for (var i = 0; i < parts.Length; ++i)
                 parts[i] = ImMap<K, V>.Empty;
+            return parts;
+        }
+
+        /// <summary>Creates the new collection with the empty partions</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMap<int, V>[] CreateEmpty<V>(int partitionCountOfPowerOfTwo = PARTITION_COUNT_POWER_OF_TWO)
+        {
+            var parts = new ImMap<int, V>[partitionCountOfPowerOfTwo];
+            for (var i = 0; i < parts.Length; ++i)
+                parts[i] = ImMap<int, V>.Empty;
             return parts;
         }
 
