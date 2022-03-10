@@ -5757,6 +5757,7 @@ namespace ImTools
             private ImMap<K, V>.Branch2Plus1 _b21LeftWasEnumerated;
 
             private ImMap<K, V>.Entry _a, _b, _c, _d, _e, _f, _g, _h;
+            private ImMap<K, V>.Entry _ha; // is for possibly HashConflictingEntries 
             private ImMapEntry<K, V> _current;
 
             /// <inheritdoc />
@@ -5797,7 +5798,7 @@ namespace ImTools
                         goto Label0;
                     case 1:
                         // end of enumeration
-                        _state = -1; 
+                        _state = -1;
                         _current = null;
                         return false;
                     case 2:
@@ -5822,7 +5823,7 @@ namespace ImTools
                     case 9:
                         return SetCurrentAndState(_g, 10, 9);
                     case 10:
-                        if (_h == null) 
+                        if (_h == null)
                         {
                             _state = -1;
                             goto Label2;
@@ -5900,6 +5901,10 @@ namespace ImTools
                         _a = null;
                         _nextBranch = null;
                         goto Label0;
+                    case 41:
+                        goto HashConflictingEntryLabel0;
+                    case 42:
+                        goto HashConflictingEntryLabel1;
                     default:
                         return false;
                 }
@@ -5940,12 +5945,9 @@ namespace ImTools
                     goto AllLeafsAndEntryLabel;
 
                 _g = null; _h = null;
+            HashConflictingEntryLabel0:
                 if (_b21LeftWasEnumerated != null)
-                {
-                    _current = _b21LeftWasEnumerated.B.MidEntry;
-                    _state = 2;
-                    return true;
-                }
+                    return SetCurrentAndState(_b21LeftWasEnumerated.B.MidEntry, 2, 41);
 
                 var branch2Plus1 = (ImMap<K, V>.Branch2Plus1)_map;
                 var b21b = branch2Plus1.B;
@@ -6040,11 +6042,14 @@ namespace ImTools
                             }
                         }
                     }
-
-                    _current = e0;
-                    _state = 3;
-                    return true;
+                    _ha = e0;
                 }
+            HashConflictingEntryLabel1:
+                var res = SetCurrentAndState(_ha, 3, 42);
+                if (_state == 3)
+                    _ha = null; // reset hash conflicting thing if we done with it
+                return res;
+
             Label2:
                 _a = null; _b = null; _c = null; _d = null; _e = null; _f = null;
 
@@ -6209,14 +6214,14 @@ namespace ImTools
                         }
                     }
 
-                    _current = e0; 
+                    _current = e0;
                     _state = 32;
                     return true;
                 }
 
                 if (leafOrEntryMap is ImMap<K, V>.Entry e)
                 {
-                    _current = e; 
+                    _current = e;
                     _state = 39;
                     return true;
                 }
