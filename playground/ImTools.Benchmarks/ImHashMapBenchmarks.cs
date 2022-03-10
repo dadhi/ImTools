@@ -471,9 +471,9 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             }
 
             // [Benchmark]
-            public ImTools.ImMap<KeyValuePair<Type, string>> V3_ImMap_AddOrUpdate()
+            public ImTools.ImMap<int, KeyValuePair<Type, string>> V3_ImMap_AddOrUpdate()
             {
-                var map = ImTools.ImMap<KeyValuePair<Type, string>>.Empty;
+                var map = ImTools.ImMap<int, KeyValuePair<Type, string>>.Empty;
 
                 foreach (var key in _types)
                     map = map.AddOrUpdate(key.GetHashCode(), new KeyValuePair<Type, string>(key, "a"));
