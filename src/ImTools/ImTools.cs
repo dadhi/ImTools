@@ -5757,7 +5757,7 @@ namespace ImTools
             private ImMap<K, V>.Branch2Plus1 _b21LeftWasEnumerated;
 
             private ImMap<K, V>.Entry _a, _b, _c, _d, _e, _f, _g, _h;
-            private ImMap<K, V>.Entry _ha; // is for possibly HashConflictingEntries 
+            private ImMap<K, V>.Entry _hc; // is for possibly HashConflictingEntry
             private ImMapEntry<K, V> _current;
 
             /// <inheritdoc />
@@ -5779,6 +5779,31 @@ namespace ImTools
                         _state = prevState;
                     else // reset the index of conflicts todo: @perf use special value to avoid the type check later
                         _conflictIndex = 0;
+                }
+                return true;
+            }
+
+            private bool SetCurrentAndState(short nextState, short prevState)
+            {
+                _state = nextState;
+                if (_hc is ImMapEntry<K, V> kv)
+                {
+                    _current = kv;
+                    _hc = null;
+                }
+                else
+                {
+                    var hc = (ImMap<K, V>.HashConflictingEntry)_hc;
+                    var cs = hc.Conflicts;
+                    _current = cs[_conflictIndex];
+                    // undo the next state until we are done with conflicts
+                    if (++_conflictIndex < cs.Length)
+                        _state = prevState;
+                    else // reset the index of conflicts todo: @perf use special value to avoid the type check later
+                    {
+                        _conflictIndex = 0;
+                        _hc = null;
+                    }
                 }
                 return true;
             }
@@ -5905,6 +5930,20 @@ namespace ImTools
                         goto HashConflictingEntryLabel0;
                     case 42:
                         goto HashConflictingEntryLabel1;
+                    case 43:
+                        goto HashConflictingEntryLabel2;
+                    case 44:
+                        goto HashConflictingEntryLabel3;
+                    case 45:
+                        goto HashConflictingEntryLabel4;
+                    case 46:
+                        goto HashConflictingEntryLabel5;
+                    case 47:
+                        goto HashConflictingEntryLabel6;
+                    case 48:
+                        goto HashConflictingEntryLabel7;
+                    case 49:
+                        goto HashConflictingEntryLabel8;
                     default:
                         return false;
                 }
@@ -5919,10 +5958,10 @@ namespace ImTools
                     var popIndex = (ushort)(_index - 1);
                     _ps.Get(popIndex, ref current, ref _nextBranch);
                     // Sets the previous state so that we are modifying any fields like _a, _b, etc. and directly goto back to this label
-                    var res = SetCurrentAndState(current, 40, 13);
+                    SetCurrentAndState(current, 40, 13);
                     if (_state == 40)
                         _index = popIndex; // proceed
-                    return res;
+                    return true;
                 }
             Label0:
                 while (true)
@@ -6042,13 +6081,10 @@ namespace ImTools
                             }
                         }
                     }
-                    _ha = e0;
+                    _hc = e0;
                 }
             HashConflictingEntryLabel1:
-                var res = SetCurrentAndState(_ha, 3, 42);
-                if (_state == 3)
-                    _ha = null; // reset hash conflicting thing if we done with it
-                return res;
+                return SetCurrentAndState(3, 42);
 
             Label2:
                 _a = null; _b = null; _c = null; _d = null; _e = null; _f = null;
@@ -6057,35 +6093,32 @@ namespace ImTools
                 _g = null; _h = null;
 
             AllLeafsAndEntryLabel:
-                var leafOrEntryMap = _map;
-                if (leafOrEntryMap is ImMap<K, V>.Leaf2 l2)
+            HashConflictingEntryLabel2:
+                if (_map is ImMap<K, V>.Leaf2 l2)
                 {
-                    _current = l2.Entry0;
                     _a = l2.Entry1;
-                    _state = 12;
-                    return true;
+                    return SetCurrentAndState(l2.Entry0, 12, 43);
                 }
 
-                if (leafOrEntryMap is ImMap<K, V>.Leaf2Plus1 l21)
+                if (_map is ImMap<K, V>.Leaf2Plus1 l21)
                 {
                     var l = l21.L;
                     ImMap<K, V>.Entry e0 = l.Entry0, swap = null;
                     _h = l.Entry1;
                     _g = l21.Plus;
-
                     var hash = _g.Hash;
                     if (hash < _h.Hash)
                     {
                         swap = _h; _h = _g; _g = swap;
                         if (hash < e0.Hash) { swap = e0; e0 = _h; _h = swap; }
                     }
-
-                    _current = e0;
-                    _state = 14;
-                    return true;
+                    _hc = e0;
                 }
+            HashConflictingEntryLabel3:
+                if (_hc != null)
+                    return SetCurrentAndState(14, 44);
 
-                if (leafOrEntryMap is ImMap<K, V>.Leaf2Plus1Plus1 l211)
+                if (_map is ImMap<K, V>.Leaf2Plus1Plus1 l211)
                 {
                     var l1 = l211.L.L;
                     ImMap<K, V>.Entry e0 = l1.Entry0, swap = null;
@@ -6110,24 +6143,25 @@ namespace ImTools
                             if (hash < e0.Hash) { swap = e0; e0 = _g; _g = swap; }
                         }
                     }
-
-                    _current = e0;
-                    _state = 17;
-                    return true;
+                    _hc = e0;
                 }
+            HashConflictingEntryLabel4:
+                if (_hc != null)
+                    return SetCurrentAndState(17, 45);
 
-                if (leafOrEntryMap is ImMap<K, V>.Leaf5 l5)
+                if (_map is ImMap<K, V>.Leaf5 l5)
                 {
-                    _current = l5.Entry0;
                     _a = l5.Entry1;
                     _b = l5.Entry2;
                     _c = l5.Entry3;
                     _d = l5.Entry4;
-                    _state = 21;
-                    return true;
+                    _hc = l5.Entry0;
                 }
+            HashConflictingEntryLabel5:
+                if (_hc != null)
+                    return SetCurrentAndState(21, 46);
 
-                if (leafOrEntryMap is ImMap<K, V>.Leaf5Plus1 l51)
+                if (_map is ImMap<K, V>.Leaf5Plus1 l51)
                 {
                     var leaf5 = l51.L;
                     ImMap<K, V>.Entry e0 = leaf5.Entry0, swap = null;
@@ -6155,13 +6189,13 @@ namespace ImTools
                             }
                         }
                     }
-
-                    _current = e0;
-                    _state = 26;
-                    return true;
+                    _hc = e0;
                 }
+            HashConflictingEntryLabel6:
+                if (_hc != null)
+                    return SetCurrentAndState(26, 47);
 
-                if (leafOrEntryMap is ImMap<K, V>.Leaf5Plus1Plus1 l511)
+                if (_map is ImMap<K, V>.Leaf5Plus1Plus1 l511)
                 {
                     var leaf51 = l511.L.L;
                     ImMap<K, V>.Entry e0 = leaf51.Entry0, swap = null;
@@ -6213,18 +6247,15 @@ namespace ImTools
                             }
                         }
                     }
-
-                    _current = e0;
-                    _state = 32;
-                    return true;
+                    _hc = e0;
                 }
+            HashConflictingEntryLabel7:
+                if (_hc != null)
+                    return SetCurrentAndState(32, 48);
 
-                if (leafOrEntryMap is ImMap<K, V>.Entry e)
-                {
-                    _current = e;
-                    _state = 39;
-                    return true;
-                }
+            HashConflictingEntryLabel8:
+                if (_map is ImMap<K, V>.Entry e)
+                    return SetCurrentAndState(e, 39, 49);
 
                 goto Label6;
             }
