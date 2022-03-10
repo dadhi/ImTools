@@ -6,7 +6,7 @@ using CsCheck;
 namespace ImTools.UnitTests
 {
     [TestFixture]
-    public class ImHashMap234Tests
+    public class ImMapTests
     {
         [Test]
         public void Adding_to_ImMap_and_checking_the_tree_shape_on_each_addition()
