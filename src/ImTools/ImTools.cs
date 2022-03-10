@@ -5750,6 +5750,7 @@ namespace ImTools
         {
             internal ImMap<K, V> _map;
             private short _state;
+            private short _conflictIndex;
             private ushort _index;
             private ImMapStack<K, V> _ps;
             private ImMap<K, V> _nextBranch;
@@ -5759,8 +5760,27 @@ namespace ImTools
             private ImMapEntry<K, V> _current;
 
             /// <inheritdoc />
-            public ImMap<K, V>.Entry Current => _current;
+            public ImMapEntry<K, V> Current => _current;
             object IEnumerator.Current => _current;
+
+            private bool SetCurrentAndNext(ImMap<K, V>.Entry e, short nextState)
+            {
+                _state = nextState;
+                if (e is ImMapEntry<K, V> kv)
+                    _current = kv;
+                else
+                {
+                    var hc = (ImMap<K, V>.HashConflictingEntry)e;
+                    var cs = hc.Conflicts;
+                    _current = cs[_conflictIndex];
+                    // undo the next state until we are done with conflicts
+                    if (++_conflictIndex < cs.Length)
+                        _state = (short)(nextState - 1);  
+                    else // reset the index of conflicts todo: @perf use special value to avoid the type check later
+                        _conflictIndex = 0;
+                }
+                return true;
+            }
 
             /// <inheritdoc />
             public bool MoveNext()
@@ -5769,267 +5789,117 @@ namespace ImTools
                 switch (_state)
                 {
                     case 0:
-                        _state = -1;
                         if (_map == ImMap<K, V>.Empty)
                             return false;
-                        // todo: @wip implement enumeration for hash conflicting entry
-                        if (_map is ImMapEntry<K, V> singleEntryMap)
-                        {
-                            _current = singleEntryMap; _state = 1;
-                            return true;
-                        }
+                        if (_map is ImMap<K, V>.Entry singleEntryMap)
+                            return SetCurrentAndNext(singleEntryMap, 1);
+                        _state = -1;
                         goto Label0;
-                    case 1: _state = -1; _current = null; return false;
+                    case 1:
+                        // end of enumeration
+                        _state = -1; 
+                        _current = null;
+                        return false;
                     case 2:
-                        {
-                            _state = -1;
-                            b21FullLeaf511 = (ImMap<K, V>.Leaf5Plus1Plus1)_b21LeftWasEnumerated.B.Right;
-                            _g = _b21LeftWasEnumerated.Plus;
-                            _b21LeftWasEnumerated = null;
-                            _map = ImMap<K, V>.Empty;
-                            goto SortLeaf511Label;
-                        }
+                        b21FullLeaf511 = (ImMap<K, V>.Leaf5Plus1Plus1)_b21LeftWasEnumerated.B.Right;
+                        _g = _b21LeftWasEnumerated.Plus;
+                        _b21LeftWasEnumerated = null;
+                        _map = ImMap<K, V>.Empty;
+                        _state = -1;
+                        goto SortLeaf511Label;
                     case 3:
-                        {
-                            _current = _a;
-                            _state = 4;
-                            return true;
-                        }
+                        return SetCurrentAndNext(_a, 4);
                     case 4:
-                        {
-                            _current = _b;
-                            _state = 5;
-                            return true;
-                        }
+                        return SetCurrentAndNext(_b, 5);
                     case 5:
-                        {
-                            _current = _c;
-                            _state = 6;
-                            return true;
-                        }
+                        return SetCurrentAndNext(_c, 6);
                     case 6:
-                        {
-                            _current = _d;
-                            _state = 7;
-                            return true;
-                        }
+                        return SetCurrentAndNext(_d, 7);
                     case 7:
-                        {
-                            _current = _e;
-                            _state = 8;
-                            return true;
-                        }
+                        return SetCurrentAndNext(_e, 8);
                     case 8:
-                        {
-                            _current = _f;
-                            _state = 9;
-                            return true;
-                        }
+                        return SetCurrentAndNext(_f, 9);
                     case 9:
-                        {
-                            _current = _g;
-                            _state = 10;
-                            return true;
-                        }
+                        return SetCurrentAndNext(_g, 10);
                     case 10:
-                        {
-                            _state = -1;
-                            if (_h == null)
-                                goto Label2;
-                            _current = _h;
-                            _state = 11;
-                            return true;
-                        }
-                    case 11:
+                        if (_h == null) 
                         {
                             _state = -1;
                             goto Label2;
                         }
+                        return SetCurrentAndNext(_h, 11);
+                    case 11:
+                        _state = -1;
+                        goto Label2;
                     case 12:
-                        {
-                            _current = _a;
-                            _state = 13;
-                            return true;
-                        }
+                        return SetCurrentAndNext(_a, 13);
                     case 13:
-                        {
-                            _state = -1;
-                            goto Label3;
-                        }
+                        _state = -1;
+                        goto Label3;
                     case 14:
-                        {
-                            _current = _h;
-                            _state = 15;
-                            return true;
-                        }
+                        return SetCurrentAndNext(_h, 15);
                     case 15:
-                        {
-                            _current = _g;
-                            _state = 16;
-                            return true;
-                        }
+                        return SetCurrentAndNext(_g, 16);
                     case 16:
-                        {
-                            _state = -1;
-                            _h = null;
-                            _g = null;
-                            goto Label3;
-                        }
+                        _state = -1; _h = null; _g = null;
+                        goto Label3;
                     case 17:
-                        {
-                            _current = _g;
-                            _state = 18;
-                            return true;
-                        }
+                        return SetCurrentAndNext(_g, 18);
                     case 18:
-                        {
-                            _current = _h;
-                            _state = 19;
-                            return true;
-                        }
+                        return SetCurrentAndNext(_h, 19);
                     case 19:
-                        {
-                            _current = _e;
-                            _state = 20;
-                            return true;
-                        }
+                        return SetCurrentAndNext(_e, 20);
                     case 20:
-                        {
-                            _state = -1;
-                            _g = null;
-                            _h = null;
-                            _e = null;
-                            goto Label3;
-                        }
+                        _state = -1; _g = null; _h = null; _e = null;
+                        goto Label3;
                     case 21:
-                        {
-                            _current = _a;
-                            _state = 22;
-                            return true;
-                        }
+                        return SetCurrentAndNext(_a, 22);
                     case 22:
-                        {
-                            _current = _b;
-                            _state = 23;
-                            return true;
-                        }
+                        return SetCurrentAndNext(_b, 23);
                     case 23:
-                        {
-                            _current = _c;
-                            _state = 24;
-                            return true;
-                        }
+                        return SetCurrentAndNext(_c, 24);
                     case 24:
-                        {
-                            _current = _d;
-                            _state = 25;
-                            return true;
-                        }
+                        return SetCurrentAndNext(_d, 25);
                     case 25:
-                        {
-                            _state = -1;
-                            break;
-                        }
+                        _state = -1;
+                        break;
                     case 26:
-                        {
-                            _current = _e;
-                            _state = 27;
-                            return true;
-                        }
+                        return SetCurrentAndNext(_e, 27);
                     case 27:
-                        {
-                            _current = _h;
-                            _state = 28;
-                            return true;
-                        }
+                        return SetCurrentAndNext(_h, 28);
                     case 28:
-                        {
-                            _current = _g;
-                            _state = 29;
-                            return true;
-                        }
+                        return SetCurrentAndNext(_g, 29);
                     case 29:
-                        {
-                            _current = _f;
-                            _state = 30;
-                            return true;
-                        }
+                        return SetCurrentAndNext(_f, 30);
                     case 30:
-                        {
-                            _current = _d;
-                            _state = 31;
-                            return true;
-                        }
+                        return SetCurrentAndNext(_d, 31);
                     case 31:
-                        {
-                            _state = -1;
-                            _e = null;
-                            _h = null;
-                            _g = null;
-                            _f = null;
-                            _d = null;
-                            break;
-                        }
+                        _state = -1; _e = null; _h = null; _g = null; _f = null; _d = null;
+                        break;
                     case 32:
-                        {
-                            _current = _d;
-                            _state = 33;
-                            return true;
-                        }
+                        return SetCurrentAndNext(_d, 33);
                     case 33:
-                        {
-                            _current = _f;
-                            _state = 34;
-                            return true;
-                        }
+                        return SetCurrentAndNext(_f, 34);
                     case 34:
-                        {
-                            _current = _g;
-                            _state = 35;
-                            return true;
-                        }
+                        return SetCurrentAndNext(_g, 35);
                     case 35:
-                        {
-                            _current = _h;
-                            _state = 36;
-                            return true;
-                        }
+                        return SetCurrentAndNext(_h, 36);
                     case 36:
-                        {
-                            _current = _c;
-                            _state = 37;
-                            return true;
-                        }
+                        return SetCurrentAndNext(_c, 37);
                     case 37:
-                        {
-                            _current = _e;
-                            _state = 38;
-                            return true;
-                        }
+                        return SetCurrentAndNext(_e, 38);
                     case 38:
-                        {
-                            _state = -1;
-                            _d = null;
-                            _f = null;
-                            _g = null;
-                            _h = null;
-                            _e = null;
-                            _c = null;
-                            break;
-                        }
+                        _state = -1; _d = null; _f = null; _g = null; _h = null; _e = null; _c = null;
+                        break;
                     case 39:
-                        {
-                            _state = -1;
-                            break;
-                        }
+                        _state = -1;
+                        break;
                     case 40:
-                        {
-                            _state = -1;
-                            _map = _nextBranch;
-                            _a = null;
-                            _nextBranch = null;
-                            goto Label0;
-                        }
+                        _state = -1;
+                        _map = _nextBranch;
+                        _a = null;
+                        _nextBranch = null;
+                        goto Label0;
                     default:
                         return false;
                 }
