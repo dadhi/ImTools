@@ -5763,7 +5763,7 @@ namespace ImTools
             public ImMapEntry<K, V> Current => _current;
             object IEnumerator.Current => _current;
 
-            private bool SetCurrentAndNext(ImMap<K, V>.Entry e, short nextState)
+            private bool SetCurrentAndState(ImMap<K, V>.Entry e, short nextState, short prevState)
             {
                 _state = nextState;
                 if (e is ImMapEntry<K, V> kv)
@@ -5775,7 +5775,7 @@ namespace ImTools
                     _current = cs[_conflictIndex];
                     // undo the next state until we are done with conflicts
                     if (++_conflictIndex < cs.Length)
-                        _state = (short)(nextState - 1);  
+                        _state = prevState;
                     else // reset the index of conflicts todo: @perf use special value to avoid the type check later
                         _conflictIndex = 0;
                 }
@@ -5792,7 +5792,7 @@ namespace ImTools
                         if (_map == ImMap<K, V>.Empty)
                             return false;
                         if (_map is ImMap<K, V>.Entry singleEntryMap)
-                            return SetCurrentAndNext(singleEntryMap, 1);
+                            return SetCurrentAndState(singleEntryMap, 1, 0);
                         _state = -1; // todo: @perf optimize just by setting _state = -1 for all
                         goto Label0;
                     case 1:
@@ -5808,86 +5808,86 @@ namespace ImTools
                         _state = -1;
                         goto SortLeaf511Label;
                     case 3:
-                        return SetCurrentAndNext(_a, 4);
+                        return SetCurrentAndState(_a, 4, 3);
                     case 4:
-                        return SetCurrentAndNext(_b, 5);
+                        return SetCurrentAndState(_b, 5, 4);
                     case 5:
-                        return SetCurrentAndNext(_c, 6);
+                        return SetCurrentAndState(_c, 6, 5);
                     case 6:
-                        return SetCurrentAndNext(_d, 7);
+                        return SetCurrentAndState(_d, 7, 6);
                     case 7:
-                        return SetCurrentAndNext(_e, 8);
+                        return SetCurrentAndState(_e, 8, 7);
                     case 8:
-                        return SetCurrentAndNext(_f, 9);
+                        return SetCurrentAndState(_f, 9, 8);
                     case 9:
-                        return SetCurrentAndNext(_g, 10);
+                        return SetCurrentAndState(_g, 10, 9);
                     case 10:
                         if (_h == null) 
                         {
                             _state = -1;
                             goto Label2;
                         }
-                        return SetCurrentAndNext(_h, 11);
+                        return SetCurrentAndState(_h, 11, 10);
                     case 11:
                         _state = -1;
                         goto Label2;
                     case 12:
-                        return SetCurrentAndNext(_a, 13);
+                        return SetCurrentAndState(_a, 13, 12);
                     case 13:
                         _state = -1;
                         goto Label3;
                     case 14:
-                        return SetCurrentAndNext(_h, 15);
+                        return SetCurrentAndState(_h, 15, 14);
                     case 15:
-                        return SetCurrentAndNext(_g, 16);
+                        return SetCurrentAndState(_g, 16, 15);
                     case 16:
                         _state = -1; _h = null; _g = null;
                         goto Label3;
                     case 17:
-                        return SetCurrentAndNext(_g, 18);
+                        return SetCurrentAndState(_g, 18, 17);
                     case 18:
-                        return SetCurrentAndNext(_h, 19);
+                        return SetCurrentAndState(_h, 19, 18);
                     case 19:
-                        return SetCurrentAndNext(_e, 20);
+                        return SetCurrentAndState(_e, 20, 19);
                     case 20:
                         _state = -1; _g = null; _h = null; _e = null;
                         goto Label3;
                     case 21:
-                        return SetCurrentAndNext(_a, 22);
+                        return SetCurrentAndState(_a, 22, 21);
                     case 22:
-                        return SetCurrentAndNext(_b, 23);
+                        return SetCurrentAndState(_b, 23, 22);
                     case 23:
-                        return SetCurrentAndNext(_c, 24);
+                        return SetCurrentAndState(_c, 24, 23);
                     case 24:
-                        return SetCurrentAndNext(_d, 25);
+                        return SetCurrentAndState(_d, 25, 24);
                     case 25:
                         _state = -1;
                         break;
                     case 26:
-                        return SetCurrentAndNext(_e, 27);
+                        return SetCurrentAndState(_e, 27, 26);
                     case 27:
-                        return SetCurrentAndNext(_h, 28);
+                        return SetCurrentAndState(_h, 28, 27);
                     case 28:
-                        return SetCurrentAndNext(_g, 29);
+                        return SetCurrentAndState(_g, 29, 28);
                     case 29:
-                        return SetCurrentAndNext(_f, 30);
+                        return SetCurrentAndState(_f, 30, 29);
                     case 30:
-                        return SetCurrentAndNext(_d, 31);
+                        return SetCurrentAndState(_d, 31, 30);
                     case 31:
                         _state = -1; _e = null; _h = null; _g = null; _f = null; _d = null;
                         break;
                     case 32:
-                        return SetCurrentAndNext(_d, 33);
+                        return SetCurrentAndState(_d, 33, 32);
                     case 33:
-                        return SetCurrentAndNext(_f, 34);
+                        return SetCurrentAndState(_f, 34, 33);
                     case 34:
-                        return SetCurrentAndNext(_g, 35);
+                        return SetCurrentAndState(_g, 35, 34);
                     case 35:
-                        return SetCurrentAndNext(_h, 36);
+                        return SetCurrentAndState(_h, 36, 35);
                     case 36:
-                        return SetCurrentAndNext(_c, 37);
+                        return SetCurrentAndState(_c, 37, 36);
                     case 37:
-                        return SetCurrentAndNext(_e, 38);
+                        return SetCurrentAndState(_e, 38, 37);
                     case 38:
                         _state = -1; _d = null; _f = null; _g = null; _h = null; _e = null; _c = null;
                         break;
@@ -5911,10 +5911,13 @@ namespace ImTools
                     if (_index == 0)
                         return false;
                     ImMap<K, V>.Entry current = null;
-                    _ps.Get(--_index, ref current, ref _nextBranch);
-                    // todo: @wip set current SetCurrentAndNext(current, 40)
-                    _state = 40;
-                    return true;
+                    var popIndex = (ushort)(_index - 1);
+                    _ps.Get(popIndex, ref current, ref _nextBranch);
+                    // Sets the previous state so that we are modifying any fields like _a, _b, etc. and directly goto back to this label
+                    var res = SetCurrentAndState(current, 40, 13);
+                    if (_state == 40)
+                        _index = popIndex; // proceed
+                    return res;
                 }
             Label0:
                 while (true)
