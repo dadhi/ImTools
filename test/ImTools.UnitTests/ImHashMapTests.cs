@@ -6,7 +6,7 @@ using NUnit.Framework;
 namespace ImTools.UnitTests
 {
     [TestFixture]
-    public class ImMapTests
+    public class ImHashMapTests
     {
         [Test]
         public void Test_that_all_added_values_are_accessible()
