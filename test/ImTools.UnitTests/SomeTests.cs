@@ -27,7 +27,7 @@ namespace ImTools.UnitTests
         record IntEntry(int Key) : Entry<int>(Key) { }
 
         [Test]
-        private void The_empty_struct_field_does_add_size_to_object()
+        public void The_empty_struct_takes_8_bytes()
         {
             int GetSize(object obj) => Marshal.ReadInt32(obj.GetType().TypeHandle.Value, 4);
 
@@ -36,7 +36,7 @@ namespace ImTools.UnitTests
 
             var eSize = GetSize(e);
             var eeSize = GetSize(ee);
-            Assert.AreEqual(eSize, eeSize);
+            Assert.AreEqual(8, eeSize - eSize);
         }
 
         readonly struct Empty {}

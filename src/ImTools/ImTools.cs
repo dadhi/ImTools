@@ -3169,7 +3169,7 @@ namespace ImTools
             // todo: @perf maybe it is better to move this completely to HashConflictingEntry and do a pattern matching on it
             /// <summary>Abstracts eviction of the key from the entry, assuming the entry has the same hash already.
             /// Normally it will keep the entry because the key is part of it. But for hash-conflicted multi-key entry it produces
-            /// another entry without the key.</`summary>
+            /// another entry without the key.</summary>
             internal abstract Entry RemoveOrKeepWithTheSameHash(K key);
 
             internal override Entry GetMinHashEntryOrDefault() => this;
@@ -6253,7 +6253,7 @@ namespace ImTools
                 if (_hc != null)
                     return SetCurrentAndState(32, 48);
 
-            HashConflictingEntryLabel8:
+                HashConflictingEntryLabel8:
                 if (_map is ImMap<K, V>.Entry e)
                     return SetCurrentAndState(e, 39, 49);
 
@@ -6624,12 +6624,15 @@ namespace ImTools
                 : map.ForEach(new Dictionary<K, V>(), (e, _, d) => d.Add(e.Key, e.Value));
 
         /// <summary>Returns the entry ASSUMING it is present otherwise its behavior is UNDEFINED.
-        /// You can use the method after the Add and Update methods on the same map instance - because the map is immutable it is for sure contains added or updated entry.</summary>
+        /// You can use the method after the Add and Update methods on the same map instance - 
+        /// because the map is immutable it is for sure contains added or updated entry.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImMapEntry<int, V> GetSurePresentEntry<V>(this ImMap<int, V> map, int hash) =>
             (ImMapEntry<int, V>)map.GetEntryOrNull(hash);
 
-        /// You can use the method after the Add and Update methods on the same map instance - because the map is immutable it is for sure contains added or updated entry.</summary>
+        /// <summary>Returns the entry ASSUMING it is present otherwise its behavior is UNDEFINED.
+        /// You can use the method after the Add and Update methods on the same map instance - 
+        /// because the map is immutable it is for sure contains added or updated entry.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImMapEntry<K, V> GetSurePresentEntry<K, V>(this ImMap<K, V> map, int hash, K key) =>
             map.GetEntryOrNull(hash).GetOrNull(key);
