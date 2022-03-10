@@ -5793,7 +5793,7 @@ namespace ImTools
                             return false;
                         if (_map is ImMap<K, V>.Entry singleEntryMap)
                             return SetCurrentAndNext(singleEntryMap, 1);
-                        _state = -1;
+                        _state = -1; // todo: @perf optimize just by setting _state = -1 for all
                         goto Label0;
                     case 1:
                         // end of enumeration
@@ -5910,7 +5910,9 @@ namespace ImTools
                 {
                     if (_index == 0)
                         return false;
-                    _ps.Get(--_index, ref _current, ref _nextBranch);
+                    ImMap<K, V>.Entry current = null;
+                    _ps.Get(--_index, ref current, ref _nextBranch);
+                    // todo: @wip set current SetCurrentAndNext(current, 40)
                     _state = 40;
                     return true;
                 }
@@ -6204,13 +6206,15 @@ namespace ImTools
                         }
                     }
 
-                    _current = e0; _state = 32;
+                    _current = e0; 
+                    _state = 32;
                     return true;
                 }
 
                 if (leafOrEntryMap is ImMap<K, V>.Entry e)
                 {
-                    _current = e; _state = 39;
+                    _current = e; 
+                    _state = 39;
                     return true;
                 }
 
