@@ -3080,10 +3080,13 @@ namespace ImTools
 
         internal override Entry ReplaceOrAddWithTheSameHash(ImMapEntry<K, V> newEntry) =>
             _key.Equals(newEntry.Key) ? newEntry : new HashConflictingEntry(Hash, this, (KVEntry<K, V>)newEntry);
-        internal override Entry ReplaceOrAddWithTheSameHash(ImMapEntry<K, V> newEntry, Update<K, V> update) =>
-            _key.Equals(newEntry.Key)
-                ? ImMap.NewEntry(Hash, _key, update(_key, Value, newEntry.Value))
+        internal override Entry ReplaceOrAddWithTheSameHash(ImMapEntry<K, V> newEntry, Update<K, V> update)
+        {
+            var key = _key;
+            return key.Equals(newEntry.Key)
+                ? ImMap.NewEntry(Hash, key, update(key, Value, newEntry.Value))
                 : new HashConflictingEntry(Hash, this, (KVEntry<K, V>)newEntry);
+        }
 
 #if !DEBUG
         /// <inheritdoc />
@@ -3249,13 +3252,14 @@ namespace ImTools
                 return new HashConflictingEntry(Hash, cs.AppendOrUpdate((KVEntry<K, V>)newEntry, i));
             }
 
-            // todo: @wip use update
             internal override Entry ReplaceOrAddWithTheSameHash(ImMapEntry<K, V> newEntry, Update<K, V> update)
             {
                 var key = newEntry.Key;
                 var cs = Conflicts;
                 var i = cs.Length - 1;
                 while (i != -1 && !key.Equals(cs[i].Key)) --i;
+                if (i != -1)
+                    newEntry = ImMap.NewEntry(Hash, key, update(key, newEntry.Value, cs[i].Value));
                 return new HashConflictingEntry(Hash, cs.AppendOrUpdate((KVEntry<K, V>)newEntry, i));
             }
 
@@ -6882,6 +6886,8 @@ namespace ImTools
         //     var cs = ((HashConflictingEntry<K, V>)oldEntry).Conflicts;
         //     var i = cs.Length - 1;
         //     while (i != -1 && !key.Equals(cs[i].Key)) --i;
+            // if (i != -1)
+            //     newEntry = new ImHashMapEntry<K, V>(newEntry.Hash, key, update(key, cs[i].Value, newEntry.Value));
         //     return new HashConflictingEntry<K, V>(oldEntry.Hash, cs.AppendOrUpdate(newEntry, i));
         // }
 
