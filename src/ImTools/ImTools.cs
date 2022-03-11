@@ -6903,85 +6903,6 @@ namespace ImTools
         public static ImMap<K, V> AddOrUpdate<K, V>(this ImMap<K, V> map, K key, V value, Update<K, V> update) =>
             map.AddOrUpdate(key.GetHashCode(), key, value, update);
 
-        /// <summary>Updates the map with the new value if the hash is found otherwise returns the same unchanged map.</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static ImMap<int, V> Update<V>(this ImMap<int, V> map, int hash, V value)
-        {
-            var entry = map.GetEntryOrNull(hash);
-            return entry == null ? map : map.ReplaceEntry(entry, NewEntry(hash, value));
-        }
-
-        /// <summary>Updates the map with the default value if the hash is found otherwise returns the same unchanged map.</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static ImMap<int, V> UpdateToDefault<V>(this ImMap<int, V> map, int hash)
-        {
-            var entry = map.GetEntryOrNull(hash);
-            return entry == null ? map : map.ReplaceEntry(entry, NewDefaultEntry<V>(hash));
-        }
-
-        /// <summary>Updates the map with the new value if the key is found otherwise returns the same unchanged map.</summary>
-        public static ImMap<K, V> Update<K, V>(this ImMap<K, V> map, int hash, K key, V value)
-        {
-            var entry = map.GetEntryOrNull(hash);
-            if (entry == null)
-                return map;
-            var updated = entry.UpdatedOrNullWithTheSameHash(NewEntry(hash, key, value));
-            return updated == null ? map : map.ReplaceEntry(entry, updated);
-        }
-
-        /// <summary>Updates the map with the new value if the key is found otherwise returns the same unchanged map.</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static ImMap<K, V> Update<K, V>(this ImMap<K, V> map, K key, V value) =>
-            map.Update(key.GetHashCode(), key, value);
-
-        // /// <summary>Updates the map with the new value if the key is found otherwise returns the same unchanged map.</summary>
-        // public static ImHashMap<K, V> UpdateToDefault<K, V>(this ImHashMap<K, V> map, int hash, K key)
-        // {
-        //     var entry = map.GetEntryOrNull(hash);
-        //     if (entry == null)
-        //         return map;
-
-        //     if (entry is ImHashMapEntry<K, V> kv)
-        //         return kv.Key.Equals(key) ? map.ReplaceEntry(hash, entry, new ImHashMapEntry<K, V>(hash, key)) : map;
-
-        //     var cs = ((HashConflictingEntry<K, V>)entry).Conflicts;
-        //     var i = cs.Length - 1;
-        //     while (i != -1 && !key.Equals(cs[i].Key)) --i;
-        //     return i == -1 ? map :
-        //         map.ReplaceEntry(hash, entry, new HashConflictingEntry<K, V>(hash, cs.UpdateNonEmpty(new ImHashMapEntry<K, V>(hash, key), i)));
-        // }
-
-        // /// <summary>Updates the map with the new value if the key is found otherwise returns the same unchanged map.</summary>
-        // [MethodImpl((MethodImplOptions)256)]
-        // public static ImHashMap<K, V> UpdateToDefault<K, V>(this ImHashMap<K, V> map, K key) =>
-        //     map.UpdateToDefault(key.GetHashCode(), key);
-
-        // /// <summary>Updates the map with the new value and the `update` function if the key is found otherwise returns the same unchanged map.
-        // /// If `update` returns the same map if the updated result is the same</summary>
-        // public static ImHashMap<K, V> Update<K, V>(this ImHashMap<K, V> map, int hash, K key, V value, Update<K, V> update)
-        // {
-        //     var entry = map.GetEntryOrNull(hash);
-        //     if (entry == null)
-        //         return map;
-
-        //     if (entry is ImHashMapEntry<K, V> kv)
-        //         return !kv.Key.Equals(key) || ReferenceEquals(kv.Value, value = update(key, kv.Value, value))
-        //             ? map
-        //             : map.ReplaceEntry(hash, entry, new ImHashMapEntry<K, V>(hash, key, value));
-
-        //     var cs = ((HashConflictingEntry<K, V>)entry).Conflicts;
-        //     var i = cs.Length - 1;
-        //     while (i != -1 && !key.Equals(cs[i].Key)) --i;
-        //     if (i == -1 || ReferenceEquals(cs[i].Value, value = update(key, cs[i].Value, value)))
-        //         return map;
-        //     return map.ReplaceEntry(hash, entry, new HashConflictingEntry<K, V>(hash, cs.UpdateNonEmpty(new ImHashMapEntry<K, V>(hash, key, value), i)));
-        // }
-
-        // /// <summary>Updates the map with the new value and the `update` function if the key is found otherwise returns the same unchanged map.
-        // /// If `update` returns the same map if the updated result is the same</summary>
-        // public static ImHashMap<K, V> Update<K, V>(this ImHashMap<K, V> map, K key, V value, Update<K, V> update) =>
-        //     map.Update(key.GetHashCode(), key, value, update);
-
         /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImMap<int, V> AddOrKeepEntry<V>(this ImMap<int, V> map, ImMapEntry<int, V> newEntry)
@@ -7018,6 +6939,78 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public static ImMap<K, V> AddOrKeep<K, V>(this ImMap<K, V> map, K key, V value) =>
             map.AddOrKeepEntry(NewEntry(key.GetHashCode(), key, value));
+
+        /// <summary>Updates the map with the new value if the hash is found otherwise returns the same unchanged map.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMap<int, V> Update<V>(this ImMap<int, V> map, int hash, V value)
+        {
+            var entry = map.GetEntryOrNull(hash);
+            return entry == null ? map : map.ReplaceEntry(entry, NewEntry(hash, value));
+        }
+
+        /// <summary>Updates the map with the default value if the hash is found otherwise returns the same unchanged map.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMap<int, V> UpdateToDefault<V>(this ImMap<int, V> map, int hash)
+        {
+            var entry = map.GetEntryOrNull(hash);
+            return entry == null ? map : map.ReplaceEntry(entry, NewDefaultEntry<V>(hash));
+        }
+
+        /// <summary>Updates the map with the new value if the key is found otherwise returns the same unchanged map.</summary>
+        public static ImMap<K, V> Update<K, V>(this ImMap<K, V> map, int hash, K key, V value)
+        {
+            var entry = map.GetEntryOrNull(hash);
+            if (entry == null)
+                return map;
+            var updated = entry.UpdatedOrNullWithTheSameHash(NewEntry(hash, key, value));
+            return updated == null ? map : map.ReplaceEntry(entry, updated);
+        }
+
+        /// <summary>Updates the map with the new value if the key is found otherwise returns the same unchanged map.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMap<K, V> Update<K, V>(this ImMap<K, V> map, K key, V value) =>
+            map.Update(key.GetHashCode(), key, value);
+
+        /// <summary>Updates the map with the new value if the key is found otherwise returns the same unchanged map.</summary>
+        public static ImMap<K, V> UpdateToDefault<K, V>(this ImMap<K, V> map, int hash, K key)
+        {
+            var entry = map.GetEntryOrNull(hash);
+            if (entry == null)
+                return map;
+            var updated = entry.UpdatedOrNullWithTheSameHash(NewDefaultEntry<K, V>(hash, key));
+            return updated == null ? map : map.ReplaceEntry(entry, updated);
+        }
+
+        /// <summary>Updates the map with the new value if the key is found otherwise returns the same unchanged map.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMap<K, V> UpdateToDefault<K, V>(this ImMap<K, V> map, K key) =>
+            map.UpdateToDefault(key.GetHashCode(), key);
+
+        // /// <summary>Updates the map with the new value and the `update` function if the key is found otherwise returns the same unchanged map.
+        // /// If `update` returns the same map if the updated result is the same</summary>
+        // public static ImHashMap<K, V> Update<K, V>(this ImHashMap<K, V> map, int hash, K key, V value, Update<K, V> update)
+        // {
+        //     var entry = map.GetEntryOrNull(hash);
+        //     if (entry == null)
+        //         return map;
+
+        //     if (entry is ImHashMapEntry<K, V> kv)
+        //         return !kv.Key.Equals(key) || ReferenceEquals(kv.Value, value = update(key, kv.Value, value))
+        //             ? map
+        //             : map.ReplaceEntry(hash, entry, new ImHashMapEntry<K, V>(hash, key, value));
+
+        //     var cs = ((HashConflictingEntry<K, V>)entry).Conflicts;
+        //     var i = cs.Length - 1;
+        //     while (i != -1 && !key.Equals(cs[i].Key)) --i;
+        //     if (i == -1 || ReferenceEquals(cs[i].Value, value = update(key, cs[i].Value, value)))
+        //         return map;
+        //     return map.ReplaceEntry(hash, entry, new HashConflictingEntry<K, V>(hash, cs.UpdateNonEmpty(new ImHashMapEntry<K, V>(hash, key, value), i)));
+        // }
+
+        // /// <summary>Updates the map with the new value and the `update` function if the key is found otherwise returns the same unchanged map.
+        // /// If `update` returns the same map if the updated result is the same</summary>
+        // public static ImHashMap<K, V> Update<K, V>(this ImHashMap<K, V> map, K key, V value, Update<K, V> update) =>
+        //     map.Update(key.GetHashCode(), key, value, update);
 
         /// <summary>Returns the new map without the specified hash (if found) or returns the same map otherwise</summary>
         [MethodImpl((MethodImplOptions)256)]
