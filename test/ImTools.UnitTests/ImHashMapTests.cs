@@ -73,27 +73,29 @@ namespace ImTools.UnitTests
         [Test]
         public void Can_fold_2_level_tree()
         {
-            var t = ImMap<int, int>.Empty;
-            t = t.AddOrUpdate(1, 1).AddOrUpdate(2, 2);
+            var t = ImMap<string, int>.Empty;
+            t = t
+                .AddOrUpdate("1", 1)
+                .AddOrUpdate("2", 2);
 
             var list = t.ForEach(new List<int>(), (data, _, l) => l.Add(data.Value));
 
-            CollectionAssert.AreEqual(new[] { 1, 2 }, list);
+            CollectionAssert.AreEquivalent(new[] { 1, 2 }, list);
         }
 
         [Test]
         public void Can_fold_3_level_tree()
         {
-            var t = ImHashMap<int, int>.Empty;
+            var t = ImHashMap<string, int>.Empty;
             t = t
-                .AddOrUpdate(1, 1)
-                .AddOrUpdate(2, 2)
-                .AddOrUpdate(3, 3)
-                .AddOrUpdate(4, 4);
+                .AddOrUpdate("1", 1)
+                .AddOrUpdate("2", 2)
+                .AddOrUpdate("3", 3)
+                .AddOrUpdate("4", 4);
 
-            var list = t.ForEach(new List<int>(), (data, _, l) => l.Add(data.Value));
+            var list = t.ForEach(new List<int>(), (e, _, l) => l.Add(e.Value));
 
-            CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 }, list);
+            CollectionAssert.AreEquivalent(new[] { 1, 2, 3, 4 }, list);
         }
 
         [Test]
