@@ -6962,6 +6962,7 @@ namespace ImTools
             var entry = map.GetEntryOrNull(hash);
             if (entry == null)
                 return map;
+            // todo: @wip @perf pass key, value instead of entry to avoid allocations
             var updated = entry.UpdatedOrNullWithTheSameHash(NewEntry(hash, key, value));
             return updated == null ? map : map.ReplaceEntry(entry, updated);
         }
