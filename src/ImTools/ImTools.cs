@@ -5502,6 +5502,8 @@ namespace ImTools
             var cs = ((HashConflictingEntry<K, V>)oldEntry).Conflicts;
             var i = cs.Length - 1;
             while (i != -1 && !key.Equals(cs[i].Key)) --i;
+            if (i != -1)
+                newEntry = new ImHashMapEntry<K, V>(newEntry.Hash, key, update(key, cs[i].Value, newEntry.Value));
             return new HashConflictingEntry<K, V>(oldEntry.Hash, cs.AppendOrUpdate(newEntry, i));
         }
 
