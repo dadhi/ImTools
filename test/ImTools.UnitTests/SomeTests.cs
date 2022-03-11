@@ -1,6 +1,8 @@
 using NUnit.Framework;
 using System.Runtime.InteropServices;
 
+#pragma warning disable CS0649
+
 namespace ImTools.UnitTests
 {
     [TestFixture]
