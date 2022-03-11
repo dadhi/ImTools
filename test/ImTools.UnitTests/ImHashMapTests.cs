@@ -13,67 +13,67 @@ namespace ImTools.UnitTests
         [Test]
         public void Test_that_all_added_values_are_accessible()
         {
-            var t = ImHashMap<int, int>.Empty
-                .AddOrUpdate(1, 11)
-                .AddOrUpdate(2, 22)
-                .AddOrUpdate(3, 33);
+            var map = ImMap<string, int>.Empty
+                .AddOrUpdate("1", 11)
+                .AddOrUpdate("2", 22)
+                .AddOrUpdate("3", 33);
 
-            Assert.AreEqual(11, t.GetValueOrDefault(1));
-            Assert.AreEqual(22, t.GetValueOrDefault(2));
-            Assert.AreEqual(33, t.GetValueOrDefault(3));
+            Assert.AreEqual(11, map.GetValueOrDefault("1"));
+            Assert.AreEqual(22, map.GetValueOrDefault("2"));
+            Assert.AreEqual(33, map.GetValueOrDefault("3"));
         }
 
         [Test]
         public void Search_in_empty_tree_should_NOT_throw()
         {
-            var tree = ImHashMap<int, int>.Empty;
+            var map = ImMap<string, int>.Empty;
 
-            Assert.AreEqual(0, tree.GetValueOrDefault(0));
+            Assert.AreEqual(0, map.GetValueOrDefault("~"));
         }
 
         [Test]
         public void Search_in_empty_tree_should_NOT_throw_TryFind()
         {
-            var tree = ImHashMap<int, int>.Empty;
+            var map = ImMap<string, int>.Empty;
 
-            Assert.IsFalse(tree.TryFind(0, out _));
+            Assert.IsFalse(map.TryFind("0", out _));
         }
 
         [Test]
         public void Search_for_non_existent_key_should_NOT_throw()
         {
-            var tree = ImHashMap<int, int>.Empty
-                .AddOrUpdate(1, 1)
-                .AddOrUpdate(3, 2);
+            var map = ImHashMap<string, int>.Empty
+                .AddOrUpdate("1", 1)
+                .AddOrUpdate("3", 2);
 
-            Assert.AreEqual(0, tree.GetValueOrDefault(2));
+            Assert.AreEqual(0, map.GetValueOrDefault("2"));
         }
 
         [Test]
         public void Search_for_non_existent_key_should_NOT_throw_TryFind()
         {
-            var tree = ImHashMap<int, int>.Empty
-                .AddOrUpdate(1, 1)
-                .AddOrUpdate(3, 2);
+            var map = ImHashMap<string, int>.Empty
+                .AddOrUpdate("1", 1)
+                .AddOrUpdate("3", 2);
 
-            Assert.IsFalse(tree.TryFind(2, out _));
+            Assert.IsFalse(map.TryFind("2", out _));
         }
 
         [Test]
         public void Enumerated_values_should_be_returned_in_sorted_order()
         {
-            var items = Enumerable.Range(0, 10).ToArray();
-            var tree = items.Aggregate(ImHashMap<int, int>.Empty, (t, i) => t.AddOrUpdate(i, i));
+            var items = Enumerable.Range(0, 10).Select(x => x + "!").ToArray();
+            var map = items.Aggregate(ImMap<string, string>.Empty, (m, i) => m.AddOrUpdate(i, i));
 
-            var enumerated = tree.Enumerate().Select(t => t.Value).ToArray();
+            var enumerated = map.Enumerate().Select(t => t.Value).ToArray();
 
-            CollectionAssert.AreEqual(items, enumerated);
+            CollectionAssert.AreEquivalent(items, enumerated);
         }
 
         [Test]
         public void Can_fold_2_level_tree()
         {
-            var t = ImHashMap<int, int>.Empty;
+            var t = ImMap<int, int>.Empty;
             t = t.AddOrUpdate(1, 1).AddOrUpdate(2, 2);
 
             var list = t.ForEach(new List<int>(), (data, _, l) => l.Add(data.Value));
