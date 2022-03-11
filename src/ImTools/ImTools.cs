@@ -3024,7 +3024,7 @@ namespace ImTools
         /// <inheritdoc />
         public sealed override int Count() => 1;
 
-        internal override Entry RemoveOrKeepWithTheSameHash(K key) => this;
+        internal override Entry RemoveWithTheSameHash(K key) => this;
 
         internal override int ForEach<S>(S state, int startIndex, Action<ImMapEntry<K, V>, int, S> handler)
         {
@@ -3200,9 +3200,9 @@ namespace ImTools
 
             // todo: @perf maybe it is better to move this completely to HashConflictingEntry and do a pattern matching on it
             /// <summary>Abstracts eviction of the key from the entry, assuming the entry has the same hash already.
-            /// Normally it will keep the entry because the key is part of it. But for hash-conflicted multi-key entry it produces
-            /// another entry without the key.</summary>
-            internal abstract Entry RemoveOrKeepWithTheSameHash(K key);
+            /// For the normal entry it will return itself. But for the hash-conflicted multi-key entry it will produce
+            /// another entry without the key or null.</summary>
+            internal abstract Entry RemoveWithTheSameHash(K key);
 
             internal override Entry GetMinHashEntryOrDefault() => this;
             internal override Entry GetMaxHashEntryOrDefault() => this;
@@ -3253,7 +3253,7 @@ namespace ImTools
             {
                 var cs = Conflicts;
                 var i = cs.Length - 1;
-                while (i != -1 && !key.Equals(cs[i].Key)) --i;
+                while (i != -1 && !cs[i].Key.Equals(key)) --i;
                 return i != -1 ? cs[i] : null;
             }
 
@@ -3270,7 +3270,7 @@ namespace ImTools
                 var key = newEntry.Key;
                 var cs = Conflicts;
                 var i = cs.Length - 1;
-                while (i != -1 && !key.Equals(cs[i].Key)) --i;
+                while (i != -1 && !cs[i].Key.Equals(key)) --i;
                 if (i == -1)
                     return new HashConflictingEntry(Hash, cs.AppendToNonEmpty((KVEntry<K, V>)newEntry));
                 if (update != null)
@@ -3286,7 +3286,7 @@ namespace ImTools
                 var key = newEntry.Key;
                 var cs = Conflicts;
                 var i = cs.Length - 1;
-                while (i != -1 && !key.Equals(cs[i].Key)) --i;
+                while (i != -1 && !cs[i].Key.Equals(key)) --i;
                 if (i == -1)
                     return this;
                 if (update != null)
@@ -3294,25 +3294,22 @@ namespace ImTools
                 return new HashConflictingEntry(Hash, cs.UpdateNonEmpty((KVEntry<K, V>)newEntry, i));
             }
 
-            internal override Entry RemoveOrKeepWithTheSameHash(K key)
+            internal override Entry RemoveWithTheSameHash(K key)
             {
                 var cs = Conflicts;
                 var n = cs.Length;
                 var i = n - 1;
                 while (i != -1 && !cs[i].Key.Equals(key)) --i;
-                if (i != -1)
-                {
-                    if (n == 2)
-                        return i == 0 ? cs[1] : cs[0];
-                    var newConflicts = new KVEntry<K, V>[n -= 1]; // the new n is less by one
-                    if (i > 0) // copy the 1st part
-                        Array.Copy(cs, 0, newConflicts, 0, i);
-                    if (i < n) // copy the 2nd part
-                        Array.Copy(cs, i + 1, newConflicts, i, n - i);
-                    return new HashConflictingEntry(Hash, newConflicts);
-                }
-
-                return this;
+                if (i == -1)
+                    return null;
+                if (n == 2)
+                    return i == 0 ? cs[1] : cs[0];
+                var newConflicts = new KVEntry<K, V>[n -= 1]; // the new n is less by one
+                if (i > 0) // copy the 1st part
+                    Array.Copy(cs, 0, newConflicts, 0, i);
+                if (i < n) // copy the 2nd part
+                    Array.Copy(cs, i + 1, newConflicts, i, n - i);
+                return new HashConflictingEntry(Hash, newConflicts);
             }
 
             internal override int ForEach<S>(S state, int startIndex, Action<ImMapEntry<K, V>, int, S> handler)
@@ -6994,6 +6991,27 @@ namespace ImTools
             return entryToRemove == null ? map : map.RemoveEntry(entryToRemove);
         }
 
+        // todo: @perf minimize virtual calls
+
+        /// <summary>Returns the new map without the specified hash and key (if found) or returns the same map otherwise</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMap<K, V> Remove<K, V>(this ImMap<K, V> map, int hash, K key)
+        {
+            var entryToRemove = map.GetEntryOrNull(hash);
+            if (entryToRemove != null)
+            {
+                var removed = entryToRemove.RemoveWithTheSameHash(key);
+                if (removed != null)
+                    return map.ReplaceEntry(entryToRemove, removed);
+            }
+            return map;
+        }
+
+        /// <summary>Returns the new map without the specified hash and key (if found) or returns the same map otherwise</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImMap<K, V> Remove<K, V>(this ImMap<K, V> map, K key) =>
+            map == ImMap<K, V>.Empty ? map : map.Remove(key.GetHashCode(), key); // it make sense to have the empty map condition here to prevent the probably costly `GetHashCode()` for the empty map.
+
         // /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
         // [MethodImpl((MethodImplOptions)256)]
         // public static ImHashMap<K, V> AddOrKeep<K, V>(this ImHashMap<K, V> map, int hash, K key, V value)
@@ -7027,50 +7045,6 @@ namespace ImTools
         // [MethodImpl((MethodImplOptions)256)]
         // public static ImHashMap<K, V> AddOrKeep<K, V>(this ImHashMap<K, V> map, K key, V value) =>
         //     map.AddOrKeep(key.GetHashCode(), key, value);
-
-        // /// <summary>Returns the new map without the specified hash and key (if found) or returns the same map otherwise</summary>
-        // [MethodImpl((MethodImplOptions)256)]
-        // public static ImHashMap<K, V> Remove<K, V>(this ImHashMap<K, V> map, int hash, K key)
-        // {
-        //     var entryToRemove = map.GetEntryOrNull(hash);
-        //     if (entryToRemove is ImHashMapEntry<K, V>)
-        //         return map.RemoveEntry(entryToRemove);
-
-        //     if (entryToRemove is HashConflictingEntry<K, V> hc)
-        //     {
-        //         var entryToReplace = RemoveEntryToReplaceOrDefault(hc, key);
-        //         return entryToReplace == null ? map : map.ReplaceEntry(hash, entryToRemove, entryToReplace);
-        //     }
-
-        //     return map;
-        // }
-
-        // private static ImHashMap<K, V>.Entry RemoveEntryToReplaceOrDefault<K, V>(HashConflictingEntry<K, V> hc, K key)
-        // {
-        //     var cs = hc.Conflicts;
-        //     var n = cs.Length;
-        //     var i = n - 1;
-        //     while (i != -1 && !cs[i].Key.Equals(key)) --i;
-        //     if (i != -1)
-        //     {
-        //         if (n == 2)
-        //             return i == 0 ? cs[1] : cs[0];
-        //         var newConflicts = new ImHashMapEntry<K, V>[n -= 1]; // the new n is less by one
-        //         if (i > 0) // copy the 1st part
-        //             Array.Copy(cs, 0, newConflicts, 0, i);
-        //         if (i < n) // copy the 2nd part
-        //             Array.Copy(cs, i + 1, newConflicts, i, n - i);
-        //         return new HashConflictingEntry<K, V>(hc.Hash, newConflicts);
-        //     }
-
-        //     return null;
-        // }
-
-        // /// <summary>Returns the new map without the specified hash and key (if found) or returns the same map otherwise</summary>
-        // [MethodImpl((MethodImplOptions)256)]
-        // public static ImHashMap<K, V> Remove<K, V>(this ImHashMap<K, V> map, K key) =>
-        //     map == ImHashMap<K, V>.Empty ? map : map.Remove(key.GetHashCode(), key); // it make sense to have the empty map condition here to prevent the probably costly `GetHashCode()` for the empty map.
-
     }
 
     /// <summary>
