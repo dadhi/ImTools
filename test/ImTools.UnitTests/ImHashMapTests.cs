@@ -342,7 +342,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Adding_the_conflicting_keys_should_be_fun()
         {
-            var m = ImHashMap<XKey<int>, string>.Empty;
+            var m = ImMap<XKey<int>, string>.Empty;
             Assert.AreEqual(null, m.GetValueOrDefault(Xk(0)));
             Assert.AreEqual(null, m.GetValueOrDefault(Xk(13)));
 
