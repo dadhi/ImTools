@@ -36,7 +36,7 @@ namespace ImTools.UnitTests
 
             var eSize = GetSize(e);
             var eeSize = GetSize(ee);
-            Assert.AreEqual(8, eeSize - eSize);
+            Assert.Greater(eeSize, eSize);
         }
 
         readonly struct Empty {}

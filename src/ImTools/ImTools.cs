@@ -3056,7 +3056,7 @@ namespace ImTools
         internal override Entry UpdateOrAddWithTheSameHash(ImMapEntry<int, V> newEntry, Update<int, V> update) =>
             ImMap.NewEntry(Hash, update(Hash, Value, newEntry.Value));
         internal override Entry UpdateOrKeepWithTheSameHash(ImMapEntry<int, V> newEntry) => newEntry;
-        internal override Entry UpdateOrKeepWithTheSameHash(ImMapEntry<int, V> newEntry, Update<int, V> update) => 
+        internal override Entry UpdateOrKeepWithTheSameHash(ImMapEntry<int, V> newEntry, Update<int, V> update) =>
             ImMap.NewEntry(Hash, update(Hash, Value, newEntry.Value));
     }
 
@@ -6760,7 +6760,7 @@ namespace ImTools
         /// <summary>Lookup for the value by the key using its hash and checking the key with the `object.Equals` for equality,
         /// returns the `true` and the found value or the `false` otherwise</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static bool TryFind<K, V>(this ImHashMap<K, V> map, K key, out V value) =>
+        public static bool TryFind<K, V>(this ImMap<K, V> map, K key, out V value) =>
             map.TryFind(key.GetHashCode(), key, out value);
 
         /// <summary>Creates the entry with the `int` key (which will be used as the key)</summary>
