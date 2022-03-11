@@ -86,7 +86,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Can_fold_3_level_tree()
         {
-            var t = ImHashMap<string, int>.Empty;
+            var t = ImMap<string, int>.Empty;
             t = t
                 .AddOrUpdate("1", 1)
                 .AddOrUpdate("2", 2)
@@ -101,34 +101,34 @@ namespace ImTools.UnitTests
         [Test]
         public void Folded_values_should_be_returned_in_sorted_order()
         {
-            var items = Enumerable.Range(0, 10).ToArray();
-            var tree = items.Aggregate(ImHashMap<int, int>.Empty, (t, i) => t.AddOrUpdate(i, i));
+            var items = Enumerable.Range(0, 10).Select(x => x + "!").ToArray();
+            var tree = items.Aggregate(ImMap<string, string>.Empty, (m, s) => m.AddOrUpdate(s, s));
 
-            var list = tree.ForEach(new List<int>(), (data, _, l) => l.Add(data.Value));
+            var list = tree.ForEach(new List<string>(), (e, _, l) => l.Add(e.Value));
 
-            CollectionAssert.AreEqual(items, list);
+            CollectionAssert.AreEquivalent(items, list);
         }
 
         [Test]
         public void Folded_lefty_values_should_be_returned_in_sorted_order()
         {
-            var items = Enumerable.Range(0, 100).ToArray();
-            var tree = items.Reverse().Aggregate(ImHashMap<int, int>.Empty, (t, i) => t.AddOrUpdate(i, i));
+            var items = Enumerable.Range(0, 100).Select(x => "" + x).ToArray();
+            var tree = items.Reverse().Aggregate(ImMap<string, string>.Empty, (m, s) => m.AddOrUpdate(s, s));
 
-            var list = tree.ForEach(new List<int>(), (data, _, l) => l.Add(data.Value));
+            var list = tree.ForEach(new List<string>(), (e, _, l) => l.Add(e.Value));
 
-            CollectionAssert.AreEqual(items, list);
+            CollectionAssert.AreEquivalent(items, list);
         }
 
         [Test]
         public void ImMapSlots_Folded_values_should_be_returned_in_sorted_order()
         {
-            var items = Enumerable.Range(0, 10).ToArray();
-            var tree = items.Aggregate(PartitionedMap.CreateEmpty<int>(), (t, i) => t.Do(x => x.AddOrUpdate(i, i)));
+            var items = Enumerable.Range(0, 10).Select(x => "" + x).ToArray();
+            var tree = items.Aggregate(PartitionedMap.CreateEmpty<string, string>(), (m, s) => m.Do(x => x.AddOrUpdate(s, s)));
 
-            var list = tree.ForEach(new List<int>(), (data, _, l) => l.Add(data.Value));
+            var list = tree.ForEach(new List<string>(), (e, _, l) => l.Add(e.Value));
 
-            CollectionAssert.AreEqual(items, list);
+            CollectionAssert.AreEquivalent(items, list);
         }
 
         [Test]

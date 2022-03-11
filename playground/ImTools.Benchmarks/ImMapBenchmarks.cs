@@ -9,6 +9,8 @@ using ImTools.UnitTests;
 using Microsoft.Collections.Extensions;
 using ImTools.V2.Experimental;
 
+#pragma warning disable CS0649
+
 namespace Playground
 {
     public class ImMapBenchmarks

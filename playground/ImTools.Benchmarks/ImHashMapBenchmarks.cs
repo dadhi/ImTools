@@ -13,6 +13,8 @@ using ImTools.V2;
 using ImTools.V2.Experimental;
 using System.Runtime.CompilerServices;
 
+#pragma warning disable CS0649, CS0169
+
 namespace Playground
 {
     public class ImHashMapBenchmarks
