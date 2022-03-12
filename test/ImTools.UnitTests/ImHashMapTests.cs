@@ -166,11 +166,11 @@ namespace ImTools.UnitTests
         [Test]
         public void Remove_from_one_node_tree()
         {
-            var tree = ImHashMap<int, string>.Empty.AddOrUpdate(0, "a");
+            var map = ImMap<string, string>.Empty.AddOrUpdate("0", "a");
 
-            tree = tree.Remove(0);
+            map = map.Remove("0");
 
-            Assert.That(tree.IsEmpty, Is.True);
+            Assert.That(map.IsEmpty, Is.True);
         }
 
         [Test]
@@ -181,7 +181,7 @@ namespace ImTools.UnitTests
         }
 
         [Test]
-        public void Adding_to_ImHashMap_and_checking_the_tree_shape_on_each_addition()
+        public void Adding_to_map_and_checking_the_tree_shape_on_each_addition()
         {
             var m = ImMap<string, string>.Empty;
             Assert.AreEqual(null, m.GetValueOrDefault("0"));
@@ -360,19 +360,19 @@ namespace ImTools.UnitTests
             m = m.AddOrUpdate(Xk(1), "a");
             m = m.AddOrUpdate(Xk(2), "b");
 
-            Assert.AreNotEqual(typeof(ImHashMapEntry<XKey<int>, string>), m.GetType());
+            Assert.AreNotEqual(typeof(ImMapEntry<XKey<int>, string>), m.GetType());
             Assert.AreEqual("a", m.GetValueOrDefault(Xk(1)));
             Assert.AreEqual("b", m.GetValueOrDefault(Xk(2)));
             Assert.AreEqual(null, m.GetValueOrDefault(Xk(10)));
 
             var mr = m.Remove(Xk(1));
-            Assert.AreNotEqual(typeof(ImHashMapEntry<XKey<int>, string>), m.GetType());
+            Assert.AreNotEqual(typeof(ImMapEntry<XKey<int>, string>), m.GetType());
             Assert.AreEqual(null, mr.GetValueOrDefault(Xk(1)));
             Assert.AreEqual("b", mr.GetValueOrDefault(Xk(2)));
 
             m = m.AddOrUpdate(Xk(3), "c");
             mr = m.Remove(Xk(2));
-            Assert.AreNotEqual(typeof(ImHashMapEntry<XKey<int>, string>), m.GetType());
+            Assert.AreNotEqual(typeof(ImMapEntry<XKey<int>, string>), m.GetType());
             Assert.AreEqual("a", mr.GetValueOrDefault(Xk(1)));
             Assert.AreEqual(null, mr.GetValueOrDefault(Xk(2)));
             Assert.AreEqual("c", mr.GetValueOrDefault(Xk(3)));
@@ -603,7 +603,7 @@ namespace ImTools.UnitTests
         }
 
         [Test]
-        public void ImHashMap_AddOrKeep_random_items_and_randomly_checking_CsCheck()
+        public void AddOrKeep_random_items_and_randomly_checking_CsCheck()
         {
             const int upperBound = 100000;
             Gen.Int[0, upperBound].Array.Sample(items =>
@@ -664,49 +664,50 @@ namespace ImTools.UnitTests
                 iter: 5000);
         }
 
-        // [Test]
-        // public void ImHashMap_Remove_metamorphic()
-        // {
-        //     const int upperBound = 100_000;
-        //     Gen.Select(GenImMap(upperBound), Gen.Int[0, upperBound], Gen.Int, Gen.Int[0, upperBound], Gen.Int)
-        //         .Sample(t =>
-        //         {
-        //             var ((m, _), k1, v1, k2, v2) = t;
+        [Test]
+        public void Remove_metamorphic()
+        {
+            const int upperBound = 100_000;
+            Gen.Select(GenImMap(upperBound), Gen.Int[0, upperBound], Gen.Int, Gen.Int[0, upperBound], Gen.Int)
+                .Sample(t =>
+                {
+                    var ((m, _), k1, v1, k2, v2) = t;
+                    var (sk1, sv1, sk2, sv2) = ("" + k1, "" + v1, "" + k2, "" + v2);
 
-        //             m = m.AddOrUpdate(k1, v1).AddOrUpdate(k2, v2);
+                    m = m.AddOrUpdate(sk1, sv1).AddOrUpdate(sk2, sv2);
 
-        //             var m1 = m.Remove(k1).Remove(k2);
-        //             var m2 = m.Remove(k2).Remove(k1);
+                    var m1 = m.Remove(sk1).Remove(sk2);
+                    var m2 = m.Remove(sk2).Remove(sk1);
 
-        //             var e1 = m1.Enumerate().Select(x => x.Hash);
-        //             var e2 = m2.Enumerate().Select(x => x.Hash);
+                    var e1 = m1.Enumerate().Select(x => x.Key);
+                    var e2 = m2.Enumerate().Select(x => x.Key);
 
-        //             CollectionAssert.AreEqual(e1, e2);
-        //         },
-        //         iter: 5000);
-        // }
+                    CollectionAssert.AreEqual(e1, e2);
+                },
+                iter: 5000);
+        }
 
         [Test]
         public void AddOrUpdate_metamorphic_shrinked_manually_case_1()
         {
-            var baseItems = new int[4] { 65347, 87589, 89692, 92562 };
+            var baseItems = new int[4] { 65347, 87589, 89692, 92562 }.Select(x => x.ToString());
 
-            var m1 = ImHashMap<int, int>.Empty;
-            var m2 = ImHashMap<int, int>.Empty;
+            var m1 = ImMap<string, string>.Empty;
+            var m2 = ImMap<string, string>.Empty;
             foreach (var x in baseItems)
             {
                 m1 = m1.AddOrUpdate(x, x);
                 m2 = m2.AddOrUpdate(x, x);
             }
 
-            m1 = m1.AddOrUpdate(58955, 42);
-            m1 = m1.AddOrUpdate(97319, 43);
+            m1 = m1.AddOrUpdate("58955", "42");
+            m1 = m1.AddOrUpdate("97319", "43");
 
-            m2 = m2.AddOrUpdate(97319, 43);
-            m2 = m2.AddOrUpdate(58955, 42);
+            m2 = m2.AddOrUpdate("97319", "43");
+            m2 = m2.AddOrUpdate("58955", "42");
 
-            var e1 = m1.Enumerate().OrderBy(i => i.Hash);
-            var e2 = m2.Enumerate().OrderBy(i => i.Hash);
+            var e1 = m1.Enumerate();
+            var e2 = m2.Enumerate();
 
             CollectionAssert.AreEqual(e1.Select(x => x.Hash), e2.Select(x => x.Hash));
         }
@@ -714,24 +715,24 @@ namespace ImTools.UnitTests
         [Test]
         public void AddOrUpdate_metamorphic_shrinked_manually_case_2()
         {
-            var baseItems = new int[6] { 4527, 58235, 65127, 74715, 81974, 89123 };
+            var baseItems = new int[6] { 4527, 58235, 65127, 74715, 81974, 89123 }.Select(x => x.ToString());
 
-            var m1 = ImHashMap<int, int>.Empty;
-            var m2 = ImHashMap<int, int>.Empty;
+            var m1 = ImMap<string, string>.Empty;
+            var m2 = ImMap<string, string>.Empty;
             foreach (var x in baseItems)
             {
                 m1 = m1.AddOrUpdate(x, x);
                 m2 = m2.AddOrUpdate(x, x);
             }
 
-            m1 = m1.AddOrUpdate(35206, 42);
-            m1 = m1.AddOrUpdate(83178, 43);
+            m1 = m1.AddOrUpdate("35206", "42");
+            m1 = m1.AddOrUpdate("83178", "43");
 
-            m2 = m2.AddOrUpdate(83178, 43);
-            m2 = m2.AddOrUpdate(35206, 42);
+            m2 = m2.AddOrUpdate("83178", "43");
+            m2 = m2.AddOrUpdate("35206", "42");
 
-            var e1 = m1.Enumerate().OrderBy(i => i.Hash).Select(x => x.Hash).ToArray();
-            var e2 = m2.Enumerate().OrderBy(i => i.Hash).Select(x => x.Hash).ToArray();
+            var e1 = m1.Enumerate().Select(x => x.Value).ToArray();
+            var e2 = m2.Enumerate().Select(x => x.Value).ToArray();
 
             CollectionAssert.AreEqual(e1, e2);
         }
@@ -739,21 +740,21 @@ namespace ImTools.UnitTests
         [Test]
         public void AddOrUpdate_metamorphic_shrinked_manually_case_3()
         {
-            var baseItems = new int[] { 65347, 87589, 89692, 92562 };
+            var baseItems = new int[] { 65347, 87589, 89692, 92562 }.Select(x => x.ToString());
 
-            var m1 = ImHashMap<int, int>.Empty;
-            var m2 = ImHashMap<int, int>.Empty;
+            var m1 = ImMap<string, string>.Empty;
+            var m2 = ImMap<string, string>.Empty;
             foreach (var x in baseItems)
             {
                 m1 = m1.AddOrUpdate(x, x);
                 m2 = m2.AddOrUpdate(x, x);
             }
 
-            m1 = m1.AddOrUpdate(97319, 42);
-            m1 = m1.AddOrUpdate(58955, 43);
+            m1 = m1.AddOrUpdate("97319", "42");
+            m1 = m1.AddOrUpdate("58955", "43");
 
-            m2 = m2.AddOrUpdate(58955, 43);
-            m2 = m2.AddOrUpdate(97319, 42);
+            m2 = m2.AddOrUpdate("58955", "43");
+            m2 = m2.AddOrUpdate("97319", "42");
 
             var e1 = m1.Enumerate().ToArray().OrderBy(i => i.Hash).Select(x => x.Hash).ToArray();
             var e2 = m2.Enumerate().ToArray().OrderBy(i => i.Hash).Select(x => x.Hash).ToArray();
@@ -761,48 +762,48 @@ namespace ImTools.UnitTests
             CollectionAssert.AreEqual(e1, e2);
         }
 
-        // [Test]
-        // public void ImHashMap_AddOrUpdate_ModelBased()
-        // {
-        //     const int upperBound = 100000;
-        //     Gen.SelectMany(GenImMap(upperBound), m =>
-        //         Gen.Select(Gen.Const(m.Item1), Gen.Int[0, upperBound], Gen.Int, Gen.Const(m.Item2)))
-        //         .Sample(t =>
-        //         {
-        //             var dic1 = t.V0.ToDictionary();
-        //             dic1[t.V1] = t.V2;
+        [Test]
+        public void AddOrUpdate_ModelBased()
+        {
+            const int upperBound = 100000;
+            Gen.SelectMany(GenImMap(upperBound), m =>
+                Gen.Select(Gen.Const(m.Item1), Gen.Int[0, upperBound], Gen.Int, Gen.Const(m.Item2)))
+                .Sample(t =>
+                {
+                    var dic1 = t.V0.ToDictionary();
+                    dic1[t.V1 + ""] = t.V2 + "";
 
-        //             var dic2 = t.V0.AddOrUpdate(t.V1, t.V2).ToDictionary();
+                    var dic2 = t.V0.AddOrUpdate(t.V1 + "", t.V2 + "").ToDictionary();
 
-        //             CollectionAssert.AreEqual(dic1, dic2);
-        //         }
-        //         , iter: 1000
-        //         , print: t => t + "\n" + string.Join("\n", t.V0.Enumerate()));
-        // }
+                    CollectionAssert.AreEqual(dic1, dic2);
+                }
+                , iter: 1000
+                , print: t => t + "\n" + string.Join("\n", t.V0.Enumerate()));
+        }
 
-        // [Test]
-        // public void ImHashMap_Remove_ModelBased()
-        // {
-        //     const int upperBound = 100000;
-        //     Gen.SelectMany(GenImMap(upperBound), m =>
-        //         Gen.Select(Gen.Const(m.Item1), Gen.Int[0, upperBound], Gen.Int, Gen.Const(m.Item2)))
-        //         .Sample(t =>
-        //         {
-        //             var dic1 = t.V0.ToDictionary();
-        //             if (dic1.ContainsKey(t.V1))
-        //                 dic1.Remove(t.V1);
+        [Test]
+        public void Remove_ModelBased()
+        {
+            const int upperBound = 100000;
+            Gen.SelectMany(GenImMap(upperBound), m =>
+                Gen.Select(Gen.Const(m.Item1), Gen.Int[0, upperBound], Gen.Int, Gen.Const(m.Item2)))
+                .Sample(t =>
+                {
+                    var dic1 = t.V0.ToDictionary();
+                    if (dic1.ContainsKey(t.V1 + ""))
+                        dic1.Remove(t.V1 + "");
 
-        //             var map = t.V0.AddOrUpdate(t.V1, t.V2).Remove(t.V1);
-        //             // Assert.AreEqual(t.V0.Remove(t.V1).Count(), map.Count());
+                    var map = t.V0.AddOrUpdate(t.V1 + "", t.V2 + "").Remove(t.V1 + "");
+                    // Assert.AreEqual(t.V0.Remove(t.V1).Count(), map.Count());
 
-        //             var dic2 = map.ToDictionary();
-        //             CollectionAssert.AreEqual(dic1, dic2);
-        //         }
-        //         , iter: 1000
-        //         , print: t =>
-        //             "\noriginal: " + t.V0 +
-        //             "\nadded: " + t.V1 +
-        //             "\nkeys: {" + string.Join(", ", t.V3) + "}");
-        // }
+                    var dic2 = map.ToDictionary();
+                    CollectionAssert.AreEqual(dic1, dic2);
+                }
+                , iter: 1000
+                , print: t =>
+                    "\noriginal: " + t.V0 +
+                    "\nadded: " + t.V1 +
+                    "\nkeys: {" + string.Join(", ", t.V3) + "}");
+        }
     }
 }
