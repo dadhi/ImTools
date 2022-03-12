@@ -7041,7 +7041,7 @@ namespace ImTools
         }
 
         // todo: @perf minimize virtual calls
-
+        // todo: @perf or rather what if I move a static method inside the map and override it in VEntry or KVEntry to speedup it for 1 item map, at least
         /// <summary>Returns the new map without the specified hash and key (if found) or returns the same map otherwise</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImMap<K, V> Remove<K, V>(this ImMap<K, V> map, int hash, K key)
@@ -7050,6 +7050,8 @@ namespace ImTools
             if (entryToRemove != null)
             {
                 var removed = entryToRemove.RemovedOrNullWithTheSameHash(key);
+                if (removed == entryToRemove)
+                    return map.RemoveEntry(entryToRemove);
                 if (removed != null)
                     return map.ReplaceEntry(entryToRemove, removed);
             }

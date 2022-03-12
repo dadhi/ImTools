@@ -198,7 +198,7 @@ namespace ImTools.UnitTests
             Assert.AreSame(m, m.AddOrKeep("1", "aa"));
 
             var mr = m.Remove("1");
-            Assert.AreSame(ImMap<int, string>.Empty, mr);
+            Assert.AreSame(ImMap<string, string>.Empty, mr);
             Assert.AreEqual(0, mr.Count());
 
             m = m.AddOrUpdate("2", "b");
