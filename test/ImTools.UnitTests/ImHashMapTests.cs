@@ -381,45 +381,45 @@ namespace ImTools.UnitTests
         [Test]
         public void Adding_1000_keys_and_randomly_checking()
         {
-            var m = ImHashMap<int, int>.Empty;
+            var m = ImMap<string, int>.Empty;
             for (var i = 0; i < 5000; i++)
             {
-                m = m.AddOrUpdate(i, i);
+                m = m.AddOrUpdate(i + "", i);
             }
 
-            Assert.AreEqual(1, m.GetValueOrDefault(1));
-            Assert.AreEqual(0, m.GetValueOrDefault(0));
-            Assert.AreEqual(13, m.GetValueOrDefault(13));
-            Assert.AreEqual(66, m.GetValueOrDefault(66));
-            Assert.AreEqual(555, m.GetValueOrDefault(555));
-            Assert.AreEqual(333, m.GetValueOrDefault(333));
-            Assert.AreEqual(999, m.GetValueOrDefault(999));
+            Assert.AreEqual(1,   m.GetValueOrDefault("1"));
+            Assert.AreEqual(0,   m.GetValueOrDefault("0"));
+            Assert.AreEqual(13,  m.GetValueOrDefault("13"));
+            Assert.AreEqual(66,  m.GetValueOrDefault("66"));
+            Assert.AreEqual(555, m.GetValueOrDefault("555"));
+            Assert.AreEqual(333, m.GetValueOrDefault("333"));
+            Assert.AreEqual(999, m.GetValueOrDefault("999"));
 
             // non-existing keys 
-            Assert.AreEqual(0, m.GetValueOrDefault(10000));
-            Assert.AreEqual(0, m.GetValueOrDefault(-1));
+            Assert.AreEqual(0, m.GetValueOrDefault("10000"));
+            Assert.AreEqual(0, m.GetValueOrDefault("-1"));
         }
 
         [Test]
         public void Adding_1000_keys_descending_and_randomly_checking()
         {
-            var m = ImHashMap<int, int>.Empty;
+            var m = ImMap<String, int>.Empty;
             for (var i = 5000 - 1; i >= 0; i--)
             {
-                m = m.AddOrUpdate(i, i);
+                m = m.AddOrUpdate(i + "", i);
             }
 
-            Assert.AreEqual(1, m.GetValueOrDefault(1));
-            Assert.AreEqual(0, m.GetValueOrDefault(0));
-            Assert.AreEqual(13, m.GetValueOrDefault(13));
-            Assert.AreEqual(66, m.GetValueOrDefault(66));
-            Assert.AreEqual(555, m.GetValueOrDefault(555));
-            Assert.AreEqual(333, m.GetValueOrDefault(333));
-            Assert.AreEqual(999, m.GetValueOrDefault(999));
+            Assert.AreEqual(7 + 1,   m.GetValueOrDefault("" + (7 + 1)));
+            Assert.AreEqual(7 + 0,   m.GetValueOrDefault("" + (7 + 0)));
+            Assert.AreEqual(7 + 13,  m.GetValueOrDefault("" + (7 + 13)));
+            Assert.AreEqual(7 + 66,  m.GetValueOrDefault("" + (7 + 66)));
+            Assert.AreEqual(7 + 555, m.GetValueOrDefault("" + (7 + 555)));
+            Assert.AreEqual(7 + 333, m.GetValueOrDefault("" + (7 + 333)));
+            Assert.AreEqual(7 + 999, m.GetValueOrDefault("" + (7 + 999)));
 
             // non-existing keys 
-            Assert.AreEqual(0, m.GetValueOrDefault(10000));
-            Assert.AreEqual(0, m.GetValueOrDefault(-1));
+            Assert.AreEqual(0, m.GetValueOrDefault("10000"));
+            Assert.AreEqual(0, m.GetValueOrDefault("-1"));
         }
 
         [Test]
