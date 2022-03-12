@@ -42,7 +42,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Search_for_non_existent_key_should_NOT_throw()
         {
-            var map = ImHashMap<string, int>.Empty
+            var map = ImMap<string, int>.Empty
                 .AddOrUpdate("1", 1)
                 .AddOrUpdate("3", 2);
 
@@ -52,7 +52,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Search_for_non_existent_key_should_NOT_throw_TryFind()
         {
-            var map = ImHashMap<string, int>.Empty
+            var map = ImMap<string, int>.Empty
                 .AddOrUpdate("1", 1)
                 .AddOrUpdate("3", 2);
 
@@ -134,19 +134,19 @@ namespace ImTools.UnitTests
         [Test]
         public void Update_to_null_and_then_to_value_should_remove_null()
         {
-            var map = ImHashMap<int, string>.Empty
-                .AddOrUpdate(1, "a")
-                .AddOrUpdate(2, "b")
-                .AddOrUpdate(3, "c")
-                .AddOrUpdate(4, "d");
+            var map = ImMap<string, string>.Empty
+                .AddOrUpdate("1", "a")
+                .AddOrUpdate("2", "b")
+                .AddOrUpdate("3", "c")
+                .AddOrUpdate("4", "d");
 
-            Assert.AreEqual("d", map.GetValueOrDefault(4));
+            Assert.AreEqual("d", map.GetValueOrDefault("4"));
 
-            map = map.Update(4, null);
-            Assert.IsNull(map.GetValueOrDefault(4));
+            map = map.Update("4", null);
+            Assert.IsNull(map.GetValueOrDefault("4"));
 
-            map = map.Update(4, "X");
-            CollectionAssert.AreEqual(new[] { "a", "b", "c", "X" }, map.Enumerate().Select(_ => _.Value));
+            map = map.Update("4", "X");
+            CollectionAssert.AreEquivalent(new[] { "a", "b", "c", "X" }, map.Enumerate().Select(_ => _.Value));
         }
 
         [Test]
