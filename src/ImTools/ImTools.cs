@@ -6925,6 +6925,7 @@ namespace ImTools
             return mapOrOldEntry;
         }
 
+        // todo: @perf add ...ByReferenceEquals
         /// <summary>Adds or updates (no in-place mutation) the map with the new entry, always returning the NEW map!</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImMap<K, V> AddOrUpdateEntry<K, V>(this ImMap<K, V> map, ImMapEntry<K, V> newEntry)

@@ -448,8 +448,27 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 |------------------------- |------ |---------:|--------:|--------:|------:|--------:|-------:|-------:|------:|----------:|
 | V3_ImHashMap_AddOrUpdate |    10 | 317.7 ns | 2.16 ns | 2.02 ns |  1.00 |    0.00 | 0.1593 | 0.0005 |     - |    1000 B |
 | V2_ImHashMap_AddOrUpdate |    10 | 617.4 ns | 6.60 ns | 5.51 ns |  1.94 |    0.02 | 0.3605 | 0.0019 |     - |    2264 B |
+
+
+## V4 baseline 
+
+BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19043
+Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+.NET Core SDK=6.0.100
+  [Host]     : .NET Core 6.0.0 (CoreCLR 6.0.21.52210, CoreFX 6.0.21.52210), X64 RyuJIT
+  DefaultJob : .NET Core 6.0.0 (CoreCLR 6.0.21.52210, CoreFX 6.0.21.52210), X64 RyuJIT
+
+
+|                   Method | Count |      Mean |    Error |   StdDev | Ratio | RatioSD |   Gen 0 |   Gen 1 | Gen 2 | Allocated |
+|------------------------- |------ |----------:|---------:|---------:|------:|--------:|--------:|--------:|------:|----------:|
+|     V4_ImMap_AddOrUpdate |   100 |  10.12 us | 0.192 us | 0.189 us |  1.00 |    0.00 |  3.0823 |  0.0916 |     - |  18.93 KB |
+| V3_ImHashMap_AddOrUpdate |   100 |  10.78 us | 0.097 us | 0.081 us |  1.06 |    0.02 |  3.1891 |  0.1068 |     - |  19.56 KB |
+|                          |       |           |          |          |       |         |         |         |       |           |
+|     V4_ImMap_AddOrUpdate |  1000 | 243.57 us | 3.951 us | 3.695 us |  1.00 |    0.00 | 51.2695 | 11.7188 |     - | 314.62 KB |
+| V3_ImHashMap_AddOrUpdate |  1000 | 247.76 us | 4.295 us | 4.018 us |  1.02 |    0.02 | 51.2695 | 11.7188 |     - | 316.58 KB |
+
 */
-            [Params(1, 5, 10, 100, 1000)]
+            [Params(100, 1000)]
             // [Params(10)]
             public int Count;
 
@@ -462,6 +481,17 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             }
 
             [Benchmark(Baseline = true)]
+            public ImTools.ImMap<Type, string> V4_ImMap_AddOrUpdate()
+            {
+                var map = ImTools.ImMap<Type, string>.Empty;
+
+                foreach (var key in _types)
+                    map = map.AddOrUpdate(key.GetHashCode(), key, "a");
+
+                return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
+            }
+
+            [Benchmark]
             public ImTools.ImHashMap<Type, string> V3_ImHashMap_AddOrUpdate()
             {
                 var map = ImTools.ImHashMap<Type, string>.Empty;
@@ -495,7 +525,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImTools.V2.ImHashMap<Type, string> V2_ImHashMap_AddOrUpdate()
             {
                 var map = ImTools.V2.ImHashMap<Type, string>.Empty;
