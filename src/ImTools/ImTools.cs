@@ -3066,6 +3066,7 @@ namespace ImTools
 
         internal override ImMapEntry<int, V> GetOrNull(int key) => key == Hash ? this : null;
         internal override ImMapEntry<int, V> GetOrNullWithTheSameHash(int key) => this;
+        internal override ImMapEntry<int, V> GetOrNullByReferenceEqualsWithTheSameHash(int key) => this;
         internal override Entry AddWithTheSameKey(Entry newEntry) => this;
         internal override Entry AddOrUpdateWithTheSameHash(ImMapEntry<int, V> newEntry) => newEntry;
         internal override Entry AddOrUpdateWithTheSameHash(ImMapEntry<int, V> newEntry, Update<int, V> update) =>
@@ -3094,6 +3095,9 @@ namespace ImTools
 
         internal override ImMapEntry<K, V> GetOrNullWithTheSameHash(K key) =>
             _key.Equals(key) ? this : null;
+
+        internal override ImMapEntry<K, V> GetOrNullByReferenceEqualsWithTheSameHash(K key) =>
+            ReferenceEquals(_key, key) ? this : null;
 
         internal override Entry AddWithTheSameKey(Entry newEntry) =>
             new HashConflictingEntry(Hash, this, (KVEntry<K, V>)newEntry);
@@ -3205,6 +3209,9 @@ namespace ImTools
             /// <summary>Get entry if it has the equal key, assuming the entry has the same hash already.</summary>
             internal abstract ImMapEntry<K, V> GetOrNullWithTheSameHash(K key);
 
+            /// <summary>Get entry if it has the reference equal key, assuming the entry has the same hash already.</summary>
+            internal abstract ImMapEntry<K, V> GetOrNullByReferenceEqualsWithTheSameHash(K key);
+
             /// <summary>Appends the new entry to the existing entry, assuming the entry has the same key already.
             /// For `VEntry` returns `this` entry.</summary>
             internal abstract Entry AddWithTheSameKey(Entry newEntry);
@@ -3281,6 +3288,14 @@ namespace ImTools
             }
 
             internal override ImMapEntry<K, V> GetOrNullWithTheSameHash(K key) => GetOrNull(key);
+
+            internal override ImMapEntry<K, V> GetOrNullByReferenceEqualsWithTheSameHash(K key)
+            {
+                var cs = Conflicts;
+                var i = cs.Length - 1;
+                while (i != -1 && !ReferenceEquals(cs[i].Key, key)) --i;
+                return i != -1 ? cs[i] : null;
+            }
 
             internal override Entry AddWithTheSameKey(Entry newEntry) =>
                 new HashConflictingEntry(Hash, Conflicts.AppendToNonEmpty((KVEntry<K, V>)newEntry));
@@ -6231,6 +6246,7 @@ namespace ImTools
                         if (hash < e0.Hash) { swap = e0; e0 = _g; _g = swap; }
                     }
 
+                    // todo: @less out into sorting method
                     hash = _e.Hash;
                     if (hash < _h.Hash)
                     {
@@ -6775,6 +6791,18 @@ namespace ImTools
         public static V GetValueOrDefault<K, V>(this ImMap<K, V> map, K key, V defaultValue) =>
             map.GetEntryOrNull(key.GetHashCode())?.GetOrNullWithTheSameHash(key) is ImMapEntry<K, V> kv ? kv.Value : defaultValue;
 
+        /// <summary>Lookup for the value by the key using the hash and checking the key with the `object.ReferenceEquals` for equality,
+        ///  returns found value or the default value if not found</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static V GetValueOrDefaultByReferenceEquals<K, V>(this ImMap<K, V> map, int hash, K key) where K : class =>
+            map.GetEntryOrNull(hash)?.GetOrNullByReferenceEqualsWithTheSameHash(key) is ImMapEntry<K, V> kv ? kv.Value : default(V);
+
+        /// <summary>Lookup for the value by the key using the hash and checking the key with the `object.ReferenceEquals` for equality,
+        ///  returns found value or the default value if not found</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static V GetValueOrDefaultByReferenceEquals<K, V>(this ImMap<K, V> map, K key) where K : class =>
+            map.GetEntryOrNull(key.GetHashCode())?.GetOrNullByReferenceEqualsWithTheSameHash(key) is ImMapEntry<K, V> kv ? kv.Value : default(V);
+
         /// <summary>Lookup for the value by its hash, returns the `true` and the found value or the `false` otherwise</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static bool TryFind<V>(this ImMap<int, V> map, int hash, out V value)
@@ -6802,7 +6830,7 @@ namespace ImTools
             return false;
         }
 
-        /// <summary>Lookup for the value by its hash, returns the `true` and the found value or the `false` otherwise</summary>
+        /// <summary>Lookup for the value by its key, returns the `true` and the found value or the `false` otherwise</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static bool TryFind<K, V>(this ImMap<K, V> map, int hash, K key, out V value)
         {
@@ -6821,6 +6849,25 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public static bool TryFind<K, V>(this ImMap<K, V> map, K key, out V value) =>
             map.TryFind(key.GetHashCode(), key, out value);
+
+        /// <summary>Lookup for the value by its key, returns the `true` and the found value or the `false` otherwise</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static bool TryFindByReferenceEquals<K, V>(this ImMap<K, V> map, int hash, K key, out V value) where K : class
+        {
+            var kv = map.GetEntryOrNull(hash)?.GetOrNullByReferenceEqualsWithTheSameHash(key);
+            if (kv != null)
+            {
+                value = kv.Value;
+                return true;
+            }
+            value = default(V);
+            return false;
+        }
+
+        /// <summary>Lookup for the value by its key, returns the `true` and the found value or the `false` otherwise</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static bool TryFindByReferenceEquals<K, V>(this ImMap<K, V> map, K key, out V value) where K : class =>
+            map.TryFindByReferenceEquals(key.GetHashCode(), key, out value);
 
         /// <summary>Creates the entry with the `int` key (which will be used as the key)</summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -7020,26 +7067,8 @@ namespace ImTools
             var entry = map.GetEntryOrNull(hash);
             if (entry == null)
                 return map;
-            // todo: @wip check the updated value
             var updated = entry.UpdatedOrNullWithTheSameHash(key, value, update);
             return updated == null ? map : map.ReplaceEntry(entry, updated);
-
-
-            // var entry = map.GetEntryOrNull(hash);
-            // if (entry == null)
-            //     return map;
-
-            // if (entry is ImHashMapEntry<K, V> kv)
-            //     return !kv.Key.Equals(key) || ReferenceEquals(kv.Value, value = update(key, kv.Value, value))
-            //         ? map
-            //         : map.ReplaceEntry(hash, entry, new ImHashMapEntry<K, V>(hash, key, value));
-
-            // var cs = ((HashConflictingEntry<K, V>)entry).Conflicts;
-            // var i = cs.Length - 1;
-            // while (i != -1 && !key.Equals(cs[i].Key)) --i;
-            // if (i == -1 || ReferenceEquals(cs[i].Value, value = update(key, cs[i].Value, value)))
-            //     return map;
-            // return map.ReplaceEntry(hash, entry, new HashConflictingEntry<K, V>(hash, cs.UpdateNonEmpty(new ImHashMapEntry<K, V>(hash, key, value), i)));
         }
 
         /// <summary>Updates the map with the new value and the `update` function if the key is found otherwise returns the same unchanged map.
@@ -7302,6 +7331,22 @@ namespace ImTools
         public static V GetValueOrDefault<K, V>(this ImMap<K, V>[] parts, K key, int partHashMask = PARTITION_HASH_MASK) =>
             parts.GetValueOrDefault(key.GetHashCode(), key, partHashMask);
 
+
+        /// <summary>Lookup for the value by the key using the hash and checking the key with the `object.ReferenceEquals` for equality,
+        ///  returns found value or the default value if not found</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static V GetValueOrDefaultByReferenceEquals<K, V>(this ImMap<K, V>[] parts, int hash, K key, int partHashMask = PARTITION_HASH_MASK) where K : class
+        {
+            var p = parts[hash & partHashMask];
+            return p != null ? p.GetValueOrDefaultByReferenceEquals(hash, key) : default(V);
+        }
+
+        /// <summary>Lookup for the value by the key using its hash and checking the key with the `object.ReferenceEquals` for equality, 
+        /// returns the default `V` if hash, key are not found.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static V GetValueOrDefaultByReferenceEquals<K, V>(this ImMap<K, V>[] parts, K key, int partHashMask = PARTITION_HASH_MASK) where K : class =>
+            parts.GetValueOrDefaultByReferenceEquals(key.GetHashCode(), key, partHashMask);
+
         /// <summary>Lookup for the value by the key using the hash, returns the `true` and the found value or the `false`</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static bool TryFind<V>(this ImMap<int, V>[] parts, int hash, out V value, int partHashMask = PARTITION_HASH_MASK)
@@ -7328,6 +7373,26 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public static bool TryFind<K, V>(this ImMap<K, V>[] parts, K key, out V value, int partHashMask = PARTITION_HASH_MASK) =>
             parts.TryFind(key.GetHashCode(), key, out value, partHashMask);
+
+        /// <summary>Lookup for the value by the key using the hash code and checking the key with the `object.ReferenceEquals` for equality,
+        /// returns the `true` and the found value or the `false`</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static bool TryFindByReferenceEquals<K, V>(this ImMap<K, V>[] parts, int hash, K key, out V value,
+            int partHashMask = PARTITION_HASH_MASK) where K : class
+        {
+            var p = parts[hash & partHashMask];
+            if (p != null)
+                return p.TryFindByReferenceEquals(hash, key, out value);
+            value = default(V);
+            return false;
+        }
+
+        /// <summary>Lookup for the value by the key using the hash code and checking the key with the `object.ReferenceEquals` for equality,
+        /// returns the `true` and the found value or the `false`</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static bool TryFindByReferenceEquals<K, V>(this ImMap<K, V>[] parts, K key, out V value,
+            int partHashMask = PARTITION_HASH_MASK) where K : class =>
+            parts.TryFindByReferenceEquals(key.GetHashCode(), key, out value, partHashMask);
 
         /// <summary>Returns the SAME partitioned maps array instance but with the NEW added or updated partion</summary>
         [MethodImpl((MethodImplOptions)256)]
