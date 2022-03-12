@@ -423,24 +423,25 @@ namespace ImTools.UnitTests
         }
 
         [Test]
-        public void ImHashMap_AddOrUpdate_random_items_and_randomly_checking_CsCheck()
+        public void AddOrUpdate_random_items_and_randomly_checking_CsCheck()
         {
             const int upperBound = 100000;
             Gen.Int[0, upperBound].Array.Sample(items =>
             {
-                var m = ImHashMap<int, int>.Empty;
+                var m = ImMap<string, int>.Empty;
                 foreach (int n in items)
                 {
-                    m = m.AddOrUpdate(n, n);
-                    Assert.AreEqual(n, m.GetValueOrDefault(n));
+                    var key = "" + n;
+                    m = m.AddOrUpdate(key, n);
+                    Assert.AreEqual(n, m.GetValueOrDefault(key));
                 }
 
                 foreach (int n in items)
-                    Assert.AreEqual(n, m.GetValueOrDefault(n));
+                    Assert.AreEqual(n, m.GetValueOrDefault("" + n));
 
                 // non-existing keys 
-                Assert.AreEqual(0, m.GetValueOrDefault(upperBound + 1));
-                Assert.AreEqual(0, m.GetValueOrDefault(-1));
+                Assert.AreEqual(0, m.GetValueOrDefault("" + (upperBound + 1)));
+                Assert.AreEqual(0, m.GetValueOrDefault("-1"));
             },
             iter: 5000);
         }
