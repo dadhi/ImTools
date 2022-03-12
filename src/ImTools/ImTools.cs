@@ -6752,13 +6752,28 @@ namespace ImTools
 
         /// <summary>Lookup for the value by hash, returns the default `V` if hash is not found.</summary>
         [MethodImpl((MethodImplOptions)256)]
+        public static V GetValueOrDefault<V>(this ImMap<int, V> map, int hash, V defaultValue) =>
+            map.GetEntryOrNull(hash) is ImMapEntry<int, V> kv ? kv.Value : defaultValue;
+
+        /// <summary>Lookup for the value by hash, returns the default `V` if hash is not found.</summary>
+        [MethodImpl((MethodImplOptions)256)]
         public static V GetValueOrDefault<K, V>(this ImMap<K, V> map, int hash, K key) =>
             map.GetEntryOrNull(hash)?.GetOrNullWithTheSameHash(key) is ImMapEntry<K, V> kv ? kv.Value : default(V);
+
+        /// <summary>Lookup for the value by hash, returns the default `V` if hash is not found.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static V GetValueOrDefault<K, V>(this ImMap<K, V> map, int hash, K key, V defaultValue) =>
+            map.GetEntryOrNull(hash)?.GetOrNullWithTheSameHash(key) is ImMapEntry<K, V> kv ? kv.Value : defaultValue;
 
         /// <summary>Lookup for the value by key and its hash, returns the default `V` if hash is not found.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static V GetValueOrDefault<K, V>(this ImMap<K, V> map, K key) =>
             map.GetEntryOrNull(key.GetHashCode())?.GetOrNullWithTheSameHash(key) is ImMapEntry<K, V> kv ? kv.Value : default(V);
+
+        /// <summary>Lookup for the value by key and its hash, returns the default `V` if hash is not found.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static V GetValueOrDefault<K, V>(this ImMap<K, V> map, K key, V defaultValue) =>
+            map.GetEntryOrNull(key.GetHashCode())?.GetOrNullWithTheSameHash(key) is ImMapEntry<K, V> kv ? kv.Value : defaultValue;
 
         /// <summary>Lookup for the value by its hash, returns the `true` and the found value or the `false` otherwise</summary>
         [MethodImpl((MethodImplOptions)256)]
