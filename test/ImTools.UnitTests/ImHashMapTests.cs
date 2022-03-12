@@ -608,19 +608,22 @@ namespace ImTools.UnitTests
             const int upperBound = 100000;
             Gen.Int[0, upperBound].Array.Sample(items =>
             {
-                var m = ImHashMap<int, int>.Empty;
-                foreach (int n in items)
+                var s = items.Select(x => "" + x);
+
+                var m = ImMap<string, string>.Empty;
+                foreach (var n in s)
                 {
+
                     m = m.AddOrKeep(n, n);
                     Assert.AreEqual(n, m.GetValueOrDefault(n));
                 }
 
-                foreach (int n in items)
+                foreach (var n in s)
                     Assert.AreEqual(n, m.GetValueOrDefault(n));
 
                 // non-existing keys 
-                Assert.AreEqual(0, m.GetValueOrDefault(upperBound + 1));
-                Assert.AreEqual(0, m.GetValueOrDefault(-1));
+                Assert.AreEqual("", m.GetValueOrDefault("" + (upperBound + 1), ""));
+                Assert.AreEqual("", m.GetValueOrDefault("-1", ""));
             },
             iter: 5000);
         }
