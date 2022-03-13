@@ -3187,7 +3187,6 @@ namespace ImTools
         /// Note that the method cannot return the `null` - when the existing entry is not found it will always be the new map with the added entry.</summary>
         internal virtual ImMap<K, V> AddOrGetEntry(int hash, Entry entry) => entry;
 
-        // todo: @wip remove hash from here for simplicity
         /// <summary>Returns the new map with old entry replaced by the new entry. 
         /// Note that the old entry should be present.</summary>
         internal virtual ImMap<K, V> ReplaceEntry(Entry oldEntry, Entry newEntry) => Empty;
@@ -3537,39 +3536,11 @@ namespace ImTools
                 if (hash == e1.Hash)
                     return e1;
 
-                Entry swap = null;
-                if (pph < e1.Hash)
-                {
-                    swap = e1; e1 = pp; pp = swap;
-                    if (pph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
-                }
+                ImMap.InsertInOrder(pph, ref pp, ref e0, ref e1);
+                ImMap.InsertInOrder(ph, ref p, ref e0, ref e1, ref pp);
+                ImMap.InsertInOrder(hash, ref entry, ref e0, ref e1, ref pp, ref p);
 
-                if (ph < pp.Hash)
-                {
-                    swap = pp; pp = p; p = swap;
-                    if (ph < e1.Hash)
-                    {
-                        swap = e1; e1 = pp; pp = swap;
-                        if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
-                    }
-                }
-
-                Entry e = entry;
-                if (hash < p.Hash)
-                {
-                    swap = p; p = e; e = swap;
-                    if (hash < pp.Hash)
-                    {
-                        swap = pp; pp = p; p = swap;
-                        if (hash < e1.Hash)
-                        {
-                            swap = e1; e1 = pp; pp = swap;
-                            if (hash < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
-                        }
-                    }
-                }
-
-                return new Leaf5(e0, e1, pp, p, e);
+                return new Leaf5(e0, e1, pp, p, entry);
             }
 
             internal override ImMap<K, V> ReplaceEntry(Entry oldEntry, Entry newEntry) =>
@@ -3710,27 +3681,9 @@ namespace ImTools
                 if (p == removedEntry)
                     return L;
 
-                var ph = p.Hash;
                 var l = L;
-                Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, swap = null;
-
-                if (ph < e4.Hash)
-                {
-                    swap = e4; e4 = p; p = swap;
-                    if (ph < e3.Hash)
-                    {
-                        swap = e3; e3 = e4; e4 = swap;
-                        if (ph < e2.Hash)
-                        {
-                            swap = e2; e2 = e3; e3 = swap;
-                            if (ph < e1.Hash)
-                            {
-                                swap = e1; e1 = e2; e2 = swap;
-                                if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
-                            }
-                        }
-                    }
-                }
+                Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4;
+                ImMap.InsertInOrder(p.Hash, ref p, ref e0, ref e1, ref e2, ref e3, ref e4);
 
                 return removedEntry == e0 ? new Leaf5(e1, e2, e3, e4, p)
                     : removedEntry == e1 ? new Leaf5(e0, e2, e3, e4, p)
@@ -3822,73 +3775,10 @@ namespace ImTools
                 var right = hash > e4.Hash && ph > e4.Hash && pph > e4.Hash;
                 var left = !right && hash < e0.Hash && ph < e0.Hash && pph < e0.Hash;
 
-                Entry swap = null;
-                if (pph < e4.Hash)
-                {
-                    swap = e4; e4 = pp; pp = swap;
-                    if (pph < e3.Hash)
-                    {
-                        swap = e3; e3 = e4; e4 = swap;
-                        if (pph < e2.Hash)
-                        {
-                            swap = e2; e2 = e3; e3 = swap;
-                            if (pph < e1.Hash)
-                            {
-                                swap = e1; e1 = e2; e2 = swap;
-                                if (pph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
-                            }
-                        }
-                    }
-                }
-
-                if (ph < pp.Hash)
-                {
-                    swap = pp; pp = p; p = swap;
-                    if (ph < e4.Hash)
-                    {
-                        swap = e4; e4 = pp; pp = swap;
-                        if (ph < e3.Hash)
-                        {
-                            swap = e3; e3 = e4; e4 = swap;
-                            if (ph < e2.Hash)
-                            {
-                                swap = e2; e2 = e3; e3 = swap;
-                                if (ph < e1.Hash)
-                                {
-                                    swap = e1; e1 = e2; e2 = swap;
-                                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
-                                }
-                            }
-                        }
-                    }
-                }
-
                 Entry e = entry;
-                if (hash < p.Hash)
-                {
-                    swap = p; p = e; e = swap;
-                    if (hash < pp.Hash)
-                    {
-                        swap = pp; pp = p; p = swap;
-                        if (hash < e4.Hash)
-                        {
-                            swap = e4; e4 = pp; pp = swap;
-                            if (hash < e3.Hash)
-                            {
-                                swap = e3; e3 = e4; e4 = swap;
-                                if (hash < e2.Hash)
-                                {
-                                    swap = e2; e2 = e3; e3 = swap;
-                                    if (hash < e1.Hash)
-                                    {
-                                        swap = e1; e1 = e2; e2 = swap;
-                                        if (hash < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                ImMap.InsertInOrder(pph, ref pp, ref e0, ref e1, ref e2, ref e3, ref e4);
+                ImMap.InsertInOrder(ph, ref p, ref e0, ref e1, ref e2, ref e3, ref e4, ref pp);
+                ImMap.InsertInOrder(hash, ref e, ref e0, ref e1, ref e2, ref e3, ref e4, ref pp, ref p);
 
                 if (left)
                 {
@@ -3905,78 +3795,16 @@ namespace ImTools
             internal ImMap<K, V> AddEntry(int hash, ref Entry entry, ref ImMap<K, V> splitRight)
             {
                 var l = L.L;
-                Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, pp = L.Plus, p = Plus, swap = null;
+                Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, pp = L.Plus, p = Plus;
                 int ph = p.Hash, pph = pp.Hash;
 
                 var right = hash > e4.Hash && ph > e4.Hash && pph > e4.Hash;
                 var left = !right && hash < e0.Hash && ph < e0.Hash && pph < e0.Hash;
+                var e = entry; // store the entry original value cause we may change it for the result
 
-                if (pph < e4.Hash)
-                {
-                    swap = e4; e4 = pp; pp = swap;
-                    if (pph < e3.Hash)
-                    {
-                        swap = e3; e3 = e4; e4 = swap;
-                        if (pph < e2.Hash)
-                        {
-                            swap = e2; e2 = e3; e3 = swap;
-                            if (pph < e1.Hash)
-                            {
-                                swap = e1; e1 = e2; e2 = swap;
-                                if (pph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
-                            }
-                        }
-                    }
-                }
-
-                if (ph < pp.Hash)
-                {
-                    swap = pp; pp = p; p = swap;
-                    if (ph < e4.Hash)
-                    {
-                        swap = e4; e4 = pp; pp = swap;
-                        if (ph < e3.Hash)
-                        {
-                            swap = e3; e3 = e4; e4 = swap;
-                            if (ph < e2.Hash)
-                            {
-                                swap = e2; e2 = e3; e3 = swap;
-                                if (ph < e1.Hash)
-                                {
-                                    swap = e1; e1 = e2; e2 = swap;
-                                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Entry e = entry; // store the entry original value cause we may change it for the result
-                if (hash < p.Hash)
-                {
-                    swap = p; p = e; e = swap;
-                    if (hash < pp.Hash)
-                    {
-                        swap = pp; pp = p; p = swap;
-                        if (hash < e4.Hash)
-                        {
-                            swap = e4; e4 = pp; pp = swap;
-                            if (hash < e3.Hash)
-                            {
-                                swap = e3; e3 = e4; e4 = swap;
-                                if (hash < e2.Hash)
-                                {
-                                    swap = e2; e2 = e3; e3 = swap;
-                                    if (hash < e1.Hash)
-                                    {
-                                        swap = e1; e1 = e2; e2 = swap;
-                                        if (hash < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                ImMap.InsertInOrder(pph, ref pp, ref e0, ref e1, ref e2, ref e3, ref e4);
+                ImMap.InsertInOrder(ph, ref p, ref e0, ref e1, ref e2, ref e3, ref e4, ref pp);
+                ImMap.InsertInOrder(hash, ref e, ref e0, ref e1, ref e2, ref e3, ref e4, ref pp, ref p);
 
                 if (left)
                 {
@@ -4065,48 +3893,11 @@ namespace ImTools
                     return new Leaf5Plus1(p, L.L);
 
                 var l = L.L;
-                Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, swap = null;
+                Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4;
                 int pph = pp.Hash, ph = p.Hash;
 
-                if (pph < e4.Hash)
-                {
-                    swap = e4; e4 = pp; pp = swap;
-                    if (pph < e3.Hash)
-                    {
-                        swap = e3; e3 = e4; e4 = swap;
-                        if (pph < e2.Hash)
-                        {
-                            swap = e2; e2 = e3; e3 = swap;
-                            if (pph < e1.Hash)
-                            {
-                                swap = e1; e1 = e2; e2 = swap;
-                                if (pph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
-                            }
-                        }
-                    }
-                }
-
-                if (ph < pp.Hash)
-                {
-                    swap = pp; pp = p; p = swap;
-                    if (ph < e4.Hash)
-                    {
-                        swap = e4; e4 = pp; pp = swap;
-                        if (ph < e3.Hash)
-                        {
-                            swap = e3; e3 = e4; e4 = swap;
-                            if (ph < e2.Hash)
-                            {
-                                swap = e2; e2 = e3; e3 = swap;
-                                if (ph < e1.Hash)
-                                {
-                                    swap = e1; e1 = e2; e2 = swap;
-                                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
-                                }
-                            }
-                        }
-                    }
-                }
+                ImMap.InsertInOrder(pph, ref pp, ref e0, ref e1, ref e2, ref e3, ref e4);
+                ImMap.InsertInOrder(ph, ref p, ref e0, ref e1, ref e2, ref e3, ref e4, ref pp);
 
                 return removedEntry == e0 ? new Leaf5Plus1(p, new Leaf5(e1, e2, e3, e4, pp))
                     : removedEntry == e1 ? new Leaf5Plus1(p, new Leaf5(e0, e2, e3, e4, pp))
@@ -4157,7 +3948,6 @@ namespace ImTools
                 if (hash > me.Hash)
                 {
                     var right = Right;
-                    // todo: @wip don't forget that we may have a HashConflictingEntry here and there, so we may need the additional handling for this (check ImHashMap)!!!
                     if (right is Leaf5Plus1Plus1 rl511)
                     {
                         // optimizing the split by postponing it by introducing the branch 2 plus 1
@@ -5784,6 +5574,158 @@ namespace ImTools
     /// <summary>The map methods</summary>
     public static class ImMap
     {
+        [MethodImpl((MethodImplOptions)256)]
+        internal static void InsertInOrder<K, V>(int ph, ref ImMap<K, V>.Entry p,
+            ref ImMap<K, V>.Entry e0, ref ImMap<K, V>.Entry e1)
+        {
+            var t = default(ImMap<K, V>.Entry);
+            if (ph < e1.Hash)
+            {
+                t = e1; e1 = p; p = t;
+                if (ph < e0.Hash)
+                {
+                    t = e0; e0 = e1; e1 = t;
+                }
+            }
+        }
+
+        [MethodImpl((MethodImplOptions)256)]
+        internal static void InsertInOrder<K, V>(int ph, ref ImMap<K, V>.Entry p,
+            ref ImMap<K, V>.Entry e0, ref ImMap<K, V>.Entry e1, ref ImMap<K, V>.Entry e2)
+        {
+            var t = default(ImMap<K, V>.Entry);
+            if (ph < e2.Hash)
+            {
+                t = e2; e2 = p; p = t;
+                if (ph < e1.Hash)
+                {
+                    t = e1; e1 = e2; e2 = t;
+                    if (ph < e0.Hash)
+                    {
+                        t = e0; e0 = e1; e1 = t;
+                    }
+                }
+            }
+        }
+
+        [MethodImpl((MethodImplOptions)256)]
+        internal static void InsertInOrder<K, V>(int ph, ref ImMap<K, V>.Entry p,
+            ref ImMap<K, V>.Entry e0, ref ImMap<K, V>.Entry e1, ref ImMap<K, V>.Entry e2, ref ImMap<K, V>.Entry e3)
+        {
+            var t = default(ImMap<K, V>.Entry);
+            if (ph < e3.Hash)
+            {
+                t = e3; e3 = p; p = t;
+                if (ph < e2.Hash)
+                {
+                    t = e2; e2 = e3; e3 = t;
+                    if (ph < e1.Hash)
+                    {
+                        t = e1; e1 = e2; e2 = t;
+                        if (ph < e0.Hash)
+                        {
+                            t = e0; e0 = e1; e1 = t;
+                        }
+                    }
+                }
+            }
+        }
+
+        [MethodImpl((MethodImplOptions)256)]
+        internal static void InsertInOrder<K, V>(int ph, ref ImMap<K, V>.Entry p,
+            ref ImMap<K, V>.Entry e0, ref ImMap<K, V>.Entry e1, ref ImMap<K, V>.Entry e2, ref ImMap<K, V>.Entry e3, ref ImMap<K, V>.Entry e4)
+        {
+            var t = default(ImMap<K, V>.Entry);
+            if (ph < e4.Hash)
+            {
+                t = e4; e4 = p; p = t;
+                if (ph < e3.Hash)
+                {
+                    t = e3; e3 = e4; e4 = t;
+                    if (ph < e2.Hash)
+                    {
+                        t = e2; e2 = e3; e3 = t;
+                        if (ph < e1.Hash)
+                        {
+                            t = e1; e1 = e2; e2 = t;
+                            if (ph < e0.Hash)
+                            {
+                                t = e0; e0 = e1; e1 = t;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        [MethodImpl((MethodImplOptions)256)]
+        internal static void InsertInOrder<K, V>(int ph, ref ImMap<K, V>.Entry p,
+            ref ImMap<K, V>.Entry e0, ref ImMap<K, V>.Entry e1, ref ImMap<K, V>.Entry e2, ref ImMap<K, V>.Entry e3, ref ImMap<K, V>.Entry e4,
+            ref ImMap<K, V>.Entry e5)
+        {
+            var t = default(ImMap<K, V>.Entry);
+            if (ph < e5.Hash)
+            {
+                t = e5; e5 = p; p = t;
+                if (ph < e4.Hash)
+                {
+                    t = e4; e4 = e5; e5 = t;
+                    if (ph < e3.Hash)
+                    {
+                        t = e3; e3 = e4; e4 = t;
+                        if (ph < e2.Hash)
+                        {
+                            t = e2; e2 = e3; e3 = t;
+                            if (ph < e1.Hash)
+                            {
+                                t = e1; e1 = e2; e2 = t;
+                                if (ph < e0.Hash)
+                                {
+                                    t = e0; e0 = e1; e1 = t;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        [MethodImpl((MethodImplOptions)256)]
+        internal static void InsertInOrder<K, V>(int ph, ref ImMap<K, V>.Entry p,
+            ref ImMap<K, V>.Entry e0, ref ImMap<K, V>.Entry e1, ref ImMap<K, V>.Entry e2, ref ImMap<K, V>.Entry e3, ref ImMap<K, V>.Entry e4,
+            ref ImMap<K, V>.Entry e5, ref ImMap<K, V>.Entry e6)
+        {
+            var t = default(ImMap<K, V>.Entry);
+            if (ph < e6.Hash)
+            {
+                t = e6; e6 = p; p = t;
+                if (ph < e5.Hash)
+                {
+                    t = e5; e5 = e6; e6 = t;
+                    if (ph < e4.Hash)
+                    {
+                        t = e4; e4 = e5; e5 = t;
+                        if (ph < e3.Hash)
+                        {
+                            t = e3; e3 = e4; e4 = t;
+                            if (ph < e2.Hash)
+                            {
+                                t = e2; e2 = e3; e3 = t;
+                                if (ph < e1.Hash)
+                                {
+                                    t = e1; e1 = e2; e2 = t;
+                                    if (ph < e0.Hash)
+                                    {
+                                        t = e0; e0 = e1; e1 = t;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         private static readonly object _enumerationB3Tombstone = new object();
 
         internal struct ImMapStack<K, V>
@@ -6133,82 +6075,16 @@ namespace ImTools
             SortLeaf511Label:
                 {
                     var l = b21FullLeaf511.L.L;
-                    ImMap<K, V>.Entry e0 = l.Entry0, swap = null;
+                    ImMap<K, V>.Entry e0 = l.Entry0;
                     _a = l.Entry1;
                     _b = l.Entry2;
                     _c = l.Entry3;
                     _d = l.Entry4;
                     _f = b21FullLeaf511.Plus;
                     _e = b21FullLeaf511.L.Plus;
-
-                    int hash = _e.Hash;
-                    if (hash < _d.Hash)
-                    {
-                        swap = _d; _d = _e; _e = swap;
-                        if (hash < _c.Hash)
-                        {
-                            swap = _c; _c = _d; _d = swap;
-                            if (hash < _b.Hash)
-                            {
-                                swap = _b; _b = _c; _c = swap;
-                                if (hash < _a.Hash)
-                                {
-                                    swap = _a; _a = _b; _b = swap;
-                                    if (hash < e0.Hash) { swap = e0; e0 = _a; _a = swap; }
-                                }
-                            }
-                        }
-                    }
-
-                    hash = _f.Hash;
-                    if (hash < _e.Hash)
-                    {
-                        swap = _e; _e = _f; _f = swap;
-                        if (hash < _d.Hash)
-                        {
-                            swap = _d; _d = _e; _e = swap;
-                            if (hash < _c.Hash)
-                            {
-                                swap = _c; _c = _d; _d = swap;
-                                if (hash < _b.Hash)
-                                {
-                                    swap = _b; _b = _c; _c = swap;
-                                    if (hash < _a.Hash)
-                                    {
-                                        swap = _a; _a = _b; _b = swap;
-                                        if (hash < e0.Hash) { swap = e0; e0 = _a; _a = swap; }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    hash = _g.Hash; // _g contains the B21.Plus entry
-                    if (hash < _f.Hash)
-                    {
-                        swap = _f; _f = _g; _g = swap;
-                        if (hash < _e.Hash)
-                        {
-                            swap = _e; _e = _f; _f = swap;
-                            if (hash < _d.Hash)
-                            {
-                                swap = _d; _d = _e; _e = swap;
-                                if (hash < _c.Hash)
-                                {
-                                    swap = _c; _c = _d; _d = swap;
-                                    if (hash < _b.Hash)
-                                    {
-                                        swap = _b; _b = _c; _c = swap;
-                                        if (hash < _a.Hash)
-                                        {
-                                            swap = _a; _a = _b; _b = swap;
-                                            if (hash < e0.Hash) { swap = e0; e0 = _a; _a = swap; }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    InsertInOrder(_e.Hash, ref _e, ref e0, ref _a, ref _b, ref _c, ref _d);
+                    InsertInOrder(_f.Hash, ref _f, ref e0, ref _a, ref _b, ref _c, ref _d, ref _e);
+                    InsertInOrder(_g.Hash, ref _g, ref e0, ref _a, ref _b, ref _c, ref _d, ref _e, ref _f);
                     _hc = e0;
                 }
             HashConflictingEntryLabel1:
@@ -6231,15 +6107,10 @@ namespace ImTools
                 if (_map is ImMap<K, V>.Leaf2Plus1 l21)
                 {
                     var l = l21.L;
-                    ImMap<K, V>.Entry e0 = l.Entry0, swap = null;
+                    ImMap<K, V>.Entry e0 = l.Entry0;
                     _h = l.Entry1;
                     _g = l21.Plus;
-                    var hash = _g.Hash;
-                    if (hash < _h.Hash)
-                    {
-                        swap = _h; _h = _g; _g = swap;
-                        if (hash < e0.Hash) { swap = e0; e0 = _h; _h = swap; }
-                    }
+                    InsertInOrder(_g.Hash, ref _g, ref e0, ref _h);
                     _hc = e0;
                 }
             HashConflictingEntryLabel3:
@@ -6249,29 +6120,12 @@ namespace ImTools
                 if (_map is ImMap<K, V>.Leaf2Plus1Plus1 l211)
                 {
                     var l1 = l211.L.L;
-                    ImMap<K, V>.Entry e0 = l1.Entry0, swap = null;
+                    ImMap<K, V>.Entry e0 = l1.Entry0;
                     _g = l1.Entry1;
                     _h = l211.L.Plus;
                     _e = l211.Plus;
-
-                    var hash = _h.Hash;
-                    if (hash < _g.Hash)
-                    {
-                        swap = _g; _g = _h; _h = swap;
-                        if (hash < e0.Hash) { swap = e0; e0 = _g; _g = swap; }
-                    }
-
-                    // todo: @less out into sorting method
-                    hash = _e.Hash;
-                    if (hash < _h.Hash)
-                    {
-                        swap = _h; _h = _e; _e = swap;
-                        if (hash < _g.Hash)
-                        {
-                            swap = _g; _g = _h; _h = swap;
-                            if (hash < e0.Hash) { swap = e0; e0 = _g; _g = swap; }
-                        }
-                    }
+                    InsertInOrder(_h.Hash, ref _h, ref e0, ref _g);
+                    InsertInOrder(_e.Hash, ref _e, ref e0, ref _g, ref _h);
                     _hc = e0;
                 }
             HashConflictingEntryLabel4:
@@ -6293,31 +6147,13 @@ namespace ImTools
                 if (_map is ImMap<K, V>.Leaf5Plus1 l51)
                 {
                     var leaf5 = l51.L;
-                    ImMap<K, V>.Entry e0 = leaf5.Entry0, swap = null;
+                    ImMap<K, V>.Entry e0 = leaf5.Entry0;
                     _e = leaf5.Entry1;
                     _h = leaf5.Entry2;
                     _g = leaf5.Entry3;
                     _f = leaf5.Entry4;
                     _d = l51.Plus;
-
-                    int hash = _d.Hash;
-                    if (hash < _f.Hash)
-                    {
-                        swap = _f; _f = _d; _d = swap;
-                        if (hash < _g.Hash)
-                        {
-                            swap = _g; _g = _f; _f = swap;
-                            if (hash < _h.Hash)
-                            {
-                                swap = _h; _h = _g; _g = swap;
-                                if (hash < _e.Hash)
-                                {
-                                    swap = _e; _e = _h; _h = swap;
-                                    if (hash < e0.Hash) { swap = e0; e0 = _e; _e = swap; }
-                                }
-                            }
-                        }
-                    }
+                    InsertInOrder(_d.Hash, ref _d, ref e0, ref _e, ref _h, ref _g, ref _f);
                     _hc = e0;
                 }
             HashConflictingEntryLabel6:
@@ -6327,55 +6163,15 @@ namespace ImTools
                 if (_map is ImMap<K, V>.Leaf5Plus1Plus1 l511)
                 {
                     var leaf51 = l511.L.L;
-                    ImMap<K, V>.Entry e0 = leaf51.Entry0, swap = null;
+                    ImMap<K, V>.Entry e0 = leaf51.Entry0;
                     _d = leaf51.Entry1;
                     _f = leaf51.Entry2;
                     _g = leaf51.Entry3;
                     _h = leaf51.Entry4;
                     _c = l511.L.Plus;
                     _e = l511.Plus;
-
-                    var hash = _c.Hash;
-                    if (hash < _h.Hash)
-                    {
-                        swap = _h; _h = _c; _c = swap;
-                        if (hash < _g.Hash)
-                        {
-                            swap = _g; _g = _h; _h = swap;
-                            if (hash < _f.Hash)
-                            {
-                                swap = _f; _f = _g; _g = swap;
-                                if (hash < _d.Hash)
-                                {
-                                    swap = _d; _d = _f; _f = swap;
-                                    if (hash < e0.Hash) { swap = e0; e0 = _d; _d = swap; }
-                                }
-                            }
-                        }
-                    }
-
-                    hash = _e.Hash;
-                    if (hash < _c.Hash)
-                    {
-                        swap = _c; _c = _e; _e = swap;
-                        if (hash < _h.Hash)
-                        {
-                            swap = _h; _h = _c; _c = swap;
-                            if (hash < _g.Hash)
-                            {
-                                swap = _g; _g = _h; _h = swap;
-                                if (hash < _f.Hash)
-                                {
-                                    swap = _f; _f = _g; _g = swap;
-                                    if (hash < _d.Hash)
-                                    {
-                                        swap = _d; _d = _f; _f = swap;
-                                        if (hash < e0.Hash) { swap = e0; e0 = _d; _d = swap; }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    InsertInOrder(_c.Hash, ref _c, ref e0, ref _d, ref _f, ref _g, ref _h);
+                    InsertInOrder(_e.Hash, ref _e, ref e0, ref _d, ref _f, ref _g, ref _h, ref _c);
                     _hc = e0;
                 }
             HashConflictingEntryLabel7:
@@ -6811,21 +6607,9 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public static V GetValueOrDefaultByReferenceEquals<K, V>(this ImMap<K, V> map, int hash, K key) where K : class
         {
-            var e = map.GetEntryOrNull(hash);// is ImMapEntry<K, V> kv ? kv.Value : default(V);
+            var e = map.GetEntryOrNull(hash);
             return e != null ? e.GetValueOrDefaultByReferenceEqualsWithTheSameHash(key) : default(V);
         }
-
-        // /// <summary>Lookup for the value by the key using the hash and checking the key with the `object.ReferenceEquals` for equality,
-        // ///  returns found value or the default value if not found</summary>
-        // [MethodImpl((MethodImplOptions)256)]
-        // public static V GetValueOrDefaultByReferenceEquals<K, V>(this ImMap<K, V> map, int hash, K key) where K : class
-        // {
-        //     var e = map.GetEntryOrNull(hash) as ImMapEntry<K, V>;
-        //     if (e != null && ReferenceEquals(e.Key, key))
-        //         return e.Value;
-
-        //     GetOrNullByReferenceEqualsWithTheSameHash(key) is ImMapEntry<K, V> kv ? kv.Value : default(V);
-        // }
 
         /// <summary>Lookup for the value by the key using the hash and checking the key with the `object.ReferenceEquals` for equality,
         ///  returns found value or the default value if not found</summary>

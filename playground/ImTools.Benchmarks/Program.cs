@@ -20,8 +20,8 @@ namespace ImTools.Benchmarks
 
             
             // BenchmarkRunner.Run<ImHashMapBenchmarks.Populate>();
-            BenchmarkRunner.Run<ImHashMapBenchmarks.Lookup>();
-            // BenchmarkRunner.Run<ImHashMapBenchmarks.Enumerate>();
+            // BenchmarkRunner.Run<ImHashMapBenchmarks.Lookup>();
+            BenchmarkRunner.Run<ImHashMapBenchmarks.Enumerate>();
             // BenchmarkRunner.Run<ImHashMapBenchmarks.ToArray>();
             // BenchmarkRunner.Run<ImHashMapBenchmarks.GetAndUpdate_vs_AddOrGetAndReplace>();
 

@@ -1904,8 +1904,32 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 | V3_ImHashMap_Enumerate |  1000 | 34,113.03 ns | 1,105.023 ns | 3,116.738 ns | 33,509.27 ns |  1.00 |    0.00 | 0.1221 |     - |     - |     480 B |
 |   Dictionary_Enumerate |  1000 | 14,166.55 ns |   237.173 ns |   221.852 ns | 14,124.19 ns |  0.43 |    0.03 |      - |     - |     - |         - |
 
+## V4 baseline
+
+BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19043
+Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+.NET Core SDK=6.0.100
+  [Host]     : .NET Core 6.0.0 (CoreCLR 6.0.21.52210, CoreFX 6.0.21.52210), X64 RyuJIT
+  DefaultJob : .NET Core 6.0.0 (CoreCLR 6.0.21.52210, CoreFX 6.0.21.52210), X64 RyuJIT
+
+
+|                 Method | Count |         Mean |      Error |     StdDev |       Median | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|----------------------- |------ |-------------:|-----------:|-----------:|-------------:|------:|--------:|-------:|------:|------:|----------:|
+|     V4_ImMap_Enumerate |     1 |     51.45 ns |   1.119 ns |   2.236 ns |     51.69 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+| V3_ImHashMap_Enumerate |     1 |     46.95 ns |   1.031 ns |   2.152 ns |     46.57 ns |  0.91 |    0.06 | 0.0255 |     - |     - |     160 B |
+|                        |       |              |            |            |              |       |         |        |       |       |           |
+|     V4_ImMap_Enumerate |    10 |    249.75 ns |   5.119 ns |  11.236 ns |    248.15 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+| V3_ImHashMap_Enumerate |    10 |    253.95 ns |   4.823 ns |   7.365 ns |    256.30 ns |  1.02 |    0.04 | 0.0381 |     - |     - |     240 B |
+|                        |       |              |            |            |              |       |         |        |       |       |           |
+|     V4_ImMap_Enumerate |   100 |  2,535.51 ns |  53.165 ns | 151.683 ns |  2,509.96 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+| V3_ImHashMap_Enumerate |   100 |  2,089.59 ns |  72.398 ns | 212.332 ns |  1,995.20 ns |  0.83 |    0.09 | 0.0381 |     - |     - |     240 B |
+|                        |       |              |            |            |              |       |         |        |       |       |           |
+|     V4_ImMap_Enumerate |  1000 | 21,607.91 ns | 409.518 ns | 717.239 ns | 21,545.05 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+| V3_ImHashMap_Enumerate |  1000 | 21,496.33 ns | 428.614 ns | 967.454 ns | 21,287.83 ns |  1.00 |    0.05 | 0.0610 |     - |     - |     480 B |
+
 */
-            [Params(1, 10, 100, 1_000)]
+            // [Params(1, 10, 100, 1_000)]
+            [Params(100, 1_000)]
             public int Count;
 
             [GlobalSetup]
@@ -1914,6 +1938,7 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 _mapV2 = V2_AddOrUpdate();
                 // _mapExp = Experimental_ImHashMap_AddOrUpdate();
                 _mapV3 = V3_ImHashMap_AddOrUpdate();
+                _mapV4 = V4_ImMap_AddOrUpdate();
                 _mapPartV3 = V3_PartionedHashMap_AddOrUpdate();
                 _dict = Dict();
                 _dictSlim = DictSlim();
@@ -1968,8 +1993,18 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return map;
             }
 
-            private ImTools.ImHashMap<Type, string>[] _mapPartV3;
+            private ImTools.ImMap<Type, string> _mapV4;
+            public ImTools.ImMap<Type, string> V4_ImMap_AddOrUpdate()
+            {
+                var map = ImTools.ImMap<Type, string>.Empty;
 
+                foreach (var key in _keys.Take(Count))
+                    map = map.AddOrUpdate(key.GetHashCode(), key, "a");
+
+                return map;
+            }
+
+            private ImTools.ImHashMap<Type, string>[] _mapPartV3;
             public Dictionary<Type, string> Dict()
             {
                 var map = new Dictionary<Type, string>();
@@ -2021,6 +2056,15 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
             #endregion
 
             [Benchmark(Baseline = true)]
+            public object V4_ImMap_Enumerate()
+            {
+                var s = "";
+                foreach (var x in _mapV4.Enumerate())
+                    s = x.Value;
+                return s;
+            }
+
+            [Benchmark]
             public object V3_ImHashMap_Enumerate()
             {
                 var s = "";
@@ -2056,7 +2100,7 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return s;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public object Dictionary_Enumerate()
             {
                 var s = "";
