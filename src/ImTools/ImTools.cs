@@ -3067,6 +3067,7 @@ namespace ImTools
         internal override ImMapEntry<int, V> GetOrNull(int key) => key == Hash ? this : null;
         internal override ImMapEntry<int, V> GetOrNullWithTheSameHash(int key) => this;
         internal override ImMapEntry<int, V> GetOrNullByReferenceEqualsWithTheSameHash(int key) => this;
+        internal override V GetValueOrDefaultByReferenceEqualsWithTheSameHash(int key) => Value;
         internal override Entry AddWithTheSameKey(Entry newEntry) => this;
         internal override Entry AddOrUpdateWithTheSameHash(ImMapEntry<int, V> newEntry) => newEntry;
         internal override Entry AddOrUpdateWithTheSameHash(ImMapEntry<int, V> newEntry, Update<int, V> update) =>
@@ -3098,6 +3099,9 @@ namespace ImTools
 
         internal override ImMapEntry<K, V> GetOrNullByReferenceEqualsWithTheSameHash(K key) =>
             ReferenceEquals(_key, key) ? this : null;
+
+        internal override V GetValueOrDefaultByReferenceEqualsWithTheSameHash(K key) =>
+            ReferenceEquals(_key, key) ? Value : default(V);
 
         internal override Entry AddWithTheSameKey(Entry newEntry) =>
             new HashConflictingEntry(Hash, this, (KVEntry<K, V>)newEntry);
@@ -3212,6 +3216,9 @@ namespace ImTools
             /// <summary>Get entry if it has the reference equal key, assuming the entry has the same hash already.</summary>
             internal abstract ImMapEntry<K, V> GetOrNullByReferenceEqualsWithTheSameHash(K key);
 
+            /// <summary>Get entry if it has the reference equal key, assuming the entry has the same hash already.</summary>
+            internal abstract V GetValueOrDefaultByReferenceEqualsWithTheSameHash(K key);
+
             /// <summary>Appends the new entry to the existing entry, assuming the entry has the same key already.
             /// For `VEntry` returns `this` entry.</summary>
             internal abstract Entry AddWithTheSameKey(Entry newEntry);
@@ -3295,6 +3302,14 @@ namespace ImTools
                 var i = cs.Length - 1;
                 while (i != -1 && !ReferenceEquals(cs[i].Key, key)) --i;
                 return i != -1 ? cs[i] : null;
+            }
+
+            internal override V GetValueOrDefaultByReferenceEqualsWithTheSameHash(K key)
+            {
+                var cs = Conflicts;
+                var i = cs.Length - 1;
+                while (i != -1 && !ReferenceEquals(cs[i].Key, key)) --i;
+                return i != -1 ? cs[i].Value : default(V);
             }
 
             internal override Entry AddWithTheSameKey(Entry newEntry) =>
@@ -6794,8 +6809,23 @@ namespace ImTools
         /// <summary>Lookup for the value by the key using the hash and checking the key with the `object.ReferenceEquals` for equality,
         ///  returns found value or the default value if not found</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static V GetValueOrDefaultByReferenceEquals<K, V>(this ImMap<K, V> map, int hash, K key) where K : class =>
-            map.GetEntryOrNull(hash)?.GetOrNullByReferenceEqualsWithTheSameHash(key) is ImMapEntry<K, V> kv ? kv.Value : default(V);
+        public static V GetValueOrDefaultByReferenceEquals<K, V>(this ImMap<K, V> map, int hash, K key) where K : class
+        {
+            var e = map.GetEntryOrNull(hash);// is ImMapEntry<K, V> kv ? kv.Value : default(V);
+            return e != null ? e.GetValueOrDefaultByReferenceEqualsWithTheSameHash(key) : default(V);
+        }
+
+        // /// <summary>Lookup for the value by the key using the hash and checking the key with the `object.ReferenceEquals` for equality,
+        // ///  returns found value or the default value if not found</summary>
+        // [MethodImpl((MethodImplOptions)256)]
+        // public static V GetValueOrDefaultByReferenceEquals<K, V>(this ImMap<K, V> map, int hash, K key) where K : class
+        // {
+        //     var e = map.GetEntryOrNull(hash) as ImMapEntry<K, V>;
+        //     if (e != null && ReferenceEquals(e.Key, key))
+        //         return e.Value;
+
+        //     GetOrNullByReferenceEqualsWithTheSameHash(key) is ImMapEntry<K, V> kv ? kv.Value : default(V);
+        // }
 
         /// <summary>Lookup for the value by the key using the hash and checking the key with the `object.ReferenceEquals` for equality,
         ///  returns found value or the default value if not found</summary>
@@ -6876,11 +6906,6 @@ namespace ImTools
         /// <summary>Creates the entry with the `int` key but without assigning its value yet</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImMapEntry<int, V> NewDefaultEntry<V>(int key) => new VEntry<V>(key);
-
-        /// <summary>Creates the entry with the hash produced by `GetHashCode`</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static ImMapEntry<K, V> NewEntry<K, V>(K key, V value) =>
-            new KVEntry<K, V>(key.GetHashCode(), key, value);
 
         /// <summary>Creates the entry with the custom provided hash</summary>
         [MethodImpl((MethodImplOptions)256)]
