@@ -195,7 +195,7 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
             [Benchmark(Baseline = true)]
             public ImToolsV3.ImHashMap<string, string>[] V3_PartitionedHashMap_64Parts_23Tree_AddOrUpdate()
             {
-                var map = PartitionedHashMap.CreateEmpty<string, string>(64);
+                var map = ImToolsV3.PartitionedHashMap.CreateEmpty<string, string>(64);
 
                 for (var i = 0; i < Count; ++i)
                 {

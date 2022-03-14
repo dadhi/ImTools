@@ -13,7 +13,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Test_that_all_added_values_are_accessible()
         {
-            var map = ImMap<string, int>.Empty
+            var map = ImHashMap<string, int>.Empty
                 .AddOrUpdate("1", 11)
                 .AddOrUpdate("2", 22)
                 .AddOrUpdate("3", 33);
@@ -26,7 +26,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Search_in_empty_tree_should_NOT_throw()
         {
-            var map = ImMap<string, int>.Empty;
+            var map = ImHashMap<string, int>.Empty;
 
             Assert.AreEqual(0, map.GetValueOrDefault("~"));
         }
@@ -34,7 +34,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Search_in_empty_tree_should_NOT_throw_TryFind()
         {
-            var map = ImMap<string, int>.Empty;
+            var map = ImHashMap<string, int>.Empty;
 
             Assert.IsFalse(map.TryFind("0", out _));
         }
@@ -42,7 +42,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Search_for_non_existent_key_should_NOT_throw()
         {
-            var map = ImMap<string, int>.Empty
+            var map = ImHashMap<string, int>.Empty
                 .AddOrUpdate("1", 1)
                 .AddOrUpdate("3", 2);
 
@@ -52,7 +52,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Search_for_non_existent_key_should_NOT_throw_TryFind()
         {
-            var map = ImMap<string, int>.Empty
+            var map = ImHashMap<string, int>.Empty
                 .AddOrUpdate("1", 1)
                 .AddOrUpdate("3", 2);
 
@@ -63,7 +63,7 @@ namespace ImTools.UnitTests
         public void Enumerated_values_should_be_returned_in_sorted_order()
         {
             var items = Enumerable.Range(0, 10).Select(x => x + "!").ToArray();
-            var map = items.Aggregate(ImMap<string, string>.Empty, (m, i) => m.AddOrUpdate(i, i));
+            var map = items.Aggregate(ImHashMap<string, string>.Empty, (m, i) => m.AddOrUpdate(i, i));
 
             var enumerated = map.Enumerate().Select(t => t.Value).ToArray();
 
@@ -73,7 +73,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Can_fold_2_level_tree()
         {
-            var t = ImMap<string, int>.Empty;
+            var t = ImHashMap<string, int>.Empty;
             t = t
                 .AddOrUpdate("1", 1)
                 .AddOrUpdate("2", 2);
@@ -86,7 +86,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Can_fold_3_level_tree()
         {
-            var t = ImMap<string, int>.Empty;
+            var t = ImHashMap<string, int>.Empty;
             t = t
                 .AddOrUpdate("1", 1)
                 .AddOrUpdate("2", 2)
@@ -102,7 +102,7 @@ namespace ImTools.UnitTests
         public void Folded_values_should_be_returned_in_sorted_order()
         {
             var items = Enumerable.Range(0, 10).Select(x => x + "!").ToArray();
-            var tree = items.Aggregate(ImMap<string, string>.Empty, (m, s) => m.AddOrUpdate(s, s));
+            var tree = items.Aggregate(ImHashMap<string, string>.Empty, (m, s) => m.AddOrUpdate(s, s));
 
             var list = tree.ForEach(new List<string>(), (e, _, l) => l.Add(e.Value));
 
@@ -113,7 +113,7 @@ namespace ImTools.UnitTests
         public void Folded_lefty_values_should_be_returned_in_sorted_order()
         {
             var items = Enumerable.Range(0, 100).Select(x => "" + x).ToArray();
-            var tree = items.Reverse().Aggregate(ImMap<string, string>.Empty, (m, s) => m.AddOrUpdate(s, s));
+            var tree = items.Reverse().Aggregate(ImHashMap<string, string>.Empty, (m, s) => m.AddOrUpdate(s, s));
 
             var list = tree.ForEach(new List<string>(), (e, _, l) => l.Add(e.Value));
 
@@ -124,7 +124,7 @@ namespace ImTools.UnitTests
         public void ImMapSlots_Folded_values_should_be_returned_in_sorted_order()
         {
             var items = Enumerable.Range(0, 10).Select(x => "" + x).ToArray();
-            var tree = items.Aggregate(PartitionedMap.CreateEmpty<string, string>(), (m, s) => m.Do(x => x.AddOrUpdate(s, s)));
+            var tree = items.Aggregate(PartitionedHashMap.CreateEmpty<string, string>(), (m, s) => m.Do(x => x.AddOrUpdate(s, s)));
 
             var list = tree.ForEach(new List<string>(), (e, _, l) => l.Add(e.Value));
 
@@ -134,7 +134,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Update_to_null_and_then_to_value_should_remove_null()
         {
-            var map = ImMap<string, string>.Empty
+            var map = ImHashMap<string, string>.Empty
                 .AddOrUpdate("1", "a")
                 .AddOrUpdate("2", "b")
                 .AddOrUpdate("3", "c")
@@ -152,7 +152,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Update_with_not_found_key_should_return_the_same_tree()
         {
-            var map = ImMap<string, string>.Empty
+            var map = ImHashMap<string, string>.Empty
                 .AddOrUpdate("1", "a")
                 .AddOrUpdate("2", "b")
                 .AddOrUpdate("3", "c")
@@ -166,7 +166,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Remove_from_one_node_tree()
         {
-            var map = ImMap<string, string>.Empty.AddOrUpdate("0", "a");
+            var map = ImHashMap<string, string>.Empty.AddOrUpdate("0", "a");
 
             map = map.Remove("0");
 
@@ -176,14 +176,14 @@ namespace ImTools.UnitTests
         [Test]
         public void Remove_from_Empty_tree_should_not_throw()
         {
-            var map = ImMap<string, string>.Empty.Remove("1");
+            var map = ImHashMap<string, string>.Empty.Remove("1");
             Assert.That(map.IsEmpty, Is.True);
         }
 
         [Test]
         public void Adding_to_map_and_checking_the_tree_shape_on_each_addition()
         {
-            var m = ImMap<string, string>.Empty;
+            var m = ImHashMap<string, string>.Empty;
             Assert.AreEqual(null, m.GetValueOrDefault("0"));
             Assert.AreEqual(null, m.GetValueOrDefault("1"));
             Assert.IsEmpty(m.Enumerate());
@@ -198,7 +198,7 @@ namespace ImTools.UnitTests
             Assert.AreSame(m, m.AddOrKeep("1", "aa"));
 
             var mr = m.Remove("1");
-            Assert.AreSame(ImMap<string, string>.Empty, mr);
+            Assert.AreSame(ImHashMap<string, string>.Empty, mr);
             Assert.AreEqual(0, mr.Count());
 
             m = m.AddOrUpdate("2", "b");
@@ -353,26 +353,26 @@ namespace ImTools.UnitTests
         [Test]
         public void Adding_the_conflicting_keys_should_be_fun()
         {
-            var m = ImMap<XKey<int>, string>.Empty;
+            var m = ImHashMap<XKey<int>, string>.Empty;
             Assert.AreEqual(null, m.GetValueOrDefault(Xk(0)));
             Assert.AreEqual(null, m.GetValueOrDefault(Xk(13)));
 
             m = m.AddOrUpdate(Xk(1), "a");
             m = m.AddOrUpdate(Xk(2), "b");
 
-            Assert.AreNotEqual(typeof(ImMapEntry<XKey<int>, string>), m.GetType());
+            Assert.AreNotEqual(typeof(ImHashMapEntry<XKey<int>, string>), m.GetType());
             Assert.AreEqual("a", m.GetValueOrDefault(Xk(1)));
             Assert.AreEqual("b", m.GetValueOrDefault(Xk(2)));
             Assert.AreEqual(null, m.GetValueOrDefault(Xk(10)));
 
             var mr = m.Remove(Xk(1));
-            Assert.AreNotEqual(typeof(ImMapEntry<XKey<int>, string>), m.GetType());
+            Assert.AreNotEqual(typeof(ImHashMapEntry<XKey<int>, string>), m.GetType());
             Assert.AreEqual(null, mr.GetValueOrDefault(Xk(1)));
             Assert.AreEqual("b", mr.GetValueOrDefault(Xk(2)));
 
             m = m.AddOrUpdate(Xk(3), "c");
             mr = m.Remove(Xk(2));
-            Assert.AreNotEqual(typeof(ImMapEntry<XKey<int>, string>), m.GetType());
+            Assert.AreNotEqual(typeof(ImHashMapEntry<XKey<int>, string>), m.GetType());
             Assert.AreEqual("a", mr.GetValueOrDefault(Xk(1)));
             Assert.AreEqual(null, mr.GetValueOrDefault(Xk(2)));
             Assert.AreEqual("c", mr.GetValueOrDefault(Xk(3)));
@@ -381,7 +381,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Adding_1000_keys_and_randomly_checking()
         {
-            var m = ImMap<string, int>.Empty;
+            var m = ImHashMap<string, int>.Empty;
             for (var i = 0; i < 5000; i++)
             {
                 m = m.AddOrUpdate(i + "", i);
@@ -403,7 +403,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Adding_1000_keys_descending_and_randomly_checking()
         {
-            var m = ImMap<String, int>.Empty;
+            var m = ImHashMap<String, int>.Empty;
             for (var i = 5000 - 1; i >= 0; i--)
             {
                 m = m.AddOrUpdate(i + "", i);
@@ -428,7 +428,7 @@ namespace ImTools.UnitTests
             const int upperBound = 100000;
             Gen.Int[0, upperBound].Array.Sample(items =>
             {
-                var m = ImMap<string, int>.Empty;
+                var m = ImHashMap<string, int>.Empty;
                 foreach (int n in items)
                 {
                     var key = "" + n;
@@ -452,7 +452,7 @@ namespace ImTools.UnitTests
             const int upperBound = 100000;
             Gen.Int[0, upperBound].Array.Sample(items =>
             {
-                var m = ImMap<string, string>.Empty;
+                var m = ImHashMap<string, string>.Empty;
                 foreach (int n in items)
                 {
                     var s = "" + n;
@@ -485,7 +485,7 @@ namespace ImTools.UnitTests
         {
             var items = new[] { 85213, 8184, 14819, 38204, 1738, 6752, 38204, 22310, 86961, 33016, 72555, 25102 };
 
-            var m = ImMap<string, string>.Empty;
+            var m = ImHashMap<string, string>.Empty;
             foreach (var i in items)
             {
                 var s = "" + i;
@@ -506,7 +506,7 @@ namespace ImTools.UnitTests
                 45751, 6825, 44599, 79942, 73380, 8408, 34126, 51224, 14463, 71529, 46775, 74893, 80615, 78504, 29401, 60789, 14050,
                 67780, 52369, 16486, 48124, 46939, 43229, 58359, 61378, 31969, 79905, 37405, 37259, 66683, 58359, 87401, 42175 };
 
-            var m = ImMap<string, string>.Empty;
+            var m = ImHashMap<string, string>.Empty;
             foreach (var i in items)
             {
                 var s = "" + i;
@@ -526,7 +526,7 @@ namespace ImTools.UnitTests
         {
             var items = new[] { 87173, 99053, 63922, 20879, 77178, 95518, 16692, 60819, 29881, 69987, 24798, 67743 };
 
-            var m = ImMap<string, string>.Empty;
+            var m = ImHashMap<string, string>.Empty;
             foreach (var i in items)
             {
                 var s = "" + i;
@@ -545,7 +545,7 @@ namespace ImTools.UnitTests
         {
             var items = new[] { 78290, 97898, 23194, 12403, 27002, 78600, 92105, 76902, 90802, 84883, 78290, 18374 };
 
-            var m = ImMap<string, string>.Empty;
+            var m = ImHashMap<string, string>.Empty;
             foreach (var i in items)
             {
                 var s = "" + i;
@@ -567,7 +567,7 @@ namespace ImTools.UnitTests
                 67780, 52369, 16486, 48124, 46939, 43229, 58359, 61378, 31969, 79905, 37405, 37259, 66683, 87401, 42175 }
                 .Select(x => x + "");
 
-            var m = ImMap<string, string>.Empty;
+            var m = ImHashMap<string, string>.Empty;
             foreach (var i in uniqueItems)
                 m = m.AddOrUpdate(i, i);
 
@@ -581,7 +581,7 @@ namespace ImTools.UnitTests
                 17883, 23657, 24329, 29524, 55791, 66175, 67389, 74867, 74946, 81350, 94477, 70414, 26499 }
                 .Select(x => x + "");
 
-            var m = ImMap<string, string>.Empty;
+            var m = ImHashMap<string, string>.Empty;
             foreach (var i in uniqueItems)
                 m = m.AddOrUpdate(i, i);
 
@@ -595,7 +595,7 @@ namespace ImTools.UnitTests
             var uniqueItems = new int[] { 65347, 87589, 89692, 92562, 97319, 58955 }
                 .Select(x => x + "");
 
-            var m = ImMap<string, string>.Empty;
+            var m = ImHashMap<string, string>.Empty;
             foreach (var i in uniqueItems)
                 m = m.AddOrUpdate(i, i);
 
@@ -610,7 +610,7 @@ namespace ImTools.UnitTests
             {
                 var s = items.Select(x => "" + x);
 
-                var m = ImMap<string, string>.Empty;
+                var m = ImHashMap<string, string>.Empty;
                 foreach (var n in s)
                 {
 
@@ -628,14 +628,14 @@ namespace ImTools.UnitTests
             iter: 5000);
         }
 
-        static Gen<(ImMap<string, string>, string[])> GenImMap(int upperBound) =>
+        static Gen<(ImHashMap<string, string>, string[])> GenImMap(int upperBound) =>
             Gen.Int[0, upperBound].ArrayUnique.SelectMany(keys =>
                 Gen.Int.Array[keys.Length].Select(values =>
                 {
                     var keyArray = keys  .Select(x => x.ToString()).ToArray();
                     var valArray = values.Select(x => x.ToString()).ToArray();
 
-                    var m = ImMap<string, string>.Empty;
+                    var m = ImHashMap<string, string>.Empty;
                     for (int i = 0; i < keyArray.Length; i++)
                         m = m.AddOrUpdate(keyArray[i], valArray[i]);
                     return (map: m, keys: keyArray);
@@ -692,8 +692,8 @@ namespace ImTools.UnitTests
         {
             var baseItems = new int[4] { 65347, 87589, 89692, 92562 }.Select(x => x.ToString());
 
-            var m1 = ImMap<string, string>.Empty;
-            var m2 = ImMap<string, string>.Empty;
+            var m1 = ImHashMap<string, string>.Empty;
+            var m2 = ImHashMap<string, string>.Empty;
             foreach (var x in baseItems)
             {
                 m1 = m1.AddOrUpdate(x, x);
@@ -717,8 +717,8 @@ namespace ImTools.UnitTests
         {
             var baseItems = new int[6] { 4527, 58235, 65127, 74715, 81974, 89123 }.Select(x => x.ToString());
 
-            var m1 = ImMap<string, string>.Empty;
-            var m2 = ImMap<string, string>.Empty;
+            var m1 = ImHashMap<string, string>.Empty;
+            var m2 = ImHashMap<string, string>.Empty;
             foreach (var x in baseItems)
             {
                 m1 = m1.AddOrUpdate(x, x);
@@ -742,8 +742,8 @@ namespace ImTools.UnitTests
         {
             var baseItems = new int[] { 65347, 87589, 89692, 92562 }.Select(x => x.ToString());
 
-            var m1 = ImMap<string, string>.Empty;
-            var m2 = ImMap<string, string>.Empty;
+            var m1 = ImHashMap<string, string>.Empty;
+            var m2 = ImHashMap<string, string>.Empty;
             foreach (var x in baseItems)
             {
                 m1 = m1.AddOrUpdate(x, x);

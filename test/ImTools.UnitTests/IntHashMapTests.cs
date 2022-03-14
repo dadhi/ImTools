@@ -126,7 +126,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Tree_should_support_arbitrary_keys_by_using_their_hash_code()
         {
-            var tree = ImHashMap<Type, string>.Empty;
+            var tree = ImToolsV3.ImHashMap<Type, string>.Empty;
 
             var key = typeof(IntHashMapTests);
             var value = "test";
@@ -140,7 +140,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Tree_should_support_arbitrary_keys_by_using_their_hash_code_TryFind()
         {
-            var tree = ImHashMap<Type, string>.Empty;
+            var tree = ImToolsV3.ImHashMap<Type, string>.Empty;
 
             var key = typeof(IntHashMapTests);
             var value = "test";
@@ -242,7 +242,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Search_in_empty_tree_should_NOT_throw()
         {
-            var tree = ImHashMap<int, int>.Empty;
+            var tree = ImToolsV3.ImHashMap<int, int>.Empty;
 
             Assert.DoesNotThrow(
                 () => tree.GetValueOrDefault(0));
@@ -251,7 +251,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Search_in_empty_tree_should_NOT_throw_TryFind()
         {
-            var tree = ImHashMap<int, int>.Empty;
+            var tree = ImToolsV3.ImHashMap<int, int>.Empty;
 
             int result;
             Assert.DoesNotThrow(
@@ -285,7 +285,7 @@ namespace ImTools.UnitTests
         public void Enumerated_values_should_be_returned_in_sorted_order()
         {
             var items = Enumerable.Range(0, 10).ToArray();
-            var tree = items.Aggregate(ImHashMap<int, int>.Empty, (t, i) => t.AddOrUpdate(i, i));
+            var tree = items.Aggregate(ImToolsV3.ImHashMap<int, int>.Empty, (t, i) => t.AddOrUpdate(i, i));
 
             var enumerated = tree.Enumerate().Select(t => t.Value).ToArray();
 
@@ -296,7 +296,7 @@ namespace ImTools.UnitTests
         public void Folded_values_should_be_returned_in_sorted_order()
         {
             var list = Enumerable.Range(0, 10).ToImList();
-            var tree = list.Fold(ImHashMap<int, int>.Empty, (i, t) => t.AddOrUpdate(i, i));
+            var tree = list.Fold(ImToolsV3.ImHashMap<int, int>.Empty, (i, t) => t.AddOrUpdate(i, i));
 
             var enumerated = tree.ForEach(new List<int>(), (data, _, l) => l.Do(data, (x, d) => x.Add(d.Value)));
 
@@ -307,7 +307,7 @@ namespace ImTools.UnitTests
         public void Folded_values_should_be_returned_in_sorted_order_with_index()
         {
             var list = Enumerable.Range(0, 10).ToImList();
-            var tree = list.Fold(ImHashMap<int, int>.Empty, (i, t) => t.AddOrUpdate(i, i));
+            var tree = list.Fold(ImToolsV3.ImHashMap<int, int>.Empty, (i, t) => t.AddOrUpdate(i, i));
 
             var enumerated = tree.ForEach(new List<int>(), (data, index, l) => l.Do(index, (x, i) => x.Add(i)));
 
@@ -346,7 +346,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Remove_from_one_node_tree()
         {
-            var tree = ImHashMap<int, string>.Empty.AddOrUpdate(0, "a");
+            var tree = ImToolsV3.ImHashMap<int, string>.Empty.AddOrUpdate(0, "a");
 
             tree = tree.Remove(0);
 
@@ -356,7 +356,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Remove_from_Empty_tree_should_not_throw()
         {
-            var tree = ImHashMap<int, string>.Empty.Remove(0);
+            var tree = ImToolsV3.ImHashMap<int, string>.Empty.Remove(0);
             Assert.That(tree.IsEmpty, Is.True);
         }
 

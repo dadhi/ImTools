@@ -36,9 +36,9 @@ namespace ImTools.SimpleDIPlayground
 
         private class Registry
         {
-            private ImMap<Type, Factory> _registrations = ImMap<Type, Factory>.Empty;
+            private ImHashMap<Type, Factory> _registrations = ImHashMap<Type, Factory>.Empty;
 
-            private Ref<ImMap<Type, Func<object>>> _resolutionCache = Ref.Of(ImMap<Type, Func<object>>.Empty);
+            private Ref<ImHashMap<Type, Func<object>>> _resolutionCache = Ref.Of(ImHashMap<Type, Func<object>>.Empty);
 
             // Creating a new registry with +1 registration and the new reference to cache value
             public Registry With(Type serviceType, Factory implFactory)

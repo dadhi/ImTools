@@ -10,7 +10,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Adding_to_ImMap_and_checking_the_tree_shape_on_each_addition()
         {
-            var m = ImMap<int, string>.Empty;
+            var m = ImHashMap<int, string>.Empty;
             Assert.AreEqual(null, m.GetValueOrDefault(0));
             Assert.AreEqual(null, m.GetValueOrDefault(13));
             Assert.IsEmpty(m.Enumerate());
@@ -25,7 +25,7 @@ namespace ImTools.UnitTests
             Assert.AreSame(m, m.AddOrKeep(1, "aa"));
 
             var mr = m.Remove(1);
-            Assert.AreSame(ImMap<int, string>.Empty, mr);
+            Assert.AreSame(ImHashMap<int, string>.Empty, mr);
             Assert.AreEqual(0, mr.Count());
 
             m = m.AddOrUpdate(2, "b");
@@ -171,7 +171,7 @@ namespace ImTools.UnitTests
             const int upperBound = 100000;
             Gen.Int[0, upperBound].Array.Sample(items =>
             {
-                var m = ImMap<int, int>.Empty;
+                var m = ImHashMap<int, int>.Empty;
                 foreach (int n in items)
                 {
                     m = m.AddOrUpdate(n, n);
@@ -192,7 +192,7 @@ namespace ImTools.UnitTests
         public void ImMap_AddOrUpdate_random_items_and_randomly_checking_CsCheck_FailedCase2()
         {
             var items = new[] { 81827, 98388, 55336, 13449, 96388, 3895, 7794, 98331, 44532, 94862, 89412, 25144, 18434, 44532, 58167 };
-            var m = ImMap<int, int>.Empty;
+            var m = ImHashMap<int, int>.Empty;
             foreach (int n in items)
             {
                 m = m.AddOrUpdate(n, n);
@@ -207,7 +207,7 @@ namespace ImTools.UnitTests
         public void ImMap_AddOrUpdate_random_items_and_randomly_checking_CsCheck_FiledCase1()
         {
             var hashes = new[] { 98470, 31912, 32917, 40383, 23438, 70273, 47956, 43609, 10213, 2236, 20614 };
-            var m = ImMap<int, int>.Empty;
+            var m = ImHashMap<int, int>.Empty;
             foreach (int h in hashes)
             {
                 m = m.AddOrUpdate(h, h);
@@ -229,7 +229,7 @@ namespace ImTools.UnitTests
                 45751, 6825, 44599, 79942, 73380, 8408, 34126, 51224, 14463, 71529, 46775, 74893, 80615, 78504, 29401, 60789, 14050,
                 67780, 52369, 16486, 48124, 46939, 43229, 58359, 61378, 31969, 79905, 37405, 37259, 66683, 87401, 42175 };
 
-            var m = ImMap<int, int>.Empty;
+            var m = ImHashMap<int, int>.Empty;
             foreach (var i in uniqueItems)
                 m = m.AddOrUpdate(i, i);
 
@@ -242,18 +242,18 @@ namespace ImTools.UnitTests
             var uniqueItems = new[] {
                 17883, 23657, 24329, 29524, 55791, 66175, 67389, 74867, 74946, 81350, 94477, 70414, 26499 };
 
-            var m = ImMap<int, int>.Empty;
+            var m = ImHashMap<int, int>.Empty;
             foreach (var i in uniqueItems)
                 m = m.AddOrUpdate(i, i);
 
             CollectionAssert.AreEqual(uniqueItems.OrderBy(x => x), m.Enumerate().ToArray().Select(x => x.Hash));
         }
 
-        static Gen<(ImMap<int, int>, int[])> GenImMap(int upperBound) =>
+        static Gen<(ImHashMap<int, int>, int[])> GenImMap(int upperBound) =>
             Gen.Int[0, upperBound].ArrayUnique.SelectMany(hashes =>
                 Gen.Int.Array[hashes.Length].Select(values =>
                 {
-                    var m = ImMap<int, int>.Empty;
+                    var m = ImHashMap<int, int>.Empty;
                     for (int i = 0; i < hashes.Length; i++)
                         m = m.AddOrUpdate(hashes[i], values[i]);
                     return (map: m, hashes: hashes);
@@ -349,7 +349,7 @@ namespace ImTools.UnitTests
         {
             var hashes = new[] { 73341, 68999, 1354, 50830, 94661, 21594, 27007, 21894, 35166, 68934 };
             var added = 22189;
-            var map = ImMap<int, int>.Empty;
+            var map = ImHashMap<int, int>.Empty;
             foreach (var h in hashes)
                 map = map.AddOrUpdate(h, h);
 
@@ -368,7 +368,7 @@ namespace ImTools.UnitTests
             var hashes = new int[7] { 26716, 80399, 13634, 25950, 56351, 51074, 46591 };
             var added = 66928;
 
-            var map = ImMap<int, int>.Empty;
+            var map = ImHashMap<int, int>.Empty;
             foreach (var n in hashes)
                 map = map.AddOrUpdate(n, n);
 
@@ -409,7 +409,7 @@ namespace ImTools.UnitTests
             var hashes = new int[10] { 22063, 17962, 90649, 8112, 30393, 94009, 60740, 80192, 11026, 19570 };
             var added = 29210;
 
-            var map = ImMap<int, int>.Empty;
+            var map = ImHashMap<int, int>.Empty;
             foreach (var n in hashes)
                 map = map.AddOrUpdate(n, n);
 

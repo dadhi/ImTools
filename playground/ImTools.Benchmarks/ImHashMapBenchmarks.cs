@@ -482,9 +482,9 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             }
 
             [Benchmark(Baseline = true)]
-            public ImTools.ImMap<Type, string> V4_ImMap_AddOrUpdate()
+            public ImTools.ImHashMap<Type, string> V4_ImMap_AddOrUpdate()
             {
-                var map = ImTools.ImMap<Type, string>.Empty;
+                var map = ImTools.ImHashMap<Type, string>.Empty;
 
                 foreach (var key in _types)
                     map = map.AddOrUpdate(key.GetHashCode(), key, "a");
@@ -504,9 +504,9 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             }
 
             // [Benchmark]
-            public ImTools.ImMap<int, KeyValuePair<Type, string>> V3_ImMap_AddOrUpdate()
+            public ImTools.ImHashMap<int, KeyValuePair<Type, string>> V3_ImMap_AddOrUpdate()
             {
-                var map = ImTools.ImMap<int, KeyValuePair<Type, string>>.Empty;
+                var map = ImTools.ImHashMap<int, KeyValuePair<Type, string>>.Empty;
 
                 foreach (var key in _types)
                     map = map.AddOrUpdate(key.GetHashCode(), new KeyValuePair<Type, string>(key, "a"));
@@ -517,7 +517,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             // [Benchmark]
             public ImToolsV3.ImHashMap<Type, string>[] V3_PartitionedHashMap_AddOrUpdate()
             {
-                var map = PartitionedHashMap.CreateEmpty<Type, string>();
+                var map = ImToolsV3.PartitionedHashMap.CreateEmpty<Type, string>();
 
                 foreach (var key in _types)
                     map.AddOrUpdate(key, "a");
@@ -1401,10 +1401,10 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
             }
 
-            private ImTools.ImMap<Type, string> _mapV4;
-            public ImTools.ImMap<Type, string> V4_ImMap_AddOrUpdate()
+            private ImTools.ImHashMap<Type, string> _mapV4;
+            public ImTools.ImHashMap<Type, string> V4_ImMap_AddOrUpdate()
             {
-                var map = ImTools.ImMap<Type, string>.Empty;
+                var map = ImTools.ImHashMap<Type, string>.Empty;
 
                 foreach (var key in _keys.Take(Count))
                     map = map.AddOrUpdate(key.GetHashCode(), key, "a");
@@ -1426,7 +1426,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             private ImToolsV3.ImHashMap<Type, string>[] _partMap23;
             public ImToolsV3.ImHashMap<Type, string>[] V3_PartitionedHashMap_AddOrUpdate()
             {
-                var map = PartitionedHashMap.CreateEmpty<Type, string>();
+                var map = ImToolsV3.PartitionedHashMap.CreateEmpty<Type, string>();
 
                 foreach (var key in _keys.Take(Count))
                     map.AddOrUpdate(key.GetHashCode(), key, "a");
@@ -1438,7 +1438,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             private ImToolsV3.ImHashMap<Type, string>[] _partMap23_32;
             public ImToolsV3.ImHashMap<Type, string>[] V3_PartitionedHashMap32_AddOrUpdate()
             {
-                var maps = PartitionedHashMap.CreateEmpty<Type, string>(32);
+                var maps = ImToolsV3.PartitionedHashMap.CreateEmpty<Type, string>(32);
 
                 foreach (var key in _keys.Take(Count))
                     maps.AddOrUpdate(key.GetHashCode(), key, "a", 31);
@@ -1623,7 +1623,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             public string V3_PartitionedHashMap_TryFind()
             {
                 var hash = LookupKey.GetHashCode();
-                _partMap23[hash & PartitionedHashMap.PARTITION_HASH_MASK].TryFind(hash, LookupKey, out var result);
+                _partMap23[hash & ImToolsV3.PartitionedHashMap.PARTITION_HASH_MASK].TryFind(hash, LookupKey, out var result);
                 return result;
             }
 
@@ -1963,7 +1963,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 
             public ImToolsV3.ImHashMap<Type, string>[] V3_PartionedHashMap_AddOrUpdate()
             {
-                var map = PartitionedHashMap.CreateEmpty<Type, string>();
+                var map = ImToolsV3.PartitionedHashMap.CreateEmpty<Type, string>();
 
                 foreach (var key in _keys.Take(Count))
                     map.AddOrUpdate(key, "a");
@@ -1994,10 +1994,10 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return map;
             }
 
-            private ImTools.ImMap<Type, string> _mapV4;
-            public ImTools.ImMap<Type, string> V4_ImMap_AddOrUpdate()
+            private ImTools.ImHashMap<Type, string> _mapV4;
+            public ImTools.ImHashMap<Type, string> V4_ImMap_AddOrUpdate()
             {
-                var map = ImTools.ImMap<Type, string>.Empty;
+                var map = ImTools.ImHashMap<Type, string>.Empty;
 
                 foreach (var key in _keys.Take(Count))
                     map = map.AddOrUpdate(key.GetHashCode(), key, "a");
