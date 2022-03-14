@@ -371,7 +371,10 @@ namespace ImTools.UnitTests
             Assert.AreEqual("b", mr.GetValueOrDefault(Xk(2)));
 
             m = m.AddOrUpdate(Xk(3), "c");
+            Assert.AreEqual(3, m.Count());
+
             mr = m.Remove(Xk(2));
+            Assert.AreEqual(2, mr.Count());
             Assert.AreNotEqual(typeof(ImHashMapEntry<XKey<int>, string>), m.GetType());
             Assert.AreEqual("a", mr.GetValueOrDefault(Xk(1)));
             Assert.AreEqual(null, mr.GetValueOrDefault(Xk(2)));

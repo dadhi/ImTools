@@ -1889,11 +1889,11 @@ namespace ImTools
         internal override Entry AddWithTheSameKey(ImHashMapEntry<int, V> newEntry) => this;
         internal override Entry AddOrUpdateWithTheSameHash(ImHashMapEntry<int, V> newEntry) => newEntry;
         internal override Entry AddOrUpdateWithTheSameHash(ImHashMapEntry<int, V> newEntry, Update<int, V> update) =>
-            ImHashMap.NewEntry(Hash, update(Hash, Value, newEntry.Value));
+            ImHashMap.Entry(Hash, update(Hash, Value, newEntry.Value));
         internal override Entry AddedOrNullWithTheSameHash(ImHashMapEntry<int, V> newEntry) => null;
         internal override Entry UpdatedOrNullWithTheSameHash(ImHashMapEntry<int, V> newEntry) => newEntry;
         internal override Entry UpdatedOrNullWithTheSameHash(int key, V value, Update<int, V> update) =>
-            ImHashMap.NewEntry(Hash, update(Hash, Value, value));
+            ImHashMap.Entry(Hash, update(Hash, Value, value));
         internal override Entry RemovedOrNullWithTheSameHash(int key) => this;
         /// <inheritdoc/>
         public override Entry AppendOrUpdateInPlaceOrKeep<S>(S state, ImHashMapEntry<int, V> newEntry, UpdaterInPlaceOrKeeper<S> updateOrKeep) =>
@@ -1934,7 +1934,7 @@ namespace ImTools
         {
             var key = _key;
             return key.Equals(newEntry.Key)
-                ? ImHashMap.NewEntry(Hash, key, update(key, Value, newEntry.Value))
+                ? ImHashMap.Entry(Hash, key, update(key, Value, newEntry.Value))
                 : new HashConflictingEntry(Hash, this, newEntry);
         }
 
@@ -1949,7 +1949,7 @@ namespace ImTools
             if (!_key.Equals(key))
                 return null;
             value = update(key, Value, value);
-            return ReferenceEquals(Value, value) ? null : ImHashMap.NewEntry(Hash, key, value);
+            return ReferenceEquals(Value, value) ? null : ImHashMap.Entry(Hash, key, value);
         }
 
         internal override Entry RemovedOrNullWithTheSameHash(K key) => _key.Equals(key) ? this : null;
@@ -2156,7 +2156,7 @@ namespace ImTools
                 if (i == -1)
                     return new HashConflictingEntry(Hash, cs.AppendToNonEmpty(newEntry));
                 if (update != null)
-                    newEntry = ImHashMap.NewEntry(Hash, key, update(key, cs[i].Value, newEntry.Value));
+                    newEntry = ImHashMap.Entry(Hash, key, update(key, cs[i].Value, newEntry.Value));
                 return new HashConflictingEntry(Hash, cs.UpdateNonEmpty(newEntry, i));
             }
 
@@ -2183,7 +2183,7 @@ namespace ImTools
                     if (ReferenceEquals(oldValue, value))
                         return null;
                 }
-                return new HashConflictingEntry(Hash, cs.UpdateNonEmpty(ImHashMap.NewEntry(Hash, key, value), i));
+                return new HashConflictingEntry(Hash, cs.UpdateNonEmpty(ImHashMap.Entry(Hash, key, value), i));
             }
 
             internal override Entry AddedOrNullWithTheSameHash(ImHashMapEntry<K, V> newEntry)
@@ -2249,7 +2249,7 @@ namespace ImTools
                 Entry0 = e0; Entry1 = e1;
             }
 
-            public override int Count() => 2;
+            public override int Count() => Entry0.Count() + Entry1.Count();
 
 #if !DEBUG
             public override string ToString() => "{L2:{E0: " + Entry0 + ",E1:" + Entry1 + "}}";
@@ -2282,7 +2282,7 @@ namespace ImTools
                 L = leaf;
             }
 
-            public override int Count() => 3;
+            public override int Count() => Plus.Count() + L.Entry0.Count() + L.Entry1.Count();
 
 #if !DEBUG
             public override string ToString() => "{L21: {P: " + Plus + ", L: " + L + "}}";
@@ -2332,7 +2332,7 @@ namespace ImTools
                 L = l;
             }
 
-            public override int Count() => 4;
+            public override int Count() => Plus.Count() + L.Count();
 
 #if !DEBUG
             public override string ToString() => "{L211:{P:" + Plus + ",L:" + L + "}}";
@@ -2415,7 +2415,7 @@ namespace ImTools
                 Entry0 = e0; Entry1 = e1; Entry2 = e2; Entry3 = e3; Entry4 = e4;
             }
 
-            public override int Count() => 5;
+            public override int Count() => Entry0.Count() + Entry1.Count() + Entry2.Count() + Entry3.Count() + Entry4.Count();
 
 #if !DEBUG
             public override string ToString() => 
@@ -2468,7 +2468,7 @@ namespace ImTools
                 L = l;
             }
 
-            public override int Count() => 6;
+            public override int Count() => Plus.Count() + L.Count();
 
 #if !DEBUG
             public override string ToString() => "{L51:{P:" + Plus + ",L:" + L + "}}";
@@ -2549,7 +2549,7 @@ namespace ImTools
                 L = l;
             }
 
-            public sealed override int Count() => 7;
+            public sealed override int Count() => Plus.Count() + L.Count();
 
 #if !DEBUG
             public override string ToString() => "{L511:{P:" + Plus + ",L:" + L + "}}";
@@ -2766,7 +2766,7 @@ namespace ImTools
                 Right = right;
             }
 
-            public override int Count() => 1 + Left.Count() + Right.Count();
+            public override int Count() => MidEntry.Count() + Left.Count() + Right.Count();
 
 #if !DEBUG
             public override string ToString() => "{B2:{E:" + MidEntry + ",L:" + Left + ",R:" + Right + "}}";
@@ -2942,7 +2942,7 @@ namespace ImTools
                 B = branch;
             }
 
-            public override int Count() => 1 + B.Count();
+            public override int Count() => Plus.Count() + B.Count();
 
 #if !DEBUG
             public override string ToString() => "{B21:{Plus:" + Plus + ",B:" + B + "}}";
@@ -2990,8 +2990,8 @@ namespace ImTools
                     return Plus;
                 var mh = B.MidEntry.Hash;
                 return hash > mh ? B.Right.GetEntryOrNull(hash)
-                    :  hash < mh ?  B.Left.GetEntryOrNull(hash)
-                    :  B.MidEntry;
+                    : hash < mh ? B.Left.GetEntryOrNull(hash)
+                    : B.MidEntry;
             }
 
             internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
@@ -3129,7 +3129,7 @@ namespace ImTools
                 Right = right;
             }
 
-            public override int Count() => 2 + Left.Count() + Middle.Count() + Right.Count();
+            public override int Count() => Left.Count() + Entry0.Count() + Middle.Count() + Entry1.Count() + Right.Count();
 
 #if !DEBUG
             public override string ToString() => "{B3:{E0:" + Entry0 + ",E1:" + Entry0 + ",L:" + Left + ",M:" + Middle + ",R:" + Right + "}}";
@@ -4421,6 +4421,18 @@ namespace ImTools
                 ? new Dictionary<K, V>(0)
                 : map.ForEach(new Dictionary<K, V>(), (e, _, d) => d.Add(e.Key, e.Value));
 
+        /// <summary>Returns <see langword="true"/> if map contains the hash, otherwise returns <see langword="false"/></summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static bool Contains<V>(this ImHashMap<int, V> map, int key) => map.GetEntryOrNull(key) != null;
+
+        /// <summary>Returns <see langword="true"/> if map contains the hash and key, otherwise returns <see langword="false"/></summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static bool Contains<K, V>(this ImHashMap<K, V> map, int hash, K key) => map.GetEntryOrDefault(hash, key) != null;
+
+        /// <summary>Returns <see langword="true"/> if map contains the key, otherwise returns <see langword="false"/></summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static bool Contains<K, V>(this ImHashMap<K, V> map, K key) => map.GetEntryOrDefault(key.GetHashCode(), key) != null;
+
         /// <summary>Returns the entry ASSUMING it is present otherwise its behavior is UNDEFINED.
         /// You can use the method after the Add and Update methods on the same map instance - 
         /// because the map is immutable it is for sure contains added or updated entry.</summary>
@@ -4444,6 +4456,11 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMapEntry<K, V> GetEntryOrDefault<K, V>(this ImHashMap<K, V> map, int hash, K key) =>
             map.GetEntryOrNull(hash)?.GetOrNullWithTheSameHash(key);
+
+        /// <summary>Lookup for the entry by hash, returns the found entry or `null`.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMapEntry<K, V> GetEntryOrDefault<K, V>(this ImHashMap<K, V> map, K key) =>
+            map.GetEntryOrNull(key.GetHashCode())?.GetOrNullWithTheSameHash(key);
 
         /// <summary>Lookup for the value by hash, returns the default `V` if hash is not found.</summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -4548,19 +4565,27 @@ namespace ImTools
 
         /// <summary>Creates the entry with the `int` key (which will be used as the key)</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMapEntry<int, V> NewEntry<V>(int key, V value) => new VEntry<V>(key, value);
+        public static ImHashMapEntry<int, V> Entry<V>(int key, V value) => new VEntry<V>(key, value);
 
         /// <summary>Creates the entry with the `int` key but without assigning its value yet</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMapEntry<int, V> NewDefaultEntry<V>(int key) => new VEntry<V>(key);
+        public static ImHashMapEntry<int, V> DefaultEntry<V>(int key) => new VEntry<V>(key);
+
+        /// <summary>Copies the entry but without its value</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMapEntry<int, V> WithDefaultValue<V>(this ImHashMapEntry<int, V> e) => new VEntry<V>(e.Hash);
 
         /// <summary>Creates the entry with the custom provided hash</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMapEntry<K, V> NewEntry<K, V>(int hash, K key, V value) => new KVEntry<K, V>(hash, key, value);
+        public static ImHashMapEntry<K, V> Entry<K, V>(int hash, K key, V value) => new KVEntry<K, V>(hash, key, value);
 
         /// <summary>Creates the entry but without assigning its value yet</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMapEntry<K, V> NewDefaultEntry<K, V>(int hash, K key) => new KVEntry<K, V>(hash, key);
+        public static ImHashMapEntry<K, V> DefaultEntry<K, V>(int hash, K key) => new KVEntry<K, V>(hash, key);
+
+        /// <summary>Copies the entry but without its value</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMapEntry<K, V> WithDefaultValue<K, V>(this ImHashMapEntry<K, V> e) => new KVEntry<K, V>(e.Hash, e.Key);
 
         /// <summary>Sugar to set the value and return the entry</summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -4611,26 +4636,26 @@ namespace ImTools
         /// <summary>Adds or updates (no in-place mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap<int, V> AddOrUpdate<V>(this ImHashMap<int, V> map, int hash, V value) =>
-            map.AddOrUpdateEntry(NewEntry(hash, value));
+            map.AddOrUpdateEntry(Entry(hash, value));
 
         /// <summary>Adds or updates (no in-place mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap<K, V> AddOrUpdate<K, V>(this ImHashMap<K, V> map, int hash, K key, V value) =>
-            map.AddOrUpdateEntry(NewEntry(hash, key, value));
+            map.AddOrUpdateEntry(Entry(hash, key, value));
 
         /// <summary>Adds or updates (no in-place mutation) the map with value by the passed key, always returning the NEW map!</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap<K, V> AddOrUpdate<K, V>(this ImHashMap<K, V> map, K key, V value) =>
-            map.AddOrUpdateEntry(NewEntry(key.GetHashCode(), key, value));
+            map.AddOrUpdateEntry(Entry(key.GetHashCode(), key, value));
 
         /// <summary>Adds or updates (no in-place mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap<int, V> AddOrUpdate<V>(this ImHashMap<int, V> map, int hash, V value, Update<int, V> update)
         {
-            var newEntry = NewEntry(hash, value);
+            var newEntry = Entry(hash, value);
             var mapOrOldEntry = map.AddOrGetEntry(hash, newEntry);
             if (mapOrOldEntry is ImHashMapEntry<int, V> oldEntry && oldEntry != newEntry)
-                return map.ReplaceEntry(oldEntry, NewEntry(hash, update(hash, oldEntry.Value, value)));
+                return map.ReplaceEntry(oldEntry, Entry(hash, update(hash, oldEntry.Value, value)));
             return mapOrOldEntry;
         }
 
@@ -4638,7 +4663,7 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap<K, V> AddOrUpdate<K, V>(this ImHashMap<K, V> map, int hash, K key, V value, Update<K, V> update)
         {
-            var newEntry = NewEntry(hash, key, value);
+            var newEntry = Entry(hash, key, value);
             var mapOrOldEntry = map.AddOrGetEntry(hash, newEntry);
             if (mapOrOldEntry is ImHashMap<K, V>.Entry oldEntry && oldEntry != newEntry)
                 return map.ReplaceEntry(oldEntry, oldEntry.AddOrUpdateWithTheSameHash(newEntry, update));
@@ -4661,7 +4686,7 @@ namespace ImTools
         /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the hash is already present</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap<int, V> AddOrKeep<V>(this ImHashMap<int, V> map, int hash, V value) =>
-            map.AddOrKeepEntry(NewEntry(hash, value));
+            map.AddOrKeepEntry(Entry(hash, value));
 
         /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -4680,19 +4705,19 @@ namespace ImTools
         /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap<K, V> AddOrKeep<K, V>(this ImHashMap<K, V> map, int hash, K key, V value) =>
-            map.AddOrKeepEntry(NewEntry(hash, key, value));
+            map.AddOrKeepEntry(Entry(hash, key, value));
 
         /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap<K, V> AddOrKeep<K, V>(this ImHashMap<K, V> map, K key, V value) =>
-            map.AddOrKeepEntry(NewEntry(key.GetHashCode(), key, value));
+            map.AddOrKeepEntry(Entry(key.GetHashCode(), key, value));
 
         /// <summary>Updates the map with the new value if the hash is found otherwise returns the same unchanged map.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap<int, V> Update<V>(this ImHashMap<int, V> map, int hash, V value)
         {
             var entry = map.GetEntryOrNull(hash);
-            return entry == null ? map : map.ReplaceEntry(entry, NewEntry(hash, value));
+            return entry == null ? map : map.ReplaceEntry(entry, Entry(hash, value));
         }
 
         /// <summary>Updates the map with the default value if the hash is found otherwise returns the same unchanged map.</summary>
@@ -4700,7 +4725,7 @@ namespace ImTools
         public static ImHashMap<int, V> UpdateToDefault<V>(this ImHashMap<int, V> map, int hash)
         {
             var entry = map.GetEntryOrNull(hash);
-            return entry == null ? map : map.ReplaceEntry(entry, NewDefaultEntry<V>(hash));
+            return entry == null ? map : map.ReplaceEntry(entry, DefaultEntry<V>(hash));
         }
 
         /// <summary>Updates the map with the new value if the key is found otherwise returns the same unchanged map.</summary>
@@ -4709,7 +4734,7 @@ namespace ImTools
             var entry = map.GetEntryOrNull(hash);
             if (entry == null)
                 return map;
-            var updated = entry.UpdatedOrNullWithTheSameHash(NewEntry(hash, key, value));
+            var updated = entry.UpdatedOrNullWithTheSameHash(Entry(hash, key, value));
             return updated == null ? map : map.ReplaceEntry(entry, updated);
         }
 
@@ -4724,7 +4749,7 @@ namespace ImTools
             var entry = map.GetEntryOrNull(hash);
             if (entry == null)
                 return map;
-            var updated = entry.UpdatedOrNullWithTheSameHash(NewDefaultEntry<K, V>(hash, key));
+            var updated = entry.UpdatedOrNullWithTheSameHash(DefaultEntry<K, V>(hash, key));
             return updated == null ? map : map.ReplaceEntry(entry, updated);
         }
 
