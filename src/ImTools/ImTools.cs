@@ -6614,32 +6614,22 @@ namespace ImTools
         /// <summary>Lookup for the value by the key using the hash and checking the key with the `object.ReferenceEquals` for equality,
         ///  returns found value or the default value if not found</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static V GetValueOrDefaultByReferenceEquals<K, V>(this ImMap<K, V> map, K key) where K : class =>
-            map.GetEntryOrNull(key.GetHashCode())?.GetOrNullByReferenceEqualsWithTheSameHash(key) is ImMapEntry<K, V> kv ? kv.Value : default(V);
+        public static V GetValueOrDefaultByReferenceEquals<K, V>(this ImMap<K, V> map, K key) where K : class 
+        {
+            var e = map.GetEntryOrNull(key.GetHashCode());
+            return e != null ? e.GetValueOrDefaultByReferenceEqualsWithTheSameHash(key) : default(V);
+        }
 
         /// <summary>Lookup for the value by its hash, returns the `true` and the found value or the `false` otherwise</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static bool TryFind<V>(this ImMap<int, V> map, int hash, out V value)
         {
-            var e = map as ImMapEntry<int, V>;
+            var e = map.GetEntryOrNull(hash) as ImMapEntry<int, V>;
             if (e != null)
             {
-                if (e.Hash == hash)
-                {
-                    value = e.Value;
-                    return true;
-                }
+                value = e.Value;
+                return true;
             }
-            else
-            {
-                e = map.GetEntryOrNull(hash) as ImMapEntry<int, V>;
-                if (e != null)
-                {
-                    value = e.Value;
-                    return true;
-                }
-            }
-
             value = default(V);
             return false;
         }
