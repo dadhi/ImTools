@@ -2276,7 +2276,6 @@ namespace ImTools
         {
             public readonly Entry Plus;
             public readonly Leaf2 L;
-
             public Leaf2Plus1(Entry plus, Leaf2 leaf)
             {
                 Plus = plus;
@@ -2931,6 +2930,7 @@ namespace ImTools
                 return new Branch2(newLeft, mid, Right);
             }
         }
+
         /// <summary>The 2 branches with the node in between</summary>
         internal sealed class Branch2Plus1 : ImMap<K, V>
         {
@@ -2990,8 +2990,8 @@ namespace ImTools
                     return Plus;
                 var mh = B.MidEntry.Hash;
                 return hash > mh ? B.Right.GetEntryOrNull(hash)
-                    : hash < mh ? B.Left.GetEntryOrNull(hash)
-                    : B.MidEntry;
+                    :  hash < mh ?  B.Left.GetEntryOrNull(hash)
+                    :  B.MidEntry;
             }
 
             internal override ImMap<K, V> AddOrGetEntry(int hash, Entry entry)
