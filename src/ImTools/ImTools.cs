@@ -1996,9 +1996,6 @@ namespace ImTools
         /// <summary>The count of entries in the map</summary>
         public virtual int Count() => 0;
 
-        /// <summary>`true` if node is branch</summary>
-        public virtual bool IsBranch => false;
-
         internal virtual Entry GetMinHashEntryOrDefault() => null;
         internal virtual Entry GetMaxHashEntryOrDefault() => null;
 
@@ -2771,8 +2768,6 @@ namespace ImTools
             }
 
             public override int Count() => 1 + Left.Count() + Right.Count();
-            public override bool IsBranch => true;
-
 
 #if !DEBUG
             public override string ToString() => "{B2:{E:" + MidEntry + ",L:" + Left + ",R:" + Right + "}}";
@@ -2948,7 +2943,6 @@ namespace ImTools
             }
 
             public override int Count() => 1 + B.Count();
-            public override bool IsBranch => true;
 
 #if !DEBUG
             public override string ToString() => "{B21:{Plus:" + Plus + ",B:" + B + "}}";
@@ -3136,7 +3130,6 @@ namespace ImTools
             }
 
             public override int Count() => 2 + Left.Count() + Middle.Count() + Right.Count();
-            public override bool IsBranch => true;
 
 #if !DEBUG
             public override string ToString() => "{B3:{E0:" + Entry0 + ",E1:" + Entry0 + ",L:" + Left + ",M:" + Middle + ",R:" + Right + "}}";
