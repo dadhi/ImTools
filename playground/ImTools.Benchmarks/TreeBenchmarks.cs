@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using ImTools;
+using ImToolsV3;
 using ImTools.UnitTests.Playground;
 
 namespace ImTools.Benchmarks
