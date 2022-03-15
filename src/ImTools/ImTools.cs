@@ -2796,15 +2796,14 @@ namespace ImTools
                         if (Left is Leaf5Plus1Plus1 == false)
                         {
                             // first check that the new entry does not have the existing entry in the Right where we suppose to add it
-                            var sameHashEntry = rl511.GetEntryOrNull(hash);
-                            return sameHashEntry == null ? new Branch2Plus1(entry, this) : (ImHashMap<K, V>)sameHashEntry;
+                            var oldEntry = rl511.GetEntryOrNull(hash)?.GetOrNullWithTheSameHash(entry.Key);
+                            return oldEntry == null ? new Branch2Plus1(entry, this) : (ImHashMap<K, V>)oldEntry;
                         }
                         ImHashMap<K, V> splitRight = null;
                         entryOrNewBranch = rl511.AddOrGetEntry(hash, ref entry, ref splitRight);
                         // if split is `null` then the only reason is that hash is found
                         return splitRight != null ? new Branch3(Left, me, entryOrNewBranch, entry, splitRight) : (ImHashMap<K, V>)entryOrNewBranch;
                     }
-
                     if (right is Branch3 rb3)
                     {
                         ImHashMap<K, V> splitRight = null;
@@ -2823,15 +2822,13 @@ namespace ImTools
                     {
                         if (Right is Leaf5Plus1Plus1 == false)
                         {
-                            var sameHashEntry = ll511.GetEntryOrNull(hash);
-                            return sameHashEntry == null ? new Branch2Plus1(entry, this) : (ImHashMap<K, V>)sameHashEntry;
+                            var oldEntry = ll511.GetEntryOrNull(hash)?.GetOrNullWithTheSameHash(entry.Key);
+                            return oldEntry == null ? new Branch2Plus1(entry, this) : (ImHashMap<K, V>)oldEntry;
                         }
-
                         ImHashMap<K, V> splitRight = null;
                         entryOrNewBranch = ll511.AddOrGetEntry(hash, ref entry, ref splitRight);
                         return splitRight != null ? new Branch3(entryOrNewBranch, entry, splitRight, me, Right) : (ImHashMap<K, V>)entryOrNewBranch;
                     }
-
                     if (left is Branch3 lb3)
                     {
                         ImHashMap<K, V> splitRight = null;
