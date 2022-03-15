@@ -3179,6 +3179,9 @@ namespace ImTools
                     return new Branch3(newLeft, Entry0, Middle, Entry1, Right);
                 }
 
+                // todo: @perf what if we won't balance the middle -> isn't it similar to the Finger Tree in this regard
+                // Finger Tree -> faster access to the head or tail nodes (last added or first added for the sorted addition)
+                // it will also simplify the implementation.
                 if (hash > h0 && hash < h1)
                 {
                     var middle = Middle;
