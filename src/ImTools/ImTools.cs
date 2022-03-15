@@ -1996,6 +1996,8 @@ namespace ImTools
         /// <summary>The count of entries in the map</summary>
         public virtual int Count() => 0;
 
+        internal virtual bool IsLazyLeaf => false;
+        internal virtual ImHashMap<K, V> PlusEntry(Entry plus) => null;
         internal virtual Entry GetMinHashEntryOrDefault() => null;
         internal virtual Entry GetMaxHashEntryOrDefault() => null;
 
@@ -2254,7 +2256,8 @@ namespace ImTools
 #if !DEBUG
             public override string ToString() => "{L2:{E0: " + Entry0 + ",E1:" + Entry1 + "}}";
 #endif
-
+            internal override bool IsLazyLeaf => true;
+            internal override ImHashMap<K, V> PlusEntry(Entry plus) => new Leaf2Plus1(plus, this);
             internal override Entry GetMinHashEntryOrDefault() => Entry0;
             internal override Entry GetMaxHashEntryOrDefault() => Entry1;
 
@@ -2287,7 +2290,8 @@ namespace ImTools
 #if !DEBUG
             public override string ToString() => "{L21: {P: " + Plus + ", L: " + L + "}}";
 #endif
-
+            internal override bool IsLazyLeaf => true;
+            internal override ImHashMap<K, V> PlusEntry(Entry plus) => new Leaf2Plus1Plus1(plus, this);
             internal override Entry GetMinHashEntryOrDefault() => Plus.Hash < L.Entry0.Hash ? Plus : L.Entry0;
             internal override Entry GetMaxHashEntryOrDefault() => Plus.Hash > L.Entry1.Hash ? Plus : L.Entry1;
 
@@ -2421,7 +2425,8 @@ namespace ImTools
             public override string ToString() => 
                 "{L2:{E0:" + Entry0 + ",E1:" + Entry1 + ",E2:" + Entry2 + ",E3:" + Entry3 + ",E4:" + Entry4 + "}}";
 #endif
-
+            internal override bool IsLazyLeaf => true;
+            internal override ImHashMap<K, V> PlusEntry(Entry plus) => new Leaf5Plus1(plus, this);
             internal override Entry GetMinHashEntryOrDefault() => Entry0;
             internal override Entry GetMaxHashEntryOrDefault() => Entry4;
 
@@ -2473,7 +2478,8 @@ namespace ImTools
 #if !DEBUG
             public override string ToString() => "{L51:{P:" + Plus + ",L:" + L + "}}";
 #endif
-
+            internal override bool IsLazyLeaf => true;
+            internal override ImHashMap<K, V> PlusEntry(Entry plus) => new Leaf5Plus1Plus1(plus, this);
             internal override Entry GetMinHashEntryOrDefault() => Plus.Hash < L.Entry0.Hash ? Plus : L.Entry0;
             internal override Entry GetMaxHashEntryOrDefault() => Plus.Hash > L.Entry4.Hash ? Plus : L.Entry4;
 
@@ -2790,6 +2796,36 @@ namespace ImTools
                 if (hash > me.Hash)
                 {
                     var right = Right;
+                    if (Left.IsLazyLeaf)
+                    {
+                        if (right is Leaf5Plus1Plus1 r5pp)
+                        {
+                            var oldEntry = r5pp.GetEntryOrNull(hash);
+                            if (oldEntry != null)
+                                return oldEntry;
+                            var rMostLeftEntry = r5pp.GetMinHashEntryOrDefault();
+                            if (hash < rMostLeftEntry.Hash)
+                                return new Branch2(Left.PlusEntry(MidEntry), entry, r5pp);
+                            // if (rMostLeftEntry == r5pp.Plus)
+                            //     return new Branch2(Left.PlusEntry(MidEntry), r5pp.Plus, r5pp.L.PlusEntry(entry));
+                            // if (rMostLeftEntry == r5pp.L.Plus)
+                            //     return new Branch2(Left.PlusEntry(MidEntry), r5pp.L.Plus, r5pp.L.L.PlusEntry(r5pp.Plus).PlusEntry(entry));
+                        }
+                        else if (right is Leaf2Plus1Plus1 r2pp)
+                        {
+                            var oldEntry = r2pp.GetEntryOrNull(hash);
+                            if (oldEntry != null)
+                                return oldEntry;
+                            var rMostLeftEntry = r2pp.GetMinHashEntryOrDefault();
+                            if (hash < rMostLeftEntry.Hash)
+                                return new Branch2(Left.PlusEntry(MidEntry), entry, r2pp);
+                            // if (rMostLeftEntry == r2pp.Plus)
+                            //     return new Branch2(Left.PlusEntry(MidEntry), r2pp.Plus, r2pp.L.PlusEntry(entry));
+                            // if (rMostLeftEntry == r2pp.L.Plus)
+                            //     return new Branch2(Left.PlusEntry(MidEntry), r2pp.L.Plus, r2pp.L.L.PlusEntry(r2pp.Plus).PlusEntry(entry));
+                        }
+                    }
+
                     if (right is Leaf5Plus1Plus1 rl511)
                     {
                         // optimizing the split by postponing it by introducing the branch 2 plus 1
@@ -2818,6 +2854,36 @@ namespace ImTools
                 if (hash < me.Hash)
                 {
                     var left = Left;
+                    if (Right.IsLazyLeaf)
+                    {
+                        if (left is Leaf5Plus1Plus1 l5pp)
+                        {
+                            var oldEntry = l5pp.GetEntryOrNull(hash);
+                            if (oldEntry != null)
+                                return oldEntry;
+                            var lMostRightEntry = l5pp.GetMaxHashEntryOrDefault();
+                            if (hash > lMostRightEntry.Hash)
+                                return new Branch2(l5pp, entry, Right.PlusEntry(MidEntry));
+                            // if (lMostRightEntry == l5pp.Plus)
+                            //     return new Branch2(l5pp.L.PlusEntry(entry), l5pp.Plus, Right.PlusEntry(MidEntry));
+                            // if (lMostRightEntry == l5pp.L.Plus)
+                            //     return new Branch2(l5pp.L.L.PlusEntry(l5pp.Plus).PlusEntry(entry), l5pp.L.Plus, Right.PlusEntry(MidEntry));
+                        }
+                        else if (left is Leaf2Plus1Plus1 l2pp)
+                        {
+                            var oldEntry = l2pp.GetEntryOrNull(hash);
+                            if (oldEntry != null)
+                                return oldEntry;
+                            var lMostRightEntry = l2pp.GetMaxHashEntryOrDefault();
+                            if (hash > lMostRightEntry.Hash)
+                                return new Branch2(l2pp, entry, Right.PlusEntry(MidEntry));
+                            // if (lMostRightEntry == l2pp.Plus)
+                            //     return new Branch2(l2pp.L.PlusEntry(entry), l2pp.Plus, Right.PlusEntry(MidEntry));
+                            // if (lMostRightEntry == l2pp.L.Plus)
+                            //     return new Branch2(l2pp.L.L.PlusEntry(l2pp.Plus).PlusEntry(entry), l2pp.L.Plus, Right.PlusEntry(MidEntry));
+                        }
+                    }
+
                     if (left is Leaf5Plus1Plus1 ll511)
                     {
                         if (Right is Leaf5Plus1Plus1 == false)
@@ -3157,6 +3223,170 @@ namespace ImTools
                 if (hash > h1)
                 {
                     var right = Right;
+                    if (Middle.IsLazyLeaf)
+                    {
+                        if (right is Leaf5Plus1Plus1 r5pp)
+                        {
+                            var oldEntry = r5pp.GetEntryOrNull(hash);
+                            if (oldEntry != null)
+                                return oldEntry;
+                            var rMostLeftEntry = r5pp.GetMinHashEntryOrDefault();
+                            if (hash < rMostLeftEntry.Hash)
+                                return new Branch3(Left, Entry0, Middle.PlusEntry(Entry1), entry, r5pp);
+                            // if (rMostLeftEntry == r5pp.Plus)
+                            //     return new Branch3(Left, Entry0, Middle.PlusEntry(Entry1), r5pp.Plus, r5pp.L.PlusEntry(entry));
+                            // if (rMostLeftEntry == r5pp.L.Plus)
+                            //     return new Branch3(Left, Entry0, Middle.PlusEntry(Entry1), r5pp.L.Plus, r5pp.L.L.PlusEntry(r5pp.Plus).PlusEntry(entry));
+                        }
+                        else if (right is Leaf2Plus1Plus1 r2pp)
+                        {
+                            var oldEntry = r2pp.GetEntryOrNull(hash);
+                            if (oldEntry != null)
+                                return oldEntry;
+                            var rMostLeftEntry = r2pp.GetMinHashEntryOrDefault();
+                            if (hash < rMostLeftEntry.Hash)
+                                return new Branch3(Left, Entry0, Middle.PlusEntry(Entry1), entry, r2pp);
+                            // if (rMostLeftEntry == r2pp.Plus)
+                            //     return new Branch3(Left, Entry0, Middle.PlusEntry(Entry1), r2pp.Plus, r2pp.L.PlusEntry(entry));
+                            // if (rMostLeftEntry == r2pp.L.Plus)
+                            //     return new Branch3(Left, Entry0, Middle.PlusEntry(Entry1), r2pp.L.Plus, r2pp.L.L.PlusEntry(r2pp.Plus).PlusEntry(entry));
+                        }
+                    }
+
+                    var newRight = right.AddOrGetEntry(hash, entry);
+                    if (newRight is Entry)
+                        return newRight;
+                    if (right is Leaf5Plus1Plus1 || right is Branch3 && newRight is Branch2)
+                        return new Branch2(new Branch2(Left, Entry0, Middle), Entry1, newRight); // todo: @perf can we have a dedicated shape?
+                    return new Branch3(Left, Entry0, Middle, Entry1, newRight);
+                }
+
+                var h0 = Entry0.Hash;
+                if (hash < h0)
+                {
+                    var left = Left;
+                    if (Middle.IsLazyLeaf)
+                    {
+                        if (left is Leaf5Plus1Plus1 l5pp)
+                        {
+                            var oldEntry = l5pp.GetEntryOrNull(hash);
+                            if (oldEntry != null)
+                                return oldEntry;
+                            var lMostRightEntry = l5pp.GetMaxHashEntryOrDefault();
+                            if (hash > lMostRightEntry.Hash)
+                                return new Branch3(l5pp, entry, Middle.PlusEntry(Entry0), Entry1, Right);
+                            // if (lMostRightEntry == l5pp.Plus)
+                            //     return new Branch3(l5pp.L.PlusEntry(entry), l5pp.Plus, Middle.PlusEntry(Entry0), Entry1, Right);
+                            // if (lMostRightEntry == l5pp.L.Plus)
+                            //     return new Branch3(l5pp.L.L.PlusEntry(l5pp.Plus).PlusEntry(entry), l5pp.L.Plus, Middle.PlusEntry(Entry0), Entry1, Right);
+                        }
+                        else if (left is Leaf2Plus1Plus1 l2pp)
+                        {
+                            var oldEntry = l2pp.GetEntryOrNull(hash);
+                            if (oldEntry != null)
+                                return oldEntry;
+                            var lMostRightEntry = l2pp.GetMaxHashEntryOrDefault();
+                            if (hash > lMostRightEntry.Hash)
+                                return new Branch3(l2pp, entry, Middle.PlusEntry(Entry0), Entry1, Right);
+                            // if (lMostRightEntry == l2pp.Plus)
+                            //     return new Branch3(l2pp.L.PlusEntry(entry), l2pp.Plus, Middle.PlusEntry(Entry0), Entry1, Right);
+                            // if (lMostRightEntry == l2pp.L.Plus)
+                            //     return new Branch3(l2pp.L.L.PlusEntry(l2pp.Plus).PlusEntry(entry), l2pp.L.Plus, Middle.PlusEntry(Entry0), Entry1, Right);
+                        }
+                    }
+
+                    var newLeft = left.AddOrGetEntry(hash, entry);
+                    if (newLeft is Entry)
+                        return newLeft;
+                    if (left is Leaf5Plus1Plus1 || left is Branch3 && newLeft is Branch2)
+                        return new Branch2(newLeft, Entry0, new Branch2(Middle, Entry1, Right));
+                    return new Branch3(newLeft, Entry0, Middle, Entry1, Right);
+                }
+
+                if (hash > h0 && hash < h1)
+                {
+                    var middle = Middle;
+                    if (Left.IsLazyLeaf)
+                    {
+                        if (middle is Leaf5Plus1Plus1 m5pp)
+                        {
+                            var oldEntry = m5pp.GetEntryOrNull(hash);
+                            if (oldEntry != null)
+                                return oldEntry;
+                            var mMostLeftEntry = m5pp.GetMinHashEntryOrDefault();
+                            if (hash < mMostLeftEntry.Hash)
+                                return new Branch3(Left.PlusEntry(Entry0), entry, m5pp, Entry1, Right);
+                            // if (mMostLeftEntry == m5pp.Plus)
+                            //     return new Branch3(Left.PlusEntry(Entry0), m5pp.Plus, m5pp.L.PlusEntry(entry), Entry1, Right);
+                            // if (mMostLeftEntry == m5pp.L.Plus)
+                            //     return new Branch3(Left.PlusEntry(Entry0), m5pp.L.Plus, m5pp.L.L.PlusEntry(m5pp.Plus).PlusEntry(entry), Entry1, Right);
+                        }
+                        else if (middle is Leaf2Plus1Plus1 m2pp)
+                        {
+                            var oldEntry = m2pp.GetEntryOrNull(hash);
+                            if (oldEntry != null)
+                                return oldEntry;
+                            var mMostLeftEntry = m2pp.GetMinHashEntryOrDefault();
+                            if (hash < mMostLeftEntry.Hash)
+                                return new Branch3(Left.PlusEntry(Entry0), entry, m2pp, Entry1, Right);
+                            // if (mMostLeftEntry == m2pp.Plus)
+                            //     return new Branch3(Left.PlusEntry(Entry0), m2pp.Plus, m2pp.L.PlusEntry(entry), Entry1, Right);
+                            // if (mMostLeftEntry == m2pp.L.Plus)
+                            //     return new Branch3(Left.PlusEntry(Entry0), m2pp.L.Plus, m2pp.L.L.PlusEntry(m2pp.Plus).PlusEntry(entry), Entry1, Right);
+                        }
+                    }
+                    else if (Right.IsLazyLeaf)
+                    {
+                        if (middle is Leaf5Plus1Plus1 m5pp)
+                        {
+                            var oldEntry = m5pp.GetEntryOrNull(hash);
+                            if (oldEntry != null)
+                                return oldEntry;
+                            var mMostRightEntry = m5pp.GetMaxHashEntryOrDefault();
+                            if (hash > mMostRightEntry.Hash)
+                                return new Branch3(Left, Entry0, m5pp, entry, Right.PlusEntry(Entry1));
+                            // if (mMostRightEntry == m5pp.Plus)
+                            //     return new Branch3(Left, Entry0, m5pp.L.PlusEntry(entry), m5pp.Plus, Right.PlusEntry(Entry1));
+                            // if (mMostRightEntry == m5pp.L.Plus)
+                            //     return new Branch3(Left, Entry0, m5pp.L.L.PlusEntry(m5pp.Plus).PlusEntry(entry), m5pp.L.Plus, Right.PlusEntry(Entry1));
+                        }
+                        else if (middle is Leaf2Plus1Plus1 m2pp)
+                        {
+                            var oldEntry = m2pp.GetEntryOrNull(hash);
+                            if (oldEntry != null)
+                                return oldEntry;
+                            var mMostRightEntry = m2pp.GetMaxHashEntryOrDefault();
+                            if (hash > mMostRightEntry.Hash)
+                                return new Branch3(Left, Entry0, m2pp, entry, Right.PlusEntry(Entry1));
+                            // if (mMostRightEntry == m2pp.Plus)
+                            //     return new Branch3(Left, Entry0, m2pp.L.PlusEntry(entry), m2pp.Plus, Right.PlusEntry(Entry1));
+                            // if (mMostRightEntry == m2pp.L.Plus)
+                            //     return new Branch3(Left, Entry0, m2pp.L.L.PlusEntry(m2pp.Plus).PlusEntry(entry), m2pp.L.Plus, Right.PlusEntry(Entry1));
+                        }
+                    }
+
+                    ImHashMap<K, V> splitMiddleRight = null;
+                    var entryOrNewBranch =
+                        middle is Branch3 mb3 ? mb3.AddOrGetEntry(hash, ref entry, ref splitMiddleRight) :
+                        middle is Leaf5Plus1Plus1 ml511 ? ml511.AddOrGetEntry(hash, ref entry, ref splitMiddleRight) :
+                        middle.AddOrGetEntry(hash, entry);
+
+                    if (splitMiddleRight != null)
+                        return new Branch2(new Branch2(Left, Entry0, entryOrNewBranch), entry, new Branch2(splitMiddleRight, Entry1, Right));
+
+                    return entryOrNewBranch is Entry ? entryOrNewBranch
+                        : new Branch3(Left, Entry0, entryOrNewBranch, Entry1, Right);
+                }
+
+                return hash == h0 ? Entry0 : Entry1;
+            }
+
+            internal ImHashMap<K, V> AddOrGetEntry2(int hash, Entry entry)
+            {
+                var h1 = Entry1.Hash;
+                if (hash > h1)
+                {
+                    var right = Right;
                     var newRight = right.AddOrGetEntry(hash, entry);
                     if (newRight is Entry)
                         return newRight;
@@ -3189,7 +3419,7 @@ namespace ImTools
                     if (splitMiddleRight != null)
                         return new Branch2(new Branch2(Left, Entry0, entryOrNewBranch), entry, new Branch2(splitMiddleRight, Entry1, Right));
 
-                    return entryOrNewBranch is Entry ? entryOrNewBranch 
+                    return entryOrNewBranch is Entry ? entryOrNewBranch
                         : new Branch3(Left, Entry0, entryOrNewBranch, Entry1, Right);
                 }
 

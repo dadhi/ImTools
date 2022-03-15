@@ -468,6 +468,31 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 |     V4_ImMap_AddOrUpdate |  1000 | 243.57 us | 3.951 us | 3.695 us |  1.00 |    0.00 | 51.2695 | 11.7188 |     - | 314.62 KB |
 | V3_ImHashMap_AddOrUpdate |  1000 | 247.76 us | 4.295 us | 4.018 us |  1.02 |    0.02 | 51.2695 | 11.7188 |     - | 316.58 KB |
 
+
+## Experiment with Br3 rebalancing
+
+|                   Method | Count |     Mean |   Error |  StdDev | Ratio | RatioSD |   Gen 0 |   Gen 1 | Gen 2 | Allocated |
+|------------------------- |------ |---------:|--------:|--------:|------:|--------:|--------:|--------:|------:|----------:|
+|     V4_ImMap_AddOrUpdate |  1000 | 195.1 us | 3.43 us | 3.21 us |  1.00 |    0.00 | 51.2695 | 12.2070 |     - | 314.09 KB |
+| V3_ImHashMap_AddOrUpdate |  1000 | 197.5 us | 1.13 us | 0.94 us |  1.01 |    0.02 | 51.5137 | 12.2070 |     - | 316.58 KB |
+
+## Experiment with Br3 and Br2 rebalancing
+
+|                   Method | Count |     Mean |   Error |  StdDev | Ratio | RatioSD |   Gen 0 |   Gen 1 | Gen 2 | Allocated |
+|------------------------- |------ |---------:|--------:|--------:|------:|--------:|--------:|--------:|------:|----------:|
+|     V4_ImMap_AddOrUpdate |  1000 | 203.4 us | 2.66 us | 2.48 us |  1.00 |    0.00 | 51.0254 |  3.6621 |     - | 313.18 KB |
+| V3_ImHashMap_AddOrUpdate |  1000 | 199.5 us | 2.76 us | 2.31 us |  0.98 |    0.02 | 51.5137 | 12.2070 |     - | 316.58 KB |
+
+## middle ground with Br2 and Br3
+
+|                   Method | Count |       Mean |     Error |    StdDev | Ratio | RatioSD |   Gen 0 |   Gen 1 | Gen 2 | Allocated |
+|------------------------- |------ |-----------:|----------:|----------:|------:|--------:|--------:|--------:|------:|----------:|
+|     V4_ImMap_AddOrUpdate |   100 |   8.684 us | 0.0933 us | 0.0780 us |  1.00 |    0.00 |  3.0670 |  0.0916 |     - |  18.79 KB |
+| V3_ImHashMap_AddOrUpdate |   100 |   8.791 us | 0.1420 us | 0.1458 us |  1.01 |    0.02 |  3.1891 |  0.1068 |     - |  19.56 KB |
+|                          |       |            |           |           |       |         |         |         |       |           |
+|     V4_ImMap_AddOrUpdate |  1000 | 207.538 us | 3.0577 us | 2.5533 us |  1.00 |    0.00 | 51.2695 | 12.2070 |     - | 314.12 KB |
+| V3_ImHashMap_AddOrUpdate |  1000 | 198.783 us | 0.9935 us | 0.7756 us |  0.96 |    0.01 | 51.5137 | 12.2070 |     - | 316.58 KB |
+
 */
             [Params(100, 1000)]
             // [Params(10)]
