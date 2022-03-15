@@ -2796,7 +2796,7 @@ namespace ImTools
                         if (Left is Leaf5Plus1Plus1 == false)
                         {
                             // first check that the new entry does not have the existing entry in the Right where we suppose to add it
-                            var oldEntry = rl511.GetEntryOrNull(hash)?.GetOrNullWithTheSameHash(entry.Key);
+                            var oldEntry = rl511.GetEntryOrNull(hash);
                             return oldEntry == null ? new Branch2Plus1(entry, this) : (ImHashMap<K, V>)oldEntry;
                         }
                         ImHashMap<K, V> splitRight = null;
@@ -2822,7 +2822,7 @@ namespace ImTools
                     {
                         if (Right is Leaf5Plus1Plus1 == false)
                         {
-                            var oldEntry = ll511.GetEntryOrNull(hash)?.GetOrNullWithTheSameHash(entry.Key);
+                            var oldEntry = ll511.GetEntryOrNull(hash);
                             return oldEntry == null ? new Branch2Plus1(entry, this) : (ImHashMap<K, V>)oldEntry;
                         }
                         ImHashMap<K, V> splitRight = null;
@@ -3160,7 +3160,7 @@ namespace ImTools
                     var newRight = right.AddOrGetEntry(hash, entry);
                     if (newRight is Entry)
                         return newRight;
-                    if ((right is Branch3 || right is Leaf5Plus1Plus1) && newRight is Branch2)
+                    if (right is Leaf5Plus1Plus1 || right is Branch3 && newRight is Branch2)
                         return new Branch2(new Branch2(Left, Entry0, Middle), Entry1, newRight); // todo: @perf can we have a dedicated shape?
                     return new Branch3(Left, Entry0, Middle, Entry1, newRight);
                 }
@@ -3172,14 +3172,11 @@ namespace ImTools
                     var newLeft = left.AddOrGetEntry(hash, entry);
                     if (newLeft is Entry)
                         return newLeft;
-                    if ((left is Branch3 || left is Leaf5Plus1Plus1) && newLeft is Branch2)
+                    if (left is Leaf5Plus1Plus1 || left is Branch3 && newLeft is Branch2)
                         return new Branch2(newLeft, Entry0, new Branch2(Middle, Entry1, Right));
                     return new Branch3(newLeft, Entry0, Middle, Entry1, Right);
                 }
 
-                // todo: @perf what if we won't balance the middle -> isn't it similar to the Finger Tree in this regard
-                // Finger Tree -> faster access to the head or tail nodes (last added or first added for the sorted addition)
-                // it will also simplify the implementation.
                 if (hash > h0 && hash < h1)
                 {
                     var middle = Middle;
@@ -3208,7 +3205,7 @@ namespace ImTools
                     var newRight = right.AddOrGetEntry(hash, entry);
                     if (newRight is Entry)
                         return newRight;
-                    if ((right is Branch3 || right is Leaf5Plus1Plus1) && newRight is Branch2)
+                    if (right is Leaf5Plus1Plus1 || right is Branch3 && newRight is Branch2)
                     {
                         entry = Entry1;
                         splitRight = newRight;
@@ -3224,7 +3221,7 @@ namespace ImTools
                     var newLeft = left.AddOrGetEntry(hash, entry);
                     if (newLeft is Entry)
                         return newLeft;
-                    if ((left is Branch3 || left is Leaf5Plus1Plus1) && newLeft is Branch2)
+                    if (left is Leaf5Plus1Plus1 || left is Branch3 && newLeft is Branch2)
                     {
                         entry = Entry0;
                         splitRight = new Branch2(Middle, Entry1, Right);
