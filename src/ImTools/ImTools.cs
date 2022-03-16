@@ -2262,7 +2262,7 @@ namespace ImTools
                 Entry0.Hash == hash ? Entry0 : Entry1.Hash == hash ? Entry1 : null;
 
             internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry) =>
-                hash == Entry0.Hash ? Entry0 : hash == Entry1.Hash ? Entry1 : (ImHashMap<K, V>)new Leaf2Plus1(entry, this);
+                hash == Entry0.Hash ? Entry0 : hash == Entry1.Hash ? Entry1 : (ImHashMap<K, V>)new Leaf2Plus(entry, this);
 
             internal override ImHashMap<K, V> ReplaceEntry(Entry oldEntry, Entry newEntry) =>
                 oldEntry == Entry0 ? new Leaf2(newEntry, Entry1) : new Leaf2(Entry0, newEntry);
@@ -2272,11 +2272,11 @@ namespace ImTools
         }
 
         /// <summary>The leaf containing the Leaf2 plus the newest added entry.</summary>
-        internal sealed class Leaf2Plus1 : ImHashMap<K, V>
+        internal sealed class Leaf2Plus : ImHashMap<K, V>
         {
             public readonly Entry Plus;
             public readonly Leaf2 L;
-            public Leaf2Plus1(Entry plus, Leaf2 leaf)
+            public Leaf2Plus(Entry plus, Leaf2 leaf)
             {
                 Plus = plus;
                 L = leaf;
@@ -2305,13 +2305,13 @@ namespace ImTools
                 if (hash == p.Hash)
                     return p;
                 Entry e0 = L.Entry0, e1 = L.Entry1;
-                return hash == e0.Hash ? e0 : hash == e1.Hash ? e1 : (ImHashMap<K, V>)new Leaf2Plus1Plus1(entry, this);
+                return hash == e0.Hash ? e0 : hash == e1.Hash ? e1 : (ImHashMap<K, V>)new Leaf2PlusPlus(entry, this);
             }
 
             internal override ImHashMap<K, V> ReplaceEntry(Entry oldEntry, Entry newEntry) =>
-                oldEntry == Plus ? new Leaf2Plus1(newEntry, L) :
-                oldEntry == L.Entry0 ? new Leaf2Plus1(Plus, new Leaf2(newEntry, L.Entry1)) :
-                                       new Leaf2Plus1(Plus, new Leaf2(L.Entry0, newEntry));
+                oldEntry == Plus ? new Leaf2Plus(newEntry, L) :
+                oldEntry == L.Entry0 ? new Leaf2Plus(Plus, new Leaf2(newEntry, L.Entry1)) :
+                                       new Leaf2Plus(Plus, new Leaf2(L.Entry0, newEntry));
 
             internal override ImHashMap<K, V> RemoveEntry(Entry removedEntry) =>
                 removedEntry == Plus ? L :
@@ -2321,12 +2321,12 @@ namespace ImTools
         }
 
         /// <summary>Leaf with the Leaf2 plus added entry, plus added entry</summary>
-        internal sealed class Leaf2Plus1Plus1 : ImHashMap<K, V>
+        internal sealed class Leaf2PlusPlus : ImHashMap<K, V>
         {
             public readonly Entry Plus;
-            public readonly Leaf2Plus1 L;
+            public readonly Leaf2Plus L;
 
-            public Leaf2Plus1Plus1(Entry plus, Leaf2Plus1 l)
+            public Leaf2PlusPlus(Entry plus, Leaf2Plus l)
             {
                 Plus = plus;
                 L = l;
@@ -2388,17 +2388,17 @@ namespace ImTools
             }
 
             internal override ImHashMap<K, V> ReplaceEntry(Entry oldEntry, Entry newEntry) =>
-                oldEntry == Plus ? new Leaf2Plus1Plus1(newEntry, L) :
-                oldEntry == L.Plus ? new Leaf2Plus1Plus1(Plus, new Leaf2Plus1(newEntry, L.L)) :
-                oldEntry == L.L.Entry0 ? new Leaf2Plus1Plus1(Plus, new Leaf2Plus1(L.Plus, new Leaf2(newEntry, L.L.Entry1))) :
-                                         new Leaf2Plus1Plus1(Plus, new Leaf2Plus1(L.Plus, new Leaf2(L.L.Entry0, newEntry)));
+                oldEntry == Plus ? new Leaf2PlusPlus(newEntry, L) :
+                oldEntry == L.Plus ? new Leaf2PlusPlus(Plus, new Leaf2Plus(newEntry, L.L)) :
+                oldEntry == L.L.Entry0 ? new Leaf2PlusPlus(Plus, new Leaf2Plus(L.Plus, new Leaf2(newEntry, L.L.Entry1))) :
+                                         new Leaf2PlusPlus(Plus, new Leaf2Plus(L.Plus, new Leaf2(L.L.Entry0, newEntry)));
 
             internal override ImHashMap<K, V> RemoveEntry(Entry removedEntry) =>
                 removedEntry == Plus ? L :
-                removedEntry == L.Plus ? new Leaf2Plus1(Plus, L.L) :
+                removedEntry == L.Plus ? new Leaf2Plus(Plus, L.L) :
                 removedEntry == L.L.Entry0 ?
-                    (L.Plus.Hash < L.L.Entry1.Hash ? new Leaf2Plus1(Plus, new Leaf2(L.Plus, L.L.Entry1)) : new Leaf2Plus1(Plus, new Leaf2(L.L.Entry1, L.Plus))) :
-                    (L.Plus.Hash < L.L.Entry0.Hash ? new Leaf2Plus1(Plus, new Leaf2(L.Plus, L.L.Entry0)) : new Leaf2Plus1(Plus, new Leaf2(L.L.Entry0, L.Plus)));
+                    (L.Plus.Hash < L.L.Entry1.Hash ? new Leaf2Plus(Plus, new Leaf2(L.Plus, L.L.Entry1)) : new Leaf2Plus(Plus, new Leaf2(L.L.Entry1, L.Plus))) :
+                    (L.Plus.Hash < L.L.Entry0.Hash ? new Leaf2Plus(Plus, new Leaf2(L.Plus, L.L.Entry0)) : new Leaf2Plus(Plus, new Leaf2(L.L.Entry0, L.Plus)));
         }
 
         /// <summary>Leaf with 5 hash-ordered entries</summary>
@@ -2439,7 +2439,7 @@ namespace ImTools
                 hash == Entry2.Hash ? Entry2 :
                 hash == Entry3.Hash ? Entry3 :
                 hash == Entry4.Hash ? Entry4 :
-                (ImHashMap<K, V>)new Leaf5Plus1(entry, this);
+                (ImHashMap<K, V>)new Leaf5Plus(entry, this);
 
             internal override ImHashMap<K, V> ReplaceEntry(Entry oldEntry, Entry newEntry) =>
                 oldEntry == Entry0 ? new Leaf5(newEntry, Entry1, Entry2, Entry3, Entry4) :
@@ -2449,20 +2449,20 @@ namespace ImTools
                                      new Leaf5(Entry0, Entry1, Entry2, Entry3, newEntry);
 
             internal override ImHashMap<K, V> RemoveEntry(Entry removedEntry) =>
-                removedEntry == Entry0 ? new Leaf2Plus1Plus1(Entry4, new Leaf2Plus1(Entry3, new Leaf2(Entry1, Entry2))) :
-                removedEntry == Entry1 ? new Leaf2Plus1Plus1(Entry4, new Leaf2Plus1(Entry3, new Leaf2(Entry0, Entry2))) :
-                removedEntry == Entry2 ? new Leaf2Plus1Plus1(Entry4, new Leaf2Plus1(Entry3, new Leaf2(Entry0, Entry1))) :
-                removedEntry == Entry3 ? new Leaf2Plus1Plus1(Entry4, new Leaf2Plus1(Entry2, new Leaf2(Entry0, Entry1))) :
-                                         new Leaf2Plus1Plus1(Entry3, new Leaf2Plus1(Entry2, new Leaf2(Entry0, Entry1)));
+                removedEntry == Entry0 ? new Leaf2PlusPlus(Entry4, new Leaf2Plus(Entry3, new Leaf2(Entry1, Entry2))) :
+                removedEntry == Entry1 ? new Leaf2PlusPlus(Entry4, new Leaf2Plus(Entry3, new Leaf2(Entry0, Entry2))) :
+                removedEntry == Entry2 ? new Leaf2PlusPlus(Entry4, new Leaf2Plus(Entry3, new Leaf2(Entry0, Entry1))) :
+                removedEntry == Entry3 ? new Leaf2PlusPlus(Entry4, new Leaf2Plus(Entry2, new Leaf2(Entry0, Entry1))) :
+                                         new Leaf2PlusPlus(Entry3, new Leaf2Plus(Entry2, new Leaf2(Entry0, Entry1)));
         }
 
         /// <summary>Leaf with 5 existing ordered entries plus 1 newly added entry.</summary>
-        internal sealed class Leaf5Plus1 : ImHashMap<K, V>
+        internal sealed class Leaf5Plus : ImHashMap<K, V>
         {
             public readonly Entry Plus;
             public readonly Leaf5 L;
 
-            public Leaf5Plus1(Entry plus, Leaf5 l)
+            public Leaf5Plus(Entry plus, Leaf5 l)
             {
                 Plus = plus;
                 L = l;
@@ -2502,21 +2502,21 @@ namespace ImTools
                     : hash == l.Entry2.Hash ? l.Entry2
                     : hash == l.Entry3.Hash ? l.Entry3
                     : hash == l.Entry4.Hash ? l.Entry4
-                    : (ImHashMap<K, V>)new Leaf5Plus1Plus1(entry, this);
+                    : (ImHashMap<K, V>)new Leaf5PlusPlus(entry, this);
             }
 
             internal override ImHashMap<K, V> ReplaceEntry(Entry oldEntry, Entry newEntry)
             {
                 var p = Plus;
                 if (oldEntry == p)
-                    return new Leaf5Plus1(newEntry, L);
+                    return new Leaf5Plus(newEntry, L);
                 var l = L;
                 Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4;
-                return oldEntry == e0 ? new Leaf5Plus1(p, new Leaf5(newEntry, e1, e2, e3, e4))
-                    : oldEntry == e1 ? new Leaf5Plus1(p, new Leaf5(e0, newEntry, e2, e3, e4))
-                    : oldEntry == e2 ? new Leaf5Plus1(p, new Leaf5(e0, e1, newEntry, e3, e4))
-                    : oldEntry == e3 ? new Leaf5Plus1(p, new Leaf5(e0, e1, e2, newEntry, e4))
-                    : new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3, newEntry));
+                return oldEntry == e0 ? new Leaf5Plus(p, new Leaf5(newEntry, e1, e2, e3, e4))
+                    : oldEntry == e1 ? new Leaf5Plus(p, new Leaf5(e0, newEntry, e2, e3, e4))
+                    : oldEntry == e2 ? new Leaf5Plus(p, new Leaf5(e0, e1, newEntry, e3, e4))
+                    : oldEntry == e3 ? new Leaf5Plus(p, new Leaf5(e0, e1, e2, newEntry, e4))
+                    : new Leaf5Plus(p, new Leaf5(e0, e1, e2, e3, newEntry));
             }
 
             internal override ImHashMap<K, V> RemoveEntry(Entry removedEntry)
@@ -2539,11 +2539,11 @@ namespace ImTools
         }
 
         /// <summary>Leaf with 5 existing ordered entries plus 1 newly added, plus 1 newly added.</summary>
-        internal sealed class Leaf5Plus1Plus1 : ImHashMap<K, V>
+        internal sealed class Leaf5PlusPlus : ImHashMap<K, V>
         {
             public readonly Entry Plus;
-            public readonly Leaf5Plus1 L;
-            public Leaf5Plus1Plus1(Entry plus, Leaf5Plus1 l)
+            public readonly Leaf5Plus L;
+            public Leaf5PlusPlus(Entry plus, Leaf5Plus l)
             {
                 Plus = plus;
                 L = l;
@@ -2666,31 +2666,31 @@ namespace ImTools
             {
                 var p = Plus;
                 if (p == oldEntry)
-                    return new Leaf5Plus1Plus1(newEntry, L);
+                    return new Leaf5PlusPlus(newEntry, L);
 
                 var pp = L.Plus;
                 if (pp == oldEntry)
-                    return new Leaf5Plus1Plus1(p, new Leaf5Plus1(newEntry, L.L));
+                    return new Leaf5PlusPlus(p, new Leaf5Plus(newEntry, L.L));
 
                 var l = L.L;
                 Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4;
                 return
-                    oldEntry == e0 ? new Leaf5Plus1Plus1(p, new Leaf5Plus1(pp, new Leaf5(newEntry, e1, e2, e3, e4))) :
-                    oldEntry == e1 ? new Leaf5Plus1Plus1(p, new Leaf5Plus1(pp, new Leaf5(e0, newEntry, e2, e3, e4))) :
-                    oldEntry == e2 ? new Leaf5Plus1Plus1(p, new Leaf5Plus1(pp, new Leaf5(e0, e1, newEntry, e3, e4))) :
-                    oldEntry == e3 ? new Leaf5Plus1Plus1(p, new Leaf5Plus1(pp, new Leaf5(e0, e1, e2, newEntry, e4))) :
-                                     new Leaf5Plus1Plus1(p, new Leaf5Plus1(pp, new Leaf5(e0, e1, e2, e3, newEntry)));
+                    oldEntry == e0 ? new Leaf5PlusPlus(p, new Leaf5Plus(pp, new Leaf5(newEntry, e1, e2, e3, e4))) :
+                    oldEntry == e1 ? new Leaf5PlusPlus(p, new Leaf5Plus(pp, new Leaf5(e0, newEntry, e2, e3, e4))) :
+                    oldEntry == e2 ? new Leaf5PlusPlus(p, new Leaf5Plus(pp, new Leaf5(e0, e1, newEntry, e3, e4))) :
+                    oldEntry == e3 ? new Leaf5PlusPlus(p, new Leaf5Plus(pp, new Leaf5(e0, e1, e2, newEntry, e4))) :
+                                     new Leaf5PlusPlus(p, new Leaf5Plus(pp, new Leaf5(e0, e1, e2, e3, newEntry)));
             }
 
             internal ImHashMap<K, V> RemoveMinHashEntryAndAddNewEntry(Entry minEntry, Entry newEntry)
             {
                 var p = Plus;
                 if (p == minEntry)
-                    return new Leaf5Plus1Plus1(newEntry, L);
+                    return new Leaf5PlusPlus(newEntry, L);
 
                 var pp = L.Plus;
                 if (pp == minEntry)
-                    return new Leaf5Plus1Plus1(p, new Leaf5Plus1(newEntry, L.L));
+                    return new Leaf5PlusPlus(p, new Leaf5Plus(newEntry, L.L));
 
                 var l = L.L;
                 Entry e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4;
@@ -2701,18 +2701,18 @@ namespace ImTools
                 : hash < e4.Hash ? new Leaf5(e1, e2, e3, newEntry, e4)
                 : new Leaf5(e1, e2, e3, e4, newEntry);
 
-                return new Leaf5Plus1Plus1(p, new Leaf5Plus1(pp, l));
+                return new Leaf5PlusPlus(p, new Leaf5Plus(pp, l));
             }
 
             internal ImHashMap<K, V> RemoveMaxHashEntryAndAddNewEntry(Entry maxEntry, Entry newEntry)
             {
                 var p = Plus;
                 if (p == maxEntry)
-                    return new Leaf5Plus1Plus1(newEntry, L);
+                    return new Leaf5PlusPlus(newEntry, L);
 
                 var pp = L.Plus;
                 if (pp == maxEntry)
-                    return new Leaf5Plus1Plus1(p, new Leaf5Plus1(newEntry, L.L));
+                    return new Leaf5PlusPlus(p, new Leaf5Plus(newEntry, L.L));
 
                 var l = L.L;
                 Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3;
@@ -2723,7 +2723,7 @@ namespace ImTools
                 : hash < e3.Hash ? new Leaf5(e0, e1, e2, newEntry, e3)
                 : new Leaf5(e0, e1, e2, e3, newEntry);
 
-                return new Leaf5Plus1Plus1(p, new Leaf5Plus1(pp, l));
+                return new Leaf5PlusPlus(p, new Leaf5Plus(pp, l));
             }
 
             internal override ImHashMap<K, V> RemoveEntry(Entry removedEntry)
@@ -2734,7 +2734,7 @@ namespace ImTools
 
                 var pp = L.Plus;
                 if (pp == removedEntry)
-                    return new Leaf5Plus1(p, L.L);
+                    return new Leaf5Plus(p, L.L);
 
                 var l = L.L;
                 Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4;
@@ -2743,13 +2743,13 @@ namespace ImTools
                 ImHashMap.InsertInOrder(pph, ref pp, ref e0, ref e1, ref e2, ref e3, ref e4);
                 ImHashMap.InsertInOrder(ph, ref p, ref e0, ref e1, ref e2, ref e3, ref e4, ref pp);
 
-                return removedEntry == e0 ? new Leaf5Plus1(p, new Leaf5(e1, e2, e3, e4, pp))
-                    : removedEntry == e1 ? new Leaf5Plus1(p, new Leaf5(e0, e2, e3, e4, pp))
-                    : removedEntry == e2 ? new Leaf5Plus1(p, new Leaf5(e0, e1, e3, e4, pp))
-                    : removedEntry == e3 ? new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e4, pp))
-                    : removedEntry == e4 ? new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3, pp))
-                    : removedEntry == pp ? new Leaf5Plus1(p, new Leaf5(e0, e1, e2, e3, e4))
-                    : new Leaf5Plus1(pp, new Leaf5(e0, e1, e2, e3, e4));
+                return removedEntry == e0 ? new Leaf5Plus(p, new Leaf5(e1, e2, e3, e4, pp))
+                    : removedEntry == e1 ? new Leaf5Plus(p, new Leaf5(e0, e2, e3, e4, pp))
+                    : removedEntry == e2 ? new Leaf5Plus(p, new Leaf5(e0, e1, e3, e4, pp))
+                    : removedEntry == e3 ? new Leaf5Plus(p, new Leaf5(e0, e1, e2, e4, pp))
+                    : removedEntry == e4 ? new Leaf5Plus(p, new Leaf5(e0, e1, e2, e3, pp))
+                    : removedEntry == pp ? new Leaf5Plus(p, new Leaf5(e0, e1, e2, e3, e4))
+                    : new Leaf5Plus(pp, new Leaf5(e0, e1, e2, e3, e4));
             }
         }
 
@@ -2790,10 +2790,10 @@ namespace ImTools
                 if (hash > me.Hash)
                 {
                     var right = Right;
-                    if (right is Leaf5Plus1Plus1 rl511)
+                    if (right is Leaf5PlusPlus rl511)
                     {
                         // optimizing the split by postponing it by introducing the branch 2 plus 1
-                        if (Left is Leaf5Plus1Plus1 == false)
+                        if (Left is Leaf5PlusPlus == false)
                         {
                             // first check that the new entry does not have the existing entry in the Right where we suppose to add it
                             var oldEntry = rl511.GetEntryOrNull(hash);
@@ -2818,9 +2818,9 @@ namespace ImTools
                 if (hash < me.Hash)
                 {
                     var left = Left;
-                    if (left is Leaf5Plus1Plus1 ll511)
+                    if (left is Leaf5PlusPlus ll511)
                     {
-                        if (Right is Leaf5Plus1Plus1 == false)
+                        if (Right is Leaf5PlusPlus == false)
                         {
                             var oldEntry = ll511.GetEntryOrNull(hash);
                             return oldEntry == null ? new Branch2Plus1(entry, this) : (ImHashMap<K, V>)oldEntry;
@@ -2868,7 +2868,7 @@ namespace ImTools
                     if (Right is Entry)
                     {
                         // if the left node is not full yet then merge
-                        if (Left is Leaf5Plus1Plus1 == false)
+                        if (Left is Leaf5PlusPlus == false)
                             return Left.AddOrGetEntry(mid.Hash, mid);
                         removedEntry = Left.GetMaxHashEntryOrDefault(); // todo: @perf combine `GetMaxHashEntryOrDefault` with `RemoveEntry`
                         return new Branch2(Left.RemoveEntry(removedEntry), removedEntry, mid); //! the height does not change
@@ -2902,7 +2902,7 @@ namespace ImTools
                 var newLeft = Left.RemoveEntry(removedEntry);
                 if (newLeft == Empty)
                 {
-                    if (Right is Leaf5Plus1Plus1 == false)
+                    if (Right is Leaf5PlusPlus == false)
                         return Right.AddOrGetEntry(mid.Hash, mid);
                     removedEntry = Right.GetMinHashEntryOrDefault();
                     return new Branch2(mid, removedEntry, Right.RemoveEntry(removedEntry)); //! the height does not change
@@ -2949,7 +2949,7 @@ namespace ImTools
             {
                 var b = B;
                 var m = b.MidEntry;
-                var l511 = b.Left as Leaf5Plus1Plus1;
+                var l511 = b.Left as Leaf5PlusPlus;
                 if (l511 != null)
                 {
                     newRight = b.Right.AddOrGetEntry(m.Hash, m); // @perf replace with the AddEntry method
@@ -2960,7 +2960,7 @@ namespace ImTools
                     return l511;
                 }
 
-                newRight = l511 = (Leaf5Plus1Plus1)b.Right;
+                newRight = l511 = (Leaf5PlusPlus)b.Right;
                 newMid = l511.GetMinHashEntryOrDefault();
                 if (newMid.Hash < Plus.Hash)
                     newRight = l511.RemoveMinHashEntryAndAddNewEntry(newMid, Plus);
@@ -3004,7 +3004,7 @@ namespace ImTools
                 {
                     var right = b.Right;
                     ImHashMap<K, V> splitRight = null;
-                    if (right is Leaf5Plus1Plus1 rl)
+                    if (right is Leaf5PlusPlus rl)
                     {
                         entryOrNewBranch = rl.AddOrGetEntry(hash, ref entry, ref splitRight);
                         if (entryOrNewBranch is Entry)
@@ -3013,8 +3013,8 @@ namespace ImTools
                         // we know that the `splitRight` is not null because otherwise it would not be Branch2Plus1 in the first place 
                         Debug.Assert(ph > m.Hash, "Because right was on the verge of balance and the fact that the other branch is not on the verge was the reason of Branch2Plus1 creation");
                         return ph > entry.Hash
-                            ? new Branch3(b.Left, m, entryOrNewBranch, entry, splitRight is Leaf2 l2 ? new Leaf2Plus1(Plus, l2) : (ImHashMap<K, V>)new Leaf5Plus1(Plus, (Leaf5)splitRight))
-                            : new Branch3(b.Left, m, entryOrNewBranch is Leaf5 l5 ? new Leaf5Plus1(Plus, l5) : (ImHashMap<K, V>)new Leaf2Plus1(Plus, (Leaf2)entryOrNewBranch), entry, splitRight);
+                            ? new Branch3(b.Left, m, entryOrNewBranch, entry, splitRight is Leaf2 l2 ? new Leaf2Plus(Plus, l2) : (ImHashMap<K, V>)new Leaf5Plus(Plus, (Leaf5)splitRight))
+                            : new Branch3(b.Left, m, entryOrNewBranch is Leaf5 l5 ? new Leaf5Plus(Plus, l5) : (ImHashMap<K, V>)new Leaf2Plus(Plus, (Leaf2)entryOrNewBranch), entry, splitRight);
                     }
 
                     // right is not on the verge, then the Plus would be added to the left
@@ -3023,7 +3023,7 @@ namespace ImTools
                         return entryOrNewBranch;
 
                     entry = Plus;
-                    var newLeft = ((Leaf5Plus1Plus1)b.Left).AddEntry(ph, ref entry, ref splitRight);
+                    var newLeft = ((Leaf5PlusPlus)b.Left).AddEntry(ph, ref entry, ref splitRight);
                     return new Branch3(newLeft, entry, splitRight, m, entryOrNewBranch);
                 }
 
@@ -3031,15 +3031,15 @@ namespace ImTools
                 {
                     var left = b.Left;
                     ImHashMap<K, V> splitRight = null;
-                    if (left is Leaf5Plus1Plus1 ll)
+                    if (left is Leaf5PlusPlus ll)
                     {
                         entryOrNewBranch = ll.AddOrGetEntry(hash, ref entry, ref splitRight);
                         if (entryOrNewBranch is Entry)
                             return entryOrNewBranch; // we know that the `r` is Leaf so the only possibility why `splitRight` is null because the same hash entry is found
 
                         return ph < entry.Hash
-                            ? new Branch3(entryOrNewBranch is Leaf5 l5 ? new Leaf5Plus1(Plus, l5) : (ImHashMap<K, V>)new Leaf2Plus1(Plus, (Leaf2)entryOrNewBranch), entry, splitRight, m, b.Right)
-                            : new Branch3(entryOrNewBranch, entry, splitRight is Leaf2 l2 ? new Leaf2Plus1(Plus, l2) : (ImHashMap<K, V>)new Leaf5Plus1(Plus, (Leaf5)splitRight), m, b.Right);
+                            ? new Branch3(entryOrNewBranch is Leaf5 l5 ? new Leaf5Plus(Plus, l5) : (ImHashMap<K, V>)new Leaf2Plus(Plus, (Leaf2)entryOrNewBranch), entry, splitRight, m, b.Right)
+                            : new Branch3(entryOrNewBranch, entry, splitRight is Leaf2 l2 ? new Leaf2Plus(Plus, l2) : (ImHashMap<K, V>)new Leaf5Plus(Plus, (Leaf5)splitRight), m, b.Right);
                     }
 
                     entryOrNewBranch = left.AddOrGetEntry(hash, entry);
@@ -3047,7 +3047,7 @@ namespace ImTools
                         return entryOrNewBranch;
 
                     entry = Plus;
-                    var newMiddle = ((Leaf5Plus1Plus1)b.Right).AddEntry(ph, ref entry, ref splitRight);
+                    var newMiddle = ((Leaf5PlusPlus)b.Right).AddEntry(ph, ref entry, ref splitRight);
                     return new Branch3(entryOrNewBranch, m, newMiddle, entry, splitRight);
                 }
 
@@ -3065,14 +3065,14 @@ namespace ImTools
                 Entry p = Plus, m = b.MidEntry;
                 if (removedEntry == m)
                 {
-                    if (b.Right is Leaf5Plus1Plus1 rl)
+                    if (b.Right is Leaf5PlusPlus rl)
                     {
                         var rightMin = rl.GetMinHashEntryOrDefault();
                         return rightMin.Hash > p.Hash
                             ? new Branch2(b.Left, p, rl)
                             : new Branch2(b.Left, rightMin, rl.RemoveMinHashEntryAndAddNewEntry(rightMin, p));
                     }
-                    var ll = (Leaf5Plus1Plus1)b.Left;
+                    var ll = (Leaf5PlusPlus)b.Left;
                     var leftMax = ll.GetMaxHashEntryOrDefault();
                     return leftMax.Hash < p.Hash
                         ? new Branch2(ll, p, b.Right)
@@ -3081,12 +3081,12 @@ namespace ImTools
 
                 if (removedEntry.Hash > m.Hash)
                 {
-                    if (b.Right is Leaf5Plus1Plus1 rl)
+                    if (b.Right is Leaf5PlusPlus rl)
                         return new Branch2(b.Left, m, rl.RemoveEntry(removedEntry).AddOrGetEntry(p.Hash, p));
                     var newRight = b.Right.RemoveEntry(removedEntry);
                     if (newRight == Empty)
                     {
-                        var ll = (Leaf5Plus1Plus1)b.Left;
+                        var ll = (Leaf5PlusPlus)b.Left;
                         var leftMax = ll.GetMaxHashEntryOrDefault();
                         return leftMax.Hash < p.Hash
                             ? new Branch2(ll.RemoveEntry(leftMax), leftMax, p)
@@ -3095,12 +3095,12 @@ namespace ImTools
                     return new Branch2Plus1(p, new Branch2(b.Left, m, newRight));
                 }
                 {
-                    if (b.Left is Leaf5Plus1Plus1 ll)
+                    if (b.Left is Leaf5PlusPlus ll)
                         return new Branch2(ll.RemoveEntry(removedEntry).AddOrGetEntry(p.Hash, p), m, b.Right);
                     var newLeft = b.Left.RemoveEntry(removedEntry);
                     if (newLeft == Empty)
                     {
-                        var rl = (Leaf5Plus1Plus1)b.Right;
+                        var rl = (Leaf5PlusPlus)b.Right;
                         var rightMin = rl.GetMinHashEntryOrDefault();
                         return rightMin.Hash > p.Hash
                             ? new Branch2(p, rightMin, rl.RemoveEntry(rightMin))
@@ -3160,7 +3160,7 @@ namespace ImTools
                     var newRight = right.AddOrGetEntry(hash, entry);
                     if (newRight is Entry)
                         return newRight;
-                    if (right is Leaf5Plus1Plus1 || right is Branch3 && newRight is Branch2)
+                    if (right is Leaf5PlusPlus || right is Branch3 && newRight is Branch2)
                         return new Branch2(new Branch2(Left, Entry0, Middle), Entry1, newRight); // todo: @perf can we have a dedicated shape?
                     return new Branch3(Left, Entry0, Middle, Entry1, newRight);
                 }
@@ -3172,7 +3172,7 @@ namespace ImTools
                     var newLeft = left.AddOrGetEntry(hash, entry);
                     if (newLeft is Entry)
                         return newLeft;
-                    if (left is Leaf5Plus1Plus1 || left is Branch3 && newLeft is Branch2)
+                    if (left is Leaf5PlusPlus || left is Branch3 && newLeft is Branch2)
                         return new Branch2(newLeft, Entry0, new Branch2(Middle, Entry1, Right));
                     return new Branch3(newLeft, Entry0, Middle, Entry1, Right);
                 }
@@ -3183,7 +3183,7 @@ namespace ImTools
                     ImHashMap<K, V> splitMiddleRight = null;
                     var entryOrNewBranch =
                         middle is Branch3 mb3 ? mb3.AddOrGetEntry(hash, ref entry, ref splitMiddleRight) :
-                        middle is Leaf5Plus1Plus1 ml511 ? ml511.AddOrGetEntry(hash, ref entry, ref splitMiddleRight) :
+                        middle is Leaf5PlusPlus ml511 ? ml511.AddOrGetEntry(hash, ref entry, ref splitMiddleRight) :
                         middle.AddOrGetEntry(hash, entry);
 
                     if (splitMiddleRight != null)
@@ -3205,7 +3205,7 @@ namespace ImTools
                     var newRight = right.AddOrGetEntry(hash, entry);
                     if (newRight is Entry)
                         return newRight;
-                    if (right is Leaf5Plus1Plus1 || right is Branch3 && newRight is Branch2)
+                    if (right is Leaf5PlusPlus || right is Branch3 && newRight is Branch2)
                     {
                         entry = Entry1;
                         splitRight = newRight;
@@ -3221,7 +3221,7 @@ namespace ImTools
                     var newLeft = left.AddOrGetEntry(hash, entry);
                     if (newLeft is Entry)
                         return newLeft;
-                    if (left is Leaf5Plus1Plus1 || left is Branch3 && newLeft is Branch2)
+                    if (left is Leaf5PlusPlus || left is Branch3 && newLeft is Branch2)
                     {
                         entry = Entry0;
                         splitRight = new Branch2(Middle, Entry1, Right);
@@ -3235,7 +3235,7 @@ namespace ImTools
                 {
                     var middle = Middle;
                     ImHashMap<K, V> entryOrNewBranch = null, splitMiddleRight = null;
-                    if (middle is Leaf5Plus1Plus1 ml511)
+                    if (middle is Leaf5PlusPlus ml511)
                     {
                         entryOrNewBranch = ml511.AddOrGetEntry(hash, ref entry, ref splitMiddleRight);
                         if (splitMiddleRight == null)
@@ -3285,7 +3285,7 @@ namespace ImTools
                     var newLeft = Left.RemoveEntry(removedEntry);
                     if (newLeft == Empty)
                     {
-                        if (middle is Leaf5Plus1Plus1 == false)
+                        if (middle is Leaf5PlusPlus == false)
                             return new Branch2(middle.AddOrGetEntry(midLeft.Hash, midLeft), midRight, right); //! the height does not change
                         return new Branch3(midLeft, removedEntry = middle.GetMinHashEntryOrDefault(), middle.RemoveEntry(removedEntry), midRight, right); //! the height does not change
                     }
@@ -3316,7 +3316,7 @@ namespace ImTools
                     var newMiddle = middle.RemoveEntry(removedEntry);
                     if (newMiddle == Empty)
                     {
-                        if (right is Leaf5Plus1Plus1 == false)
+                        if (right is Leaf5PlusPlus == false)
                             return new Branch2(Left, midLeft, right.AddOrGetEntry(midRight.Hash, midRight)); // the Br3 become the Br2 but the height did not change - so no rebalance needed
                         return new Branch3(Left, midLeft, midRight, removedEntry = right.GetMinHashEntryOrDefault(), right.RemoveEntry(removedEntry)); //! the height does not change
                     }
@@ -3341,7 +3341,7 @@ namespace ImTools
                 var newRight = right.RemoveEntry(removedEntry);
                 if (newRight == Empty)
                 {
-                    if (middle is Leaf5Plus1Plus1 == false)
+                    if (middle is Leaf5PlusPlus == false)
                         return new Branch2(Left, midLeft, middle.AddOrGetEntry(midRight.Hash, midRight));
                     return new Branch3(Left, midLeft, middle.RemoveEntry(removedEntry = middle.GetMaxHashEntryOrDefault()), removedEntry, midRight);
                 }
@@ -3744,7 +3744,7 @@ namespace ImTools
             /// <inheritdoc />
             public bool MoveNext()
             {
-                ImHashMap<K, V>.Leaf5Plus1Plus1 b21FullLeaf511;
+                ImHashMap<K, V>.Leaf5PlusPlus b21FullLeaf511;
                 switch (_state)
                 {
                     case 0:
@@ -3760,7 +3760,7 @@ namespace ImTools
                         _current = null;
                         return false;
                     case 2:
-                        b21FullLeaf511 = (ImHashMap<K, V>.Leaf5Plus1Plus1)_b21LeftWasEnumerated.B.Right;
+                        b21FullLeaf511 = (ImHashMap<K, V>.Leaf5PlusPlus)_b21LeftWasEnumerated.B.Right;
                         _g = _b21LeftWasEnumerated.Plus;
                         _b21LeftWasEnumerated = null;
                         _map = ImHashMap<K, V>.Empty;
@@ -3923,14 +3923,14 @@ namespace ImTools
 
                 var branch2Plus1 = (ImHashMap<K, V>.Branch2Plus1)_map;
                 var b21b = branch2Plus1.B;
-                if (b21b.Right is ImHashMap<K, V>.Leaf5Plus1Plus1)
+                if (b21b.Right is ImHashMap<K, V>.Leaf5PlusPlus)
                 {
                     _b21LeftWasEnumerated = branch2Plus1;
                     _map = b21b.Left;
                     goto B21NotFilledLeftLeafLabel;
                 }
 
-                b21FullLeaf511 = (ImHashMap<K, V>.Leaf5Plus1Plus1)b21b.Left;
+                b21FullLeaf511 = (ImHashMap<K, V>.Leaf5PlusPlus)b21b.Left;
                 _h = b21b.MidEntry;
                 _g = branch2Plus1.Plus;
                 _map = b21b.Right;
@@ -3967,7 +3967,7 @@ namespace ImTools
                     return SetCurrentAndState(l2.Entry0, 12, 43);
                 }
 
-                if (_map is ImHashMap<K, V>.Leaf2Plus1 l21)
+                if (_map is ImHashMap<K, V>.Leaf2Plus l21)
                 {
                     var l = l21.L;
                     ImHashMap<K, V>.Entry e0 = l.Entry0;
@@ -3980,7 +3980,7 @@ namespace ImTools
                 if (_hc != null)
                     return SetCurrentAndState(14, 44);
 
-                if (_map is ImHashMap<K, V>.Leaf2Plus1Plus1 l211)
+                if (_map is ImHashMap<K, V>.Leaf2PlusPlus l211)
                 {
                     var l1 = l211.L.L;
                     ImHashMap<K, V>.Entry e0 = l1.Entry0;
@@ -4007,7 +4007,7 @@ namespace ImTools
                 if (_hc != null)
                     return SetCurrentAndState(21, 46);
 
-                if (_map is ImHashMap<K, V>.Leaf5Plus1 l51)
+                if (_map is ImHashMap<K, V>.Leaf5Plus l51)
                 {
                     var leaf5 = l51.L;
                     ImHashMap<K, V>.Entry e0 = leaf5.Entry0;
@@ -4023,7 +4023,7 @@ namespace ImTools
                 if (_hc != null)
                     return SetCurrentAndState(26, 47);
 
-                if (_map is ImHashMap<K, V>.Leaf5Plus1Plus1 l511)
+                if (_map is ImHashMap<K, V>.Leaf5PlusPlus l511)
                 {
                     var leaf51 = l511.L.L;
                     ImHashMap<K, V>.Entry e0 = leaf51.Entry0;
@@ -4095,13 +4095,13 @@ namespace ImTools
 
                 if (b21LeftWasEnumerated != null || map is ImHashMap<K, V>.Branch2Plus1)
                 {
-                    ImHashMap<K, V>.Leaf5Plus1Plus1 l511 = null;
+                    ImHashMap<K, V>.Leaf5PlusPlus l511 = null;
                     ImHashMap<K, V>.Entry pl = null, mid = null;
                     if (b21LeftWasEnumerated != null)
                     {
                         i = b21LeftWasEnumerated.B.MidEntry.ForEach(state, i, handler);
 
-                        l511 = (ImHashMap<K, V>.Leaf5Plus1Plus1)b21LeftWasEnumerated.B.Right;
+                        l511 = (ImHashMap<K, V>.Leaf5PlusPlus)b21LeftWasEnumerated.B.Right;
                         pl = b21LeftWasEnumerated.Plus;
                         b21LeftWasEnumerated = null; // we done with the branch
                         map = ImHashMap<K, V>.Empty;     // forcing to skip leaves below
@@ -4109,14 +4109,14 @@ namespace ImTools
                     else
                     {
                         var b21 = (ImHashMap<K, V>.Branch2Plus1)map;
-                        if (b21.B.Right is ImHashMap<K, V>.Leaf5Plus1Plus1) // so we need to enumerate the left as a normal branch2 with the code below.
+                        if (b21.B.Right is ImHashMap<K, V>.Leaf5PlusPlus) // so we need to enumerate the left as a normal branch2 with the code below.
                         {
                             b21LeftWasEnumerated = b21;
                             map = b21.B.Left;
                         }
                         else // we need to sort out the left side with Plus entry
                         {
-                            l511 = (ImHashMap<K, V>.Leaf5Plus1Plus1)b21.B.Left;
+                            l511 = (ImHashMap<K, V>.Leaf5PlusPlus)b21.B.Left;
                             mid = b21.B.MidEntry;
                             pl = b21.Plus;
                             map = b21.B.Right; // it is a leaf so, no need to continue, just proceed with the leafs below
@@ -4215,7 +4215,7 @@ namespace ImTools
                     i = l2.Entry0.ForEach(state, i, handler);
                     i = l2.Entry1.ForEach(state, i, handler);
                 }
-                else if (map is ImHashMap<K, V>.Leaf2Plus1 l21)
+                else if (map is ImHashMap<K, V>.Leaf2Plus l21)
                 {
                     var l = l21.L;
                     ImHashMap<K, V>.Entry e0 = l.Entry0, e1 = l.Entry1, pp = l21.Plus, swap = null;
@@ -4230,7 +4230,7 @@ namespace ImTools
                     i = e1.ForEach(state, i, handler);
                     i = pp.ForEach(state, i, handler);
                 }
-                else if (map is ImHashMap<K, V>.Leaf2Plus1Plus1 l211)
+                else if (map is ImHashMap<K, V>.Leaf2PlusPlus l211)
                 {
                     var l = l211.L.L;
                     ImHashMap<K, V>.Entry e0 = l.Entry0, e1 = l.Entry1, pp = l211.L.Plus, p = l211.Plus, swap = null;
@@ -4265,7 +4265,7 @@ namespace ImTools
                     i = l5.Entry3.ForEach(state, i, handler);
                     i = l5.Entry4.ForEach(state, i, handler);
                 }
-                else if (map is ImHashMap<K, V>.Leaf5Plus1 l51)
+                else if (map is ImHashMap<K, V>.Leaf5Plus l51)
                 {
                     var l = l51.L;
                     ImHashMap<K, V>.Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, pp = l51.Plus, swap = null;
@@ -4295,7 +4295,7 @@ namespace ImTools
                     i = e4.ForEach(state, i, handler);
                     i = pp.ForEach(state, i, handler);
                 }
-                else if (map is ImHashMap<K, V>.Leaf5Plus1Plus1 l511)
+                else if (map is ImHashMap<K, V>.Leaf5PlusPlus l511)
                 {
                     var l = l511.L.L;
                     ImHashMap<K, V>.Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, p = l511.Plus, pp = l511.L.Plus, swap = null;
