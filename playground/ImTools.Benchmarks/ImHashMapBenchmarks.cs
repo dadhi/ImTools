@@ -468,6 +468,20 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 |     V4_ImMap_AddOrUpdate |  1000 | 243.57 us | 3.951 us | 3.695 us |  1.00 |    0.00 | 51.2695 | 11.7188 |     - | 314.62 KB |
 | V3_ImHashMap_AddOrUpdate |  1000 | 247.76 us | 4.295 us | 4.018 us |  1.02 |    0.02 | 51.2695 | 11.7188 |     - | 316.58 KB |
 
+BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
+Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical cores
+.NET Core SDK=6.0.102
+  [Host]     : .NET Core 6.0.2 (CoreCLR 6.0.222.6406, CoreFX 6.0.222.6406), X64 RyuJIT
+  DefaultJob : .NET Core 6.0.2 (CoreCLR 6.0.222.6406, CoreFX 6.0.222.6406), X64 RyuJIT
+
+
+|                   Method | Count |      Mean |     Error |    StdDev |    Median | Ratio | RatioSD |    Gen 0 | Gen 1 | Gen 2 | Allocated |
+|------------------------- |------ |----------:|----------:|----------:|----------:|------:|--------:|---------:|------:|------:|----------:|
+|     V4_ImMap_AddOrUpdate |   100 |  13.07 us |  0.261 us |  0.702 us |  12.85 us |  1.00 |    0.00 |   5.5542 |     - |     - |  17.08 KB |
+| V3_ImHashMap_AddOrUpdate |   100 |  11.18 us |  0.221 us |  0.574 us |  10.99 us |  0.86 |    0.07 |   6.3782 |     - |     - |  19.56 KB |
+|                          |       |           |           |           |           |       |         |          |       |       |           |
+|     V4_ImMap_AddOrUpdate |  1000 | 565.93 us | 10.628 us | 27.622 us | 557.33 us |  1.00 |    0.00 |  88.8672 |     - |     - | 274.56 KB |
+| V3_ImHashMap_AddOrUpdate |  1000 | 284.12 us |  5.669 us | 11.708 us | 280.45 us |  0.50 |    0.03 | 103.0273 |     - |     - | 316.58 KB |
 */
             [Params(100, 1000)]
             // [Params(10)]
