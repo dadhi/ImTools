@@ -3155,7 +3155,11 @@ namespace ImTools
                     if (right is Leaf5PlusPlus || right is Branch3Base && newRight is Branch2)
                         return new Branch2(new Branch2(Left, Entry0, Middle), Entry1, newRight);
 
-                    return new Branch3Right(this is Branch3Right br ? br.Br3 : this, newRight);
+                    if (this is Branch3)
+                        return new Branch3Right(this, newRight);
+                    if (this is Branch3Right br)
+                        return new Branch3Right(br.Br3, newRight);
+                    return new Branch3(Left, Entry0, Middle, Entry1, newRight);
                 }
 
                 var h0 = Entry0.Hash;
@@ -3167,23 +3171,32 @@ namespace ImTools
                         return newLeft;
                     if (left is Leaf5PlusPlus || left is Branch3Base && newLeft is Branch2)
                         return new Branch2(newLeft, Entry0, new Branch2(Middle, Entry1, Right));
-                    return new Branch3Left(this is Branch3Left bl ? bl.Br3 : this, newLeft);
+                    if (this is Branch3)
+                        return new Branch3Left(this, newLeft);
+                    if (this is Branch3Left br)
+                        return new Branch3Left(br.Br3, newLeft);
+                    return new Branch3(newLeft, Entry0, Middle, Entry1, Right);
                 }
 
                 if (hash > h0 && hash < h1)
                 {
                     var middle = Middle;
                     ImHashMap<K, V> splitMiddleRight = null;
-                    var entryOrNewBranch =
+                    var newMiddle =
                         middle is Branch3Base mb3 ? mb3.AddOrGetEntry(hash, ref entry, ref splitMiddleRight) :
                         middle is Leaf5PlusPlus ml511 ? ml511.AddOrGetEntry(hash, ref entry, ref splitMiddleRight) :
                         middle.AddOrGetEntry(hash, entry);
 
                     if (splitMiddleRight != null)
-                        return new Branch2(new Branch2(Left, Entry0, entryOrNewBranch), entry, new Branch2(splitMiddleRight, Entry1, Right));
+                        return new Branch2(new Branch2(Left, Entry0, newMiddle), entry, new Branch2(splitMiddleRight, Entry1, Right));
 
-                    return entryOrNewBranch is Entry ? entryOrNewBranch 
-                        : new Branch3Middle(this is Branch3Middle bm ? bm.Br3 : this, entryOrNewBranch);
+                    if (newMiddle is Entry) 
+                        return newMiddle; 
+                    if (this is Branch3)
+                        return new Branch3Middle(this, newMiddle);
+                    if (this is Branch3Middle br)
+                        return new Branch3Middle(br.Br3, newMiddle);
+                    return new Branch3(Left, Entry0, newMiddle, Entry1, Right);
                 }
 
                 return hash == h0 ? Entry0 : Entry1;

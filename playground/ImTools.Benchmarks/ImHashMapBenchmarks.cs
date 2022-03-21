@@ -482,8 +482,16 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 |                          |       |           |           |           |           |       |         |          |       |       |           |
 |     V4_ImMap_AddOrUpdate |  1000 | 565.93 us | 10.628 us | 27.622 us | 557.33 us |  1.00 |    0.00 |  88.8672 |     - |     - | 274.56 KB |
 | V3_ImHashMap_AddOrUpdate |  1000 | 284.12 us |  5.669 us | 11.708 us | 280.45 us |  0.50 |    0.03 | 103.0273 |     - |     - | 316.58 KB |
+
+
+### Flatten things to the better
+
+|                   Method | Count |     Mean |    Error |   StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|------------------------- |------ |---------:|---------:|---------:|------:|--------:|-------:|------:|------:|----------:|
+|     V4_ImMap_AddOrUpdate |   100 | 12.47 us | 0.244 us | 0.677 us |  1.00 |    0.00 | 5.6763 |     - |     - |  17.41 KB |
+| V3_ImHashMap_AddOrUpdate |   100 | 11.29 us | 0.222 us | 0.352 us |  0.91 |    0.04 | 6.3782 |     - |     - |  19.56 KB |
 */
-            [Params(100, 1000)]
+            [Params(100)]//, 1000)]
             // [Params(10)]
             public int Count;
 
