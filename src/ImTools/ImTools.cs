@@ -3151,10 +3151,11 @@ namespace ImTools
                     var newRight = right.AddOrGetEntry(hash, entry);
                     if (newRight is Entry)
                         return newRight;
+
                     if (right is Leaf5PlusPlus || right is Branch3Base && newRight is Branch2)
-                        return new Branch2(new Branch2(Left, Entry0, Middle), Entry1, newRight); // todo: @perf can we have a dedicated shape?
+                        return new Branch2(new Branch2(Left, Entry0, Middle), Entry1, newRight);
+
                     return new Branch3Right(this is Branch3Right br ? br.Br3 : this, newRight);
-                    // return new Branch3(Left, Entry0, Middle, Entry1, newRight);
                 }
 
                 var h0 = Entry0.Hash;
@@ -3167,7 +3168,6 @@ namespace ImTools
                     if (left is Leaf5PlusPlus || left is Branch3Base && newLeft is Branch2)
                         return new Branch2(newLeft, Entry0, new Branch2(Middle, Entry1, Right));
                     return new Branch3Left(this is Branch3Left bl ? bl.Br3 : this, newLeft);
-                    // return new Branch3(newLeft, Entry0, Middle, Entry1, Right);
                 }
 
                 if (hash > h0 && hash < h1)
@@ -3184,7 +3184,6 @@ namespace ImTools
 
                     return entryOrNewBranch is Entry ? entryOrNewBranch 
                         : new Branch3Middle(this is Branch3Middle bm ? bm.Br3 : this, entryOrNewBranch);
-                        // : new Branch3(Left, Entry0, entryOrNewBranch, Entry1, Right);
                 }
 
                 return hash == h0 ? Entry0 : Entry1;
