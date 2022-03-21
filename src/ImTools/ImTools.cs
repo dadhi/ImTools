@@ -3111,22 +3111,13 @@ namespace ImTools
             }
         }
 
-        /// <summary>The 3 branches with the 2 nodes in between</summary>
-        internal sealed class Branch3 : ImHashMap<K, V>
+        internal abstract class Branch3Base : ImHashMap<K, V>
         {
-            public readonly Entry Entry0, Entry1;
-            public readonly ImHashMap<K, V> Left, Middle, Right;
-
-            public Branch3(ImHashMap<K, V> left, Entry e0, ImHashMap<K, V> middle, Entry e1, ImHashMap<K, V> right)
-            {
-                Debug.Assert(e0.Hash < e1.Hash, $"e0.Hash:{e0.Hash} < e1.Hash{e1.Hash}");
-                Left = left;
-                Entry0 = e0;
-                Middle = middle;
-                Entry1 = e1;
-                Right = right;
-            }
-
+            public abstract Entry Entry0 { get; }
+            public abstract Entry Entry1 { get; }
+            public abstract ImHashMap<K, V> Left { get; }
+            public abstract ImHashMap<K, V> Middle { get; }
+            public abstract ImHashMap<K, V> Right { get; }
             public override int Count() => Left.Count() + Entry0.Count() + Middle.Count() + Entry1.Count() + Right.Count();
 
 #if !DEBUG
@@ -3162,7 +3153,8 @@ namespace ImTools
                         return newRight;
                     if (right is Leaf5PlusPlus || right is Branch3 && newRight is Branch2)
                         return new Branch2(new Branch2(Left, Entry0, Middle), Entry1, newRight); // todo: @perf can we have a dedicated shape?
-                    return new Branch3(Left, Entry0, Middle, Entry1, newRight);
+                    return new Branch3Right(this, newRight);
+                    // return new Branch3(Left, Entry0, Middle, Entry1, newRight);
                 }
 
                 var h0 = Entry0.Hash;
@@ -3362,6 +3354,40 @@ namespace ImTools
                 }
 
                 return new Branch3(Left, midLeft, middle, midRight, newRight);
+            }
+        }
+
+        internal sealed class Branch3Right : Branch3Base
+        {
+            public override Entry Entry0 => _b3.Entry0;
+            public override Entry Entry1 => _b3.Entry1;
+            public override ImHashMap<K, V> Left => _b3.Left;
+            public override ImHashMap<K, V> Middle => _b3.Middle;
+            public override ImHashMap<K, V> Right { get; }
+            private readonly Branch3Base _b3;
+            public Branch3Right(Branch3Base b3, ImHashMap<K, V> right)
+            {
+                _b3 = b3;
+                Right = right;
+            }
+        }
+
+        /// <summary>The 3 branches with the 2 nodes in between</summary>
+        internal sealed class Branch3 : Branch3Base
+        {
+            public override Entry Entry0 { get; }
+            public override Entry Entry1 { get; }
+            public override ImHashMap<K, V> Left { get; }
+            public override ImHashMap<K, V> Middle { get; }
+            public override ImHashMap<K, V> Right { get; }
+            public Branch3(ImHashMap<K, V> left, Entry e0, ImHashMap<K, V> middle, Entry e1, ImHashMap<K, V> right)
+            {
+                Debug.Assert(e0.Hash < e1.Hash, $"e0.Hash:{e0.Hash} < e1.Hash{e1.Hash}");
+                Left = left;
+                Entry0 = e0;
+                Middle = middle;
+                Entry1 = e1;
+                Right = right;
             }
         }
     }
