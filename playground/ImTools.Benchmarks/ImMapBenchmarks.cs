@@ -306,18 +306,6 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 | V2_ImMap_AddOrUpdate | 10000 | 4,243,496.42 ns | 38,801.912 ns | 32,401.354 ns |  0.97 |    0.01 | 1109.3750 | 226.5625 | 101.5625 | 6972672 B |
 
 
-|               Method | Count |         Mean |      Error |     StdDev | Ratio | RatioSD |     Gen 0 |    Gen 1 |    Gen 2 |  Allocated |
-|--------------------- |------ |-------------:|-----------:|-----------:|------:|--------:|----------:|---------:|---------:|-----------:|
-| V3_ImMap_AddOrUpdate |   100 |     9.588 us |  0.0417 us |  0.0391 us |  1.00 |    0.00 |    3.5706 |   0.1526 |        - |   21.92 KB |
-| V2_ImMap_AddOrUpdate |   100 |    11.442 us |  0.2251 us |  0.3156 us |  1.19 |    0.03 |    5.9357 |   0.2441 |        - |   36.42 KB |
-|                      |       |              |            |            |       |         |           |          |          |            |
-| V3_ImMap_AddOrUpdate |  1000 |   190.917 us |  2.8929 us |  2.4157 us |  1.00 |    0.00 |   59.5703 |   0.7324 |        - |  365.73 KB |
-| V2_ImMap_AddOrUpdate |  1000 |   189.413 us |  3.7871 us |  4.2094 us |  0.99 |    0.03 |   84.9609 |   0.4883 |        - |  521.63 KB |
-|                      |       |              |            |            |       |         |           |          |          |            |
-| V3_ImMap_AddOrUpdate | 10000 | 4,315.152 us | 35.4322 us | 29.5875 us |  1.00 |    0.00 |  843.7500 | 304.6875 | 140.6250 |  5203.2 KB |
-| V2_ImMap_AddOrUpdate | 10000 | 4,057.928 us | 21.7655 us | 19.2945 us |  0.94 |    0.01 | 1109.3750 | 226.5625 | 101.5625 | 6809.25 KB |
-
-
 ### Adding Branch2Plus1
 
 |               Method | Count |           Mean |        Error |       StdDev | Ratio | RatioSD |     Gen 0 |    Gen 1 |    Gen 2 |  Allocated |
