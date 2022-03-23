@@ -822,7 +822,8 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return builder.ToImmutable();
             }
 
-            [Params(1, 10, 100)]//, 1_000, 10_000)]
+            [Params(100)]//, 1_000, 10_000)]
+            // [Params(1, 10, 100)]//, 1_000, 10_000)]
             public int Count;
 
             public int LookupMaxKey;
