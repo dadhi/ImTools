@@ -708,6 +708,20 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 |            Dict_TryGetValue | 10000 |  6.4634 ns | 0.0628 ns | 0.0524 ns |  6.4662 ns |  0.55 |    0.01 |     - |     - |     - |         - |
 |  ConcurrentDict_TryGetValue | 10000 |  7.4370 ns | 0.0582 ns | 0.0486 ns |  7.4572 ns |  0.63 |    0.01 |     - |     - |     - |         - |
 |   ImmutableDict_TryGetValue | 10000 | 29.5492 ns | 0.6021 ns | 0.5632 ns | 29.3975 ns |  2.52 |    0.07 |     - |     - |     - |         - |
+
+
+## V4 br-3
+
+|           Method | Count |       Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|----------------- |------ |-----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+| V3_ImMap_TryFind |     1 |  4.8766 ns | 0.0200 ns | 0.0167 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V2_ImMap_TryFind |     1 |  0.6264 ns | 0.0324 ns | 0.0287 ns |  0.13 |    0.01 |     - |     - |     - |         - |
+|                  |       |            |           |           |       |         |       |       |       |           |
+| V3_ImMap_TryFind |    10 |  4.6053 ns | 0.0175 ns | 0.0155 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V2_ImMap_TryFind |    10 |  3.3651 ns | 0.0297 ns | 0.0248 ns |  0.73 |    0.01 |     - |     - |     - |         - |
+|                  |       |            |           |           |       |         |       |       |       |           |
+| V3_ImMap_TryFind |   100 | 12.2508 ns | 0.3266 ns | 0.2727 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V2_ImMap_TryFind |   100 |  6.8180 ns | 0.2095 ns | 0.1857 ns |  0.56 |    0.02 |     - |     - |     - |         - |
  */
             private ImTools.V2.ImMap<string> _mapV2;
             public ImTools.V2.ImMap<string> V2_AddOrUpdate()
