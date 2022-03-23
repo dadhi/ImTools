@@ -2295,7 +2295,8 @@ namespace ImTools
             {
                 if (hash == Plus.Hash)
                     return Plus;
-                Entry e0 = L.Entry0, e1 = L.Entry1;
+                var l = L;
+                Entry e0 = l.Entry0, e1 = l.Entry1;
                 return e0.Hash == hash ? e0 : e1.Hash == hash ? e1 : null;
             }
 
@@ -4607,8 +4608,7 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public static bool TryFind<V>(this ImHashMap<int, V> map, int hash, out V value)
         {
-            var e = map.GetEntryOrNull(hash) as ImHashMapEntry<int, V>;
-            if (e != null)
+            if (map.GetEntryOrNull(hash) is ImHashMapEntry<int, V> e)
             {
                 value = e.Value;
                 return true;
