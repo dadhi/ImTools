@@ -710,19 +710,33 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 |   ImmutableDict_TryGetValue | 10000 | 29.5492 ns | 0.6021 ns | 0.5632 ns | 29.3975 ns |  2.52 |    0.07 |     - |     - |     - |         - |
 
 
-## V4 br-3
+## V4 br3
 
-|           Method | Count |       Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
-|----------------- |------ |-----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
-| V3_ImMap_TryFind |     1 |  4.8766 ns | 0.0200 ns | 0.0167 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| V2_ImMap_TryFind |     1 |  0.6264 ns | 0.0324 ns | 0.0287 ns |  0.13 |    0.01 |     - |     - |     - |         - |
-|                  |       |            |           |           |       |         |       |       |       |           |
-| V3_ImMap_TryFind |    10 |  4.6053 ns | 0.0175 ns | 0.0155 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| V2_ImMap_TryFind |    10 |  3.3651 ns | 0.0297 ns | 0.0248 ns |  0.73 |    0.01 |     - |     - |     - |         - |
-|                  |       |            |           |           |       |         |       |       |       |           |
-| V3_ImMap_TryFind |   100 | 12.2508 ns | 0.3266 ns | 0.2727 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| V2_ImMap_TryFind |   100 |  6.8180 ns | 0.2095 ns | 0.1857 ns |  0.56 |    0.02 |     - |     - |     - |         - |
- */
+BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
+Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical cores
+.NET Core SDK=6.0.102
+  [Host]     : .NET Core 6.0.2 (CoreCLR 6.0.222.6406, CoreFX 6.0.222.6406), X64 RyuJIT
+  DefaultJob : .NET Core 6.0.2 (CoreCLR 6.0.222.6406, CoreFX 6.0.222.6406), X64 RyuJIT
+
+
+|               Method | Count |       Mean |     Error |    StdDev |     Median | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|--------------------- |------ |-----------:|----------:|----------:|-----------:|------:|--------:|------:|------:|------:|----------:|
+| V4_ImHashMap_TryFind |     1 |  6.2233 ns | 0.1928 ns | 0.1709 ns |  6.2120 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|     V2_ImMap_TryFind |     1 |  0.8540 ns | 0.1110 ns | 0.1090 ns |  0.8303 ns |  0.14 |    0.02 |     - |     - |     - |         - |
+|                      |       |            |           |           |            |       |         |       |       |       |           |
+| V4_ImHashMap_TryFind |    10 |  7.8364 ns | 0.2311 ns | 0.1929 ns |  7.7878 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|     V2_ImMap_TryFind |    10 |  5.1689 ns | 0.1908 ns | 0.2197 ns |  5.1722 ns |  0.66 |    0.03 |     - |     - |     - |         - |
+|                      |       |            |           |           |            |       |         |       |       |       |           |
+| V4_ImHashMap_TryFind |   100 | 11.4704 ns | 0.3297 ns | 0.6352 ns | 11.3380 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|     V2_ImMap_TryFind |   100 |  8.1982 ns | 0.3811 ns | 1.0624 ns |  8.2232 ns |  0.75 |    0.07 |     - |     - |     - |         - |
+|                      |       |            |           |           |            |       |         |       |       |       |           |
+| V4_ImHashMap_TryFind |  1000 | 15.2654 ns | 0.3468 ns | 0.8827 ns | 14.9766 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|     V2_ImMap_TryFind |  1000 | 10.2542 ns | 0.2424 ns | 0.2024 ns | 10.2450 ns |  0.67 |    0.04 |     - |     - |     - |         - |
+|                      |       |            |           |           |            |       |         |       |       |       |           |
+| V4_ImHashMap_TryFind | 10000 | 20.3345 ns | 0.3313 ns | 0.2587 ns | 20.2237 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|     V2_ImMap_TryFind | 10000 | 14.5339 ns | 0.2273 ns | 0.1898 ns | 14.5167 ns |  0.71 |    0.01 |     - |     - |     - |         - |
+
+*/
             private ImTools.V2.ImMap<string> _mapV2;
             public ImTools.V2.ImMap<string> V2_AddOrUpdate()
             {
@@ -822,7 +836,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return builder.ToImmutable();
             }
 
-            [Params(100)]//, 1_000, 10_000)]
+            [Params(1, 10, 100, 1_000, 10_000)]
             // [Params(1, 10, 100)]//, 1_000, 10_000)]
             public int Count;
 
@@ -845,7 +859,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             }
 
             [Benchmark(Baseline = true)]
-            public string V3_ImMap_TryFind()
+            public string V4_ImHashMap_TryFind()
             {
                 _mapV3.TryFind(LookupMaxKey, out var result);
                 return result;

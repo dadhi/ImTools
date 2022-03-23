@@ -4608,13 +4608,9 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public static bool TryFind<V>(this ImHashMap<int, V> map, int hash, out V value)
         {
-            if (map.GetEntryOrNull(hash) is ImHashMapEntry<int, V> e)
-            {
-                value = e.Value;
-                return true;
-            }
-            value = default(V);
-            return false;
+            var e = map.GetEntryOrNull(hash) as ImHashMapEntry<int, V>;
+            value = e != null ? e.Value : default(V);
+            return e != null;
         }
 
         /// <summary>Lookup for the value by its key, returns the `true` and the found value or the `false` otherwise</summary>
