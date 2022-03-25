@@ -836,8 +836,8 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return builder.ToImmutable();
             }
 
-            [Params(1, 10, 100, 1_000, 10_000)]
-            // [Params(1, 10, 100)]//, 1_000, 10_000)]
+            [Params(100)]
+            // [Params(1, 10, 100, 1_000, 10_000)]
             public int Count;
 
             public int LookupMaxKey;

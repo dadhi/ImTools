@@ -2243,10 +2243,12 @@ namespace ImTools
         internal sealed class Leaf2 : ImHashMap<K, V>
         {
             public readonly Entry Entry0, Entry1;
+            public readonly int h0, h1;
             public Leaf2(Entry e0, Entry e1)
             {
                 Debug.Assert(e0.Hash < e1.Hash);
                 Entry0 = e0; Entry1 = e1;
+                h0 = e0.Hash; h1 = e1.Hash;
             }
 
             public override int Count() => Entry0.Count() + Entry1.Count();
@@ -2259,10 +2261,10 @@ namespace ImTools
             internal override Entry GetMaxHashEntryOrDefault() => Entry1;
 
             internal override Entry GetEntryOrNull(int hash) =>
-                Entry0.Hash == hash ? Entry0 : Entry1.Hash == hash ? Entry1 : null;
+                h0 == hash ? Entry0 : h1 == hash ? Entry1 : null;
 
             internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry) =>
-                hash == Entry0.Hash ? Entry0 : hash == Entry1.Hash ? Entry1 : (ImHashMap<K, V>)new Leaf2Plus(entry, this);
+                hash == h0 ? Entry0 : hash == h1 ? Entry1 : (ImHashMap<K, V>)new Leaf2Plus(entry, this);
 
             internal override ImHashMap<K, V> ReplaceEntry(Entry oldEntry, Entry newEntry) =>
                 oldEntry == Entry0 ? new Leaf2(newEntry, Entry1) : new Leaf2(Entry0, newEntry);
@@ -2296,8 +2298,7 @@ namespace ImTools
                 if (hash == Plus.Hash)
                     return Plus;
                 var l = L;
-                Entry e0 = l.Entry0, e1 = l.Entry1;
-                return e0.Hash == hash ? e0 : e1.Hash == hash ? e1 : null;
+                return hash == l.h0 ? l.Entry0 : hash == l.h1 ? l.Entry1 : null;
             }
 
             internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
@@ -2305,8 +2306,8 @@ namespace ImTools
                 var p = Plus;
                 if (hash == p.Hash)
                     return p;
-                Entry e0 = L.Entry0, e1 = L.Entry1;
-                return hash == e0.Hash ? e0 : hash == e1.Hash ? e1 : (ImHashMap<K, V>)new Leaf2PlusPlus(entry, this);
+                var l = L;
+                return hash == l.h0 ? l.Entry0 : hash == l.h1 ? l.Entry1 : (ImHashMap<K, V>)new Leaf2PlusPlus(entry, this);
             }
 
             internal override ImHashMap<K, V> ReplaceEntry(Entry oldEntry, Entry newEntry) =>
@@ -2357,8 +2358,7 @@ namespace ImTools
                 if (hash == L.Plus.Hash)
                     return L.Plus;
                 var l = L.L;
-                Entry e0 = l.Entry0, e1 = l.Entry1;
-                return e0.Hash == hash ? e0 : e1.Hash == hash ? e1 : null;
+                return l.h0 == hash ? l.Entry0 : l.h1 == hash ? l.Entry1 : null;
             }
 
             internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
@@ -2405,6 +2405,7 @@ namespace ImTools
         /// <summary>Leaf with 5 hash-ordered entries</summary>
         internal sealed class Leaf5 : ImHashMap<K, V>
         {
+            public readonly int h0, h1, h2, h3, h4;
             public readonly Entry Entry0, Entry1, Entry2, Entry3, Entry4;
 
             public Leaf5(Entry e0, Entry e1, Entry e2, Entry e3, Entry e4)
@@ -2414,6 +2415,7 @@ namespace ImTools
                 Debug.Assert(e2.Hash < e3.Hash, "e2 < e3");
                 Debug.Assert(e3.Hash < e4.Hash, "e3 < e4");
                 Entry0 = e0; Entry1 = e1; Entry2 = e2; Entry3 = e3; Entry4 = e4;
+                h0 = e0.Hash; h1 = e1.Hash; h2 = e2.Hash; h3 = e3.Hash; h4 = e4.Hash;
             }
 
             public override int Count() => Entry0.Count() + Entry1.Count() + Entry2.Count() + Entry3.Count() + Entry4.Count();
@@ -2427,19 +2429,19 @@ namespace ImTools
             internal override Entry GetMaxHashEntryOrDefault() => Entry4;
 
             internal override Entry GetEntryOrNull(int hash) =>
-                hash == Entry0.Hash ? Entry0 :
-                hash == Entry1.Hash ? Entry1 :
-                hash == Entry2.Hash ? Entry2 :
-                hash == Entry3.Hash ? Entry3 :
-                hash == Entry4.Hash ? Entry4 :
+                hash == h0 ? Entry0 :
+                hash == h1 ? Entry1 :
+                hash == h2 ? Entry2 :
+                hash == h3 ? Entry3 :
+                hash == h4 ? Entry4 :
                 null;
 
             internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry) =>
-                hash == Entry0.Hash ? Entry0 :
-                hash == Entry1.Hash ? Entry1 :
-                hash == Entry2.Hash ? Entry2 :
-                hash == Entry3.Hash ? Entry3 :
-                hash == Entry4.Hash ? Entry4 :
+                hash == h0 ? Entry0 :
+                hash == h1 ? Entry1 :
+                hash == h2 ? Entry2 :
+                hash == h3 ? Entry3 :
+                hash == h4 ? Entry4 :
                 (ImHashMap<K, V>)new Leaf5Plus(entry, this);
 
             internal override ImHashMap<K, V> ReplaceEntry(Entry oldEntry, Entry newEntry) =>
@@ -2483,12 +2485,12 @@ namespace ImTools
                 if (hash == Plus.Hash)
                     return Plus;
                 var l = L;
-                return hash == l.Entry0.Hash ? l.Entry0
-                    : hash == l.Entry1.Hash ? l.Entry1
-                    : hash == l.Entry2.Hash ? l.Entry2
-                    : hash == l.Entry3.Hash ? l.Entry3
-                    : hash == l.Entry4.Hash ? l.Entry4
-                    : null;
+                return hash == l.h0 ? l.Entry0
+                     : hash == l.h1 ? l.Entry1
+                     : hash == l.h2 ? l.Entry2
+                     : hash == l.h3 ? l.Entry3
+                     : hash == l.h4 ? l.Entry4
+                     : null;
             }
 
             internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
@@ -2498,12 +2500,12 @@ namespace ImTools
                 if (ph == hash)
                     return p;
                 var l = L;
-                return hash == l.Entry0.Hash ? l.Entry0
-                    : hash == l.Entry1.Hash ? l.Entry1
-                    : hash == l.Entry2.Hash ? l.Entry2
-                    : hash == l.Entry3.Hash ? l.Entry3
-                    : hash == l.Entry4.Hash ? l.Entry4
-                    : (ImHashMap<K, V>)new Leaf5PlusPlus(entry, this);
+                return hash == l.h0 ? l.Entry0
+                     : hash == l.h1 ? l.Entry1
+                     : hash == l.h2 ? l.Entry2
+                     : hash == l.h3 ? l.Entry3
+                     : hash == l.h4 ? l.Entry4
+                     : (ImHashMap<K, V>)new Leaf5PlusPlus(entry, this);
             }
 
             internal override ImHashMap<K, V> ReplaceEntry(Entry oldEntry, Entry newEntry)
@@ -2574,12 +2576,12 @@ namespace ImTools
                 if (hash == L.Plus.Hash)
                     return L.Plus;
                 var l = L.L;
-                return hash == l.Entry0.Hash ? l.Entry0
-                    : hash == l.Entry1.Hash ? l.Entry1
-                    : hash == l.Entry2.Hash ? l.Entry2
-                    : hash == l.Entry3.Hash ? l.Entry3
-                    : hash == l.Entry4.Hash ? l.Entry4
-                    : null;
+                return hash == l.h0 ? l.Entry0
+                     : hash == l.h1 ? l.Entry1
+                     : hash == l.h2 ? l.Entry2
+                     : hash == l.h3 ? l.Entry3
+                     : hash == l.h4 ? l.Entry4
+                     : null;
             }
 
             internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
