@@ -1,1 +1,1 @@
-dotnet run -c Release -p playground\ImTools.Benchmarks
+dotnet run -c Release --project playground\ImTools.Benchmarks
