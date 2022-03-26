@@ -4615,6 +4615,29 @@ namespace ImTools
             return e != null;
         }
 
+        /// <summary>Something fast ???</summary>
+        public static bool TryFindFast<V>(this ImHashMap<int, V> map, int hash, out V value)
+        {
+            while (true)
+            {
+                if (map is ImHashMap<int, V>.Branch2 b2)
+                    map = hash > b2.MidEntry.Hash ? b2.Right
+                        : hash < b2.MidEntry.Hash ? b2.Left
+                        : b2.MidEntry;
+                else if (map is ImHashMap<int, V>.Branch3Base b3)
+                    map = hash > b3.Entry1.Hash  ? b3.Right
+                        : hash < b3.Entry0.Hash  ? b3.Left
+                        : hash == b3.Entry0.Hash ? b3.Entry0
+                        : hash == b3.Entry1.Hash ? b3.Entry1
+                        : b3.Middle;
+                else break;
+            }
+
+            var e = map as ImHashMapEntry<int, V> ?? (ImHashMapEntry<int, V>)map.GetEntryOrNull(hash);
+            value = e != null ? e.Value : default(V);
+            return e != null;
+        }
+
         /// <summary>Lookup for the value by its key, returns the `true` and the found value or the `false` otherwise</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static bool TryFind<K, V>(this ImHashMap<K, V> map, int hash, K key, out V value)

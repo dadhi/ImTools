@@ -14,11 +14,14 @@ namespace ImTools.Benchmarks
             //b.ImMap_FixedData4();
 
             // BenchmarkRunner.Run<ImMapBenchmarks.Populate>();
-            BenchmarkRunner.Run<ImMapBenchmarks.Lookup>();
+            // BenchmarkRunner.Run<ImMapBenchmarks.Lookup>();
             // BenchmarkRunner.Run<ImMapBenchmarks.LookupMissing>();
             // BenchmarkRunner.Run<ImMapBenchmarks.Enumerate>();
 
-            
+            var b = new ImMapBenchmarks.Lookup { Count = 100 };
+            b.Populate();
+            b.V4_ImHashMap_TryFind();
+
             // BenchmarkRunner.Run<ImHashMapBenchmarks.Populate>();
             // BenchmarkRunner.Run<ImHashMapBenchmarks.Lookup>();
             // BenchmarkRunner.Run<ImHashMapBenchmarks.Enumerate>();

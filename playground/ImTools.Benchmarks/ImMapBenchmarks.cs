@@ -759,8 +759,8 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return map;
             }
 
-            private ImTools.ImHashMap<int, string> _mapV3;
-            public ImTools.ImHashMap<int, string> V3_AddOrUpdate_ImMap()
+            private ImTools.ImHashMap<int, string> _mapV4;
+            public ImTools.ImHashMap<int, string> V4_AddOrUpdate_ImHashMap()
             {
                 var map = ImTools.ImHashMap<int, string>.Empty;
 
@@ -849,7 +849,7 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 
                 _mapV2 = V2_AddOrUpdate();
                 // _mapExp = AddOrUpdate_Exp();
-                _mapV3 = V3_AddOrUpdate_ImMap();
+                _mapV4 = V4_AddOrUpdate_ImHashMap();
                 // _mapSlots = AddOrUpdate_ImMapSlots();
                 _partMapV3 = V3_AddOrUpdate_PartitionedMap();
                 _dictSlim = DictSlim();
@@ -861,7 +861,7 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
             [Benchmark(Baseline = true)]
             public string V4_ImHashMap_TryFind()
             {
-                _mapV3.TryFind(LookupMaxKey, out var result);
+                _mapV4.TryFind(LookupMaxKey, out var result);
                 return result;
             }
 
