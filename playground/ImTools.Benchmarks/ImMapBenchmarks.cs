@@ -358,6 +358,25 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 |                      |       |                 |               |               |       |         |           |          |          |           |
 | V4_ImMap_AddOrUpdate | 10000 | 4,372,919.84 ns | 56,913.030 ns | 53,236.483 ns |  1.00 |    0.00 |  828.1250 | 328.1250 | 148.4375 | 5227487 B |
 | V2_ImMap_AddOrUpdate | 10000 | 4,401,687.63 ns | 77,464.676 ns | 72,460.506 ns |  1.01 |    0.02 | 1109.3750 | 226.5625 | 101.5625 | 6972711 B |
+
+## V4 with branch specialization (and with hash in leafs)
+
+|               Method | Count |            Mean |         Error |        StdDev | Ratio | RatioSD |     Gen 0 |    Gen 1 |    Gen 2 | Allocated |
+|--------------------- |------ |----------------:|--------------:|--------------:|------:|--------:|----------:|---------:|---------:|----------:|
+| V4_ImMap_AddOrUpdate |     1 |        15.34 ns |      0.174 ns |      0.136 ns |  1.00 |    0.00 |    0.0051 |        - |        - |      32 B |
+| V2_ImMap_AddOrUpdate |     1 |        13.00 ns |      0.164 ns |      0.145 ns |  0.85 |    0.01 |    0.0076 |        - |        - |      48 B |
+|                      |       |                 |               |               |       |         |           |          |          |           |
+| V4_ImMap_AddOrUpdate |    10 |       253.27 ns |      3.911 ns |      3.467 ns |  1.00 |    0.00 |    0.1259 |        - |        - |     792 B |
+| V2_ImMap_AddOrUpdate |    10 |       555.06 ns |     10.130 ns |      8.459 ns |  2.19 |    0.05 |    0.2823 |        - |        - |    1776 B |
+|                      |       |                 |               |               |       |         |           |          |          |           |
+| V4_ImMap_AddOrUpdate |   100 |     9,247.58 ns |    120.619 ns |    112.827 ns |  1.00 |    0.00 |    3.1281 |   0.1373 |        - |   19640 B |
+| V2_ImMap_AddOrUpdate |   100 |    11,760.43 ns |     90.623 ns |     75.674 ns |  1.27 |    0.02 |    5.9357 |   0.2441 |        - |   37296 B |
+|                      |       |                 |               |               |       |         |           |          |          |           |
+| V4_ImMap_AddOrUpdate |  1000 |   184,575.63 ns |  2,162.358 ns |  1,916.874 ns |  1.00 |    0.00 |   50.0488 |   0.9766 |        - |  315296 B |
+| V2_ImMap_AddOrUpdate |  1000 |   193,654.61 ns |  2,391.868 ns |  2,237.355 ns |  1.05 |    0.02 |   84.9609 |   0.2441 |        - |  534144 B |
+|                      |       |                 |               |               |       |         |           |          |          |           |
+| V4_ImMap_AddOrUpdate | 10000 | 4,420,642.43 ns | 41,215.277 ns | 34,416.623 ns |  1.00 |    0.00 |  687.5000 | 320.3125 |  62.5000 | 4334394 B |
+| V2_ImMap_AddOrUpdate | 10000 | 4,481,795.83 ns | 54,680.323 ns | 42,690.799 ns |  1.01 |    0.01 | 1109.3750 | 226.5625 | 101.5625 | 6972713 B |
 */
             // [Params(100)]
             // [Params(14, 100, 1_000, 10_000)]
@@ -798,7 +817,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             }
 
             private ImTools.ImHashMap<int, string> _mapV4;
-            public ImTools.ImHashMap<int, string> V3_AddOrUpdate_ImMap()
+            public ImTools.ImHashMap<int, string> V4_AddOrUpdate_ImMap()
             {
                 var map = ImTools.ImHashMap<int, string>.Empty;
 
@@ -874,8 +893,8 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return builder.ToImmutable();
             }
 
-            // [Params(100)]
-            [Params(1, 10, 100, 1_000, 10_000)]
+            [Params(1, 10)]
+            // [Params(1, 10, 100, 1_000, 10_000)]
             public int Count;
 
             public int LookupMaxKey;
@@ -887,7 +906,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 
                 _mapV2 = V2_AddOrUpdate();
                 // _mapExp = AddOrUpdate_Exp();
-                _mapV4 = V3_AddOrUpdate_ImMap();
+                _mapV4 = V4_AddOrUpdate_ImMap();
                 // _mapSlots = AddOrUpdate_ImMapSlots();
                 _partMapV3 = V3_AddOrUpdate_PartitionedMap();
                 _dictSlim = DictSlim();
