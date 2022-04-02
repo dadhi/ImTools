@@ -4123,75 +4123,11 @@ namespace ImTools
                     if (l511 != null)
                     {
                         var l = l511.L.L;
-                        ImHashMap<K, V>.Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, p = l511.Plus, pp = l511.L.Plus, swap = null;
-                        var h = pp.Hash;
-                        if (h < e4.Hash)
-                        {
-                            swap = e4; e4 = pp; pp = swap;
-                            if (h < e3.Hash)
-                            {
-                                swap = e3; e3 = e4; e4 = swap;
-                                if (h < e2.Hash)
-                                {
-                                    swap = e2; e2 = e3; e3 = swap;
-                                    if (h < e1.Hash)
-                                    {
-                                        swap = e1; e1 = e2; e2 = swap;
-                                        if (h < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
-                                    }
-                                }
-                            }
-                        }
+                        ImHashMap<K, V>.Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, p = l511.Plus, pp = l511.L.Plus;
 
-                        h = p.Hash;
-                        if (h < pp.Hash)
-                        {
-                            swap = pp; pp = p; p = swap;
-                            if (h < e4.Hash)
-                            {
-                                swap = e4; e4 = pp; pp = swap;
-                                if (h < e3.Hash)
-                                {
-                                    swap = e3; e3 = e4; e4 = swap;
-                                    if (h < e2.Hash)
-                                    {
-                                        swap = e2; e2 = e3; e3 = swap;
-                                        if (h < e1.Hash)
-                                        {
-                                            swap = e1; e1 = e2; e2 = swap;
-                                            if (h < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        h = pl.Hash;
-                        if (h < p.Hash)
-                        {
-                            swap = p; p = pl; pl = swap;
-                            if (h < pp.Hash)
-                            {
-                                swap = pp; pp = p; p = swap;
-                                if (h < e4.Hash)
-                                {
-                                    swap = e4; e4 = pp; pp = swap;
-                                    if (h < e3.Hash)
-                                    {
-                                        swap = e3; e3 = e4; e4 = swap;
-                                        if (h < e2.Hash)
-                                        {
-                                            swap = e2; e2 = e3; e3 = swap;
-                                            if (h < e1.Hash)
-                                            {
-                                                swap = e1; e1 = e2; e2 = swap;
-                                                if (h < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        ImHashMap.InsertInOrder(pp.Hash, ref pp, ref e0, ref e1, ref e2, ref e3, ref e4);
+                        ImHashMap.InsertInOrder(p.Hash, ref p, ref e0, ref e1, ref e2, ref e3, ref e4, ref pp);
+                        ImHashMap.InsertInOrder(pl.Hash, ref pl, ref e0, ref e1, ref e2, ref e3, ref e4, ref pp, ref p);
 
                         i = e0.ForEach(state, i, handler);
                         i = e1.ForEach(state, i, handler);
@@ -4230,24 +4166,10 @@ namespace ImTools
                 else if (map is ImHashMap<K, V>.Leaf2PlusPlus l211)
                 {
                     var l = l211.L.L;
-                    ImHashMap<K, V>.Entry e0 = l.Entry0, e1 = l.Entry1, pp = l211.L.Plus, p = l211.Plus, swap = null;
-                    var ph = pp.Hash;
-                    if (ph < e1.Hash)
-                    {
-                        swap = e1; e1 = pp; pp = swap;
-                        if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
-                    }
+                    ImHashMap<K, V>.Entry e0 = l.Entry0, e1 = l.Entry1, pp = l211.L.Plus, p = l211.Plus;
 
-                    ph = p.Hash;
-                    if (ph < pp.Hash)
-                    {
-                        swap = pp; pp = p; p = swap;
-                        if (ph < e1.Hash)
-                        {
-                            swap = e1; e1 = pp; pp = swap;
-                            if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
-                        }
-                    }
+                    ImHashMap.InsertInOrder(pp.Hash, ref pp, ref e0, ref e1);
+                    ImHashMap.InsertInOrder(p.Hash, ref p, ref e0, ref e1, ref pp);
 
                     i = e0.ForEach(state, i, handler);
                     i = e1.ForEach(state, i, handler);
@@ -4265,25 +4187,9 @@ namespace ImTools
                 else if (map is ImHashMap<K, V>.Leaf5Plus l51)
                 {
                     var l = l51.L;
-                    ImHashMap<K, V>.Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, pp = l51.Plus, swap = null;
-                    var ph = pp.Hash;
-                    if (ph < e4.Hash)
-                    {
-                        swap = e4; e4 = pp; pp = swap;
-                        if (ph < e3.Hash)
-                        {
-                            swap = e3; e3 = e4; e4 = swap;
-                            if (ph < e2.Hash)
-                            {
-                                swap = e2; e2 = e3; e3 = swap;
-                                if (ph < e1.Hash)
-                                {
-                                    swap = e1; e1 = e2; e2 = swap;
-                                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
-                                }
-                            }
-                        }
-                    }
+                    ImHashMap<K, V>.Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, pp = l51.Plus;
+
+                    ImHashMap.InsertInOrder(pp.Hash, ref pp, ref e0, ref e1, ref e2, ref e3, ref e4);
 
                     i = e0.ForEach(state, i, handler);
                     i = e1.ForEach(state, i, handler);
@@ -4295,49 +4201,10 @@ namespace ImTools
                 else if (map is ImHashMap<K, V>.Leaf5PlusPlus l511)
                 {
                     var l = l511.L.L;
-                    ImHashMap<K, V>.Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, p = l511.Plus, pp = l511.L.Plus, swap = null;
+                    ImHashMap<K, V>.Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, p = l511.Plus, pp = l511.L.Plus;
 
-                    var ph = pp.Hash;
-                    if (ph < e4.Hash)
-                    {
-                        swap = e4; e4 = pp; pp = swap;
-                        if (ph < e3.Hash)
-                        {
-                            swap = e3; e3 = e4; e4 = swap;
-                            if (ph < e2.Hash)
-                            {
-                                swap = e2; e2 = e3; e3 = swap;
-                                if (ph < e1.Hash)
-                                {
-                                    swap = e1; e1 = e2; e2 = swap;
-                                    if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
-                                }
-                            }
-                        }
-                    }
-
-                    ph = p.Hash;
-                    if (ph < pp.Hash)
-                    {
-                        swap = pp; pp = p; p = swap;
-                        if (ph < e4.Hash)
-                        {
-                            swap = e4; e4 = pp; pp = swap;
-                            if (ph < e3.Hash)
-                            {
-                                swap = e3; e3 = e4; e4 = swap;
-                                if (ph < e2.Hash)
-                                {
-                                    swap = e2; e2 = e3; e3 = swap;
-                                    if (ph < e1.Hash)
-                                    {
-                                        swap = e1; e1 = e2; e2 = swap;
-                                        if (ph < e0.Hash) { swap = e0; e0 = e1; e1 = swap; }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    ImHashMap.InsertInOrder(pp.Hash, ref pp, ref e0, ref e1, ref e2, ref e3, ref e4);
+                    ImHashMap.InsertInOrder(p.Hash, ref p, ref e0, ref e1, ref e2, ref e3, ref e4, ref pp);
 
                     i = e0.ForEach(state, i, handler);
                     i = e1.ForEach(state, i, handler);

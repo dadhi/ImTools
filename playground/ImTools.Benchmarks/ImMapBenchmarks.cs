@@ -726,7 +726,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return map;
             }
 
-            private ImTools.ImHashMap<int, string> _mapV3;
+            private ImTools.ImHashMap<int, string> _mapV4;
             public ImTools.ImHashMap<int, string> V3_AddOrUpdate_ImMap()
             {
                 var map = ImTools.ImHashMap<int, string>.Empty;
@@ -803,7 +803,8 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return builder.ToImmutable();
             }
 
-            [Params(1, 10, 100)]//, 1_000, 10_000)]
+            [Params(100)]
+            // [Params(1, 10, 100), 1_000, 10_000)]
             public int Count;
 
             public int LookupMaxKey;
@@ -815,7 +816,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 
                 _mapV2 = V2_AddOrUpdate();
                 // _mapExp = AddOrUpdate_Exp();
-                _mapV3 = V3_AddOrUpdate_ImMap();
+                _mapV4 = V3_AddOrUpdate_ImMap();
                 // _mapSlots = AddOrUpdate_ImMapSlots();
                 _partMapV3 = V3_AddOrUpdate_PartitionedMap();
                 _dictSlim = DictSlim();
@@ -825,9 +826,9 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             }
 
             [Benchmark(Baseline = true)]
-            public string V3_ImMap_TryFind()
+            public string V4_ImMap_TryFind()
             {
-                _mapV3.TryFind(LookupMaxKey, out var result);
+                _mapV4.TryFind(LookupMaxKey, out var result);
                 return result;
             }
 
