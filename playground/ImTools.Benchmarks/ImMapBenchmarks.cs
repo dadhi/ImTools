@@ -334,14 +334,38 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 | V3_ImMap_AddOrUpdate | 10000 | 4,307,847.3 ns | 41,477.79 ns | 38,798.35 ns |  1.00 |    0.00 |  828.1250 | 328.1250 | 148.4375 | 5104.91 KB |
 | V2_ImMap_AddOrUpdate | 10000 | 4,222,610.3 ns | 41,294.12 ns | 38,626.54 ns |  0.98 |    0.01 | 1109.3750 | 226.5625 | 101.5625 | 6809.25 KB |
 
+## V4
+
+BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19043
+Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+.NET Core SDK=6.0.201
+  [Host]     : .NET Core 6.0.3 (CoreCLR 6.0.322.12309, CoreFX 6.0.322.12309), X64 RyuJIT
+  DefaultJob : .NET Core 6.0.3 (CoreCLR 6.0.322.12309, CoreFX 6.0.322.12309), X64 RyuJIT
+
+|               Method | Count |            Mean |         Error |        StdDev | Ratio | RatioSD |     Gen 0 |    Gen 1 |    Gen 2 | Allocated |
+|--------------------- |------ |----------------:|--------------:|--------------:|------:|--------:|----------:|---------:|---------:|----------:|
+| V4_ImMap_AddOrUpdate |     1 |        15.31 ns |      0.135 ns |      0.113 ns |  1.00 |    0.00 |    0.0051 |        - |        - |      32 B |
+| V2_ImMap_AddOrUpdate |     1 |        12.16 ns |      0.197 ns |      0.164 ns |  0.79 |    0.01 |    0.0076 |        - |        - |      48 B |
+|                      |       |                 |               |               |       |         |           |          |          |           |
+| V4_ImMap_AddOrUpdate |    10 |       249.87 ns |      4.813 ns |      4.942 ns |  1.00 |    0.00 |    0.1197 |        - |        - |     752 B |
+| V2_ImMap_AddOrUpdate |    10 |       553.43 ns |      6.803 ns |      6.363 ns |  2.22 |    0.05 |    0.2823 |        - |        - |    1776 B |
+|                      |       |                 |               |               |       |         |           |          |          |           |
+| V4_ImMap_AddOrUpdate |   100 |     8,747.62 ns |     69.866 ns |     61.935 ns |  1.00 |    0.00 |    3.3722 |   0.1373 |        - |   21160 B |
+| V2_ImMap_AddOrUpdate |   100 |    11,840.83 ns |    124.399 ns |    116.363 ns |  1.35 |    0.02 |    5.9357 |   0.2441 |        - |   37296 B |
+|                      |       |                 |               |               |       |         |           |          |          |           |
+| V4_ImMap_AddOrUpdate |  1000 |   171,256.84 ns |  1,379.791 ns |  1,223.148 ns |  1.00 |    0.00 |   58.1055 |   2.6855 |        - |  364504 B |
+| V2_ImMap_AddOrUpdate |  1000 |   195,498.96 ns |  3,350.495 ns |  5,116.560 ns |  1.15 |    0.04 |   84.9609 |   0.2441 |        - |  534144 B |
+|                      |       |                 |               |               |       |         |           |          |          |           |
+| V4_ImMap_AddOrUpdate | 10000 | 4,372,919.84 ns | 56,913.030 ns | 53,236.483 ns |  1.00 |    0.00 |  828.1250 | 328.1250 | 148.4375 | 5227487 B |
+| V2_ImMap_AddOrUpdate | 10000 | 4,401,687.63 ns | 77,464.676 ns | 72,460.506 ns |  1.01 |    0.02 | 1109.3750 | 226.5625 | 101.5625 | 6972711 B |
 */
+            // [Params(100)]
             // [Params(14, 100, 1_000, 10_000)]
             [Params(1, 10, 100, 1_000, 10_000)]
-            // [Params(100)]
             public int Count;
 
             [Benchmark(Baseline = true)]
-            public ImTools.ImHashMap<int, string> V3_ImMap_AddOrUpdate()
+            public ImTools.ImHashMap<int, string> V4_ImMap_AddOrUpdate()
             {
                 var map = ImTools.ImHashMap<int, string>.Empty;
 

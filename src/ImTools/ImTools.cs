@@ -4292,7 +4292,7 @@ namespace ImTools
         /// because the map is immutable it is for sure contains added or updated entry.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMapEntry<int, V> GetSurePresentEntry<V>(this ImHashMap<int, V> map, int hash) =>
-            (ImHashMapEntry<int, V>)map.GetEntryOrNull(hash);
+            (VEntry<V>)map.GetEntryOrNull(hash);
 
         /// <summary>Returns the entry ASSUMING it is present otherwise its behavior is UNDEFINED.
         /// You can use the method after the Add and Update methods on the same map instance - 
@@ -4304,7 +4304,7 @@ namespace ImTools
         /// <summary>Lookup for the entry by hash, returns the found entry or `null`.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMapEntry<int, V> GetEntryOrDefault<V>(this ImHashMap<int, V> map, int hash) =>
-            (ImHashMapEntry<int, V>)map.GetEntryOrNull(hash);
+            (VEntry<V>)map.GetEntryOrNull(hash);
 
         /// <summary>Lookup for the entry by hash, returns the found entry or `null`.</summary>
         [MethodImpl((MethodImplOptions)256)]
