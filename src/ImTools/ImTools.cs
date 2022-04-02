@@ -4320,7 +4320,7 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public static V GetValueOrDefault<V>(this ImHashMap<int, V> map, int hash)
         {
-            var e = (ImHashMapEntry<int, V>)map.GetEntryOrNull(hash);
+            var e = (VEntry<V>)map.GetEntryOrNull(hash);
             return e != null ? e.Value : default(V);
         }
 
@@ -4328,7 +4328,7 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public static V GetValueOrDefault<V>(this ImHashMap<int, V> map, int hash, V defaultValue)
         {
-            var e = (ImHashMapEntry<int, V>)map.GetEntryOrNull(hash);
+            var e = (VEntry<V>)map.GetEntryOrNull(hash);
             return e != null ? e.Value : defaultValue;
         }
 
@@ -4374,7 +4374,7 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public static bool TryFind<V>(this ImHashMap<int, V> map, int hash, out V value)
         {
-            var e = (ImHashMapEntry<int, V>)map.GetEntryOrNull(hash);
+            var e = (VEntry<V>)map.GetEntryOrNull(hash);
             if (e != null)
             {
                 value = e.Value;

@@ -715,20 +715,40 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 
 |           Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
 |----------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
-| V4_ImMap_TryFind |     1 |  4.433 ns | 0.0600 ns | 0.0532 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| V2_ImMap_TryFind |     1 |  1.084 ns | 0.0512 ns | 0.0479 ns |  0.25 |    0.01 |     - |     - |     - |         - |
+| V4_ImMap_TryFind |     1 |  3.269 ns | 0.0898 ns | 0.0796 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V2_ImMap_TryFind |     1 |  1.248 ns | 0.0454 ns | 0.0354 ns |  0.38 |    0.01 |     - |     - |     - |         - |
 |                  |       |           |           |           |       |         |       |       |       |           |
-| V4_ImMap_TryFind |    10 |  3.878 ns | 0.1292 ns | 0.1974 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| V2_ImMap_TryFind |    10 |  3.595 ns | 0.0687 ns | 0.0574 ns |  0.93 |    0.05 |     - |     - |     - |         - |
+| V4_ImMap_TryFind |    10 |  4.646 ns | 0.0936 ns | 0.0875 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V2_ImMap_TryFind |    10 |  5.256 ns | 0.1580 ns | 0.1691 ns |  1.13 |    0.04 |     - |     - |     - |         - |
 |                  |       |           |           |           |       |         |       |       |       |           |
-| V4_ImMap_TryFind |   100 |  8.024 ns | 0.1237 ns | 0.1097 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| V2_ImMap_TryFind |   100 |  6.779 ns | 0.0525 ns | 0.0410 ns |  0.84 |    0.01 |     - |     - |     - |         - |
+| V4_ImMap_TryFind |   100 |  7.481 ns | 0.1466 ns | 0.1300 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V2_ImMap_TryFind |   100 |  6.685 ns | 0.1121 ns | 0.1049 ns |  0.89 |    0.02 |     - |     - |     - |         - |
 |                  |       |           |           |           |       |         |       |       |       |           |
-| V4_ImMap_TryFind |  1000 | 13.304 ns | 0.2305 ns | 0.2043 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| V2_ImMap_TryFind |  1000 |  9.893 ns | 0.2531 ns | 0.2486 ns |  0.74 |    0.02 |     - |     - |     - |         - |
+| V4_ImMap_TryFind |  1000 | 12.226 ns | 0.1241 ns | 0.1036 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V2_ImMap_TryFind |  1000 |  9.854 ns | 0.1248 ns | 0.1106 ns |  0.81 |    0.01 |     - |     - |     - |         - |
 |                  |       |           |           |           |       |         |       |       |       |           |
-| V4_ImMap_TryFind | 10000 | 18.311 ns | 0.2218 ns | 0.1852 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| V2_ImMap_TryFind | 10000 | 14.111 ns | 0.1800 ns | 0.1684 ns |  0.77 |    0.01 |     - |     - |     - |         - |
+| V4_ImMap_TryFind | 10000 | 17.730 ns | 0.2596 ns | 0.2428 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V2_ImMap_TryFind | 10000 | 14.005 ns | 0.1946 ns | 0.1725 ns |  0.79 |    0.01 |     - |     - |     - |         - |
+
+
+## V4 GetValueOrDefault
+
+|           Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|----------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+| V4_ImMap_TryFind |     1 |  3.453 ns | 0.1203 ns | 0.1066 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V2_ImMap_TryFind |     1 |  3.215 ns | 0.1132 ns | 0.1212 ns |  0.93 |    0.05 |     - |     - |     - |         - |
+|                  |       |           |           |           |       |         |       |       |       |           |
+| V4_ImMap_TryFind |    10 |  3.972 ns | 0.0634 ns | 0.0495 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V2_ImMap_TryFind |    10 |  3.586 ns | 0.0703 ns | 0.0587 ns |  0.90 |    0.02 |     - |     - |     - |         - |
+|                  |       |           |           |           |       |         |       |       |       |           |
+| V4_ImMap_TryFind |   100 |  6.100 ns | 0.1396 ns | 0.1306 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V2_ImMap_TryFind |   100 |  6.342 ns | 0.1408 ns | 0.1318 ns |  1.04 |    0.03 |     - |     - |     - |         - |
+|                  |       |           |           |           |       |         |       |       |       |           |
+| V4_ImMap_TryFind |  1000 | 12.311 ns | 0.2380 ns | 0.2226 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V2_ImMap_TryFind |  1000 | 13.739 ns | 0.0996 ns | 0.0883 ns |  1.11 |    0.02 |     - |     - |     - |         - |
+|                  |       |           |           |           |       |         |       |       |       |           |
+| V4_ImMap_TryFind | 10000 | 17.720 ns | 0.2927 ns | 0.2738 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V2_ImMap_TryFind | 10000 | 17.626 ns | 0.2942 ns | 0.2752 ns |  0.99 |    0.01 |     - |     - |     - |         - |
 
  */
             private ImTools.V2.ImMap<string> _mapV2;
@@ -855,6 +875,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             [Benchmark(Baseline = true)]
             public string V4_ImMap_TryFind()
             {
+                // return _mapV4.GetValueOrDefault(LookupMaxKey);
                 _mapV4.TryFind(LookupMaxKey, out var result);
                 return result;
             }
@@ -869,6 +890,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             [Benchmark]
             public string V2_ImMap_TryFind()
             {
+                // return _mapV4.GetValueOrDefault(LookupMaxKey);
                 _mapV2.TryFind(LookupMaxKey, out var result);
                 return result;
             }
