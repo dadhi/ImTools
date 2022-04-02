@@ -4318,13 +4318,19 @@ namespace ImTools
 
         /// <summary>Lookup for the value by hash, returns the default `V` if hash is not found.</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static V GetValueOrDefault<V>(this ImHashMap<int, V> map, int hash) =>
-            map.GetEntryOrNull(hash) is ImHashMapEntry<int, V> kv ? kv.Value : default(V);
+        public static V GetValueOrDefault<V>(this ImHashMap<int, V> map, int hash)
+        {
+            var e = (ImHashMapEntry<int, V>)map.GetEntryOrNull(hash);
+            return e != null ? e.Value : default(V);
+        }
 
         /// <summary>Lookup for the value by hash, returns the default `V` if hash is not found.</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static V GetValueOrDefault<V>(this ImHashMap<int, V> map, int hash, V defaultValue) =>
-            map.GetEntryOrNull(hash) is ImHashMapEntry<int, V> kv ? kv.Value : defaultValue;
+        public static V GetValueOrDefault<V>(this ImHashMap<int, V> map, int hash, V defaultValue)
+        {
+            var e = (ImHashMapEntry<int, V>)map.GetEntryOrNull(hash);
+            return e != null ? e.Value : defaultValue;
+        }
 
         /// <summary>Lookup for the value by hash, returns the default `V` if hash is not found.</summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -4368,7 +4374,7 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public static bool TryFind<V>(this ImHashMap<int, V> map, int hash, out V value)
         {
-            var e = map.GetEntryOrNull(hash) as ImHashMapEntry<int, V>;
+            var e = (ImHashMapEntry<int, V>)map.GetEntryOrNull(hash);
             if (e != null)
             {
                 value = e.Value;
