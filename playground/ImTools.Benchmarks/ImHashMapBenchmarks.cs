@@ -477,6 +477,14 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 |     V4_ImMap_AddOrUpdate |  1000 | 301.71 us | 1.950 us | 1.629 us |  1.00 |    0.00 | 46.8750 | 10.7422 |     - | 289.33 KB |
 | V3_ImHashMap_AddOrUpdate |  1000 | 244.70 us | 2.427 us | 1.895 us |  0.81 |    0.01 | 51.2695 | 11.7188 |     - | 316.58 KB |
 
+|                   Method | Count |       Mean |     Error |    StdDev | Ratio | RatioSD |   Gen 0 |   Gen 1 | Gen 2 | Allocated |
+|------------------------- |------ |-----------:|----------:|----------:|------:|--------:|--------:|--------:|------:|----------:|
+|     V4_ImMap_AddOrUpdate |   100 |   8.819 us | 0.1033 us | 0.0966 us |  1.00 |    0.00 |  2.8992 |  0.0916 |     - |  17.85 KB |
+| V3_ImHashMap_AddOrUpdate |   100 |   8.678 us | 0.1443 us | 0.1350 us |  0.98 |    0.02 |  3.1891 |  0.1068 |     - |  19.56 KB |
+|                          |       |            |           |           |       |         |         |         |       |           |
+|     V4_ImMap_AddOrUpdate |  1000 | 234.588 us | 0.5729 us | 0.4473 us |  1.00 |    0.00 | 47.6074 | 10.9863 |     - | 293.08 KB |
+| V3_ImHashMap_AddOrUpdate |  1000 | 196.110 us | 2.1060 us | 1.7586 us |  0.84 |    0.01 | 51.5137 | 12.2070 |     - | 316.58 KB |
+
 */
             [Params(100, 1000)]
             // [Params(10)]
