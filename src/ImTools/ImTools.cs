@@ -1987,6 +1987,8 @@ namespace ImTools
         /// <summary>The count of entries in the map</summary>
         public virtual int Count() => 0;
 
+        internal virtual bool MayTurnToBranch2 => false;
+
         internal virtual Entry GetMinHashEntryOrDefault() => null;
         internal virtual Entry GetMaxHashEntryOrDefault() => null;
 
@@ -2540,6 +2542,8 @@ namespace ImTools
             }
 
             public sealed override int Count() => Plus.Count() + L.Count();
+
+            internal override bool MayTurnToBranch2 => true;
 
 #if !DEBUG
             public override string ToString() => "{L511:{P:" + Plus + ",L:" + L + "}}";
@@ -3110,6 +3114,8 @@ namespace ImTools
             public abstract ImHashMap<K, V> Right { get; }
             public override int Count() => Left.Count() + Entry0.Count() + Middle.Count() + Entry1.Count() + Right.Count();
 
+            internal override bool MayTurnToBranch2 => true;
+
 #if !DEBUG
             public override string ToString() => "{B3:{E0:" + Entry0 + ",E1:" + Entry0 + ",L:" + Left + ",M:" + Middle + ",R:" + Right + "}}";
 #endif
@@ -3127,10 +3133,11 @@ namespace ImTools
                     if (newRight is Entry)
                         return newRight;
 
-                    if (right is Leaf5PlusPlus || right is Branch3Base && newRight is Branch2)
+                    if (right.MayTurnToBranch2 && newRight is Branch2)
                         return new Branch2(new Branch2(Left, Entry0, Middle), Entry1, newRight);
 
-                    return this is Branch3 b ? new Branch3Right(b, newRight) : this is Branch3Right br ? new Branch3Right(br.B, newRight)
+                    return this is Branch3 b ? new Branch3Right(b, newRight) 
+                        : this is Branch3Right br ? new Branch3Right(br.B, newRight)
                         : new Branch3(Left, Entry0, Middle, Entry1, newRight);
                 }
 
@@ -3142,7 +3149,7 @@ namespace ImTools
                     if (newLeft is Entry)
                         return newLeft;
 
-                    if (left is Leaf5PlusPlus || left is Branch3Base && newLeft is Branch2)
+                    if (left.MayTurnToBranch2 && newLeft is Branch2)
                         return new Branch2(newLeft, Entry0, new Branch2(Middle, Entry1, Right));
 
                     return this is Branch3 b ? new Branch3Left(b, newLeft) : this is Branch3Left br ? new Branch3Left(br.B, newLeft)
@@ -3164,7 +3171,8 @@ namespace ImTools
                     if (newMiddle is Entry)
                         return newMiddle;
 
-                    return this is Branch3 b ? new Branch3Middle(b, newMiddle) : this is Branch3Middle br ? new Branch3Middle(br.B, newMiddle)
+                    return this is Branch3 b ? new Branch3Middle(b, newMiddle) 
+                        : this is Branch3Middle br ? new Branch3Middle(br.B, newMiddle)
                         : new Branch3(Left, Entry0, newMiddle, Entry1, Right);
                 }
 
@@ -3180,13 +3188,14 @@ namespace ImTools
                     var newRight = right.AddOrGetEntry(hash, entry);
                     if (newRight is Entry)
                         return newRight;
-                    if (right is Leaf5PlusPlus || right is Branch3Base && newRight is Branch2)
+                    if (right.MayTurnToBranch2 && newRight is Branch2)
                     {
                         entry = Entry1;
                         splitRight = newRight;
                         return new Branch2(Left, Entry0, Middle);
                     }
-                    return this is Branch3 b ? new Branch3Right(b, newRight) : this is Branch3Right br ? new Branch3Right(br.B, newRight)
+                    return this is Branch3 b ? new Branch3Right(b, newRight) 
+                        : this is Branch3Right br ? new Branch3Right(br.B, newRight)
                         : new Branch3(Left, Entry0, Middle, Entry1, newRight);
                 }
 
@@ -3197,13 +3206,14 @@ namespace ImTools
                     var newLeft = left.AddOrGetEntry(hash, entry);
                     if (newLeft is Entry)
                         return newLeft;
-                    if (left is Leaf5PlusPlus || left is Branch3Base && newLeft is Branch2)
+                    if (left.MayTurnToBranch2 && newLeft is Branch2)
                     {
                         entry = Entry0;
                         splitRight = new Branch2(Middle, Entry1, Right);
                         return newLeft;
                     }
-                    return this is Branch3 b ? new Branch3Left(b, newLeft) : this is Branch3Left br ? new Branch3Left(br.B, newLeft)
+                    return this is Branch3 b ? new Branch3Left(b, newLeft) 
+                        : this is Branch3Left br ? new Branch3Left(br.B, newLeft)
                         : new Branch3(newLeft, Entry0, Middle, Entry1, Right);
                 }
 
