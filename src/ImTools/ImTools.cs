@@ -4225,7 +4225,6 @@ namespace ImTools
                             map = b21.B.Right; // it is a leaf so, no need to continue, just proceed with the leafs below
                         }
                     }
-                    // todo: @wip @perf optimize by moving the code to the respective Leaf
                     if (l511 != null)
                     {
                         var l = l511.L.L;
