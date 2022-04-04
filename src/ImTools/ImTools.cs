@@ -2597,16 +2597,16 @@ namespace ImTools
                     return pp;
 
                 var l = L.L;
-                var e0 = l.Entry0; 
+                var e0 = l.Entry0;
                 if (hash == e0.Hash)
                     return e0;
-                var e1 = l.Entry1; 
+                var e1 = l.Entry1;
                 if (hash == e1.Hash)
                     return e1;
                 var e2 = l.Entry2;
                 if (hash == e2.Hash)
                     return e2;
-                var e3 = l.Entry3; 
+                var e3 = l.Entry3;
                 if (hash == e3.Hash)
                     return e3;
                 var e4 = l.Entry4;
@@ -2789,14 +2789,44 @@ namespace ImTools
                     var right = Right;
                     if (right is Leaf5PlusPlus rl511)
                     {
+                        // if (Left is Leaf2 l2)
+                        // {
+                        //     var e = rl511.GetEntryOrNull(hash);
+                        //     if (e != null)
+                        //         return e;
+                        //     var rMin = rl511.GetMinHashEntryOrDefault();
+                        //     if (hash < rMin.Hash)
+                        //         return new Branch2(new Leaf2Plus(me, l2), entry, rl511);
+                        //     if (rMin == rl511.Plus)
+                        //         return new Branch2(new Leaf2Plus(me, l2), rMin, new Leaf5PlusPlus(entry, rl511.L));
+                        //     if (rMin == rl511.L.Plus)
+                        //         return new Branch2(new Leaf2Plus(me, l2), rMin, new Leaf5PlusPlus(entry, new Leaf5Plus(rl511.Plus, rl511.L.L)));
+                        //     return new Branch2Plus1(entry, this);
+                        // }
+                        
+                        // if (Left is Leaf2Plus l2p)
+                        // {
+                        //     var e = rl511.GetEntryOrNull(hash);
+                        //     if (e != null)
+                        //         return e;
+                        //     var rMin = rl511.GetMinHashEntryOrDefault();
+                        //     if (hash < rMin.Hash)
+                        //         return new Branch2(new Leaf2PlusPlus(me, l2p), entry, rl511);
+                        //     if (rMin == rl511.Plus)
+                        //         return new Branch2(new Leaf2PlusPlus(me, l2p), rMin, new Leaf5PlusPlus(entry, rl511.L));
+                        //     if (rMin == rl511.L.Plus)
+                        //         return new Branch2(new Leaf2PlusPlus(me, l2p), rMin, new Leaf5PlusPlus(entry, new Leaf5Plus(rl511.Plus, rl511.L.L)));
+                        //     return new Branch2Plus1(entry, this);
+                        // }
+
                         // optimizing the split by postponing it by introducing the branch 2 plus 1
                         if (Left is Leaf5PlusPlus == false)
-                            return rl511.GetEntryOrNull(hash) ??  (ImHashMap<K, V>)new Branch2Plus1(entry, this);
+                            return rl511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus1(entry, this);
 
                         ImHashMap<K, V> splitRight = null;
                         entryOrNewBranch = rl511.AddOrGetEntry(hash, ref entry, ref splitRight);
                         // if split is `null` then the only reason is that hash is found
-                        return splitRight != null ? new Branch3(Left, me, entryOrNewBranch, entry, splitRight) : (ImHashMap<K, V>)entryOrNewBranch;
+                        return splitRight != null ? new Branch3(Left, me, entryOrNewBranch, entry, splitRight) : entryOrNewBranch;
                     }
 
                     if (right is Branch3Base rb3)
@@ -2816,6 +2846,36 @@ namespace ImTools
                     var left = Left;
                     if (left is Leaf5PlusPlus ll511)
                     {
+                        // if (Right is Leaf2 l2)
+                        // {
+                        //     var e = ll511.GetEntryOrNull(hash);
+                        //     if (e != null)
+                        //         return e;
+                        //     var lMax = ll511.GetMaxHashEntryOrDefault();
+                        //     if (hash > lMax.Hash)
+                        //         return new Branch2(ll511, entry, new Leaf2Plus(me, l2));
+                        //     if (lMax == ll511.Plus)
+                        //         return new Branch2(new Leaf5PlusPlus(entry, ll511.L), lMax, new Leaf2Plus(me, l2));
+                        //     if (lMax == ll511.L.Plus)
+                        //         return new Branch2(new Leaf5PlusPlus(entry, new Leaf5Plus(ll511.Plus, ll511.L.L)), lMax, new Leaf2Plus(me, l2));
+                        //     return new Branch2Plus1(entry, this);
+                        // }
+
+                        // if (Right is Leaf2Plus l2p)
+                        // {
+                        //     var e = ll511.GetEntryOrNull(hash);
+                        //     if (e != null)
+                        //         return e;
+                        //     var lMax = ll511.GetMaxHashEntryOrDefault();
+                        //     if (hash > lMax.Hash)
+                        //         return new Branch2(ll511, entry, new Leaf2PlusPlus(me, l2p));
+                        //     if (lMax == ll511.Plus)
+                        //         return new Branch2(new Leaf5PlusPlus(entry, ll511.L), lMax, new Leaf2PlusPlus(me, l2p));
+                        //     if (lMax == ll511.L.Plus)
+                        //         return new Branch2(new Leaf5PlusPlus(entry, new Leaf5Plus(ll511.Plus, ll511.L.L)), lMax, new Leaf2PlusPlus(me, l2p));
+                        //     return new Branch2Plus1(entry, this);
+                        // }
+
                         if (Right is Leaf5PlusPlus == false)
                             return ll511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus1(entry, this);
 
@@ -2823,6 +2883,7 @@ namespace ImTools
                         entryOrNewBranch = ll511.AddOrGetEntry(hash, ref entry, ref splitRight);
                         return splitRight != null ? new Branch3(entryOrNewBranch, entry, splitRight, me, Right) : (ImHashMap<K, V>)entryOrNewBranch;
                     }
+
                     if (left is Branch3Base lb3)
                     {
                         ImHashMap<K, V> splitRight = null;
@@ -2831,6 +2892,7 @@ namespace ImTools
                             return new Branch3(entryOrNewBranch, entry, splitRight, me, Right);
                     }
                     else entryOrNewBranch = left.AddOrGetEntry(hash, entry);
+
                     return entryOrNewBranch is Entry ? entryOrNewBranch : new Branch2(entryOrNewBranch, me, Right);
                 }
 
@@ -3136,7 +3198,7 @@ namespace ImTools
                     if (right.MayTurnToBranch2 && newRight is Branch2)
                         return new Branch2(new Branch2(Left, Entry0, Middle), Entry1, newRight);
 
-                    return this is Branch3 b ? new Branch3Right(b, newRight) 
+                    return this is Branch3 b ? new Branch3Right(b, newRight)
                         : this is Branch3Right br ? new Branch3Right(br.B, newRight)
                         : new Branch3(Left, Entry0, Middle, Entry1, newRight);
                 }
@@ -3171,7 +3233,7 @@ namespace ImTools
                     if (newMiddle is Entry)
                         return newMiddle;
 
-                    return this is Branch3 b ? new Branch3Middle(b, newMiddle) 
+                    return this is Branch3 b ? new Branch3Middle(b, newMiddle)
                         : this is Branch3Middle br ? new Branch3Middle(br.B, newMiddle)
                         : new Branch3(Left, Entry0, newMiddle, Entry1, Right);
                 }
@@ -3194,7 +3256,7 @@ namespace ImTools
                         splitRight = newRight;
                         return new Branch2(Left, Entry0, Middle);
                     }
-                    return this is Branch3 b ? new Branch3Right(b, newRight) 
+                    return this is Branch3 b ? new Branch3Right(b, newRight)
                         : this is Branch3Right br ? new Branch3Right(br.B, newRight)
                         : new Branch3(Left, Entry0, Middle, Entry1, newRight);
                 }
@@ -3212,7 +3274,7 @@ namespace ImTools
                         splitRight = new Branch2(Middle, Entry1, Right);
                         return newLeft;
                     }
-                    return this is Branch3 b ? new Branch3Left(b, newLeft) 
+                    return this is Branch3 b ? new Branch3Left(b, newLeft)
                         : this is Branch3Left br ? new Branch3Left(br.B, newLeft)
                         : new Branch3(newLeft, Entry0, Middle, Entry1, Right);
                 }

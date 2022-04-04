@@ -477,8 +477,27 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 |     V4_ImMap_AddOrUpdate |  1000 | 301.71 us | 1.950 us | 1.629 us |  1.00 |    0.00 | 46.8750 | 10.7422 |     - | 289.33 KB |
 | V3_ImHashMap_AddOrUpdate |  1000 | 244.70 us | 2.427 us | 1.895 us |  0.81 |    0.01 | 51.2695 | 11.7188 |     - | 316.58 KB |
 
+## V4 rebalance leafs
+
+|------------------------- |------ |-------------:|------------:|------------:|-------------:|------:|--------:|---------:|-------:|------:|----------:|
+|     V4_ImMap_AddOrUpdate |    10 |     446.0 ns |     8.97 ns |    20.62 ns |     441.5 ns |  1.00 |    0.00 |   0.3185 |      - |     - |    1000 B |
+| V3_ImHashMap_AddOrUpdate |    10 |     427.0 ns |     8.54 ns |    15.61 ns |     422.6 ns |  0.96 |    0.05 |   0.3185 |      - |     - |    1000 B |
+|              Dict_TryAdd |    10 |     458.3 ns |     9.06 ns |    11.45 ns |     456.3 ns |  1.03 |    0.06 |   0.3157 |      - |     - |     992 B |
+|                          |       |              |             |             |              |       |         |          |        |       |           |
+|     V4_ImMap_AddOrUpdate |    40 |   3,269.5 ns |    74.27 ns |   203.31 ns |   3,199.8 ns |  1.00 |    0.00 |   1.8082 |      - |     - |    5688 B |
+| V3_ImHashMap_AddOrUpdate |    40 |   3,185.5 ns |    63.37 ns |   163.57 ns |   3,137.0 ns |  0.98 |    0.08 |   1.9608 |      - |     - |    6160 B |
+|              Dict_TryAdd |    40 |   1,738.3 ns |    34.45 ns |    50.49 ns |   1,741.4 ns |  0.53 |    0.03 |   1.4725 |      - |     - |    4624 B |
+|                          |       |              |             |             |              |       |         |          |        |       |           |
+|     V4_ImMap_AddOrUpdate |   100 |  11,709.0 ns |   229.39 ns |   281.71 ns |  11,617.4 ns |  1.00 |    0.00 |   5.7831 |      - |     - |   18184 B |
+| V3_ImHashMap_AddOrUpdate |   100 |  11,035.1 ns |   213.56 ns |   237.37 ns |  11,045.2 ns |  0.94 |    0.03 |   6.3782 |      - |     - |   20032 B |
+|              Dict_TryAdd |   100 |   4,118.6 ns |    82.43 ns |   150.73 ns |   4,083.3 ns |  0.35 |    0.02 |   3.2425 |      - |     - |   10192 B |
+|                          |       |              |             |             |              |       |         |          |        |       |           |
+|     V4_ImMap_AddOrUpdate |  1000 | 332,869.5 ns | 5,449.75 ns | 4,831.06 ns | 332,347.2 ns |  1.00 |    0.00 |  94.2383 | 0.4883 |     - |  296608 B |
+| V3_ImHashMap_AddOrUpdate |  1000 | 273,964.1 ns | 4,577.33 ns | 7,647.69 ns | 272,296.7 ns |  0.83 |    0.03 | 103.0273 |      - |     - |  324176 B |
+|              Dict_TryAdd |  1000 |  44,643.8 ns |   886.05 ns | 1,728.16 ns |  44,153.6 ns |  0.13 |    0.00 |  32.2266 |      - |     - |  102216 B |
+
 */
-            [Params(100, 1000)]
+            [Params(10, 40, 100, 1000)]
             // [Params(10)]
             public int Count;
 
@@ -605,7 +624,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return map;
             }
 
-            // [Benchmark]
+            [Benchmark]
             public Dictionary<Type, string> Dict_TryAdd()
             {
                 var map = new Dictionary<Type, string>();
