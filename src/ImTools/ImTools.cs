@@ -2597,23 +2597,26 @@ namespace ImTools
                     return pp;
 
                 var l = L.L;
-                Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4;
-
+                var e0 = l.Entry0; 
                 if (hash == e0.Hash)
                     return e0;
+                var e1 = l.Entry1; 
                 if (hash == e1.Hash)
                     return e1;
+                var e2 = l.Entry2;
                 if (hash == e2.Hash)
                     return e2;
+                var e3 = l.Entry3; 
                 if (hash == e3.Hash)
                     return e3;
+                var e4 = l.Entry4;
                 if (hash == e4.Hash)
                     return e4;
 
                 var right = hash > e4.Hash && ph > e4.Hash && pph > e4.Hash;
                 var left = !right && hash < e0.Hash && ph < e0.Hash && pph < e0.Hash;
 
-                Entry e = entry;
+                Entry e = entry; // store the entry original value cause we may change it for the result
                 ImHashMap.InsertInOrder(pph, ref pp, ref e0, ref e1, ref e2, ref e3, ref e4);
                 ImHashMap.InsertInOrder(ph, ref p, ref e0, ref e1, ref e2, ref e3, ref e4, ref pp);
                 ImHashMap.InsertInOrder(hash, ref e, ref e0, ref e1, ref e2, ref e3, ref e4, ref pp, ref p);
@@ -2638,8 +2641,8 @@ namespace ImTools
 
                 var right = hash > e4.Hash && ph > e4.Hash && pph > e4.Hash;
                 var left = !right && hash < e0.Hash && ph < e0.Hash && pph < e0.Hash;
-                var e = entry; // store the entry original value cause we may change it for the result
 
+                var e = entry; // store the entry original value cause we may change it for the result
                 ImHashMap.InsertInOrder(pph, ref pp, ref e0, ref e1, ref e2, ref e3, ref e4);
                 ImHashMap.InsertInOrder(ph, ref p, ref e0, ref e1, ref e2, ref e3, ref e4, ref pp);
                 ImHashMap.InsertInOrder(hash, ref e, ref e0, ref e1, ref e2, ref e3, ref e4, ref pp, ref p);
