@@ -2788,16 +2788,14 @@ namespace ImTools
                     {
                         // optimizing the split by postponing it by introducing the branch 2 plus 1
                         if (Left is Leaf5PlusPlus == false)
-                        {
-                            // first check that the new entry does not have the existing entry in the Right where we suppose to add it
-                            var oldEntry = rl511.GetEntryOrNull(hash);
-                            return oldEntry == null ? new Branch2Plus1(entry, this) : (ImHashMap<K, V>)oldEntry;
-                        }
+                            return rl511.GetEntryOrNull(hash) ??  (ImHashMap<K, V>)new Branch2Plus1(entry, this);
+
                         ImHashMap<K, V> splitRight = null;
                         entryOrNewBranch = rl511.AddOrGetEntry(hash, ref entry, ref splitRight);
                         // if split is `null` then the only reason is that hash is found
                         return splitRight != null ? new Branch3(Left, me, entryOrNewBranch, entry, splitRight) : (ImHashMap<K, V>)entryOrNewBranch;
                     }
+
                     if (right is Branch3Base rb3)
                     {
                         ImHashMap<K, V> splitRight = null;
@@ -2806,6 +2804,7 @@ namespace ImTools
                             return new Branch3(Left, me, entryOrNewBranch, entry, splitRight);
                     }
                     else entryOrNewBranch = right.AddOrGetEntry(hash, entry);
+
                     return entryOrNewBranch is Entry ? entryOrNewBranch : new Branch2(Left, me, entryOrNewBranch);
                 }
 
@@ -2815,10 +2814,8 @@ namespace ImTools
                     if (left is Leaf5PlusPlus ll511)
                     {
                         if (Right is Leaf5PlusPlus == false)
-                        {
-                            var oldEntry = ll511.GetEntryOrNull(hash);
-                            return oldEntry == null ? new Branch2Plus1(entry, this) : (ImHashMap<K, V>)oldEntry;
-                        }
+                            return ll511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus1(entry, this);
+
                         ImHashMap<K, V> splitRight = null;
                         entryOrNewBranch = ll511.AddOrGetEntry(hash, ref entry, ref splitRight);
                         return splitRight != null ? new Branch3(entryOrNewBranch, entry, splitRight, me, Right) : (ImHashMap<K, V>)entryOrNewBranch;
