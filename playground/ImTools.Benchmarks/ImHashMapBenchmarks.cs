@@ -501,9 +501,20 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 |       ConcurrentDictionary_TryAdd |  1000 | 167,061.82 ns |  2,751.428 ns |  3,379.001 ns | 165,645.54 ns |  0.56 |    0.03 |  55.9082 | 22.4609 |     - |  247192 B |
 |         ImmutableDict_Builder_Add |  1000 | 390,321.17 ns |  7,769.517 ns | 21,658.308 ns | 382,817.24 ns |  1.31 |    0.11 |  20.0195 |       - |     - |   64160 B |
 |                 ImmutableDict_Add |  1000 | 814,624.49 ns | 16,056.714 ns | 26,827.161 ns | 805,606.20 ns |  2.74 |    0.14 | 211.9141 |       - |     - |  665000 B |
+
+## br2 left and right
+
+|                   Method | Count |      Mean |    Error |   StdDev |    Median | Ratio | RatioSD |    Gen 0 |  Gen 1 | Gen 2 | Allocated |
+|------------------------- |------ |----------:|---------:|---------:|----------:|------:|--------:|---------:|-------:|------:|----------:|
+|     V4_ImMap_AddOrUpdate |   100 |  13.24 us | 0.247 us | 0.470 us |  13.16 us |  1.00 |    0.00 |   5.5695 |      - |     - |  17.06 KB |
+| V3_ImHashMap_AddOrUpdate |   100 |  12.29 us | 0.352 us | 1.023 us |  11.95 us |  0.92 |    0.08 |   6.3782 |      - |     - |  19.56 KB |
+|                          |       |           |          |          |           |       |         |          |        |       |           |
+|     V4_ImMap_AddOrUpdate |  1000 | 420.50 us | 8.068 us | 7.152 us | 420.27 us |  1.00 |    0.00 |  88.8672 | 0.4883 |     - | 273.19 KB |
+| V3_ImHashMap_AddOrUpdate |  1000 | 289.54 us | 5.769 us | 9.638 us | 287.66 us |  0.69 |    0.02 | 103.0273 |      - |     - | 316.58 KB |
+
 */
-            [Params(1, 10, 100, 1000)]
-            // [Params(10)]
+            // [Params(1, 10, 100, 1000)]
+            [Params(100, 1000)]
             public int Count;
 
             private Type[] _types;
@@ -547,7 +558,7 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), new KeyValuePair<Type, string>(typeof(ImHashMapBenchmarks), "!"));
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImTools.ImHashMap<Type, string>[] V4_PartitionedHashMap_AddOrUpdate()
             {
                 var map = ImTools.PartitionedHashMap.CreateEmpty<Type, string>();
@@ -559,7 +570,7 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImToolsV3.ImHashMap<Type, string>[] V3_PartitionedHashMap_AddOrUpdate()
             {
                 var map = ImToolsV3.PartitionedHashMap.CreateEmpty<Type, string>();
@@ -629,7 +640,7 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public DictionarySlim<TypeVal, string> DictSlim_TryAdd()
             {
                 var map = new DictionarySlim<TypeVal, string>();
@@ -641,7 +652,7 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public Dictionary<Type, string> Dict_TryAdd()
             {
                 var map = new Dictionary<Type, string>();
@@ -653,7 +664,7 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ConcurrentDictionary<Type, string> ConcurrentDictionary_TryAdd()
             {
                 var map = new ConcurrentDictionary<Type, string>();
@@ -665,7 +676,7 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImmutableDictionary<Type, string> ImmutableDict_Builder_Add()
             {
                 var builder = ImmutableDictionary.CreateBuilder<Type, string>();
@@ -676,7 +687,7 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return builder.ToImmutable();
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImmutableDictionary<Type, string> ImmutableDict_Add()
             {
                 var map = ImmutableDictionary<Type, string>.Empty;
