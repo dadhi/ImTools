@@ -2803,7 +2803,7 @@ namespace ImTools
                         //         return new Branch2(new Leaf2Plus(me, l2), rMin, new Leaf5PlusPlus(entry, new Leaf5Plus(rl511.Plus, rl511.L.L)));
                         //     return new Branch2Plus1(entry, this);
                         // }
-                        
+
                         // if (Left is Leaf2Plus l2p)
                         // {
                         //     var e = rl511.GetEntryOrNull(hash);
@@ -2883,7 +2883,7 @@ namespace ImTools
 
                         ImHashMap<K, V> splitRight = null;
                         entryOrNewBranch = ll511.AddOrGetEntry(hash, ref entry, ref splitRight);
-                        return splitRight != null ? new Branch3(entryOrNewBranch, entry, splitRight, me, Right) : (ImHashMap<K, V>)entryOrNewBranch;
+                        return splitRight != null ? new Branch3(entryOrNewBranch, entry, splitRight, me, Right) : entryOrNewBranch;
                     }
 
                     if (left is Branch3Base lb3)
@@ -3176,6 +3176,7 @@ namespace ImTools
             public abstract ImHashMap<K, V> Left { get; }
             public abstract ImHashMap<K, V> Middle { get; }
             public abstract ImHashMap<K, V> Right { get; }
+            // todo: @perf optimize in inheritors
             public override int Count() => Left.Count() + Entry0.Count() + Middle.Count() + Entry1.Count() + Right.Count();
 
             internal override bool MayTurnToBranch2 => true;
@@ -3184,7 +3185,9 @@ namespace ImTools
             public override string ToString() => "{B3:{E0:" + Entry0 + ",E1:" + Entry0 + ",L:" + Left + ",M:" + Middle + ",R:" + Right + "}}";
 #endif
 
+            // todo: @perf optimize in inheritors
             internal override Entry GetMinHashEntryOrDefault() => Left.GetMinHashEntryOrDefault();
+            // todo: @perf optimize in inheritors
             internal override Entry GetMaxHashEntryOrDefault() => Right.GetMaxHashEntryOrDefault();
 
             internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
@@ -3216,7 +3219,8 @@ namespace ImTools
                     if (left.MayTurnToBranch2 && newLeft is Branch2)
                         return new Branch2(newLeft, Entry0, new Branch2(Middle, Entry1, Right));
 
-                    return this is Branch3 b ? new Branch3Left(b, newLeft) : this is Branch3Left br ? new Branch3Left(br.B, newLeft)
+                    return this is Branch3 b ? new Branch3Left(b, newLeft) 
+                        : this is Branch3Left br ? new Branch3Left(br.B, newLeft)
                         : new Branch3(newLeft, Entry0, Middle, Entry1, Right);
                 }
 
