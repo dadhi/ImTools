@@ -1424,6 +1424,22 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 |                                |       |           |           |           |       |         |       |       |       |           |
 |     V4_ImMap_GetValueOrDefault |  1000 | 16.610 ns | 0.2304 ns | 0.1924 ns |  1.00 |    0.00 |     - |     - |     - |         - |
 | V3_ImHashMap_GetValueOrDefault |  1000 | 15.351 ns | 0.3493 ns | 0.3267 ns |  0.93 |    0.03 |     - |     - |     - |         - |
+
+
+
+|                         Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+|     V4_ImMap_GetValueOrDefault |     1 |  5.849 ns | 0.0277 ns | 0.0216 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V3_ImHashMap_GetValueOrDefault |     1 |  6.566 ns | 0.1490 ns | 0.1321 ns |  1.12 |    0.02 |     - |     - |     - |         - |
+|                                |       |           |           |           |       |         |       |       |       |           |
+|     V4_ImMap_GetValueOrDefault |    10 |  6.824 ns | 0.0257 ns | 0.0214 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V3_ImHashMap_GetValueOrDefault |    10 |  7.282 ns | 0.1146 ns | 0.0957 ns |  1.07 |    0.01 |     - |     - |     - |         - |
+|                                |       |           |           |           |       |         |       |       |       |           |
+|     V4_ImMap_GetValueOrDefault |   100 |  9.236 ns | 0.0753 ns | 0.0588 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V3_ImHashMap_GetValueOrDefault |   100 |  9.946 ns | 0.1044 ns | 0.0815 ns |  1.08 |    0.01 |     - |     - |     - |         - |
+|                                |       |           |           |           |       |         |       |       |       |           |
+|     V4_ImMap_GetValueOrDefault |  1000 | 13.319 ns | 0.3108 ns | 0.3580 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V3_ImHashMap_GetValueOrDefault |  1000 | 14.213 ns | 0.3041 ns | 0.5636 ns |  1.05 |    0.03 |     - |     - |     - |         - |
 */
             [Params(1, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             // [Params(20)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
