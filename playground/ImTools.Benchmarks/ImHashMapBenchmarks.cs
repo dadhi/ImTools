@@ -2023,9 +2023,23 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 |     V4_ImMap_Enumerate |  1000 | 21,607.91 ns | 409.518 ns | 717.239 ns | 21,545.05 ns |  1.00 |    0.00 |      - |     - |     - |         - |
 | V3_ImHashMap_Enumerate |  1000 | 21,496.33 ns | 428.614 ns | 967.454 ns | 21,287.83 ns |  1.00 |    0.05 | 0.0610 |     - |     - |     480 B |
 
+|                 Method | Count |         Mean |      Error |       StdDev |       Median | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|----------------------- |------ |-------------:|-----------:|-------------:|-------------:|------:|--------:|-------:|------:|------:|----------:|
+|     V4_ImMap_Enumerate |     1 |     50.45 ns |   1.605 ns |     4.731 ns |     47.76 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+| V3_ImHashMap_Enumerate |     1 |     42.57 ns |   0.932 ns |     1.680 ns |     42.29 ns |  0.78 |    0.07 | 0.0510 |     - |     - |     160 B |
+|                        |       |              |            |              |              |       |         |        |       |       |           |
+|     V4_ImMap_Enumerate |    10 |    253.89 ns |   7.092 ns |    19.886 ns |    246.05 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+| V3_ImHashMap_Enumerate |    10 |    253.72 ns |   5.105 ns |    12.034 ns |    249.85 ns |  1.00 |    0.08 | 0.0763 |     - |     - |     240 B |
+|                        |       |              |            |              |              |       |         |        |       |       |           |
+|     V4_ImMap_Enumerate |   100 |  2,397.38 ns |  45.270 ns |    37.802 ns |  2,387.29 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+| V3_ImHashMap_Enumerate |   100 |  2,101.73 ns |  41.786 ns |    96.011 ns |  2,079.40 ns |  0.88 |    0.03 | 0.0763 |     - |     - |     240 B |
+|                        |       |              |            |              |              |       |         |        |       |       |           |
+|     V4_ImMap_Enumerate |  1000 | 26,771.02 ns | 507.805 ns | 1,125.260 ns | 26,460.63 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+| V3_ImHashMap_Enumerate |  1000 | 22,033.21 ns | 439.462 ns |   571.424 ns | 21,873.62 ns |  0.81 |    0.04 | 0.1526 |     - |     - |     480 B |
+
 */
-            // [Params(1, 10, 100, 1_000)]
-            [Params(100, 1_000)]
+            [Params(1, 10, 100, 1_000)]
+            // [Params(100, 1_000)]
             public int Count;
 
             [GlobalSetup]

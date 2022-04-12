@@ -377,6 +377,26 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 |                      |       |                 |               |               |       |         |           |          |          |           |
 | V4_ImMap_AddOrUpdate | 10000 | 4,420,642.43 ns | 41,215.277 ns | 34,416.623 ns |  1.00 |    0.00 |  687.5000 | 320.3125 |  62.5000 | 4334394 B |
 | V2_ImMap_AddOrUpdate | 10000 | 4,481,795.83 ns | 54,680.323 ns | 42,690.799 ns |  1.01 |    0.01 | 1109.3750 | 226.5625 | 101.5625 | 6972713 B |
+
+## V4 b2 specialization
+
+|               Method | Count |            Mean |          Error |         StdDev |          Median | Ratio | RatioSD |     Gen 0 |    Gen 1 |    Gen 2 | Allocated |
+|--------------------- |------ |----------------:|---------------:|---------------:|----------------:|------:|--------:|----------:|---------:|---------:|----------:|
+| V4_ImMap_AddOrUpdate |     1 |        13.50 ns |       0.286 ns |       0.239 ns |        13.45 ns |  1.00 |    0.00 |    0.0102 |        - |        - |      32 B |
+| V2_ImMap_AddOrUpdate |     1 |        14.96 ns |       0.378 ns |       0.622 ns |        14.76 ns |  1.12 |    0.05 |    0.0153 |        - |        - |      48 B |
+|                      |       |                 |                |                |                 |       |         |           |          |          |           |
+| V4_ImMap_AddOrUpdate |    10 |       282.57 ns |       5.707 ns |       9.995 ns |       278.35 ns |  1.00 |    0.00 |    0.2346 |        - |        - |     736 B |
+| V2_ImMap_AddOrUpdate |    10 |       612.38 ns |      12.334 ns |      26.284 ns |       601.42 ns |  2.18 |    0.13 |    0.5655 |        - |        - |    1776 B |
+|                      |       |                 |                |                |                 |       |         |           |          |          |           |
+| V4_ImMap_AddOrUpdate |   100 |    10,325.37 ns |     198.384 ns |     526.085 ns |    10,146.96 ns |  1.00 |    0.00 |    5.7831 |        - |        - |   18160 B |
+| V2_ImMap_AddOrUpdate |   100 |    13,532.77 ns |     220.966 ns |     172.515 ns |    13,570.33 ns |  1.28 |    0.07 |   11.8713 |        - |        - |   37296 B |
+|                      |       |                 |                |                |                 |       |         |           |          |          |           |
+| V4_ImMap_AddOrUpdate |  1000 |   214,242.08 ns |   4,207.981 ns |   5,471.563 ns |   213,657.58 ns |  1.00 |    0.00 |   91.5527 |   0.4883 |        - |  287296 B |
+| V2_ImMap_AddOrUpdate |  1000 |   258,540.86 ns |   5,035.460 ns |   8,273.405 ns |   257,533.15 ns |  1.21 |    0.05 |  169.9219 |   0.4883 |        - |  534144 B |
+|                      |       |                 |                |                |                 |       |         |           |          |          |           |
+| V4_ImMap_AddOrUpdate | 10000 | 5,227,636.54 ns | 172,404.882 ns | 502,913.133 ns | 4,973,463.28 ns |  1.00 |    0.00 |  625.0000 | 312.5000 |  39.0625 | 3927542 B |
+| V2_ImMap_AddOrUpdate | 10000 | 5,638,343.57 ns | 103,118.723 ns | 105,895.337 ns | 5,621,227.34 ns |  1.12 |    0.05 | 1109.3750 | 250.0000 | 109.3750 | 6972712 B |
+
 */
             // [Params(100)]
             // [Params(14, 100, 1_000, 10_000)]
@@ -774,24 +794,23 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 | V2_ImMap_TryFind | 10000 | 14.005 ns | 0.1946 ns | 0.1725 ns |  0.79 |    0.01 |     - |     - |     - |         - |
 
 
-## V4 GetValueOrDefault
 
-|           Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
-|----------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
-| V4_ImMap_TryFind |     1 |  3.453 ns | 0.1203 ns | 0.1066 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| V2_ImMap_TryFind |     1 |  3.215 ns | 0.1132 ns | 0.1212 ns |  0.93 |    0.05 |     - |     - |     - |         - |
-|                  |       |           |           |           |       |         |       |       |       |           |
-| V4_ImMap_TryFind |    10 |  3.972 ns | 0.0634 ns | 0.0495 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| V2_ImMap_TryFind |    10 |  3.586 ns | 0.0703 ns | 0.0587 ns |  0.90 |    0.02 |     - |     - |     - |         - |
-|                  |       |           |           |           |       |         |       |       |       |           |
-| V4_ImMap_TryFind |   100 |  6.100 ns | 0.1396 ns | 0.1306 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| V2_ImMap_TryFind |   100 |  6.342 ns | 0.1408 ns | 0.1318 ns |  1.04 |    0.03 |     - |     - |     - |         - |
-|                  |       |           |           |           |       |         |       |       |       |           |
-| V4_ImMap_TryFind |  1000 | 12.311 ns | 0.2380 ns | 0.2226 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| V2_ImMap_TryFind |  1000 | 13.739 ns | 0.0996 ns | 0.0883 ns |  1.11 |    0.02 |     - |     - |     - |         - |
-|                  |       |           |           |           |       |         |       |       |       |           |
-| V4_ImMap_TryFind | 10000 | 17.720 ns | 0.2927 ns | 0.2738 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-| V2_ImMap_TryFind | 10000 | 17.626 ns | 0.2942 ns | 0.2752 ns |  0.99 |    0.01 |     - |     - |     - |         - |
+|           Method | Count |      Mean |     Error |    StdDev |    Median | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+|----------------- |------ |----------:|----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+| V4_ImMap_TryFind |     1 |  2.088 ns | 0.2241 ns | 0.6608 ns |  1.739 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V2_ImMap_TryFind |     1 |  1.438 ns | 0.1066 ns | 0.1866 ns |  1.391 ns |  0.57 |    0.18 |     - |     - |     - |         - |
+|                  |       |           |           |           |           |       |         |       |       |       |           |
+| V4_ImMap_TryFind |    10 |  4.480 ns | 0.1233 ns | 0.1030 ns |  4.480 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V2_ImMap_TryFind |    10 |  4.932 ns | 0.1703 ns | 0.1673 ns |  4.890 ns |  1.11 |    0.04 |     - |     - |     - |         - |
+|                  |       |           |           |           |           |       |         |       |       |       |           |
+| V4_ImMap_TryFind |   100 |  8.285 ns | 0.2936 ns | 0.8184 ns |  7.832 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V2_ImMap_TryFind |   100 |  7.086 ns | 0.1276 ns | 0.1131 ns |  7.046 ns |  0.87 |    0.07 |     - |     - |     - |         - |
+|                  |       |           |           |           |           |       |         |       |       |       |           |
+| V4_ImMap_TryFind |  1000 | 14.660 ns | 0.4843 ns | 1.3175 ns | 14.083 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V2_ImMap_TryFind |  1000 | 10.333 ns | 0.1249 ns | 0.0975 ns | 10.320 ns |  0.72 |    0.04 |     - |     - |     - |         - |
+|                  |       |           |           |           |           |       |         |       |       |       |           |
+| V4_ImMap_TryFind | 10000 | 18.809 ns | 0.4266 ns | 0.3782 ns | 18.617 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+| V2_ImMap_TryFind | 10000 | 14.859 ns | 0.2032 ns | 0.1901 ns | 14.774 ns |  0.79 |    0.02 |     - |     - |     - |         - |
 
  */
             private ImTools.V2.ImMap<string> _mapV2;
@@ -893,8 +912,8 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return builder.ToImmutable();
             }
 
-            [Params(1, 10)]
-            // [Params(1, 10, 100, 1_000, 10_000)]
+            // [Params(1, 10)]
+            [Params(1, 10, 100, 1_000, 10_000)]
             public int Count;
 
             public int LookupMaxKey;
@@ -1207,6 +1226,25 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 |          V3_ImMap_ToArray |    10 | 111.30 ns | 2.243 ns | 3.144 ns | 111.83 ns |  1.00 |    0.00 | 0.0293 |     - |     - |     184 B |
 | V3_ImMap_EnumerateToArray |    10 | 189.22 ns | 3.861 ns | 7.347 ns | 190.82 ns |  1.70 |    0.07 | 0.0165 |     - |     - |     104 B |
 
+## V4
+
+|           Method | Count |          Mean |        Error |       StdDev |        Median | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|----------------- |------ |--------------:|-------------:|-------------:|--------------:|------:|--------:|-------:|------:|------:|----------:|
+| V4_ImMap_foreach |     1 |      43.73 ns |     0.942 ns |     1.350 ns |      43.12 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+| V2_ImMap_foreach |     1 |      26.62 ns |     0.607 ns |     0.871 ns |      26.57 ns |  0.61 |    0.03 | 0.0229 |     - |     - |      72 B |
+|                  |       |               |              |              |               |       |         |        |       |       |           |
+| V4_ImMap_foreach |    10 |     220.92 ns |     4.448 ns |     3.473 ns |     220.65 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+| V2_ImMap_foreach |    10 |     132.65 ns |     2.601 ns |     2.671 ns |     131.87 ns |  0.60 |    0.02 | 0.0355 |     - |     - |     112 B |
+|                  |       |               |              |              |               |       |         |        |       |       |           |
+| V4_ImMap_foreach |   100 |   2,248.61 ns |    42.807 ns |    47.580 ns |   2,231.66 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+| V2_ImMap_foreach |   100 |   1,234.62 ns |    24.446 ns |    54.677 ns |   1,221.91 ns |  0.55 |    0.02 | 0.0420 |     - |     - |     136 B |
+|                  |       |               |              |              |               |       |         |        |       |       |           |
+| V4_ImMap_foreach |  1000 |  23,490.06 ns |   458.264 ns | 1,215.252 ns |  23,072.73 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+| V2_ImMap_foreach |  1000 |  12,074.46 ns |   209.396 ns |   163.483 ns |  12,022.67 ns |  0.52 |    0.03 | 0.0458 |     - |     - |     160 B |
+|                  |       |               |              |              |               |       |         |        |       |       |           |
+| V4_ImMap_foreach | 10000 | 225,604.07 ns | 2,191.410 ns | 1,829.927 ns | 225,077.34 ns |  1.00 |    0.00 |      - |     - |     - |     176 B |
+| V2_ImMap_foreach | 10000 | 134,087.34 ns | 1,100.118 ns |   918.648 ns | 134,077.08 ns |  0.59 |    0.01 |      - |     - |     - |     192 B |
+
 */
 
             #region Populate
@@ -1233,8 +1271,8 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return map;
             }
 
-            private ImTools.ImHashMap<int, string> _mapV3;
-            public ImTools.ImHashMap<int, string> V3_AddOrUpdate()
+            private ImTools.ImHashMap<int, string> _mapV4;
+            public ImTools.ImHashMap<int, string> V4_AddOrUpdate()
             {
                 var map = ImTools.ImHashMap<int, string>.Empty;
 
@@ -1301,14 +1339,14 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 
             #endregion
 
-            [Params(1, 10)]//, 100, 1_000, 10_000)]
+            [Params(1, 10, 100, 1_000, 10_000)]
             // [Params(1, 10, 100, 1_000, 10_000)]
             public int Count;
 
             [GlobalSetup]
             public void Populate()
             {
-                _mapV3      = V3_AddOrUpdate();
+                _mapV4      = V4_AddOrUpdate();
                 _mapV2      = V2_AddOrUpdate();
                 _mapPartV3  = V3_PartitionedMap_AddOrUpdate();
                 _dictSlim   = DictSlim();
@@ -1317,35 +1355,37 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 _immutableDict = ImmutableDict();
             }
 
-            // [Benchmark(Baseline = true)]
-            public object V3_ImMap_foreach()
+            [Benchmark(Baseline = true)]
+            public object V4_ImMap_foreach()
             {
                 var s = "";
-                foreach (var x in _mapV3.Enumerate())
+                foreach (var x in _mapV4.Enumerate())
                     s = x.Value;
                 return s;
             }
 
-            [Benchmark(Baseline = true)]
-            public object V3_ImMap_ToArray() => ImTools.ImHashMap.ToArray(_mapV3);
-
             [Benchmark]
-            public object V3_ImMap_EnumerateToArray()
-            {
-                var a = new ImTools.ImHashMapEntry<int, string>[_mapV3.Count()];
-                var i = 0;
-                foreach (var x in _mapV3.Enumerate())
-                    a[i++] = x;
-                return a;
-            }
-
-            // [Benchmark]
             public object V2_ImMap_foreach()
             {
                 var s = "";
                 foreach (var x in _mapV2.Enumerate())
                     s = x.Value;
                 return s;
+            }
+
+            // [Benchmark(Baseline = true)]
+            // [Benchmark]
+            public object V3_ImMap_ToArray() => ImTools.ImHashMap.ToArray(_mapV4);
+
+            // [Benchmark]
+            // [Benchmark(Baseline = true)]
+            public object V4_ImMap_EnumerateToArray()
+            {
+                var a = new ImTools.ImHashMapEntry<int, string>[_mapV4.Count()];
+                var i = 0;
+                foreach (var x in _mapV4.Enumerate())
+                    a[i++] = x;
+                return a;
             }
 
             // [Benchmark]
