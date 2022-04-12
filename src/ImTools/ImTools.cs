@@ -1913,7 +1913,7 @@ namespace ImTools
             ReferenceEquals(_key, key) ? this : null;
 
         internal override V GetValueOrDefaultByReferenceEqualsWithTheSameHash(K key) =>
-            ReferenceEquals(_key, key) ? Value : default(V);
+            ReferenceEquals(_key, key) ? Value : default;
 
         internal override Entry AddWithTheSameKey(ImHashMapEntry<K, V> newEntry) =>
             new HashConflictingEntry(Hash, this, newEntry);
@@ -2131,7 +2131,7 @@ namespace ImTools
                 var cs = Conflicts;
                 var i = cs.Length - 1;
                 while (i != -1 && !ReferenceEquals(cs[i].Key, key)) --i;
-                return i != -1 ? cs[i].Value : default(V);
+                return i != -1 ? cs[i].Value : default;
             }
 
             internal override Entry AddWithTheSameKey(ImHashMapEntry<K, V> newEntry) =>
@@ -4469,15 +4469,25 @@ namespace ImTools
         public static ImHashMapEntry<int, V> GetEntryOrDefault<V>(this ImHashMap<int, V> map, int hash) =>
             (VEntry<V>)map.GetEntryOrNull(hash);
 
-        /// <summary>Lookup for the entry by hash, returns the found entry or `null`.</summary>
+        /// <summary>Lookup for the entry by key and hash, returns the found entry or `null`.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMapEntry<K, V> GetEntryOrDefault<K, V>(this ImHashMap<K, V> map, int hash, K key) =>
             map.GetEntryOrNull(hash)?.GetOrNullWithTheSameHash(key);
 
-        /// <summary>Lookup for the entry by hash, returns the found entry or `null`.</summary>
+        /// <summary>Lookup for the entry by key and hash, returns the found entry or `null`.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMapEntry<K, V> GetEntryOrDefault<K, V>(this ImHashMap<K, V> map, K key) =>
             map.GetEntryOrNull(key.GetHashCode())?.GetOrNullWithTheSameHash(key);
+
+        /// <summary>Lookup for the entry by key and hash, comparing the key by reference, returns the found entry or `null`.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMapEntry<K, V> GetEntryOrDefaultByReferenceEquals<K, V>(this ImHashMap<K, V> map, int hash, K key) where K : class =>
+            map.GetEntryOrNull(hash)?.GetOrNullByReferenceEqualsWithTheSameHash(key);
+
+        /// <summary>Lookup for the entry by key and hash, comparing the key by reference, returns the found entry or `null`.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMapEntry<K, V> GetEntryOrDefaultByReferenceEquals<K, V>(this ImHashMap<K, V> map, K key) where K : class =>
+            map.GetEntryOrNull(key.GetHashCode())?.GetOrNullByReferenceEqualsWithTheSameHash(key);
 
         /// <summary>Lookup for the value by hash, returns the default `V` if hash is not found.</summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -4498,7 +4508,7 @@ namespace ImTools
         /// <summary>Lookup for the value by hash, returns the default `V` if hash is not found.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static V GetValueOrDefault<K, V>(this ImHashMap<K, V> map, int hash, K key) =>
-            map.GetEntryOrNull(hash)?.GetOrNullWithTheSameHash(key) is ImHashMapEntry<K, V> kv ? kv.Value : default(V);
+            map.GetEntryOrNull(hash)?.GetOrNullWithTheSameHash(key) is ImHashMapEntry<K, V> kv ? kv.Value : default;
 
         /// <summary>Lookup for the value by hash, returns the default `V` if hash is not found.</summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -4508,7 +4518,7 @@ namespace ImTools
         /// <summary>Lookup for the value by key and its hash, returns the default `V` if hash is not found.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static V GetValueOrDefault<K, V>(this ImHashMap<K, V> map, K key) =>
-            map.GetEntryOrNull(key.GetHashCode())?.GetOrNullWithTheSameHash(key) is ImHashMapEntry<K, V> kv ? kv.Value : default(V);
+            map.GetEntryOrNull(key.GetHashCode())?.GetOrNullWithTheSameHash(key) is ImHashMapEntry<K, V> kv ? kv.Value : default;
 
         /// <summary>Lookup for the value by key and its hash, returns the default `V` if hash is not found.</summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -4521,7 +4531,7 @@ namespace ImTools
         public static V GetValueOrDefaultByReferenceEquals<K, V>(this ImHashMap<K, V> map, int hash, K key) where K : class
         {
             var e = map.GetEntryOrNull(hash);
-            return e != null ? e.GetValueOrDefaultByReferenceEqualsWithTheSameHash(key) : default(V);
+            return e != null ? e.GetValueOrDefaultByReferenceEqualsWithTheSameHash(key) : default;
         }
 
         /// <summary>Lookup for the value by the key using the hash and checking the key with the `object.ReferenceEquals` for equality,
@@ -4530,7 +4540,7 @@ namespace ImTools
         public static V GetValueOrDefaultByReferenceEquals<K, V>(this ImHashMap<K, V> map, K key) where K : class
         {
             var e = map.GetEntryOrNull(key.GetHashCode());
-            return e != null ? e.GetValueOrDefaultByReferenceEqualsWithTheSameHash(key) : default(V);
+            return e != null ? e.GetValueOrDefaultByReferenceEqualsWithTheSameHash(key) : default;
         }
 
         /// <summary>Lookup for the value by its hash, returns the `true` and the found value or the `false` otherwise</summary>
@@ -4557,7 +4567,7 @@ namespace ImTools
                 value = kv.Value;
                 return true;
             }
-            value = default(V);
+            value = default;
             return false;
         }
 
@@ -4577,7 +4587,7 @@ namespace ImTools
                 value = kv.Value;
                 return true;
             }
-            value = default(V);
+            value = default;
             return false;
         }
 
@@ -4868,7 +4878,7 @@ namespace ImTools
         public static V GetValueOrDefault<V>(this ImHashMap<int, V>[] parts, int hash, int partHashMask = PARTITION_HASH_MASK)
         {
             var p = parts[hash & partHashMask];
-            return p != null && p.GetEntryOrNull(hash) is ImHashMapEntry<int, V> kv ? kv.Value : default(V);
+            return p != null && p.GetEntryOrNull(hash) is ImHashMapEntry<int, V> kv ? kv.Value : default;
         }
 
         /// <summary>Lookup for the value by the key and its hash, returns the default `V` if not found.</summary>
@@ -4876,7 +4886,7 @@ namespace ImTools
         public static V GetValueOrDefault<K, V>(this ImHashMap<K, V>[] parts, int hash, K key, int partHashMask = PARTITION_HASH_MASK)
         {
             var p = parts[hash & partHashMask];
-            return p != null ? p.GetValueOrDefault(hash, key) : default(V);
+            return p != null ? p.GetValueOrDefault(hash, key) : default;
         }
 
         /// <summary>Lookup for the value by the key and its hash, returns the default `V` if not found.</summary>
@@ -4891,7 +4901,7 @@ namespace ImTools
         public static V GetValueOrDefaultByReferenceEquals<K, V>(this ImHashMap<K, V>[] parts, int hash, K key, int partHashMask = PARTITION_HASH_MASK) where K : class
         {
             var p = parts[hash & partHashMask];
-            return p != null ? p.GetValueOrDefaultByReferenceEquals(hash, key) : default(V);
+            return p != null ? p.GetValueOrDefaultByReferenceEquals(hash, key) : default;
         }
 
         /// <summary>Lookup for the value by the key using its hash and checking the key with the `object.ReferenceEquals` for equality, 
@@ -4907,7 +4917,7 @@ namespace ImTools
             var p = parts[hash & partHashMask];
             if (p != null)
                 return p.TryFind(hash, out value);
-            value = default(V);
+            value = default;
             return false;
         }
 
@@ -4918,7 +4928,7 @@ namespace ImTools
             var p = parts[hash & partHashMask];
             if (p != null)
                 return p.TryFind(hash, key, out value);
-            value = default(V);
+            value = default;
             return false;
         }
 
@@ -4936,7 +4946,7 @@ namespace ImTools
             var p = parts[hash & partHashMask];
             if (p != null)
                 return p.TryFindByReferenceEquals(hash, key, out value);
-            value = default(V);
+            value = default;
             return false;
         }
 
