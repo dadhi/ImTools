@@ -512,9 +512,21 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 |     V4_ImMap_AddOrUpdate |  1000 | 420.50 us | 8.068 us | 7.152 us | 420.27 us |  1.00 |    0.00 |  88.8672 | 0.4883 |     - | 273.19 KB |
 | V3_ImHashMap_AddOrUpdate |  1000 | 289.54 us | 5.769 us | 9.638 us | 287.66 us |  0.69 |    0.02 | 103.0273 |      - |     - | 316.58 KB |
 
+
+|                   Method | Count |        Mean |     Error |      StdDev |      Median | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|------------------------- |------ |------------:|----------:|------------:|------------:|------:|--------:|-------:|------:|------:|----------:|
+|     V4_ImMap_AddOrUpdate |    10 |    796.5 ns |  38.50 ns |   113.51 ns |    761.8 ns |  1.00 |    0.00 | 0.3128 |     - |     - |     984 B |
+| V3_ImHashMap_AddOrUpdate |    10 |    704.8 ns |  27.45 ns |    79.20 ns |    673.4 ns |  0.90 |    0.16 | 0.3185 |     - |     - |    1000 B |
+|                          |       |             |           |             |             |       |         |        |       |       |           |
+|     V4_ImMap_AddOrUpdate |    50 |  8,040.8 ns | 210.85 ns |   594.69 ns |  7,891.8 ns |  1.00 |    0.00 | 2.3727 |     - |     - |    7448 B |
+| V3_ImHashMap_AddOrUpdate |    50 |  7,185.2 ns | 142.82 ns |   395.76 ns |  7,091.7 ns |  0.90 |    0.08 | 2.6855 |     - |     - |    8432 B |
+|                          |       |             |           |             |             |       |         |        |       |       |           |
+|     V4_ImMap_AddOrUpdate |   100 | 20,504.8 ns | 405.78 ns | 1,025.45 ns | 20,250.7 ns |  1.00 |    0.00 | 5.5542 |     - |     - |   17472 B |
+| V3_ImHashMap_AddOrUpdate |   100 | 17,962.3 ns | 351.31 ns |   546.95 ns | 17,865.3 ns |  0.88 |    0.04 | 6.3782 |     - |     - |   20032 B |
+
 */
             // [Params(1, 10, 100, 1000)]
-            [Params(100, 1000)]
+            [Params(10, 50, 100)]
             public int Count;
 
             private Type[] _types;
