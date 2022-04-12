@@ -4508,22 +4508,22 @@ namespace ImTools
         /// <summary>Lookup for the value by hash, returns the default `V` if hash is not found.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static V GetValueOrDefault<K, V>(this ImHashMap<K, V> map, int hash, K key) =>
-            map.GetEntryOrNull(hash)?.GetOrNullWithTheSameHash(key) is ImHashMapEntry<K, V> kv ? kv.Value : default;
+            map.GetEntryOrNull(hash)?.GetOrNullWithTheSameHash(key) is KVEntry<K, V> kv ? kv.Value : default;
 
         /// <summary>Lookup for the value by hash, returns the default `V` if hash is not found.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static V GetValueOrDefault<K, V>(this ImHashMap<K, V> map, int hash, K key, V defaultValue) =>
-            map.GetEntryOrNull(hash)?.GetOrNullWithTheSameHash(key) is ImHashMapEntry<K, V> kv ? kv.Value : defaultValue;
+            map.GetEntryOrNull(hash)?.GetOrNullWithTheSameHash(key) is KVEntry<K, V> kv ? kv.Value : defaultValue;
 
         /// <summary>Lookup for the value by key and its hash, returns the default `V` if hash is not found.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static V GetValueOrDefault<K, V>(this ImHashMap<K, V> map, K key) =>
-            map.GetEntryOrNull(key.GetHashCode())?.GetOrNullWithTheSameHash(key) is ImHashMapEntry<K, V> kv ? kv.Value : default;
+            map.GetEntryOrNull(key.GetHashCode())?.GetOrNullWithTheSameHash(key) is KVEntry<K, V> kv ? kv.Value : default;
 
         /// <summary>Lookup for the value by key and its hash, returns the default `V` if hash is not found.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static V GetValueOrDefault<K, V>(this ImHashMap<K, V> map, K key, V defaultValue) =>
-            map.GetEntryOrNull(key.GetHashCode())?.GetOrNullWithTheSameHash(key) is ImHashMapEntry<K, V> kv ? kv.Value : defaultValue;
+            map.GetEntryOrNull(key.GetHashCode())?.GetOrNullWithTheSameHash(key) is KVEntry<K, V> kv ? kv.Value : defaultValue;
 
         /// <summary>Lookup for the value by the key using the hash and checking the key with the `object.ReferenceEquals` for equality,
         ///  returns found value or the default value if not found</summary>
@@ -4650,7 +4650,7 @@ namespace ImTools
         public static ImHashMap<int, V> AddOrUpdateEntry<V>(this ImHashMap<int, V> map, ImHashMapEntry<int, V> newEntry)
         {
             var mapOrOldEntry = map.AddOrGetEntry(newEntry.Hash, newEntry);
-            if (mapOrOldEntry is ImHashMap<int, V>.Entry oldEntry && oldEntry != newEntry)
+            if (mapOrOldEntry is VEntry<V> oldEntry && oldEntry != newEntry)
                 return map.ReplaceEntry(oldEntry, newEntry);
             return mapOrOldEntry;
         }
@@ -4687,7 +4687,7 @@ namespace ImTools
         {
             var newEntry = Entry(hash, value);
             var mapOrOldEntry = map.AddOrGetEntry(hash, newEntry);
-            if (mapOrOldEntry is ImHashMapEntry<int, V> oldEntry && oldEntry != newEntry)
+            if (mapOrOldEntry is VEntry<V> oldEntry && oldEntry != newEntry)
                 return map.ReplaceEntry(oldEntry, Entry(hash, update(hash, oldEntry.Value, value)));
             return mapOrOldEntry;
         }
@@ -4713,7 +4713,7 @@ namespace ImTools
         public static ImHashMap<int, V> AddOrKeepEntry<V>(this ImHashMap<int, V> map, ImHashMapEntry<int, V> newEntry)
         {
             var mapOrOldEntry = map.AddOrGetEntry(newEntry.Hash, newEntry);
-            return mapOrOldEntry is ImHashMapEntry<int, V> oldEntry && oldEntry != newEntry ? map : mapOrOldEntry;
+            return mapOrOldEntry is VEntry<V> oldEntry && oldEntry != newEntry ? map : mapOrOldEntry;
         }
 
         /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the hash is already present</summary>
@@ -4878,7 +4878,7 @@ namespace ImTools
         public static V GetValueOrDefault<V>(this ImHashMap<int, V>[] parts, int hash, int partHashMask = PARTITION_HASH_MASK)
         {
             var p = parts[hash & partHashMask];
-            return p != null && p.GetEntryOrNull(hash) is ImHashMapEntry<int, V> kv ? kv.Value : default;
+            return p != null && p.GetEntryOrNull(hash) is VEntry<V> kv ? kv.Value : default;
         }
 
         /// <summary>Lookup for the value by the key and its hash, returns the default `V` if not found.</summary>
