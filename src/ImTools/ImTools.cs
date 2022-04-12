@@ -2846,6 +2846,8 @@ namespace ImTools
                     var left = Left;
                     if (left is Leaf5PlusPlus ll511)
                     {
+                        // todo: @perf @poc Attempt to rebalance on the leaf level so have a flatter tree at the end, to possibly speedup lookup time.
+                        // todo: @perf @poc At the end is seems more complex and slow for addition and does not provide less memory for population.
                         // if (Right is Leaf2 l2)
                         // {
                         //     var e = ll511.GetEntryOrNull(hash);
