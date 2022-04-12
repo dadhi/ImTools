@@ -524,6 +524,17 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 |     V4_ImMap_AddOrUpdate |   100 | 20,504.8 ns | 405.78 ns | 1,025.45 ns | 20,250.7 ns |  1.00 |    0.00 | 5.5542 |     - |     - |   17472 B |
 | V3_ImHashMap_AddOrUpdate |   100 | 17,962.3 ns | 351.31 ns |   546.95 ns | 17,865.3 ns |  0.88 |    0.04 | 6.3782 |     - |     - |   20032 B |
 
+|                   Method | Count |        Mean |     Error |    StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|------------------------- |------ |------------:|----------:|----------:|------:|--------:|-------:|------:|------:|----------:|
+|     V4_ImMap_AddOrUpdate |    10 |    421.1 ns |   8.43 ns |  20.84 ns |  1.00 |    0.00 | 0.3133 |     - |     - |     984 B |
+| V3_ImHashMap_AddOrUpdate |    10 |    438.7 ns |  10.33 ns |  29.31 ns |  1.04 |    0.09 | 0.3185 |     - |     - |    1000 B |
+|                          |       |             |           |           |       |         |        |       |       |           |
+|     V4_ImMap_AddOrUpdate |    50 |  4,737.6 ns |  92.27 ns | 179.96 ns |  1.00 |    0.00 | 2.3727 |     - |     - |    7448 B |
+| V3_ImHashMap_AddOrUpdate |    50 |  4,602.3 ns |  90.29 ns | 162.81 ns |  0.97 |    0.05 | 2.6855 |     - |     - |    8432 B |
+|                          |       |             |           |           |       |         |        |       |       |           |
+|     V4_ImMap_AddOrUpdate |   100 | 12,600.8 ns | 251.70 ns | 649.72 ns |  1.00 |    0.00 | 5.5695 |     - |     - |   17472 B |
+| V3_ImHashMap_AddOrUpdate |   100 | 11,856.4 ns | 235.12 ns | 458.59 ns |  0.94 |    0.06 | 6.3782 |     - |     - |   20032 B |
+
 */
             // [Params(1, 10, 100, 1000)]
             [Params(10, 50, 100)]
