@@ -3324,7 +3324,7 @@ namespace ImTools
                     if (left.MayTurnToBranch2 && newLeft is Branch2Base)
                         return new Branch2(newLeft, Entry0, new Branch2(Middle, Entry1, Right));
 
-                    return this is Branch3 b ? new Branch3Left(b, newLeft) 
+                    return this is Branch3 b ? new Branch3Left(b, newLeft)
                         : this is Branch3Left br ? new Branch3Left(br.B, newLeft)
                         : new Branch3(newLeft, Entry0, Middle, Entry1, Right);
                 }
@@ -3941,22 +3941,297 @@ namespace ImTools
         }
 
         /// <summary>Non-allocating enumerator</summary>
-        public struct ImMapEnumerable<K, V> : IEnumerable<ImHashMapEntry<K, V>>, IEnumerable
+        public struct ImMapEnumerable<V> : IEnumerable<VEntry<V>>, IEnumerable
+        {
+            private readonly ImHashMap<int, V> _map;
+            /// <summary>Constructor</summary>
+            public ImMapEnumerable(ImHashMap<int, V> map) => _map = map;
+
+            /// <summary>Returns non-allocating enumerator</summary>
+            public ImMapEnumerator<V> GetEnumerator() => new ImMapEnumerator<V> { _map = _map };
+            IEnumerator<VEntry<V>> IEnumerable<VEntry<V>>.GetEnumerator() => new ImMapEnumerator<V> { _map = _map };
+            IEnumerator IEnumerable.GetEnumerator() => new ImMapEnumerator<V> { _map = _map };
+        }
+
+        /// <summary>Enumerator on stack, without allocation</summary>
+        public struct ImMapEnumerator<V> : IEnumerator<VEntry<V>>, IDisposable, IEnumerator
+        {
+            internal ImHashMap<int, V> _map;
+            private short _state;
+            private ushort _index;
+            private ImMapStack<int, V> _ps;
+            private ImHashMap<int, V> _nextBranch;
+            private ImHashMap<int, V>.Branch2Plus1 _b21LeftWasEnumerated;
+
+            private ImHashMap<int, V>.Entry _a, _b, _c, _d, _e, _f, _g, _h;
+            private VEntry<V> _current;
+            /// <inheritdoc />
+            public VEntry<V> Current => _current;
+            object IEnumerator.Current => _current;
+
+            [MethodImpl((MethodImplOptions)256)]
+            private bool SetCurrentAndState(ImHashMap<int, V>.Entry e, short nextState)
+            {
+                _state = nextState;
+                _current = (VEntry<V>)e;
+                return true;
+            }
+
+            /// <inheritdoc />
+            public bool MoveNext()
+            {
+                ImHashMap<int, V>.Leaf5PlusPlus b21FullLeaf511;
+                switch (_state)
+                {
+                    case 0:
+                        if (_map == ImHashMap<int, V>.Empty)
+                            return false;
+                        if (_map is VEntry<V> singleEntryMap)
+                            return SetCurrentAndState(singleEntryMap, 1);
+                        _state = -1; // todo: @perf optimize just by setting _state = -1 for all
+                        goto Label0;
+                    case 1:
+                        // end of enumeration
+                        _state = -1;
+                        _current = null;
+                        return false;
+                    case 2:
+                        b21FullLeaf511 = (ImHashMap<int, V>.Leaf5PlusPlus)_b21LeftWasEnumerated.B.Right;
+                        _g = (VEntry<V>)_b21LeftWasEnumerated.Plus;
+                        _b21LeftWasEnumerated = null;
+                        _map = ImHashMap<int, V>.Empty;
+                        _state = -1;
+                        goto SortLeaf511Label;
+                    case 3: return SetCurrentAndState(_a, 4);
+                    case 4: return SetCurrentAndState(_b, 5);
+                    case 5: return SetCurrentAndState(_c, 6);
+                    case 6: return SetCurrentAndState(_d, 7);
+                    case 7: return SetCurrentAndState(_e, 8);
+                    case 8: return SetCurrentAndState(_f, 9);
+                    case 9: return SetCurrentAndState(_g, 10);
+                    case 10:
+                        if (_h == null)
+                        {
+                            _state = -1;
+                            goto Label2;
+                        }
+                        return SetCurrentAndState(_h, 11);
+                    case 11:
+                        _state = -1;
+                        goto Label2;
+                    case 12:
+                        return SetCurrentAndState(_a, 13);
+                    case 13:
+                        _state = -1;
+                        goto Label3;
+                    case 14:
+                        return SetCurrentAndState(_h, 15);
+                    case 15:
+                        return SetCurrentAndState(_g, 16);
+                    case 16:
+                        _state = -1; _h = null; _g = null;
+                        goto Label3;
+                    case 17: return SetCurrentAndState(_g, 18);
+                    case 18: return SetCurrentAndState(_h, 19);
+                    case 19: return SetCurrentAndState(_e, 20);
+                    case 20:
+                        _state = -1; _g = null; _h = null; _e = null;
+                        goto Label3;
+                    case 21: return SetCurrentAndState(_a, 22);
+                    case 22: return SetCurrentAndState(_b, 23);
+                    case 23: return SetCurrentAndState(_c, 24);
+                    case 24: return SetCurrentAndState(_d, 25);
+                    case 25:
+                        _state = -1;
+                        break;
+                    case 26: return SetCurrentAndState(_e, 27);
+                    case 27: return SetCurrentAndState(_h, 28);
+                    case 28: return SetCurrentAndState(_g, 29);
+                    case 29: return SetCurrentAndState(_f, 30);
+                    case 30: return SetCurrentAndState(_d, 31);
+                    case 31:
+                        _state = -1; _e = null; _h = null; _g = null; _f = null; _d = null;
+                        break;
+                    case 32: return SetCurrentAndState(_d, 33);
+                    case 33: return SetCurrentAndState(_f, 34);
+                    case 34: return SetCurrentAndState(_g, 35);
+                    case 35: return SetCurrentAndState(_h, 36);
+                    case 36: return SetCurrentAndState(_c, 37);
+                    case 37: return SetCurrentAndState(_e, 38);
+                    case 38:
+                        _state = -1; _d = null; _f = null; _g = null; _h = null; _e = null; _c = null;
+                        break;
+                    case 39:
+                        _state = -1;
+                        break;
+                    case 40:
+                        _state = -1;
+                        _map = _nextBranch;
+                        _nextBranch = null;
+                        _a = null;
+                        goto Label0;
+                    default:
+                        return false;
+                }
+            Label6:
+                _a = null; _b = null; _c = null; _d = null;
+            Label3:
+                if (_b21LeftWasEnumerated == null)
+                {
+                    if (_index == 0)
+                        return false;
+                    ImHashMap<int, V>.Entry current = null;
+                    var popIndex = (ushort)(_index - 1);
+                    _ps.Get(popIndex, ref current, ref _nextBranch);
+                    // Sets the previous state so that we are modifying any fields like _a, _b, etc. and directly goto back to this label
+                    SetCurrentAndState((VEntry<V>)current, 40);
+                    if (_state == 40)
+                        _index = popIndex; // proceed
+                    return true;
+                }
+            Label0:
+                while (true)
+                {
+                    if (_map is ImHashMap<int, V>.Branch2Base branch2)
+                    {
+                        _ps.Put(_index++, branch2.MidEntry, branch2.Right);
+                        _map = branch2.Left;
+                    }
+                    else if (_map is ImHashMap<int, V>.Branch3Base branch3)
+                    {
+                        _ps.Put(_index, branch3.Entry1, branch3.Right, branch3.Entry0, branch3.Middle);
+                        _index += 2;
+                        _map = branch3.Left;
+                    }
+                    else break;
+                }
+
+                if (_b21LeftWasEnumerated == null && !(_map is ImHashMap<int, V>.Branch2Plus1))
+                    goto AllLeafsAndEntryLabel;
+
+                _g = null; _h = null;
+                if (_b21LeftWasEnumerated != null)
+                    return SetCurrentAndState((VEntry<V>)_b21LeftWasEnumerated.B.MidEntry, 2);
+
+                var branch2Plus1 = (ImHashMap<int, V>.Branch2Plus1)_map;
+                var b21b = branch2Plus1.B;
+                if (b21b.Right is ImHashMap<int, V>.Leaf5PlusPlus)
+                {
+                    _b21LeftWasEnumerated = branch2Plus1;
+                    _map = b21b.Left;
+                    goto B21NotFilledLeftLeafLabel;
+                }
+
+                b21FullLeaf511 = (ImHashMap<int, V>.Leaf5PlusPlus)b21b.Left;
+                _h = (VEntry<V>)b21b.MidEntry;
+                _g = (VEntry<V>)branch2Plus1.Plus;
+                _map = b21b.Right;
+            SortLeaf511Label:
+                {
+                    var l = b21FullLeaf511.L.L;
+                    var e0 = l.Entry0;
+                    _a = l.Entry1;
+                    _b = l.Entry2;
+                    _c = l.Entry3;
+                    _d = l.Entry4;
+                    _f = b21FullLeaf511.Plus;
+                    _e = b21FullLeaf511.L.Plus;
+                    InsertInOrder(_e.Hash, ref _e, ref e0, ref _a, ref _b, ref _c, ref _d);
+                    InsertInOrder(_f.Hash, ref _f, ref e0, ref _a, ref _b, ref _c, ref _d, ref _e);
+                    InsertInOrder(_g.Hash, ref _g, ref e0, ref _a, ref _b, ref _c, ref _d, ref _e, ref _f);
+                    return SetCurrentAndState(e0, 3);
+                }
+            Label2:
+                _a = null; _b = null; _c = null; _d = null; _e = null; _f = null;
+
+            B21NotFilledLeftLeafLabel:
+                _g = null; _h = null;
+
+            AllLeafsAndEntryLabel:
+                if (_map is ImHashMap<int, V>.Leaf2 l2)
+                {
+                    _a = l2.Entry1;
+                    return SetCurrentAndState(l2.Entry0, 12);
+                }
+                if (_map is ImHashMap<int, V>.Leaf2Plus l21)
+                {
+                    var l = l21.L;
+                    var e0 = l.Entry0;
+                    _h = l.Entry1;
+                    _g = l21.Plus;
+                    InsertInOrder(_g.Hash, ref _g, ref e0, ref _h);
+                    return SetCurrentAndState(e0, 14);
+                }
+                if (_map is ImHashMap<int, V>.Leaf2PlusPlus l211)
+                {
+                    var l1 = l211.L.L;
+                    var e0 = l1.Entry0;
+                    _g = l1.Entry1;
+                    _h = l211.L.Plus;
+                    _e = l211.Plus;
+                    InsertInOrder(_h.Hash, ref _h, ref e0, ref _g);
+                    InsertInOrder(_e.Hash, ref _e, ref e0, ref _g, ref _h);
+                    return SetCurrentAndState(e0, 17);
+                }
+                if (_map is ImHashMap<int, V>.Leaf5 l5)
+                {
+                    _a = l5.Entry1;
+                    _b = l5.Entry2;
+                    _c = l5.Entry3;
+                    _d = l5.Entry4;
+                    return SetCurrentAndState(l5.Entry0, 21);
+                }
+                if (_map is ImHashMap<int, V>.Leaf5Plus l51)
+                {
+                    var leaf5 = l51.L;
+                    var e0 = leaf5.Entry0;
+                    _e = leaf5.Entry1;
+                    _h = leaf5.Entry2;
+                    _g = leaf5.Entry3;
+                    _f = leaf5.Entry4;
+                    _d = l51.Plus;
+                    InsertInOrder(_d.Hash, ref _d, ref e0, ref _e, ref _h, ref _g, ref _f);
+                    return SetCurrentAndState(e0, 26);
+                }
+                if (_map is ImHashMap<int, V>.Leaf5PlusPlus l511)
+                {
+                    var leaf51 = l511.L.L;
+                    var e0 = leaf51.Entry0;
+                    _d = leaf51.Entry1;
+                    _f = leaf51.Entry2;
+                    _g = leaf51.Entry3;
+                    _h = leaf51.Entry4;
+                    _c = l511.L.Plus;
+                    _e = l511.Plus;
+                    InsertInOrder(_c.Hash, ref _c, ref e0, ref _d, ref _f, ref _g, ref _h);
+                    InsertInOrder(_e.Hash, ref _e, ref e0, ref _d, ref _f, ref _g, ref _h, ref _c);
+                    return SetCurrentAndState(e0, 32);
+                }
+                if (_map is ImHashMap<int, V>.Entry e)
+                    return SetCurrentAndState(e, 39);
+                goto Label6;
+            }
+
+            bool IEnumerator.MoveNext() => MoveNext();
+            void IEnumerator.Reset() => throw new NotSupportedException();
+            void IDisposable.Dispose() { }
+        }
+
+        /// <summary>Non-allocating enumerator</summary>
+        public struct ImMapEnumerable<K, V> : IEnumerable<KVEntry<K, V>>, IEnumerable
         {
             private readonly ImHashMap<K, V> _map;
-
             /// <summary>Constructor</summary>
             public ImMapEnumerable(ImHashMap<K, V> map) => _map = map;
 
             /// <summary>Returns non-allocating enumerator</summary>
             public ImMapEnumerator<K, V> GetEnumerator() => new ImMapEnumerator<K, V> { _map = _map };
-
-            IEnumerator<ImHashMapEntry<K, V>> IEnumerable<ImHashMapEntry<K, V>>.GetEnumerator() => new ImMapEnumerator<K, V> { _map = _map };
+            IEnumerator<KVEntry<K, V>> IEnumerable<KVEntry<K, V>>.GetEnumerator() => new ImMapEnumerator<K, V> { _map = _map };
             IEnumerator IEnumerable.GetEnumerator() => new ImMapEnumerator<K, V> { _map = _map };
         }
 
         /// <summary>Enumerator on stack, without allocation</summary>
-        public struct ImMapEnumerator<K, V> : IEnumerator<ImHashMapEntry<K, V>>, IDisposable, IEnumerator
+        public struct ImMapEnumerator<K, V> : IEnumerator<KVEntry<K, V>>, IDisposable, IEnumerator
         {
             internal ImHashMap<K, V> _map;
             private short _state;
@@ -3965,38 +4240,36 @@ namespace ImTools
             private ImMapStack<K, V> _ps;
             private ImHashMap<K, V> _nextBranch;
             private ImHashMap<K, V>.Branch2Plus1 _b21LeftWasEnumerated;
-
-            private ImHashMap<K, V>.Entry _a, _b, _c, _d, _e, _f, _g, _h;
-            private ImHashMap<K, V>.Entry _hc; // is for possibly HashConflictingEntry
-            private ImHashMapEntry<K, V> _current;
-
+            private ImHashMap<K, V>.Entry _a, _b, _c, _d, _e, _f, _g, _h, _hc;
+            private KVEntry<K, V> _current;
             /// <inheritdoc />
-            public ImHashMapEntry<K, V> Current => _current;
+            public KVEntry<K, V> Current => _current;
             object IEnumerator.Current => _current;
 
+            [MethodImpl((MethodImplOptions)256)]
             private bool SetCurrentAndState(ImHashMap<K, V>.Entry e, short nextState, short prevState)
             {
                 _state = nextState;
-                if (e is ImHashMapEntry<K, V> kv)
-                    _current = kv;
-                else
-                {
-                    var hc = (ImHashMap<K, V>.HashConflictingEntry)e;
-                    var cs = hc.Conflicts;
-                    _current = cs[_conflictIndex];
-                    // undo the next state until we are done with conflicts
-                    if (++_conflictIndex < cs.Length)
-                        _state = prevState;
-                    else // reset the index of conflicts todo: @perf use special value to avoid the type check later
-                        _conflictIndex = 0;
-                }
+                _current = e as KVEntry<K, V> ?? GetCurrentFrom((ImHashMap<K, V>.HashConflictingEntry)e, prevState);
                 return true;
+            }
+
+            private KVEntry<K, V> GetCurrentFrom(ImHashMap<K, V>.HashConflictingEntry hc, short prevState)
+            {
+                var cs = hc.Conflicts;
+                var i = _conflictIndex;
+                // undo the next state until we are done with conflicts
+                if (++_conflictIndex < cs.Length)
+                    _state = prevState;
+                else // reset the index of conflicts todo: @perf use special value to avoid the type check later
+                    _conflictIndex = 0;
+                return (KVEntry<K, V>)cs[i];
             }
 
             private bool SetCurrentAndState(short nextState, short prevState)
             {
                 _state = nextState;
-                if (_hc is ImHashMapEntry<K, V> kv)
+                if (_hc is KVEntry<K, V> kv)
                 {
                     _current = kv;
                     _hc = null;
@@ -4005,7 +4278,7 @@ namespace ImTools
                 {
                     var hc = (ImHashMap<K, V>.HashConflictingEntry)_hc;
                     var cs = hc.Conflicts;
-                    _current = cs[_conflictIndex];
+                    var i = _conflictIndex;
                     // undo the next state until we are done with conflicts
                     if (++_conflictIndex < cs.Length)
                         _state = prevState;
@@ -4014,6 +4287,7 @@ namespace ImTools
                         _conflictIndex = 0;
                         _hc = null;
                     }
+                    _current = (KVEntry<K, V>)cs[i];
                 }
                 return true;
             }
@@ -4043,20 +4317,13 @@ namespace ImTools
                         _map = ImHashMap<K, V>.Empty;
                         _state = -1;
                         goto SortLeaf511Label;
-                    case 3:
-                        return SetCurrentAndState(_a, 4, 3);
-                    case 4:
-                        return SetCurrentAndState(_b, 5, 4);
-                    case 5:
-                        return SetCurrentAndState(_c, 6, 5);
-                    case 6:
-                        return SetCurrentAndState(_d, 7, 6);
-                    case 7:
-                        return SetCurrentAndState(_e, 8, 7);
-                    case 8:
-                        return SetCurrentAndState(_f, 9, 8);
-                    case 9:
-                        return SetCurrentAndState(_g, 10, 9);
+                    case 3: return SetCurrentAndState(_a, 4, 3);
+                    case 4: return SetCurrentAndState(_b, 5, 4);
+                    case 5: return SetCurrentAndState(_c, 6, 5);
+                    case 6: return SetCurrentAndState(_d, 7, 6);
+                    case 7: return SetCurrentAndState(_e, 8, 7);
+                    case 8: return SetCurrentAndState(_f, 9, 8);
+                    case 9: return SetCurrentAndState(_g, 10, 9);
                     case 10:
                         if (_h == null)
                         {
@@ -4067,63 +4334,42 @@ namespace ImTools
                     case 11:
                         _state = -1;
                         goto Label2;
-                    case 12:
-                        return SetCurrentAndState(_a, 13, 12);
+                    case 12: return SetCurrentAndState(_a, 13, 12);
                     case 13:
                         _state = -1;
                         goto Label3;
-                    case 14:
-                        return SetCurrentAndState(_h, 15, 14);
-                    case 15:
-                        return SetCurrentAndState(_g, 16, 15);
+                    case 14: return SetCurrentAndState(_h, 15, 14);
+                    case 15: return SetCurrentAndState(_g, 16, 15);
                     case 16:
                         _state = -1; _h = null; _g = null;
                         goto Label3;
-                    case 17:
-                        return SetCurrentAndState(_g, 18, 17);
-                    case 18:
-                        return SetCurrentAndState(_h, 19, 18);
-                    case 19:
-                        return SetCurrentAndState(_e, 20, 19);
+                    case 17: return SetCurrentAndState(_g, 18, 17);
+                    case 18: return SetCurrentAndState(_h, 19, 18);
+                    case 19: return SetCurrentAndState(_e, 20, 19);
                     case 20:
                         _state = -1; _g = null; _h = null; _e = null;
                         goto Label3;
-                    case 21:
-                        return SetCurrentAndState(_a, 22, 21);
-                    case 22:
-                        return SetCurrentAndState(_b, 23, 22);
-                    case 23:
-                        return SetCurrentAndState(_c, 24, 23);
-                    case 24:
-                        return SetCurrentAndState(_d, 25, 24);
+                    case 21: return SetCurrentAndState(_a, 22, 21);
+                    case 22: return SetCurrentAndState(_b, 23, 22);
+                    case 23: return SetCurrentAndState(_c, 24, 23);
+                    case 24: return SetCurrentAndState(_d, 25, 24);
                     case 25:
                         _state = -1;
                         break;
-                    case 26:
-                        return SetCurrentAndState(_e, 27, 26);
-                    case 27:
-                        return SetCurrentAndState(_h, 28, 27);
-                    case 28:
-                        return SetCurrentAndState(_g, 29, 28);
-                    case 29:
-                        return SetCurrentAndState(_f, 30, 29);
-                    case 30:
-                        return SetCurrentAndState(_d, 31, 30);
+                    case 26: return SetCurrentAndState(_e, 27, 26);
+                    case 27: return SetCurrentAndState(_h, 28, 27);
+                    case 28: return SetCurrentAndState(_g, 29, 28);
+                    case 29: return SetCurrentAndState(_f, 30, 29);
+                    case 30: return SetCurrentAndState(_d, 31, 30);
                     case 31:
                         _state = -1; _e = null; _h = null; _g = null; _f = null; _d = null;
                         break;
-                    case 32:
-                        return SetCurrentAndState(_d, 33, 32);
-                    case 33:
-                        return SetCurrentAndState(_f, 34, 33);
-                    case 34:
-                        return SetCurrentAndState(_g, 35, 34);
-                    case 35:
-                        return SetCurrentAndState(_h, 36, 35);
-                    case 36:
-                        return SetCurrentAndState(_c, 37, 36);
-                    case 37:
-                        return SetCurrentAndState(_e, 38, 37);
+                    case 32: return SetCurrentAndState(_d, 33, 32);
+                    case 33: return SetCurrentAndState(_f, 34, 33);
+                    case 34: return SetCurrentAndState(_g, 35, 34);
+                    case 35: return SetCurrentAndState(_h, 36, 35);
+                    case 36: return SetCurrentAndState(_c, 37, 36);
+                    case 37: return SetCurrentAndState(_e, 38, 37);
                     case 38:
                         _state = -1; _d = null; _f = null; _g = null; _h = null; _e = null; _c = null;
                         break;
@@ -4136,24 +4382,15 @@ namespace ImTools
                         _a = null;
                         _nextBranch = null;
                         goto Label0;
-                    case 41:
-                        goto HashConflictingEntryLabel0;
-                    case 42:
-                        goto HashConflictingEntryLabel1;
-                    case 43:
-                        goto HashConflictingEntryLabel2;
-                    case 44:
-                        goto HashConflictingEntryLabel3;
-                    case 45:
-                        goto HashConflictingEntryLabel4;
-                    case 46:
-                        goto HashConflictingEntryLabel5;
-                    case 47:
-                        goto HashConflictingEntryLabel6;
-                    case 48:
-                        goto HashConflictingEntryLabel7;
-                    case 49:
-                        goto HashConflictingEntryLabel8;
+                    case 41: goto HashConflictingEntryLabel0;
+                    case 42: goto HashConflictingEntryLabel1;
+                    case 43: goto HashConflictingEntryLabel2;
+                    case 44: goto HashConflictingEntryLabel3;
+                    case 45: goto HashConflictingEntryLabel4;
+                    case 46: goto HashConflictingEntryLabel5;
+                    case 47: goto HashConflictingEntryLabel6;
+                    case 48: goto HashConflictingEntryLabel7;
+                    case 49: goto HashConflictingEntryLabel8;
                     default:
                         return false;
                 }
@@ -4215,7 +4452,7 @@ namespace ImTools
             SortLeaf511Label:
                 {
                     var l = b21FullLeaf511.L.L;
-                    ImHashMap<K, V>.Entry e0 = l.Entry0;
+                    var e0 = l.Entry0;
                     _a = l.Entry1;
                     _b = l.Entry2;
                     _c = l.Entry3;
@@ -4243,7 +4480,6 @@ namespace ImTools
                     _a = l2.Entry1;
                     return SetCurrentAndState(l2.Entry0, 12, 43);
                 }
-
                 if (_map is ImHashMap<K, V>.Leaf2Plus l21)
                 {
                     var l = l21.L;
@@ -4256,7 +4492,6 @@ namespace ImTools
             HashConflictingEntryLabel3:
                 if (_hc != null)
                     return SetCurrentAndState(14, 44);
-
                 if (_map is ImHashMap<K, V>.Leaf2PlusPlus l211)
                 {
                     var l1 = l211.L.L;
@@ -4271,7 +4506,6 @@ namespace ImTools
             HashConflictingEntryLabel4:
                 if (_hc != null)
                     return SetCurrentAndState(17, 45);
-
                 if (_map is ImHashMap<K, V>.Leaf5 l5)
                 {
                     _a = l5.Entry1;
@@ -4283,7 +4517,6 @@ namespace ImTools
             HashConflictingEntryLabel5:
                 if (_hc != null)
                     return SetCurrentAndState(21, 46);
-
                 if (_map is ImHashMap<K, V>.Leaf5Plus l51)
                 {
                     var leaf5 = l51.L;
@@ -4299,7 +4532,6 @@ namespace ImTools
             HashConflictingEntryLabel6:
                 if (_hc != null)
                     return SetCurrentAndState(26, 47);
-
                 if (_map is ImHashMap<K, V>.Leaf5PlusPlus l511)
                 {
                     var leaf51 = l511.L.L;
@@ -4317,11 +4549,9 @@ namespace ImTools
             HashConflictingEntryLabel7:
                 if (_hc != null)
                     return SetCurrentAndState(32, 48);
-
-                HashConflictingEntryLabel8:
+            HashConflictingEntryLabel8:
                 if (_map is ImHashMap<K, V>.Entry e)
                     return SetCurrentAndState(e, 39, 49);
-
                 goto Label6;
             }
 
@@ -4330,9 +4560,10 @@ namespace ImTools
             void IDisposable.Dispose() { }
         }
 
-        /// <summary>Enumerates all the map entries in the hash order.
-        /// `parents` parameter allows to reuse the stack memory used for traversal between multiple enumerates.
-        /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent `Enumerate` calls</summary>
+        /// <summary>Enumerates all the map entries in the hash order.</summary>
+        public static ImMapEnumerable<V> Enumerate<V>(this ImHashMap<int, V> map) => new ImMapEnumerable<V>(map);
+
+        /// <summary>Enumerates all the map entries in the hash order.</summary>
         public static ImMapEnumerable<K, V> Enumerate<K, V>(this ImHashMap<K, V> map) => new ImMapEnumerable<K, V>(map);
 
         /// <summary>Depth-first in-order of hash traversal as described in http://en.wikipedia.org/wiki/Tree_traversal.
@@ -5164,9 +5395,20 @@ namespace ImTools
         private static void RefUpdatePart<V>(ref ImHashMap<int, V> part, int hash, V value) =>
             Ref.Swap(ref part, hash, value, (x, h, v) => x.Update(h, v));
 
-        /// <summary>Do something for each entry.
-        /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
-        /// So you may pass the empty `parents` into the first `Enumerate` and then keep passing the same `parents` into the subsequent calls</summary>
+        /// <summary>Enumerates the entries in order of their int keys (the hash is the same as the key).</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static IEnumerable<ImHashMapEntry<int, V>> Enumerate<K, V>(this ImHashMap<int, V>[] parts)
+        {
+            foreach (var map in parts)
+            {
+                if (map == ImHashMap<int, V>.Empty)
+                    continue;
+                foreach (var entry in map.Enumerate())
+                    yield return entry;
+            }
+        }
+
+        /// <summary>Enumerates the entries in order of their hash.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static IEnumerable<ImHashMapEntry<K, V>> Enumerate<K, V>(this ImHashMap<K, V>[] parts)
         {
@@ -5178,6 +5420,8 @@ namespace ImTools
                     yield return entry;
             }
         }
+
+        // todo: @wip for the ImHashMap<int, V>
 
         /// <summary>Do something for each entry.
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
