@@ -1847,6 +1847,11 @@ namespace ImTools
         /// <summary>Constructs the entry with the value</summary>
         protected ImHashMapEntry(int hash, V value) : base(hash) => Value = value;
 
+#if !DEBUG
+        /// <inheritdoc />
+        public override string ToString() => "{K:" + Key + ",V:" + Value + "}";
+#endif
+
         /// <inheritdoc />
         public sealed override int Count() => 1;
 
@@ -1855,15 +1860,10 @@ namespace ImTools
             handler(this, startIndex, state);
             return startIndex + 1;
         }
-
-#if !DEBUG
-        /// <inheritdoc />
-        public override string ToString() => "{K:" + Key + ",V:" + Value + "}";
-#endif
     }
 
     /// <summary>Entry containing the Value in addition to the Hash</summary>
-    public class VEntry<V> : ImHashMapEntry<int, V>
+    public sealed class VEntry<V> : ImHashMapEntry<int, V>
     {
         /// <summary>The Key is actually the Hash for this entry and the vice versa.</summary>
         public override int Key => Hash;
@@ -1892,7 +1892,7 @@ namespace ImTools
     }
 
     /// <summary>Entry containing the Key and Value in addition to the Hash</summary>
-    public class KVEntry<K, V> : ImHashMapEntry<K, V>
+    public sealed class KVEntry<K, V> : ImHashMapEntry<K, V>
     {
         /// <summary>The key</summary>
         public override K Key => _key;
@@ -1902,6 +1902,11 @@ namespace ImTools
         public KVEntry(int hash, K key) : base(hash) => _key = key;
         /// <summary>Constructs the entry with the key and value</summary>
         public KVEntry(int hash, K key, V value) : base(hash, value) => _key = key;
+
+#if !DEBUG
+        /// <inheritdoc />
+        public override string ToString() => "{H: " + Hash + ", K: " + Key + ", V: " + Value + "}";
+#endif
 
         internal override ImHashMapEntry<K, V> GetOrNull(K key) =>
             _key.Equals(key) ? this : null;
@@ -1950,11 +1955,6 @@ namespace ImTools
             !Key.Equals(newEntry.Key)
                 ? new HashConflictingEntry(Hash, this, newEntry)
                 : updateOrKeep(state, this, newEntry) != this ? newEntry : this;
-
-#if !DEBUG
-        /// <inheritdoc />
-        public override string ToString() => "{H: " + Hash + ", K: " + Key + ", V: " + Value + "}";
-#endif
     }
 
     /// <summary>The base and the holder class for the map tree leafs and branches, also defines the Empty tree.
