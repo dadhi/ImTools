@@ -631,6 +631,32 @@ namespace ImTools.UnitTests
             iter: 5000);
         }
 
+        [Test]
+        public void AddOrKeep_random_items_and_randomly_checking_CsCheck_new_case()
+        {
+            const int upperBound = 100000;
+            Gen.Int[0, upperBound].Array.Sample(items =>
+            {
+                var s = items.Select(x => "" + x);
+                var i = 0;
+                var m = ImHashMap<string, string>.Empty;
+                foreach (var n in s)
+                {
+                    m = m.AddOrKeep(n, n);
+                    Assert.AreEqual(n, m.GetValueOrDefault(n));
+                    ++i;
+                }
+
+                foreach (var n in s)
+                    Assert.AreEqual(n, m.GetValueOrDefault(n));
+
+                // non-existing keys 
+                Assert.AreEqual("", m.GetValueOrDefault("" + (upperBound + 1), ""));
+                Assert.AreEqual("", m.GetValueOrDefault("-1", ""));
+            },
+            iter: 5000, seed: "3l9z_9XWxfj4");
+        }
+
         static Gen<(ImHashMap<string, string>, string[])> GenImMap(int upperBound) =>
             Gen.Int[0, upperBound].ArrayUnique.SelectMany(keys =>
                 Gen.Int.Array[keys.Length].Select(values =>

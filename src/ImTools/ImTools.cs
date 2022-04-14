@@ -2792,10 +2792,9 @@ namespace ImTools
 
                     if (R is Branch3Base rb3)
                     {
-                        ImHashMap<K, V> splitRight = null;
-                        entryOrNewBranch = rb3.AddOrGetEntry(hash, ref entry, ref splitRight);
-                        if (splitRight != null)
-                            return new Branch3(L, E, entryOrNewBranch, entry, splitRight);
+                        entryOrNewBranch = rb3.AddOrGetEntry(hash, entry);
+                        if (entryOrNewBranch is Branch2Base b2)
+                            return new Branch3(L, E, b2.Left, b2.MidEntry, b2.Right);
                     }
                     else entryOrNewBranch = R.AddOrGetEntry(hash, entry);
 
@@ -2816,10 +2815,9 @@ namespace ImTools
 
                     if (L is Branch3Base lb3)
                     {
-                        ImHashMap<K, V> splitRight = null;
-                        entryOrNewBranch = lb3.AddOrGetEntry(hash, ref entry, ref splitRight);
-                        if (splitRight != null)
-                            return new Branch3(entryOrNewBranch, entry, splitRight, E, R);
+                        entryOrNewBranch = lb3.AddOrGetEntry(hash, entry);
+                        if (entryOrNewBranch is Branch2Base b2)
+                            return new Branch3(b2.Left, b2.MidEntry, b2.Right, E, R);
                     }
                     else entryOrNewBranch = L.AddOrGetEntry(hash, entry);
 
@@ -2872,10 +2870,9 @@ namespace ImTools
 
                     if (right is Branch3Base rb3)
                     {
-                        ImHashMap<K, V> splitRight = null;
-                        entryOrNewBranch = rb3.AddOrGetEntry(hash, ref entry, ref splitRight);
-                        if (splitRight != null)
-                            return new Branch3(L, me, entryOrNewBranch, entry, splitRight);
+                        entryOrNewBranch = rb3.AddOrGetEntry(hash, entry);
+                        if (entryOrNewBranch is Branch2Base b2)
+                            return new Branch3(L, me, b2.Left, b2.MidEntry, b2.Right);
                     }
                     else entryOrNewBranch = right.AddOrGetEntry(hash, entry);
 
@@ -2896,10 +2893,9 @@ namespace ImTools
 
                     if (L is Branch3Base lb3)
                     {
-                        ImHashMap<K, V> splitRight = null;
-                        entryOrNewBranch = lb3.AddOrGetEntry(hash, ref entry, ref splitRight);
-                        if (splitRight != null)
-                            return new Branch3(entryOrNewBranch, entry, splitRight, me, B.R);
+                        entryOrNewBranch = lb3.AddOrGetEntry(hash, entry);
+                        if (entryOrNewBranch is Branch2Base b2)
+                            return new Branch3(b2.Left, b2.MidEntry, b2.Right, me, B.R);
                     }
                     else entryOrNewBranch = L.AddOrGetEntry(hash, entry);
 
@@ -2951,10 +2947,9 @@ namespace ImTools
 
                     if (R is Branch3Base rb3)
                     {
-                        ImHashMap<K, V> splitRight = null;
-                        entryOrNewBranch = rb3.AddOrGetEntry(hash, ref entry, ref splitRight);
-                        if (splitRight != null)
-                            return new Branch3(B.L, me, entryOrNewBranch, entry, splitRight);
+                        entryOrNewBranch = rb3.AddOrGetEntry(hash, entry);
+                        if (entryOrNewBranch is Branch2Base b2)
+                            return new Branch3(B.L, me, b2.Left, b2.MidEntry, b2.Right);
                     }
                     else entryOrNewBranch = R.AddOrGetEntry(hash, entry);
 
@@ -2976,10 +2971,9 @@ namespace ImTools
 
                     if (left is Branch3Base lb3)
                     {
-                        ImHashMap<K, V> splitRight = null;
-                        entryOrNewBranch = lb3.AddOrGetEntry(hash, ref entry, ref splitRight);
-                        if (splitRight != null)
-                            return new Branch3(entryOrNewBranch, entry, splitRight, me, R);
+                        entryOrNewBranch = lb3.AddOrGetEntry(hash, entry);
+                        if (entryOrNewBranch is Branch2Base b2)
+                            return new Branch3(b2.Left, b2.MidEntry, b2.Right, me, R);
                     }
                     else entryOrNewBranch = left.AddOrGetEntry(hash, entry);
 
@@ -3332,19 +3326,23 @@ namespace ImTools
                 if (hash > h0 && hash < h1)
                 {
                     var middle = Middle;
-                    ImHashMap<K, V> splitMiddleRight = null;
-                    var newMiddle =
-                        middle is Branch3Base mb3 ? mb3.AddOrGetEntry(hash, ref entry, ref splitMiddleRight) :
-                        middle is Leaf5PlusPlus ml511 ? ml511.AddOrGetEntry(hash, ref entry, ref splitMiddleRight) :
-                        middle.AddOrGetEntry(hash, entry);
+                    ImHashMap<K, V> newMiddle = null;
+                    if (middle is Leaf5PlusPlus ml511)
+                    {
+                        ImHashMap<K, V> splitMiddleRight = null;
+                        newMiddle = ml511.AddOrGetEntry(hash, ref entry, ref splitMiddleRight);
+                        if (splitMiddleRight != null)
+                            return new Branch2(new Branch2(Left, Entry0, newMiddle), entry, new Branch2(splitMiddleRight, Entry1, Right));
+                    }
+                    else
+                    {
+                        newMiddle = middle.AddOrGetEntry(hash, entry);
+                        if (middle.MayTurnToBranch2 && newMiddle is Branch2Base mb)
+                            return new Branch2(new Branch2(Left, Entry0, mb.Left), mb.MidEntry, new Branch2(mb.Right, Entry1, Right));
+                    }
 
-                    if (splitMiddleRight != null)
-                        return new Branch2(new Branch2(Left, Entry0, newMiddle), entry, new Branch2(splitMiddleRight, Entry1, Right));
-
-                    if (newMiddle is Entry)
-                        return newMiddle;
-
-                    return this is Branch3 b ? new Branch3Middle(b, newMiddle)
+                    return newMiddle is Entry ? newMiddle
+                        : this is Branch3 b ? new Branch3Middle(b, newMiddle)
                         : this is Branch3Middle br ? new Branch3Middle(br.B, newMiddle)
                         : new Branch3(Left, Entry0, newMiddle, Entry1, Right);
                 }
@@ -3352,77 +3350,77 @@ namespace ImTools
                 return hash == h0 ? Entry0 : Entry1;
             }
 
-            internal ImHashMap<K, V> AddOrGetEntry(int hash, ref Entry entry, ref ImHashMap<K, V> splitRight)
-            {
-                var h1 = Entry1.Hash;
-                if (hash > h1)
-                {
-                    var right = Right;
-                    var newRight = right.AddOrGetEntry(hash, entry);
-                    if (newRight is Entry)
-                        return newRight;
-                    if (right.MayTurnToBranch2 && newRight is Branch2Base)
-                    {
-                        entry = Entry1;
-                        splitRight = newRight;
-                        return new Branch2(Left, Entry0, Middle);
-                    }
-                    return this is Branch3 b ? new Branch3Right(b, newRight)
-                        : this is Branch3Right br ? new Branch3Right(br.B, newRight)
-                        : new Branch3(Left, Entry0, Middle, Entry1, newRight);
-                }
+            // internal ImHashMap<K, V> AddOrGetEntry(int hash, ref Entry entry, ref ImHashMap<K, V> splitRight)
+            // {
+            //     var h1 = Entry1.Hash;
+            //     if (hash > h1)
+            //     {
+            //         var right = Right;
+            //         var newRight = right.AddOrGetEntry(hash, entry);
+            //         if (newRight is Entry)
+            //             return newRight;
+            //         if (right.MayTurnToBranch2 && newRight is Branch2Base)
+            //         {
+            //             entry = Entry1;
+            //             splitRight = newRight;
+            //             return new Branch2(Left, Entry0, Middle);
+            //         }
+            //         return this is Branch3 b ? new Branch3Right(b, newRight)
+            //             : this is Branch3Right br ? new Branch3Right(br.B, newRight)
+            //             : new Branch3(Left, Entry0, Middle, Entry1, newRight);
+            //     }
 
-                var h0 = Entry0.Hash;
-                if (hash < h0)
-                {
-                    var left = Left;
-                    var newLeft = left.AddOrGetEntry(hash, entry);
-                    if (newLeft is Entry)
-                        return newLeft;
-                    if (left.MayTurnToBranch2 && newLeft is Branch2Base)
-                    {
-                        entry = Entry0;
-                        splitRight = new Branch2(Middle, Entry1, Right);
-                        return newLeft;
-                    }
-                    return this is Branch3 b ? new Branch3Left(b, newLeft)
-                        : this is Branch3Left br ? new Branch3Left(br.B, newLeft)
-                        : new Branch3(newLeft, Entry0, Middle, Entry1, Right);
-                }
+            //     var h0 = Entry0.Hash;
+            //     if (hash < h0)
+            //     {
+            //         var left = Left;
+            //         var newLeft = left.AddOrGetEntry(hash, entry);
+            //         if (newLeft is Entry)
+            //             return newLeft;
+            //         if (left.MayTurnToBranch2 && newLeft is Branch2Base)
+            //         {
+            //             entry = Entry0;
+            //             splitRight = new Branch2(Middle, Entry1, Right);
+            //             return newLeft;
+            //         }
+            //         return this is Branch3 b ? new Branch3Left(b, newLeft)
+            //             : this is Branch3Left br ? new Branch3Left(br.B, newLeft)
+            //             : new Branch3(newLeft, Entry0, Middle, Entry1, Right);
+            //     }
 
-                if (hash > h0 && hash < h1)
-                {
-                    var middle = Middle;
-                    ImHashMap<K, V> newMiddle = null, splitMiddleRight = null;
-                    if (middle is Leaf5PlusPlus ml511)
-                    {
-                        newMiddle = ml511.AddOrGetEntry(hash, ref entry, ref splitMiddleRight);
-                        if (splitMiddleRight == null)
-                            return newMiddle;
-                        // entry = entry; we don't need to assign the entry because it is already containing the proper value
-                        splitRight = new Branch2(splitMiddleRight, Entry1, Right);
-                        return new Branch2(Left, Entry0, newMiddle);
-                    }
+            //     if (hash > h0 && hash < h1)
+            //     {
+            //         var middle = Middle;
+            //         ImHashMap<K, V> newMiddle = null, splitMiddleRight = null;
+            //         if (middle is Leaf5PlusPlus ml511)
+            //         {
+            //             newMiddle = ml511.AddOrGetEntry(hash, ref entry, ref splitMiddleRight);
+            //             if (splitMiddleRight == null)
+            //                 return newMiddle;
+            //             // entry = entry; we don't need to assign the entry because it is already containing the proper value
+            //             splitRight = new Branch2(splitMiddleRight, Entry1, Right);
+            //             return new Branch2(Left, Entry0, newMiddle);
+            //         }
 
-                    if (middle is Branch3Base mb3)
-                    {
-                        newMiddle = mb3.AddOrGetEntry(hash, ref entry, ref splitMiddleRight);
-                        if (splitMiddleRight != null)
-                        {
-                            splitRight = new Branch2(splitMiddleRight, Entry1, Right);
-                            return new Branch2(Left, Entry0, newMiddle);
-                        }
-                    }
-                    else
-                        newMiddle = middle.AddOrGetEntry(hash, entry);
-                    if (newMiddle is Entry)
-                        return newMiddle;
-                    return this is Branch3 b ? new Branch3Middle(b, newMiddle) : this is Branch3Middle br ? new Branch3Middle(br.B, newMiddle)
-                        : new Branch3(Left, Entry0, newMiddle, Entry1, Right);
-                }
+            //         if (middle is Branch3Base mb3)
+            //         {
+            //             newMiddle = mb3.AddOrGetEntry(hash, ref entry, ref splitMiddleRight);
+            //             if (splitMiddleRight != null)
+            //             {
+            //                 splitRight = new Branch2(splitMiddleRight, Entry1, Right);
+            //                 return new Branch2(Left, Entry0, newMiddle);
+            //             }
+            //         }
+            //         else
+            //             newMiddle = middle.AddOrGetEntry(hash, entry);
+            //         if (newMiddle is Entry)
+            //             return newMiddle;
+            //         return this is Branch3 b ? new Branch3Middle(b, newMiddle) : this is Branch3Middle br ? new Branch3Middle(br.B, newMiddle)
+            //             : new Branch3(Left, Entry0, newMiddle, Entry1, Right);
+            //     }
 
-                return hash == h0 ? Entry0 : Entry1;
-            }
+            //     return hash == h0 ? Entry0 : Entry1;
+            // }
 
             internal override ImHashMap<K, V> ReplaceEntry(Entry oldEntry, Entry newEntry)
             {
