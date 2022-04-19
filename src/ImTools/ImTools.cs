@@ -3203,8 +3203,8 @@ namespace ImTools
                         // we know that the `splitRight` is not null because otherwise it would not be Branch2Plus1 in the first place 
                         Debug.Assert(ph > m.Hash, "Because right was on the verge of balance and the fact that the other branch is not on the verge was the reason of Branch2Plus1 creation");
                         return ph > entry.Hash
-                            ? new Branch3(b.Left, m, entryOrNewBranch, entry, splitRight is Leaf2 l2 ? new Leaf2Plus(Plus, l2) : (ImHashMap<K, V>)new Leaf5Plus(Plus, (Leaf5)splitRight))
-                            : new Branch3(b.Left, m, entryOrNewBranch is Leaf5 l5 ? new Leaf5Plus(Plus, l5) : (ImHashMap<K, V>)new Leaf2Plus(Plus, (Leaf2)entryOrNewBranch), entry, splitRight);
+                            ? new Branch3(b.Left, m, entryOrNewBranch, entry, splitRight is Leaf2 l2 ? new Leaf2Plus(Plus, l2) : new Leaf5Plus(Plus, (Leaf5)splitRight))
+                            : new Branch3(b.Left, m, entryOrNewBranch is Leaf5 l5 ? new Leaf5Plus(Plus, l5) : new Leaf2Plus(Plus, (Leaf2)entryOrNewBranch), entry, splitRight);
                     }
 
                     // right is not on the verge, then the Plus would be added to the left
@@ -3228,8 +3228,8 @@ namespace ImTools
                             return entryOrNewBranch; // we know that the `r` is Leaf so the only possibility why `splitRight` is null because the same hash entry is found
 
                         return ph < entry.Hash
-                            ? new Branch3(entryOrNewBranch is Leaf5 l5 ? new Leaf5Plus(Plus, l5) : (ImHashMap<K, V>)new Leaf2Plus(Plus, (Leaf2)entryOrNewBranch), entry, splitRight, m, b.Right)
-                            : new Branch3(entryOrNewBranch, entry, splitRight is Leaf2 l2 ? new Leaf2Plus(Plus, l2) : (ImHashMap<K, V>)new Leaf5Plus(Plus, (Leaf5)splitRight), m, b.Right);
+                            ? new Branch3(entryOrNewBranch is Leaf5 l5 ? new Leaf5Plus(Plus, l5) : new Leaf2Plus(Plus, (Leaf2)entryOrNewBranch), entry, splitRight, m, b.Right)
+                            : new Branch3(entryOrNewBranch, entry, splitRight is Leaf2 l2 ? new Leaf2Plus(Plus, l2) : new Leaf5Plus(Plus, (Leaf5)splitRight), m, b.Right);
                     }
 
                     entryOrNewBranch = left.AddOrGetEntry(hash, entry);
