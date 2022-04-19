@@ -2811,27 +2811,15 @@ namespace ImTools
                 ImHashMap<K, V> entryOrNewBranch = null;
                 if (hash > E.Hash)
                 {
-                    if (R is Leaf5PlusPlus rl511)
-                    {
-                        // optimizing the split by postponing it by introducing the branch 2 plus 1
-                        if (L is Leaf5PlusPlus == false)
-                            return rl511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus1(entry, this);
+                    // optimizing the split by postponing it by introducing the branch 2 plus 1
+                    if (R is Leaf5PlusPlus rl511 && L is Leaf5PlusPlus == false)
+                        return rl511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus1(entry, this);
 
-                        ImHashMap<K, V> splitRight = null;
-                        entryOrNewBranch = rl511.AddOrGetEntry(hash, ref entry, ref splitRight);
-                        // if split is `null` then the only reason is that hash is found
-                        return splitRight != null ? new Branch3(L, E, entryOrNewBranch, entry, splitRight) : entryOrNewBranch;
-                    }
-
-                    if (R is Branch3Base rb3)
-                    {
-                        entryOrNewBranch = rb3.AddOrGetEntry(hash, entry);
-                        if (entryOrNewBranch is Branch2Base b2)
-                            return new Branch3(L, E, b2.Left, b2.MidEntry, b2.Right);
-                    }
-                    else entryOrNewBranch = R.AddOrGetEntry(hash, entry);
-
-                    return entryOrNewBranch is Entry ? entryOrNewBranch : new Branch2Right(this, entryOrNewBranch);
+                    entryOrNewBranch = R.AddOrGetEntry(hash, entry);
+                    return R.MayTurnToBranch2 && entryOrNewBranch is Branch2Base b2
+                        ? new Branch3(L, E, b2.Left, b2.MidEntry, b2.Right)
+                        : entryOrNewBranch is Entry ? entryOrNewBranch 
+                        : new Branch2Right(this, entryOrNewBranch);
                 }
 
                 if (hash < E.Hash)
