@@ -3193,18 +3193,18 @@ namespace ImTools
                 if (hash > m.Hash)
                 {
                     var right = b.Right;
-                    ImHashMap<K, V> splitRight = null;
                     if (right is Leaf5PlusPlus rl)
                     {
-                        entryOrNewBranch = rl.AddOrGetEntry(hash, ref entry, ref splitRight);
+                        entryOrNewBranch = rl.AddOrGetEntry(hash, entry);
                         if (entryOrNewBranch is Entry)
                             return entryOrNewBranch;
 
+                        var b2 = (Branch2)entryOrNewBranch;
                         // we know that the `splitRight` is not null because otherwise it would not be Branch2Plus1 in the first place 
                         Debug.Assert(ph > m.Hash, "Because right was on the verge of balance and the fact that the other branch is not on the verge was the reason of Branch2Plus1 creation");
-                        return ph > entry.Hash
-                            ? new Branch3(b.Left, m, entryOrNewBranch, entry, splitRight is Leaf2 l2 ? new Leaf2Plus(Plus, l2) : new Leaf5Plus(Plus, (Leaf5)splitRight))
-                            : new Branch3(b.Left, m, entryOrNewBranch is Leaf5 l5 ? new Leaf5Plus(Plus, l5) : new Leaf2Plus(Plus, (Leaf2)entryOrNewBranch), entry, splitRight);
+                        return ph > b2.MidEntry.Hash
+                            ? new Branch3(b.Left, m, b2.Left, b2.MidEntry, b2.Right is Leaf2 l2 ? new Leaf2Plus(Plus, l2) : new Leaf5Plus(Plus, (Leaf5)b2.Right))
+                            : new Branch3(b.Left, m, b2.Left is Leaf5 l5 ? new Leaf5Plus(Plus, l5) : new Leaf2Plus(Plus, (Leaf2)b2.Left), b2.MidEntry, b2.Right);
                     }
 
                     // right is not on the verge, then the Plus would be added to the left
@@ -3213,6 +3213,7 @@ namespace ImTools
                         return entryOrNewBranch;
 
                     entry = Plus;
+                    ImHashMap<K, V> splitRight = null;
                     var newLeft = ((Leaf5PlusPlus)b.Left).AddEntry(ph, ref entry, ref splitRight);
                     return new Branch3(newLeft, entry, splitRight, m, entryOrNewBranch);
                 }
@@ -3220,16 +3221,16 @@ namespace ImTools
                 if (hash < m.Hash)
                 {
                     var left = b.Left;
-                    ImHashMap<K, V> splitRight = null;
                     if (left is Leaf5PlusPlus ll)
                     {
-                        entryOrNewBranch = ll.AddOrGetEntry(hash, ref entry, ref splitRight);
+                        entryOrNewBranch = ll.AddOrGetEntry(hash, entry);
                         if (entryOrNewBranch is Entry)
                             return entryOrNewBranch; // we know that the `r` is Leaf so the only possibility why `splitRight` is null because the same hash entry is found
 
-                        return ph < entry.Hash
-                            ? new Branch3(entryOrNewBranch is Leaf5 l5 ? new Leaf5Plus(Plus, l5) : new Leaf2Plus(Plus, (Leaf2)entryOrNewBranch), entry, splitRight, m, b.Right)
-                            : new Branch3(entryOrNewBranch, entry, splitRight is Leaf2 l2 ? new Leaf2Plus(Plus, l2) : new Leaf5Plus(Plus, (Leaf5)splitRight), m, b.Right);
+                        var b2 = (Branch2)entryOrNewBranch;
+                        return ph < b2.MidEntry.Hash
+                            ? new Branch3(b2.Left is Leaf5 l5 ? new Leaf5Plus(Plus, l5) : new Leaf2Plus(Plus, (Leaf2)b2.Left), b2.MidEntry, b2.Right, m, b.Right)
+                            : new Branch3(b2.Left, b2.MidEntry, b2.Right is Leaf2 l2 ? new Leaf2Plus(Plus, l2) : new Leaf5Plus(Plus, (Leaf5)b2.Right), m, b.Right);
                     }
 
                     entryOrNewBranch = left.AddOrGetEntry(hash, entry);
@@ -3237,6 +3238,7 @@ namespace ImTools
                         return entryOrNewBranch;
 
                     entry = Plus;
+                    ImHashMap<K, V> splitRight = null;
                     var newMiddle = ((Leaf5PlusPlus)b.Right).AddEntry(ph, ref entry, ref splitRight);
                     return new Branch3(entryOrNewBranch, m, newMiddle, entry, splitRight);
                 }
