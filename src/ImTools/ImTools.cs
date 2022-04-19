@@ -2818,33 +2818,20 @@ namespace ImTools
                     entryOrNewBranch = R.AddOrGetEntry(hash, entry);
                     return R.MayTurnToBranch2 && entryOrNewBranch is Branch2Base b2
                         ? new Branch3(L, E, b2.Left, b2.MidEntry, b2.Right)
-                        : entryOrNewBranch is Entry ? entryOrNewBranch 
+                        : entryOrNewBranch is Entry ? entryOrNewBranch
                         : new Branch2Right(this, entryOrNewBranch);
                 }
-
                 if (hash < E.Hash)
                 {
-                    if (L is Leaf5PlusPlus ll511)
-                    {
-                        if (R is Leaf5PlusPlus == false)
-                            return ll511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus1(entry, this);
+                    if (L is Leaf5PlusPlus ll511 && R is Leaf5PlusPlus == false)
+                        return ll511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus1(entry, this);
 
-                        ImHashMap<K, V> splitRight = null;
-                        entryOrNewBranch = ll511.AddOrGetEntry(hash, ref entry, ref splitRight);
-                        return splitRight != null ? new Branch3(entryOrNewBranch, entry, splitRight, E, R) : entryOrNewBranch;
-                    }
-
-                    if (L is Branch3Base lb3)
-                    {
-                        entryOrNewBranch = lb3.AddOrGetEntry(hash, entry);
-                        if (entryOrNewBranch is Branch2Base b2)
-                            return new Branch3(b2.Left, b2.MidEntry, b2.Right, E, R);
-                    }
-                    else entryOrNewBranch = L.AddOrGetEntry(hash, entry);
-
-                    return entryOrNewBranch is Entry ? entryOrNewBranch : new Branch2Left(this, entryOrNewBranch);
+                    entryOrNewBranch = L.AddOrGetEntry(hash, entry);
+                    return L.MayTurnToBranch2 && entryOrNewBranch is Branch2Base b2
+                        ? new Branch3(b2.Left, b2.MidEntry, b2.Right, E, R)
+                        : entryOrNewBranch is Entry ? entryOrNewBranch
+                        : new Branch2Left(this, entryOrNewBranch);
                 }
-
                 return E;
             }
         }
@@ -2877,52 +2864,27 @@ namespace ImTools
                 if (hash > me.Hash)
                 {
                     var right = B.R;
-                    if (right is Leaf5PlusPlus rl511)
-                    {
-                        // optimizing the split by postponing it by introducing the branch 2 plus 1
-                        if (L is Leaf5PlusPlus == false)
-                            return rl511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus1(entry, this);
+                    if (right is Leaf5PlusPlus rl511 && L is Leaf5PlusPlus == false)
+                        return rl511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus1(entry, this);
 
-                        ImHashMap<K, V> splitRight = null;
-                        entryOrNewBranch = rl511.AddOrGetEntry(hash, ref entry, ref splitRight);
-                        // if split is `null` then the only reason is that hash is found
-                        return splitRight != null ? new Branch3(L, me, entryOrNewBranch, entry, splitRight) : entryOrNewBranch;
-                    }
 
-                    if (right is Branch3Base rb3)
-                    {
-                        entryOrNewBranch = rb3.AddOrGetEntry(hash, entry);
-                        if (entryOrNewBranch is Branch2Base b2)
-                            return new Branch3(L, me, b2.Left, b2.MidEntry, b2.Right);
-                    }
-                    else entryOrNewBranch = right.AddOrGetEntry(hash, entry);
-
-                    return entryOrNewBranch is Entry ? entryOrNewBranch : new Branch2(L, me, entryOrNewBranch);
+                    entryOrNewBranch = right.AddOrGetEntry(hash, entry);
+                    return right.MayTurnToBranch2 && entryOrNewBranch is Branch2Base b2
+                        ? new Branch3(L, me, b2.Left, b2.MidEntry, b2.Right)
+                        : entryOrNewBranch is Entry ? entryOrNewBranch
+                        : new Branch2(L, me, entryOrNewBranch);
                 }
-
                 if (hash < me.Hash)
                 {
-                    if (L is Leaf5PlusPlus ll511)
-                    {
-                        if (B.R is Leaf5PlusPlus == false)
-                            return ll511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus1(entry, this);
+                    if (L is Leaf5PlusPlus ll511 && B.R is Leaf5PlusPlus == false)
+                        return ll511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus1(entry, this);
 
-                        ImHashMap<K, V> splitRight = null;
-                        entryOrNewBranch = ll511.AddOrGetEntry(hash, ref entry, ref splitRight);
-                        return splitRight != null ? new Branch3(entryOrNewBranch, entry, splitRight, me, B.R) : entryOrNewBranch;
-                    }
-
-                    if (L is Branch3Base lb3)
-                    {
-                        entryOrNewBranch = lb3.AddOrGetEntry(hash, entry);
-                        if (entryOrNewBranch is Branch2Base b2)
-                            return new Branch3(b2.Left, b2.MidEntry, b2.Right, me, B.R);
-                    }
-                    else entryOrNewBranch = L.AddOrGetEntry(hash, entry);
-
-                    return entryOrNewBranch is Entry ? entryOrNewBranch : new Branch2Left(B, entryOrNewBranch);
+                    entryOrNewBranch = L.AddOrGetEntry(hash, entry);
+                    return L.MayTurnToBranch2 && entryOrNewBranch is Branch2Base b2
+                        ? new Branch3(b2.Left, b2.MidEntry, b2.Right, me, B.R)
+                        : entryOrNewBranch is Entry ? entryOrNewBranch
+                        : new Branch2Left(B, entryOrNewBranch);
                 }
-
                 return me;
             }
         }
@@ -4498,7 +4460,7 @@ namespace ImTools
             HashConflictingEntryLabel7:
                 if (_hc != null)
                     return SetCurrentAndState(32, 48);
-            HashConflictingEntryLabel8:
+                HashConflictingEntryLabel8:
                 if (_map is ImHashMap<K, V>.Entry e)
                     return SetCurrentAndState(e, 39, 49);
                 goto Label6;
