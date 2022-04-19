@@ -2916,53 +2916,27 @@ namespace ImTools
                 ImHashMap<K, V> entryOrNewBranch = null;
                 if (hash > me.Hash)
                 {
-                    if (R is Leaf5PlusPlus rl511)
-                    {
-                        // optimizing the split by postponing it by introducing the branch 2 plus 1
-                        if (B.L is Leaf5PlusPlus == false)
-                            return rl511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus1(entry, this);
+                    if (R is Leaf5PlusPlus rl511 && B.L is Leaf5PlusPlus == false)
+                        return rl511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus1(entry, this);
 
-                        ImHashMap<K, V> splitRight = null;
-                        entryOrNewBranch = rl511.AddOrGetEntry(hash, ref entry, ref splitRight);
-                        // if split is `null` then the only reason is that hash is found
-                        return splitRight != null ? new Branch3(B.L, me, entryOrNewBranch, entry, splitRight) : entryOrNewBranch;
-                    }
-
-                    if (R is Branch3Base rb3)
-                    {
-                        entryOrNewBranch = rb3.AddOrGetEntry(hash, entry);
-                        if (entryOrNewBranch is Branch2Base b2)
-                            return new Branch3(B.L, me, b2.Left, b2.MidEntry, b2.Right);
-                    }
-                    else entryOrNewBranch = R.AddOrGetEntry(hash, entry);
-
-                    return entryOrNewBranch is Entry ? entryOrNewBranch : new Branch2Right(B, entryOrNewBranch);
+                    entryOrNewBranch = R.AddOrGetEntry(hash, entry);
+                    return R.MayTurnToBranch2 && entryOrNewBranch is Branch2Base b2
+                        ? new Branch3(B.L, me, b2.Left, b2.MidEntry, b2.Right)
+                        : entryOrNewBranch is Entry ? entryOrNewBranch 
+                        : new Branch2Right(B, entryOrNewBranch);
                 }
-
                 if (hash < me.Hash)
                 {
                     var left = B.L;
-                    if (left is Leaf5PlusPlus ll511)
-                    {
-                        if (R is Leaf5PlusPlus == false)
-                            return ll511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus1(entry, this);
+                    if (left is Leaf5PlusPlus ll511 && R is Leaf5PlusPlus == false)
+                        return ll511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus1(entry, this);
 
-                        ImHashMap<K, V> splitRight = null;
-                        entryOrNewBranch = ll511.AddOrGetEntry(hash, ref entry, ref splitRight);
-                        return splitRight != null ? new Branch3(entryOrNewBranch, entry, splitRight, me, R) : entryOrNewBranch;
-                    }
-
-                    if (left is Branch3Base lb3)
-                    {
-                        entryOrNewBranch = lb3.AddOrGetEntry(hash, entry);
-                        if (entryOrNewBranch is Branch2Base b2)
-                            return new Branch3(b2.Left, b2.MidEntry, b2.Right, me, R);
-                    }
-                    else entryOrNewBranch = left.AddOrGetEntry(hash, entry);
-
-                    return entryOrNewBranch is Entry ? entryOrNewBranch : new Branch2(entryOrNewBranch, me, R);
+                    entryOrNewBranch = left.AddOrGetEntry(hash, entry);
+                    return left.MayTurnToBranch2 && entryOrNewBranch is Branch2Base b2
+                        ? new Branch3(b2.Left, b2.MidEntry, b2.Right, me, R)
+                        : entryOrNewBranch is Entry ? entryOrNewBranch 
+                        : new Branch2(entryOrNewBranch, me, R);
                 }
-
                 return me;
             }
         }
