@@ -3059,7 +3059,7 @@ namespace ImTools
             internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
             {
                 var ph = Plus.Hash;
-                if (ph == hash) // ok, fast return here
+                if (ph == hash) // fast match and return
                     return Plus;
 
                 var b = B;
@@ -3068,14 +3068,14 @@ namespace ImTools
                 if (hash > m.Hash)
                 {
                     var right = b.Right;
+                    entryOrNewBranch = right.AddOrGetEntry(hash, entry);
+                    if (entryOrNewBranch is Entry)
+                        return entryOrNewBranch;
+
                     if (right is Leaf5PlusPlus rl)
                     {
-                        entryOrNewBranch = rl.AddOrGetEntry(hash, entry);
-                        if (entryOrNewBranch is Entry)
-                            return entryOrNewBranch;
-
+                        // we know that the new entry is Branch2, because otherwise it would not be Branch2Plus1 in the first place 
                         var b2 = (Branch2)entryOrNewBranch;
-                        // we know that the `splitRight` is not null because otherwise it would not be Branch2Plus1 in the first place 
                         Debug.Assert(ph > m.Hash, "Because right was on the verge of balance and the fact that the other branch is not on the verge was the reason of Branch2Plus1 creation");
                         return ph > b2.MidEntry.Hash
                             ? new Branch3(b.Left, m, b2.Left, b2.MidEntry, b2.Right is Leaf2 l2 ? new Leaf2Plus(Plus, l2) : new Leaf5Plus(Plus, (Leaf5)b2.Right))
@@ -3083,41 +3083,31 @@ namespace ImTools
                     }
 
                     // right is not on the verge, then the Plus would be added to the left
-                    entryOrNewBranch = right.AddOrGetEntry(hash, entry);
-                    if (entryOrNewBranch is Entry)
-                        return entryOrNewBranch;
-
                     entry = Plus;
                     ImHashMap<K, V> splitRight = null;
                     var newLeft = ((Leaf5PlusPlus)b.Left).AddEntry(ph, ref entry, ref splitRight);
                     return new Branch3(newLeft, entry, splitRight, m, entryOrNewBranch);
                 }
-
                 if (hash < m.Hash)
                 {
                     var left = b.Left;
+                    entryOrNewBranch = left.AddOrGetEntry(hash, entry);
+                    if (entryOrNewBranch is Entry)
+                        return entryOrNewBranch;
+
                     if (left is Leaf5PlusPlus ll)
                     {
-                        entryOrNewBranch = ll.AddOrGetEntry(hash, entry);
-                        if (entryOrNewBranch is Entry)
-                            return entryOrNewBranch; // we know that the `r` is Leaf so the only possibility why `splitRight` is null because the same hash entry is found
-
                         var b2 = (Branch2)entryOrNewBranch;
                         return ph < b2.MidEntry.Hash
                             ? new Branch3(b2.Left is Leaf5 l5 ? new Leaf5Plus(Plus, l5) : new Leaf2Plus(Plus, (Leaf2)b2.Left), b2.MidEntry, b2.Right, m, b.Right)
                             : new Branch3(b2.Left, b2.MidEntry, b2.Right is Leaf2 l2 ? new Leaf2Plus(Plus, l2) : new Leaf5Plus(Plus, (Leaf5)b2.Right), m, b.Right);
                     }
 
-                    entryOrNewBranch = left.AddOrGetEntry(hash, entry);
-                    if (entryOrNewBranch is Entry)
-                        return entryOrNewBranch;
-
                     entry = Plus;
                     ImHashMap<K, V> splitRight = null;
                     var newMiddle = ((Leaf5PlusPlus)b.Right).AddEntry(ph, ref entry, ref splitRight);
                     return new Branch3(entryOrNewBranch, m, newMiddle, entry, splitRight);
                 }
-
                 return m;
             }
 
