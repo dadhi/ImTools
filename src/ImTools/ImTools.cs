@@ -3594,7 +3594,7 @@ namespace ImTools
                     var middle = RB.Left;
                     var newMiddle = middle.AddOrGetEntry(hash, entry);
                     return middle.MayTurnToBranch2 && newMiddle is Branch2Base b2
-                        ? new Branch2(new Branch2(L, E0, b2.Left), b2.MidEntry, new Branch2(b2.Right, RB.MidEntry, RB.Right)) // todo: @perf @mem opportunity to use Branch2blah here
+                        ? new Branch2(new Branch2(L, E0, b2.Left), b2.MidEntry, new Branch2(b2.Right, RB.MidEntry, RB.Right)) // note: tested the use of Branch2Left here but the numbers went bad
                         : newMiddle is Entry ? newMiddle
                         : new Branch3(L, E0, newMiddle, RB.MidEntry, RB.Right);
                 }
