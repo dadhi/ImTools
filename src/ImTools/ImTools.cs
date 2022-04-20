@@ -3203,7 +3203,6 @@ namespace ImTools
                         : this is Branch3Right br ? new Branch3Right(br.B, newRight)
                         : new Branch3(Left, Entry0, Middle, Entry1, newRight);
                 }
-
                 var h0 = Entry0.Hash;
                 if (hash < h0)
                 {
@@ -3216,7 +3215,6 @@ namespace ImTools
                         : this is Branch3Left br ? new Branch3Left(br.B, newLeft)
                         : new Branch3(newLeft, Entry0, Middle, Entry1, Right);
                 }
-
                 if (hash > h0 && hash < h1)
                 {
                     var middle = Middle;
@@ -3228,7 +3226,6 @@ namespace ImTools
                         : this is Branch3Middle br ? new Branch3Middle(br.B, newMiddle)
                         : new Branch3(Left, Entry0, newMiddle, Entry1, Right);
                 }
-
                 return hash == h0 ? Entry0 : Entry1;
             }
 
@@ -3335,6 +3332,69 @@ namespace ImTools
             }
         }
 
+        /// <summary>The 3 branches with the 2 nodes in between</summary>
+        internal sealed class Branch3 : Branch3Base
+        {
+            internal readonly Entry E0, E1;
+            public override Entry Entry0 => E0;
+            public override Entry Entry1 => E1;
+            internal readonly ImHashMap<K, V> L, M, R;
+            public override ImHashMap<K, V> Left => L;
+            public override ImHashMap<K, V> Middle => M;
+            public override ImHashMap<K, V> Right => R;
+            public Branch3(ImHashMap<K, V> left, Entry e0, ImHashMap<K, V> middle, Entry e1, ImHashMap<K, V> right)
+            {
+                Debug.Assert(e0.Hash < e1.Hash, $"e0.Hash:{e0.Hash} < e1.Hash{e1.Hash}");
+                L = left;
+                E0 = e0;
+                M = middle;
+                E1 = e1;
+                R = right;
+            }
+
+            internal override Entry GetEntryOrNull(int hash)
+            {
+                var h1 = E1.Hash;
+                if (hash > h1)
+                    return R.GetEntryOrNull(hash);
+                var h0 = E0.Hash;
+                if (hash < h0)
+                    return L.GetEntryOrNull(hash);
+                return h0 == hash ? E0 : h1 == hash ? E1 : M.GetEntryOrNull(hash);
+            }
+
+            internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
+            {
+                var h1 = Entry1.Hash;
+                if (hash > h1)
+                {
+                    var newRight = R.AddOrGetEntry(hash, entry);
+                    return R.MayTurnToBranch2 && newRight is Branch2Base
+                        ? new Branch2(new Branch2(Left, Entry0, Middle), Entry1, newRight)
+                        : newRight is Entry ? newRight
+                        : new Branch3Right(this, newRight);
+                }
+                var h0 = Entry0.Hash;
+                if (hash < h0)
+                {
+                    var newLeft = L.AddOrGetEntry(hash, entry);
+                    return L.MayTurnToBranch2 && newLeft is Branch2Base
+                        ? new Branch2(newLeft, Entry0, new Branch2(Middle, Entry1, Right))
+                        : newLeft is Entry ? newLeft
+                        : new Branch3Left(this, newLeft);
+                }
+                if (hash > h0 && hash < h1)
+                {
+                    var newMiddle = M.AddOrGetEntry(hash, entry);
+                    return M.MayTurnToBranch2 && newMiddle is Branch2Base b2
+                        ? new Branch2(new Branch2(Left, Entry0, b2.Left), b2.MidEntry, new Branch2(b2.Right, Entry1, Right))
+                        : newMiddle is Entry ? newMiddle
+                        : new Branch3Middle(this, newMiddle);
+                }
+                return hash == h0 ? Entry0 : Entry1;
+            }
+        }
+
         internal sealed class Branch3Right : Branch3Base
         {
             public override Entry Entry0 => B.E0;
@@ -3360,6 +3420,39 @@ namespace ImTools
                 if (hash < h0)
                     return b.L.GetEntryOrNull(hash);
                 return h0 == hash ? b.E0 : h1 == hash ? b.E1 : b.M.GetEntryOrNull(hash);
+            }
+
+            internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
+            {
+                var h1 = Entry1.Hash;
+                if (hash > h1)
+                {
+                    var newRight = R.AddOrGetEntry(hash, entry);
+                    return R.MayTurnToBranch2 && newRight is Branch2Base
+                        ? new Branch2(new Branch2(B.L, B.E0, B.M), B.E1, newRight)
+                        : newRight is Entry ? newRight
+                        : new Branch3Right(B, newRight);
+                }
+                var h0 = Entry0.Hash;
+                if (hash < h0)
+                {
+                    var left = B.L;
+                    var newLeft = left.AddOrGetEntry(hash, entry);
+                    return left.MayTurnToBranch2 && newLeft is Branch2Base
+                        ? new Branch2(newLeft, B.E0, new Branch2(B.M, B.E1, R))
+                        : newLeft is Entry ? newLeft
+                        : new Branch3(newLeft, B.E0, B.M, B.E1, R);
+                }
+                if (hash > h0 && hash < h1)
+                {
+                    var middle = B.M;
+                    var newMiddle = middle.AddOrGetEntry(hash, entry);
+                    return middle.MayTurnToBranch2 && newMiddle is Branch2Base b2
+                        ? new Branch2(new Branch2(B.L, B.E0, b2.Left), b2.MidEntry, new Branch2(b2.Right, B.E1, R))
+                        : newMiddle is Entry ? newMiddle
+                        : new Branch3(B.L, B.E0, newMiddle, B.E1, R);
+                }
+                return hash == h0 ? Entry0 : Entry1;
             }
         }
 
@@ -3415,38 +3508,6 @@ namespace ImTools
                 if (hash < h0)
                     return b.L.GetEntryOrNull(hash);
                 return h0 == hash ? b.E0 : h1 == hash ? b.E1 : M.GetEntryOrNull(hash);
-            }
-        }
-
-        /// <summary>The 3 branches with the 2 nodes in between</summary>
-        internal sealed class Branch3 : Branch3Base
-        {
-            internal readonly Entry E0, E1;
-            public override Entry Entry0 => E0;
-            public override Entry Entry1 => E1;
-            internal readonly ImHashMap<K, V> L, M, R;
-            public override ImHashMap<K, V> Left => L;
-            public override ImHashMap<K, V> Middle => M;
-            public override ImHashMap<K, V> Right => R;
-            public Branch3(ImHashMap<K, V> left, Entry e0, ImHashMap<K, V> middle, Entry e1, ImHashMap<K, V> right)
-            {
-                Debug.Assert(e0.Hash < e1.Hash, $"e0.Hash:{e0.Hash} < e1.Hash{e1.Hash}");
-                L = left;
-                E0 = e0;
-                M = middle;
-                E1 = e1;
-                R = right;
-            }
-
-            internal override Entry GetEntryOrNull(int hash)
-            {
-                var h1 = E1.Hash;
-                if (hash > h1)
-                    return R.GetEntryOrNull(hash);
-                var h0 = E0.Hash;
-                if (hash < h0)
-                    return L.GetEntryOrNull(hash);
-                return h0 == hash ? E0 : h1 == hash ? E1 : M.GetEntryOrNull(hash);
             }
         }
     }
