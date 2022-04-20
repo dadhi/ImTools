@@ -546,9 +546,24 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 |     V4_ImMap_AddOrUpdate |   100 | 10,968.4 ns | 131.51 ns | 116.58 ns |  1.00 |    0.00 | 2.8229 | 0.0916 |     - |   17792 B |
 | V3_ImHashMap_AddOrUpdate |   100 | 10,891.3 ns | 137.68 ns | 128.79 ns |  0.99 |    0.02 | 3.1891 | 0.1068 |     - |   20032 B |
 
+
+|                   Method | Count |          Mean |        Error |        StdDev |        Median | Ratio | RatioSD |    Gen 0 | Gen 1 | Gen 2 | Allocated |
+|------------------------- |------ |--------------:|-------------:|--------------:|--------------:|------:|--------:|---------:|------:|------:|----------:|
+|     V4_ImMap_AddOrUpdate |     1 |      48.63 ns |     2.001 ns |      5.804 ns |      46.32 ns |  1.00 |    0.00 |   0.0356 |     - |     - |     112 B |
+| V3_ImHashMap_AddOrUpdate |     1 |      46.88 ns |     1.185 ns |      3.474 ns |      45.26 ns |  0.98 |    0.12 |   0.0357 |     - |     - |     112 B |
+|                          |       |               |              |               |               |       |         |          |       |       |           |
+|     V4_ImMap_AddOrUpdate |    10 |     387.64 ns |    14.055 ns |     39.643 ns |     391.53 ns |  1.00 |    0.00 |   0.3133 |     - |     - |     984 B |
+| V3_ImHashMap_AddOrUpdate |    10 |     616.00 ns |    77.747 ns |    229.238 ns |     499.46 ns |  1.62 |    0.51 |   0.3185 |     - |     - |    1000 B |
+|                          |       |               |              |               |               |       |         |          |       |       |           |
+|     V4_ImMap_AddOrUpdate |   100 |  11,764.67 ns |   239.479 ns |    706.111 ns |  11,560.06 ns |  1.00 |    0.00 |   5.6610 |     - |     - |   17792 B |
+| V3_ImHashMap_AddOrUpdate |   100 |  10,960.66 ns |   214.959 ns |    376.484 ns |  10,863.18 ns |  0.93 |    0.07 |   6.3782 |     - |     - |   20032 B |
+|                          |       |               |              |               |               |       |         |          |       |       |           |
+|     V4_ImMap_AddOrUpdate |  1000 | 377,132.40 ns | 7,513.725 ns | 11,697.965 ns | 378,660.16 ns |  1.00 |    0.00 |  90.8203 |     - |     - |  286344 B |
+| V3_ImHashMap_AddOrUpdate |  1000 | 284,439.55 ns | 5,643.134 ns | 10,459.911 ns | 284,702.34 ns |  0.76 |    0.04 | 103.0273 |     - |     - |  324176 B |
+
 */
-            // [Params(1, 10, 100, 1000)]
-            [Params(10, 50, 100)]
+            [Params(1, 10, 100, 1000)]
+            // [Params(10, 50, 100)]
             public int Count;
 
             private Type[] _types;

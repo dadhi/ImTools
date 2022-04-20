@@ -3196,13 +3196,10 @@ namespace ImTools
                 {
                     var right = Right;
                     var newRight = right.AddOrGetEntry(hash, entry);
-                    if (newRight is Entry)
-                        return newRight;
-
-                    if (right.MayTurnToBranch2 && newRight is Branch2Base)
-                        return new Branch2(new Branch2(Left, Entry0, Middle), Entry1, newRight);
-
-                    return this is Branch3 b ? new Branch3Right(b, newRight)
+                    return right.MayTurnToBranch2 && newRight is Branch2Base
+                        ? new Branch2(new Branch2(Left, Entry0, Middle), Entry1, newRight)
+                        : newRight is Entry ? newRight
+                        : this is Branch3 b ? new Branch3Right(b, newRight)
                         : this is Branch3Right br ? new Branch3Right(br.B, newRight)
                         : new Branch3(Left, Entry0, Middle, Entry1, newRight);
                 }
@@ -3212,13 +3209,10 @@ namespace ImTools
                 {
                     var left = Left;
                     var newLeft = left.AddOrGetEntry(hash, entry);
-                    if (newLeft is Entry)
-                        return newLeft;
-
-                    if (left.MayTurnToBranch2 && newLeft is Branch2Base)
-                        return new Branch2(newLeft, Entry0, new Branch2(Middle, Entry1, Right));
-
-                    return this is Branch3 b ? new Branch3Left(b, newLeft)
+                    return left.MayTurnToBranch2 && newLeft is Branch2Base
+                        ? new Branch2(newLeft, Entry0, new Branch2(Middle, Entry1, Right))
+                        : newLeft is Entry ? newLeft
+                        : this is Branch3 b ? new Branch3Left(b, newLeft)
                         : this is Branch3Left br ? new Branch3Left(br.B, newLeft)
                         : new Branch3(newLeft, Entry0, Middle, Entry1, Right);
                 }
