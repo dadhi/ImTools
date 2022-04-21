@@ -3330,7 +3330,7 @@ namespace ImTools
                 {
                     var newRight = R.AddOrGetEntry(hash, entry);
                     return R.MayTurnToBranch2 && newRight is Branch2Base
-                        ? new Branch2(new Branch2(Left, Entry0, Middle), Entry1, newRight)
+                        ? new Branch2(new Branch2(L, E0, M), E1, newRight)
                         : newRight is Entry ? newRight
                         : new Branch3Right(this, newRight);
                 }
@@ -3339,15 +3339,15 @@ namespace ImTools
                 {
                     var newLeft = L.AddOrGetEntry(hash, entry);
                     return L.MayTurnToBranch2 && newLeft is Branch2Base
-                        ? new Branch2(newLeft, Entry0, new Branch2(Middle, Entry1, Right))
+                        ? new Branch2(newLeft, E0, new Branch2(M, E1, R))
                         : newLeft is Entry ? newLeft
                         : new Branch3Left(this, newLeft);
                 }
                 if (hash > h0 && hash < h1)
                 {
                     var newMiddle = M.AddOrGetEntry(hash, entry);
-                    return M.MayTurnToBranch2 && newMiddle is Branch2Base b2
-                        ? new Branch2(new Branch2(Left, Entry0, b2.Left), b2.MidEntry, new Branch2(b2.Right, Entry1, Right)) // todo: @perf @mem opportunity man
+                    return M.MayTurnToBranch2 && newMiddle is Branch2Base b2 // todo: @wip @perf I think we can check for Branch2 instead of Branch2Base which is much faster
+                        ? new Branch2(new Branch2(L, E0, b2.Left), b2.MidEntry, new Branch2(b2.Right, E1, R)) // todo: @perf @mem opportunity man
                         : newMiddle is Entry ? newMiddle
                         : new Branch3Middle(this, newMiddle);
                 }
