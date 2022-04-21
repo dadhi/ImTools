@@ -2767,7 +2767,7 @@ namespace ImTools
                         return rl511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus1(entry, this);
 
                     entryOrNewBranch = R.AddOrGetEntry(hash, entry);
-                    return R.MayTurnToBranch2 && entryOrNewBranch is Branch2Base b2
+                    return R.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
                         ? new Branch3(L, E, b2.Left, b2.MidEntry, b2.Right)
                         : entryOrNewBranch is Entry ? entryOrNewBranch
                         : new Branch2Right(this, entryOrNewBranch);
@@ -2778,7 +2778,7 @@ namespace ImTools
                         return ll511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus1(entry, this);
 
                     entryOrNewBranch = L.AddOrGetEntry(hash, entry);
-                    return L.MayTurnToBranch2 && entryOrNewBranch is Branch2Base b2
+                    return L.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
                         ? new Branch3(b2.Left, b2.MidEntry, b2.Right, E, R)
                         : entryOrNewBranch is Entry ? entryOrNewBranch
                         : new Branch2Left(this, entryOrNewBranch);
@@ -2820,7 +2820,7 @@ namespace ImTools
 
 
                     entryOrNewBranch = right.AddOrGetEntry(hash, entry);
-                    return right.MayTurnToBranch2 && entryOrNewBranch is Branch2Base b2
+                    return right.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
                         ? new Branch3(L, me, b2.Left, b2.MidEntry, b2.Right)
                         : entryOrNewBranch is Entry ? entryOrNewBranch
                         : new Branch2(L, me, entryOrNewBranch);
@@ -2831,7 +2831,7 @@ namespace ImTools
                         return ll511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus1(entry, this);
 
                     entryOrNewBranch = L.AddOrGetEntry(hash, entry);
-                    return L.MayTurnToBranch2 && entryOrNewBranch is Branch2Base b2
+                    return L.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
                         ? new Branch3(b2.Left, b2.MidEntry, b2.Right, me, B.R)
                         : entryOrNewBranch is Entry ? entryOrNewBranch
                         : new Branch2Left(B, entryOrNewBranch);
@@ -2871,7 +2871,7 @@ namespace ImTools
                         return rl511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus1(entry, this);
 
                     entryOrNewBranch = R.AddOrGetEntry(hash, entry);
-                    return R.MayTurnToBranch2 && entryOrNewBranch is Branch2Base b2
+                    return R.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
                         ? new Branch3(B.L, me, b2.Left, b2.MidEntry, b2.Right)
                         : entryOrNewBranch is Entry ? entryOrNewBranch
                         : new Branch2Right(B, entryOrNewBranch);
@@ -2883,7 +2883,7 @@ namespace ImTools
                         return ll511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus1(entry, this);
 
                     entryOrNewBranch = left.AddOrGetEntry(hash, entry);
-                    return left.MayTurnToBranch2 && entryOrNewBranch is Branch2Base b2
+                    return left.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
                         ? new Branch3(b2.Left, b2.MidEntry, b2.Right, me, R)
                         : entryOrNewBranch is Entry ? entryOrNewBranch
                         : new Branch2(entryOrNewBranch, me, R);
@@ -3329,7 +3329,7 @@ namespace ImTools
                 if (hash > h1)
                 {
                     var newRight = R.AddOrGetEntry(hash, entry);
-                    return R.MayTurnToBranch2 && newRight is Branch2Base
+                    return R.MayTurnToBranch2 && newRight is Branch2
                         ? new Branch2(new Branch2(L, E0, M), E1, newRight)
                         : newRight is Entry ? newRight
                         : new Branch3Right(this, newRight);
@@ -3338,7 +3338,7 @@ namespace ImTools
                 if (hash < h0)
                 {
                     var newLeft = L.AddOrGetEntry(hash, entry);
-                    return L.MayTurnToBranch2 && newLeft is Branch2Base
+                    return L.MayTurnToBranch2 && newLeft is Branch2
                         ? new Branch2(newLeft, E0, new Branch2(M, E1, R))
                         : newLeft is Entry ? newLeft
                         : new Branch3Left(this, newLeft);
@@ -3346,7 +3346,8 @@ namespace ImTools
                 if (hash > h0 && hash < h1)
                 {
                     var newMiddle = M.AddOrGetEntry(hash, entry);
-                    return M.MayTurnToBranch2 && newMiddle is Branch2Base b2 // todo: @wip @perf I think we can check for Branch2 instead of Branch2Base which is much faster
+                    // note: we are checking for the Branch2 instead of Branch2Base (which is much faster) but we need to be sure that the split always end with Branch2
+                    return M.MayTurnToBranch2 && newMiddle is Branch2 b2
                         ? new Branch2(new Branch2(L, E0, b2.Left), b2.MidEntry, new Branch2(b2.Right, E1, R)) // todo: @perf @mem opportunity man
                         : newMiddle is Entry ? newMiddle
                         : new Branch3Middle(this, newMiddle);
@@ -3388,7 +3389,7 @@ namespace ImTools
                 if (hash > h1)
                 {
                     var newRight = R.AddOrGetEntry(hash, entry);
-                    return R.MayTurnToBranch2 && newRight is Branch2Base
+                    return R.MayTurnToBranch2 && newRight is Branch2
                         ? new Branch2(new Branch2(B.L, B.E0, B.M), B.E1, newRight)
                         : newRight is Entry ? newRight
                         : new Branch3Right(B, newRight);
@@ -3398,7 +3399,7 @@ namespace ImTools
                 {
                     var left = B.L;
                     var newLeft = left.AddOrGetEntry(hash, entry);
-                    return left.MayTurnToBranch2 && newLeft is Branch2Base
+                    return left.MayTurnToBranch2 && newLeft is Branch2
                         ? new Branch2(newLeft, B.E0, new Branch2(B.M, B.E1, R))
                         : newLeft is Entry ? newLeft
                         : new Branch3(newLeft, B.E0, B.M, B.E1, R);
@@ -3407,7 +3408,7 @@ namespace ImTools
                 {
                     var middle = B.M;
                     var newMiddle = middle.AddOrGetEntry(hash, entry);
-                    return middle.MayTurnToBranch2 && newMiddle is Branch2Base b2
+                    return middle.MayTurnToBranch2 && newMiddle is Branch2 b2
                         ? new Branch2(new Branch2(B.L, B.E0, b2.Left), b2.MidEntry, new Branch2(b2.Right, B.E1, R)) // todo: @perf @mem opportunity man
                         : newMiddle is Entry ? newMiddle
                         : new Branch3(B.L, B.E0, newMiddle, B.E1, R);
@@ -3450,7 +3451,7 @@ namespace ImTools
                 {
                     var right = B.R;
                     var newRight = right.AddOrGetEntry(hash, entry);
-                    return right.MayTurnToBranch2 && newRight is Branch2Base
+                    return right.MayTurnToBranch2 && newRight is Branch2
                         ? new Branch2(new Branch2(L, B.E0, B.M), B.E1, newRight)
                         : newRight is Entry ? newRight
                         : new Branch3(L, B.E0, B.M, B.E1, newRight);
@@ -3459,7 +3460,7 @@ namespace ImTools
                 if (hash < h0)
                 {
                     var newLeft = L.AddOrGetEntry(hash, entry);
-                    return L.MayTurnToBranch2 && newLeft is Branch2Base
+                    return L.MayTurnToBranch2 && newLeft is Branch2
                         ? new Branch2(newLeft, B.E0, new Branch2(B.M, B.E1, B.R))
                         : newLeft is Entry ? newLeft
                         : new Branch3Left(B, newLeft);
@@ -3468,7 +3469,7 @@ namespace ImTools
                 {
                     var middle = B.M;
                     var newMiddle = middle.AddOrGetEntry(hash, entry);
-                    return middle.MayTurnToBranch2 && newMiddle is Branch2Base b2
+                    return middle.MayTurnToBranch2 && newMiddle is Branch2 b2
                         ? new Branch2(new Branch2(L, B.E0, b2.Left), b2.MidEntry, new Branch2(b2.Right, B.E1, B.R)) // todo: @perf @mem opportunity man
                         : newMiddle is Entry ? newMiddle
                         : new Branch3(L, B.E0, newMiddle, B.E1, B.R);
@@ -3510,7 +3511,7 @@ namespace ImTools
                 {
                     var right = B.R;
                     var newRight = right.AddOrGetEntry(hash, entry);
-                    return right.MayTurnToBranch2 && newRight is Branch2Base
+                    return right.MayTurnToBranch2 && newRight is Branch2
                         ? new Branch2(new Branch2(B.L, B.E0, M), B.E1, newRight)
                         : newRight is Entry ? newRight
                         : new Branch3(B.L, B.E0, M, B.E1, newRight);
@@ -3520,7 +3521,7 @@ namespace ImTools
                 {
                     var left = B.L;
                     var newLeft = left.AddOrGetEntry(hash, entry);
-                    return left.MayTurnToBranch2 && newLeft is Branch2Base
+                    return left.MayTurnToBranch2 && newLeft is Branch2
                         ? new Branch2(newLeft, B.E0, new Branch2(M, B.E1, B.R))
                         : newLeft is Entry ? newLeft
                         : new Branch3(newLeft, B.E0, M, B.E1, B.R);
@@ -3528,7 +3529,7 @@ namespace ImTools
                 if (hash > h0 && hash < h1)
                 {
                     var newMiddle = M.AddOrGetEntry(hash, entry);
-                    return M.MayTurnToBranch2 && newMiddle is Branch2Base b2
+                    return M.MayTurnToBranch2 && newMiddle is Branch2 b2
                         ? new Branch2(new Branch2(B.L, B.E0, b2.Left), b2.MidEntry, new Branch2(b2.Right, B.E1, B.R)) // todo: @perf @mem opportunity man
                         : newMiddle is Entry ? newMiddle
                         : new Branch3Middle(B, newMiddle);
