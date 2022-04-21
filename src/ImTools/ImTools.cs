@@ -2749,6 +2749,8 @@ namespace ImTools
                 R = right;
             }
 
+            public override int Count() => E.Count() + L.Count() + R.Count();
+
             internal override Entry GetEntryOrNull(int hash)
             {
                 var mh = E.Hash;
@@ -2797,6 +2799,8 @@ namespace ImTools
                 B = b;
                 L = l;
             }
+
+            public override int Count() => B.E.Count() + L.Count() + B.R.Count();
 
             internal override Entry GetEntryOrNull(int hash)
             {
@@ -2849,6 +2853,8 @@ namespace ImTools
                 R = r;
             }
 
+            public override int Count() => B.E.Count() + B.L.Count() + R.Count();
+
             internal override Entry GetEntryOrNull(int hash)
             {
                 var mh = B.E.Hash;
@@ -2892,8 +2898,6 @@ namespace ImTools
             public abstract Entry MidEntry { get; }
             public abstract ImHashMap<K, V> Left { get; }
             public abstract ImHashMap<K, V> Right { get; }
-
-            public override int Count() => MidEntry.Count() + Left.Count() + Right.Count();
 
 #if !DEBUG
             public override string ToString() => "{B2:{E:" + MidEntry + ",L:" + Left + ",R:" + Right + "}}";
@@ -3169,9 +3173,6 @@ namespace ImTools
             public abstract ImHashMap<K, V> Left { get; }
             public abstract ImHashMap<K, V> Middle { get; }
             public abstract ImHashMap<K, V> Right { get; }
-            // todo: @perf optimize in inheritors
-            public override int Count() => Left.Count() + Entry0.Count() + Middle.Count() + Entry1.Count() + Right.Count();
-
             internal override bool MayTurnToBranch2 => true;
 
 #if !DEBUG
@@ -3306,6 +3307,8 @@ namespace ImTools
                 R = right;
             }
 
+            public override int Count() => L.Count() + E0.Count() + M.Count() + E1.Count() + R.Count();
+
             internal override Entry GetEntryOrNull(int hash)
             {
                 var h1 = E1.Hash;
@@ -3361,6 +3364,8 @@ namespace ImTools
                 B = br3;
                 R = right;
             }
+
+            public override int Count() => B.L.Count() + B.E0.Count() + B.M.Count() + B.E1.Count() + R.Count();
 
             internal override Entry GetEntryOrNull(int hash)
             {
@@ -3420,6 +3425,8 @@ namespace ImTools
                 L = l;
             }
 
+            public override int Count() => L.Count() + B.E0.Count() + B.M.Count() + B.E1.Count() + B.R.Count();
+
             internal override Entry GetEntryOrNull(int hash)
             {
                 var b = B;
@@ -3477,6 +3484,9 @@ namespace ImTools
                 B = b;
                 M = m;
             }
+
+            public override int Count() => B.L.Count() + B.E0.Count() + M.Count() + B.E1.Count() + B.R.Count();
+
             internal override Entry GetEntryOrNull(int hash)
             {
                 var b = B;
