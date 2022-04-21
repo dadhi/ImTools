@@ -3076,8 +3076,8 @@ namespace ImTools
                         var b2 = (Branch2)entryOrNewBranch;
                         Debug.Assert(ph > m.Hash, "Because right was on the verge of balance and the fact that the other branch is not on the verge was the reason of Branch2Plus1 creation");
                         return ph > b2.MidEntry.Hash
-                            ? new Branch3(b.Left, m, b2.Left, b2.MidEntry, b2.Right is Leaf2 l2 ? new Leaf2Plus(Plus, l2) : new Leaf5Plus(Plus, (Leaf5)b2.Right))
-                            : new Branch3(b.Left, m, b2.Left is Leaf5 l5 ? new Leaf5Plus(Plus, l5) : new Leaf2Plus(Plus, (Leaf2)b2.Left), b2.MidEntry, b2.Right);
+                            ? new Branch3(b.Left, m, b2.L, b2.E, b2.R is Leaf2 l2 ? new Leaf2Plus(Plus, l2) : new Leaf5Plus(Plus, (Leaf5)b2.R))
+                            : new Branch3(b.Left, m, b2.L is Leaf5 l5 ? new Leaf5Plus(Plus, l5) : new Leaf2Plus(Plus, (Leaf2)b2.L), b2.E, b2.R);
                     }
 
                     // right is not on the verge, then the Plus would be added to the left
@@ -3097,8 +3097,8 @@ namespace ImTools
                     {
                         var b2 = (Branch2)entryOrNewBranch;
                         return ph < b2.MidEntry.Hash
-                            ? new Branch3(b2.Left is Leaf5 l5 ? new Leaf5Plus(Plus, l5) : new Leaf2Plus(Plus, (Leaf2)b2.Left), b2.MidEntry, b2.Right, m, b.Right)
-                            : new Branch3(b2.Left, b2.MidEntry, b2.Right is Leaf2 l2 ? new Leaf2Plus(Plus, l2) : new Leaf5Plus(Plus, (Leaf5)b2.Right), m, b.Right);
+                            ? new Branch3(b2.L is Leaf5 l5 ? new Leaf5Plus(Plus, l5) : new Leaf2Plus(Plus, (Leaf2)b2.L), b2.E, b2.R, m, b.Right)
+                            : new Branch3(b2.L, b2.E, b2.R is Leaf2 l2 ? new Leaf2Plus(Plus, l2) : new Leaf5Plus(Plus, (Leaf5)b2.R), m, b.Right);
                     }
 
                     entry = Plus;
@@ -3184,6 +3184,7 @@ namespace ImTools
             // todo: @perf optimize in inheritors
             internal override Entry GetMaxHashEntryOrDefault() => Right.GetMaxHashEntryOrDefault();
 
+            // todo: @perf @mem optimize the Replace
             internal override ImHashMap<K, V> ReplaceEntry(Entry oldEntry, Entry newEntry)
             {
                 int hash = oldEntry.Hash, h0 = Entry0.Hash, h1 = Entry1.Hash;
