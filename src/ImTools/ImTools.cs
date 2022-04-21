@@ -2766,7 +2766,7 @@ namespace ImTools
                 {
                     // optimizing the split by postponing it by introducing the branch 2 plus 1
                     if (R is Leaf5PlusPlus rl511 && L is Leaf5PlusPlus == false)
-                        return rl511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus1(entry, this);
+                        return rl511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus(entry, this);
 
                     entryOrNewBranch = R.AddOrGetEntry(hash, entry);
                     return R.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
@@ -2776,7 +2776,7 @@ namespace ImTools
                 if (hash < E.Hash)
                 {
                     if (L is Leaf5PlusPlus ll511 && R is Leaf5PlusPlus == false)
-                        return ll511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus1(entry, this);
+                        return ll511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus(entry, this);
 
                     entryOrNewBranch = L.AddOrGetEntry(hash, entry);
                     return L.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
@@ -2818,7 +2818,7 @@ namespace ImTools
                 {
                     var right = B.R;
                     if (right is Leaf5PlusPlus rl511 && L is Leaf5PlusPlus == false)
-                        return rl511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus1(entry, this);
+                        return rl511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus(entry, this);
 
 
                     entryOrNewBranch = right.AddOrGetEntry(hash, entry);
@@ -2829,7 +2829,7 @@ namespace ImTools
                 if (hash < me.Hash)
                 {
                     if (L is Leaf5PlusPlus ll511 && B.R is Leaf5PlusPlus == false)
-                        return ll511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus1(entry, this);
+                        return ll511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus(entry, this);
 
                     entryOrNewBranch = L.AddOrGetEntry(hash, entry);
                     return L.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
@@ -2870,7 +2870,7 @@ namespace ImTools
                 if (hash > me.Hash)
                 {
                     if (R is Leaf5PlusPlus rl511 && B.L is Leaf5PlusPlus == false)
-                        return rl511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus1(entry, this);
+                        return rl511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus(entry, this);
 
                     entryOrNewBranch = R.AddOrGetEntry(hash, entry);
                     return R.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
@@ -2881,7 +2881,7 @@ namespace ImTools
                 {
                     var left = B.L;
                     if (left is Leaf5PlusPlus ll511 && R is Leaf5PlusPlus == false)
-                        return ll511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus1(entry, this);
+                        return ll511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus(entry, this);
 
                     entryOrNewBranch = left.AddOrGetEntry(hash, entry);
                     return left.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
@@ -2946,7 +2946,7 @@ namespace ImTools
                         if (left is Branch3Base lb3) //! the height does not change
                             return new Branch2(new Branch2(lb3.Left, lb3.Entry0, lb3.Middle), lb3.Entry1, new Branch2(lb3.Right, mid, newRight));
 
-                        if (left is Branch2Plus1 lb21)
+                        if (left is Branch2Plus lb21)
                             return new Branch3(lb21.ToSplitBranch2(out var lMid, out var lRight), lMid, lRight, mid, newRight);
 
                         // the the hole has a 2-node as a parent and a 2-node as a sibling.
@@ -2979,7 +2979,7 @@ namespace ImTools
                     if (right is Branch3Base rb3) //! the height does not change
                         return new Branch2(new Branch2(newLeft, mid, rb3.Left), rb3.Entry0, new Branch2(rb3.Middle, rb3.Entry1, rb3.Right));
 
-                    if (right is Branch2Plus1 rb21)
+                    if (right is Branch2Plus rb21)
                         return new Branch3(newLeft, mid, rb21.ToSplitBranch2(out var rMid, out var rRight), rMid, rRight);
 
                     // the the hole has a 2-node as a parent and a 2-node as a sibling.
@@ -2992,11 +2992,11 @@ namespace ImTools
         }
 
         /// <summary>The 2 branches with the node in between</summary>
-        internal sealed class Branch2Plus1 : ImHashMap<K, V>
+        internal sealed class Branch2Plus : ImHashMap<K, V>
         {
             public readonly Entry Plus;
             public readonly Branch2Base B;
-            public Branch2Plus1(Entry plus, Branch2Base branch)
+            public Branch2Plus(Entry plus, Branch2Base branch)
             {
                 Plus = plus;
                 B = branch;
@@ -3110,7 +3110,7 @@ namespace ImTools
             }
 
             internal override ImHashMap<K, V> ReplaceEntry(Entry oldEntry, Entry newEntry) =>
-                oldEntry == Plus ? new Branch2Plus1(newEntry, B) : new Branch2Plus1(Plus, (Branch2Base)B.ReplaceEntry(oldEntry, newEntry));
+                oldEntry == Plus ? new Branch2Plus(newEntry, B) : new Branch2Plus(Plus, (Branch2Base)B.ReplaceEntry(oldEntry, newEntry));
 
             internal override ImHashMap<K, V> RemoveEntry(Entry removedEntry)
             {
@@ -3147,7 +3147,7 @@ namespace ImTools
                             ? new Branch2(ll.RemoveEntry(leftMax), leftMax, p)
                             : new Branch2(ll.RemoveEntry(leftMax), p, leftMax);
                     }
-                    return new Branch2Plus1(p, new Branch2(b.Left, m, newRight));
+                    return new Branch2Plus(p, new Branch2(b.Left, m, newRight));
                 }
                 {
                     if (b.Left is Leaf5PlusPlus ll)
@@ -3161,7 +3161,7 @@ namespace ImTools
                             ? new Branch2(p, rightMin, rl.RemoveEntry(rightMin))
                             : new Branch2(rightMin, p, rl.RemoveEntry(rightMin));
                     }
-                    return new Branch2Plus1(p, new Branch2(newLeft, m, b.Right));
+                    return new Branch2Plus(p, new Branch2(newLeft, m, b.Right));
                 }
             }
         }
@@ -3220,7 +3220,7 @@ namespace ImTools
                         if (middle is Branch3Base mb3) //! the height does not change
                             return new Branch3(new Branch2(newLeft, midLeft, mb3.Left), mb3.Entry0, new Branch2(mb3.Middle, mb3.Entry1, mb3.Right), midRight, right);
 
-                        if (middle is Branch2Plus1 mb21)
+                        if (middle is Branch2Plus mb21)
                             return new Branch2(new Branch3(newLeft, midLeft, mb21.ToSplitBranch2(out var mMid, out var mRight), mMid, mRight), midRight, right);
 
                         // the hole has a 3-node as a parent and a 2-node as a sibling.
@@ -3250,7 +3250,7 @@ namespace ImTools
                         if (right is Branch3Base rb3) //! the height does not change
                             return new Branch3(Left, midLeft, new Branch2(newMiddle, midRight, rb3.Left), rb3.Entry0, new Branch2(rb3.Middle, rb3.Entry1, rb3.Right));
 
-                        if (right is Branch2Plus1 rb21)
+                        if (right is Branch2Plus rb21)
                             return new Branch2(Left, midLeft, new Branch3(newMiddle, midRight, rb21.ToSplitBranch2(out var rMid, out var rRight), rMid, rRight));
 
                         // the hole has a 3-node as a parent and a 2-node as a sibling.
@@ -3276,7 +3276,7 @@ namespace ImTools
                     if (middle is Branch3Base mb3) //! the height does not change
                         return new Branch3(Left, midLeft, new Branch2(mb3.Left, mb3.Entry0, mb3.Middle), mb3.Entry1, new Branch2(mb3.Right, midRight, newRight));
 
-                    if (middle is Branch2Plus1 mb21)
+                    if (middle is Branch2Plus mb21)
                         return new Branch2(Left, midLeft, new Branch3(mb21.ToSplitBranch2(out var mMid, out var mRight), mMid, mRight, midRight, newRight));
 
                     // the hole has a 3-node as a parent and a 2-node as a sibling.
@@ -3850,7 +3850,7 @@ namespace ImTools
             private ushort _index;
             private ImMapStack<int, V> _ps;
             private ImHashMap<int, V> _nextBranch;
-            private ImHashMap<int, V>.Branch2Plus1 _b21LeftWasEnumerated;
+            private ImHashMap<int, V>.Branch2Plus _b21LeftWasEnumerated;
 
             private ImHashMap<int, V>.Entry _a, _b, _c, _d, _e, _f, _g, _h;
             private VEntry<V> _current;
@@ -3995,14 +3995,14 @@ namespace ImTools
                     else break;
                 }
 
-                if (_b21LeftWasEnumerated == null && !(_map is ImHashMap<int, V>.Branch2Plus1))
+                if (_b21LeftWasEnumerated == null && !(_map is ImHashMap<int, V>.Branch2Plus))
                     goto AllLeafsAndEntryLabel;
 
                 _g = null; _h = null;
                 if (_b21LeftWasEnumerated != null)
                     return SetCurrentAndState((VEntry<V>)_b21LeftWasEnumerated.B.MidEntry, 2);
 
-                var branch2Plus1 = (ImHashMap<int, V>.Branch2Plus1)_map;
+                var branch2Plus1 = (ImHashMap<int, V>.Branch2Plus)_map;
                 var b21b = branch2Plus1.B;
                 if (b21b.Right is ImHashMap<int, V>.Leaf5PlusPlus)
                 {
@@ -4128,7 +4128,7 @@ namespace ImTools
             private ushort _index;
             private ImMapStack<K, V> _ps;
             private ImHashMap<K, V> _nextBranch;
-            private ImHashMap<K, V>.Branch2Plus1 _b21LeftWasEnumerated;
+            private ImHashMap<K, V>.Branch2Plus _b21LeftWasEnumerated;
             private ImHashMap<K, V>.Entry _a, _b, _c, _d, _e, _f, _g, _h, _hc;
             private KVEntry<K, V> _current;
             /// <inheritdoc />
@@ -4316,7 +4316,7 @@ namespace ImTools
                     else break;
                 }
 
-                if (_b21LeftWasEnumerated == null && !(_map is ImHashMap<K, V>.Branch2Plus1))
+                if (_b21LeftWasEnumerated == null && !(_map is ImHashMap<K, V>.Branch2Plus))
                     goto AllLeafsAndEntryLabel;
 
                 _g = null; _h = null;
@@ -4324,7 +4324,7 @@ namespace ImTools
                 if (_b21LeftWasEnumerated != null)
                     return SetCurrentAndState(_b21LeftWasEnumerated.B.MidEntry, 2, 41);
 
-                var branch2Plus1 = (ImHashMap<K, V>.Branch2Plus1)_map;
+                var branch2Plus1 = (ImHashMap<K, V>.Branch2Plus)_map;
                 var b21b = branch2Plus1.B;
                 if (b21b.Right is ImHashMap<K, V>.Leaf5PlusPlus)
                 {
@@ -4468,7 +4468,7 @@ namespace ImTools
                 return state;
             }
 
-            ImHashMap<K, V>.Branch2Plus1 b21LeftWasEnumerated = null;
+            ImHashMap<K, V>.Branch2Plus b21LeftWasEnumerated = null;
             int count = 0, i = 0;
             while (true)
             {
@@ -4490,7 +4490,7 @@ namespace ImTools
                     continue;
                 }
 
-                if (b21LeftWasEnumerated != null || map is ImHashMap<K, V>.Branch2Plus1)
+                if (b21LeftWasEnumerated != null || map is ImHashMap<K, V>.Branch2Plus)
                 {
                     ImHashMap<K, V>.Leaf5PlusPlus l511 = null;
                     ImHashMap<K, V>.Entry pl = null, mid = null;
@@ -4505,7 +4505,7 @@ namespace ImTools
                     }
                     else
                     {
-                        var b21 = (ImHashMap<K, V>.Branch2Plus1)map;
+                        var b21 = (ImHashMap<K, V>.Branch2Plus)map;
                         if (b21.B.Right is ImHashMap<K, V>.Leaf5PlusPlus) // so we need to enumerate the left as a normal branch2 with the code below.
                         {
                             b21LeftWasEnumerated = b21;
@@ -4656,7 +4656,7 @@ namespace ImTools
                 return state;
             }
 
-            ImHashMap<int, V>.Branch2Plus1 b21LeftWasEnumerated = null;
+            ImHashMap<int, V>.Branch2Plus b21LeftWasEnumerated = null;
             int count = 0, i = 0;
             while (true)
             {
@@ -4678,7 +4678,7 @@ namespace ImTools
                     continue;
                 }
 
-                if (b21LeftWasEnumerated != null || map is ImHashMap<int, V>.Branch2Plus1)
+                if (b21LeftWasEnumerated != null || map is ImHashMap<int, V>.Branch2Plus)
                 {
                     ImHashMap<int, V>.Leaf5PlusPlus l511 = null;
                     ImHashMap<int, V>.Entry pl = null, mid = null;
@@ -4693,7 +4693,7 @@ namespace ImTools
                     }
                     else
                     {
-                        var b21 = (ImHashMap<int, V>.Branch2Plus1)map;
+                        var b21 = (ImHashMap<int, V>.Branch2Plus)map;
                         if (b21.B.Right is ImHashMap<int, V>.Leaf5PlusPlus) // so we need to enumerate the left as a normal branch2 with the code below.
                         {
                             b21LeftWasEnumerated = b21;
