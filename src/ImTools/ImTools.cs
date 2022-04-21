@@ -2892,6 +2892,46 @@ namespace ImTools
             }
         }
 
+        internal sealed class Branch2OfRightB3 : Branch2Base
+        {
+            public readonly Branch3 B;
+            public override Entry MidEntry => B.E0;
+            public override ImHashMap<K, V> Left => B.L;
+            public override ImHashMap<K, V> Right => B.M;
+            public Branch2OfRightB3(Branch3 b) => B = b;
+
+            internal override Entry GetEntryOrNull(int hash)
+            {
+                var mh = B.E0.Hash;
+                return hash > mh ? B.M.GetEntryOrNull(hash)
+                     : hash < mh ? B.L.GetEntryOrNull(hash)
+                     : B.E0;
+            }
+
+            internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
+            {
+                var me = B.E0;
+                ImHashMap<K, V> entryOrNewBranch = null;
+                if (hash > me.Hash)
+                {
+                    entryOrNewBranch = B.M.AddOrGetEntry(hash, entry);
+                    return B.M.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
+                        ? new Branch3(B.L, me, b2.Left, b2.MidEntry, b2.Right)
+                        : entryOrNewBranch is Entry ? entryOrNewBranch
+                        : new Branch2(B.L, me, entryOrNewBranch);
+                }
+                if (hash < me.Hash)
+                {
+                    entryOrNewBranch = B.L.AddOrGetEntry(hash, entry);
+                    return B.L.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
+                        ? new Branch3(b2.Left, b2.MidEntry, b2.Right, me, B.M)
+                        : entryOrNewBranch is Entry ? entryOrNewBranch
+                        : new Branch2(entryOrNewBranch, me, B.M);
+                }
+                return me;
+            }
+        }
+
         /// <summary>The 2 branches with the node in between</summary>
         internal abstract class Branch2Base : ImHashMap<K, V>
         {
@@ -3330,7 +3370,7 @@ namespace ImTools
                 {
                     var newRight = R.AddOrGetEntry(hash, entry);
                     return R.MayTurnToBranch2 && newRight is Branch2
-                        ? new Branch2(new Branch2(L, E0, M), E1, newRight)
+                        ? new Branch2(new Branch2OfRightB3(this), E1, newRight)
                         : newRight is Entry ? newRight
                         : new Branch3Right(this, newRight);
                 }
