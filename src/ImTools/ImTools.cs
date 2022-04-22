@@ -3008,6 +3008,28 @@ namespace ImTools
             public override string ToString() => "{B21:{Plus:" + Plus + ",B:" + B + "}}";
 #endif
 
+            internal override Entry GetMinHashEntryOrDefault()
+            {
+                var m = B.Left.GetMinHashEntryOrDefault();
+                return m.Hash < Plus.Hash ? m : Plus;
+            }
+
+            internal sealed override Entry GetMaxHashEntryOrDefault()
+            {
+                var m = B.Right.GetMaxHashEntryOrDefault();
+                return m.Hash > Plus.Hash ? m : Plus;
+            }
+
+            internal override Entry GetEntryOrNull(int hash)
+            {
+                if (Plus.Hash == hash)
+                    return Plus;
+                var mh = B.MidEntry.Hash;
+                return hash > mh ? B.Right.GetEntryOrNull(hash)
+                    : hash < mh ? B.Left.GetEntryOrNull(hash)
+                    : B.MidEntry;
+            }
+
             internal ImHashMap<K, V> ToSplitBranch2(out Entry newMid, out ImHashMap<K, V> newRight)
             {
                 var b = B;
@@ -3030,28 +3052,6 @@ namespace ImTools
                 else
                     newMid = Plus;
                 return b.Left.AddOrGetEntry(m.Hash, m); // @perf replace with the AddEntry method
-            }
-
-            internal override Entry GetMinHashEntryOrDefault()
-            {
-                var m = B.Left.GetMinHashEntryOrDefault();
-                return m.Hash < Plus.Hash ? m : Plus;
-            }
-
-            internal sealed override Entry GetMaxHashEntryOrDefault()
-            {
-                var m = B.Right.GetMaxHashEntryOrDefault();
-                return m.Hash > Plus.Hash ? m : Plus;
-            }
-
-            internal override Entry GetEntryOrNull(int hash)
-            {
-                if (Plus.Hash == hash)
-                    return Plus;
-                var mh = B.MidEntry.Hash;
-                return hash > mh ? B.Right.GetEntryOrNull(hash)
-                    : hash < mh ? B.Left.GetEntryOrNull(hash)
-                    : B.MidEntry;
             }
 
             internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
@@ -3850,7 +3850,7 @@ namespace ImTools
             private ushort _index;
             private ImMapStack<int, V> _ps;
             private ImHashMap<int, V> _nextBranch;
-            private ImHashMap<int, V>.Branch2Plus _b21LeftWasEnumerated;
+            private ImHashMap<int, V>.Branch2Plus _b2PlusLeftWasEnumerated;
 
             private ImHashMap<int, V>.Entry _a, _b, _c, _d, _e, _f, _g, _h;
             private VEntry<V> _current;
@@ -3885,9 +3885,9 @@ namespace ImTools
                         _current = null;
                         return false;
                     case 2:
-                        b21FullLeaf511 = (ImHashMap<int, V>.Leaf5PlusPlus)_b21LeftWasEnumerated.B.Right;
-                        _g = (VEntry<V>)_b21LeftWasEnumerated.Plus;
-                        _b21LeftWasEnumerated = null;
+                        b21FullLeaf511 = (ImHashMap<int, V>.Leaf5PlusPlus)_b2PlusLeftWasEnumerated.B.Right;
+                        _g = (VEntry<V>)_b2PlusLeftWasEnumerated.Plus;
+                        _b2PlusLeftWasEnumerated = null;
                         _map = ImHashMap<int, V>.Empty;
                         _state = -1;
                         goto SortLeaf511Label;
@@ -3965,7 +3965,7 @@ namespace ImTools
             Label6:
                 _a = null; _b = null; _c = null; _d = null;
             Label3:
-                if (_b21LeftWasEnumerated == null)
+                if (_b2PlusLeftWasEnumerated == null)
                 {
                     if (_index == 0)
                         return false;
@@ -3995,25 +3995,25 @@ namespace ImTools
                     else break;
                 }
 
-                if (_b21LeftWasEnumerated == null && !(_map is ImHashMap<int, V>.Branch2Plus))
+                if (_b2PlusLeftWasEnumerated == null && !(_map is ImHashMap<int, V>.Branch2Plus))
                     goto AllLeafsAndEntryLabel;
 
                 _g = null; _h = null;
-                if (_b21LeftWasEnumerated != null)
-                    return SetCurrentAndState((VEntry<V>)_b21LeftWasEnumerated.B.MidEntry, 2);
+                if (_b2PlusLeftWasEnumerated != null)
+                    return SetCurrentAndState((VEntry<V>)_b2PlusLeftWasEnumerated.B.MidEntry, 2);
 
-                var branch2Plus1 = (ImHashMap<int, V>.Branch2Plus)_map;
-                var b21b = branch2Plus1.B;
+                var branch2Plus = (ImHashMap<int, V>.Branch2Plus)_map;
+                var b21b = branch2Plus.B;
                 if (b21b.Right is ImHashMap<int, V>.Leaf5PlusPlus)
                 {
-                    _b21LeftWasEnumerated = branch2Plus1;
+                    _b2PlusLeftWasEnumerated = branch2Plus;
                     _map = b21b.Left;
-                    goto B21NotFilledLeftLeafLabel;
+                    goto B2PlusNotFilledLeftLeafLabel;
                 }
 
                 b21FullLeaf511 = (ImHashMap<int, V>.Leaf5PlusPlus)b21b.Left;
                 _h = (VEntry<V>)b21b.MidEntry;
-                _g = (VEntry<V>)branch2Plus1.Plus;
+                _g = (VEntry<V>)branch2Plus.Plus;
                 _map = b21b.Right;
             SortLeaf511Label:
                 {
@@ -4033,7 +4033,7 @@ namespace ImTools
             Label2:
                 _a = null; _b = null; _c = null; _d = null; _e = null; _f = null;
 
-            B21NotFilledLeftLeafLabel:
+            B2PlusNotFilledLeftLeafLabel:
                 _g = null; _h = null;
 
             AllLeafsAndEntryLabel:
