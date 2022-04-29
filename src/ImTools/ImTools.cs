@@ -5505,7 +5505,7 @@ namespace ImTools
 
         /// <summary>Enumerates the entries in order of their int keys (the hash is the same as the key).</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static IEnumerable<ImHashMapEntry<int, V>> Enumerate<K, V>(this ImHashMap<int, V>[] parts)
+        public static IEnumerable<ImHashMapEntry<int, V>> Enumerate<V>(this ImHashMap<int, V>[] parts)
         {
             foreach (var map in parts)
             {
