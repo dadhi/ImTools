@@ -95,39 +95,49 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 `ImHashMap<Type, string>` containing the specified Count of elements.
 
 ```md
+BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19043
+Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+.NET Core SDK=6.0.202
+  [Host]     : .NET Core 6.0.4 (CoreCLR 6.0.422.16404, CoreFX 6.0.422.16404), X64 RyuJIT
+  DefaultJob : .NET Core 6.0.4 (CoreCLR 6.0.422.16404, CoreFX 6.0.422.16404), X64 RyuJIT
+
 |                           Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
 |--------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
-|               V2_ImHashMap_yFind |     1 |  5.100 ns | 0.1212 ns | 0.1134 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-|             V3_ImHashMap_TryFind |     1 |  5.539 ns | 0.1676 ns | 0.1568 ns |  1.09 |    0.03 |     - |     - |     - |         - |
-|    V3_PartitionedHashMap_TryFind |     1 |  5.813 ns | 0.1844 ns | 0.1973 ns |  1.13 |    0.04 |     - |     - |     - |         - |
-|       DictionarySlim_TryGetValue |     1 |  6.614 ns | 0.0839 ns | 0.0744 ns |  1.29 |    0.03 |     - |     - |     - |         - |
-|           Dictionary_TryGetValue |     1 | 16.495 ns | 0.1270 ns | 0.1126 ns |  3.23 |    0.06 |     - |     - |     - |         - |
-| ConcurrentDictionary_TryGetValue |     1 | 12.715 ns | 0.1584 ns | 0.1323 ns |  2.49 |    0.05 |     - |     - |     - |         - |
-|             ImmutableDict_TryGet |     1 | 22.615 ns | 0.3097 ns | 0.2418 ns |  4.42 |    0.08 |     - |     - |     - |         - |
+|             V4_ImHashMap_TryFind |     1 |  8.915 ns | 0.1853 ns | 0.1733 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|             V3_ImHashMap_TryFind |     1 |  7.834 ns | 0.1769 ns | 0.1568 ns |  0.88 |    0.02 |     - |     - |     - |         - |
+|    V4_PartitionedHashMap_TryFind |     1 |  8.292 ns | 0.1082 ns | 0.0959 ns |  0.93 |    0.02 |     - |     - |     - |         - |
+|    V3_PartitionedHashMap_TryFind |     1 |  7.681 ns | 0.1245 ns | 0.1039 ns |  0.86 |    0.02 |     - |     - |     - |         - |
+|       DictionarySlim_TryGetValue |     1 |  8.861 ns | 0.1423 ns | 0.1188 ns |  0.99 |    0.02 |     - |     - |     - |         - |
+|           Dictionary_TryGetValue |     1 | 17.914 ns | 0.3447 ns | 0.3055 ns |  2.01 |    0.05 |     - |     - |     - |         - |
+| ConcurrentDictionary_TryGetValue |     1 | 13.381 ns | 0.2709 ns | 0.2401 ns |  1.50 |    0.04 |     - |     - |     - |         - |
+|             ImmutableDict_TryGet |     1 | 19.040 ns | 0.3068 ns | 0.2870 ns |  2.14 |    0.06 |     - |     - |     - |         - |
 |                                  |       |           |           |           |       |         |       |       |       |           |
-|             V2_ImHashMap_TryFind |    10 |  6.270 ns | 0.1421 ns | 0.1187 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-|             V3_ImHashMap_TryFind |    10 |  6.597 ns | 0.1095 ns | 0.1024 ns |  1.06 |    0.02 |     - |     - |     - |         - |
-|    V3_PartitionedHashMap_TryFind |    10 |  5.416 ns | 0.0908 ns | 0.0805 ns |  0.87 |    0.02 |     - |     - |     - |         - |
-|       DictionarySlim_TryGetValue |    10 |  7.543 ns | 0.1274 ns | 0.1064 ns |  1.20 |    0.02 |     - |     - |     - |         - |
-|           Dictionary_TryGetValue |    10 | 16.907 ns | 0.1892 ns | 0.1769 ns |  2.70 |    0.05 |     - |     - |     - |         - |
-| ConcurrentDictionary_TryGetValue |    10 | 12.694 ns | 0.1740 ns | 0.1453 ns |  2.03 |    0.04 |     - |     - |     - |         - |
-|             ImmutableDict_TryGet |    10 | 24.049 ns | 0.3034 ns | 0.2838 ns |  3.84 |    0.07 |     - |     - |     - |         - |
+|             V4_ImHashMap_TryFind |    10 |  9.462 ns | 0.2690 ns | 0.2246 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|             V3_ImHashMap_TryFind |    10 |  9.038 ns | 0.1650 ns | 0.1463 ns |  0.96 |    0.02 |     - |     - |     - |         - |
+|    V4_PartitionedHashMap_TryFind |    10 |  8.575 ns | 0.2031 ns | 0.1900 ns |  0.91 |    0.03 |     - |     - |     - |         - |
+|    V3_PartitionedHashMap_TryFind |    10 |  5.869 ns | 0.1026 ns | 0.1743 ns |  0.63 |    0.02 |     - |     - |     - |         - |
+|       DictionarySlim_TryGetValue |    10 |  7.384 ns | 0.1882 ns | 0.1668 ns |  0.78 |    0.03 |     - |     - |     - |         - |
+|           Dictionary_TryGetValue |    10 | 14.082 ns | 0.2168 ns | 0.1921 ns |  1.49 |    0.04 |     - |     - |     - |         - |
+| ConcurrentDictionary_TryGetValue |    10 | 11.436 ns | 0.1398 ns | 0.1239 ns |  1.21 |    0.03 |     - |     - |     - |         - |
+|             ImmutableDict_TryGet |    10 | 17.927 ns | 0.4467 ns | 0.4780 ns |  1.90 |    0.09 |     - |     - |     - |         - |
 |                                  |       |           |           |           |       |         |       |       |       |           |
-|             V2_ImHashMap_TryFind |   100 |  9.459 ns | 0.2667 ns | 0.2739 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-|             V3_ImHashMap_TryFind |   100 |  9.526 ns | 0.1814 ns | 0.1697 ns |  1.01 |    0.03 |     - |     - |     - |         - |
-|    V3_PartitionedHashMap_TryFind |   100 |  5.827 ns | 0.0867 ns | 0.0768 ns |  0.62 |    0.02 |     - |     - |     - |         - |
-|       DictionarySlim_TryGetValue |   100 |  6.897 ns | 0.1033 ns | 0.0967 ns |  0.73 |    0.02 |     - |     - |     - |         - |
-|           Dictionary_TryGetValue |   100 | 18.189 ns | 0.2100 ns | 0.1640 ns |  1.92 |    0.06 |     - |     - |     - |         - |
-| ConcurrentDictionary_TryGetValue |   100 | 13.412 ns | 0.2041 ns | 0.1909 ns |  1.42 |    0.04 |     - |     - |     - |         - |
-|             ImmutableDict_TryGet |   100 | 26.023 ns | 0.3854 ns | 0.3417 ns |  2.76 |    0.08 |     - |     - |     - |         - |
+|             V4_ImHashMap_TryFind |   100 | 12.147 ns | 0.1475 ns | 0.1308 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|             V3_ImHashMap_TryFind |   100 | 11.357 ns | 0.1695 ns | 0.1323 ns |  0.94 |    0.01 |     - |     - |     - |         - |
+|    V4_PartitionedHashMap_TryFind |   100 |  8.520 ns | 0.2142 ns | 0.1899 ns |  0.70 |    0.02 |     - |     - |     - |         - |
+|    V3_PartitionedHashMap_TryFind |   100 |  7.785 ns | 0.1374 ns | 0.1147 ns |  0.64 |    0.01 |     - |     - |     - |         - |
+|       DictionarySlim_TryGetValue |   100 |  6.918 ns | 0.1544 ns | 0.1289 ns |  0.57 |    0.01 |     - |     - |     - |         - |
+|           Dictionary_TryGetValue |   100 | 13.804 ns | 0.3474 ns | 0.3717 ns |  1.14 |    0.04 |     - |     - |     - |         - |
+| ConcurrentDictionary_TryGetValue |   100 | 11.432 ns | 0.2194 ns | 0.2052 ns |  0.94 |    0.02 |     - |     - |     - |         - |
+|             ImmutableDict_TryGet |   100 | 21.593 ns | 0.4048 ns | 0.3786 ns |  1.78 |    0.03 |     - |     - |     - |         - |
 |                                  |       |           |           |           |       |         |       |       |       |           |
-|             V2_ImHashMap_TryFind |  1000 | 15.172 ns | 0.2617 ns | 0.2320 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-|             V3_ImHashMap_TryFind |  1000 | 14.473 ns | 0.2030 ns | 0.1799 ns |  0.95 |    0.01 |     - |     - |     - |         - |
-|    V3_PartitionedHashMap_TryFind |  1000 |  8.182 ns | 0.0809 ns | 0.0756 ns |  0.54 |    0.01 |     - |     - |     - |         - |
-|       DictionarySlim_TryGetValue |  1000 |  6.893 ns | 0.1590 ns | 0.1410 ns |  0.45 |    0.01 |     - |     - |     - |         - |
-|           Dictionary_TryGetValue |  1000 | 18.230 ns | 0.2012 ns | 0.1882 ns |  1.20 |    0.02 |     - |     - |     - |         - |
-| ConcurrentDictionary_TryGetValue |  1000 | 14.920 ns | 0.2296 ns | 0.2035 ns |  0.98 |    0.01 |     - |     - |     - |         - |
-|             ImmutableDict_TryGet |  1000 | 29.555 ns | 0.5926 ns | 0.5543 ns |  1.95 |    0.04 |     - |     - |     - |         - |
+|             V4_ImHashMap_TryFind |  1000 | 15.492 ns | 0.3859 ns | 0.4881 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+|             V3_ImHashMap_TryFind |  1000 | 14.339 ns | 0.2612 ns | 0.2444 ns |  0.92 |    0.03 |     - |     - |     - |         - |
+|    V4_PartitionedHashMap_TryFind |  1000 | 11.508 ns | 0.1839 ns | 0.1630 ns |  0.74 |    0.03 |     - |     - |     - |         - |
+|    V3_PartitionedHashMap_TryFind |  1000 |  9.508 ns | 0.2340 ns | 0.2074 ns |  0.61 |    0.02 |     - |     - |     - |         - |
+|       DictionarySlim_TryGetValue |  1000 |  7.099 ns | 0.1984 ns | 0.2037 ns |  0.46 |    0.01 |     - |     - |     - |         - |
+|           Dictionary_TryGetValue |  1000 | 13.696 ns | 0.1341 ns | 0.1120 ns |  0.88 |    0.03 |     - |     - |     - |         - |
+| ConcurrentDictionary_TryGetValue |  1000 | 11.358 ns | 0.1464 ns | 0.1222 ns |  0.73 |    0.03 |     - |     - |     - |         - |
+|             ImmutableDict_TryGet |  1000 | 25.875 ns | 0.3752 ns | 0.3510 ns |  1.67 |    0.06 |     - |     - |     - |         - |
 ```
 
 ### ImHashMap Enumeration
