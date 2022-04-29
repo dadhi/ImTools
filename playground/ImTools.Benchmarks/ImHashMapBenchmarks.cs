@@ -2007,39 +2007,48 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 
 BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19043
 Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
-.NET Core SDK=6.0.100
-  [Host]     : .NET Core 6.0.0 (CoreCLR 6.0.21.52210, CoreFX 6.0.21.52210), X64 RyuJIT
-  DefaultJob : .NET Core 6.0.0 (CoreCLR 6.0.21.52210, CoreFX 6.0.21.52210), X64 RyuJIT
+.NET Core SDK=6.0.202
+  [Host]     : .NET Core 6.0.4 (CoreCLR 6.0.422.16404, CoreFX 6.0.422.16404), X64 RyuJIT
+  DefaultJob : .NET Core 6.0.4 (CoreCLR 6.0.422.16404, CoreFX 6.0.422.16404), X64 RyuJIT
 
 
-|                 Method | Count |         Mean |      Error |     StdDev |       Median | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-|----------------------- |------ |-------------:|-----------:|-----------:|-------------:|------:|--------:|-------:|------:|------:|----------:|
-|     V4_ImMap_Enumerate |     1 |     51.45 ns |   1.119 ns |   2.236 ns |     51.69 ns |  1.00 |    0.00 |      - |     - |     - |         - |
-| V3_ImHashMap_Enumerate |     1 |     46.95 ns |   1.031 ns |   2.152 ns |     46.57 ns |  0.91 |    0.06 | 0.0255 |     - |     - |     160 B |
-|                        |       |              |            |            |              |       |         |        |       |       |           |
-|     V4_ImMap_Enumerate |    10 |    249.75 ns |   5.119 ns |  11.236 ns |    248.15 ns |  1.00 |    0.00 |      - |     - |     - |         - |
-| V3_ImHashMap_Enumerate |    10 |    253.95 ns |   4.823 ns |   7.365 ns |    256.30 ns |  1.02 |    0.04 | 0.0381 |     - |     - |     240 B |
-|                        |       |              |            |            |              |       |         |        |       |       |           |
-|     V4_ImMap_Enumerate |   100 |  2,535.51 ns |  53.165 ns | 151.683 ns |  2,509.96 ns |  1.00 |    0.00 |      - |     - |     - |         - |
-| V3_ImHashMap_Enumerate |   100 |  2,089.59 ns |  72.398 ns | 212.332 ns |  1,995.20 ns |  0.83 |    0.09 | 0.0381 |     - |     - |     240 B |
-|                        |       |              |            |            |              |       |         |        |       |       |           |
-|     V4_ImMap_Enumerate |  1000 | 21,607.91 ns | 409.518 ns | 717.239 ns | 21,545.05 ns |  1.00 |    0.00 |      - |     - |     - |         - |
-| V3_ImHashMap_Enumerate |  1000 | 21,496.33 ns | 428.614 ns | 967.454 ns | 21,287.83 ns |  1.00 |    0.05 | 0.0610 |     - |     - |     480 B |
-
-|                 Method | Count |         Mean |      Error |       StdDev |       Median | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-|----------------------- |------ |-------------:|-----------:|-------------:|-------------:|------:|--------:|-------:|------:|------:|----------:|
-|     V4_ImMap_Enumerate |     1 |     64.35 ns |   1.272 ns |     2.923 ns |     63.75 ns |  1.00 |    0.00 |      - |     - |     - |         - |
-| V3_ImHashMap_Enumerate |     1 |     53.32 ns |   1.144 ns |     2.258 ns |     53.26 ns |  0.83 |    0.05 | 0.0510 |     - |     - |     160 B |
-|                        |       |              |            |              |              |       |         |        |       |       |           |
-|     V4_ImMap_Enumerate |    10 |    266.74 ns |   6.791 ns |    19.811 ns |    261.46 ns |  1.00 |    0.00 |      - |     - |     - |         - |
-| V3_ImHashMap_Enumerate |    10 |    309.16 ns |   9.116 ns |    26.300 ns |    304.79 ns |  1.17 |    0.14 | 0.0763 |     - |     - |     240 B |
-|                        |       |              |            |              |              |       |         |        |       |       |           |
-|     V4_ImMap_Enumerate |   100 |  2,714.99 ns |  59.141 ns |   174.378 ns |  2,659.05 ns |  1.00 |    0.00 |      - |     - |     - |         - |
-| V3_ImHashMap_Enumerate |   100 |  2,633.98 ns |  65.173 ns |   189.079 ns |  2,612.10 ns |  0.97 |    0.09 | 0.0763 |     - |     - |     240 B |
-|                        |       |              |            |              |              |       |         |        |       |       |           |
-|     V4_ImMap_Enumerate |  1000 | 30,927.26 ns | 617.635 ns | 1,711.465 ns | 30,572.87 ns |  1.00 |    0.00 |      - |     - |     - |         - |
-| V3_ImHashMap_Enumerate |  1000 | 29,059.01 ns | 690.300 ns | 1,947.004 ns | 28,802.15 ns |  0.94 |    0.08 | 0.1526 |     - |     - |     480 B |
-
+|                          Method | Count |         Mean |      Error |       StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|-------------------------------- |------ |-------------:|-----------:|-------------:|------:|--------:|-------:|------:|------:|----------:|
+|              V4_ImMap_Enumerate |     1 |     50.96 ns |   1.094 ns |     1.498 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+|          V3_ImHashMap_Enumerate |     1 |     53.40 ns |   1.148 ns |     1.127 ns |  1.05 |    0.04 | 0.0255 |     - |     - |     160 B |
+| V4_PartitionedHashMap_Enumerate |     1 |    345.97 ns |   3.878 ns |     3.438 ns |  6.76 |    0.22 | 0.0496 |     - |     - |     312 B |
+| V3_PartitionedHashMap_Enumerate |     1 |    222.70 ns |   1.345 ns |     1.124 ns |  4.34 |    0.14 | 0.0522 |     - |     - |     328 B |
+|        DictionarySlim_Enumerate |     1 |     15.79 ns |   0.182 ns |     0.142 ns |  0.31 |    0.01 |      - |     - |     - |         - |
+|            Dictionary_Enumerate |     1 |     17.63 ns |   0.250 ns |     0.209 ns |  0.34 |    0.01 |      - |     - |     - |         - |
+|    ConcurrentDictionary_foreach |     1 |    202.47 ns |   2.068 ns |     1.727 ns |  3.95 |    0.13 | 0.0100 |     - |     - |      64 B |
+|         ImmutableDict_Enumerate |     1 |    202.10 ns |   1.657 ns |     1.469 ns |  3.95 |    0.12 |      - |     - |     - |         - |
+|                                 |       |              |            |              |       |         |        |       |       |           |
+|              V4_ImMap_Enumerate |    10 |    236.49 ns |   2.690 ns |     2.384 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+|          V3_ImHashMap_Enumerate |    10 |    269.71 ns |   4.147 ns |     3.463 ns |  1.14 |    0.02 | 0.0381 |     - |     - |     240 B |
+| V4_PartitionedHashMap_Enumerate |    10 |  1,537.51 ns |  22.668 ns |    21.204 ns |  6.50 |    0.13 | 0.0496 |     - |     - |     312 B |
+| V3_PartitionedHashMap_Enumerate |    10 |    745.36 ns |  14.086 ns |    13.834 ns |  3.16 |    0.07 | 0.1793 |     - |     - |    1128 B |
+|        DictionarySlim_Enumerate |    10 |     85.17 ns |   0.981 ns |     0.819 ns |  0.36 |    0.01 |      - |     - |     - |         - |
+|            Dictionary_Enumerate |    10 |     70.21 ns |   1.025 ns |     0.801 ns |  0.30 |    0.01 |      - |     - |     - |         - |
+|    ConcurrentDictionary_foreach |    10 |    637.47 ns |   4.071 ns |     3.400 ns |  2.69 |    0.03 | 0.0095 |     - |     - |      64 B |
+|         ImmutableDict_Enumerate |    10 |    661.61 ns |   6.913 ns |     6.128 ns |  2.80 |    0.04 |      - |     - |     - |         - |
+|                                 |       |              |            |              |       |         |        |       |       |           |
+|              V4_ImMap_Enumerate |   100 |  2,436.89 ns |  39.383 ns |    34.912 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+|          V3_ImHashMap_Enumerate |   100 |  2,422.26 ns |  21.632 ns |    18.064 ns |  0.99 |    0.02 | 0.0381 |     - |     - |     240 B |
+| V4_PartitionedHashMap_Enumerate |   100 |  6,854.37 ns | 103.033 ns |    91.336 ns |  2.81 |    0.06 | 0.0458 |     - |     - |     312 B |
+| V3_PartitionedHashMap_Enumerate |   100 |  4,335.61 ns |  86.823 ns |    76.966 ns |  1.78 |    0.05 | 0.4349 |     - |     - |    2728 B |
+|        DictionarySlim_Enumerate |   100 |    740.22 ns |   7.999 ns |     7.482 ns |  0.30 |    0.01 |      - |     - |     - |         - |
+|            Dictionary_Enumerate |   100 |    695.30 ns |  10.934 ns |     8.537 ns |  0.29 |    0.01 |      - |     - |     - |         - |
+|    ConcurrentDictionary_foreach |   100 |  4,201.48 ns |  48.154 ns |    42.688 ns |  1.72 |    0.02 | 0.0076 |     - |     - |      64 B |
+|         ImmutableDict_Enumerate |   100 |  5,374.15 ns |  67.241 ns |    56.149 ns |  2.21 |    0.04 |      - |     - |     - |         - |
+|                                 |       |              |            |              |       |         |        |       |       |           |
+|              V4_ImMap_Enumerate |  1000 | 27,441.57 ns | 287.999 ns |   269.394 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+|          V3_ImHashMap_Enumerate |  1000 | 26,536.25 ns | 410.882 ns |   403.541 ns |  0.97 |    0.01 | 0.0610 |     - |     - |     480 B |
+| V4_PartitionedHashMap_Enumerate |  1000 | 47,949.94 ns | 941.910 ns | 1,121.277 ns |  1.75 |    0.05 |      - |     - |     - |     312 B |
+| V3_PartitionedHashMap_Enumerate |  1000 | 31,206.20 ns | 407.402 ns |   557.656 ns |  1.14 |    0.03 | 0.4272 |     - |     - |    2728 B |
+|        DictionarySlim_Enumerate |  1000 |  6,474.83 ns | 101.417 ns |    89.903 ns |  0.24 |    0.00 |      - |     - |     - |         - |
+|            Dictionary_Enumerate |  1000 |  5,678.16 ns | 106.789 ns |    99.890 ns |  0.21 |    0.00 |      - |     - |     - |         - |
+|    ConcurrentDictionary_foreach |  1000 | 44,761.68 ns | 754.987 ns |   630.449 ns |  1.63 |    0.03 |      - |     - |     - |      64 B |
+|         ImmutableDict_Enumerate |  1000 | 46,737.66 ns | 923.122 ns | 1,490.669 ns |  1.68 |    0.04 |      - |     - |     - |         - |
 */
             [Params(1, 10, 100, 1_000)]
             // [Params(100, 1_000)]
@@ -2050,8 +2059,9 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             {
                 _mapV2 = V2_AddOrUpdate();
                 // _mapExp = Experimental_ImHashMap_AddOrUpdate();
-                _mapV3 = V3_ImHashMap_AddOrUpdate();
                 _mapV4 = V4_ImMap_AddOrUpdate();
+                _mapV3 = V3_ImHashMap_AddOrUpdate();
+                _mapPartV4 = V4_PartionedHashMap_AddOrUpdate();
                 _mapPartV3 = V3_PartionedHashMap_AddOrUpdate();
                 _dict = Dict();
                 _dictSlim = DictSlim();
@@ -2072,16 +2082,6 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             }
 
             private ImTools.V2.ImHashMap<Type, string> _mapV2;
-
-            public ImToolsV3.ImHashMap<Type, string>[] V3_PartionedHashMap_AddOrUpdate()
-            {
-                var map = ImToolsV3.PartitionedHashMap.CreateEmpty<Type, string>();
-
-                foreach (var key in _keys.Take(Count))
-                    map.AddOrUpdate(key, "a");
-
-                return map;
-            }
 
             private ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>> _mapExp;
 
@@ -2107,6 +2107,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             }
 
             private ImTools.ImHashMap<Type, string> _mapV4;
+
             public ImTools.ImHashMap<Type, string> V4_ImMap_AddOrUpdate()
             {
                 var map = ImTools.ImHashMap<Type, string>.Empty;
@@ -2117,7 +2118,29 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return map;
             }
 
+            private ImTools.ImHashMap<Type, string>[] _mapPartV4;
+            public ImTools.ImHashMap<Type, string>[] V4_PartionedHashMap_AddOrUpdate()
+            {
+                var map = ImTools.PartitionedHashMap.CreateEmpty<Type, string>();
+
+                foreach (var key in _keys.Take(Count))
+                    map.AddOrUpdate(key, "a");
+
+                return map;
+            }
+
             private ImToolsV3.ImHashMap<Type, string>[] _mapPartV3;
+            public ImToolsV3.ImHashMap<Type, string>[] V3_PartionedHashMap_AddOrUpdate()
+            {
+                var map = ImToolsV3.PartitionedHashMap.CreateEmpty<Type, string>();
+
+                foreach (var key in _keys.Take(Count))
+                    map.AddOrUpdate(key, "a");
+
+                return map;
+            }
+
+
             public Dictionary<Type, string> Dict()
             {
                 var map = new Dictionary<Type, string>();
@@ -2186,7 +2209,16 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return s;
             }
 
-            // [Benchmark]
+            [Benchmark]
+            public object V4_PartitionedHashMap_Enumerate()
+            {
+                var s = "";
+                foreach (var x in _mapPartV4.Enumerate())
+                    s = x.Value;
+                return s;
+            }
+
+            [Benchmark]
             public object V3_PartitionedHashMap_Enumerate()
             {
                 var s = "";
@@ -2204,7 +2236,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return s;
             }
 
-            // [Benchmark]
+            [Benchmark]
             public object DictionarySlim_Enumerate()
             {
                 var s = "";
@@ -2213,7 +2245,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return s;
             }
 
-            // [Benchmark]
+            [Benchmark]
             public object Dictionary_Enumerate()
             {
                 var s = "";
@@ -2222,7 +2254,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return s;
             }
 
-            // [Benchmark]
+            [Benchmark]
             public object ConcurrentDictionary_foreach()
             {
                 var s = "";
@@ -2231,7 +2263,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return s;
             }
 
-            // [Benchmark]
+            [Benchmark]
             public object ImmutableDict_Enumerate()
             {
                 var s = "";

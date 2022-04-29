@@ -145,39 +145,49 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 [The benchmark source](https://github.com/dadhi/ImTools/blob/master/playground/ImTools.Benchmarks/ImHashMapBenchmarks.cs)
 
 ```md
-|                        Method | Count |         Mean |        Error |       StdDev |       Median | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-|------------------------------ |------ |-------------:|-------------:|-------------:|-------------:|------:|--------:|-------:|------:|------:|----------:|
-|          V2_ImHashMap_foreach |     1 |     53.16 ns |     1.107 ns |     1.317 ns |     53.11 ns |  1.00 |    0.00 | 0.0166 |     - |     - |     104 B |
-|          V3_ImHashMap_foreach |     1 |     62.12 ns |     1.327 ns |     1.986 ns |     61.59 ns |  1.16 |    0.05 | 0.0267 |     - |     - |     168 B |
-| V3_PartitionedHashMap_foreach |     1 |    238.62 ns |     4.811 ns |     6.084 ns |    235.92 ns |  4.50 |    0.13 | 0.0534 |     - |     - |     336 B |
-|        DictionarySlim_foreach |     1 |     12.90 ns |     0.167 ns |     0.156 ns |     12.90 ns |  0.24 |    0.01 |      - |     - |     - |         - |
-|            Dictionary_foreach |     1 |     14.19 ns |     0.217 ns |     0.181 ns |     14.14 ns |  0.27 |    0.01 |      - |     - |     - |         - |
-|  ConcurrentDictionary_foreach |     1 |    153.40 ns |     2.768 ns |     4.142 ns |    151.56 ns |  2.89 |    0.11 | 0.0100 |     - |     - |      64 B |
-|         ImmutableDict_foreach |     1 |    268.98 ns |     5.361 ns |     9.528 ns |    268.86 ns |  5.01 |    0.26 |      - |     - |     - |         - |
-|                               |       |              |              |              |              |       |         |        |       |       |           |
-|          V2_ImHashMap_foreach |    10 |    233.42 ns |     4.541 ns |     4.859 ns |    232.71 ns |  1.00 |    0.00 | 0.0200 |     - |     - |     128 B |
-|          V3_ImHashMap_foreach |    10 |    249.12 ns |     4.915 ns |     5.852 ns |    246.87 ns |  1.07 |    0.03 | 0.0391 |     - |     - |     248 B |
-| V3_PartitionedHashMap_foreach |    10 |    746.26 ns |    14.990 ns |    18.409 ns |    748.53 ns |  3.20 |    0.13 | 0.1602 |     - |     - |    1008 B |
-|        DictionarySlim_foreach |    10 |     72.54 ns |     0.970 ns |     0.907 ns |     72.42 ns |  0.31 |    0.01 |      - |     - |     - |         - |
-|            Dictionary_foreach |    10 |     58.52 ns |     0.938 ns |     0.733 ns |     58.58 ns |  0.25 |    0.01 |      - |     - |     - |         - |
-|  ConcurrentDictionary_foreach |    10 |    468.65 ns |     9.252 ns |    12.351 ns |    464.12 ns |  2.01 |    0.06 | 0.0095 |     - |     - |      64 B |
-|         ImmutableDict_foreach |    10 |  1,127.30 ns |    15.601 ns |    14.593 ns |  1,123.20 ns |  4.82 |    0.10 |      - |     - |     - |         - |
-|                               |       |              |              |              |              |       |         |        |       |       |           |
-|          V2_ImHashMap_foreach |   100 |  2,355.54 ns |    46.224 ns |    63.271 ns |  2,337.40 ns |  1.00 |    0.00 | 0.0229 |     - |     - |     160 B |
-|          V3_ImHashMap_foreach |   100 |  2,423.13 ns |    31.652 ns |    46.395 ns |  2,412.92 ns |  1.03 |    0.04 | 0.0496 |     - |     - |     320 B |
-| V3_PartitionedHashMap_foreach |   100 |  4,268.51 ns |    25.429 ns |    22.542 ns |  4,266.90 ns |  1.81 |    0.05 | 0.4501 |     - |     - |    2856 B |
-|        DictionarySlim_foreach |   100 |    570.39 ns |     5.827 ns |     4.866 ns |    570.93 ns |  0.24 |    0.01 |      - |     - |     - |         - |
-|            Dictionary_foreach |   100 |    548.46 ns |     8.579 ns |     7.605 ns |    547.90 ns |  0.23 |    0.01 |      - |     - |     - |         - |
-|  ConcurrentDictionary_foreach |   100 |  2,967.70 ns |    45.435 ns |    44.623 ns |  2,958.11 ns |  1.26 |    0.04 | 0.0076 |     - |     - |      64 B |
-|         ImmutableDict_foreach |   100 |  9,988.48 ns |   198.973 ns |   297.813 ns |  9,821.03 ns |  4.24 |    0.14 |      - |     - |     - |         - |
-|                               |       |              |              |              |              |       |         |        |       |       |           |
-|          V2_ImHashMap_foreach |  1000 | 23,828.30 ns |   433.708 ns |   362.166 ns | 23,743.77 ns |  1.00 |    0.00 | 0.0305 |     - |     - |     192 B |
-|          V3_ImHashMap_foreach |  1000 | 26,014.69 ns |   294.125 ns |   245.608 ns | 25,965.82 ns |  1.09 |    0.02 | 0.0610 |     - |     - |     552 B |
-| V3_PartitionedHashMap_foreach |  1000 | 36,582.53 ns |   709.641 ns |   897.469 ns | 36,594.84 ns |  1.54 |    0.04 | 0.4883 |     - |     - |    3240 B |
-|        DictionarySlim_foreach |  1000 |  5,591.13 ns |    43.627 ns |    40.809 ns |  5,602.25 ns |  0.23 |    0.00 |      - |     - |     - |         - |
-|            Dictionary_foreach |  1000 |  5,319.86 ns |    51.684 ns |    45.817 ns |  5,308.36 ns |  0.22 |    0.00 |      - |     - |     - |         - |
-|  ConcurrentDictionary_foreach |  1000 | 38,718.40 ns |   466.979 ns |   389.949 ns | 38,728.64 ns |  1.63 |    0.03 |      - |     - |     - |      64 B |
-|         ImmutableDict_foreach |  1000 | 99,156.35 ns | 1,962.968 ns | 2,181.834 ns | 98,166.03 ns |  4.17 |    0.11 |      - |     - |     - |         - |
+BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19043
+Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+.NET Core SDK=6.0.202
+  [Host]     : .NET Core 6.0.4 (CoreCLR 6.0.422.16404, CoreFX 6.0.422.16404), X64 RyuJIT
+  DefaultJob : .NET Core 6.0.4 (CoreCLR 6.0.422.16404, CoreFX 6.0.422.16404), X64 RyuJIT
+
+|                          Method | Count |         Mean |      Error |       StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|-------------------------------- |------ |-------------:|-----------:|-------------:|------:|--------:|-------:|------:|------:|----------:|
+|              V4_ImMap_Enumerate |     1 |     50.96 ns |   1.094 ns |     1.498 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+|          V3_ImHashMap_Enumerate |     1 |     53.40 ns |   1.148 ns |     1.127 ns |  1.05 |    0.04 | 0.0255 |     - |     - |     160 B |
+| V4_PartitionedHashMap_Enumerate |     1 |    345.97 ns |   3.878 ns |     3.438 ns |  6.76 |    0.22 | 0.0496 |     - |     - |     312 B |
+| V3_PartitionedHashMap_Enumerate |     1 |    222.70 ns |   1.345 ns |     1.124 ns |  4.34 |    0.14 | 0.0522 |     - |     - |     328 B |
+|        DictionarySlim_Enumerate |     1 |     15.79 ns |   0.182 ns |     0.142 ns |  0.31 |    0.01 |      - |     - |     - |         - |
+|            Dictionary_Enumerate |     1 |     17.63 ns |   0.250 ns |     0.209 ns |  0.34 |    0.01 |      - |     - |     - |         - |
+|    ConcurrentDictionary_foreach |     1 |    202.47 ns |   2.068 ns |     1.727 ns |  3.95 |    0.13 | 0.0100 |     - |     - |      64 B |
+|         ImmutableDict_Enumerate |     1 |    202.10 ns |   1.657 ns |     1.469 ns |  3.95 |    0.12 |      - |     - |     - |         - |
+|                                 |       |              |            |              |       |         |        |       |       |           |
+|              V4_ImMap_Enumerate |    10 |    236.49 ns |   2.690 ns |     2.384 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+|          V3_ImHashMap_Enumerate |    10 |    269.71 ns |   4.147 ns |     3.463 ns |  1.14 |    0.02 | 0.0381 |     - |     - |     240 B |
+| V4_PartitionedHashMap_Enumerate |    10 |  1,537.51 ns |  22.668 ns |    21.204 ns |  6.50 |    0.13 | 0.0496 |     - |     - |     312 B |
+| V3_PartitionedHashMap_Enumerate |    10 |    745.36 ns |  14.086 ns |    13.834 ns |  3.16 |    0.07 | 0.1793 |     - |     - |    1128 B |
+|        DictionarySlim_Enumerate |    10 |     85.17 ns |   0.981 ns |     0.819 ns |  0.36 |    0.01 |      - |     - |     - |         - |
+|            Dictionary_Enumerate |    10 |     70.21 ns |   1.025 ns |     0.801 ns |  0.30 |    0.01 |      - |     - |     - |         - |
+|    ConcurrentDictionary_foreach |    10 |    637.47 ns |   4.071 ns |     3.400 ns |  2.69 |    0.03 | 0.0095 |     - |     - |      64 B |
+|         ImmutableDict_Enumerate |    10 |    661.61 ns |   6.913 ns |     6.128 ns |  2.80 |    0.04 |      - |     - |     - |         - |
+|                                 |       |              |            |              |       |         |        |       |       |           |
+|              V4_ImMap_Enumerate |   100 |  2,436.89 ns |  39.383 ns |    34.912 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+|          V3_ImHashMap_Enumerate |   100 |  2,422.26 ns |  21.632 ns |    18.064 ns |  0.99 |    0.02 | 0.0381 |     - |     - |     240 B |
+| V4_PartitionedHashMap_Enumerate |   100 |  6,854.37 ns | 103.033 ns |    91.336 ns |  2.81 |    0.06 | 0.0458 |     - |     - |     312 B |
+| V3_PartitionedHashMap_Enumerate |   100 |  4,335.61 ns |  86.823 ns |    76.966 ns |  1.78 |    0.05 | 0.4349 |     - |     - |    2728 B |
+|        DictionarySlim_Enumerate |   100 |    740.22 ns |   7.999 ns |     7.482 ns |  0.30 |    0.01 |      - |     - |     - |         - |
+|            Dictionary_Enumerate |   100 |    695.30 ns |  10.934 ns |     8.537 ns |  0.29 |    0.01 |      - |     - |     - |         - |
+|    ConcurrentDictionary_foreach |   100 |  4,201.48 ns |  48.154 ns |    42.688 ns |  1.72 |    0.02 | 0.0076 |     - |     - |      64 B |
+|         ImmutableDict_Enumerate |   100 |  5,374.15 ns |  67.241 ns |    56.149 ns |  2.21 |    0.04 |      - |     - |     - |         - |
+|                                 |       |              |            |              |       |         |        |       |       |           |
+|              V4_ImMap_Enumerate |  1000 | 27,441.57 ns | 287.999 ns |   269.394 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+|          V3_ImHashMap_Enumerate |  1000 | 26,536.25 ns | 410.882 ns |   403.541 ns |  0.97 |    0.01 | 0.0610 |     - |     - |     480 B |
+| V4_PartitionedHashMap_Enumerate |  1000 | 47,949.94 ns | 941.910 ns | 1,121.277 ns |  1.75 |    0.05 |      - |     - |     - |     312 B |
+| V3_PartitionedHashMap_Enumerate |  1000 | 31,206.20 ns | 407.402 ns |   557.656 ns |  1.14 |    0.03 | 0.4272 |     - |     - |    2728 B |
+|        DictionarySlim_Enumerate |  1000 |  6,474.83 ns | 101.417 ns |    89.903 ns |  0.24 |    0.00 |      - |     - |     - |         - |
+|            Dictionary_Enumerate |  1000 |  5,678.16 ns | 106.789 ns |    99.890 ns |  0.21 |    0.00 |      - |     - |     - |         - |
+|    ConcurrentDictionary_foreach |  1000 | 44,761.68 ns | 754.987 ns |   630.449 ns |  1.63 |    0.03 |      - |     - |     - |      64 B |
+|         ImmutableDict_Enumerate |  1000 | 46,737.66 ns | 923.122 ns | 1,490.669 ns |  1.68 |    0.04 |      - |     - |     - |         - |
 ```
 
 ### ImMap with small string values
