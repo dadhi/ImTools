@@ -5505,7 +5505,7 @@ namespace ImTools
 
         /// <summary>Enumerates the entries in order of their int keys (the hash is the same as the key).</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static IEnumerable<VEntry<V>> Enumerate<V>(this ImHashMap<int, V>[] parts) => new Enumerable<V>(parts);
+        public static Enumerable<V> Enumerate<V>(this ImHashMap<int, V>[] parts) => new Enumerable<V>(parts);
 
         /// <summary>Non-allocating enumerator</summary>
         public struct Enumerable<V> : IEnumerable<VEntry<V>>, IEnumerable
@@ -5568,7 +5568,7 @@ namespace ImTools
 
         /// <summary>Enumerates the entries in order of their hash.</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static IEnumerable<KVEntry<K, V>> Enumerate<K, V>(this ImHashMap<K, V>[] parts) => new Enumerable<K, V>(parts);
+        public static Enumerable<K, V> Enumerate<K, V>(this ImHashMap<K, V>[] parts) => new Enumerable<K, V>(parts);
 
         /// <summary>Non-allocating enumerator</summary>
         public struct Enumerable<K, V> : IEnumerable<KVEntry<K, V>>, IEnumerable
