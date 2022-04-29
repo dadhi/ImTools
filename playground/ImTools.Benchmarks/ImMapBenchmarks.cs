@@ -1232,48 +1232,47 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
   [Host]     : .NET Core 6.0.4 (CoreCLR 6.0.422.16404, CoreFX 6.0.422.16404), X64 RyuJIT
   DefaultJob : .NET Core 6.0.4 (CoreCLR 6.0.422.16404, CoreFX 6.0.422.16404), X64 RyuJIT
 
-
-|                      Method | Count |          Mean |        Error |        StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-|---------------------------- |------ |--------------:|-------------:|--------------:|------:|--------:|-------:|------:|------:|----------:|
-|            V4_ImMap_foreach |     1 |      40.15 ns |     0.613 ns |      0.512 ns |  1.00 |    0.00 |      - |     - |     - |         - |
-| V4_PartitionedImMap_foreach |     1 |     274.37 ns |     1.739 ns |      1.542 ns |  6.83 |    0.09 | 0.0482 |     - |     - |     304 B |
-|          V2_ImMap_Enumerate |     1 |      24.55 ns |     0.354 ns |      0.331 ns |  0.61 |    0.01 | 0.0114 |     - |     - |      72 B |
-|            DictSlim_foreach |     1 |      12.23 ns |     0.153 ns |      0.136 ns |  0.30 |    0.00 |      - |     - |     - |         - |
-|                Dict_foreach |     1 |      13.12 ns |     0.080 ns |      0.062 ns |  0.33 |    0.00 |      - |     - |     - |         - |
-|      ConcurrentDict_foreach |     1 |     161.52 ns |     2.864 ns |      2.679 ns |  4.01 |    0.07 | 0.0100 |     - |     - |      64 B |
-|       ImmutableDict_foreach |     1 |     160.99 ns |     1.549 ns |      1.374 ns |  4.01 |    0.06 |      - |     - |     - |         - |
-|                             |       |               |              |               |       |         |        |       |       |           |
-|            V4_ImMap_foreach |    10 |     154.20 ns |     1.366 ns |      1.141 ns |  1.00 |    0.00 |      - |     - |     - |         - |
-| V4_PartitionedImMap_foreach |    10 |   1,654.52 ns |    21.047 ns |     19.688 ns | 10.75 |    0.15 | 0.0477 |     - |     - |     304 B |
-|          V2_ImMap_Enumerate |    10 |     123.60 ns |     2.362 ns |      1.844 ns |  0.80 |    0.01 | 0.0176 |     - |     - |     112 B |
-|            DictSlim_foreach |    10 |      53.38 ns |     0.845 ns |      0.790 ns |  0.35 |    0.01 |      - |     - |     - |         - |
-|                Dict_foreach |    10 |      50.09 ns |     1.059 ns |      0.884 ns |  0.32 |    0.01 |      - |     - |     - |         - |
-|      ConcurrentDict_foreach |    10 |     287.66 ns |     2.805 ns |      2.486 ns |  1.86 |    0.02 | 0.0100 |     - |     - |      64 B |
-|       ImmutableDict_foreach |    10 |     566.21 ns |    11.246 ns |      9.969 ns |  3.68 |    0.07 |      - |     - |     - |         - |
-|                             |       |               |              |               |       |         |        |       |       |           |
-|            V4_ImMap_foreach |   100 |   1,610.61 ns |    26.428 ns |     24.721 ns |  1.00 |    0.00 |      - |     - |     - |         - |
-| V4_PartitionedImMap_foreach |   100 |   4,480.84 ns |    45.735 ns |     40.543 ns |  2.79 |    0.05 | 0.0458 |     - |     - |     304 B |
-|          V2_ImMap_Enumerate |   100 |   1,145.36 ns |    16.921 ns |     15.000 ns |  0.71 |    0.02 | 0.0210 |     - |     - |     136 B |
-|            DictSlim_foreach |   100 |     529.71 ns |     3.664 ns |      3.428 ns |  0.33 |    0.01 |      - |     - |     - |         - |
-|                Dict_foreach |   100 |     495.98 ns |     8.289 ns |      7.348 ns |  0.31 |    0.01 |      - |     - |     - |         - |
-|      ConcurrentDict_foreach |   100 |   2,437.73 ns |    47.899 ns |     49.189 ns |  1.52 |    0.04 | 0.0076 |     - |     - |      64 B |
-|       ImmutableDict_foreach |   100 |   4,491.40 ns |    21.716 ns |     16.955 ns |  2.80 |    0.05 |      - |     - |     - |         - |
-|                             |       |               |              |               |       |         |        |       |       |           |
-|            V4_ImMap_foreach |  1000 |  17,531.80 ns |   142.714 ns |    111.421 ns |  1.00 |    0.00 |      - |     - |     - |         - |
-| V4_PartitionedImMap_foreach |  1000 |  29,080.37 ns |   139.647 ns |    109.027 ns |  1.66 |    0.01 | 0.0305 |     - |     - |     304 B |
-|          V2_ImMap_Enumerate |  1000 |  12,745.17 ns |   168.887 ns |    149.714 ns |  0.73 |    0.01 | 0.0153 |     - |     - |     160 B |
-|            DictSlim_foreach |  1000 |   4,999.23 ns |    39.200 ns |     34.750 ns |  0.28 |    0.00 |      - |     - |     - |         - |
-|                Dict_foreach |  1000 |   5,041.80 ns |    65.133 ns |     57.739 ns |  0.29 |    0.00 |      - |     - |     - |         - |
-|      ConcurrentDict_foreach |  1000 |  21,511.26 ns |   388.750 ns |    363.637 ns |  1.22 |    0.03 |      - |     - |     - |      64 B |
-|       ImmutableDict_foreach |  1000 |  47,644.28 ns |   685.586 ns |    641.297 ns |  2.72 |    0.04 |      - |     - |     - |         - |
-|                             |       |               |              |               |       |         |        |       |       |           |
-|            V4_ImMap_foreach | 10000 | 181,871.19 ns | 1,773.407 ns |  1,384.559 ns |  1.00 |    0.00 |      - |     - |     - |     176 B |
-| V4_PartitionedImMap_foreach | 10000 | 299,382.72 ns | 2,495.179 ns |  2,211.911 ns |  1.65 |    0.01 |      - |     - |     - |     304 B |
-|          V2_ImMap_Enumerate | 10000 | 139,144.02 ns | 1,366.664 ns |  1,067.001 ns |  0.77 |    0.01 |      - |     - |     - |     192 B |
-|            DictSlim_foreach | 10000 |  48,518.39 ns |   852.316 ns |    837.088 ns |  0.27 |    0.00 |      - |     - |     - |         - |
-|                Dict_foreach | 10000 |  46,570.12 ns |   494.143 ns |    438.045 ns |  0.26 |    0.00 |      - |     - |     - |         - |
-|      ConcurrentDict_foreach | 10000 | 196,337.23 ns | 1,886.243 ns |  1,764.393 ns |  1.08 |    0.02 |      - |     - |     - |      64 B |
-|       ImmutableDict_foreach | 10000 | 518,545.12 ns | 9,897.117 ns | 10,589.805 ns |  2.83 |    0.04 |      - |     - |     - |       1 B |
+|                      Method | Count |          Mean |        Error |       StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|---------------------------- |------ |--------------:|-------------:|-------------:|------:|--------:|-------:|------:|------:|----------:|
+|            V4_ImMap_foreach |     1 |      40.03 ns |     0.313 ns |     0.244 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+| V4_PartitionedImMap_foreach |     1 |     192.33 ns |     2.263 ns |     1.890 ns |  4.81 |    0.05 |      - |     - |     - |         - |
+|          V2_ImMap_Enumerate |     1 |      24.43 ns |     0.567 ns |     0.795 ns |  0.62 |    0.02 | 0.0114 |     - |     - |      72 B |
+|            DictSlim_foreach |     1 |      12.40 ns |     0.336 ns |     0.387 ns |  0.31 |    0.01 |      - |     - |     - |         - |
+|                Dict_foreach |     1 |      13.37 ns |     0.230 ns |     0.204 ns |  0.33 |    0.01 |      - |     - |     - |         - |
+|      ConcurrentDict_foreach |     1 |     165.33 ns |     3.255 ns |     3.045 ns |  4.14 |    0.08 | 0.0100 |     - |     - |      64 B |
+|       ImmutableDict_foreach |     1 |     165.94 ns |     2.079 ns |     1.736 ns |  4.15 |    0.05 |      - |     - |     - |         - |
+|                             |       |               |              |              |       |         |        |       |       |           |
+|            V4_ImMap_foreach |    10 |     160.90 ns |     2.133 ns |     1.891 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+| V4_PartitionedImMap_foreach |    10 |   1,123.08 ns |    11.425 ns |    10.128 ns |  6.98 |    0.10 |      - |     - |     - |         - |
+|          V2_ImMap_Enumerate |    10 |     123.56 ns |     1.731 ns |     1.534 ns |  0.77 |    0.01 | 0.0176 |     - |     - |     112 B |
+|            DictSlim_foreach |    10 |      53.70 ns |     0.600 ns |     0.531 ns |  0.33 |    0.00 |      - |     - |     - |         - |
+|                Dict_foreach |    10 |      50.38 ns |     0.291 ns |     0.243 ns |  0.31 |    0.00 |      - |     - |     - |         - |
+|      ConcurrentDict_foreach |    10 |     291.45 ns |     2.632 ns |     2.198 ns |  1.81 |    0.02 | 0.0100 |     - |     - |      64 B |
+|       ImmutableDict_foreach |    10 |     580.03 ns |    11.618 ns |    12.913 ns |  3.63 |    0.08 |      - |     - |     - |         - |
+|                             |       |               |              |              |       |         |        |       |       |           |
+|            V4_ImMap_foreach |   100 |   1,643.94 ns |    16.151 ns |    14.317 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+| V4_PartitionedImMap_foreach |   100 |   3,312.55 ns |    37.512 ns |    33.253 ns |  2.02 |    0.03 |      - |     - |     - |         - |
+|          V2_ImMap_Enumerate |   100 |   1,162.64 ns |     9.665 ns |     8.071 ns |  0.71 |    0.01 | 0.0210 |     - |     - |     136 B |
+|            DictSlim_foreach |   100 |     536.92 ns |     6.171 ns |     5.772 ns |  0.33 |    0.00 |      - |     - |     - |         - |
+|                Dict_foreach |   100 |     502.50 ns |     9.721 ns |     9.982 ns |  0.31 |    0.01 |      - |     - |     - |         - |
+|      ConcurrentDict_foreach |   100 |   2,418.59 ns |    39.679 ns |    35.174 ns |  1.47 |    0.02 | 0.0076 |     - |     - |      64 B |
+|       ImmutableDict_foreach |   100 |   4,601.33 ns |    73.439 ns |    61.325 ns |  2.80 |    0.04 |      - |     - |     - |         - |
+|                             |       |               |              |              |       |         |        |       |       |           |
+|            V4_ImMap_foreach |  1000 |  17,762.45 ns |   345.350 ns |   323.040 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+| V4_PartitionedImMap_foreach |  1000 |  25,352.39 ns |   203.381 ns |   180.292 ns |  1.43 |    0.03 |      - |     - |     - |         - |
+|          V2_ImMap_Enumerate |  1000 |  12,897.88 ns |   230.237 ns |   322.761 ns |  0.72 |    0.03 | 0.0153 |     - |     - |     160 B |
+|            DictSlim_foreach |  1000 |   5,035.41 ns |    76.108 ns |    71.192 ns |  0.28 |    0.01 |      - |     - |     - |         - |
+|                Dict_foreach |  1000 |   5,038.73 ns |    75.804 ns |    70.907 ns |  0.28 |    0.01 |      - |     - |     - |         - |
+|      ConcurrentDict_foreach |  1000 |  21,837.89 ns |   197.904 ns |   175.436 ns |  1.23 |    0.02 |      - |     - |     - |      64 B |
+|       ImmutableDict_foreach |  1000 |  49,480.24 ns |   397.551 ns |   352.419 ns |  2.79 |    0.04 |      - |     - |     - |         - |
+|                             |       |               |              |              |       |         |        |       |       |           |
+|            V4_ImMap_foreach | 10000 | 182,442.44 ns | 1,705.908 ns | 1,512.243 ns |  1.00 |    0.00 |      - |     - |     - |     176 B |
+| V4_PartitionedImMap_foreach | 10000 | 268,753.99 ns | 2,345.498 ns | 2,079.223 ns |  1.47 |    0.02 |      - |     - |     - |         - |
+|          V2_ImMap_Enumerate | 10000 | 140,911.18 ns | 2,373.717 ns | 2,104.238 ns |  0.77 |    0.01 |      - |     - |     - |     192 B |
+|            DictSlim_foreach | 10000 |  49,098.08 ns |   489.306 ns |   382.018 ns |  0.27 |    0.00 |      - |     - |     - |         - |
+|                Dict_foreach | 10000 |  47,158.64 ns |   583.107 ns |   486.920 ns |  0.26 |    0.00 |      - |     - |     - |         - |
+|      ConcurrentDict_foreach | 10000 | 197,966.17 ns | 1,898.733 ns | 1,683.178 ns |  1.09 |    0.01 |      - |     - |     - |      64 B |
+|       ImmutableDict_foreach | 10000 | 508,708.65 ns | 7,768.304 ns | 6,886.399 ns |  2.79 |    0.04 |      - |     - |     - |       1 B |
 */
 
             #region Populate
