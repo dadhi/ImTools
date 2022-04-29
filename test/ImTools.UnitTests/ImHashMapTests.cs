@@ -24,6 +24,56 @@ namespace ImTools.UnitTests
         }
 
         [Test]
+        public void Can_enumerate_partitioned_map()
+        {
+            var empty = ImHashMap<string, int>.Empty;
+            var parts = new ImHashMap<string, int>[]
+            {
+                empty,
+                empty.AddOrUpdate("0", 1).AddOrUpdate("42", 42),
+                empty,
+                empty,
+                empty.AddOrUpdate("2", 2),
+                empty,
+                empty.AddOrUpdate("4", 3).AddOrUpdate("43", 43),
+                empty,
+                empty.AddOrUpdate("6", 4),
+                empty,
+            };
+
+            var list = new List<int>();
+            foreach (var n in parts.Enumerate())
+                list.Add(n.Value);
+
+            CollectionAssert.AreEquivalent(new[] { 1, 42, 2, 3, 43, 4 }, list);
+        }
+
+        [Test]
+        public void Can_enumerate_partitioned_map_of_int()
+        {
+            var empty = ImHashMap<int, int>.Empty;
+            var parts = new ImHashMap<int, int>[]
+            {
+                empty,
+                empty.AddOrUpdate(0, 1).AddOrUpdate(42, 42),
+                empty,
+                empty,
+                empty.AddOrUpdate(2, 2),
+                empty,
+                empty.AddOrUpdate(4, 3).AddOrUpdate(43, 43),
+                empty,
+                empty.AddOrUpdate(6, 4),
+                empty,
+            };
+
+            var list = new List<int>();
+            foreach (var n in parts.Enumerate())
+                list.Add(n.Value);
+
+            CollectionAssert.AreEqual(new[] { 1, 42, 2, 3, 43, 4 }, list);
+        }
+
+        [Test]
         public void Search_in_empty_tree_should_NOT_throw()
         {
             var map = ImHashMap<string, int>.Empty;

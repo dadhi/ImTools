@@ -3853,7 +3853,7 @@ namespace ImTools
             private ImHashMap<int, V>.Branch2Plus _b2PlusLeftWasEnumerated;
 
             private ImHashMap<int, V>.Entry _a, _b, _c, _d, _e, _f, _g, _h;
-            private VEntry<V> _current;
+            internal VEntry<V> _current;
             /// <inheritdoc />
             public VEntry<V> Current => _current;
             object IEnumerator.Current => _current;
@@ -4130,7 +4130,7 @@ namespace ImTools
             private ImHashMap<K, V> _nextBranch;
             private ImHashMap<K, V>.Branch2Plus _b21LeftWasEnumerated;
             private ImHashMap<K, V>.Entry _a, _b, _c, _d, _e, _f, _g, _h, _hc;
-            private KVEntry<K, V> _current;
+            internal KVEntry<K, V> _current;
             /// <inheritdoc />
             public KVEntry<K, V> Current => _current;
             object IEnumerator.Current => _current;
@@ -5505,28 +5505,127 @@ namespace ImTools
 
         /// <summary>Enumerates the entries in order of their int keys (the hash is the same as the key).</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static IEnumerable<ImHashMapEntry<int, V>> Enumerate<V>(this ImHashMap<int, V>[] parts)
+        public static IEnumerable<VEntry<V>> Enumerate<V>(this ImHashMap<int, V>[] parts) => new Enumerable<V>(parts);
+
+        /// <summary>Non-allocating enumerator</summary>
+        public struct Enumerable<V> : IEnumerable<VEntry<V>>, IEnumerable
         {
-            foreach (var map in parts)
+            private readonly ImHashMap<int, V>[] _maps;
+            /// <summary>Constructor</summary>
+            public Enumerable(ImHashMap<int, V>[] maps) => _maps = maps;
+
+            /// <summary>Returns non-allocating enumerator</summary>
+            public Enumerator<V> GetEnumerator() => new Enumerator<V> { _maps = _maps };
+            IEnumerator<VEntry<V>> IEnumerable<VEntry<V>>.GetEnumerator() => new Enumerator<V> { _maps = _maps };
+            IEnumerator IEnumerable.GetEnumerator() => new Enumerator<V> { _maps = _maps };
+        }
+
+        /// <summary>Enumerator on stack, without allocation</summary>
+        public struct Enumerator<V> : IEnumerator<VEntry<V>>, IDisposable, IEnumerator
+        {
+            internal ImHashMap<int, V>[] _maps;
+            private bool _mapEnumerationInProgress;
+            private int _mapIndex;
+            private ImHashMap.ImMapEnumerator<V> _mapEn;
+            private VEntry<V> _current;
+            /// <inheritdoc />
+            public VEntry<V> Current => _current;
+            object IEnumerator.Current => _current;
+
+            /// <inheritdoc />
+            public bool MoveNext()
             {
-                if (map == ImHashMap<int, V>.Empty)
-                    continue;
-                foreach (var entry in map.Enumerate())
-                    yield return entry;
+                StartOver:
+                if (!_mapEnumerationInProgress)
+                {
+                    for (var i = _mapIndex; i < _maps.Length; ++i)
+                    {
+                        var m = _maps[i];
+                        if (m == ImHashMap<int, V>.Empty)
+                            continue;
+                        _mapEn = new ImHashMap.ImMapEnumerator<V> { _map = m };
+                        _mapEn.MoveNext();
+                        _current = _mapEn._current;
+                        _mapEnumerationInProgress = true;
+                        _mapIndex = i + 1; // set to next map
+                        return true;
+                    }
+                    return false;
+                }
+                if (!_mapEn.MoveNext())
+                {
+                    _mapEnumerationInProgress = false;
+                    goto StartOver;
+                }
+                _current = _mapEn._current;
+                return true;
             }
+
+            bool IEnumerator.MoveNext() => MoveNext();
+            void IEnumerator.Reset() => throw new NotSupportedException();
+            void IDisposable.Dispose() { }
         }
 
         /// <summary>Enumerates the entries in order of their hash.</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static IEnumerable<ImHashMapEntry<K, V>> Enumerate<K, V>(this ImHashMap<K, V>[] parts)
+        public static IEnumerable<KVEntry<K, V>> Enumerate<K, V>(this ImHashMap<K, V>[] parts) => new Enumerable<K, V>(parts);
+
+        /// <summary>Non-allocating enumerator</summary>
+        public struct Enumerable<K, V> : IEnumerable<KVEntry<K, V>>, IEnumerable
         {
-            foreach (var map in parts)
+            private readonly ImHashMap<K, V>[] _maps;
+            /// <summary>Constructor</summary>
+            public Enumerable(ImHashMap<K, V>[] maps) => _maps = maps;
+            /// <summary>Returns non-allocating enumerator</summary>
+            public Enumerator<K, V> GetEnumerator() => new Enumerator<K, V> { _maps = _maps };
+            IEnumerator<KVEntry<K, V>> IEnumerable<KVEntry<K, V>>.GetEnumerator() => new Enumerator<K, V> { _maps = _maps };
+            IEnumerator IEnumerable.GetEnumerator() => new Enumerator<K, V> { _maps = _maps };
+        }
+
+        /// <summary>Enumerator on stack, without allocation</summary>
+        public struct Enumerator<K, V> : IEnumerator<KVEntry<K, V>>, IDisposable, IEnumerator
+        {
+            internal ImHashMap<K, V>[] _maps;
+            private bool _mapEnumerationInProgress;
+            private int _mapIndex;
+            private ImHashMap.ImMapEnumerator<K, V> _mapEn;
+            private KVEntry<K, V> _current;
+            /// <inheritdoc />
+            public KVEntry<K, V> Current => _current;
+            object IEnumerator.Current => _current;
+
+            /// <inheritdoc />
+            public bool MoveNext()
             {
-                if (map == ImHashMap<K, V>.Empty)
-                    continue;
-                foreach (var entry in map.Enumerate())
-                    yield return entry;
+                StartOver:
+                if (!_mapEnumerationInProgress)
+                {
+                    for (var i = _mapIndex; i < _maps.Length; ++i)
+                    {
+                        var m = _maps[i];
+                        if (m == ImHashMap<K, V>.Empty)
+                            continue;
+                        _mapEn = new ImHashMap.ImMapEnumerator<K, V> { _map = m };
+                        _mapEn.MoveNext();
+                        _current = _mapEn._current;
+                        _mapEnumerationInProgress = true;
+                        _mapIndex = i + 1; // set to next map
+                        return true;
+                    }
+                    return false;
+                }
+                if (!_mapEn.MoveNext())
+                {
+                    _mapEnumerationInProgress = false;
+                    goto StartOver;
+                }
+                _current = _mapEn._current;
+                return true;
             }
+
+            bool IEnumerator.MoveNext() => MoveNext();
+            void IEnumerator.Reset() => throw new NotSupportedException();
+            void IDisposable.Dispose() { }
         }
 
         // todo: @wip for the ImHashMap<int, V>
