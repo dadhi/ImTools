@@ -24,7 +24,7 @@ The benchmarks do not take the collections "nature" into account and run through
 
 ### ImHashMap of Type keys and small string values
 
-#### ImHashMap Population
+#### Population
 
 [The benchmark](https://github.com/dadhi/ImTools/blob/master/playground/ImTools.Benchmarks/ImHashMapBenchmarks.cs) inserts from 10 to 1000
 items into the `ImHashMap<Type, string>`:
@@ -79,7 +79,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 |                 ImmutableDict_Add |  1000 | 717,361.53 ns | 11,811.986 ns | 10,471.017 ns |  2.85 |    0.05 | 105.4688 | 25.3906 |     - |  665001 B |
 ```
 
-### ImHashMap Lookup
+### Lookup
 
 [The benchmark](https://github.com/dadhi/ImTools/blob/master/playground/ImTools.Benchmarks/ImHashMapBenchmarks.cs) lookups for the specific key in the 
 `ImHashMap<Type, string>` containing the specified Count of elements.
@@ -130,7 +130,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 |             ImmutableDict_TryGet |  1000 | 25.875 ns | 0.3752 ns | 0.3510 ns |  1.67 |    0.06 |     - |     - |     - |         - |
 ```
 
-### ImHashMap Enumeration
+### Enumeration
 
 [The benchmark source](https://github.com/dadhi/ImTools/blob/master/playground/ImTools.Benchmarks/ImHashMapBenchmarks.cs)
 
@@ -141,51 +141,52 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
   [Host]     : .NET Core 6.0.4 (CoreCLR 6.0.422.16404, CoreFX 6.0.422.16404), X64 RyuJIT
   DefaultJob : .NET Core 6.0.4 (CoreCLR 6.0.422.16404, CoreFX 6.0.422.16404), X64 RyuJIT
 
-|                          Method | Count |         Mean |      Error |       StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-|-------------------------------- |------ |-------------:|-----------:|-------------:|------:|--------:|-------:|------:|------:|----------:|
-|              V4_ImMap_Enumerate |     1 |     50.96 ns |   1.094 ns |     1.498 ns |  1.00 |    0.00 |      - |     - |     - |         - |
-|          V3_ImHashMap_Enumerate |     1 |     53.40 ns |   1.148 ns |     1.127 ns |  1.05 |    0.04 | 0.0255 |     - |     - |     160 B |
-| V4_PartitionedHashMap_Enumerate |     1 |    345.97 ns |   3.878 ns |     3.438 ns |  6.76 |    0.22 | 0.0496 |     - |     - |     312 B |
-| V3_PartitionedHashMap_Enumerate |     1 |    222.70 ns |   1.345 ns |     1.124 ns |  4.34 |    0.14 | 0.0522 |     - |     - |     328 B |
-|        DictionarySlim_Enumerate |     1 |     15.79 ns |   0.182 ns |     0.142 ns |  0.31 |    0.01 |      - |     - |     - |         - |
-|            Dictionary_Enumerate |     1 |     17.63 ns |   0.250 ns |     0.209 ns |  0.34 |    0.01 |      - |     - |     - |         - |
-|    ConcurrentDictionary_foreach |     1 |    202.47 ns |   2.068 ns |     1.727 ns |  3.95 |    0.13 | 0.0100 |     - |     - |      64 B |
-|         ImmutableDict_Enumerate |     1 |    202.10 ns |   1.657 ns |     1.469 ns |  3.95 |    0.12 |      - |     - |     - |         - |
-|                                 |       |              |            |              |       |         |        |       |       |           |
-|              V4_ImMap_Enumerate |    10 |    236.49 ns |   2.690 ns |     2.384 ns |  1.00 |    0.00 |      - |     - |     - |         - |
-|          V3_ImHashMap_Enumerate |    10 |    269.71 ns |   4.147 ns |     3.463 ns |  1.14 |    0.02 | 0.0381 |     - |     - |     240 B |
-| V4_PartitionedHashMap_Enumerate |    10 |  1,537.51 ns |  22.668 ns |    21.204 ns |  6.50 |    0.13 | 0.0496 |     - |     - |     312 B |
-| V3_PartitionedHashMap_Enumerate |    10 |    745.36 ns |  14.086 ns |    13.834 ns |  3.16 |    0.07 | 0.1793 |     - |     - |    1128 B |
-|        DictionarySlim_Enumerate |    10 |     85.17 ns |   0.981 ns |     0.819 ns |  0.36 |    0.01 |      - |     - |     - |         - |
-|            Dictionary_Enumerate |    10 |     70.21 ns |   1.025 ns |     0.801 ns |  0.30 |    0.01 |      - |     - |     - |         - |
-|    ConcurrentDictionary_foreach |    10 |    637.47 ns |   4.071 ns |     3.400 ns |  2.69 |    0.03 | 0.0095 |     - |     - |      64 B |
-|         ImmutableDict_Enumerate |    10 |    661.61 ns |   6.913 ns |     6.128 ns |  2.80 |    0.04 |      - |     - |     - |         - |
-|                                 |       |              |            |              |       |         |        |       |       |           |
-|              V4_ImMap_Enumerate |   100 |  2,436.89 ns |  39.383 ns |    34.912 ns |  1.00 |    0.00 |      - |     - |     - |         - |
-|          V3_ImHashMap_Enumerate |   100 |  2,422.26 ns |  21.632 ns |    18.064 ns |  0.99 |    0.02 | 0.0381 |     - |     - |     240 B |
-| V4_PartitionedHashMap_Enumerate |   100 |  6,854.37 ns | 103.033 ns |    91.336 ns |  2.81 |    0.06 | 0.0458 |     - |     - |     312 B |
-| V3_PartitionedHashMap_Enumerate |   100 |  4,335.61 ns |  86.823 ns |    76.966 ns |  1.78 |    0.05 | 0.4349 |     - |     - |    2728 B |
-|        DictionarySlim_Enumerate |   100 |    740.22 ns |   7.999 ns |     7.482 ns |  0.30 |    0.01 |      - |     - |     - |         - |
-|            Dictionary_Enumerate |   100 |    695.30 ns |  10.934 ns |     8.537 ns |  0.29 |    0.01 |      - |     - |     - |         - |
-|    ConcurrentDictionary_foreach |   100 |  4,201.48 ns |  48.154 ns |    42.688 ns |  1.72 |    0.02 | 0.0076 |     - |     - |      64 B |
-|         ImmutableDict_Enumerate |   100 |  5,374.15 ns |  67.241 ns |    56.149 ns |  2.21 |    0.04 |      - |     - |     - |         - |
-|                                 |       |              |            |              |       |         |        |       |       |           |
-|              V4_ImMap_Enumerate |  1000 | 27,441.57 ns | 287.999 ns |   269.394 ns |  1.00 |    0.00 |      - |     - |     - |         - |
-|          V3_ImHashMap_Enumerate |  1000 | 26,536.25 ns | 410.882 ns |   403.541 ns |  0.97 |    0.01 | 0.0610 |     - |     - |     480 B |
-| V4_PartitionedHashMap_Enumerate |  1000 | 47,949.94 ns | 941.910 ns | 1,121.277 ns |  1.75 |    0.05 |      - |     - |     - |     312 B |
-| V3_PartitionedHashMap_Enumerate |  1000 | 31,206.20 ns | 407.402 ns |   557.656 ns |  1.14 |    0.03 | 0.4272 |     - |     - |    2728 B |
-|        DictionarySlim_Enumerate |  1000 |  6,474.83 ns | 101.417 ns |    89.903 ns |  0.24 |    0.00 |      - |     - |     - |         - |
-|            Dictionary_Enumerate |  1000 |  5,678.16 ns | 106.789 ns |    99.890 ns |  0.21 |    0.00 |      - |     - |     - |         - |
-|    ConcurrentDictionary_foreach |  1000 | 44,761.68 ns | 754.987 ns |   630.449 ns |  1.63 |    0.03 |      - |     - |     - |      64 B |
-|         ImmutableDict_Enumerate |  1000 | 46,737.66 ns | 923.122 ns | 1,490.669 ns |  1.68 |    0.04 |      - |     - |     - |         - |
+|                          Method | Count |         Mean |      Error |     StdDev |       Median | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|-------------------------------- |------ |-------------:|-----------:|-----------:|-------------:|------:|--------:|-------:|------:|------:|----------:|
+|          V4_ImHashMap_Enumerate |     1 |     39.51 ns |   0.865 ns |   0.996 ns |     39.43 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+|          V3_ImHashMap_Enumerate |     1 |     44.11 ns |   0.879 ns |   0.822 ns |     44.28 ns |  1.12 |    0.04 | 0.0255 |     - |     - |     160 B |
+| V4_PartitionedHashMap_Enumerate |     1 |    118.94 ns |   1.644 ns |   1.538 ns |    118.91 ns |  3.01 |    0.09 |      - |     - |     - |         - |
+| V3_PartitionedHashMap_Enumerate |     1 |    180.82 ns |   3.462 ns |   3.238 ns |    181.09 ns |  4.57 |    0.14 | 0.0522 |     - |     - |     328 B |
+|        DictionarySlim_Enumerate |     1 |     12.77 ns |   0.254 ns |   0.238 ns |     12.76 ns |  0.32 |    0.01 |      - |     - |     - |         - |
+|            Dictionary_Enumerate |     1 |     15.24 ns |   0.652 ns |   1.817 ns |     14.36 ns |  0.46 |    0.05 |      - |     - |     - |         - |
+|    ConcurrentDictionary_foreach |     1 |    177.04 ns |   2.073 ns |   1.939 ns |    176.68 ns |  4.47 |    0.12 | 0.0100 |     - |     - |      64 B |
+|         ImmutableDict_Enumerate |     1 |    161.96 ns |   0.760 ns |   0.635 ns |    161.98 ns |  4.08 |    0.12 |      - |     - |     - |         - |
+|                                 |       |              |            |            |              |       |         |        |       |       |           |
+|          V4_ImHashMap_Enumerate |    10 |    191.91 ns |   3.010 ns |   2.668 ns |    192.57 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+|          V3_ImHashMap_Enumerate |    10 |    223.10 ns |   1.885 ns |   1.574 ns |    223.12 ns |  1.16 |    0.02 | 0.0381 |     - |     - |     240 B |
+| V4_PartitionedHashMap_Enumerate |    10 |    379.75 ns |   4.543 ns |   4.027 ns |    379.74 ns |  1.98 |    0.03 |      - |     - |     - |         - |
+| V3_PartitionedHashMap_Enumerate |    10 |    604.47 ns |   4.257 ns |   3.774 ns |    603.87 ns |  3.15 |    0.05 | 0.1793 |     - |     - |    1128 B |
+|        DictionarySlim_Enumerate |    10 |     73.15 ns |   1.438 ns |   1.345 ns |     72.82 ns |  0.38 |    0.01 |      - |     - |     - |         - |
+|            Dictionary_Enumerate |    10 |     57.95 ns |   0.749 ns |   0.701 ns |     57.86 ns |  0.30 |    0.01 |      - |     - |     - |         - |
+|    ConcurrentDictionary_foreach |    10 |    505.36 ns |   7.959 ns |   7.445 ns |    504.00 ns |  2.64 |    0.05 | 0.0095 |     - |     - |      64 B |
+|         ImmutableDict_Enumerate |    10 |    556.35 ns |  10.730 ns |   9.512 ns |    558.53 ns |  2.90 |    0.06 |      - |     - |     - |         - |
+|                                 |       |              |            |            |              |       |         |        |       |       |           |
+|          V4_ImHashMap_Enumerate |   100 |  2,023.65 ns |  33.506 ns |  29.702 ns |  2,031.78 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+|          V3_ImHashMap_Enumerate |   100 |  1,992.46 ns |  23.400 ns |  20.744 ns |  1,992.05 ns |  0.98 |    0.02 | 0.0381 |     - |     - |     240 B |
+| V4_PartitionedHashMap_Enumerate |   100 |  2,626.85 ns |  42.089 ns |  37.311 ns |  2,616.34 ns |  1.30 |    0.02 |      - |     - |     - |         - |
+| V3_PartitionedHashMap_Enumerate |   100 |  3,469.16 ns |  30.415 ns |  26.962 ns |  3,469.32 ns |  1.71 |    0.03 | 0.4349 |     - |     - |    2728 B |
+|        DictionarySlim_Enumerate |   100 |    615.29 ns |  10.217 ns |   9.057 ns |    617.89 ns |  0.30 |    0.01 |      - |     - |     - |         - |
+|            Dictionary_Enumerate |   100 |    578.30 ns |   3.310 ns |   2.764 ns |    578.14 ns |  0.29 |    0.00 |      - |     - |     - |         - |
+|    ConcurrentDictionary_foreach |   100 |  3,444.60 ns |  55.779 ns |  52.176 ns |  3,425.75 ns |  1.70 |    0.03 | 0.0076 |     - |     - |      64 B |
+|         ImmutableDict_Enumerate |   100 |  4,557.81 ns |  71.187 ns |  63.105 ns |  4,552.69 ns |  2.25 |    0.03 |      - |     - |     - |         - |
+|                                 |       |              |            |            |              |       |         |        |       |       |           |
+|          V4_ImHashMap_Enumerate |  1000 | 22,259.46 ns | 204.173 ns | 180.994 ns | 22,241.67 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+|          V3_ImHashMap_Enumerate |  1000 | 21,710.99 ns | 288.512 ns | 240.921 ns | 21,770.78 ns |  0.98 |    0.02 | 0.0610 |     - |     - |     480 B |
+| V4_PartitionedHashMap_Enumerate |  1000 | 28,097.70 ns | 392.513 ns | 306.449 ns | 28,134.91 ns |  1.26 |    0.02 |      - |     - |     - |         - |
+| V3_PartitionedHashMap_Enumerate |  1000 | 31,132.68 ns | 473.705 ns | 443.104 ns | 31,208.71 ns |  1.40 |    0.01 | 0.4272 |     - |     - |    2728 B |
+|        DictionarySlim_Enumerate |  1000 |  6,472.19 ns |  53.546 ns |  47.467 ns |  6,482.73 ns |  0.29 |    0.00 |      - |     - |     - |         - |
+|            Dictionary_Enumerate |  1000 |  5,700.68 ns |  65.696 ns |  61.452 ns |  5,698.15 ns |  0.26 |    0.00 |      - |     - |     - |         - |
+|    ConcurrentDictionary_foreach |  1000 | 43,550.74 ns | 848.746 ns | 752.391 ns | 43,765.79 ns |  1.96 |    0.04 |      - |     - |     - |      64 B |
+|         ImmutableDict_Enumerate |  1000 | 46,089.57 ns | 524.157 ns | 464.651 ns | 46,183.41 ns |  2.07 |    0.03 |      - |     - |     - |         - |
 ```
 
-### ImMap with small string values
 
-`ImMap<string>` stores the `int` keys and `string` values.
+### ImHashMap with int keys and small string values
+
+`ImHashMap<int, string>` stores the `int` keys and `string` values.
 
 
-#### ImMap Population
+#### Population
 
 [The benchmark](https://github.com/dadhi/ImTools/blob/master/playground/ImTools.Benchmarks/ImMapBenchmarks.cs) inserts from 1 to 10 000 of items into the `ImMap<string>`:
 
@@ -245,7 +246,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 ```
 
 
-#### ImMap Lookup
+#### Lookup
 
 [The benchmark](https://github.com/dadhi/ImTools/blob/master/playground/ImTools.Benchmarks/ImMapBenchmarks.cs) lookups for the last added index in the `ImMap<string>` 
 containing the specified Count of elements.
@@ -300,11 +301,12 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 |   ImmutableDict_TryGetValue | 10000 | 37.8435 ns | 0.4362 ns | 0.4080 ns |  2.17 |    0.04 |     - |     - |     - |         - |
 ```
 
-**Interpreting results:** `ImMap` holds very good against `ImmutableDictionary` sibling and even against `Dictionary`(s) up to certain count, 
-indicating that immutable collection could be quite fast for lookups.
+**Interpreting results:** `ImHashMap` holds very good against `ImmutableDictionary` sibling and even against `Dictionary`(s) 
+(especially if we are talking about PartitionedImHashMap) up to certain count, indicating that immutable collection could be 
+quite fast for lookups.
 
 
-#### ImMap Enumeration
+#### Enumeration
 
 [The benchmark source code](https://github.com/dadhi/ImTools/blob/master/playground/ImTools.Benchmarks/ImMapBenchmarks.cs)
 
