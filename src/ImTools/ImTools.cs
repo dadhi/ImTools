@@ -3850,7 +3850,7 @@ namespace ImTools
             private ushort _index;
             private ImMapStack<int, V> _ps;
 
-            internal void ReInit(ImHashMap<int, V> map) 
+            internal void ReInit(ImHashMap<int, V> map)
             {
                 _map = map;
                 _state = default;
@@ -4137,7 +4137,7 @@ namespace ImTools
             private ushort _index;
             private ImMapStack<K, V> _ps;
 
-            internal void ReInit(ImHashMap<K, V> map) 
+            internal void ReInit(ImHashMap<K, V> map)
             {
                 _map = map;
                 _state = default;
@@ -5553,7 +5553,7 @@ namespace ImTools
             /// <inheritdoc />
             public bool MoveNext()
             {
-                StartOver:
+            StartOver:
                 if (!_mapEnumerationInProgress)
                 {
                     for (var i = _mapIndex; i < _maps.Length; ++i)
@@ -5615,7 +5615,7 @@ namespace ImTools
             /// <inheritdoc />
             public bool MoveNext()
             {
-                StartOver:
+            StartOver:
                 if (!_mapEnumerationInProgress)
                 {
                     for (var i = _mapIndex; i < _maps.Length; ++i)
