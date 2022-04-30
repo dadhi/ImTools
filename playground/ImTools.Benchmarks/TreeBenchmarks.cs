@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using ImTools;
+using ImToolsV3;
 using ImTools.UnitTests.Playground;
 
 namespace ImTools.Benchmarks
@@ -73,7 +74,7 @@ namespace ImTools.Benchmarks
 
             var keys = Enumerable.Range(0, itemCount).ToArray();
 
-            var tree = ImHashMap<int, string>.Empty;
+            var tree = ImToolsV3.ImHashMap<int, string>.Empty;
             var trie = IntHashTrie<string>.Empty;
 
             var treeAddTime = ImHashMapAddIntKey(ref tree, keys, key, value);
@@ -101,7 +102,7 @@ namespace ImTools.Benchmarks
 
             var keys = typeof(Dictionary<,>).Assembly.GetTypes().Take(itemCount).ToArray();
 
-            var tree = ImHashMap<Type, string>.Empty;
+            var tree = ImToolsV3.ImHashMap<Type, string>.Empty;
             var trie = HashTrie<Type, string>.Empty;
 
             var treeAddTime = TreeAdd(ref tree, keys, key, value);
@@ -162,7 +163,7 @@ namespace ImTools.Benchmarks
 
         #region DryIoc.ImHashMap
 
-        private static long ImHashMapAddIntKey<V>(ref ImHashMap<int, V> tree, int[] keys, int key, V value)
+        private static long ImHashMapAddIntKey<V>(ref ImToolsV3.ImHashMap<int, V> tree, int[] keys, int key, V value)
         {
             var ignored = default(V);
             var treeTime = Stopwatch.StartNew();
@@ -177,7 +178,7 @@ namespace ImTools.Benchmarks
             return treeTime.ElapsedMilliseconds;
         }
 
-        private static long ImHashMapGetIntKey<V>(ImHashMap<int, V> tree, int key, int times)
+        private static long ImHashMapGetIntKey<V>(ImToolsV3.ImHashMap<int, V> tree, int key, int times)
         {
             V ignored = default(V);
             var treeWatch = Stopwatch.StartNew();
@@ -191,7 +192,7 @@ namespace ImTools.Benchmarks
             return treeWatch.ElapsedMilliseconds;
         }
 
-        private static long TreeAdd<V>(ref ImHashMap<Type, V> tree, Type[] keys, Type key, V value)
+        private static long TreeAdd<V>(ref ImToolsV3.ImHashMap<Type, V> tree, Type[] keys, Type key, V value)
         {
             var ignored = default(V);
             var treeTime = Stopwatch.StartNew();
@@ -210,7 +211,7 @@ namespace ImTools.Benchmarks
             return treeTime.ElapsedMilliseconds;
         }
 
-        private static long TreeGet<T>(ImHashMap<Type, T> tree, Type key, int times)
+        private static long TreeGet<T>(ImToolsV3.ImHashMap<Type, T> tree, Type key, int times)
         {
             T ignored = default(T);
 

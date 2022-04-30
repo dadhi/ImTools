@@ -1,4 +1,7 @@
 using NUnit.Framework;
+using System.Runtime.InteropServices;
+
+#pragma warning disable CS0649
 
 namespace ImTools.UnitTests
 {
@@ -6,7 +9,7 @@ namespace ImTools.UnitTests
     public class SomeTests
     {
         [Test]
-        public void Test()
+        public void I_can_cast_specialized_instance_to_the_generic_type()
         {
             var eInt = CreateEntry(42);
             Assert.IsInstanceOf<IntEntry>(eInt);
@@ -24,6 +27,25 @@ namespace ImTools.UnitTests
         abstract record Entry<K>(K Key);
         record KEntry<K>(K Key, int Hash) : Entry<K>(Key);
         record IntEntry(int Key) : Entry<int>(Key) { }
+
+        [Test]
+        public void The_empty_struct_takes_8_bytes()
+        {
+            int GetSize(object obj) => Marshal.ReadInt32(obj.GetType().TypeHandle.Value, 4);
+
+            var e = new KEntry<string>("a", "a".GetHashCode());
+            var ee = new EEntry<string>("a", "a".GetHashCode());
+
+            var eSize = GetSize(e);
+            var eeSize = GetSize(ee);
+            Assert.Greater(eeSize, eSize);
+        }
+
+        readonly struct Empty {}
+        record EEntry<K>(K Key, int Hash) : Entry<K>(Key)
+        {
+            public readonly Empty E;
+        }
     }
 }
 

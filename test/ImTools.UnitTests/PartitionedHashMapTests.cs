@@ -10,7 +10,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Test_that_all_added_values_are_accessible()
         {
-            var t = PartitionedMap.CreateEmpty<int>();
+            var t = PartitionedHashMap.CreateEmpty<int>();
             t.AddOrUpdate(1, 11);
             t.AddOrUpdate(2, 22);
             t.AddOrUpdate(3, 33);
@@ -23,7 +23,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Search_in_empty_tree_should_NOT_throw()
         {
-            var tree = PartitionedMap.CreateEmpty<int>();
+            var tree = PartitionedHashMap.CreateEmpty<int>();
 
             Assert.AreEqual(0, tree[0].GetValueOrDefault(0));
         }
@@ -31,7 +31,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Search_in_empty_tree_should_NOT_throw_TryFind()
         {
-            var maps = PartitionedMap.CreateEmpty<int>();
+            var maps = PartitionedHashMap.CreateEmpty<int>();
 
             Assert.IsFalse(maps[0].TryFind(0, out _));
         }
@@ -39,7 +39,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Search_for_non_existent_key_should_NOT_throw()
         {
-            var tree = PartitionedMap.CreateEmpty<int>();
+            var tree = PartitionedHashMap.CreateEmpty<int>();
             tree.AddOrUpdate(1, 1);
             tree.AddOrUpdate(3, 2);
 
@@ -49,7 +49,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Search_for_non_existent_key_should_NOT_throw_TryFind()
         {
-            var tree = PartitionedMap.CreateEmpty<int>();
+            var tree = PartitionedHashMap.CreateEmpty<int>();
 
             tree.AddOrUpdate(1, 1);
             tree.AddOrUpdate(3, 2);
@@ -60,7 +60,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Update_to_null_and_then_to_value_should_remove_null()
         {
-            var maps = PartitionedMap.CreateEmpty<string>();
+            var maps = PartitionedHashMap.CreateEmpty<string>();
             maps.AddOrUpdate(1, "a");
             maps.AddOrUpdate(2, "b");
             maps.AddOrUpdate(3, "c");
@@ -77,7 +77,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Update_with_not_found_key_should_return_the_same_tree()
         {
-            var maps = PartitionedMap.CreateEmpty<string>();
+            var maps = PartitionedHashMap.CreateEmpty<string>();
             maps.AddOrUpdate(1, "a");
             maps.AddOrUpdate(2, "b");
             maps.AddOrUpdate(3, "c");
@@ -92,7 +92,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Can_use_int_key_tree_to_represent_general_HashTree_with_possible_hash_conflicts()
         {
-            var tree = PartitionedMap.CreateEmpty<KeyValuePair<Type, string>[]>();
+            var tree = PartitionedHashMap.CreateEmpty<KeyValuePair<Type, string>[]>();
 
             var key = typeof(PartitionedHashMapTests);
             var keyHash = key.GetHashCode();
@@ -124,7 +124,7 @@ namespace ImTools.UnitTests
 
             string result = null;
 
-            var items = tree[keyHash & PartitionedMap.PARTITION_HASH_MASK].GetValueOrDefault(keyHash);
+            var items = tree[keyHash & PartitionedHashMap.PARTITION_HASH_MASK].GetValueOrDefault(keyHash);
             if (items != null)
             {
                 var firstItem = items[0];
