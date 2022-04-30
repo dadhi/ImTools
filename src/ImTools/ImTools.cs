@@ -3849,6 +3849,15 @@ namespace ImTools
             private short _state;
             private ushort _index;
             private ImMapStack<int, V> _ps;
+
+            internal void ReInit(ImHashMap<int, V> map) 
+            {
+                _map = map;
+                _state = default;
+                _index = default;
+                _ps = default;
+            }
+
             private ImHashMap<int, V> _nextBranch;
             private ImHashMap<int, V>.Branch2Plus _b2PlusLeftWasEnumerated;
 
@@ -4127,6 +4136,15 @@ namespace ImTools
             private short _conflictIndex;
             private ushort _index;
             private ImMapStack<K, V> _ps;
+
+            internal void ReInit(ImHashMap<K, V> map) 
+            {
+                _map = map;
+                _state = default;
+                _index = default;
+                _ps = default;
+            }
+
             private ImHashMap<K, V> _nextBranch;
             private ImHashMap<K, V>.Branch2Plus _b21LeftWasEnumerated;
             private ImHashMap<K, V>.Entry _a, _b, _c, _d, _e, _f, _g, _h, _hc;
@@ -5543,7 +5561,7 @@ namespace ImTools
                         var m = _maps[i];
                         if (m == ImHashMap<int, V>.Empty)
                             continue;
-                        _mapEn = new ImHashMap.ImMapEnumerator<V> { _map = m };
+                        _mapEn.ReInit(m);
                         _mapEn.MoveNext();
                         _current = _mapEn._current;
                         _mapEnumerationInProgress = true;
@@ -5605,7 +5623,7 @@ namespace ImTools
                         var m = _maps[i];
                         if (m == ImHashMap<K, V>.Empty)
                             continue;
-                        _mapEn = new ImHashMap.ImMapEnumerator<K, V> { _map = m };
+                        _mapEn.ReInit(m);
                         _mapEn.MoveNext();
                         _current = _mapEn._current;
                         _mapEnumerationInProgress = true;
