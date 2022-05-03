@@ -5097,6 +5097,76 @@ namespace ImTools
             return e;
         }
 
+        /// <summary>Creates the map of N unique entries without wasting the memory. The entries Keys should be different</summary>
+        public static ImHashMap<K, V> BuildUnchecked<K, V>(
+            ImHashMapEntry<K, V> e0, ImHashMapEntry<K, V> e1)
+        {
+            Debug.Assert(!Equals(e0.Key, e1.Key));
+            if (e0.Hash > e1.Hash)
+                Fun.Swap(ref e0, ref e1);
+            return new ImHashMap<K, V>.Leaf2(e0, e1);
+        }
+
+        /// <summary>Creates the map of N unique entries without wasting the memory. The entries Keys should be different</summary>
+        public static ImHashMap<K, V> BuildUnchecked<K, V>(
+            ImHashMapEntry<K, V> e0, ImHashMapEntry<K, V> e1, ImHashMapEntry<K, V> e2)
+        {
+            Debug.Assert(!Equals(e2.Key, e0.Key) && !Equals(e2.Key, e1.Key));
+            return new ImHashMap<K, V>.Leaf2Plus(e2, (ImHashMap<K, V>.Leaf2)BuildUnchecked(e0, e1));
+        }
+
+        /// <summary>Creates the map of N unique entries without wasting the memory. The entries Keys should be different</summary>
+        public static ImHashMap<K, V> BuildUnchecked<K, V>(
+            ImHashMapEntry<K, V> e0, ImHashMapEntry<K, V> e1, ImHashMapEntry<K, V> e2, ImHashMapEntry<K, V> e3)
+        {
+            Debug.Assert(!Equals(e3.Key, e0.Key) && !Equals(e3.Key, e1.Key) && !Equals(e3.Key, e2.Key));
+            return new ImHashMap<K, V>.Leaf2PlusPlus(e3, (ImHashMap<K, V>.Leaf2Plus)BuildUnchecked(e0, e1, e2));
+        }
+
+        /// <summary>Creates the map of N unique entries without wasting the memory. The entries Keys should be different</summary>
+        public static ImHashMap<K, V> BuildUnchecked<K, V>(
+            ImHashMapEntry<K, V> e0, ImHashMapEntry<K, V> e1, ImHashMapEntry<K, V> e2, ImHashMapEntry<K, V> e3, ImHashMapEntry<K, V> e4)
+        {
+            if (e0.Hash > e1.Hash)
+                Fun.Swap(ref e0, ref e1);
+            ImHashMap<K, V>.Entry kv0 = e0, kv1 = e1, kv2 = e2, kv3 = e3, kv4 = e4;
+            InsertInOrder(kv2.Hash, ref kv2, ref kv0, ref kv1);
+            InsertInOrder(kv3.Hash, ref kv3, ref kv0, ref kv1, ref kv2);
+            InsertInOrder(kv4.Hash, ref kv4, ref kv0, ref kv1, ref kv2, ref kv3);
+            return new ImHashMap<K, V>.Leaf5(kv0, kv1, kv2, kv3, kv4);
+        }
+
+        /// <summary>Creates the map of N unique entries without wasting the memory. The entries Keys should be different</summary>
+        public static ImHashMap<K, V> BuildUnchecked<K, V>(
+            ImHashMapEntry<K, V> e0, ImHashMapEntry<K, V> e1, ImHashMapEntry<K, V> e2, ImHashMapEntry<K, V> e3, ImHashMapEntry<K, V> e4,
+            ImHashMapEntry<K, V> e5) =>
+            new ImHashMap<K, V>.Leaf5Plus(e5, (ImHashMap<K, V>.Leaf5)BuildUnchecked(e0, e1, e2, e3, e4));
+
+        /// <summary>Creates the map of N unique entries without wasting the memory. The entries Keys should be different</summary>
+        public static ImHashMap<K, V> BuildUnchecked<K, V>(
+            ImHashMapEntry<K, V> e0, ImHashMapEntry<K, V> e1, ImHashMapEntry<K, V> e2, ImHashMapEntry<K, V> e3, ImHashMapEntry<K, V> e4,
+            ImHashMapEntry<K, V> e5, ImHashMapEntry<K, V> e6) =>
+            new ImHashMap<K, V>.Leaf5PlusPlus(e6, (ImHashMap<K, V>.Leaf5Plus)BuildUnchecked(e0, e1, e2, e3, e4, e5));
+
+        /// <summary>Creates the map of N unique entries without wasting the memory. The entries Keys should be different</summary>
+        public static ImHashMap<K, V> BuildUnchecked<K, V>(
+            ImHashMapEntry<K, V> e0, ImHashMapEntry<K, V> e1, ImHashMapEntry<K, V> e2, ImHashMapEntry<K, V> e3, ImHashMapEntry<K, V> e4,
+            ImHashMapEntry<K, V> e5, ImHashMapEntry<K, V> e6, ImHashMapEntry<K, V> e7)
+        {
+            if (e0.Hash > e1.Hash)
+                Fun.Swap(ref e0, ref e1);
+            ImHashMap<K, V>.Entry kv0 = e0, kv1 = e1, kv2 = e2, kv3 = e3, kv4 = e4, kv5 = e5, kv6 = e6, kv7 = e7;
+            InsertInOrder(kv2.Hash, ref kv2, ref kv0, ref kv1);
+            InsertInOrder(kv3.Hash, ref kv3, ref kv0, ref kv1, ref kv2);
+            InsertInOrder(kv4.Hash, ref kv4, ref kv0, ref kv1, ref kv2, ref kv3);
+            InsertInOrder(kv5.Hash, ref kv5, ref kv0, ref kv1, ref kv2, ref kv3, ref kv4);
+            InsertInOrder(kv6.Hash, ref kv6, ref kv0, ref kv1, ref kv2, ref kv3, ref kv4, ref kv5);
+            InsertInOrder(kv7.Hash, ref kv7, ref kv0, ref kv1, ref kv2, ref kv3, ref kv4, ref kv5, ref kv6);
+            return new ImHashMap<K, V>.Branch2(new ImHashMap<K, V>.Leaf2(kv0, kv1), kv2, new ImHashMap<K, V>.Leaf5(kv3, kv4, kv5, kv6, kv7));
+        }
+
+        // todo: @wip @perf add more
+
         /// <summary>Adds the entry and returns the new map or if the hash is present then return the found entry or the newEntry if the map is empty, 
         /// so you may check the result like this `if (res is ImMapEntry&lt;V&gt; entry &amp;&amp; entry != newEntry)`</summary>
         [MethodImpl((MethodImplOptions)256)]
