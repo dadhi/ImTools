@@ -5165,7 +5165,63 @@ namespace ImTools
             return new ImHashMap<K, V>.Branch2(new ImHashMap<K, V>.Leaf2(kv0, kv1), kv2, new ImHashMap<K, V>.Leaf5(kv3, kv4, kv5, kv6, kv7));
         }
 
-        // todo: @wip @perf add more
+        public readonly struct HKV<K, V>
+        {
+            public readonly int Hash;
+            public readonly K Key;
+            public readonly V Value;
+            public HKV(int hash, K key, V value) 
+            {
+                Hash = hash;
+                Key = key;
+                Value = value;
+            }
+        }
+
+        /// <summary>Creates the entry with the custom provided hash</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMapEntry<K, V> Entry<K, V>(in HKV<K, V> item) => new KVEntry<K, V>(item.Hash, item.Key, item.Value);
+
+        /// <summary>Creates the map of N unique entries without wasting the memory. The entries Keys should be different</summary>
+        public static ImHashMap<K, V> BuildUnchecked<K, V, E>(E items) where E : IEnumerable<HKV<K, V>>
+        {
+            ImHashMapEntry<K, V> e0 = null, e1 = null, e2 = null, e3 = null, e4 = null, e5 = null, e6 = null, e7 = null;
+            ImHashMap<K, V> bigMap = null; 
+            foreach (var i in items)
+            {
+                if      (e0 == null) e0 = Entry(i);
+                else if (e1 == null) e1 = Entry(i);
+                else if (e2 == null) e2 = Entry(i);
+                else if (e3 == null) e3 = Entry(i);
+                else if (e4 == null) e4 = Entry(i);
+                else if (e5 == null) e5 = Entry(i);
+                else if (e6 == null) e6 = Entry(i);
+                else if (e7 == null) e7 = Entry(i);
+                else if (bigMap == null)
+                    bigMap = BuildUnchecked(e0, e1, e2, e3, e4, e5, e6, e7).AddOrUpdate(i.Hash, i.Key, i.Value);
+                else
+                    bigMap = bigMap.AddOrUpdate(i.Hash, i.Key, i.Value); // todo: @perf can we do that via mutation?
+            }
+            if (bigMap != null)
+                return bigMap;
+            if (e0 == null)
+                return ImHashMap<K, V>.Empty;
+            if (e1 == null)
+                return e0;
+            if (e2 == null)
+                return BuildUnchecked(e0, e1);
+            if (e3 == null)
+                return BuildUnchecked(e0, e1, e2);
+            if (e4 == null)
+                return BuildUnchecked(e0, e1, e2, e3);
+            if (e5 == null)
+                return BuildUnchecked(e0, e1, e2, e3, e4);
+            if (e6 == null)
+                return BuildUnchecked(e0, e1, e2, e3, e4, e5);
+            if (e7 == null)
+                return BuildUnchecked(e0, e1, e2, e3, e4, e5, e6);
+            return BuildUnchecked(e0, e1, e2, e3, e4, e5, e6, e7);
+        }
 
         /// <summary>Adds the entry and returns the new map or if the hash is present then return the found entry or the newEntry if the map is empty, 
         /// so you may check the result like this `if (res is ImMapEntry&lt;V&gt; entry &amp;&amp; entry != newEntry)`</summary>
