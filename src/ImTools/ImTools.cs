@@ -39,54 +39,38 @@ namespace ImTools
     /// <summary>Helpers for functional composition</summary>
     public static class Fun
     {
-        /// <summary>
-        /// Always a true condition.
-        /// </summary> 
+        /// <summary>Always a true condition.</summary> 
         public static bool Always<T>(T _) => true;
 
-        /// <summary>
-        /// Identity function returning passed argument as result.
-        /// </summary> 
+        /// <summary>Identity function returning passed argument as result.</summary> 
         public static T Id<T>(T x) => x;
 
-        /// <summary>
-        /// Forward pipe operator (`|>` in F#)
-        /// </summary> 
+        /// <summary>Forward pipe operator (`|>` in F#)</summary> 
         public static R To<T, R>(this T x, Func<T, R> map) => map(x);
 
-        /// <summary>
-        /// Forward pipe operator (`|>` in F#) with the additional state A for two arguments function
-        /// </summary> 
+        /// <summary>Forward pipe operator (`|>` in F#) with the additional state A for two arguments function</summary> 
         public static R To<T, S, R>(this T x, S state, Func<T, S, R> map) => map(x, state);
 
-        /// <summary>
-        /// Cast to the R type with the forward pipe operator (`|>` in F#)
-        /// </summary> 
+        /// <summary>Cast to the R type with the forward pipe operator (`|>` in F#)</summary> 
         public static R To<R>(this object x) => (R)x;
 
-        /// <summary>
-        /// Forward pipe operator (`|>` in F#) but with side effect propagating the original `x` value
-        /// </summary> 
+        /// <summary>Forward pipe operator (`|>` in F#) but with side effect propagating the original `x` value</summary> 
         public static T Do<T>(this T x, Action<T> effect)
         {
             effect(x);
             return x;
         }
 
-        /// <summary>
-        /// Forward pipe operator (`|>` in F#) but with side effect propagating the original `x` value and the state object
-        /// </summary> 
+        /// <summary>Forward pipe operator (`|>` in F#) but with side effect propagating the original `x` value and the state object</summary> 
         public static T Do<T, S>(this T x, S state, Action<T, S> effect)
         {
             effect(x, state);
             return x;
         }
 
-        /// <summary>
-        /// Lifts argument to Func without allocations ignoring the first argument.
+        /// <summary>Lifts argument to Func without allocations ignoring the first argument.
         /// For example if you have `Func{T, R} = _ => instance`,
-        /// you may rewrite it without allocations as `instance.ToFunc{A, R}`
-        /// </summary> 
+        /// you may rewrite it without allocations as `instance.ToFunc{A, R}`</summary> 
         public static R ToFunc<T, R>(this R result, T ignoredArg) => result;
 
         /// <summary>Performant swapper</summary>
@@ -4519,7 +4503,7 @@ namespace ImTools
                         l511 = (ImHashMap<K, V>.Leaf5PlusPlus)b21LeftWasEnumerated.B.Right;
                         pl = b21LeftWasEnumerated.Plus;
                         b21LeftWasEnumerated = null; // we done with the branch
-                        map = ImHashMap<K, V>.Empty;     // forcing to skip leaves below
+                        map = ImHashMap<K, V>.Empty; // forcing to skip leaves below
                     }
                     else
                     {
