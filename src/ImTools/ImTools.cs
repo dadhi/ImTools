@@ -5165,11 +5165,16 @@ namespace ImTools
             return new ImHashMap<K, V>.Branch2(new ImHashMap<K, V>.Leaf2(kv0, kv1), kv2, new ImHashMap<K, V>.Leaf5(kv3, kv4, kv5, kv6, kv7));
         }
 
+        /// <summary>Wrapper structure for the hash-key-value</summary>
         public readonly struct HKV<K, V>
         {
+            /// <summary>The Key hash</summary>
             public readonly int Hash;
+            /// <summary>The key</summary>
             public readonly K Key;
+            /// <summary>The value</summary>
             public readonly V Value;
+            /// <summary>Constructing thing</summary>
             public HKV(int hash, K key, V value) 
             {
                 Hash = hash;
@@ -5185,42 +5190,38 @@ namespace ImTools
         /// <summary>Creates the map of N unique entries without wasting the memory. The entries Keys should be different</summary>
         public static ImHashMap<K, V> BuildUnchecked<K, V, E>(E items) where E : IEnumerable<HKV<K, V>>
         {
-            ImHashMapEntry<K, V> e0 = null, e1 = null, e2 = null, e3 = null, e4 = null, e5 = null, e6 = null, e7 = null;
-            ImHashMap<K, V> bigMap = null; 
-            foreach (var i in items)
-            {
-                if      (e0 == null) e0 = Entry(i);
-                else if (e1 == null) e1 = Entry(i);
-                else if (e2 == null) e2 = Entry(i);
-                else if (e3 == null) e3 = Entry(i);
-                else if (e4 == null) e4 = Entry(i);
-                else if (e5 == null) e5 = Entry(i);
-                else if (e6 == null) e6 = Entry(i);
-                else if (e7 == null) e7 = Entry(i);
-                else if (bigMap == null)
-                    bigMap = BuildUnchecked(e0, e1, e2, e3, e4, e5, e6, e7).AddOrUpdate(i.Hash, i.Key, i.Value);
-                else
-                    bigMap = bigMap.AddOrUpdate(i.Hash, i.Key, i.Value); // todo: @perf can we do that via mutation?
-            }
-            if (bigMap != null)
-                return bigMap;
-            if (e0 == null)
+            var en = items.GetEnumerator();
+            if (!en.MoveNext())
                 return ImHashMap<K, V>.Empty;
-            if (e1 == null)
+            var e0 = Entry(en.Current);
+            if (!en.MoveNext())
                 return e0;
-            if (e2 == null)
+            var e1 = Entry(en.Current);
+            if (!en.MoveNext())
                 return BuildUnchecked(e0, e1);
-            if (e3 == null)
+            var e2 = Entry(en.Current);
+            if (!en.MoveNext())
                 return BuildUnchecked(e0, e1, e2);
-            if (e4 == null)
+            var e3 = Entry(en.Current);
+            if (!en.MoveNext())
                 return BuildUnchecked(e0, e1, e2, e3);
-            if (e5 == null)
+            var e4 = Entry(en.Current);
+            if (!en.MoveNext())
                 return BuildUnchecked(e0, e1, e2, e3, e4);
-            if (e6 == null)
+            var e5 = Entry(en.Current);
+            if (!en.MoveNext())
                 return BuildUnchecked(e0, e1, e2, e3, e4, e5);
-            if (e7 == null)
+            var e6 = Entry(en.Current);
+            if (!en.MoveNext())
                 return BuildUnchecked(e0, e1, e2, e3, e4, e5, e6);
-            return BuildUnchecked(e0, e1, e2, e3, e4, e5, e6, e7);
+            var e7 = Entry(en.Current);
+            var map = BuildUnchecked(e0, e1, e2, e3, e4, e5, e6, e7);
+            while (en.MoveNext())
+            {
+                var it = en.Current;
+                map = map.AddOrUpdate(it.Hash, it.Key, it.Value);
+            }
+            return map;
         }
 
         /// <summary>Adds the entry and returns the new map or if the hash is present then return the found entry or the newEntry if the map is empty, 
