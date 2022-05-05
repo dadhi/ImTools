@@ -2001,6 +2001,10 @@ namespace ImTools
         /// If hash does not match the method returns `null`</summary>
         internal virtual Entry GetEntryOrNull(int hash) => null;
 
+        /// <summary>Assumes the hash is present in the map (because the map is immutable if we know the hash is present then it cannote disappear) 
+        /// otherwise the result. Returns the Entry with the `hash` though it may be a `HashConflictingEntry`</summary>
+        internal virtual Entry GetSurePresentEntry(int hash) => throw new InvalidOperationException("The sure present hash does not exist in the empty map");
+
         // todo: @wip remove hash from here for simplicity
         /// <summary>Returns the found entry with the same hash or the new map with added new entry.
         /// Note that the empty map will return the entry the same as if the entry was found - so the consumer should check for the empty map.
@@ -2021,7 +2025,7 @@ namespace ImTools
         /// <summary>The delegate is supposed to return entry different from the oldEntry to update, and return the oldEntry to keep it.</summary>
         public delegate ImHashMapEntry<K, V> UpdaterInPlaceOrKeeper<S>(S state, ImHashMapEntry<K, V> oldEntry, ImHashMapEntry<K, V> newEntry);
 
-        /// <summary>The base map entry for holding the hash (or int key) and payload (possibly empty)</summary>
+        /// <summary>The base map entry for holding the Hash (or int key)</summary>
         public abstract class Entry : ImHashMap<K, V>
         {
             /// <summary>The Hash</summary>
@@ -2083,6 +2087,8 @@ namespace ImTools
             internal override Entry GetMaxHashEntryOrDefault() => this;
 
             internal sealed override Entry GetEntryOrNull(int hash) => hash == Hash ? this : null;
+
+            internal sealed override Entry GetSurePresentEntry(int hash) => this;
 
             /// <inheritdoc />
             internal sealed override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry) =>
@@ -2290,7 +2296,10 @@ namespace ImTools
             internal override Entry GetMaxHashEntryOrDefault() => Entry1;
 
             internal override Entry GetEntryOrNull(int hash) =>
-                Entry0.Hash == hash ? Entry0 : Entry1.Hash == hash ? Entry1 : null;
+                hash == Entry0.Hash ? Entry0 : Entry1.Hash == hash ? Entry1 : null;
+
+            internal override Entry GetSurePresentEntry(int hash) =>
+                hash == Entry0.Hash ? Entry0 : Entry1;
 
             internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry) =>
                 hash == Entry0.Hash ? Entry0 : hash == Entry1.Hash ? Entry1 : (ImHashMap<K, V>)new Leaf2Plus(entry, this);
@@ -2322,13 +2331,11 @@ namespace ImTools
             internal override Entry GetMinHashEntryOrDefault() => Plus.Hash < L.Entry0.Hash ? Plus : L.Entry0;
             internal override Entry GetMaxHashEntryOrDefault() => Plus.Hash > L.Entry1.Hash ? Plus : L.Entry1;
 
-            internal override Entry GetEntryOrNull(int hash)
-            {
-                if (hash == Plus.Hash)
-                    return Plus;
-                var l = L;
-                return hash == l.Entry0.Hash ? l.Entry0 : hash == l.Entry1.Hash ? l.Entry1 : null;
-            }
+            internal override Entry GetEntryOrNull(int hash) =>
+                hash == Plus.Hash ? Plus : hash == L.Entry0.Hash ? L.Entry0 : hash == L.Entry1.Hash ? L.Entry1 : null;
+
+            internal override Entry GetSurePresentEntry(int hash) =>
+                hash == Plus.Hash ? Plus : hash == L.Entry0.Hash ? L.Entry0 : L.Entry1;
 
             internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
             {
@@ -2380,15 +2387,11 @@ namespace ImTools
                 return p.Hash > pp.Hash ? (p.Hash > e1.Hash ? p : e1) : (pp.Hash > e1.Hash ? pp : e1);
             }
 
-            internal override Entry GetEntryOrNull(int hash)
-            {
-                if (hash == Plus.Hash)
-                    return Plus;
-                if (hash == L.Plus.Hash)
-                    return L.Plus;
-                var l = L.L;
-                return l.Entry0.Hash == hash ? l.Entry0 : l.Entry1.Hash == hash ? l.Entry1 : null;
-            }
+            internal override Entry GetEntryOrNull(int hash) =>
+                hash == Plus.Hash ? Plus : hash == L.Plus.Hash ? L.Plus : L.L.Entry0.Hash == hash ? L.L.Entry0 : L.L.Entry1.Hash == hash ? L.L.Entry1 : null;
+
+            internal override Entry GetSurePresentEntry(int hash) =>
+                hash == Plus.Hash ? Plus : hash == L.Plus.Hash ? L.Plus : L.L.Entry0.Hash == hash ? L.L.Entry0 : L.L.Entry1;
 
             internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
             {
@@ -2410,6 +2413,7 @@ namespace ImTools
                 if (hash == e1.Hash)
                     return e1;
 
+                // can we combine and speedup those methods
                 ImHashMap.InsertInOrder(pph, ref pp, ref e0, ref e1);
                 ImHashMap.InsertInOrder(ph, ref p, ref e0, ref e1, ref pp);
                 ImHashMap.InsertInOrder(hash, ref entry, ref e0, ref e1, ref pp, ref p);
@@ -2456,20 +2460,16 @@ namespace ImTools
             internal override Entry GetMaxHashEntryOrDefault() => Entry4;
 
             internal override Entry GetEntryOrNull(int hash) =>
-                hash == Entry0.Hash ? Entry0 :
-                hash == Entry1.Hash ? Entry1 :
-                hash == Entry2.Hash ? Entry2 :
-                hash == Entry3.Hash ? Entry3 :
-                hash == Entry4.Hash ? Entry4 :
-                null;
+                hash == Entry0.Hash ? Entry0 : hash == Entry1.Hash ? Entry1 : hash == Entry2.Hash ? Entry2 : hash == Entry3.Hash ? Entry3 : hash == Entry4.Hash ? Entry4 : null;
 
+            internal override Entry GetSurePresentEntry(int hash) =>
+                hash == Entry0.Hash ? Entry0 : hash == Entry1.Hash ? Entry1 : hash == Entry2.Hash ? Entry2 : hash == Entry3.Hash ? Entry3 : Entry4;
+
+            // todo: @perf how can we avoid to compare all the hashes before creating the Leaf, so may be there are specific cases where we can just Add without Update, 
+            // e.g. when we called GetEntryOrNull and did not find anything. So we may introduce `AddSureNotPresent` method
             internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry) =>
-                hash == Entry0.Hash ? Entry0 :
-                hash == Entry1.Hash ? Entry1 :
-                hash == Entry2.Hash ? Entry2 :
-                hash == Entry3.Hash ? Entry3 :
-                hash == Entry4.Hash ? Entry4 :
-                (ImHashMap<K, V>)new Leaf5Plus(entry, this);
+                hash == Entry0.Hash ? Entry0 : hash == Entry1.Hash ? Entry1 : hash == Entry2.Hash ? Entry2 : hash == Entry3.Hash ? Entry3 :
+                hash == Entry4.Hash ? Entry4 : new Leaf5Plus(entry, this);
 
             internal override ImHashMap<K, V> ReplaceEntry(Entry oldEntry, Entry newEntry) =>
                 oldEntry == Entry0 ? new Leaf5(newEntry, Entry1, Entry2, Entry3, Entry4) :
@@ -2512,12 +2512,16 @@ namespace ImTools
                 if (hash == Plus.Hash)
                     return Plus;
                 var l = L;
-                return hash == l.Entry0.Hash ? l.Entry0
-                     : hash == l.Entry1.Hash ? l.Entry1
-                     : hash == l.Entry2.Hash ? l.Entry2
-                     : hash == l.Entry3.Hash ? l.Entry3
-                     : hash == l.Entry4.Hash ? l.Entry4
-                     : null;
+                return hash == l.Entry0.Hash ? l.Entry0 : hash == l.Entry1.Hash ? l.Entry1 : hash == l.Entry2.Hash ? l.Entry2 : hash == l.Entry3.Hash ? l.Entry3
+                     : hash == l.Entry4.Hash ? l.Entry4 : null;
+            }
+
+            internal override Entry GetSurePresentEntry(int hash)
+            {
+                if (hash == Plus.Hash)
+                    return Plus;
+                var l = L;
+                return hash == l.Entry0.Hash ? l.Entry0 : hash == l.Entry1.Hash ? l.Entry1 : hash == l.Entry2.Hash ? l.Entry2 : hash == l.Entry3.Hash ? l.Entry3 : l.Entry4;
             }
 
             internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
@@ -2527,12 +2531,8 @@ namespace ImTools
                 if (ph == hash)
                     return p;
                 var l = L;
-                return hash == l.Entry0.Hash ? l.Entry0
-                     : hash == l.Entry1.Hash ? l.Entry1
-                     : hash == l.Entry2.Hash ? l.Entry2
-                     : hash == l.Entry3.Hash ? l.Entry3
-                     : hash == l.Entry4.Hash ? l.Entry4
-                     : (ImHashMap<K, V>)new Leaf5PlusPlus(entry, this);
+                return hash == l.Entry0.Hash ? l.Entry0 : hash == l.Entry1.Hash ? l.Entry1 : hash == l.Entry2.Hash ? l.Entry2 : hash == l.Entry3.Hash ? l.Entry3
+                     : hash == l.Entry4.Hash ? l.Entry4 : new Leaf5PlusPlus(entry, this);
             }
 
             internal override ImHashMap<K, V> ReplaceEntry(Entry oldEntry, Entry newEntry)
@@ -2605,12 +2605,19 @@ namespace ImTools
                 if (hash == L.Plus.Hash)
                     return L.Plus;
                 var l = L.L;
-                return hash == l.Entry0.Hash ? l.Entry0
-                     : hash == l.Entry1.Hash ? l.Entry1
-                     : hash == l.Entry2.Hash ? l.Entry2
-                     : hash == l.Entry3.Hash ? l.Entry3
-                     : hash == l.Entry4.Hash ? l.Entry4
-                     : null;
+                return hash == l.Entry0.Hash ? l.Entry0 : hash == l.Entry1.Hash ? l.Entry1 : hash == l.Entry2.Hash ? l.Entry2 : hash == l.Entry3.Hash ? l.Entry3
+                     : hash == l.Entry4.Hash ? l.Entry4 : null;
+            }
+
+            internal override Entry GetSurePresentEntry(int hash)
+            {
+                if (hash == Plus.Hash)
+                    return Plus;
+                if (hash == L.Plus.Hash)
+                    return L.Plus;
+                var l = L.L;
+                return hash == l.Entry0.Hash ? l.Entry0 : hash == l.Entry1.Hash ? l.Entry1 : hash == l.Entry2.Hash ? l.Entry2 : hash == l.Entry3.Hash ? l.Entry3
+                     : l.Entry4;
             }
 
             internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
@@ -2655,6 +2662,7 @@ namespace ImTools
                     : new Branch2(right ? l : new Leaf5(e0, e1, e2, e3, e4), pp, new Leaf2(p, e));
             }
 
+            // todo: @simplify @rename to AddSureNotPresentEntry
             internal ImHashMap<K, V> AddEntry(int hash, ref Entry entry, ref ImHashMap<K, V> splitRight)
             {
                 var l = L.L;
@@ -2789,13 +2797,8 @@ namespace ImTools
 
             public override int Count() => E.Count() + L.Count() + R.Count();
 
-            internal override Entry GetEntryOrNull(int hash)
-            {
-                var mh = E.Hash;
-                return hash > mh ? R.GetEntryOrNull(hash)
-                     : hash < mh ? L.GetEntryOrNull(hash)
-                     : E;
-            }
+            internal override Entry GetEntryOrNull(int hash) =>
+                hash > E.Hash ? R.GetEntryOrNull(hash) : hash < E.Hash ? L.GetEntryOrNull(hash) : E;
 
             internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
             {
@@ -4962,14 +4965,14 @@ namespace ImTools
         /// because the map is immutable it is for sure contains added or updated entry.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMapEntry<int, V> GetSurePresentEntry<V>(this ImHashMap<int, V> map, int hash) =>
-            (VEntry<V>)map.GetEntryOrNull(hash);
+            (VEntry<V>)map.GetSurePresentEntry(hash);
 
         /// <summary>Returns the entry ASSUMING it is present otherwise its behavior is UNDEFINED.
         /// You can use the method after the Add and Update methods on the same map instance - 
         /// because the map is immutable it is for sure contains added or updated entry.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMapEntry<K, V> GetSurePresentEntry<K, V>(this ImHashMap<K, V> map, int hash, K key) =>
-            map.GetEntryOrNull(hash).GetOrNull(key);
+            map.GetSurePresentEntry(hash).GetOrNull(key);
 
         /// <summary>Lookup for the entry by hash, returns the found entry or `null`.</summary>
         [MethodImpl((MethodImplOptions)256)]
