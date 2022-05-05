@@ -1277,6 +1277,42 @@ namespace ImTools
         }
     }
 
+    /// <summary>A pool of small arrays of increasing length from 1 to `MaxArrayLength`.
+    /// It may be useful to store types or objects for reflection calls.</summary>
+    public struct SmallArrayPool<T>
+    {
+        /// <summary>The max length of array and the number of arrays that can be rented from the pool</summary>
+        public const byte MaxArrayLength = 7;
+
+        private readonly static T[][] Arrays = new T[MaxArrayLength][]
+        {
+            new T[1],
+            new T[2],
+            new T[3],
+            new T[4],
+            new T[5],
+            new T[6],
+            new T[7],
+        };
+
+        /// <summary>Rent the existing static array or create a new array if it is already rented.
+        /// The method does not check the `requiredLength` is in the pool bounds to avoid performance cost.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static T[] RentOrNewOfLength(int requiredLength) =>
+            Interlocked.Exchange(ref Arrays[requiredLength - 1], null) ?? new T[requiredLength];
+
+        /// <summary>Returns the array back. If array length is greater than `MaxArrayLength` then we will do nothing.
+        /// Also to avoid memory leaks the passed array will be cleared before returning to the pool.
+        /// The method does not check the `arr.Length` is in the pool bounds to avoid performance cost.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static void TryReturn(T[] arr)
+        {
+            for (var i = 0; (uint)i < arr.Length; ++i)
+                arr[i] = default;
+            Arrays[arr.Length - 1] = arr;
+        }
+    }
+
     /// <summary>Immutable Key-Value pair. It is reference type (could be check for null), 
     /// which is different from System value type <see cref="KeyValuePair{TKey,TValue}"/>.
     /// In addition provides <see cref="Equals"/> and <see cref="GetHashCode"/> implementations.</summary>
