@@ -3454,11 +3454,7 @@ namespace ImTools
             public override ImHashMap<K, V> Left => L;
             public override ImHashMap<K, V> Middle => B.M;
             public override ImHashMap<K, V> Right => B.R;
-            public Branch3Left(Branch3 b, ImHashMap<K, V> l)
-            {
-                B = b;
-                L = l;
-            }
+            public Branch3Left(Branch3 b, ImHashMap<K, V> l) { B = b; L = l; }
 
             public override int Count() => L.Count() + B.E0.Count() + B.M.Count() + B.E1.Count() + B.R.Count();
 
@@ -3469,9 +3465,17 @@ namespace ImTools
                 if (hash > h1)
                     return B.R.GetEntryOrNull(hash);
                 var h0 = b.E0.Hash;
-                if (hash < h0)
-                    return L.GetEntryOrNull(hash);
-                return h0 == hash ? b.E0 : h1 == hash ? b.E1 : b.M.GetEntryOrNull(hash);
+                return hash < h0 ? L.GetEntryOrNull(hash) : h0 == hash ? b.E0 : h1 == hash ? b.E1 : b.M.GetEntryOrNull(hash);
+            }
+
+            internal override Entry GetSurePresentEntry(int hash)
+            {
+                var b = B;
+                var h1 = b.E1.Hash;
+                if (hash > h1)
+                    return B.R.GetSurePresentEntry(hash);
+                var h0 = b.E0.Hash;
+                return hash < h0 ? L.GetSurePresentEntry(hash) : h0 == hash ? b.E0 : h1 == hash ? b.E1 : b.M.GetSurePresentEntry(hash);
             }
 
             internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
@@ -3529,9 +3533,17 @@ namespace ImTools
                 if (hash > h1)
                     return B.R.GetEntryOrNull(hash);
                 var h0 = b.E0.Hash;
-                if (hash < h0)
-                    return b.L.GetEntryOrNull(hash);
-                return h0 == hash ? b.E0 : h1 == hash ? b.E1 : M.GetEntryOrNull(hash);
+                return hash < h0 ? b.L.GetEntryOrNull(hash) : h0 == hash ? b.E0 : h1 == hash ? b.E1 : M.GetEntryOrNull(hash);
+            }
+
+            internal override Entry GetSurePresentEntry(int hash)
+            {
+                var b = B;
+                var h1 = b.E1.Hash;
+                if (hash > h1)
+                    return B.R.GetSurePresentEntry(hash);
+                var h0 = b.E0.Hash;
+                return hash < h0 ? b.L.GetSurePresentEntry(hash) : h0 == hash ? b.E0 : h1 == hash ? b.E1 : M.GetSurePresentEntry(hash);
             }
 
             internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
