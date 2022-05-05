@@ -5679,7 +5679,7 @@ namespace ImTools
         public static ImHashMap<int, V> UpdateToDefault<V>(this ImHashMap<int, V> map, int hash)
         {
             var entry = map.GetEntryOrNull(hash);
-            return entry == null ? map : map.ReplaceEntry(entry, DefaultEntry<V>(hash));
+            return entry == null ? map : map.ReplaceEntry(entry, EntryWithDefaultValue<V>(hash));
         }
 
         /// <summary>Updates the map with the new value if the key is found otherwise returns the same unchanged map.</summary>
@@ -5703,7 +5703,7 @@ namespace ImTools
             var entry = map.GetEntryOrNull(hash);
             if (entry == null)
                 return map;
-            var updated = entry.UpdatedOrNullWithTheSameHash(DefaultEntry<K, V>(hash, key));
+            var updated = entry.UpdatedOrNullWithTheSameHash(EntryWithDefaultValue<K, V>(hash, key));
             return updated == null ? map : map.ReplaceEntry(entry, updated);
         }
 
