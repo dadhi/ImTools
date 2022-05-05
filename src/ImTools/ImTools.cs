@@ -1868,6 +1868,8 @@ namespace ImTools
             ImHashMap.Entry(Hash, update(Hash, Value, newEntry.Value));
         internal override Entry AddOrUpdateWithTheSameHashByReferenceEquals(ImHashMapEntry<int, V> newEntry, Update<int, V> update) =>
             ImHashMap.Entry(Hash, update(Hash, Value, newEntry.Value));
+        internal override ImHashMap<int, V> GetMapOrReplaceWithEntry(ImHashMap<int, V> oldMap, ImHashMapEntry<int, V> newEntry) =>
+            this == newEntry ? this : oldMap.ReplaceEntry(this, newEntry);
         internal override Entry AddedOrNullWithTheSameHash(ImHashMapEntry<int, V> newEntry) => null;
         internal override Entry UpdatedOrNullWithTheSameHash(ImHashMapEntry<int, V> newEntry) => newEntry;
         internal override Entry UpdatedOrNullWithTheSameHash(int key, V value, Update<int, V> update) =>
@@ -3492,7 +3494,7 @@ namespace ImTools
                 {
                     var newRight = R.AddSureNotPresentEntry(hash, entry);
                     return R.MayTurnToBranch2 && newRight is Branch2
-                        ? new Branch2(new Branch2(L, E0, M), E1, newRight) 
+                        ? new Branch2(new Branch2(L, E0, M), E1, newRight)
                         : new Branch3Right(this, newRight);
                 }
                 if (hash < E0.Hash)
@@ -5509,14 +5511,6 @@ namespace ImTools
 
         /// <summary>Adds or updates (no in-place mutation) the map with the new entry, always returning the NEW map!</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap<int, V> AddOrUpdateEntry<V>(this ImHashMap<int, V> map, ImHashMapEntry<int, V> newEntry)
-        {
-            var mapOrOldEntry = map.AddOrGetEntry(newEntry.Hash, newEntry);
-            return mapOrOldEntry is VEntry<V> oldEntry && oldEntry != newEntry ? map.ReplaceEntry(oldEntry, newEntry) : mapOrOldEntry;
-        }
-
-        /// <summary>Adds or updates (no in-place mutation) the map with the new entry, always returning the NEW map!</summary>
-        [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap<K, V> AddOrUpdateEntry<K, V>(this ImHashMap<K, V> map, ImHashMapEntry<K, V> newEntry) =>
             // calling GetMapOrReplaceWithEntry overload instead of the previously inlined logic of checking the entry improves the performance for up to 10 items map by 10% (like because of inlining kicking in)!
             map.AddOrGetEntry(newEntry.Hash, newEntry).GetMapOrReplaceWithEntry(map, newEntry);
@@ -5531,6 +5525,11 @@ namespace ImTools
         public static ImHashMap<int, V> AddOrUpdate<V>(this ImHashMap<int, V> map, int hash, V value) =>
             map.AddOrUpdateEntry(Entry(hash, value));
 
+        /// <summary>Add sure not present item, so before calling this method you may either check the map via GetEntryOrNull or be sure that the new added hash is unique</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap<int, V> AddSureNotPresent<V>(this ImHashMap<int, V> map, int hash, V value) =>
+            map.AddSureNotPresentEntry(Entry(hash, value));
+
         /// <summary>Adds or updates (no in-place mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap<K, V> AddOrUpdate<K, V>(this ImHashMap<K, V> map, int hash, K key, V value) =>
@@ -5540,6 +5539,21 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap<K, V> AddOrUpdate<K, V>(this ImHashMap<K, V> map, K key, V value) =>
             map.AddOrUpdateEntry(Entry(key.GetHashCode(), key, value));
+
+        /// <summary>Add sure not present item, so before calling this method you may either check the map via GetEntryOrNull or be sure that the new added key is unique</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap<K, V> AddSureNotPresentEntry<K, V>(this ImHashMap<K, V> map, ImHashMapEntry<K, V> newEntry) =>
+            map.AddSureNotPresentEntry(newEntry.Hash, newEntry);
+
+        /// <summary>Add sure not present item, so before calling this method you may either check the map via GetEntryOrNull or be sure that the new added key is unique</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap<K, V> AddSureNotPresent<K, V>(this ImHashMap<K, V> map, int hash, K key, V value) =>
+            map.AddSureNotPresentEntry(Entry(hash, key, value));
+
+        /// <summary>Add sure not present item, so before calling this method you may either check the map via GetEntryOrNull or be sure that the new added key is unique</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap<K, V> AddSureNotPresent<K, V>(this ImHashMap<K, V> map, K key, V value) =>
+            map.AddSureNotPresentEntry(Entry(key.GetHashCode(), key, value));
 
         /// <summary>Adds or updates (no in-place mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
         [MethodImpl((MethodImplOptions)256)]
