@@ -5478,7 +5478,7 @@ namespace ImTools
             while (en.MoveNext())
             {
                 var it = en.Current;
-                map = map.AddOrUpdate(it.Hash, it.Key, it.Value);
+                map = map.AddSureNotPresent(it.Hash, it.Key, it.Value);
             }
             return map;
         }
