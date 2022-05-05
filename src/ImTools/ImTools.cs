@@ -5366,7 +5366,7 @@ namespace ImTools
 
         /// <summary>Creates the entry with the `int` key but without assigning its value yet</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMapEntry<int, V> DefaultEntry<V>(int key) => new VEntry<V>(key);
+        public static ImHashMapEntry<int, V> EntryWithDefaultValue<V>(int key) => new VEntry<V>(key);
 
         /// <summary>Copies the entry but without its value</summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -5378,7 +5378,7 @@ namespace ImTools
 
         /// <summary>Creates the entry but without assigning its value yet</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMapEntry<K, V> DefaultEntry<K, V>(int hash, K key) => new KVEntry<K, V>(hash, key);
+        public static ImHashMapEntry<K, V> EntryWithDefaultValue<K, V>(int hash, K key) => new KVEntry<K, V>(hash, key);
 
         /// <summary>Copies the entry but without its value</summary>
         [MethodImpl((MethodImplOptions)256)]
