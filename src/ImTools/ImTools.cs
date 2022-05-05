@@ -3492,22 +3492,22 @@ namespace ImTools
                 {
                     var newRight = R.AddSureNotPresentEntry(hash, entry);
                     return R.MayTurnToBranch2 && newRight is Branch2
-                        ? new Branch2(new Branch2(L, E0, M), E1, newRight)
-                        : newRight is Entry ? newRight : new Branch3Right(this, newRight);
+                        ? new Branch2(new Branch2(L, E0, M), E1, newRight) 
+                        : new Branch3Right(this, newRight);
                 }
                 if (hash < E0.Hash)
                 {
                     var newLeft = L.AddSureNotPresentEntry(hash, entry);
                     return L.MayTurnToBranch2 && newLeft is Branch2
                         ? new Branch2(newLeft, E0, new Branch2(M, E1, R))
-                        : newLeft is Entry ? newLeft : new Branch3Left(this, newLeft);
+                        : new Branch3Left(this, newLeft);
                 }
                 {
                     var newMiddle = M.AddSureNotPresentEntry(hash, entry);
                     // note: we are checking for the Branch2 instead of Branch2Base (which is much faster) but we need to be sure that the split always end with Branch2
                     return M.MayTurnToBranch2 && newMiddle is Branch2 b2
                         ? new Branch2(new Branch2(L, E0, b2.L), b2.E, new Branch2(b2.R, E1, R)) // todo: @perf @mem opportunity man
-                        : newMiddle is Entry ? newMiddle : new Branch3Middle(this, newMiddle);
+                        : new Branch3Middle(this, newMiddle);
                 }
             }
         }
@@ -3583,7 +3583,7 @@ namespace ImTools
                     var newRight = R.AddSureNotPresentEntry(hash, entry);
                     return R.MayTurnToBranch2 && newRight is Branch2
                         ? new Branch2(new Branch2(B.L, B.E0, B.M), B.E1, newRight)
-                        : newRight is Entry ? newRight : new Branch3Right(B, newRight);
+                        : new Branch3Right(B, newRight);
                 }
                 var h0 = B.E0.Hash;
                 if (hash < h0)
@@ -3592,14 +3592,14 @@ namespace ImTools
                     var newLeft = left.AddSureNotPresentEntry(hash, entry);
                     return left.MayTurnToBranch2 && newLeft is Branch2
                         ? new Branch2(newLeft, B.E0, new Branch2(B.M, B.E1, R))
-                        : newLeft is Entry ? newLeft : new Branch3(newLeft, B.E0, B.M, B.E1, R);
+                        : new Branch3(newLeft, B.E0, B.M, B.E1, R);
                 }
                 {
                     var middle = B.M;
                     var newMiddle = middle.AddSureNotPresentEntry(hash, entry);
                     return middle.MayTurnToBranch2 && newMiddle is Branch2 b2
                         ? new Branch2(new Branch2(B.L, B.E0, b2.L), b2.E, new Branch2(b2.R, B.E1, R)) // todo: @perf @mem opportunity man
-                        : newMiddle is Entry ? newMiddle : new Branch3(B.L, B.E0, newMiddle, B.E1, R);
+                        : new Branch3(B.L, B.E0, newMiddle, B.E1, R);
                 }
             }
         }
@@ -3676,7 +3676,7 @@ namespace ImTools
                     var newRight = right.AddSureNotPresentEntry(hash, entry);
                     return right.MayTurnToBranch2 && newRight is Branch2
                         ? new Branch2(new Branch2(L, B.E0, B.M), B.E1, newRight)
-                        : newRight is Entry ? newRight : new Branch3(L, B.E0, B.M, B.E1, newRight);
+                        : new Branch3(L, B.E0, B.M, B.E1, newRight);
                 }
                 var h0 = B.E0.Hash;
                 if (hash < h0)
@@ -3684,14 +3684,14 @@ namespace ImTools
                     var newLeft = L.AddSureNotPresentEntry(hash, entry);
                     return L.MayTurnToBranch2 && newLeft is Branch2
                         ? new Branch2(newLeft, B.E0, new Branch2(B.M, B.E1, B.R))
-                        : newLeft is Entry ? newLeft : new Branch3Left(B, newLeft);
+                        : new Branch3Left(B, newLeft);
                 }
                 {
                     var middle = B.M;
                     var newMiddle = middle.AddSureNotPresentEntry(hash, entry);
                     return middle.MayTurnToBranch2 && newMiddle is Branch2 b2
                         ? new Branch2(new Branch2(L, B.E0, b2.L), b2.E, new Branch2(b2.R, B.E1, B.R)) // todo: @perf @mem opportunity man
-                        : newMiddle is Entry ? newMiddle : new Branch3(L, B.E0, newMiddle, B.E1, B.R);
+                        : new Branch3(L, B.E0, newMiddle, B.E1, B.R);
                 }
             }
         }
@@ -3768,7 +3768,7 @@ namespace ImTools
                     var newRight = right.AddSureNotPresentEntry(hash, entry);
                     return right.MayTurnToBranch2 && newRight is Branch2
                         ? new Branch2(new Branch2(B.L, B.E0, M), B.E1, newRight)
-                        : newRight is Entry ? newRight : new Branch3(B.L, B.E0, M, B.E1, newRight);
+                        : new Branch3(B.L, B.E0, M, B.E1, newRight);
                 }
                 var h0 = B.E0.Hash;
                 if (hash < h0)
@@ -3777,13 +3777,13 @@ namespace ImTools
                     var newLeft = left.AddSureNotPresentEntry(hash, entry);
                     return left.MayTurnToBranch2 && newLeft is Branch2
                         ? new Branch2(newLeft, B.E0, new Branch2(M, B.E1, B.R))
-                        : newLeft is Entry ? newLeft : new Branch3(newLeft, B.E0, M, B.E1, B.R);
+                        : new Branch3(newLeft, B.E0, M, B.E1, B.R);
                 }
                 {
                     var newMiddle = M.AddSureNotPresentEntry(hash, entry);
                     return M.MayTurnToBranch2 && newMiddle is Branch2 b2
                         ? new Branch2(new Branch2(B.L, B.E0, b2.L), b2.E, new Branch2(b2.R, B.E1, B.R)) // todo: @perf @mem opportunity man
-                        : newMiddle is Entry ? newMiddle : new Branch3Middle(B, newMiddle);
+                        : new Branch3Middle(B, newMiddle);
                 }
             }
         }
