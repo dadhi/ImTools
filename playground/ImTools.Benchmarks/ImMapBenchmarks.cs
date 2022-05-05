@@ -389,6 +389,60 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 |               ConcurrentDict_TryAdd | 10000 |  2,877,048.326 ns | 19,171.0217 ns | 16,994.6114 ns |  2,880,000.000 ns |  0.73 |    0.01 |  273.4375 | 121.0938 |  42.9688 | 1645361 B |
 |           ImmutableDict_Builder_Add | 10000 |  4,785,444.115 ns | 61,083.3020 ns | 57,137.3586 ns |  4,781,788.281 ns |  1.21 |    0.02 |  148.4375 |  70.3125 |        - |  959781 B |
 |                   ImmutableDict_Add | 10000 | 11,375,170.833 ns | 74,047.5714 ns | 57,811.4731 ns | 11,371,810.156 ns |  2.88 |    0.04 | 1468.7500 | 265.6250 | 125.0000 | 9271220 B |
+
+BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19043
+Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+.NET Core SDK=6.0.202
+  [Host]     : .NET Core 6.0.4 (CoreCLR 6.0.422.16404, CoreFX 6.0.422.16404), X64 RyuJIT
+  DefaultJob : .NET Core 6.0.4 (CoreCLR 6.0.422.16404, CoreFX 6.0.422.16404), X64 RyuJIT
+
+|                          Method | Count |             Mean |          Error |         StdDev |           Median | Ratio | RatioSD |     Gen 0 |    Gen 1 |    Gen 2 | Allocated |
+|-------------------------------- |------ |-----------------:|---------------:|---------------:|-----------------:|------:|--------:|----------:|---------:|---------:|----------:|
+|        V4_ImHashMap_AddOrUpdate |     1 |         13.30 ns |       0.296 ns |       0.277 ns |         13.30 ns |  1.00 |    0.00 |    0.0051 |        - |        - |      32 B |
+|            V2_ImMap_AddOrUpdate |     1 |         17.09 ns |       0.207 ns |       0.184 ns |         17.08 ns |  1.28 |    0.03 |    0.0076 |        - |        - |      48 B |
+| V4_PartitionedImMap_AddOrUpdate |     1 |         79.98 ns |       1.023 ns |       1.467 ns |         79.66 ns |  6.04 |    0.16 |    0.0293 |        - |        - |     184 B |
+|       DictSlim_GetOrAddValueRef |     1 |         41.18 ns |       0.416 ns |       0.369 ns |         41.28 ns |  3.10 |    0.08 |    0.0204 |        - |        - |     128 B |
+|                     Dict_TryAdd |     1 |         37.06 ns |       0.418 ns |       0.370 ns |         37.08 ns |  2.79 |    0.06 |    0.0344 |        - |        - |     216 B |
+|           ConcurrentDict_TryAdd |     1 |        146.05 ns |       2.124 ns |       1.773 ns |        145.64 ns | 10.95 |    0.27 |    0.1376 |   0.0007 |        - |     864 B |
+|       ImmutableDict_Builder_Add |     1 |        120.60 ns |       0.788 ns |       0.658 ns |        120.43 ns |  9.05 |    0.20 |    0.0253 |        - |        - |     160 B |
+|               ImmutableDict_Add |     1 |        107.37 ns |       1.833 ns |       2.384 ns |        106.71 ns |  8.11 |    0.25 |    0.0166 |        - |        - |     104 B |
+|                                 |       |                  |                |                |                  |       |         |           |          |          |           |
+|        V4_ImHashMap_AddOrUpdate |    10 |        229.89 ns |       1.484 ns |       1.239 ns |        230.08 ns |  1.00 |    0.00 |    0.1173 |        - |        - |     736 B |
+|            V2_ImMap_AddOrUpdate |    10 |        551.17 ns |       4.425 ns |       3.695 ns |        550.33 ns |  2.40 |    0.02 |    0.2823 |        - |        - |    1776 B |
+| V4_PartitionedImMap_AddOrUpdate |    10 |        242.93 ns |       4.599 ns |       3.840 ns |        242.93 ns |  1.06 |    0.02 |    0.0749 |        - |        - |     472 B |
+|       DictSlim_GetOrAddValueRef |    10 |        281.33 ns |       5.547 ns |       5.935 ns |        280.41 ns |  1.22 |    0.03 |    0.1326 |        - |        - |     832 B |
+|                     Dict_TryAdd |    10 |        258.89 ns |       3.412 ns |       3.025 ns |        258.85 ns |  1.13 |    0.01 |    0.1578 |   0.0005 |        - |     992 B |
+|           ConcurrentDict_TryAdd |    10 |        540.34 ns |       3.092 ns |       2.741 ns |        539.06 ns |  2.35 |    0.01 |    0.1945 |   0.0010 |        - |    1224 B |
+|       ImmutableDict_Builder_Add |    10 |      1,514.60 ns |       8.675 ns |       7.244 ns |      1,513.34 ns |  6.59 |    0.05 |    0.1163 |        - |        - |     736 B |
+|               ImmutableDict_Add |    10 |      2,632.30 ns |      51.955 ns |      48.599 ns |      2,639.68 ns | 11.45 |    0.22 |    0.4196 |        - |        - |    2640 B |
+|                                 |       |                  |                |                |                  |       |         |           |          |          |           |
+|        V4_ImHashMap_AddOrUpdate |   100 |      8,221.37 ns |     125.831 ns |     117.703 ns |      8,192.32 ns |  1.00 |    0.00 |    2.9602 |   0.1221 |        - |   18640 B |
+|            V2_ImMap_AddOrUpdate |   100 |     12,184.44 ns |     179.889 ns |     168.268 ns |     12,140.26 ns |  1.48 |    0.02 |    5.9357 |   0.2441 |        - |   37296 B |
+| V4_PartitionedImMap_AddOrUpdate |   100 |      3,370.45 ns |      23.906 ns |      18.664 ns |      3,363.21 ns |  0.41 |    0.01 |    1.4801 |   0.0839 |        - |    9304 B |
+|       DictSlim_GetOrAddValueRef |   100 |      2,652.96 ns |      37.693 ns |      35.258 ns |      2,649.32 ns |  0.32 |    0.00 |    1.3275 |   0.0534 |        - |    8336 B |
+|                     Dict_TryAdd |   100 |      2,828.22 ns |      21.898 ns |      19.412 ns |      2,826.77 ns |  0.34 |    0.01 |    2.0828 |   0.1297 |        - |   13072 B |
+|           ConcurrentDict_TryAdd |   100 |     10,866.25 ns |     111.428 ns |     104.229 ns |     10,909.92 ns |  1.32 |    0.02 |    3.6316 |   0.3510 |        - |   22784 B |
+|       ImmutableDict_Builder_Add |   100 |     25,598.91 ns |     273.166 ns |     255.520 ns |     25,525.67 ns |  3.11 |    0.06 |    1.4648 |   0.0916 |        - |    9376 B |
+|               ImmutableDict_Add |   100 |     46,542.15 ns |     412.627 ns |     344.562 ns |     46,612.94 ns |  5.68 |    0.09 |    7.9346 |   0.3662 |        - |   49952 B |
+|                                 |       |                  |                |                |                  |       |         |           |          |          |           |
+|        V4_ImHashMap_AddOrUpdate |  1000 |    152,860.18 ns |   1,517.703 ns |   1,345.404 ns |    152,745.43 ns |  1.00 |    0.00 |   46.6309 |   0.4883 |        - |  293656 B |
+|            V2_ImMap_AddOrUpdate |  1000 |    198,915.64 ns |   2,889.932 ns |   2,561.850 ns |    198,557.64 ns |  1.30 |    0.02 |   84.9609 |   0.2441 |        - |  534144 B |
+| V4_PartitionedImMap_AddOrUpdate |  1000 |     83,983.62 ns |   1,391.788 ns |   1,301.880 ns |     83,699.54 ns |  0.55 |    0.01 |   27.0996 |   9.0332 |        - |  170456 B |
+|       DictSlim_GetOrAddValueRef |  1000 |     26,659.61 ns |     349.284 ns |     326.721 ns |     26,615.57 ns |  0.17 |    0.00 |   11.6272 |   2.8992 |        - |   73120 B |
+|                     Dict_TryAdd |  1000 |     31,317.33 ns |     475.471 ns |     444.756 ns |     31,251.40 ns |  0.21 |    0.00 |   21.2402 |   0.0610 |        - |  133896 B |
+|           ConcurrentDict_TryAdd |  1000 |    112,582.19 ns |   1,221.657 ns |   1,082.967 ns |    112,203.70 ns |  0.74 |    0.01 |   32.7148 |   0.1221 |        - |  205368 B |
+|       ImmutableDict_Builder_Add |  1000 |    350,888.85 ns |   3,757.786 ns |   3,515.035 ns |    352,417.77 ns |  2.30 |    0.03 |   15.1367 |   4.8828 |        - |   95776 B |
+|               ImmutableDict_Add |  1000 |    692,782.78 ns |   5,756.492 ns |   5,102.980 ns |    694,477.10 ns |  4.53 |    0.05 |  112.3047 |   0.9766 |        - |  710209 B |
+|                                 |       |                  |                |                |                  |       |         |           |          |          |           |
+|        V4_ImHashMap_AddOrUpdate | 10000 |  3,879,586.59 ns |  64,823.212 ns |  60,635.673 ns |  3,882,537.11 ns |  1.00 |    0.00 |  632.8125 | 312.5000 |  46.8750 | 3993786 B |
+|            V2_ImMap_AddOrUpdate | 10000 |  4,485,663.73 ns |  54,179.233 ns |  45,242.113 ns |  4,483,992.58 ns |  1.16 |    0.02 | 1109.3750 | 226.5625 | 101.5625 | 6972711 B |
+| V4_PartitionedImMap_AddOrUpdate | 10000 |  2,822,478.66 ns |  49,570.016 ns |  85,505.842 ns |  2,806,964.45 ns |  0.73 |    0.04 |  433.5938 | 214.8438 |        - | 2720602 B |
+|       DictSlim_GetOrAddValueRef | 10000 |    424,813.34 ns |   2,027.361 ns |   1,797.203 ns |    424,378.52 ns |  0.11 |    0.00 |  124.5117 | 124.5117 | 124.5117 |  975754 B |
+|                     Dict_TryAdd | 10000 |    526,320.80 ns |   9,338.940 ns |   8,278.727 ns |    523,071.63 ns |  0.14 |    0.00 |  221.6797 | 221.6797 | 221.6797 | 1261763 B |
+|           ConcurrentDict_TryAdd | 10000 |  2,721,195.59 ns |  62,415.534 ns | 182,069.041 ns |  2,805,224.80 ns |  0.72 |    0.04 |  273.4375 | 121.0938 |  42.9688 | 1645328 B |
+|       ImmutableDict_Builder_Add | 10000 |  4,653,773.55 ns |  48,265.920 ns |  42,786.481 ns |  4,645,701.95 ns |  1.20 |    0.02 |  148.4375 |  70.3125 |        - |  959781 B |
+|               ImmutableDict_Add | 10000 | 10,911,107.09 ns | 101,847.861 ns |  85,047.577 ns | 10,956,526.56 ns |  2.81 |    0.04 | 1468.7500 | 265.6250 | 125.0000 | 9271220 B |
+
 */
             // [Params(100)]
             // [Params(14, 100, 1_000, 10_000)]
@@ -396,7 +450,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             public int Count;
 
             [Benchmark(Baseline = true)]
-            public ImTools.ImHashMap<int, string> V4_ImMap_AddOrUpdate()
+            public ImTools.ImHashMap<int, string> V4_ImHashMap_AddOrUpdate()
             {
                 var map = ImTools.ImHashMap<int, string>.Empty;
 
@@ -404,17 +458,6 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                     map = map.AddOrUpdate(i, i.ToString());
 
                 return map;
-            }
-
-            [Benchmark]
-            public ImTools.V2.Experimental.ImMap<string>[] V3_PartitionedImMap_AddOrUpdate()
-            {
-                var slots = ImTools.V2.Experimental.ImMapSlots.CreateWithEmpty<string>();
-
-                for (var i = 0; i < Count; i++)
-                    slots.AddOrUpdate(i, i.ToString());
-
-                return slots;
             }
 
             [Benchmark]
@@ -429,6 +472,17 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             }
 
             [Benchmark]
+            public ImTools.ImHashMap<int, string>[] V4_PartitionedImMap_AddOrUpdate()
+            {
+                var parts = ImTools.PartitionedHashMap.CreateEmpty<string>();
+
+                for (var i = 0; i < Count; i++)
+                    parts.AddOrUpdate(i, i.ToString());
+
+                return parts;
+            }
+
+            // [Benchmark]
             public ImTools.V2.Experimental.ImMap<string> V2_ImMap_Experimental_AddOrUpdate()
             {
                 var map = ImTools.V2.Experimental.ImMap<string>.Empty;
@@ -439,7 +493,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImTools.V2.Experimental.ImMap<string>[] Experimental_ImMapSlots_AddOrUpdate()
             {
                 var slots = ImTools.V2.Experimental.ImMapSlots.CreateWithEmpty<string>();
@@ -450,7 +504,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return slots;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImTools.V2.Experimental.ImMap<string>[] ImMapSlots_AddOrUpdate()
             {
                 var slots = ImTools.V2.Experimental.ImMapSlots.CreateWithEmpty<string>();
