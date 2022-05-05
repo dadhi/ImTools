@@ -3600,7 +3600,7 @@ namespace ImTools
     }
 
     /// <summary>Helper stack wrapper for the array</summary>
-    public sealed class ImMapParentStack<K, V>
+    public sealed class MapParentStack<K, V>
     {
         /// <summary>Entry in a stack</summary>
         public struct Entry
@@ -3617,7 +3617,7 @@ namespace ImTools
         public Entry[] Items;
 
         /// <summary>Creates the list of the `DefaultInitialCapacity`</summary>
-        public ImMapParentStack(int capacity = DefaultInitialCapacity) => Items = new Entry[capacity];
+        public MapParentStack(int capacity = DefaultInitialCapacity) => Items = new Entry[capacity];
 
         /// <summary>Pushes the item</summary>
         public void Put(int index, ImHashMap<K, V>.Entry entry, ImHashMap<K, V> branch)
@@ -3795,11 +3795,11 @@ namespace ImTools
 
         private static readonly object _enumerationB3Tombstone = new object();
 
-        internal struct ImMapStack<K, V>
+        internal struct MapStack<K, V>
         {
             ImHashMap<K, V>.Entry e0, e1, e2, e3, e4, e5, e6, e7;//, e8, e9, e10, e11, e12, e13, e14, e15;
             ImHashMap<K, V> b0, b1, b2, b3, b4, b5, b6, b7;//, b8, b9, b10, b11, b12, b13, b14, b15;
-            ImMapParentStack<K, V> _deeper;
+            MapParentStack<K, V> _deeper;
             const byte _deeperStartsAtLevel = 8;
             public void Put(ushort i, ImHashMap<K, V>.Entry e, ImHashMap<K, V> b)
             {
@@ -3815,7 +3815,7 @@ namespace ImTools
                     case 7: e7 = e; b7 = b; break;
                     default:
                         if (_deeper == null)
-                            _deeper = new ImMapParentStack<K, V>(8);
+                            _deeper = new MapParentStack<K, V>(8);
                         _deeper.Put(i - _deeperStartsAtLevel, e, b);
                         break;
                 }
@@ -3834,11 +3834,11 @@ namespace ImTools
                     case 6: e6 = e; b6 = b; e7 = eNext; b7 = bNext; break;
                     case 7:
                         e7 = e; b7 = b;
-                        if (_deeper == null) _deeper = new ImMapParentStack<K, V>(8);
+                        if (_deeper == null) _deeper = new MapParentStack<K, V>(8);
                         _deeper.Put(0, eNext, bNext);
                         break;
                     default:
-                        if (_deeper == null) _deeper = new ImMapParentStack<K, V>(8);
+                        if (_deeper == null) _deeper = new MapParentStack<K, V>(8);
                         i -= _deeperStartsAtLevel;
                         _deeper.Put(i, e, b);
                         _deeper.Put(i + 1, eNext, bNext);
@@ -3868,25 +3868,25 @@ namespace ImTools
         }
 
         /// <summary>Non-allocating enumerator</summary>
-        public struct ImMapEnumerable<V> : IEnumerable<VEntry<V>>, IEnumerable
+        public struct Enumerable<V> : IEnumerable<VEntry<V>>, IEnumerable
         {
             private readonly ImHashMap<int, V> _map;
             /// <summary>Constructor</summary>
-            public ImMapEnumerable(ImHashMap<int, V> map) => _map = map;
+            public Enumerable(ImHashMap<int, V> map) => _map = map;
 
             /// <summary>Returns non-allocating enumerator</summary>
-            public ImMapEnumerator<V> GetEnumerator() => new ImMapEnumerator<V> { _map = _map };
-            IEnumerator<VEntry<V>> IEnumerable<VEntry<V>>.GetEnumerator() => new ImMapEnumerator<V> { _map = _map };
-            IEnumerator IEnumerable.GetEnumerator() => new ImMapEnumerator<V> { _map = _map };
+            public Enumerator<V> GetEnumerator() => new Enumerator<V> { _map = _map };
+            IEnumerator<VEntry<V>> IEnumerable<VEntry<V>>.GetEnumerator() => new Enumerator<V> { _map = _map };
+            IEnumerator IEnumerable.GetEnumerator() => new Enumerator<V> { _map = _map };
         }
 
         /// <summary>Enumerator on stack, without allocation</summary>
-        public struct ImMapEnumerator<V> : IEnumerator<VEntry<V>>, IDisposable, IEnumerator
+        public struct Enumerator<V> : IEnumerator<VEntry<V>>, IDisposable, IEnumerator
         {
             internal ImHashMap<int, V> _map;
             private short _state;
             private ushort _index;
-            private ImMapStack<int, V> _ps;
+            private MapStack<int, V> _ps;
 
             internal void ReInit(ImHashMap<int, V> map)
             {
@@ -4154,26 +4154,26 @@ namespace ImTools
         }
 
         /// <summary>Non-allocating enumerator</summary>
-        public struct ImMapEnumerable<K, V> : IEnumerable<KVEntry<K, V>>, IEnumerable
+        public struct Enumerable<K, V> : IEnumerable<KVEntry<K, V>>, IEnumerable
         {
             private readonly ImHashMap<K, V> _map;
             /// <summary>Constructor</summary>
-            public ImMapEnumerable(ImHashMap<K, V> map) => _map = map;
+            public Enumerable(ImHashMap<K, V> map) => _map = map;
 
             /// <summary>Returns non-allocating enumerator</summary>
-            public ImMapEnumerator<K, V> GetEnumerator() => new ImMapEnumerator<K, V> { _map = _map };
-            IEnumerator<KVEntry<K, V>> IEnumerable<KVEntry<K, V>>.GetEnumerator() => new ImMapEnumerator<K, V> { _map = _map };
-            IEnumerator IEnumerable.GetEnumerator() => new ImMapEnumerator<K, V> { _map = _map };
+            public Enumerator<K, V> GetEnumerator() => new Enumerator<K, V> { _map = _map };
+            IEnumerator<KVEntry<K, V>> IEnumerable<KVEntry<K, V>>.GetEnumerator() => new Enumerator<K, V> { _map = _map };
+            IEnumerator IEnumerable.GetEnumerator() => new Enumerator<K, V> { _map = _map };
         }
 
         /// <summary>Enumerator on stack, without allocation</summary>
-        public struct ImMapEnumerator<K, V> : IEnumerator<KVEntry<K, V>>, IDisposable, IEnumerator
+        public struct Enumerator<K, V> : IEnumerator<KVEntry<K, V>>, IDisposable, IEnumerator
         {
             internal ImHashMap<K, V> _map;
             private short _state;
             private short _conflictIndex;
             private ushort _index;
-            private ImMapStack<K, V> _ps;
+            private MapStack<K, V> _ps;
 
             internal void ReInit(ImHashMap<K, V> map)
             {
@@ -4506,10 +4506,10 @@ namespace ImTools
         }
 
         /// <summary>Enumerates all the map entries in the hash order.</summary>
-        public static ImMapEnumerable<V> Enumerate<V>(this ImHashMap<int, V> map) => new ImMapEnumerable<V>(map);
+        public static Enumerable<V> Enumerate<V>(this ImHashMap<int, V> map) => new Enumerable<V>(map);
 
         /// <summary>Enumerates all the map entries in the hash order.</summary>
-        public static ImMapEnumerable<K, V> Enumerate<K, V>(this ImHashMap<K, V> map) => new ImMapEnumerable<K, V>(map);
+        public static Enumerable<K, V> Enumerate<K, V>(this ImHashMap<K, V> map) => new Enumerable<K, V>(map);
 
         /// <summary>Depth-first in-order of hash traversal as described in http://en.wikipedia.org/wiki/Tree_traversal.
         /// The `parents` parameter allows to reuse the stack memory used for the traversal between multiple calls.
@@ -5727,7 +5727,7 @@ namespace ImTools
             internal ImHashMap<int, V>[] _maps;
             private bool _mapEnumerationInProgress;
             private int _mapIndex;
-            private ImHashMap.ImMapEnumerator<V> _mapEn;
+            private ImHashMap.Enumerator<V> _mapEn;
             private VEntry<V> _current;
             /// <inheritdoc />
             public VEntry<V> Current => _current;
@@ -5789,7 +5789,7 @@ namespace ImTools
             internal ImHashMap<K, V>[] _maps;
             private bool _mapEnumerationInProgress;
             private int _mapIndex;
-            private ImHashMap.ImMapEnumerator<K, V> _mapEn;
+            private ImHashMap.Enumerator<K, V> _mapEn;
             private KVEntry<K, V> _current;
             /// <inheritdoc />
             public KVEntry<K, V> Current => _current;
