@@ -2800,6 +2800,9 @@ namespace ImTools
             internal override Entry GetEntryOrNull(int hash) =>
                 hash > E.Hash ? R.GetEntryOrNull(hash) : hash < E.Hash ? L.GetEntryOrNull(hash) : E;
 
+            internal override Entry GetSurePresentEntry(int hash) =>
+                hash > E.Hash ? R.GetSurePresentEntry(hash) : hash < E.Hash ? L.GetSurePresentEntry(hash) : E;
+
             internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
             {
                 ImHashMap<K, V> entryOrNewBranch = null;
@@ -2835,21 +2838,15 @@ namespace ImTools
             public override Entry MidEntry => B.E;
             public override ImHashMap<K, V> Left => L;
             public override ImHashMap<K, V> Right => B.R;
-            public Branch2Left(Branch2 b, ImHashMap<K, V> l)
-            {
-                B = b;
-                L = l;
-            }
+            public Branch2Left(Branch2 b, ImHashMap<K, V> l) { B = b; L = l; }
 
             public override int Count() => B.E.Count() + L.Count() + B.R.Count();
 
-            internal override Entry GetEntryOrNull(int hash)
-            {
-                var mh = B.E.Hash;
-                return hash > mh ? B.R.GetEntryOrNull(hash)
-                     : hash < mh ? L.GetEntryOrNull(hash)
-                     : B.E;
-            }
+            internal override Entry GetEntryOrNull(int hash) =>
+                hash > B.E.Hash ? B.R.GetEntryOrNull(hash) : hash < B.E.Hash ? L.GetEntryOrNull(hash) : B.E;
+
+            internal override Entry GetSurePresentEntry(int hash) =>
+                hash > B.E.Hash ? B.R.GetSurePresentEntry(hash) : hash < B.E.Hash ? L.GetSurePresentEntry(hash) : B.E;
 
             internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
             {
@@ -2860,7 +2857,6 @@ namespace ImTools
                     var right = B.R;
                     if (right is Leaf5PlusPlus rl511 && L is Leaf5PlusPlus == false)
                         return rl511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus(entry, this);
-
 
                     entryOrNewBranch = right.AddOrGetEntry(hash, entry);
                     return right.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
@@ -2888,21 +2884,15 @@ namespace ImTools
             public override Entry MidEntry => B.E;
             public override ImHashMap<K, V> Left => B.L;
             public override ImHashMap<K, V> Right => R;
-            public Branch2Right(Branch2 b, ImHashMap<K, V> r)
-            {
-                B = b;
-                R = r;
-            }
+            public Branch2Right(Branch2 b, ImHashMap<K, V> r) { B = b; R = r; }
 
             public override int Count() => B.E.Count() + B.L.Count() + R.Count();
 
-            internal override Entry GetEntryOrNull(int hash)
-            {
-                var mh = B.E.Hash;
-                return hash > mh ? R.GetEntryOrNull(hash)
-                     : hash < mh ? B.L.GetEntryOrNull(hash)
-                     : B.E;
-            }
+            internal override Entry GetEntryOrNull(int hash) =>
+                hash > B.E.Hash ? R.GetEntryOrNull(hash) : hash < B.E.Hash ? B.L.GetEntryOrNull(hash) : B.E;
+
+            internal override Entry GetSurePresentEntry(int hash) =>
+                hash > B.E.Hash ? R.GetSurePresentEntry(hash) : hash < B.E.Hash ? B.L.GetSurePresentEntry(hash) : B.E;
 
             internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
             {
@@ -3037,11 +3027,7 @@ namespace ImTools
         {
             public readonly Entry Plus;
             public readonly Branch2Base B;
-            public Branch2Plus(Entry plus, Branch2Base branch)
-            {
-                Plus = plus;
-                B = branch;
-            }
+            public Branch2Plus(Entry plus, Branch2Base b2) { Plus = plus; B = b2; }
 
             public override int Count() => Plus.Count() + B.Count();
 
@@ -3066,9 +3052,15 @@ namespace ImTools
                 if (Plus.Hash == hash)
                     return Plus;
                 var mh = B.MidEntry.Hash;
-                return hash > mh ? B.Right.GetEntryOrNull(hash)
-                    : hash < mh ? B.Left.GetEntryOrNull(hash)
-                    : B.MidEntry;
+                return hash > mh ? B.Right.GetEntryOrNull(hash) : hash < mh ? B.Left.GetEntryOrNull(hash) : B.MidEntry;
+            }
+
+            internal override Entry GetSurePresentEntry(int hash)
+            {
+                if (Plus.Hash == hash)
+                    return Plus;
+                var mh = B.MidEntry.Hash;
+                return hash > mh ? B.Right.GetSurePresentEntry(hash) : hash < mh ? B.Left.GetSurePresentEntry(hash) : B.MidEntry;
             }
 
             internal ImHashMap<K, V> ToSplitBranch2(out Entry newMid, out ImHashMap<K, V> newRight)
@@ -3351,36 +3343,33 @@ namespace ImTools
 
             public override int Count() => L.Count() + E0.Count() + M.Count() + E1.Count() + R.Count();
 
-            internal override Entry GetEntryOrNull(int hash)
-            {
-                var h1 = E1.Hash;
-                if (hash > h1)
-                    return R.GetEntryOrNull(hash);
-                var h0 = E0.Hash;
-                if (hash < h0)
-                    return L.GetEntryOrNull(hash);
-                return h0 == hash ? E0 : h1 == hash ? E1 : M.GetEntryOrNull(hash);
-            }
+            internal override Entry GetEntryOrNull(int hash) =>
+                hash > E1.Hash ? R.GetEntryOrNull(hash) :
+                hash < E0.Hash ? L.GetEntryOrNull(hash) :
+                hash == E0.Hash ? E0 : hash == E1.Hash ? E1 : M.GetEntryOrNull(hash);
+
+            internal override Entry GetSurePresentEntry(int hash) =>
+                hash > E1.Hash ? R.GetSurePresentEntry(hash) :
+                hash < E0.Hash ? L.GetSurePresentEntry(hash) :
+                hash == E0.Hash ? E0 : hash == E1.Hash ? E1 : M.GetSurePresentEntry(hash);
 
             internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
             {
-                var h1 = E1.Hash;
-                if (hash > h1)
+                if (hash > E1.Hash)
                 {
                     var newRight = R.AddOrGetEntry(hash, entry);
                     return R.MayTurnToBranch2 && newRight is Branch2
                         ? new Branch2(new Branch2(L, E0, M), E1, newRight)
                         : newRight is Entry ? newRight : new Branch3Right(this, newRight);
                 }
-                var h0 = E0.Hash;
-                if (hash < h0)
+                if (hash < E0.Hash)
                 {
                     var newLeft = L.AddOrGetEntry(hash, entry);
                     return L.MayTurnToBranch2 && newLeft is Branch2
                         ? new Branch2(newLeft, E0, new Branch2(M, E1, R))
                         : newLeft is Entry ? newLeft : new Branch3Left(this, newLeft);
                 }
-                if (hash > h0 && hash < h1)
+                if (hash > E0.Hash && hash < E1.Hash)
                 {
                     var newMiddle = M.AddOrGetEntry(hash, entry);
                     // note: we are checking for the Branch2 instead of Branch2Base (which is much faster) but we need to be sure that the split always end with Branch2
@@ -3388,7 +3377,7 @@ namespace ImTools
                         ? new Branch2(new Branch2(L, E0, b2.L), b2.E, new Branch2(b2.R, E1, R)) // todo: @perf @mem opportunity man
                         : newMiddle is Entry ? newMiddle : new Branch3Middle(this, newMiddle);
                 }
-                return hash == h0 ? E0 : E1;
+                return hash == E0.Hash ? E0 : E1;
             }
         }
 
@@ -3401,11 +3390,7 @@ namespace ImTools
             public override ImHashMap<K, V> Left => B.L;
             public override ImHashMap<K, V> Middle => B.M;
             public override ImHashMap<K, V> Right => R;
-            public Branch3Right(Branch3 br3, ImHashMap<K, V> right)
-            {
-                B = br3;
-                R = right;
-            }
+            public Branch3Right(Branch3 br3, ImHashMap<K, V> right) { B = br3; R = right; }
 
             public override int Count() => B.L.Count() + B.E0.Count() + B.M.Count() + B.E1.Count() + R.Count();
 
@@ -3416,9 +3401,17 @@ namespace ImTools
                 if (hash > h1)
                     return R.GetEntryOrNull(hash);
                 var h0 = b.E0.Hash;
-                if (hash < h0)
-                    return b.L.GetEntryOrNull(hash);
-                return h0 == hash ? b.E0 : h1 == hash ? b.E1 : b.M.GetEntryOrNull(hash);
+                return hash < h0 ? b.L.GetEntryOrNull(hash) : h0 == hash ? b.E0 : h1 == hash ? b.E1 : b.M.GetEntryOrNull(hash);
+            }
+
+            internal override Entry GetSurePresentEntry(int hash)
+            {
+                var b = B;
+                var h1 = b.E1.Hash;
+                if (hash > h1)
+                    return R.GetSurePresentEntry(hash);
+                var h0 = b.E0.Hash;
+                return hash < h0 ? b.L.GetSurePresentEntry(hash) : h0 == hash ? b.E0 : h1 == hash ? b.E1 : b.M.GetSurePresentEntry(hash);
             }
 
             internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
