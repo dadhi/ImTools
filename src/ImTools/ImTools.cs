@@ -1035,8 +1035,11 @@ namespace ImTools
         public T Swap<A, B>(A a, B b, Func<T, A, B, T> getNewValue, int retryCountUntilThrow = Ref.RETRY_COUNT_UNTIL_THROW) =>
              Ref.Swap(ref _value, a, b, getNewValue, retryCountUntilThrow);
 
-        /// <summary>Swap with the additional state <paramref name="a"/> required for the delegate <paramref name="getNewValue"/>.
-        /// May prevent closure creation for the delegate</summary>
+        /// <summary>Swap returning the last created value</summary>
+        public T SwapAndGetNewValue(Func<T, T> getNewValue, int retryCountUntilThrow = Ref.RETRY_COUNT_UNTIL_THROW) =>
+             Ref.SwapAndGetNewValue(ref _value, getNewValue, retryCountUntilThrow);
+
+        /// <summary>Swap returning the last created value with additional state `A` parameter</summary>
         public T SwapAndGetNewValue<A>(A a, Func<T, A, T> getNewValue, int retryCountUntilThrow = Ref.RETRY_COUNT_UNTIL_THROW) =>
              Ref.SwapAndGetNewValue(ref _value, a, getNewValue, retryCountUntilThrow);
 
@@ -1132,8 +1135,27 @@ namespace ImTools
             }
         }
 
-        /// <summary>Swap with the additional state a required for the delegate.
-        /// Helps to avoid closure creation for the delegate</summary>
+        /// <summary>Swap returning the last created value</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static T SwapAndGetNewValue<T>(ref T value, Func<T, T> getNewValue,
+            int retryCountUntilThrow = RETRY_COUNT_UNTIL_THROW)
+            where T : class
+        {
+            var spinWait = new SpinWait();
+            var retryCount = 0;
+            while (true)
+            {
+                var oldValue = value;
+                var newValue = getNewValue(oldValue);
+                if (Interlocked.CompareExchange(ref value, newValue, oldValue) == oldValue)
+                    return newValue;
+                if (++retryCount > retryCountUntilThrow)
+                    ThrowRetryCountExceeded(retryCountUntilThrow);
+                spinWait.SpinOnce();
+            }
+        }
+
+        /// <summary>Swap returning the last created value with additional state `A` parameter</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static T SwapAndGetNewValue<T, A>(ref T value, A a, Func<T, A, T> getNewValue,
             int retryCountUntilThrow = RETRY_COUNT_UNTIL_THROW)
@@ -1250,30 +1272,23 @@ namespace ImTools
         }
     }
 
-    /// Simple unbounded object pool
+    ///<summary>Simple unbounded object pool</summary>
     public sealed class StackPool<T> where T : class
     {
         /// <summary>Give me an object</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public T RentOrDefault() =>
-            Interlocked.Exchange(ref _s, _s?.Tail)?.Head;
+        public T RentOrNull() => Interlocked.Exchange(ref _s, _s?.Tail)?.Head;
 
         /// <summary>Give it back</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public void Return(T x) =>
-            Interlocked.Exchange(ref _s, new Stack(x, _s));
+        public void Return(T x) => _s = new Stack(x, _s); // we don't need to interlocked here because it is fine to abandon the one Stack item
 
         private Stack _s;
-
         private sealed class Stack
         {
             public readonly T Head;
             public readonly Stack Tail;
-            public Stack(T h, Stack t)
-            {
-                Head = h;
-                Tail = t;
-            }
+            public Stack(T h, Stack t) { Head = h; Tail = t; }
         }
     }
 
@@ -1298,14 +1313,14 @@ namespace ImTools
         /// <summary>Rent the existing static array or create a new array if it is already rented.
         /// The method does not check the `requiredLength` is in the pool bounds to avoid performance cost.</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static T[] RentOrNewOfLength(int requiredLength) =>
+        public static T[] RentOrNew(int requiredLength) =>
             Interlocked.Exchange(ref Arrays[requiredLength - 1], null) ?? new T[requiredLength];
 
         /// <summary>Returns the array back. If array length is greater than `MaxArrayLength` then we will do nothing.
         /// Also to avoid memory leaks the passed array will be cleared before returning to the pool.
         /// The method does not check the `arr.Length` is in the pool bounds to avoid performance cost.</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static void TryReturn(T[] arr)
+        public static void Return(T[] arr)
         {
             for (var i = 0; (uint)i < arr.Length; ++i)
                 arr[i] = default;
@@ -1893,11 +1908,9 @@ namespace ImTools
         /// <summary>Constructs the entry with the value</summary>
         public VEntry(int hash, V value) : base(hash, value) { }
 
-        internal override ImHashMapEntry<int, V> GetOrNull(int key) => key == Hash ? this : null;
         internal override ImHashMapEntry<int, V> GetOrNullWithTheSameHash(int key) => this;
         internal override ImHashMapEntry<int, V> GetOrNullWithTheSameHashByReferenceEquals(int key) => this;
         internal override V GetValueOrDefaultWithTheSameHashByReferenceEquals(int key) => Value;
-        internal override Entry AddWithTheSameKey(ImHashMapEntry<int, V> newEntry) => this;
         internal override Entry AddOrUpdateWithTheSameHash(ImHashMapEntry<int, V> newEntry) => newEntry;
         internal override Entry AddOrUpdateWithTheSameHashByReferenceEquals(ImHashMapEntry<int, V> newEntry) => newEntry;
         internal override Entry AddOrUpdateWithTheSameHash(ImHashMapEntry<int, V> newEntry, Update<int, V> update) =>
@@ -1906,13 +1919,17 @@ namespace ImTools
             ImHashMap.Entry(Hash, update(Hash, Value, newEntry.Value));
         internal override ImHashMap<int, V> GetMapOrReplaceWithEntry(ImHashMap<int, V> oldMap, ImHashMapEntry<int, V> newEntry) =>
             this == newEntry ? this : oldMap.ReplaceEntry(this, newEntry);
-        internal override Entry AddedOrNullWithTheSameHash(ImHashMapEntry<int, V> newEntry) => null;
+        internal override ImHashMap<int, V> AddOrKeepWithTheSameHash(ImHashMap<int, V> oldMap, ImHashMapEntry<int, V> newEntry) =>
+            this == newEntry ? this : oldMap;
         internal override Entry UpdatedOrNullWithTheSameHash(ImHashMapEntry<int, V> newEntry) => newEntry;
         internal override Entry UpdatedOrNullWithTheSameHash(int key, V value, Update<int, V> update) =>
             ImHashMap.Entry(Hash, update(Hash, Value, value));
         internal override Entry RemovedOrNullWithTheSameHash(int key) => this;
         /// <inheritdoc/>
         public override Entry AppendOrUpdateInPlaceOrKeep<S>(S state, ImHashMapEntry<int, V> newEntry, UpdaterInPlaceOrKeeper<S> updateOrKeep) =>
+            updateOrKeep(state, this, newEntry) != this ? newEntry : this;
+        /// <inheritdoc/>
+        public override Entry AppendOrUpdateInPlaceOrKeepByReferenceEquals<S>(S state, ImHashMapEntry<int, V> newEntry, UpdaterInPlaceOrKeeper<S> updateOrKeep) =>
             updateOrKeep(state, this, newEntry) != this ? newEntry : this;
     }
 
@@ -1921,7 +1938,7 @@ namespace ImTools
     {
         /// <summary>The key</summary>
         public override K Key => _key;
-        private readonly K _key;
+        internal readonly K _key;
 
         /// <summary>Constructs the entry with the key and default value</summary>
         public KVEntry(int hash, K key) : base(hash) => _key = key;
@@ -1933,9 +1950,6 @@ namespace ImTools
         public override string ToString() => "{H: " + Hash + ", K: " + Key + ", V: " + Value + "}";
 #endif
 
-        internal override ImHashMapEntry<K, V> GetOrNull(K key) =>
-            _key.Equals(key) ? this : null;
-
         internal override ImHashMapEntry<K, V> GetOrNullWithTheSameHash(K key) =>
             _key.Equals(key) ? this : null;
 
@@ -1945,42 +1959,74 @@ namespace ImTools
         internal override V GetValueOrDefaultWithTheSameHashByReferenceEquals(K key) =>
             ReferenceEquals(_key, key) ? Value : default;
 
-        internal override Entry AddWithTheSameKey(ImHashMapEntry<K, V> newEntry) =>
-            new HashConflictingEntry(Hash, this, newEntry);
+        internal override Entry AddOrUpdateWithTheSameHash(ImHashMapEntry<K, V> newEntry)
+        {
+            var e = (KVEntry<K, V>)newEntry;
+            return _key.Equals(e._key) ? e : new HashConflictingEntry(Hash, this, e);
+        }
 
-        internal override Entry AddOrUpdateWithTheSameHash(ImHashMapEntry<K, V> newEntry) =>
-            _key.Equals(newEntry.Key) ? newEntry : new HashConflictingEntry(Hash, this, newEntry);
-
-        internal override Entry AddOrUpdateWithTheSameHashByReferenceEquals(ImHashMapEntry<K, V> newEntry) =>
-            ReferenceEquals(newEntry.Key, _key) ? newEntry : new HashConflictingEntry(Hash, this, newEntry);
+        internal override Entry AddOrUpdateWithTheSameHashByReferenceEquals(ImHashMapEntry<K, V> newEntry)
+        {
+            var e = (KVEntry<K, V>)newEntry;
+            return ReferenceEquals(e._key, _key) ? e : new HashConflictingEntry(Hash, this, e);
+        }
 
         internal override Entry AddOrUpdateWithTheSameHash(ImHashMapEntry<K, V> newEntry, Update<K, V> update)
         {
+            var e = (KVEntry<K, V>)newEntry;
             var key = _key;
-            return key.Equals(newEntry.Key)
-                ? ImHashMap.Entry(Hash, key, update(key, Value, newEntry.Value))
-                : new HashConflictingEntry(Hash, this, newEntry);
+            return key.Equals(e._key) ? ImHashMap.Entry(Hash, key, update(key, Value, e.Value)) : new HashConflictingEntry(Hash, this, e);
         }
-
-        internal override ImHashMap<K, V> GetMapOrReplaceWithEntry(ImHashMap<K, V> oldMap, ImHashMapEntry<K, V> newEntry) =>
-            this == newEntry ? this : oldMap.ReplaceEntry(this, _key.Equals(newEntry.Key) ? newEntry : new HashConflictingEntry(Hash, this, newEntry));
-
-        internal override ImHashMap<K, V> GetMapOrReplaceWithEntryByReferenceEquals(ImHashMap<K, V> oldMap, ImHashMapEntry<K, V> newEntry) =>
-            this == newEntry ? this : oldMap.ReplaceEntry(this, ReferenceEquals(_key, newEntry.Key) ? newEntry : new HashConflictingEntry(Hash, this, newEntry));
 
         internal override Entry AddOrUpdateWithTheSameHashByReferenceEquals(ImHashMapEntry<K, V> newEntry, Update<K, V> update)
         {
+            var e = (KVEntry<K, V>)newEntry;
             var key = _key;
-            return ReferenceEquals(key, newEntry.Key)
-                ? ImHashMap.Entry(Hash, key, update(key, Value, newEntry.Value))
-                : new HashConflictingEntry(Hash, this, newEntry);
+            return ReferenceEquals(key, e._key) ? ImHashMap.Entry(Hash, key, update(key, Value, e.Value)) : new HashConflictingEntry(Hash, this, e);
         }
 
-        internal override Entry AddedOrNullWithTheSameHash(ImHashMapEntry<K, V> newEntry) =>
-            _key.Equals(newEntry.Key) ? null : new HashConflictingEntry(Hash, this, newEntry);
+        // todo: @wip better method names aligned with the calling side
+        internal override ImHashMap<K, V> GetMapOrReplaceWithEntry(ImHashMap<K, V> oldMap, ImHashMapEntry<K, V> newEntry)
+        {
+            var e = (KVEntry<K, V>)newEntry;
+            return this == e ? e : oldMap.ReplaceEntry(this, _key.Equals(e._key) ? e : new HashConflictingEntry(Hash, this, e));
+        }
 
-        internal override Entry UpdatedOrNullWithTheSameHash(ImHashMapEntry<K, V> newEntry) =>
-            _key.Equals(newEntry.Key) ? newEntry : null;
+        internal override ImHashMap<K, V> GetMapOrReplaceWithEntryByReferenceEquals(ImHashMap<K, V> oldMap, ImHashMapEntry<K, V> newEntry)
+        {
+            var e = (KVEntry<K, V>)newEntry;
+            return this == e ? e : oldMap.ReplaceEntry(this, ReferenceEquals(_key, e._key) ? e : new HashConflictingEntry(Hash, this, e));
+        }
+
+        internal override ImHashMap<K, V> GetEntryOrReplacedMapWithTheSameHash(ImHashMap<K, V> oldMap, ImHashMapEntry<K, V> newEntry)
+        {
+            var e = (KVEntry<K, V>)newEntry;
+            return this == e ? e : _key.Equals(e._key) ? this : oldMap.ReplaceEntry(this, new HashConflictingEntry(Hash, this, e));
+        }
+
+        internal override ImHashMap<K, V> GetEntryOrReplacedMapWithTheSameHashByReferenceEquals(ImHashMap<K, V> oldMap, ImHashMapEntry<K, V> newEntry)
+        {
+            var e = (KVEntry<K, V>)newEntry;
+            return this == e ? e : ReferenceEquals(_key, e._key) ? this : oldMap.ReplaceEntry(this, new HashConflictingEntry(Hash, this, e));
+        }
+
+        internal override ImHashMap<K, V> AddOrKeepWithTheSameHash(ImHashMap<K, V> oldMap, ImHashMapEntry<K, V> newEntry)
+        {
+            var e = (KVEntry<K, V>)newEntry;
+            return this == e ? e : _key.Equals(e._key) ? oldMap : oldMap.ReplaceEntry(this, new HashConflictingEntry(Hash, this, e));
+        }
+
+        internal override ImHashMap<K, V> AddOrKeepWithTheSameHashByReferenceEquals(ImHashMap<K, V> oldMap, ImHashMapEntry<K, V> newEntry)
+        {
+            var e = (KVEntry<K, V>)newEntry;
+            return this == e ? e : ReferenceEquals(_key, e._key) ? oldMap : oldMap.ReplaceEntry(this, new HashConflictingEntry(Hash, this, e));
+        }
+
+        internal override Entry UpdatedOrNullWithTheSameHash(ImHashMapEntry<K, V> newEntry)
+        {
+            var e = (KVEntry<K, V>)newEntry;
+            return _key.Equals(e._key) ? e : null;
+        }
 
         internal override Entry UpdatedOrNullWithTheSameHash(K key, V value, Update<K, V> update)
         {
@@ -1993,10 +2039,18 @@ namespace ImTools
         internal override Entry RemovedOrNullWithTheSameHash(K key) => _key.Equals(key) ? this : null;
 
         /// <inheritdoc/>
-        public override Entry AppendOrUpdateInPlaceOrKeep<S>(S state, ImHashMapEntry<K, V> newEntry, UpdaterInPlaceOrKeeper<S> updateOrKeep) =>
-            !Key.Equals(newEntry.Key)
-                ? new HashConflictingEntry(Hash, this, newEntry)
-                : updateOrKeep(state, this, newEntry) != this ? newEntry : this;
+        public override Entry AppendOrUpdateInPlaceOrKeep<S>(S state, ImHashMapEntry<K, V> newEntry, UpdaterInPlaceOrKeeper<S> updateOrKeep)
+        {
+            var e = (KVEntry<K, V>)newEntry;
+            return !_key.Equals(e._key) ? new HashConflictingEntry(Hash, this, e) : updateOrKeep(state, this, e) != this ? e : this;
+        }
+
+        /// <inheritdoc/>
+        public override Entry AppendOrUpdateInPlaceOrKeepByReferenceEquals<S>(S state, ImHashMapEntry<K, V> newEntry, UpdaterInPlaceOrKeeper<S> updateOrKeep)
+        {
+            var e = (KVEntry<K, V>)newEntry;
+            return !ReferenceEquals(_key, e._key) ? new HashConflictingEntry(Hash, this, e) : updateOrKeep(state, this, e) != this ? e : this;
+        }
     }
 
     /// <summary>The base and the holder class for the map tree leafs and branches, also defines the Empty tree.
@@ -2061,6 +2115,10 @@ namespace ImTools
         /// this will have a different implementation for KVEntry and HashConflictingEntry, for the VEntry returning `this` is correct as for the map
         internal virtual ImHashMap<K, V> GetMapOrReplaceWithEntry(ImHashMap<K, V> oldMap, ImHashMapEntry<K, V> newEntry) => this;
         internal virtual ImHashMap<K, V> GetMapOrReplaceWithEntryByReferenceEquals(ImHashMap<K, V> oldMap, ImHashMapEntry<K, V> newEntry) => this;
+        internal virtual ImHashMap<K, V> GetEntryOrReplacedMapWithTheSameHash(ImHashMap<K, V> oldMap, ImHashMapEntry<K, V> newEntry) => this;
+        internal virtual ImHashMap<K, V> GetEntryOrReplacedMapWithTheSameHashByReferenceEquals(ImHashMap<K, V> oldMap, ImHashMapEntry<K, V> newEntry) => this;
+        internal virtual ImHashMap<K, V> AddOrKeepWithTheSameHash(ImHashMap<K, V> oldMap, ImHashMapEntry<K, V> newEntry) => this;
+        internal virtual ImHashMap<K, V> AddOrKeepWithTheSameHashByReferenceEquals(ImHashMap<K, V> oldMap, ImHashMapEntry<K, V> newEntry) => this;
 
         /// <summary>The delegate is supposed to return entry different from the oldEntry to update, and return the oldEntry to keep it.</summary>
         public delegate ImHashMapEntry<K, V> UpdaterInPlaceOrKeeper<S>(S state, ImHashMapEntry<K, V> oldEntry, ImHashMapEntry<K, V> newEntry);
@@ -2077,9 +2135,6 @@ namespace ImTools
             /// <summary>Constructs the entry with the hash</summary>
             protected Entry(int hash) => Hash = hash;
 
-            /// <summary>Lookup for the entry by Hash and Key</summary>
-            internal abstract ImHashMapEntry<K, V> GetOrNull(K key);
-
             /// <summary>Get entry if it has the equal key, assuming the entry has the same hash already.</summary>
             internal abstract ImHashMapEntry<K, V> GetOrNullWithTheSameHash(K key);
 
@@ -2088,10 +2143,6 @@ namespace ImTools
 
             /// <summary>Get entry if it has the reference equal key, assuming the entry has the same hash already.</summary>
             internal abstract V GetValueOrDefaultWithTheSameHashByReferenceEquals(K key);
-
-            /// <summary>Appends the new entry to the existing entry, assuming the entry has the same key already.
-            /// For `VEntry` returns `this` entry.</summary>
-            internal abstract Entry AddWithTheSameKey(ImHashMapEntry<K, V> newEntry);
 
             /// <summary>Always returns updated entry or the updated (hash-conflicting) entry with added `newEntry`.</summary>
             internal abstract Entry AddOrUpdateWithTheSameHash(ImHashMapEntry<K, V> newEntry);
@@ -2113,15 +2164,16 @@ namespace ImTools
             /// <summary>Returns either updated entry or `null` if `newEntry.Key` is not found inside</summary>
             internal abstract Entry UpdatedOrNullWithTheSameHash(K key, V value, Update<K, V> update);
 
-            /// <summary>Returns either added entry or `null` if `newEntry.Key` is not found inside</summary>
-            internal abstract Entry AddedOrNullWithTheSameHash(ImHashMapEntry<K, V> newEntry);
-
             /// <summary>Returns the `this` entry if the `key` is equals to its key, otherwise null</summary>
             internal abstract Entry RemovedOrNullWithTheSameHash(K key);
 
-            /// <summary>Updating the newEntry in place via the provide delegate based on the current (old) entry or
+            /// <summary>Updating the newEntry in place via the passed delegate based on the current (old) entry or
             /// adding the newEntry to the hash-conflicting entry, or keeping the old one.</summary>
             public abstract Entry AppendOrUpdateInPlaceOrKeep<S>(S state, ImHashMapEntry<K, V> newEntry, UpdaterInPlaceOrKeeper<S> updateOrKeep);
+
+            /// <summary>Updating the newEntry in place via the passed delegate based on the current (old) entry or
+            /// adding the newEntry to the hash-conflicting entry, or keeping the old one. The key is compared by the ReferenceEquals.</summary>
+            public abstract Entry AppendOrUpdateInPlaceOrKeepByReferenceEquals<S>(S state, ImHashMapEntry<K, V> newEntry, UpdaterInPlaceOrKeeper<S> updateOrKeep);
 
             internal override Entry GetMinHashEntryOrDefault() => this;
             internal override Entry GetMaxHashEntryOrDefault() => this;
@@ -2154,11 +2206,11 @@ namespace ImTools
         /// <summary>The composite containing the list of entries with the same conflicting Hash.</summary>
         internal sealed class HashConflictingEntry : Entry
         {
-            public ImHashMapEntry<K, V>[] Conflicts;
+            public KVEntry<K, V>[] Conflicts;
 
             public override K Key => throw new NotSupportedException("The Key does not make sense foe multi-key entry: " + this);
 
-            internal HashConflictingEntry(int hash, params ImHashMapEntry<K, V>[] conflicts) : base(hash) => Conflicts = conflicts;
+            internal HashConflictingEntry(int hash, params KVEntry<K, V>[] conflicts) : base(hash) => Conflicts = conflicts;
 
 #if !DEBUG
             public override string ToString()
@@ -2172,21 +2224,19 @@ namespace ImTools
 
             public override int Count() => Conflicts.Length;
 
-            internal override ImHashMapEntry<K, V> GetOrNull(K key)
+            internal override ImHashMapEntry<K, V> GetOrNullWithTheSameHash(K key)
             {
                 var cs = Conflicts;
                 var i = cs.Length - 1;
-                while (i != -1 && !cs[i].Key.Equals(key)) --i;
+                while (i != -1 && !cs[i]._key.Equals(key)) --i;
                 return i != -1 ? cs[i] : null;
             }
-
-            internal override ImHashMapEntry<K, V> GetOrNullWithTheSameHash(K key) => GetOrNull(key);
 
             internal override ImHashMapEntry<K, V> GetOrNullWithTheSameHashByReferenceEquals(K key)
             {
                 var cs = Conflicts;
                 var i = cs.Length - 1;
-                while (i != -1 && !ReferenceEquals(cs[i].Key, key)) --i;
+                while (i != -1 && !ReferenceEquals(cs[i]._key, key)) --i;
                 return i != -1 ? cs[i] : null;
             }
 
@@ -2194,65 +2244,105 @@ namespace ImTools
             {
                 var cs = Conflicts;
                 var i = cs.Length - 1;
-                while (i != -1 && !ReferenceEquals(cs[i].Key, key)) --i;
+                while (i != -1 && !ReferenceEquals(cs[i]._key, key)) --i;
                 return i != -1 ? cs[i].Value : default;
             }
-
-            internal override Entry AddWithTheSameKey(ImHashMapEntry<K, V> newEntry) =>
-                new HashConflictingEntry(Hash, Conflicts.AppendToNonEmpty(newEntry));
 
             internal override Entry AddOrUpdateWithTheSameHash(ImHashMapEntry<K, V> newEntry) =>
                 AddOrUpdateWithTheSameHash(newEntry, null);
 
             internal override Entry AddOrUpdateWithTheSameHash(ImHashMapEntry<K, V> newEntry, Update<K, V> update)
             {
-                var key = newEntry.Key;
+                var e = (KVEntry<K, V>)newEntry;
+                var key = e._key;
                 var cs = Conflicts;
                 var i = cs.Length - 1;
-                while (i != -1 && !cs[i].Key.Equals(key)) --i;
+                while (i != -1 && !cs[i]._key.Equals(key)) --i;
                 if (i == -1)
-                    return new HashConflictingEntry(Hash, cs.AppendToNonEmpty(newEntry));
+                    return new HashConflictingEntry(Hash, cs.AppendToNonEmpty(e));
                 if (update != null)
-                    newEntry = ImHashMap.Entry(Hash, key, update(key, cs[i].Value, newEntry.Value));
-                return new HashConflictingEntry(Hash, cs.UpdateNonEmpty(newEntry, i));
+                    e = new KVEntry<K, V>(Hash, key, update(key, cs[i].Value, e.Value));
+                return new HashConflictingEntry(Hash, cs.UpdateNonEmpty(e, i));
             }
-
-            internal override ImHashMap<K, V> GetMapOrReplaceWithEntry(ImHashMap<K, V> oldMap, ImHashMapEntry<K, V> newEntry) =>
-                oldMap.ReplaceEntry(this, AddOrUpdateWithTheSameHash(newEntry, null));
 
             internal override Entry AddOrUpdateWithTheSameHashByReferenceEquals(ImHashMapEntry<K, V> newEntry) =>
                 AddOrUpdateWithTheSameHashByReferenceEquals(newEntry, null);
 
             internal override Entry AddOrUpdateWithTheSameHashByReferenceEquals(ImHashMapEntry<K, V> newEntry, Update<K, V> update)
             {
-                var key = newEntry.Key;
+                var e = (KVEntry<K, V>)newEntry;
+                var key = e._key;
                 var cs = Conflicts;
                 var i = cs.Length - 1;
-                while (i != -1 && !ReferenceEquals(cs[i].Key, key)) --i;
+                while (i != -1 && !ReferenceEquals(cs[i]._key, key)) --i;
                 if (i == -1)
-                    return new HashConflictingEntry(Hash, cs.AppendToNonEmpty(newEntry));
+                    return new HashConflictingEntry(Hash, cs.AppendToNonEmpty(e));
                 if (update != null)
-                    newEntry = ImHashMap.Entry(Hash, key, update(key, cs[i].Value, newEntry.Value));
-                return new HashConflictingEntry(Hash, cs.UpdateNonEmpty(newEntry, i));
+                    e = new KVEntry<K, V>(Hash, key, update(key, cs[i].Value, e.Value));
+                return new HashConflictingEntry(Hash, cs.UpdateNonEmpty(e, i));
             }
+
+            internal override ImHashMap<K, V> GetMapOrReplaceWithEntry(ImHashMap<K, V> oldMap, ImHashMapEntry<K, V> newEntry) =>
+                oldMap.ReplaceEntry(this, AddOrUpdateWithTheSameHash(newEntry, null));
 
             internal override ImHashMap<K, V> GetMapOrReplaceWithEntryByReferenceEquals(ImHashMap<K, V> oldMap, ImHashMapEntry<K, V> newEntry) =>
                 oldMap.ReplaceEntry(this, AddOrUpdateWithTheSameHashByReferenceEquals(newEntry, null));
 
-            internal override Entry UpdatedOrNullWithTheSameHash(ImHashMapEntry<K, V> newEntry)
+            internal override ImHashMap<K, V> GetEntryOrReplacedMapWithTheSameHash(ImHashMap<K, V> oldMap, ImHashMapEntry<K, V> newEntry)
             {
-                var key = newEntry.Key;
+                var e = (KVEntry<K, V>)newEntry;
+                var key = e._key;
                 var cs = Conflicts;
                 var i = cs.Length - 1;
-                while (i != -1 && !cs[i].Key.Equals(key)) --i;
-                return i == -1 ? null : new HashConflictingEntry(Hash, cs.UpdateNonEmpty(newEntry, i));
+                while (i != -1 && !cs[i]._key.Equals(key)) --i;
+                return i != -1 ? cs[i] : oldMap.ReplaceEntry(this, new HashConflictingEntry(Hash, cs.AppendToNonEmpty(e)));
+            }
+
+            internal override ImHashMap<K, V> GetEntryOrReplacedMapWithTheSameHashByReferenceEquals(ImHashMap<K, V> oldMap, ImHashMapEntry<K, V> newEntry)
+            {
+                var e = (KVEntry<K, V>)newEntry;
+                var key = e._key;
+                var cs = Conflicts;
+                var i = cs.Length - 1;
+                while (i != -1 && !ReferenceEquals(cs[i]._key, key)) --i;
+                return i != -1 ? cs[i] : oldMap.ReplaceEntry(this, new HashConflictingEntry(Hash, cs.AppendToNonEmpty(e)));
+            }
+
+            internal override ImHashMap<K, V> AddOrKeepWithTheSameHash(ImHashMap<K, V> oldMap, ImHashMapEntry<K, V> newEntry)
+            {
+                var e = (KVEntry<K, V>)newEntry;
+                var key = e._key;
+                var cs = Conflicts;
+                var i = cs.Length - 1;
+                while (i != -1 && !cs[i]._key.Equals(key)) --i;
+                return i != -1 ? oldMap : oldMap.ReplaceEntry(this, new HashConflictingEntry(Hash, cs.AppendToNonEmpty(e)));
+            }
+
+            internal override ImHashMap<K, V> AddOrKeepWithTheSameHashByReferenceEquals(ImHashMap<K, V> oldMap, ImHashMapEntry<K, V> newEntry)
+            {
+                var e = (KVEntry<K, V>)newEntry;
+                var key = e._key;
+                var cs = Conflicts;
+                var i = cs.Length - 1;
+                while (i != -1 && !ReferenceEquals(cs[i]._key, key)) --i;
+                return i != -1 ? oldMap : oldMap.ReplaceEntry(this, new HashConflictingEntry(Hash, cs.AppendToNonEmpty(e)));
+            }
+
+            internal override Entry UpdatedOrNullWithTheSameHash(ImHashMapEntry<K, V> newEntry)
+            {
+                var e = (KVEntry<K, V>)newEntry;
+                var key = e._key;
+                var cs = Conflicts;
+                var i = cs.Length - 1;
+                while (i != -1 && !cs[i]._key.Equals(key)) --i;
+                return i == -1 ? null : new HashConflictingEntry(Hash, cs.UpdateNonEmpty(e, i));
             }
 
             internal override Entry UpdatedOrNullWithTheSameHash(K key, V value, Update<K, V> update)
             {
                 var cs = Conflicts;
                 var i = cs.Length - 1;
-                while (i != -1 && !cs[i].Key.Equals(key)) --i;
+                while (i != -1 && !cs[i]._key.Equals(key)) --i;
                 if (i == -1)
                     return null;
                 if (update != null)
@@ -2262,18 +2352,7 @@ namespace ImTools
                     if (ReferenceEquals(oldValue, value))
                         return null;
                 }
-                return new HashConflictingEntry(Hash, cs.UpdateNonEmpty(ImHashMap.Entry(Hash, key, value), i));
-            }
-
-            internal override Entry AddedOrNullWithTheSameHash(ImHashMapEntry<K, V> newEntry)
-            {
-                var key = newEntry.Key;
-                var cs = Conflicts;
-                var i = cs.Length - 1;
-                while (i != -1 && !cs[i].Key.Equals(key)) --i;
-                if (i != -1)
-                    return null;
-                return new HashConflictingEntry(Hash, cs.AppendToNonEmpty(newEntry));
+                return new HashConflictingEntry(Hash, cs.UpdateNonEmpty(new KVEntry<K, V>(Hash, key, value), i));
             }
 
             internal override Entry RemovedOrNullWithTheSameHash(K key)
@@ -2281,7 +2360,7 @@ namespace ImTools
                 var cs = Conflicts;
                 var n = cs.Length;
                 var i = n - 1;
-                while (i != -1 && !cs[i].Key.Equals(key)) --i;
+                while (i != -1 && !cs[i]._key.Equals(key)) --i;
                 if (i == -1)
                     return null;
                 if (n == 2)
@@ -2297,16 +2376,31 @@ namespace ImTools
             /// <inheritdoc/>
             public override Entry AppendOrUpdateInPlaceOrKeep<S>(S state, ImHashMapEntry<K, V> newEntry, UpdaterInPlaceOrKeeper<S> updateOrKeep)
             {
-                var key = newEntry.Key;
+                var e = (KVEntry<K, V>)newEntry;
+                var key = e._key;
                 var cs = Conflicts;
                 var i = cs.Length - 1;
-                while (i != -1 && !key.Equals(cs[i].Key)) --i;
-                if (i == -1)
-                    return new HashConflictingEntry(Hash, cs.AppendToNonEmpty(newEntry));
-                var oldEntry = cs[i];
-                if (updateOrKeep(state, oldEntry, newEntry) != oldEntry)
-                    return new HashConflictingEntry(Hash, cs.UpdateNonEmpty(newEntry, i));
-                return this;
+                while (i != -1 && !key.Equals(cs[i]._key)) --i;
+                return i == -1
+                    ? new HashConflictingEntry(Hash, cs.AppendToNonEmpty(e))
+                    : updateOrKeep(state, cs[i], e) != cs[i]
+                    ? new HashConflictingEntry(Hash, cs.UpdateNonEmpty(e, i))
+                    : this;
+            }
+
+            /// <inheritdoc/>
+            public override Entry AppendOrUpdateInPlaceOrKeepByReferenceEquals<S>(S state, ImHashMapEntry<K, V> newEntry, UpdaterInPlaceOrKeeper<S> updateOrKeep)
+            {
+                var e = (KVEntry<K, V>)newEntry;
+                var key = e._key;
+                var cs = Conflicts;
+                var i = cs.Length - 1;
+                while (i != -1 && !ReferenceEquals(key, cs[i]._key)) --i;
+                return i == -1
+                    ? new HashConflictingEntry(Hash, cs.AppendToNonEmpty(e))
+                    : updateOrKeep(state, cs[i], e) != cs[i]
+                    ? new HashConflictingEntry(Hash, cs.UpdateNonEmpty(e, i))
+                    : this;
             }
 
             internal override int ForEach<S>(S state, int startIndex, Action<ImHashMapEntry<K, V>, int, S> handler)
@@ -5216,17 +5310,24 @@ namespace ImTools
 
         /// <summary>Returns the entry ASSUMING it is present otherwise its behavior is UNDEFINED.
         /// You can use the method after the Add and Update methods on the same map instance - 
-        /// because the map is immutable it is for sure contains added or updated entry.</summary>
+        /// because the map is immutable and for sure contains added or updated entry.</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMapEntry<int, V> GetSurePresentEntry<V>(this ImHashMap<int, V> map, int hash) =>
+        public static ImHashMapEntry<int, V> GetSurePresent<V>(this ImHashMap<int, V> map, int hash) =>
             (VEntry<V>)map.GetSurePresentEntry(hash);
 
         /// <summary>Returns the entry ASSUMING it is present otherwise its behavior is UNDEFINED.
         /// You can use the method after the Add and Update methods on the same map instance - 
-        /// because the map is immutable it is for sure contains added or updated entry.</summary>
+        /// because the map is immutable and for sure contains added or updated entry.</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMapEntry<K, V> GetSurePresentEntry<K, V>(this ImHashMap<K, V> map, int hash, K key) =>
-            map.GetSurePresentEntry(hash).GetOrNull(key);
+        public static ImHashMapEntry<K, V> GetSurePresent<K, V>(this ImHashMap<K, V> map, int hash, K key) =>
+            map.GetSurePresentEntry(hash).GetOrNullWithTheSameHash(key);
+
+        /// <summary>Returns the entry ASSUMING it is present otherwise its behavior is UNDEFINED.
+        /// You can use the method after the Add and Update methods on the same map instance - 
+        /// because the map is immutable and for sure contains added or updated entry.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMapEntry<K, V> GetSurePresentByReferenceEquals<K, V>(this ImHashMap<K, V> map, int hash, K key) =>
+            map.GetSurePresentEntry(hash).GetOrNullWithTheSameHashByReferenceEquals(key);
 
         /// <summary>Lookup for the entry by hash, returns the found entry or `null`.</summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -5360,7 +5461,7 @@ namespace ImTools
         public static bool TryFindByReferenceEquals<K, V>(this ImHashMap<K, V> map, K key, out V value) where K : class =>
             map.TryFindByReferenceEquals(key.GetHashCode(), key, out value);
 
-        /// <summary>Creates the entry with the `int` key (which will be used as the key)</summary>
+        /// <summary>Creates the entry with the `int` key (which will be used as the hash)</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMapEntry<int, V> Entry<V>(int key, V value) => new VEntry<V>(key, value);
 
@@ -5372,9 +5473,13 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMapEntry<int, V> WithDefaultValue<V>(this ImHashMapEntry<int, V> e) => new VEntry<V>(e.Hash);
 
-        /// <summary>Creates the entry with the custom provided hash</summary>
+        /// <summary>Creates the entry with the user provided hash</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMapEntry<K, V> Entry<K, V>(int hash, K key, V value) => new KVEntry<K, V>(hash, key, value);
+
+        /// <summary>Creates the entry with the key, value and hash of `key.GetHashCode()`</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMapEntry<K, V> EntryWithHash<K, V>(K key, V value) => new KVEntry<K, V>(key.GetHashCode(), key, value);
 
         /// <summary>Creates the entry but without assigning its value yet</summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -5393,7 +5498,7 @@ namespace ImTools
         }
 
         /// <summary>Creates the map of N unique entries without wasting the memory. The entries Keys should be different</summary>
-        public static ImHashMap<K, V> BuildUnchecked<K, V>(
+        public static ImHashMap<K, V> BuildFromDifferent<K, V>(
             ImHashMapEntry<K, V> e0, ImHashMapEntry<K, V> e1)
         {
             Debug.Assert(!Equals(e0.Key, e1.Key));
@@ -5403,19 +5508,19 @@ namespace ImTools
         }
 
         /// <summary>Creates the map of N unique entries without wasting the memory. The entries Keys should be different</summary>
-        public static ImHashMap<K, V> BuildUnchecked<K, V>(
+        public static ImHashMap<K, V> BuildFromDifferent<K, V>(
             ImHashMapEntry<K, V> e0, ImHashMapEntry<K, V> e1, ImHashMapEntry<K, V> e2)
         {
             Debug.Assert(!Equals(e2.Key, e0.Key) && !Equals(e2.Key, e1.Key));
-            return new ImHashMap<K, V>.Leaf2Plus(e2, (ImHashMap<K, V>.Leaf2)BuildUnchecked(e0, e1));
+            return new ImHashMap<K, V>.Leaf2Plus(e2, (ImHashMap<K, V>.Leaf2)BuildFromDifferent(e0, e1));
         }
 
         /// <summary>Creates the map of N unique entries without wasting the memory. The entries Keys should be different</summary>
-        public static ImHashMap<K, V> BuildUnchecked<K, V>(
+        public static ImHashMap<K, V> BuildFromDifferent<K, V>(
             ImHashMapEntry<K, V> e0, ImHashMapEntry<K, V> e1, ImHashMapEntry<K, V> e2, ImHashMapEntry<K, V> e3)
         {
             Debug.Assert(!Equals(e3.Key, e0.Key) && !Equals(e3.Key, e1.Key) && !Equals(e3.Key, e2.Key));
-            return new ImHashMap<K, V>.Leaf2PlusPlus(e3, (ImHashMap<K, V>.Leaf2Plus)BuildUnchecked(e0, e1, e2));
+            return new ImHashMap<K, V>.Leaf2PlusPlus(e3, (ImHashMap<K, V>.Leaf2Plus)BuildFromDifferent(e0, e1, e2));
         }
 
         /// <summary>Creates the map of N unique entries without wasting the memory. The entries Keys should be different</summary>
@@ -5432,21 +5537,22 @@ namespace ImTools
         }
 
         /// <summary>Creates the map of N unique entries without wasting the memory. The entries Keys should be different</summary>
-        public static ImHashMap<K, V> BuildUnchecked<K, V>(
+        public static ImHashMap<K, V> BuildFromDifferent<K, V>(
             ImHashMapEntry<K, V> e0, ImHashMapEntry<K, V> e1, ImHashMapEntry<K, V> e2, ImHashMapEntry<K, V> e3, ImHashMapEntry<K, V> e4,
             ImHashMapEntry<K, V> e5) =>
             new ImHashMap<K, V>.Leaf5Plus(e5, (ImHashMap<K, V>.Leaf5)BuildUnchecked(e0, e1, e2, e3, e4));
 
         /// <summary>Creates the map of N unique entries without wasting the memory. The entries Keys should be different</summary>
-        public static ImHashMap<K, V> BuildUnchecked<K, V>(
+        public static ImHashMap<K, V> BuildFromDifferent<K, V>(
             ImHashMapEntry<K, V> e0, ImHashMapEntry<K, V> e1, ImHashMapEntry<K, V> e2, ImHashMapEntry<K, V> e3, ImHashMapEntry<K, V> e4,
             ImHashMapEntry<K, V> e5, ImHashMapEntry<K, V> e6) =>
-            new ImHashMap<K, V>.Leaf5PlusPlus(e6, (ImHashMap<K, V>.Leaf5Plus)BuildUnchecked(e0, e1, e2, e3, e4, e5));
+            new ImHashMap<K, V>.Leaf5PlusPlus(e6, (ImHashMap<K, V>.Leaf5Plus)BuildFromDifferent(e0, e1, e2, e3, e4, e5));
 
         /// <summary>Creates the map of N unique entries without wasting the memory. The entries Keys should be different</summary>
-        public static ImHashMap<K, V> BuildUnchecked<K, V>(
+        public static ImHashMap<K, V> BuildFromDifferent<K, V>(
             ImHashMapEntry<K, V> e0, ImHashMapEntry<K, V> e1, ImHashMapEntry<K, V> e2, ImHashMapEntry<K, V> e3, ImHashMapEntry<K, V> e4,
-            ImHashMapEntry<K, V> e5, ImHashMapEntry<K, V> e6, ImHashMapEntry<K, V> e7)
+            ImHashMapEntry<K, V> e5, ImHashMapEntry<K, V> e6, ImHashMapEntry<K, V> e7,
+            ImHashMapEntry<K, V> e8 = null, ImHashMapEntry<K, V> e9 = null)
         {
             if (e0.Hash > e1.Hash)
                 Fun.Swap(ref e0, ref e1);
@@ -5457,7 +5563,27 @@ namespace ImTools
             InsertInOrder(kv5.Hash, ref kv5, ref kv0, ref kv1, ref kv2, ref kv3, ref kv4);
             InsertInOrder(kv6.Hash, ref kv6, ref kv0, ref kv1, ref kv2, ref kv3, ref kv4, ref kv5);
             InsertInOrder(kv7.Hash, ref kv7, ref kv0, ref kv1, ref kv2, ref kv3, ref kv4, ref kv5, ref kv6);
-            return new ImHashMap<K, V>.Branch2(new ImHashMap<K, V>.Leaf2(kv0, kv1), kv2, new ImHashMap<K, V>.Leaf5(kv3, kv4, kv5, kv6, kv7));
+
+            ImHashMap<K, V> l = new ImHashMap<K, V>.Leaf2(kv0, kv1);
+            ImHashMap<K, V> r = new ImHashMap<K, V>.Leaf5(kv3, kv4, kv5, kv6, kv7);
+            if (e8 != null || e9 != null)
+            {
+                if (e8 != null)
+                {
+                    if (e8.Hash > kv2.Hash)
+                        r = r.AddSureNotPresentEntry(e8);
+                    else
+                        l = l.AddSureNotPresentEntry(e8);
+                }
+                if (e9 != null)
+                {
+                    if (e9.Hash > kv2.Hash)
+                        r = r.AddSureNotPresentEntry(e9);
+                    else
+                        l = l.AddSureNotPresentEntry(e9);
+                }
+            }
+            return new ImHashMap<K, V>.Branch2(l, kv2, r);
         }
 
         /// <summary>Wrapper structure for the hash-key-value</summary>
@@ -5493,24 +5619,24 @@ namespace ImTools
                 return e0;
             var e1 = Entry(en.Current);
             if (!en.MoveNext())
-                return BuildUnchecked(e0, e1);
+                return BuildFromDifferent(e0, e1);
             var e2 = Entry(en.Current);
             if (!en.MoveNext())
-                return BuildUnchecked(e0, e1, e2);
+                return BuildFromDifferent(e0, e1, e2);
             var e3 = Entry(en.Current);
             if (!en.MoveNext())
-                return BuildUnchecked(e0, e1, e2, e3);
+                return BuildFromDifferent(e0, e1, e2, e3);
             var e4 = Entry(en.Current);
             if (!en.MoveNext())
                 return BuildUnchecked(e0, e1, e2, e3, e4);
             var e5 = Entry(en.Current);
             if (!en.MoveNext())
-                return BuildUnchecked(e0, e1, e2, e3, e4, e5);
+                return BuildFromDifferent(e0, e1, e2, e3, e4, e5);
             var e6 = Entry(en.Current);
             if (!en.MoveNext())
-                return BuildUnchecked(e0, e1, e2, e3, e4, e5, e6);
+                return BuildFromDifferent(e0, e1, e2, e3, e4, e5, e6);
             var e7 = Entry(en.Current);
-            var map = BuildUnchecked(e0, e1, e2, e3, e4, e5, e6, e7);
+            var map = BuildFromDifferent(e0, e1, e2, e3, e4, e5, e6, e7);
             while (en.MoveNext())
             {
                 var it = en.Current;
@@ -5526,24 +5652,14 @@ namespace ImTools
 
         /// <summary>Adds the entry and returns the new map or if the hash is present then return the found entry or the newEntry if the map is empty.</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap<K, V> AddOrGetEntry<K, V>(this ImHashMap<K, V> map, ImHashMapEntry<K, V> newEntry)
-        {
-            var mapOrOldEntry = map.AddOrGetEntry(newEntry.Hash, newEntry);
-            return mapOrOldEntry is ImHashMap<K, V>.Entry oldEntry && oldEntry != newEntry
-                ? oldEntry.GetOrNullWithTheSameHash(newEntry.Key) ?? map.ReplaceEntry(oldEntry, oldEntry.AddWithTheSameKey(newEntry))
-                : mapOrOldEntry;
-        }
+        public static ImHashMap<K, V> AddOrGetEntry<K, V>(this ImHashMap<K, V> map, ImHashMapEntry<K, V> newEntry) =>
+            map.AddOrGetEntry(newEntry.Hash, newEntry).GetEntryOrReplacedMapWithTheSameHash(map, newEntry);
 
         /// <summary>Adds the entry and returns the new map or if the hash is present then return the found entry or the newEntry if the map is empty.
         /// The entry key is compared by the `ReferenceEquals`</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap<K, V> AddOrGetEntryByReferenceEquals<K, V>(this ImHashMap<K, V> map, ImHashMapEntry<K, V> newEntry)
-        {
-            var mapOrOldEntry = map.AddOrGetEntry(newEntry.Hash, newEntry);
-            return mapOrOldEntry is ImHashMap<K, V>.Entry oldEntry && oldEntry != newEntry
-                ? oldEntry.GetOrNullWithTheSameHashByReferenceEquals(newEntry.Key) ?? map.ReplaceEntry(oldEntry, oldEntry.AddWithTheSameKey(newEntry))
-                : mapOrOldEntry;
-        }
+        public static ImHashMap<K, V> AddOrGetEntryByReferenceEquals<K, V>(this ImHashMap<K, V> map, ImHashMapEntry<K, V> newEntry) =>
+            map.AddOrGetEntry(newEntry.Hash, newEntry).GetEntryOrReplacedMapWithTheSameHashByReferenceEquals(map, newEntry);
 
         /// <summary>Adds or updates (no in-place mutation) the map with the new entry, always returning the NEW map!</summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -5571,10 +5687,22 @@ namespace ImTools
         public static ImHashMap<K, V> AddOrUpdate<K, V>(this ImHashMap<K, V> map, int hash, K key, V value) =>
             map.AddOrUpdateEntry(Entry(hash, key, value));
 
+        /// <summary>Adds or updates (no in-place mutation) the map with value by the passed hash and key, always returning the NEW map!
+        /// Keys are compared by ReferenceEquals</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap<K, V> AddOrUpdateByReferenceEquals<K, V>(this ImHashMap<K, V> map, int hash, K key, V value) =>
+            map.AddOrUpdateEntryByReferenceEquals(Entry(hash, key, value));
+
         /// <summary>Adds or updates (no in-place mutation) the map with value by the passed key, always returning the NEW map!</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap<K, V> AddOrUpdate<K, V>(this ImHashMap<K, V> map, K key, V value) =>
-            map.AddOrUpdateEntry(Entry(key.GetHashCode(), key, value));
+            map.AddOrUpdateEntry(EntryWithHash(key, value));
+
+        /// <summary>Adds or updates (no in-place mutation) the map with value by the passed key, always returning the NEW map!
+        /// Keys are compared by ReferenceEquals</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap<K, V> AddOrUpdateByReferenceEquals<K, V>(this ImHashMap<K, V> map, K key, V value) =>
+            map.AddOrUpdateEntryByReferenceEquals(EntryWithHash(key, value));
 
         /// <summary>Add sure not present item, so before calling this method you may either check the map via GetEntryOrNull or be sure that the new added key is unique</summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -5589,7 +5717,7 @@ namespace ImTools
         /// <summary>Add sure not present item, so before calling this method you may either check the map via GetEntryOrNull or be sure that the new added key is unique</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap<K, V> AddSureNotPresent<K, V>(this ImHashMap<K, V> map, K key, V value) =>
-            map.AddSureNotPresentEntry(Entry(key.GetHashCode(), key, value));
+            map.AddSureNotPresentEntry(EntryWithHash(key, value));
 
         /// <summary>Adds or updates (no in-place mutation) the map with value by the passed hash and key, always returning the NEW map!</summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -5629,14 +5757,6 @@ namespace ImTools
         public static ImHashMap<K, V> AddOrUpdate<K, V>(this ImHashMap<K, V> map, K key, V value, Update<K, V> update) =>
             map.AddOrUpdate(key.GetHashCode(), key, value, update);
 
-        /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap<int, V> AddOrKeepEntry<V>(this ImHashMap<int, V> map, ImHashMapEntry<int, V> newEntry)
-        {
-            var mapOrOldEntry = map.AddOrGetEntry(newEntry.Hash, newEntry);
-            return mapOrOldEntry is VEntry<V> oldEntry && oldEntry != newEntry ? map : mapOrOldEntry;
-        }
-
         /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the hash is already present</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap<int, V> AddOrKeep<V>(this ImHashMap<int, V> map, int hash, V value) =>
@@ -5644,17 +5764,13 @@ namespace ImTools
 
         /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static ImHashMap<K, V> AddOrKeepEntry<K, V>(this ImHashMap<K, V> map, ImHashMapEntry<K, V> newEntry)
-        {
-            var hash = newEntry.Hash;
-            var mapOrOldEntry = map.AddOrGetEntry(hash, newEntry);
-            if (mapOrOldEntry is ImHashMap<K, V>.Entry oldEntry && oldEntry != newEntry)
-            {
-                var added = oldEntry.AddedOrNullWithTheSameHash(newEntry);
-                return added == null ? map : map.ReplaceEntry(oldEntry, added);
-            }
-            return mapOrOldEntry;
-        }
+        public static ImHashMap<K, V> AddOrKeepEntry<K, V>(this ImHashMap<K, V> map, ImHashMapEntry<K, V> newEntry) =>
+            map.AddOrGetEntry(newEntry.Hash, newEntry).AddOrKeepWithTheSameHash(map, newEntry);
+
+        /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public static ImHashMap<K, V> AddOrKeepEntryByReferenceEquals<K, V>(this ImHashMap<K, V> map, ImHashMapEntry<K, V> newEntry) =>
+            map.AddOrGetEntry(newEntry.Hash, newEntry).AddOrKeepWithTheSameHashByReferenceEquals(map, newEntry);
 
         /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -5664,7 +5780,7 @@ namespace ImTools
         /// <summary>Produces the new map with the new entry or keeps the existing map if the entry with the key is already present</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static ImHashMap<K, V> AddOrKeep<K, V>(this ImHashMap<K, V> map, K key, V value) =>
-            map.AddOrKeepEntry(Entry(key.GetHashCode(), key, value));
+            map.AddOrKeepEntry(EntryWithHash(key, value));
 
         /// <summary>Updates the map with the new value if the hash is found otherwise returns the same unchanged map.</summary>
         [MethodImpl((MethodImplOptions)256)]
@@ -5697,6 +5813,7 @@ namespace ImTools
         public static ImHashMap<K, V> Update<K, V>(this ImHashMap<K, V> map, K key, V value) =>
             map.Update(key.GetHashCode(), key, value);
 
+        // todo: @wip add ByReferenceEquals
         /// <summary>Updates the map with the new value if the key is found otherwise returns the same unchanged map.</summary>
         public static ImHashMap<K, V> UpdateToDefault<K, V>(this ImHashMap<K, V> map, int hash, K key)
         {
