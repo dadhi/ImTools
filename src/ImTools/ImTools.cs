@@ -35,6 +35,7 @@ namespace ImTools
     using System.Threading;
     using System.Diagnostics;
     using System.Runtime.CompilerServices; // For [MethodImpl(AggressiveInlining)]
+    using static System.Environment;
 
     /// <summary>Helpers for functional composition</summary>
     public static class Fun
@@ -1884,8 +1885,10 @@ namespace ImTools
 
 #if !DEBUG
         /// <inheritdoc />
-        public override string ToString() => "{K:" + Key + ",V:" + Value + "}";
+        public override string ToString() => "{K:" + Hash + ",V:" + Value + "}";
 #endif
+
+        internal override string ToMermaidGraphTopDown() => "E"+ Hash +"[`" + Hash + "`,`" + Value + "`]";
 
         /// <inheritdoc />
         public sealed override int Count() => 1;
@@ -1947,8 +1950,11 @@ namespace ImTools
 
 #if !DEBUG
         /// <inheritdoc />
-        public override string ToString() => "{H: " + Hash + ", K: " + Key + ", V: " + Value + "}";
+        public override string ToString() => "{H: " + Hash + ", K: " + _key + ", V: " + Value + "}";
 #endif
+
+        internal override string ToMermaidNodeId() => "E"+ Hash;
+        internal override string ToMermaidGraphTopDown() => "E"+ Hash +"[`" + Hash +"`,`" + _key + "`,`" + Value + "`]";
 
         internal override ImHashMapEntry<K, V> GetOrNullWithTheSameHash(K key) =>
             _key.Equals(key) ? this : null;
@@ -2076,6 +2082,9 @@ namespace ImTools
             return "{}";
 #endif
         }
+
+        internal virtual string ToMermaidNodeId() => "M";
+        internal virtual string ToMermaidGraphTopDown() => "M(" + Count() + " entries)";
 
         /// <summary>Indicates that the map is empty</summary>
         public bool IsEmpty => this == Empty;
@@ -2427,6 +2436,10 @@ namespace ImTools
 #if !DEBUG
             public override string ToString() => "{L2:{E0: " + Entry0 + ",E1:" + Entry1 + "}}";
 #endif
+            internal override string ToMermaidNodeId() => "L2" + Entry0.ToMermaidNodeId();
+            internal override string ToMermaidGraphTopDown() => 
+                "L2"+ Entry0.ToMermaidGraphTopDown() + NewLine + 
+                "L2E" + Entry0.Hash + "-->" + Entry1.ToMermaidGraphTopDown();
 
             internal override Entry GetMinHashEntryOrDefault() => Entry0;
             internal override Entry GetMaxHashEntryOrDefault() => Entry1;
@@ -2461,6 +2474,10 @@ namespace ImTools
 #if !DEBUG
             public override string ToString() => "{L21: {P: " + Plus + ", L: " + L + "}}";
 #endif
+            internal override string ToMermaidNodeId() => "L2P" + Plus.ToMermaidNodeId();
+            internal override string ToMermaidGraphTopDown() => 
+                "L2P"+ Plus.ToMermaidGraphTopDown() + NewLine + 
+                "L2PE" + Plus.Hash + "-->" + L.ToMermaidGraphTopDown();
 
             internal override Entry GetMinHashEntryOrDefault() => Plus.Hash < L.Entry0.Hash ? Plus : L.Entry0;
             internal override Entry GetMaxHashEntryOrDefault() => Plus.Hash > L.Entry1.Hash ? Plus : L.Entry1;
@@ -2506,6 +2523,10 @@ namespace ImTools
 #if !DEBUG
             public override string ToString() => "{L211:{P:" + Plus + ",L:" + L + "}}";
 #endif
+            internal override string ToMermaidNodeId() => "L2PP" + Plus.ToMermaidNodeId();
+            internal override string ToMermaidGraphTopDown() => 
+                "L2PP"+ Plus.ToMermaidGraphTopDown() + NewLine + 
+                "L2PPE" + Plus.Hash + "-->" + L.ToMermaidGraphTopDown();
 
             internal override Entry GetMinHashEntryOrDefault()
             {
@@ -2595,6 +2616,13 @@ namespace ImTools
             public override string ToString() => 
                 "{L2:{E0:" + Entry0 + ",E1:" + Entry1 + ",E2:" + Entry2 + ",E3:" + Entry3 + ",E4:" + Entry4 + "}}";
 #endif
+            internal override string ToMermaidNodeId() => "L5" + Entry0.ToMermaidNodeId();
+            internal override string ToMermaidGraphTopDown() => 
+                "L5"+ Entry0.ToMermaidGraphTopDown() + NewLine + 
+                "L5E" + Entry0.Hash + "-->" + Entry1.ToMermaidGraphTopDown() + NewLine + 
+                "E" + Entry1.Hash   + "-->" + Entry2.ToMermaidGraphTopDown() + NewLine +
+                "E" + Entry2.Hash   + "-->" + Entry3.ToMermaidGraphTopDown() + NewLine +
+                "E" + Entry3.Hash   + "-->" + Entry4.ToMermaidGraphTopDown();
 
             internal override Entry GetMinHashEntryOrDefault() => Entry0;
             internal override Entry GetMaxHashEntryOrDefault() => Entry4;
@@ -2638,6 +2666,11 @@ namespace ImTools
 #if !DEBUG
             public override string ToString() => "{L51:{P:" + Plus + ",L:" + L + "}}";
 #endif
+            internal override string ToMermaidNodeId() => "L5P" + Plus.ToMermaidNodeId();
+
+            internal override string ToMermaidGraphTopDown() => 
+                "L5P"+ Plus.ToMermaidGraphTopDown() + NewLine + 
+                "L5PE" + Plus.Hash + "-->" + L.ToMermaidGraphTopDown();
 
             internal override Entry GetMinHashEntryOrDefault() => Plus.Hash < L.Entry0.Hash ? Plus : L.Entry0;
             internal override Entry GetMaxHashEntryOrDefault() => Plus.Hash > L.Entry4.Hash ? Plus : L.Entry4;
@@ -2719,6 +2752,10 @@ namespace ImTools
 #if !DEBUG
             public override string ToString() => "{L511:{P:" + Plus + ",L:" + L + "}}";
 #endif
+            internal override string ToMermaidNodeId() => "L5PP" + Plus.ToMermaidNodeId();
+            internal override string ToMermaidGraphTopDown() => 
+                "L5PP"+ Plus.ToMermaidGraphTopDown() + NewLine + 
+                "L5PPE" + Plus.Hash + "-->" + L.ToMermaidGraphTopDown();
 
             internal sealed override Entry GetMinHashEntryOrDefault()
             {
@@ -3140,6 +3177,12 @@ namespace ImTools
 #if !DEBUG
             public override string ToString() => "{B2:{E:" + MidEntry + ",L:" + Left + ",R:" + Right + "}}";
 #endif
+            internal override string ToMermaidNodeId() => "B2" + MidEntry.ToMermaidNodeId();
+            internal override string ToMermaidGraphTopDown() => 
+                Left.ToMermaidGraphTopDown() + NewLine +
+                Right.ToMermaidGraphTopDown() + NewLine +
+                "B2" + MidEntry.ToMermaidGraphTopDown() + "-->" + Left.ToMermaidNodeId() + NewLine +
+                "B2" + MidEntry.ToMermaidNodeId() + "-->" + Right.ToMermaidNodeId();
 
             internal override Entry GetMinHashEntryOrDefault() => Left.GetMinHashEntryOrDefault();
             internal override Entry GetMaxHashEntryOrDefault() => Right.GetMaxHashEntryOrDefault();
@@ -3453,6 +3496,15 @@ namespace ImTools
 #if !DEBUG
             public override string ToString() => "{B3:{E0:" + Entry0 + ",E1:" + Entry0 + ",L:" + Left + ",M:" + Middle + ",R:" + Right + "}}";
 #endif
+            internal override string ToMermaidNodeId() => "B3" + Entry0.ToMermaidNodeId();
+            internal override string ToMermaidGraphTopDown() => 
+                Left.ToMermaidGraphTopDown() + NewLine +
+                Middle.ToMermaidGraphTopDown() + NewLine +
+                Right.ToMermaidGraphTopDown() + NewLine +
+                "B3" + Entry0.ToMermaidGraphTopDown() + "-->" + Left.ToMermaidNodeId() + NewLine +
+                "B3" + Entry0.ToMermaidNodeId() + "-->" + Middle.ToMermaidNodeId() + NewLine +
+                Entry1.ToMermaidGraphTopDown() + "-->" + Middle.ToMermaidNodeId() + NewLine +
+                Entry1.ToMermaidNodeId() + "-->" + Right.ToMermaidNodeId();
 
             // todo: @perf optimize in inheritors
             internal override Entry GetMinHashEntryOrDefault() => Left.GetMinHashEntryOrDefault();
@@ -3992,6 +4044,11 @@ namespace ImTools
     /// <summary>The map methods</summary>
     public static class ImHashMap
     {
+        public static string ToMermaidString<K, V>(this ImHashMap<K, V> map) => map.ToMermaidGraphTopDownString();
+
+        public static string ToMermaidGraphTopDownString<K, V>(this ImHashMap<K, V> map) =>
+            "graph TD" + NewLine + map.ToMermaidGraphTopDown();
+
         [MethodImpl((MethodImplOptions)256)]
         internal static void InsertInOrder<K, V>(int ph, ref ImHashMap<K, V>.Entry p,
             ref ImHashMap<K, V>.Entry e0, ref ImHashMap<K, V>.Entry e1)
