@@ -2999,6 +2999,9 @@ namespace ImTools
 
             public override int Count() => E.Count() + L.Count() + R.Count();
 
+            internal override Entry GetMinHashEntryOrDefault() => L.GetMinHashEntryOrDefault();
+            internal override Entry GetMaxHashEntryOrDefault() => R.GetMaxHashEntryOrDefault();
+
             internal override Entry GetEntryOrNull(int hash) =>
                 hash > E.Hash ? R.GetEntryOrNull(hash) : hash < E.Hash ? L.GetEntryOrNull(hash) : E;
 
@@ -3062,6 +3065,9 @@ namespace ImTools
             public Branch2Left(Branch2 b, ImHashMap<K, V> l) { B = b; L = l; }
 
             public override int Count() => B.E.Count() + L.Count() + B.R.Count();
+
+            internal override Entry GetMinHashEntryOrDefault() => L.GetMinHashEntryOrDefault();
+            internal override Entry GetMaxHashEntryOrDefault() => B.R.GetMaxHashEntryOrDefault();
 
             internal override Entry GetEntryOrNull(int hash) =>
                 hash > B.E.Hash ? B.R.GetEntryOrNull(hash) : hash < B.E.Hash ? L.GetEntryOrNull(hash) : B.E;
@@ -3128,6 +3134,9 @@ namespace ImTools
             public Branch2Right(Branch2 b, ImHashMap<K, V> r) { B = b; R = r; }
 
             public override int Count() => B.E.Count() + B.L.Count() + R.Count();
+
+            internal override Entry GetMinHashEntryOrDefault() => B.L.GetMinHashEntryOrDefault();
+            internal override Entry GetMaxHashEntryOrDefault() => R.GetMaxHashEntryOrDefault();
 
             internal override Entry GetEntryOrNull(int hash) =>
                 hash > B.E.Hash ? R.GetEntryOrNull(hash) : hash < B.E.Hash ? B.L.GetEntryOrNull(hash) : B.E;
@@ -3210,9 +3219,6 @@ namespace ImTools
 
                 return s;
             }
-
-            internal override Entry GetMinHashEntryOrDefault() => Left.GetMinHashEntryOrDefault();
-            internal override Entry GetMaxHashEntryOrDefault() => Right.GetMaxHashEntryOrDefault();
 
             internal override ImHashMap<K, V> ReplaceEntry(Entry oldEntry, Entry newEntry)
             {
