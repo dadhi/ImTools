@@ -545,8 +545,20 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 |       ConcurrentDictionary_TryAdd |  1000 | 165,018.54 ns | 3,075.862 ns | 2,568.484 ns |  0.60 |    0.01 |  41.2598 | 13.6719 |     - |  259720 B |
 |         ImmutableDict_Builder_Add |  1000 | 396,623.48 ns | 4,099.094 ns | 3,834.295 ns |  1.43 |    0.02 |   9.7656 |  2.4414 |     - |   64160 B |
 |                 ImmutableDict_Add |  1000 | 813,397.08 ns | 9,203.453 ns | 8,608.916 ns |  2.94 |    0.04 | 105.4688 | 25.3906 |     - |  665001 B |
+
+## ???
+
+|                   Method | Count |       Mean |     Error |    StdDev |     Median | Ratio | RatioSD |    Gen 0 | Gen 1 | Gen 2 | Allocated |
+|------------------------- |------ |-----------:|----------:|----------:|-----------:|------:|--------:|---------:|------:|------:|----------:|
+| V4_ImHashMap_AddOrUpdate |   100 |   9.367 us | 0.1855 us | 0.3661 us |   9.307 us |  1.00 |    0.00 |   5.7831 |     - |     - |  17.73 KB |
+| V3_ImHashMap_AddOrUpdate |   100 |  10.171 us | 0.2027 us | 0.5011 us |   9.958 us |  1.10 |    0.07 |   6.3782 |     - |     - |  19.56 KB |
+|                          |       |            |           |           |            |       |         |          |       |       |           |
+| V4_ImHashMap_AddOrUpdate |  1000 | 294.633 us | 5.8329 us | 6.4833 us | 293.203 us |  1.00 |    0.00 |  90.8203 |     - |     - | 279.65 KB |
+| V3_ImHashMap_AddOrUpdate |  1000 | 253.610 us | 4.9597 us | 9.5557 us | 250.384 us |  0.86 |    0.03 | 103.0273 |     - |     - | 316.58 KB |
+
 */
-            [Params(1, 10, 100, 1000)]
+            [Params(100, 1000)]
+            // [Params(1, 10, 100, 1000)]
             public int Count;
 
             private Type[] _types;
@@ -590,7 +602,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), new KeyValuePair<Type, string>(typeof(ImHashMapBenchmarks), "!"));
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImTools.ImHashMap<Type, string>[] V4_PartitionedHashMap_AddOrUpdate()
             {
                 var map = ImTools.PartitionedHashMap.CreateEmpty<Type, string>();
@@ -683,7 +695,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public DictionarySlim<TypeVal, string> DictSlim_TryAdd()
             {
                 var map = new DictionarySlim<TypeVal, string>();
@@ -695,7 +707,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public Dictionary<Type, string> Dict_TryAdd()
             {
                 var map = new Dictionary<Type, string>();
@@ -707,7 +719,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ConcurrentDictionary<Type, string> ConcurrentDictionary_TryAdd()
             {
                 var map = new ConcurrentDictionary<Type, string>();
@@ -719,7 +731,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImmutableDictionary<Type, string> ImmutableDict_Builder_Add()
             {
                 var builder = ImmutableDictionary.CreateBuilder<Type, string>();
@@ -730,7 +742,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return builder.ToImmutable();
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImmutableDictionary<Type, string> ImmutableDict_Add()
             {
                 var map = ImmutableDictionary<Type, string>.Empty;

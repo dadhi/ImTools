@@ -3450,17 +3450,33 @@ namespace ImTools
                         return entryOrNewBranch;
                     if (right is Leaf5PlusPlus rl)
                     {
-                        // we know that the new entry is Branch2, because otherwise it would not be Branch2Plus1 in the first place 
-                        var b2 = (Branch2)entryOrNewBranch;
+                        // The new entry is for sure Branch2 because it was L5PP before and now it has a new entry added
+                        var rb2 = (Branch2)entryOrNewBranch;
                         Debug.Assert(ph > m.Hash, "Because right was on the verge of balance and the fact that the other branch is not on the verge was the reason of Branch2Plus1 creation");
-                        return ph > b2.MidEntry.Hash
-                            ? new Branch3(b.Left, m, b2.L, b2.E, b2.R is Leaf2 l2 ? new Leaf2Plus(Plus, l2) : new Leaf5Plus(Plus, (Leaf5)b2.R))
-                            : new Branch3(b.Left, m, b2.L is Leaf5 l5 ? new Leaf5Plus(Plus, l5) : new Leaf2Plus(Plus, (Leaf2)b2.L), b2.E, b2.R);
+                        return ph > rb2.MidEntry.Hash
+                            ? new Branch3(b.Left, m, rb2.L, rb2.E, rb2.R is Leaf2 l2 ? new Leaf2Plus(Plus, l2) : new Leaf5Plus(Plus, (Leaf5)rb2.R))
+                            : new Branch3(b.Left, m, rb2.L is Leaf5 l5 ? new Leaf5Plus(Plus, l5) : new Leaf2Plus(Plus, (Leaf2)rb2.L), rb2.E, rb2.R);
                     }
+                    // todo: @perf it increases the memory for some reason
+                    // if (entryOrNewBranch is Leaf5PlusPlus == false)
+                    //     return new Branch2Plus(Plus,
+                    //         b is Branch2Right b2r ? new Branch2Right(b2r.B, entryOrNewBranch) :
+                    //         b is Branch2 b2 ? new Branch2Right(b2, entryOrNewBranch) :
+                    //         new Branch2(((Branch2Left)b).L, m, entryOrNewBranch));
+
+                    var ll5pp = (Leaf5PlusPlus)b.Left;
+                    // todo: @perf can we keep the B2 for longer?
+                    // left was Leaf5PlusPlus, and Plus was supposed to be added there, so the entryOrNewBranch is still a Leaf
+                    // var maxLeft = ll5pp.GetMaxHashEntryOrDefault();
+                    // if (maxLeft == ll5pp.Plus)
+                    // {
+                    //     return 
+                    // }
+                    
                     // right is not on the verge, then the Plus would be added to the left
                     entry = Plus;
                     ImHashMap<K, V> splitRight = null;
-                    var newLeft = ((Leaf5PlusPlus)b.Left).AddEntry(ph, ref entry, ref splitRight);
+                    var newLeft = ll5pp.AddEntry(ph, ref entry, ref splitRight);
                     return new Branch3(newLeft, entry, splitRight, m, entryOrNewBranch);
                 }
                 if (hash < m.Hash)
@@ -3471,14 +3487,22 @@ namespace ImTools
                         return entryOrNewBranch;
                     if (left is Leaf5PlusPlus ll)
                     {
-                        var b2 = (Branch2)entryOrNewBranch;
-                        return ph < b2.MidEntry.Hash
-                            ? new Branch3(b2.L is Leaf5 l5 ? new Leaf5Plus(Plus, l5) : new Leaf2Plus(Plus, (Leaf2)b2.L), b2.E, b2.R, m, b.Right)
-                            : new Branch3(b2.L, b2.E, b2.R is Leaf2 l2 ? new Leaf2Plus(Plus, l2) : new Leaf5Plus(Plus, (Leaf5)b2.R), m, b.Right);
+                        var lb2 = (Branch2)entryOrNewBranch;
+                        return ph < lb2.MidEntry.Hash
+                            ? new Branch3(lb2.L is Leaf5 l5 ? new Leaf5Plus(Plus, l5) : new Leaf2Plus(Plus, (Leaf2)lb2.L), lb2.E, lb2.R, m, b.Right)
+                            : new Branch3(lb2.L, lb2.E, lb2.R is Leaf2 l2 ? new Leaf2Plus(Plus, l2) : new Leaf5Plus(Plus, (Leaf5)lb2.R), m, b.Right);
                     }
+
+                    // if (entryOrNewBranch is Leaf5PlusPlus == false)
+                    //     return new Branch2Plus(Plus,
+                    //         b is Branch2Left b2r ? new Branch2Left(b2r.B, entryOrNewBranch) :
+                    //         b is Branch2 b2 ? new Branch2Left(b2, entryOrNewBranch) :
+                    //         new Branch2(entryOrNewBranch, m, ((Branch2Right)b).R));
+
+                    var rl5pp = (Leaf5PlusPlus)b.Right;
                     entry = Plus;
                     ImHashMap<K, V> splitRight = null;
-                    var newMiddle = ((Leaf5PlusPlus)b.Right).AddEntry(ph, ref entry, ref splitRight);
+                    var newMiddle = rl5pp.AddEntry(ph, ref entry, ref splitRight);
                     return new Branch3(entryOrNewBranch, m, newMiddle, entry, splitRight);
                 }
                 return m;

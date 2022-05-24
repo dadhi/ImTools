@@ -444,9 +444,9 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 |               ImmutableDict_Add | 10000 | 10,911,107.09 ns | 101,847.861 ns |  85,047.577 ns | 10,956,526.56 ns |  2.81 |    0.04 | 1468.7500 | 265.6250 | 125.0000 | 9271220 B |
 
 */
-            // [Params(100)]
+            [Params(100)]
             // [Params(14, 100, 1_000, 10_000)]
-            [Params(1, 10, 100, 1_000, 10_000)]
+            // [Params(1, 10, 100, 1_000, 10_000)]
             public int Count;
 
             [Benchmark(Baseline = true)]
@@ -471,7 +471,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImTools.ImHashMap<int, string>[] V4_PartitionedImMap_AddOrUpdate()
             {
                 var parts = ImTools.PartitionedHashMap.CreateEmpty<string>();
@@ -515,7 +515,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return slots;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public DictionarySlim<int, string> DictSlim_GetOrAddValueRef()
             {
                 var map = new DictionarySlim<int, string>();
@@ -526,7 +526,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public Dictionary<int, string> Dict_TryAdd()
             {
                 var map = new Dictionary<int, string>();
@@ -537,7 +537,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ConcurrentDictionary<int, string> ConcurrentDict_TryAdd()
             {
                 var map = new ConcurrentDictionary<int, string>();
@@ -548,7 +548,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImmutableDictionary<int, string> ImmutableDict_Builder_Add()
             {
                 var builder = ImmutableDictionary.CreateBuilder<int, string>();
@@ -559,7 +559,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return builder.ToImmutable();
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImmutableDictionary<int, string> ImmutableDict_Add()
             {
                 var dict = ImmutableDictionary.Create<int, string>();
