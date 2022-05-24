@@ -2982,217 +2982,6 @@ namespace ImTools
             }
         }
 
-        internal sealed class Branch2 : Branch2Base
-        {
-            internal readonly Entry E;
-            internal readonly ImHashMap<K, V> L, R;
-            public override Entry MidEntry => E;
-            public override ImHashMap<K, V> Left => L;
-            public override ImHashMap<K, V> Right => R;
-            public Branch2(ImHashMap<K, V> left, Entry entry, ImHashMap<K, V> right)
-            {
-                Debug.Assert(left != Empty && right != Empty, $"left:{left} != Empty && right:{right} != Empty");
-                L = left;
-                E = entry;
-                R = right;
-            }
-
-            public override int Count() => E.Count() + L.Count() + R.Count();
-
-            internal override Entry GetMinHashEntryOrDefault() => L.GetMinHashEntryOrDefault();
-            internal override Entry GetMaxHashEntryOrDefault() => R.GetMaxHashEntryOrDefault();
-
-            internal override Entry GetEntryOrNull(int hash) =>
-                hash > E.Hash ? R.GetEntryOrNull(hash) : hash < E.Hash ? L.GetEntryOrNull(hash) : E;
-
-            internal override Entry GetSurePresentEntry(int hash) =>
-                hash > E.Hash ? R.GetSurePresentEntry(hash) : hash < E.Hash ? L.GetSurePresentEntry(hash) : E;
-
-            internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
-            {
-                ImHashMap<K, V> entryOrNewBranch = null;
-                if (hash > E.Hash)
-                {
-                    // optimizing the split by postponing it by introducing the branch 2 plus 1
-                    if (R is Leaf5PlusPlus rl511 && L is Leaf5PlusPlus == false)
-                        return rl511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus(entry, this);
-                    entryOrNewBranch = R.AddOrGetEntry(hash, entry);
-                    return R.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
-                        ? new Branch3(L, E, b2.L, b2.E, b2.R)
-                        : entryOrNewBranch is Entry ? entryOrNewBranch : new Branch2Right(this, entryOrNewBranch);
-                }
-                if (hash < E.Hash)
-                {
-                    if (L is Leaf5PlusPlus ll511 && R is Leaf5PlusPlus == false)
-                        return ll511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus(entry, this);
-                    entryOrNewBranch = L.AddOrGetEntry(hash, entry);
-                    return L.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
-                        ? new Branch3(b2.L, b2.E, b2.R, E, R)
-                        : entryOrNewBranch is Entry ? entryOrNewBranch : new Branch2Left(this, entryOrNewBranch);
-                }
-                return E;
-            }
-
-            internal override ImHashMap<K, V> AddSureNotPresentEntry(int hash, Entry entry)
-            {
-                ImHashMap<K, V> entryOrNewBranch = null;
-                if (hash > E.Hash)
-                {
-                    // optimizing the split by postponing it by introducing the branch 2 plus 1
-                    if (R is Leaf5PlusPlus && L is Leaf5PlusPlus == false)
-                        return new Branch2Plus(entry, this);
-                    entryOrNewBranch = R.AddSureNotPresentEntry(hash, entry);
-                    return R.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
-                        ? new Branch3(L, E, b2.L, b2.E, b2.R) : new Branch2Right(this, entryOrNewBranch);
-                }
-                {
-                    if (L is Leaf5PlusPlus && R is Leaf5PlusPlus == false)
-                        return new Branch2Plus(entry, this);
-                    entryOrNewBranch = L.AddSureNotPresentEntry(hash, entry);
-                    return L.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
-                        ? new Branch3(b2.L, b2.E, b2.R, E, R) : new Branch2Left(this, entryOrNewBranch);
-                }
-            }
-        }
-
-        internal sealed class Branch2Left : Branch2Base
-        {
-            internal readonly Branch2 B;
-            internal readonly ImHashMap<K, V> L;
-            public override Entry MidEntry => B.E;
-            public override ImHashMap<K, V> Left => L;
-            public override ImHashMap<K, V> Right => B.R;
-            public Branch2Left(Branch2 b, ImHashMap<K, V> l) { B = b; L = l; }
-
-            public override int Count() => B.E.Count() + L.Count() + B.R.Count();
-
-            internal override Entry GetMinHashEntryOrDefault() => L.GetMinHashEntryOrDefault();
-            internal override Entry GetMaxHashEntryOrDefault() => B.R.GetMaxHashEntryOrDefault();
-
-            internal override Entry GetEntryOrNull(int hash) =>
-                hash > B.E.Hash ? B.R.GetEntryOrNull(hash) : hash < B.E.Hash ? L.GetEntryOrNull(hash) : B.E;
-
-            internal override Entry GetSurePresentEntry(int hash) =>
-                hash > B.E.Hash ? B.R.GetSurePresentEntry(hash) : hash < B.E.Hash ? L.GetSurePresentEntry(hash) : B.E;
-
-            internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
-            {
-                var me = B.E;
-                ImHashMap<K, V> entryOrNewBranch = null;
-                if (hash > me.Hash)
-                {
-                    var right = B.R;
-                    if (right is Leaf5PlusPlus rl511 && L is Leaf5PlusPlus == false)
-                        return rl511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus(entry, this);
-                    entryOrNewBranch = right.AddOrGetEntry(hash, entry);
-                    return right.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
-                        ? new Branch3(L, me, b2.L, b2.E, b2.R)
-                        : entryOrNewBranch is Entry ? entryOrNewBranch : new Branch2(L, me, entryOrNewBranch);
-                }
-                if (hash < me.Hash)
-                {
-                    if (L is Leaf5PlusPlus ll511 && B.R is Leaf5PlusPlus == false)
-                        return ll511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus(entry, this);
-                    entryOrNewBranch = L.AddOrGetEntry(hash, entry);
-                    return L.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
-                        ? new Branch3(b2.L, b2.E, b2.R, me, B.R)
-                        : entryOrNewBranch is Entry ? entryOrNewBranch : new Branch2Left(B, entryOrNewBranch);
-                }
-                return me;
-            }
-
-            internal override ImHashMap<K, V> AddSureNotPresentEntry(int hash, Entry entry)
-            {
-                var me = B.E;
-                ImHashMap<K, V> entryOrNewBranch = null;
-                if (hash > me.Hash)
-                {
-                    var right = B.R;
-                    if (right is Leaf5PlusPlus && L is Leaf5PlusPlus == false)
-                        return new Branch2Plus(entry, this);
-                    entryOrNewBranch = right.AddSureNotPresentEntry(hash, entry);
-                    return right.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
-                        ? new Branch3(L, me, b2.L, b2.E, b2.R) : new Branch2(L, me, entryOrNewBranch);
-                }
-                {
-                    if (L is Leaf5PlusPlus ll511 && B.R is Leaf5PlusPlus == false)
-                        return new Branch2Plus(entry, this);
-                    entryOrNewBranch = L.AddSureNotPresentEntry(hash, entry);
-                    return L.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
-                        ? new Branch3(b2.L, b2.E, b2.R, me, B.R) : new Branch2Left(B, entryOrNewBranch);
-                }
-            }
-        }
-
-        internal sealed class Branch2Right : Branch2Base
-        {
-            internal readonly Branch2 B;
-            internal readonly ImHashMap<K, V> R;
-            public override Entry MidEntry => B.E;
-            public override ImHashMap<K, V> Left => B.L;
-            public override ImHashMap<K, V> Right => R;
-            public Branch2Right(Branch2 b, ImHashMap<K, V> r) { B = b; R = r; }
-
-            public override int Count() => B.E.Count() + B.L.Count() + R.Count();
-
-            internal override Entry GetMinHashEntryOrDefault() => B.L.GetMinHashEntryOrDefault();
-            internal override Entry GetMaxHashEntryOrDefault() => R.GetMaxHashEntryOrDefault();
-
-            internal override Entry GetEntryOrNull(int hash) =>
-                hash > B.E.Hash ? R.GetEntryOrNull(hash) : hash < B.E.Hash ? B.L.GetEntryOrNull(hash) : B.E;
-
-            internal override Entry GetSurePresentEntry(int hash) =>
-                hash > B.E.Hash ? R.GetSurePresentEntry(hash) : hash < B.E.Hash ? B.L.GetSurePresentEntry(hash) : B.E;
-
-            internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
-            {
-                var me = B.E;
-                ImHashMap<K, V> entryOrNewBranch = null;
-                if (hash > me.Hash)
-                {
-                    if (R is Leaf5PlusPlus rl511 && B.L is Leaf5PlusPlus == false)
-                        return rl511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus(entry, this);
-                    entryOrNewBranch = R.AddOrGetEntry(hash, entry);
-                    return R.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
-                        ? new Branch3(B.L, me, b2.L, b2.E, b2.R)
-                        : entryOrNewBranch is Entry ? entryOrNewBranch : new Branch2Right(B, entryOrNewBranch);
-                }
-                if (hash < me.Hash)
-                {
-                    var left = B.L;
-                    if (left is Leaf5PlusPlus ll511 && R is Leaf5PlusPlus == false)
-                        return ll511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus(entry, this);
-                    entryOrNewBranch = left.AddOrGetEntry(hash, entry);
-                    return left.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
-                        ? new Branch3(b2.L, b2.E, b2.R, me, R)
-                        : entryOrNewBranch is Entry ? entryOrNewBranch : new Branch2(entryOrNewBranch, me, R);
-                }
-                return me;
-            }
-
-            internal override ImHashMap<K, V> AddSureNotPresentEntry(int hash, Entry entry)
-            {
-                var me = B.E;
-                ImHashMap<K, V> entryOrNewBranch = null;
-                if (hash > me.Hash)
-                {
-                    if (R is Leaf5PlusPlus && B.L is Leaf5PlusPlus == false)
-                        return new Branch2Plus(entry, this);
-                    entryOrNewBranch = R.AddSureNotPresentEntry(hash, entry);
-                    return R.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
-                        ? new Branch3(B.L, me, b2.L, b2.E, b2.R) : new Branch2Right(B, entryOrNewBranch);
-                }
-                {
-                    var left = B.L;
-                    if (left is Leaf5PlusPlus && R is Leaf5PlusPlus == false)
-                        return new Branch2Plus(entry, this);
-                    entryOrNewBranch = left.AddSureNotPresentEntry(hash, entry);
-                    return left.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
-                        ? new Branch3(b2.L, b2.E, b2.R, me, R) : new Branch2(entryOrNewBranch, me, R);
-                }
-            }
-        }
-
         /// <summary>The 2 branches with the node in between</summary>
         internal abstract class Branch2Base : ImHashMap<K, V>
         {
@@ -3218,14 +3007,6 @@ namespace ImTools
                 Right.ToMermaidNodeId(s);
 
                 return s;
-            }
-
-            internal override ImHashMap<K, V> ReplaceEntry(Entry oldEntry, Entry newEntry)
-            {
-                int hash = oldEntry.Hash, h = MidEntry.Hash;
-                return hash > h ? new Branch2(Left, MidEntry, Right.ReplaceEntry(oldEntry, newEntry))
-                    : hash < h ? new Branch2(Left.ReplaceEntry(oldEntry, newEntry), MidEntry, Right)
-                    : new Branch2(Left, newEntry, Right);
             }
 
             internal override ImHashMap<K, V> RemoveEntry(Entry removedEntry)
@@ -3302,6 +3083,232 @@ namespace ImTools
                 }
 
                 return new Branch2(newLeft, mid, Right);
+            }
+        }
+
+        internal sealed class Branch2 : Branch2Base
+        {
+            internal readonly Entry E;
+            internal readonly ImHashMap<K, V> L, R;
+            public override Entry MidEntry => E;
+            public override ImHashMap<K, V> Left => L;
+            public override ImHashMap<K, V> Right => R;
+            public Branch2(ImHashMap<K, V> left, Entry entry, ImHashMap<K, V> right)
+            {
+                Debug.Assert(left != Empty && right != Empty, $"left:{left} != Empty && right:{right} != Empty");
+                L = left;
+                E = entry;
+                R = right;
+            }
+
+            public override int Count() => E.Count() + L.Count() + R.Count();
+
+            internal override Entry GetMinHashEntryOrDefault() => L.GetMinHashEntryOrDefault();
+            internal override Entry GetMaxHashEntryOrDefault() => R.GetMaxHashEntryOrDefault();
+
+            internal override Entry GetEntryOrNull(int hash) =>
+                hash > E.Hash ? R.GetEntryOrNull(hash) : hash < E.Hash ? L.GetEntryOrNull(hash) : E;
+
+            internal override Entry GetSurePresentEntry(int hash) =>
+                hash > E.Hash ? R.GetSurePresentEntry(hash) : hash < E.Hash ? L.GetSurePresentEntry(hash) : E;
+
+            internal override ImHashMap<K, V> ReplaceEntry(Entry oldEntry, Entry newEntry) =>
+                oldEntry.Hash > E.Hash ? new Branch2(L, E, R.ReplaceEntry(oldEntry, newEntry))
+                    : oldEntry.Hash < E.Hash ? new Branch2(L.ReplaceEntry(oldEntry, newEntry), E, R)
+                    : new Branch2(L, newEntry, R);
+
+            internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
+            {
+                ImHashMap<K, V> entryOrNewBranch = null;
+                if (hash > E.Hash)
+                {
+                    // optimizing the split by postponing it by introducing the branch 2 plus 1
+                    if (R is Leaf5PlusPlus rl511 && L is Leaf5PlusPlus == false)
+                        return rl511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus(entry, this);
+                    entryOrNewBranch = R.AddOrGetEntry(hash, entry);
+                    return R.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
+                        ? new Branch3(L, E, b2.L, b2.E, b2.R)
+                        : entryOrNewBranch is Entry ? entryOrNewBranch : new Branch2Right(this, entryOrNewBranch);
+                }
+                if (hash < E.Hash)
+                {
+                    if (L is Leaf5PlusPlus ll511 && R is Leaf5PlusPlus == false)
+                        return ll511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus(entry, this);
+                    entryOrNewBranch = L.AddOrGetEntry(hash, entry);
+                    return L.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
+                        ? new Branch3(b2.L, b2.E, b2.R, E, R)
+                        : entryOrNewBranch is Entry ? entryOrNewBranch : new Branch2Left(this, entryOrNewBranch);
+                }
+                return E;
+            }
+
+            internal override ImHashMap<K, V> AddSureNotPresentEntry(int hash, Entry entry)
+            {
+                ImHashMap<K, V> entryOrNewBranch = null;
+                if (hash > E.Hash)
+                {
+                    // optimizing the split by postponing it by introducing the branch 2 plus 1
+                    if (R is Leaf5PlusPlus && L is Leaf5PlusPlus == false)
+                        return new Branch2Plus(entry, this);
+                    entryOrNewBranch = R.AddSureNotPresentEntry(hash, entry);
+                    return R.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
+                        ? new Branch3(L, E, b2.L, b2.E, b2.R) : new Branch2Right(this, entryOrNewBranch);
+                }
+                {
+                    if (L is Leaf5PlusPlus && R is Leaf5PlusPlus == false)
+                        return new Branch2Plus(entry, this);
+                    entryOrNewBranch = L.AddSureNotPresentEntry(hash, entry);
+                    return L.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
+                        ? new Branch3(b2.L, b2.E, b2.R, E, R) : new Branch2Left(this, entryOrNewBranch);
+                }
+            }
+        }
+
+        internal sealed class Branch2Left : Branch2Base
+        {
+            internal readonly Branch2 B;
+            internal readonly ImHashMap<K, V> L;
+            public override Entry MidEntry => B.E;
+            public override ImHashMap<K, V> Left => L;
+            public override ImHashMap<K, V> Right => B.R;
+            public Branch2Left(Branch2 b, ImHashMap<K, V> l) { B = b; L = l; }
+
+            public override int Count() => B.E.Count() + L.Count() + B.R.Count();
+
+            internal override Entry GetMinHashEntryOrDefault() => L.GetMinHashEntryOrDefault();
+            internal override Entry GetMaxHashEntryOrDefault() => B.R.GetMaxHashEntryOrDefault();
+
+            internal override Entry GetEntryOrNull(int hash) =>
+                hash > B.E.Hash ? B.R.GetEntryOrNull(hash) : hash < B.E.Hash ? L.GetEntryOrNull(hash) : B.E;
+
+            internal override Entry GetSurePresentEntry(int hash) =>
+                hash > B.E.Hash ? B.R.GetSurePresentEntry(hash) : hash < B.E.Hash ? L.GetSurePresentEntry(hash) : B.E;
+
+            internal override ImHashMap<K, V> ReplaceEntry(Entry oldEntry, Entry newEntry) =>
+                oldEntry.Hash > B.E.Hash ? new Branch2(L, B.E, B.R.ReplaceEntry(oldEntry, newEntry))
+                    : oldEntry.Hash < B.E.Hash ? new Branch2(L.ReplaceEntry(oldEntry, newEntry), B.E, B.R)
+                    : new Branch2(L, newEntry, B.R);
+
+            internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
+            {
+                var me = B.E;
+                ImHashMap<K, V> entryOrNewBranch = null;
+                if (hash > me.Hash)
+                {
+                    var right = B.R;
+                    if (right is Leaf5PlusPlus rl511 && L is Leaf5PlusPlus == false)
+                        return rl511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus(entry, this);
+                    entryOrNewBranch = right.AddOrGetEntry(hash, entry);
+                    return right.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
+                        ? new Branch3(L, me, b2.L, b2.E, b2.R)
+                        : entryOrNewBranch is Entry ? entryOrNewBranch : new Branch2(L, me, entryOrNewBranch);
+                }
+                if (hash < me.Hash)
+                {
+                    if (L is Leaf5PlusPlus ll511 && B.R is Leaf5PlusPlus == false)
+                        return ll511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus(entry, this);
+                    entryOrNewBranch = L.AddOrGetEntry(hash, entry);
+                    return L.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
+                        ? new Branch3(b2.L, b2.E, b2.R, me, B.R)
+                        : entryOrNewBranch is Entry ? entryOrNewBranch : new Branch2Left(B, entryOrNewBranch);
+                }
+                return me;
+            }
+
+            internal override ImHashMap<K, V> AddSureNotPresentEntry(int hash, Entry entry)
+            {
+                var me = B.E;
+                ImHashMap<K, V> entryOrNewBranch = null;
+                if (hash > me.Hash)
+                {
+                    var right = B.R;
+                    if (right is Leaf5PlusPlus && L is Leaf5PlusPlus == false)
+                        return new Branch2Plus(entry, this);
+                    entryOrNewBranch = right.AddSureNotPresentEntry(hash, entry);
+                    return right.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
+                        ? new Branch3(L, me, b2.L, b2.E, b2.R) : new Branch2(L, me, entryOrNewBranch);
+                }
+                {
+                    if (L is Leaf5PlusPlus ll511 && B.R is Leaf5PlusPlus == false)
+                        return new Branch2Plus(entry, this);
+                    entryOrNewBranch = L.AddSureNotPresentEntry(hash, entry);
+                    return L.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
+                        ? new Branch3(b2.L, b2.E, b2.R, me, B.R) : new Branch2Left(B, entryOrNewBranch);
+                }
+            }
+        }
+
+        internal sealed class Branch2Right : Branch2Base
+        {
+            internal readonly Branch2 B;
+            internal readonly ImHashMap<K, V> R;
+            public override Entry MidEntry => B.E;
+            public override ImHashMap<K, V> Left => B.L;
+            public override ImHashMap<K, V> Right => R;
+            public Branch2Right(Branch2 b, ImHashMap<K, V> r) { B = b; R = r; }
+
+            public override int Count() => B.E.Count() + B.L.Count() + R.Count();
+
+            internal override Entry GetMinHashEntryOrDefault() => B.L.GetMinHashEntryOrDefault();
+            internal override Entry GetMaxHashEntryOrDefault() => R.GetMaxHashEntryOrDefault();
+
+            internal override Entry GetEntryOrNull(int hash) =>
+                hash > B.E.Hash ? R.GetEntryOrNull(hash) : hash < B.E.Hash ? B.L.GetEntryOrNull(hash) : B.E;
+
+            internal override Entry GetSurePresentEntry(int hash) =>
+                hash > B.E.Hash ? R.GetSurePresentEntry(hash) : hash < B.E.Hash ? B.L.GetSurePresentEntry(hash) : B.E;
+
+            internal override ImHashMap<K, V> ReplaceEntry(Entry oldEntry, Entry newEntry) =>
+                oldEntry.Hash > B.E.Hash ? new Branch2(B.L, B.E, R.ReplaceEntry(oldEntry, newEntry))
+                    : oldEntry.Hash < B.E.Hash ? new Branch2(B.L.ReplaceEntry(oldEntry, newEntry), B.E, R)
+                    : new Branch2(B.L, newEntry, R);
+
+            internal override ImHashMap<K, V> AddOrGetEntry(int hash, Entry entry)
+            {
+                var me = B.E;
+                ImHashMap<K, V> entryOrNewBranch = null;
+                if (hash > me.Hash)
+                {
+                    if (R is Leaf5PlusPlus rl511 && B.L is Leaf5PlusPlus == false)
+                        return rl511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus(entry, this);
+                    entryOrNewBranch = R.AddOrGetEntry(hash, entry);
+                    return R.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
+                        ? new Branch3(B.L, me, b2.L, b2.E, b2.R)
+                        : entryOrNewBranch is Entry ? entryOrNewBranch : new Branch2Right(B, entryOrNewBranch);
+                }
+                if (hash < me.Hash)
+                {
+                    var left = B.L;
+                    if (left is Leaf5PlusPlus ll511 && R is Leaf5PlusPlus == false)
+                        return ll511.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus(entry, this);
+                    entryOrNewBranch = left.AddOrGetEntry(hash, entry);
+                    return left.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
+                        ? new Branch3(b2.L, b2.E, b2.R, me, R)
+                        : entryOrNewBranch is Entry ? entryOrNewBranch : new Branch2(entryOrNewBranch, me, R);
+                }
+                return me;
+            }
+
+            internal override ImHashMap<K, V> AddSureNotPresentEntry(int hash, Entry entry)
+            {
+                var me = B.E;
+                ImHashMap<K, V> entryOrNewBranch = null;
+                if (hash > me.Hash)
+                {
+                    if (R is Leaf5PlusPlus && B.L is Leaf5PlusPlus == false)
+                        return new Branch2Plus(entry, this);
+                    entryOrNewBranch = R.AddSureNotPresentEntry(hash, entry);
+                    return R.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
+                        ? new Branch3(B.L, me, b2.L, b2.E, b2.R) : new Branch2Right(B, entryOrNewBranch);
+                }
+                {
+                    var left = B.L;
+                    if (left is Leaf5PlusPlus && R is Leaf5PlusPlus == false)
+                        return new Branch2Plus(entry, this);
+                    entryOrNewBranch = left.AddSureNotPresentEntry(hash, entry);
+                    return left.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
+                        ? new Branch3(b2.L, b2.E, b2.R, me, R) : new Branch2(entryOrNewBranch, me, R);
+                }
             }
         }
 
