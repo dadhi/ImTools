@@ -1908,7 +1908,7 @@ namespace ImTools
         /// <summary>Constructs the entry with the value</summary>
         public VEntry(int hash, V value) : base(hash, value) { }
 
-        internal override StringBuilder ToMermaidNodeItem(StringBuilder s) => 
+        internal override StringBuilder ToMermaidNodeItem(StringBuilder s) =>
             s.Append('`').Append(Hash).Append("`,`").Append(Value).Append('`');
 
         internal override ImHashMapEntry<int, V> GetOrNullWithTheSameHash(int key) => this;
@@ -1953,7 +1953,7 @@ namespace ImTools
         public override string ToString() => "{H: " + Hash + ", K: " + _key + ", V: " + Value + "}";
 #endif
 
-        internal override StringBuilder ToMermaidNodeItem(StringBuilder s) => 
+        internal override StringBuilder ToMermaidNodeItem(StringBuilder s) =>
             s.Append('`').Append(Hash).Append("`,`").Append(_key).Append("`,`").Append(Value).Append('`');
 
         internal override ImHashMapEntry<K, V> GetOrNullWithTheSameHash(K key) =>
@@ -2085,7 +2085,7 @@ namespace ImTools
 
         internal virtual StringBuilder ToMermaidNodeId(StringBuilder s) => s.Append('M');
         internal virtual StringBuilder ToMermaidNodeItem(StringBuilder s) => s.Append(Count()).Append(" entries");
-        internal virtual StringBuilder ToMermaidString(StringBuilder s) => 
+        internal virtual StringBuilder ToMermaidString(StringBuilder s) =>
             ToMermaidNodeItem(ToMermaidNodeId(s).Append('(')).Append(')');
 
         /// <summary>Indicates that the map is empty</summary>
@@ -2146,7 +2146,7 @@ namespace ImTools
             /// <summary>Constructs the entry with the hash</summary>
             protected Entry(int hash) => Hash = hash;
 
-            internal override StringBuilder ToMermaidNodeId(StringBuilder s) => s.Append('E').Append(Hash);
+            internal override StringBuilder ToMermaidNodeId(StringBuilder s) => s.Append("E_").Append(Hash);
 
             /// <summary>Get entry if it has the equal key, assuming the entry has the same hash already.</summary>
             internal abstract ImHashMapEntry<K, V> GetOrNullWithTheSameHash(K key);
@@ -2488,8 +2488,14 @@ namespace ImTools
 #endif
             internal override StringBuilder ToMermaidNodeId(StringBuilder s) =>
                 s.Append("L2P_").Append(Plus.Hash);
-            internal override StringBuilder ToMermaidNodeItem(StringBuilder s) =>
-                L.ToMermaidNodeItem(Plus.ToMermaidNodeItem(s.Append('+')).Append('/'));
+            internal override StringBuilder ToMermaidString(StringBuilder s)
+            {
+                L.ToMermaidString(s).AppendLine();
+
+                ToMermaidNodeId(s).Append('>');
+                Plus.ToMermaidNodeItem(s).Append("]-->");
+                return L.ToMermaidNodeId(s);
+            }
 
             internal override Entry GetMinHashEntryOrDefault() => Plus.Hash < L.Entry0.Hash ? Plus : L.Entry0;
             internal override Entry GetMaxHashEntryOrDefault() => Plus.Hash > L.Entry1.Hash ? Plus : L.Entry1;
@@ -2538,8 +2544,14 @@ namespace ImTools
 
             internal override StringBuilder ToMermaidNodeId(StringBuilder s) =>
                 s.Append("L2PP_").Append(Plus.Hash);
-            internal override StringBuilder ToMermaidNodeItem(StringBuilder s) =>
-                L.ToMermaidNodeItem(Plus.ToMermaidNodeItem(s.Append('+')).Append('/'));
+            internal override StringBuilder ToMermaidString(StringBuilder s)
+            {
+                L.ToMermaidString(s).AppendLine();
+
+                ToMermaidNodeId(s).Append('>');
+                Plus.ToMermaidNodeItem(s).Append("]-->");
+                return L.ToMermaidNodeId(s);
+            }
 
             internal override Entry GetMinHashEntryOrDefault()
             {
@@ -2686,8 +2698,14 @@ namespace ImTools
 #endif
             internal override StringBuilder ToMermaidNodeId(StringBuilder s) =>
                 s.Append("L5P_").Append(Plus.Hash);
-            internal override StringBuilder ToMermaidNodeItem(StringBuilder s) =>
-                L.ToMermaidNodeItem(Plus.ToMermaidNodeItem(s.Append('+')).Append('/'));
+            internal override StringBuilder ToMermaidString(StringBuilder s)
+            {
+                L.ToMermaidString(s).AppendLine();
+
+                ToMermaidNodeId(s).Append('>');
+                Plus.ToMermaidNodeItem(s).Append("]-->");
+                return L.ToMermaidNodeId(s);
+            }
 
             internal override Entry GetMinHashEntryOrDefault() => Plus.Hash < L.Entry0.Hash ? Plus : L.Entry0;
             internal override Entry GetMaxHashEntryOrDefault() => Plus.Hash > L.Entry4.Hash ? Plus : L.Entry4;
@@ -2771,8 +2789,14 @@ namespace ImTools
 #endif
             internal override StringBuilder ToMermaidNodeId(StringBuilder s) =>
                 s.Append("L5PP_").Append(Plus.Hash);
-            internal override StringBuilder ToMermaidNodeItem(StringBuilder s) =>
-                L.ToMermaidNodeItem(Plus.ToMermaidNodeItem(s.Append('+')).Append('/'));
+            internal override StringBuilder ToMermaidString(StringBuilder s)
+            {
+                L.ToMermaidString(s).AppendLine();
+
+                ToMermaidNodeId(s).Append('>');
+                Plus.ToMermaidNodeItem(s).Append("]-->");
+                return L.ToMermaidNodeId(s);
+            }
 
             internal sealed override Entry GetMinHashEntryOrDefault()
             {
@@ -2998,8 +3022,8 @@ namespace ImTools
             {
                 Left.ToMermaidString(s).AppendLine();
                 Right.ToMermaidString(s).AppendLine();
-                
-                ToMermaidNodeId(s).Append('['); 
+
+                ToMermaidNodeId(s).Append('[');
                 MidEntry.ToMermaidNodeItem(s).Append("]-->");
                 Left.ToMermaidNodeId(s).AppendLine();
 
@@ -3331,11 +3355,9 @@ namespace ImTools
             {
                 B.ToMermaidString(s).AppendLine();
 
-                ToMermaidNodeId(s).Append('[');
-                Plus.ToMermaidNodeItem(s.Append('+')).Append("]-->");
-                B.ToMermaidNodeId(s);
-
-                return s;
+                ToMermaidNodeId(s).Append('>');
+                Plus.ToMermaidNodeItem(s).Append("]-->");
+                return B.ToMermaidNodeId(s);
             }
 
             internal override Entry GetMinHashEntryOrDefault()
@@ -3557,7 +3579,7 @@ namespace ImTools
                 Left.ToMermaidString(s).AppendLine();
                 Middle.ToMermaidString(s).AppendLine();
                 Right.ToMermaidString(s).AppendLine();
-                
+
                 ToMermaidNodeId(s).Append('[');
                 Entry0.ToMermaidNodeItem(s).Append('/');
                 Entry1.ToMermaidNodeItem(s).Append("]-->");
