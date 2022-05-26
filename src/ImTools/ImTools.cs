@@ -3147,19 +3147,7 @@ namespace ImTools
                 if (hash > E.Hash)
                 {
                     if (R is Leaf5PlusPlus rl5pp && L is Leaf5PlusPlus == false)
-                    {
-                        var e = rl5pp.GetEntryOrNull(hash);
-                        if (e != null)
-                            return e;
-                        // // todo: @perf #53 does not work for some reason
-                        // if (L is Leaf2PlusPlus == false) // otherwise too much restructuring
-                        // {
-                        //     var minRight = rl5pp.GetMinHashEntryOrDefault();
-                        //     if (minRight == rl5pp.Plus)
-                        //         return new Branch2(L.AddSureNotPresentEntry(E), minRight, new Leaf5PlusPlus(entry, rl5pp.L));
-                        // }
-                        return new Branch2Plus(entry, this);
-                    }
+                        return rl5pp.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus(entry, this);
                     entryOrNewBranch = R.AddOrGetEntry(hash, entry);
                     return R.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
                         ? new Branch3(L, E, b2.L, b2.E, b2.R)
@@ -3168,18 +3156,7 @@ namespace ImTools
                 if (hash < E.Hash)
                 {
                     if (L is Leaf5PlusPlus ll5pp && R is Leaf5PlusPlus == false)
-                    {
-                        var e = ll5pp.GetEntryOrNull(hash);
-                        if (e != null)
-                            return e;
-                        // if (R is Leaf2PlusPlus == false) // otherwise too much restructuring
-                        // {
-                        //     var maxLeft = ll5pp.GetMaxHashEntryOrDefault();
-                        //     if (maxLeft == ll5pp.Plus)
-                        //         return new Branch2(new Leaf5PlusPlus(entry, ll5pp.L), maxLeft, R.AddSureNotPresentEntry(E));
-                        // }
-                        return new Branch2Plus(entry, this);
-                    }
+                        return ll5pp.GetEntryOrNull(hash) ?? (ImHashMap<K, V>)new Branch2Plus(entry, this);
                     entryOrNewBranch = L.AddOrGetEntry(hash, entry);
                     return L.MayTurnToBranch2 && entryOrNewBranch is Branch2 b2
                         ? new Branch3(b2.L, b2.E, b2.R, E, R)
@@ -3467,12 +3444,15 @@ namespace ImTools
                     var ll5pp = (Leaf5PlusPlus)b.Left;
                     // todo: @perf can we keep the B2 for longer?
                     // left was Leaf5PlusPlus, and Plus was supposed to be added there, so the entryOrNewBranch is still a Leaf
-                    // var maxLeft = ll5pp.GetMaxHashEntryOrDefault();
-                    // if (maxLeft == ll5pp.Plus)
+                    // if (entryOrNewBranch is Leaf5PlusPlus == false && entryOrNewBranch is Leaf2PlusPlus == false)
                     // {
-                    //     return 
+                    //     var maxLeft = ll5pp.GetMaxHashEntryOrDefault();
+                    //     if (Plus.Hash > maxLeft.Hash)
+                    //         return new Branch2(ll5pp, Plus, entryOrNewBranch.AddSureNotPresentEntry(m));
+                    //     if (maxLeft == ll5pp.Plus)
+                    //         return new Branch2(ll5pp.L.AddSureNotPresentEntry(Plus), maxLeft, entryOrNewBranch.AddSureNotPresentEntry(m));
                     // }
-                    
+
                     // right is not on the verge, then the Plus would be added to the left
                     entry = Plus;
                     ImHashMap<K, V> splitRight = null;
@@ -3500,6 +3480,15 @@ namespace ImTools
                     //         new Branch2(entryOrNewBranch, m, ((Branch2Right)b).R));
 
                     var rl5pp = (Leaf5PlusPlus)b.Right;
+                    // if (entryOrNewBranch is Leaf5PlusPlus == false && entryOrNewBranch is Leaf2PlusPlus == false)
+                    // {
+                    //     var minRight = rl5pp.GetMinHashEntryOrDefault();
+                    //     if (Plus.Hash < minRight.Hash)
+                    //         return new Branch2(entryOrNewBranch.AddSureNotPresentEntry(m), Plus, rl5pp);
+                    //     if (minRight == rl5pp.Plus)
+                    //         return new Branch2(entryOrNewBranch.AddSureNotPresentEntry(m), minRight, rl5pp.L.AddSureNotPresentEntry(Plus));
+                    // }
+
                     entry = Plus;
                     ImHashMap<K, V> splitRight = null;
                     var newMiddle = rl5pp.AddEntry(ph, ref entry, ref splitRight);

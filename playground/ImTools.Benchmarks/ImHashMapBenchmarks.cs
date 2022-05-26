@@ -546,7 +546,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 |         ImmutableDict_Builder_Add |  1000 | 396,623.48 ns | 4,099.094 ns | 3,834.295 ns |  1.43 |    0.02 |   9.7656 |  2.4414 |     - |   64160 B |
 |                 ImmutableDict_Add |  1000 | 813,397.08 ns | 9,203.453 ns | 8,608.916 ns |  2.94 |    0.04 | 105.4688 | 25.3906 |     - |  665001 B |
 
-## ???
+## ??? regress ???
 
 |                   Method | Count |       Mean |     Error |    StdDev |     Median | Ratio | RatioSD |    Gen 0 | Gen 1 | Gen 2 | Allocated |
 |------------------------- |------ |-----------:|----------:|----------:|-----------:|------:|--------:|---------:|------:|------:|----------:|
@@ -555,6 +555,22 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 |                          |       |            |           |           |            |       |         |          |       |       |           |
 | V4_ImHashMap_AddOrUpdate |  1000 | 294.633 us | 5.8329 us | 6.4833 us | 293.203 us |  1.00 |    0.00 |  90.8203 |     - |     - | 279.65 KB |
 | V3_ImHashMap_AddOrUpdate |  1000 | 253.610 us | 4.9597 us | 9.5557 us | 250.384 us |  0.86 |    0.03 | 103.0273 |     - |     - | 316.58 KB |
+
+|                   Method | Count |      Mean |    Error |    StdDev | Ratio | RatioSD |    Gen 0 | Gen 1 | Gen 2 | Allocated |
+|------------------------- |------ |----------:|---------:|----------:|------:|--------:|---------:|------:|------:|----------:|
+| V4_ImHashMap_AddOrUpdate |   100 |  10.98 us | 0.219 us |  0.600 us |  1.00 |    0.00 |   5.6763 |     - |     - |  17.42 KB |
+| V3_ImHashMap_AddOrUpdate |   100 |  11.93 us | 0.236 us |  0.444 us |  1.08 |    0.07 |   6.3782 |     - |     - |  19.56 KB |
+|                          |       |           |          |           |       |         |          |       |       |           |
+| V4_ImHashMap_AddOrUpdate |  1000 | 345.70 us | 4.332 us |  4.815 us |  1.00 |    0.00 |  91.3086 |     - |     - | 279.86 KB |
+| V3_ImHashMap_AddOrUpdate |  1000 | 296.34 us | 5.848 us | 11.680 us |  0.86 |    0.03 | 103.0273 |     - |     - | 316.58 KB |
+
+|                   Method | Count |      Mean |    Error |    StdDev |    Median | Ratio | RatioSD |    Gen 0 | Gen 1 | Gen 2 | Allocated |
+|------------------------- |------ |----------:|---------:|----------:|----------:|------:|--------:|---------:|------:|------:|----------:|
+| V4_ImHashMap_AddOrUpdate |   100 |  11.11 us | 0.221 us |  0.587 us |  10.94 us |  1.00 |    0.00 |   5.6610 |     - |     - |  17.38 KB |
+| V3_ImHashMap_AddOrUpdate |   100 |  12.06 us | 0.238 us |  0.562 us |  11.84 us |  1.08 |    0.08 |   6.3782 |     - |     - |  19.56 KB |
+|                          |       |           |          |           |           |       |         |          |       |       |           |
+| V4_ImHashMap_AddOrUpdate |  1000 | 360.84 us | 7.210 us | 13.543 us | 355.43 us |  1.00 |    0.00 |  91.3086 |     - |     - | 280.23 KB |
+| V3_ImHashMap_AddOrUpdate |  1000 | 299.54 us | 5.907 us | 10.500 us | 294.68 us |  0.83 |    0.05 | 103.0273 |     - |     - | 316.58 KB |
 
 */
             [Params(100, 1000)]
