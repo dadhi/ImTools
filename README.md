@@ -15,7 +15,7 @@ Split from the [DryIoc](https://github.com/dadhi/dryioc).
 
 ## Benchmarks
 
-The comparison is done against the previous V2 and the variety of BCL C# collections including the experimental `Microsoft.Collections.Extensions.DictionarySlim<K, V>`.
+The comparison is done against the previous versions and the variety of BCL C# collections including the experimental `Microsoft.Collections.Extensions.DictionarySlim<K, V>`.
 
 __Important:__ Keep in mind that immutable collections have a different use-case and a thread-safety guarantees compared to the 
 `Dictionary`, `DictionarySlim` or even `ConcurrentDictionary`. The closest comparable would be the `ImmutableDictionary`. 
