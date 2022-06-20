@@ -3057,7 +3057,7 @@ namespace ImTools
                     }
 
                     var newRight = Right.RemoveEntry(removedEntry);
-                    //*rebalance needed: the branch was merged from Br2 to Br3 or to the leaf and the height decreased 
+                    //rebalance needed: the branch was merged from Br2 to Br3 or to the leaf and the height decreased 
                     if (Right is Branch2Base && newRight is Branch2Base == false)
                     {
                         var left = Left;
@@ -3656,11 +3656,9 @@ namespace ImTools
                 {
                     var newLeft = Left.RemoveEntry(removedEntry);
                     if (newLeft == Empty)
-                    {
-                        if (middle is Leaf5PlusPlus == false)
-                            return new Branch2(middle.AddOrGetEntry(midLeft.Hash, midLeft), midRight, right); //! the height does not change
-                        return new Branch3(midLeft, removedEntry = middle.GetMinHashEntryOrDefault(), middle.RemoveEntry(removedEntry), midRight, right); //! the height does not change
-                    }
+                        return middle is Leaf5PlusPlus == false
+                            ? new Branch2(middle.AddOrGetEntry(midLeft.Hash, midLeft), midRight, right) //! the height does not change
+                            : new Branch3(midLeft, removedEntry = middle.GetMinHashEntryOrDefault(), middle.RemoveEntry(removedEntry), midRight, right); //! the height does not change
 
                     // rebalance is needed because the branch was merged from Br2 to Br3 or to Leaf and the height decrease
                     if (Left is Branch2Base && newLeft is Branch2Base == false)
@@ -3712,11 +3710,9 @@ namespace ImTools
 
                 var newRight = right.RemoveEntry(removedEntry);
                 if (newRight == Empty)
-                {
-                    if (middle is Leaf5PlusPlus == false)
-                        return new Branch2(Left, midLeft, middle.AddOrGetEntry(midRight.Hash, midRight));
-                    return new Branch3(Left, midLeft, middle.RemoveEntry(removedEntry = middle.GetMaxHashEntryOrDefault()), removedEntry, midRight);
-                }
+                    return middle is Leaf5PlusPlus == false
+                        ? new Branch2(Left, midLeft, middle.AddOrGetEntry(midRight.Hash, midRight))
+                        : new Branch3(Left, midLeft, middle.RemoveEntry(removedEntry = middle.GetMaxHashEntryOrDefault()), removedEntry, midRight);
 
                 // right was a Br2 but now is Leaf or Br3 - means the branch height is decrease
                 if (right is Branch2Base && newRight is Branch2Base == false)
