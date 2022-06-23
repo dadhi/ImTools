@@ -2076,7 +2076,9 @@ namespace ImTools
             // for the debug purposes we just output the first N keys in array
             const int n = 50;
             var count = this.Count();
-            var hashes = this.Enumerate().Take(n).Select(x => x.Hash).ToList();
+            var hashes = typeof(K) == typeof(int) 
+                ? ((ImHashMap<int, V>)(object)this).Enumerate().Take(n).Select(x => x.Hash).ToList()
+                : this.Enumerate().Take(n).Select(x => x.Hash).ToList();
             return $"{{hashes: new int[{(count > n ? $"{n}/{count}" : "" + count)}] {{{(string.Join(", ", hashes))}}}}}";
 #else
             return "{}";
