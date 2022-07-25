@@ -25,7 +25,7 @@
 
 ### Breaking changes
 
-`ImMap<V>` type is replaced by ImHashMap<int, V>`.
+`ImMap<V>` type is replaced by `ImHashMap<int, V>`.
 The implementations of ImMap and ImHashMap are combined into one, reducing the code size, and using all performance optimizations from the both.
 This change will simplify further performance improvements, testing and bug-fixes. 
 
