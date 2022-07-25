@@ -3,7 +3,7 @@
         <TargetFrameworks>net45;netstandard2.0</TargetFrameworks>
 
         <Product>ImTools</Product>
-        <VersionPrefix>3.1.0</VersionPrefix>
+        <VersionPrefix>4.0.0</VersionPrefix>
         <VersionSuffix></VersionSuffix>
 
         <AssemblyName>$(Product)</AssemblyName>
@@ -20,20 +20,31 @@
         <PackageTags>FP Performance Simple Functional Immutable Persistent Map Avl 2-3Tree Self Balanced Tree Dictionary Thread-safe Functional Atomic Ref Algebraic Discriminated Union SumType</PackageTags>
         <PackageReleaseNotes>
 <![CDATA[
-## v3.1.0 Minor feature and bug-fix release
 
-- fixed: #44 the Im(Hash)Map.Entry methods should return the entry type but now return the map type
-- fixed: Excessive memory consumption and potential issue in ArrayTools.Match for 2 items
-- added: More efficient Im(Hash)Map ToArray() method
-- added: ImHashMap ForEach with the struct IHandler
-- added: ArrayTools.AppendNonEmpty and PrependToNonEmpty methods
+## v4.0.0 Major release
 
+### Breaking changes
 
-## v3.0.0 Major feature release
+`ImMap<V>` type is replaced by ImHashMap<int, V>`.
+The implementations of ImMap and ImHashMap are combined into one, reducing the code size, and using all performance optimizations from the both.
+This change will simplify further performance improvements, testing and bug-fixes. 
 
-- Minimizing the target frameworks to the net45 and netstandard2.0
-- Added fast and more memory efficient ImMap and ImHashMap based on 2-3 tree (#32, #35)
-- Extended the map API with AddOrGetEntry, Count, ToArray, and ToDictionary methods, and more
+I have tried to keep the API as similar as possible,
+but you may expect that some types and methods were renamed, or new overloads were added.
+
+### Performance and memory improvements
+
+- Fewer allocations (~10%), see the benchmarks in project readme
+- Keeping the performance almost the same
+
+### Closed issues
+
+- #41 Add a builder-like capability to the ImHashMap via BuildFromDifferent methods
+- #47 Add output of the ImHashMap as mermaid diagram, e.g. `ToMermaidString` method
+- #48 Merge the ImMap and ImHashMap implementations
+- #50 Optimize Enumerable for the PartitionedHashMap
+- #51 Reduce ImHashMap memory allocations, keeping the speed
+- #52 Add AddSureNotPresent methods to compensate for GetSurePresent methods
 
 ]]>
     </PackageReleaseNotes>

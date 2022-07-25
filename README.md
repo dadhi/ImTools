@@ -6,7 +6,7 @@
 - Windows, Linux, MacOS [![CI build](https://ci.appveyor.com/api/projects/status/el9echuqfnl86u53?svg=true)](https://ci.appveyor.com/project/MaksimVolkau/imtools/branch/master)
 - Lib package [![NuGet Badge](https://buildstats.info/nuget/ImTools.dll)](https://www.nuget.org/packages/ImTools.dll)
 - Code package [![NuGet Badge](https://buildstats.info/nuget/ImTools)](https://www.nuget.org/packages/ImTools)
-- Latest release [![latest release](https://img.shields.io/badge/latest%20release-v3.1.0-green)](https://github.com/dadhi/ImTools/releases/tag/v3.1.0) 
+- Latest release [![latest release](https://img.shields.io/badge/latest%20release-v4.0.0-green)](https://github.com/dadhi/ImTools/releases/tag/v4.0.0) 
 
 Fast and memory-efficient immutable collections and helper data structures.
 

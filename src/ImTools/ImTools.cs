@@ -246,7 +246,7 @@ namespace ImTools
             return copy;
         }
 
-        /// <summary>Returns the new array consisting from all items from source array then the all items from added array.
+        /// <summary>Returns the new array consisting of all items from source array then the all items from added array.
         /// If source is null or empty then the added array will be returned. If added is null or empty then the source will be returned.</summary>
         public static T[] Append<T>(this T[] source, params T[] added)
         {
@@ -402,7 +402,6 @@ namespace ImTools
                     if (Equals(item, value))
                         return i;
                 }
-
             return -1;
         }
 
@@ -446,7 +445,6 @@ namespace ImTools
                     if (predicate(item))
                         return item;
                 }
-
             return default(T);
         }
 
@@ -460,7 +458,6 @@ namespace ImTools
                     if (predicate(state, item))
                         return item;
                 }
-
             return default(T);
         }
 
@@ -547,10 +544,8 @@ namespace ImTools
             if (count == 1)
                 appendedResults[oldResultsCount] = map(source[sourcePos]);
             else
-            {
                 for (int i = oldResultsCount, j = sourcePos; i < appendedResults.Length; ++i, ++j)
                     appendedResults[i] = map(source[j]);
-            }
 
             return appendedResults;
         }
@@ -578,10 +573,8 @@ namespace ImTools
             if (count == 1)
                 appendedResults[oldResultsCount] = map(state, source[sourcePos]);
             else
-            {
                 for (int i = oldResultsCount, j = sourcePos; i < appendedResults.Length; ++i, ++j)
                     appendedResults[i] = map(state, source[j]);
-            }
 
             return appendedResults;
         }
@@ -609,10 +602,8 @@ namespace ImTools
             if (count == 1)
                 appendedResults[oldResultsCount] = map(a, b, source[sourcePos]);
             else
-            {
                 for (int i = oldResultsCount, j = sourcePos; i < appendedResults.Length; ++i, ++j)
                     appendedResults[i] = map(a, b, source[j]);
-            }
 
             return appendedResults;
         }
@@ -1256,9 +1247,7 @@ namespace ImTools
             if (ReferenceEquals(a, null))
                 return bh;
             var ah = a.GetHashCode();
-            if (ah == 0)
-                return bh;
-            return Combine(ah, bh);
+            return ah == 0 ? bh : Combine(ah, bh);
         }
 
         /// <summary>Inspired by System.Tuple.CombineHashCodes</summary>
@@ -1513,7 +1502,6 @@ namespace ImTools
             return items;
         }
 
-        // todo: @naming think of the better name
         /// <summary>Pops the item - just moving the counter back</summary>
         public T PopItem() => Items[--Count];
 
@@ -1991,7 +1979,6 @@ namespace ImTools
             return ReferenceEquals(key, e._key) ? ImHashMap.Entry(Hash, key, update(key, Value, e.Value)) : new HashConflictingEntry(Hash, this, e);
         }
 
-        // todo: @wip better method names aligned with the calling side
         internal override ImHashMap<K, V> GetMapOrReplaceWithEntry(ImHashMap<K, V> oldMap, ImHashMapEntry<K, V> newEntry)
         {
             var e = (KVEntry<K, V>)newEntry;
