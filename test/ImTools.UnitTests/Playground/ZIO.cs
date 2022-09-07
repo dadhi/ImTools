@@ -7,11 +7,11 @@
 // [WIP] 3 - https://youtu.be/0IU9mGO_9Rw
 
 // TODO:
-// [X] Stack safety / the stack is big though - I got the stack overflow on repating the Do(() => WriteLine("x")) 87253 times
-// [X] Reduce allocations on the lambda clusures and therefore improve the perf
-// [X] Allow to pass your async code scheduler Task.Run or SynchronizaionContext
+// [X] Stack safety / the stack is big though - I got the stack overflow on repeating the Do(() => WriteLine("x")) 87253 times
+// [X] Reduce allocations on the lambda closures and therefore improve the perf
+// [X] Allow to pass your async code scheduler Task.Run or SynchronizationContext
 // [ ] Catch errors from the Async task runner or Task
-// [?] Ergonomics - less noise in API surface, more ortogonal and simple to understand implementation 
+// [?] Ergonomics - less noise in API surface, more orthogonal and simple to understand implementation 
 // [ ] Make it work with async/await see how it is done in https://github.com/yuretz/FreeAwait/tree/master/src/FreeAwait
 // [ ] Performance
 // [ ] Error handling
