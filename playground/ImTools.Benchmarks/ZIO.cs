@@ -23,151 +23,151 @@ using System.Threading.Tasks;
 using NUnit.Framework;
 //using System.Runtime.CompilerServices;
 using static System.Console;
-using static ImTools.UnitTests.Playground.Z;
+using static ImTools.UnitTests.Playground.S;
 
 namespace ImTools.UnitTests.Playground
 {
-    public interface ZErased { }
+    public interface SErased { }
 
-    public interface Z<out A> : ZErased
+    public interface S<out A> : SErased
     {
         void Run(Action<A> consume);
     }
 
-    public abstract record ZImpl<A> : Z<A>
+    public abstract record SImpl<A> : S<A>
     {
         public void Run(Action<A> consume)
         {
-            var z = this.Then(consume, (consume_, a) => Z.Do(a, consume_));
+            var s = this.Then(consume, static (consume_, a) => S.Do(a, consume_));
 
             // todo: @api await the fiber context - so make it awaitable
-            new ZFiberContext<Empty>(z, Z.DefaultFiberRunner);
+            new SFiberContext<Empty>(s, S.DefaultFiberRunner);
         }
     }
 
-    interface ZVal
+    interface SVal
     {
         object Value { get; }
     }
 
-    public sealed record ZVal<A>(A Value) : ZImpl<A>, ZVal
+    public sealed record SVal<A>(A Value) : SImpl<A>, SVal
     {
-        object ZVal.Value => Value;
+        object SVal.Value => Value;
     }
 
-    interface ZLazy
+    interface SLazy
     {
         object GetValue();
     }
 
-    public sealed record ZLazy<A>(Func<A> GetValue) : ZImpl<A>, ZLazy
+    public sealed record SLazy<A>(Func<A> GetValue) : SImpl<A>, SLazy
     {
-        object ZLazy.GetValue() => GetValue();
+        object SLazy.GetValue() => GetValue();
     }
 
-    public sealed record ZLazy<S, A>(S State, Func<S, A> GetValue) : ZImpl<A>, ZLazy
+    public sealed record SLazy<S, A>(S State, Func<S, A> GetValue) : SImpl<A>, SLazy
     {
-        object ZLazy.GetValue() => GetValue(State);
+        object SLazy.GetValue() => GetValue(State);
     }
 
-    public sealed record ZLazyDo(Action Act) : ZImpl<Empty>, ZLazy
+    public sealed record SLazyDo(Action Act) : SImpl<Empty>, SLazy
     {
-        object ZLazy.GetValue() { Act(); return empty; }
+        object SLazy.GetValue() { Act(); return empty; }
     }
 
-    public sealed record ZLazyDo<S>(S State, Action<S> Act) : ZImpl<Empty>, ZLazy
+    public sealed record SLazyDo<S>(S State, Action<S> Act) : SImpl<Empty>, SLazy
     {
-        object ZLazy.GetValue() { Act(State); return empty; }
+        object SLazy.GetValue() { Act(State); return empty; }
     }
 
-    public sealed record ZLazyDo<S1, S2>(S1 State1, S2 State2, Action<S1, S2> Act) : ZImpl<Empty>, ZLazy
+    public sealed record SLazyDo<S1, S2>(S1 State1, S2 State2, Action<S1, S2> Act) : SImpl<Empty>, SLazy
     {
-        object ZLazy.GetValue() { Act(State1, State2); return empty; }
+        object SLazy.GetValue() { Act(State1, State2); return empty; }
     }
 
-    interface ZFork
+    interface SFork
     {
         object GetFiber(Func<Action, object> runner);
     }
 
-    public sealed record ZFork<A>(Z<A> Za, Func<Z<A>, Func<Action, object>, ZFiber<A>> GetFiber) : ZImpl<ZFiber<A>>, ZFork
+    public sealed record SFork<A>(S<A> Za, Func<S<A>, Func<Action, object>, SFiber<A>> GetFiber) : SImpl<SFiber<A>>, SFork
     {
-        object ZFork.GetFiber(Func<Action, object> runner) => GetFiber(Za, runner);
+        object SFork.GetFiber(Func<Action, object> runner) => GetFiber(Za, runner);
     }
 
-    public sealed record ZShift(Func<Action, object> Runner) : ZImpl<Empty> { }
+    public sealed record SShift(Func<Action, object> Runner) : SImpl<Empty> { }
 
-    interface ZThen
+    interface SThen
     {
-        ZErased Za { get; }
-        ZErased Cont(object a);
+        SErased Sa { get; }
+        SErased Cont(object a);
     }
 
-    public sealed record ZThen<A, B>(Z<A> Za, Func<A, Z<B>> Cont) : ZImpl<B>, ZThen
+    public sealed record SThen<A, B>(S<A> Sa, Func<A, S<B>> Cont) : SImpl<B>, SThen
     {
-        ZErased ZThen.Za => Za;
-        ZErased ZThen.Cont(object a) => Cont((A)a);
+        SErased SThen.Sa => Sa;
+        SErased SThen.Cont(object a) => Cont((A)a);
     }
 
-    public sealed record ZThen<S, A, B>(Z<A> Za, S State, Func<S, A, Z<B>> Cont) : ZImpl<B>, ZThen
+    public sealed record SThen<S, A, B>(S<A> Sa, S State, Func<S, A, S<B>> Cont) : SImpl<B>, SThen
     {
-        ZErased ZThen.Za => Za;
-        ZErased ZThen.Cont(object a) => Cont(State, (A)a);
+        SErased SThen.Sa => Sa;
+        SErased SThen.Cont(object a) => Cont(State, (A)a);
     }
 
-    public sealed record ZThen<S1, S2, A, B>(Z<A> Za, S1 State1, S2 State2, Func<S1, S2, A, Z<B>> Cont) : ZImpl<B>, ZThen
+    public sealed record SThen<S1, S2, A, B>(S<A> Sa, S1 State1, S2 State2, Func<S1, S2, A, S<B>> Cont) : SImpl<B>, SThen
     {
-        ZErased ZThen.Za => Za;
-        ZErased ZThen.Cont(object a) => Cont(State1, State2, (A)a);
+        SErased SThen.Sa => Sa;
+        SErased SThen.Cont(object a) => Cont(State1, State2, (A)a);
     }
 
-    interface ZAsync
+    interface SAsync
     {
         void Schedule(object state, Action<object, object> run);
     }
 
-    public sealed record ZAsyncFriendly<S, A>(S State, Action<S, Action<A>> Schedule) : ZImpl<A>, ZAsync
+    public sealed record SAsyncFriendly<S, A>(S State, Action<S, Action<A>> Schedule) : SImpl<A>, SAsync
     {
-        void ZAsync.Schedule(object state, Action<object, object> run) => Schedule(State, a => run(state, a));
+        void SAsync.Schedule(object state, Action<object, object> run) => Schedule(State, a => run(state, a));
     }
 
-    public sealed record ZAsync<A>(Action<object, object, Action<object, object, A>> Schedule) : ZImpl<A>, ZAsync
+    public sealed record SAsync<A>(Action<object, object, Action<object, object, A>> Schedule) : SImpl<A>, SAsync
     {
-        void ZAsync.Schedule(object state, Action<object, object> run) => Schedule(run, state, (run_, state_, a) => ((Action<object, object>)run_)(state_, a));
+        void SAsync.Schedule(object state, Action<object, object> run) => Schedule(run, state, (run_, state_, a) => ((Action<object, object>)run_)(state_, a));
     }
 
-    public sealed record ZAsync<S, A>(S State, Action<S, object, object, Action<object, object, A>> Schedule) : ZImpl<A>, ZAsync
+    public sealed record SAsync<S, A>(S State, Action<S, object, object, Action<object, object, A>> Schedule) : SImpl<A>, SAsync
     {
-        void ZAsync.Schedule(object state, Action<object, object> run) => Schedule(State, run, state, (run_, state_, a) => ((Action<object, object>)run_)(state_, a));
+        void SAsync.Schedule(object state, Action<object, object> run) => Schedule(State, run, state, (run_, state_, a) => ((Action<object, object>)run_)(state_, a));
     }
 
-    public interface ZFiber<out A>
+    public interface SFiber<out A>
     {
-        Z<A> Join();
-        //Z<Empty> Interrupt() => throw new NotImplementedException("todo");
+        S<A> Join();
+        //S<Empty> Interrupt() => throw new NotImplementedException("todo");
     }
 
-    sealed record ZFiberContext<A> : ZFiber<A>
+    sealed record SFiberContext<A> : SFiber<A>
     {
-        public ZErased Za { get; private set; }
+        public SErased Sa { get; private set; }
         public Func<Action, object> Runner { get; private set; }
 
         public readonly object _work; // todo: @wip what to do with this?
 
-        public ZFiberContext(Z<A> za, Func<Action, object> runner)
+        public SFiberContext(S<A> sa, Func<Action, object> runner)
         {
-            Za = za;
+            Sa = sa;
             Runner = runner;
             _work = Runner(RunLoop);
         }
 
-        sealed record ContStack(ZThen Cont, ContStack Rest);
+        sealed record ContStack(SThen Cont, ContStack Rest);
         ContStack _stack;
 
-        abstract record EvalState;
-        sealed record Done(A Value) : EvalState;
-        sealed record Callbacks(Action<object, object, A> Act, object P0, object P1, Callbacks Rest) : EvalState;
-        EvalState _state;
+        abstract record EvilState;
+        sealed record Done(A Value) : EvilState;
+        sealed record Callbacks(Action<object, object, A> Act, object P0, object P1, Callbacks Rest) : EvilState;
+        EvilState _state;
 
         void Complete(A a)
         {
@@ -179,7 +179,7 @@ namespace ImTools.UnitTests.Playground
             }
         }
 
-        public Z<A> Join() => Z.Async<ZFiberContext<A>, A>(this, (f, s1, s2, run) =>
+        public S<A> Join() => S.Async<SFiberContext<A>, A>(this, (f, s1, s2, run) =>
         {
             if (f._state is Done doneFast)
                 run(s1, s2, doneFast.Value);
@@ -209,7 +209,7 @@ namespace ImTools.UnitTests.Playground
         {
             if (_stack is ContStack(var cont, var rest))
             {
-                Za = cont.Cont(val);
+                Sa = cont.Cont(val);
                 _stack = rest;
                 return true;
             }
@@ -217,9 +217,9 @@ namespace ImTools.UnitTests.Playground
             return false;
         }
 
-        void Resume(ZErased za)
+        void Resume(SErased sa)
         {
-            Za = za;
+            Sa = sa;
             RunLoop();
         }
 
@@ -228,36 +228,36 @@ namespace ImTools.UnitTests.Playground
             var loop = true;
             while (loop)
             {
-                switch (Za)
+                switch (Sa)
                 {
-                    case ZVal v:
+                    case SVal v:
                         loop = Continue(v.Value);
                         break;
 
-                    case ZLazy l:
+                    case SLazy l:
                         loop = Continue(l.GetValue());
                         break;
 
-                    case ZFork f:
+                    case SFork f:
                         loop = Continue(f.GetFiber(Runner));
                         break;
 
-                    case ZShift s:
+                    case SShift s:
                         Runner = s.Runner;
                         loop = Continue(empty);
                         break;
 
-                    case ZThen t:
-                        Za = t.Za;
+                    case SThen t:
+                        Sa = t.Sa;
                         _stack = new ContStack(t, _stack);
                         break;
 
-                    case ZAsync a:
+                    case SAsync a:
                         loop = false;
                         if (_stack == null)
-                            a.Schedule(this, (f, x) => ((ZFiberContext<A>)f).Complete((A)x));
+                            a.Schedule(this, (f, x) => ((SFiberContext<A>)f).Complete((A)x));
                         else
-                            a.Schedule(this, (f, x) => ((ZFiberContext<A>)f).Resume(x.Val()));
+                            a.Schedule(this, (f, x) => ((SFiberContext<A>)f).Resume(x.Val()));
                         break;
 
                     case var unknown:
@@ -267,21 +267,21 @@ namespace ImTools.UnitTests.Playground
         }
     }
 
-    public static class Z
+    public static class S
     {
         public static readonly Func<Action, object> DefaultFiberRunner = Task.Run;
 
-        public static ZFiber<A> RunUnsafeFiber<A>(this Z<A> za) => new ZFiberContext<A>(za, DefaultFiberRunner);
+        public static SFiber<A> RunUnsafeFiber<A>(this S<A> sa) => new SFiberContext<A>(sa, DefaultFiberRunner);
 
         sealed class Box<A> { public A Ab; public Box(A a) => Ab = a; }
         sealed class Box<A, B> { public A Ab; public B Bb; public Box(A a, B b) { Ab = a; Bb = b; } }
 
-        public static A RunUnsafe<A>(this Z<A> za)
+        public static A RunUnsafe<A>(this S<A> sa)
         {
             using var e = new AutoResetEvent(false);
             var res = new Box<A, AutoResetEvent>(default, e);
 
-            RunUnsafeFiber(za.Then(res, (res1, a) => Z.Do(a, res1, (a1, res2) =>
+            RunUnsafeFiber(sa.Then(res, static (res1, a) => S.Do(a, res1, static (a1, res2) =>
             {
                 res2.Ab = a1;
                 res2.Bb.Set();
@@ -290,52 +290,53 @@ namespace ImTools.UnitTests.Playground
             return res.Ab;
         }
 
-        public static Z<A> Val<A>(this A a) => new ZVal<A>(a);
+        public static S<A> Val<A>(this A a) => new SVal<A>(a);
 
-        public static Z<A> Get<A>(Func<A> getA) => new ZLazy<A>(getA);
-        public static Z<A> Get<S, A>(in S state, Func<S, A> getA) => new ZLazy<S, A>(state, getA);
+        public static S<A> Get<A>(Func<A> getA) => new SLazy<A>(getA);
+        public static S<A> Get<S, A>(in S state, Func<S, A> getA) => new SLazy<S, A>(state, getA);
 
-        public static Z<Empty> Do(Action act) => new ZLazyDo(act);
-        public static Z<Empty> Do<S>(in S state, Action<S> act) => new ZLazyDo<S>(state, act);
-        public static Z<Empty> Do<S1, S2>(in S1 state1, in S2 state2, Action<S1, S2> act) => new ZLazyDo<S1, S2>(state1, state2, act);
+        public static S<Empty> Do(Action act) => new SLazyDo(act);
+        public static S<Empty> Do<S>(in S state, Action<S> act) => new SLazyDo<S>(state, act);
+        public static S<Empty> Do<S1, S2>(in S1 state1, in S2 state2, Action<S1, S2> act) => new SLazyDo<S1, S2>(state1, state2, act);
 
         /// <summary>This is Bind, SelectMany or FlatMap... but I want to be unique and go with Then for now as it seems to have a more precise meaning IMHO</summary>
-        public static Z<B> Then<A, B>(this Z<A> za, Func<A, Z<B>> @from) => new ZThen<A, B>(za, @from);
-        public static Z<B> Then<S, A, B>(this Z<A> za, in S s, Func<S, A, Z<B>> @from) => new ZThen<S, A, B>(za, s, @from);
-        public static Z<B> Then<S1, S2, A, B>(this Z<A> za, in S1 s1, in S2 s2, Func<S1, S2, A, Z<B>> @from) => new ZThen<S1, S2, A, B>(za, s1, s2, @from);
+        public static S<B> Then<A, B>(this S<A> sa, Func<A, S<B>> @from) => new SThen<A, B>(sa, @from);
+        public static S<B> Then<S, A, B>(this S<A> sa, in S s, Func<S, A, S<B>> @from) => new SThen<S, A, B>(sa, s, @from);
+        public static S<B> Then<S1, S2, A, B>(this S<A> sa, in S1 s1, in S2 s2, Func<S1, S2, A, S<B>> @from) => new SThen<S1, S2, A, B>(sa, s1, s2, @from);
 
-        public static Z<B> To<A, B>(this Z<A> za, Func<A, B> map) => za.Then(map, (map_, a) => map_(a).Val());
+        public static S<B> To<A, B>(this S<A> sa, Func<A, B> map) => sa.Then(map, (map_, a) => map_(a).Val());
 
-        public static Z<B> ToVal<A, B>(this Z<A> za, B b) => za.Then(b, (b_, _) => b_.Val());
-        public static Z<B> ToGet<A, B>(this Z<A> za, Func<B> getB) => za.Then(getB, (getB_, _) => getB_().Val());
+        public static S<B> ToVal<A, B>(this S<A> sa, B b) => sa.Then(b, (b_, _) => b_.Val());
+        public static S<B> ToGet<A, B>(this S<A> sa, Func<B> getB) => sa.Then(getB, (getB_, _) => getB_().Val());
 
-        public static Z<(A, B)> Zip<A, B>(this Z<A> za, Z<B> zb) => za.Then(zb, (zb_, a) => zb_.Then(a, (a_, b) => Val((a_, b))));
+        public static S<(A, B)> Zip<A, B>(this S<A> sa, S<B> zb) => sa.Then(zb, (zb_, a) => zb_.Then(a, (a_, b) => Val((a_, b))));
 
-        public static Z<C> ZipWith<A, B, C>(this Z<A> za, Z<B> zb, Func<A, B, C> zip) => za.Then(zip, zb, (zip_, zb_, a) => zb.Then(zip_, a, (zip__, a_, b) => zip__(a_, b).Val()));
+        public static S<C> ZipWith<A, B, C>(this S<A> sa, S<B> zb, Func<A, B, C> zip) => sa.Then(zip, zb, (zip_, zb_, a) => 
+            zb.Then(zip_, a, static (zip__, a_, b) => zip__(a_, b).Val()));
 
-        public static Z<A> And<A, B>(this Z<A> za, Z<B> zb) => za.Then(zb, (zb_, a) => zb_.Then(a, (a_, _) => a_.Val()));
+        public static S<A> And<A, B>(this S<A> sa, S<B> zb) => sa.Then(zb, static (zb_, a) => zb_.Then(a, static (a_, _) => a_.Val()));
 
-        public static Z<A> RepeatN<A>(this Z<A> za, int n) => n <= 1 ? za : za.And(za.RepeatN(n - 1));
+        public static S<A> RepeatN<A>(this S<A> sa, int n) => n <= 1 ? sa : sa.And(sa.RepeatN(n - 1));
 
-        public static Z<A> Async<A>(Action<object, object, Action<object, object, A>> schedule) => new ZAsync<A>(schedule);
-        public static Z<A> Async<S, A>(in S state, Action<S, object, object, Action<object, object, A>> schedule) => new ZAsync<S, A>(state, schedule);
+        public static S<A> Async<A>(Action<object, object, Action<object, object, A>> schedule) => new SAsync<A>(schedule);
+        public static S<A> Async<S, A>(in S state, Action<S, object, object, Action<object, object, A>> schedule) => new SAsync<S, A>(state, schedule);
 
-        public static Z<A> Async<S, A>(in S state, Action<S, Action<A>> schedule) => new ZAsyncFriendly<S, A>(state, schedule);
+        public static S<A> Async<S, A>(in S state, Action<S, Action<A>> schedule) => new SAsyncFriendly<S, A>(state, schedule);
 
         // todo: @perf @mem we may potentially reuse FiberContext when the RunLoop done or on Join?
-        public static Z<ZFiber<A>> Fork<A>(this Z<A> za) => new ZFork<A>(za, (z, runner) => new ZFiberContext<A>(z, runner));
+        public static S<SFiber<A>> Fork<A>(this S<A> sa) => new SFork<A>(sa, (z, runner) => new SFiberContext<A>(z, runner));
 
-        public static Z<Empty> Shift(Func<Action, object> runner) => new ZShift(runner);
+        public static S<Empty> Shift(Func<Action, object> runner) => new SShift(runner);
 
         // Here is the reference implementation of ZipPar with Linq paying the memory allocations and performance for the sugar clarity
-        // public static Z<(A, B)> ZipPar2<A, B>(this Z<A> za, Z<B> zb) => 
-        //     from zaForked in za.Fork()
+        // public static Z<(A, B)> ZipPar2<A, B>(this Z<A> sa, Z<B> zb) => 
+        //     from zaForked in sa.Fork()
         //     from b in zb
         //     from a in zaForked.Join()
         //     select (a, b);
         //
-        public static Z<(A, B)> ZipPar<A, B>(this Z<A> za, Z<B> zb) =>
-            za.Fork().Then(zb, (zb_, zaForked) =>
+        public static S<(A, B)> ZipPar<A, B>(this S<A> sa, S<B> zb) =>
+            sa.Fork().Then(zb, (zb_, zaForked) =>
             zb_.Then(zaForked, (zaForked_, b) =>
             zaForked_.Join().Then(b, (b_, a) =>
             Val((a, b_)))));
@@ -348,12 +349,13 @@ namespace ImTools.UnitTests.Playground
 
     }
 
-    public static class ZLinq
+    public static class SLinq
     {
-        public static Z<R> Select<A, R>(this Z<A> za, Func<A, R> selector) => za.To(selector);
-        public static Z<R> SelectMany<A, R>(this Z<A> za, Func<A, Z<R>> next) => za.Then(next);
-        public static Z<R> SelectMany<A, B, R>(this Z<A> za, Func<A, Z<B>> getZb, Func<A, B, R> project) =>
-            za.Then(getZb, project, (getZb_, project_, a) => getZb_(a).Then(project_, a, (project__, a_, b) => project__(a_, b).Val()));
+        public static S<R> Select<A, R>(this S<A> sa, Func<A, R> selector) => sa.To(selector);
+        public static S<R> SelectMany<A, R>(this S<A> sa, Func<A, S<R>> next) => sa.Then(next);
+        public static S<R> SelectMany<A, B, R>(this S<A> sa, Func<A, S<B>> getSb, Func<A, B, R> project) =>
+            sa.Then(getSb, project, (getSb_, project_, a) => 
+                getSb_(a).Then(project_, a, (project__, a_, b) => project__(a_, b).Val()));
     }
 
     public class Tests
@@ -361,10 +363,10 @@ namespace ImTools.UnitTests.Playground
         int _id;
         int Id() => Interlocked.Increment(ref _id);
 
-        public Z<string> Map_small() =>
-               Z.Val(42).To(x => x + "!");
+        public S<string> Map_small() =>
+               S.Val(42).To(x => x + "!");
 
-        public Z<int> Async_sleep() =>
+        public S<int> Async_sleep() =>
             Async<int, int>(Id(), (id, run) =>
             {
                 WriteLine($"Sleep for 50ms - {id}");
@@ -373,7 +375,7 @@ namespace ImTools.UnitTests.Playground
                 run(42);
             });
 
-        public Z<int> Get_sleep() =>
+        public S<int> Get_sleep() =>
             Get(Id(), id =>
             {
                 WriteLine($"Sleep for 50ms - {id}");
@@ -382,50 +384,50 @@ namespace ImTools.UnitTests.Playground
                 return 43;
             });
 
-        public Z<int> Async_seq() =>
-            from _ in Z.Do(() => WriteLine("Before Async_seq.."))
+        public S<int> Async_seq() =>
+            from _ in S.Do(() => WriteLine("Before Async_seq.."))
             from a in Async_sleep()
             from b in Async_sleep()
-            from _1 in Z.Do(() => WriteLine("After Async_seq"))
+            from _1 in S.Do(() => WriteLine("After Async_seq"))
             select a + b;
 
-        public Z<int> Get_seq() =>
-            from _ in Z.Do(() => WriteLine("Before Get_seq.."))
+        public S<int> Get_seq() =>
+            from _ in S.Do(() => WriteLine("Before Get_seq.."))
             from a in Get_sleep()
             from b in Get_sleep()
-            from _1 in Z.Do(() => WriteLine("After Get_seq"))
+            from _1 in S.Do(() => WriteLine("After Get_seq"))
             select a + b + 1;
 
-        public Z<int> Async_fork() =>
-            from _ in Z.Do(() => WriteLine("Before Async_fork.."))
+        public S<int> Async_fork() =>
+            from _ in S.Do(() => WriteLine("Before Async_fork.."))
             from fa in Async_sleep().Fork()
             from fb in Async_sleep().Fork()
             from a in fa.Join()
             from b in fb.Join()
-            from _1 in Z.Do(() => WriteLine("After Async_fork"))
+            from _1 in S.Do(() => WriteLine("After Async_fork"))
             select a + b + 2;
 
-        public Z<int> Zip_par() =>
-            from _ in Z.Do(() => WriteLine("Before ZipPar.."))
-            from x in Z.ZipPar(Async_sleep(), Async_sleep())
-            from _1 in Z.Do(() => WriteLine("After ZipPar"))
+        public S<int> Zip_par() =>
+            from _ in S.Do(() => WriteLine("Before ZipPar.."))
+            from x in S.ZipPar(Async_sleep(), Async_sleep())
+            from _1 in S.Do(() => WriteLine("After ZipPar"))
             select x.Item1 + x.Item2 + 3;
 
-        public Z<int> Async_counter()
+        public S<int> Async_counter()
         {
             var i = 0;
             return
-                from b in Z.Do(() => WriteLine("Before Async_counter.."))
-                from x in Z.Do(() => Interlocked.Increment(ref i)).Fork().RepeatN(100)
-                from w in Z.Do(() => Thread.Sleep(50))
-                from a in Z.Do(() => WriteLine("After Async_counter and sleep for 50ms"))
+                from b in S.Do(() => WriteLine("Before Async_counter.."))
+                from x in S.Do(() => Interlocked.Increment(ref i)).Fork().RepeatN(100)
+                from w in S.Do(() => Thread.Sleep(50))
+                from a in S.Do(() => WriteLine("After Async_counter and sleep for 50ms"))
                 select i;
         }
 
-        public Z<Empty> Repeat(int n)
+        public S<Empty> Repeat(int n)
         {
             var i = 0;
-            return Z.Do(() => WriteLine("HOWDY " + (++i))).RepeatN(n);
+            return S.Do(() => WriteLine("HOWDY " + (++i))).RepeatN(n);
         }
     }
 
@@ -433,15 +435,15 @@ namespace ImTools.UnitTests.Playground
     public class Program
     {
         [Test]
-        public void ZMain()
+        public void SMain()
         // public static void Main()
         {
             var t = new Tests();
 
-            void run<A>(Z<A> za, string name = "")
+            void run<A>(S<A> sa, string name = "")
             {
                 WriteLine(name + " >> ");
-                var a = za.RunUnsafe();
+                var a = sa.RunUnsafe();
                 WriteLine(a);
                 WriteLine();
             }
