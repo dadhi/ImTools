@@ -128,17 +128,20 @@ namespace ImTools.UnitTests.Playground
 
     public sealed record SAsyncFriendly<S, A>(S State, Action<S, Action<A>> Schedule) : SImpl<A>, SAsync
     {
-        void SAsync.Schedule(object state, Action<object, object> run) => Schedule(State, a => run(state, a));
+        void SAsync.Schedule(object state, Action<object, object> run) => 
+            Schedule(State, a => run(state, a)); // todo: @mem make static
     }
 
     public sealed record SAsync<A>(Action<object, object, Action<object, object, A>> Schedule) : SImpl<A>, SAsync
     {
-        void SAsync.Schedule(object state, Action<object, object> run) => Schedule(run, state, (run_, state_, a) => ((Action<object, object>)run_)(state_, a));
+        void SAsync.Schedule(object state, Action<object, object> run) => 
+            Schedule(run, state, static (run_, state_, a) => ((Action<object, object>)run_)(state_, a));
     }
 
     public sealed record SAsync<S, A>(S State, Action<S, object, object, Action<object, object, A>> Schedule) : SImpl<A>, SAsync
     {
-        void SAsync.Schedule(object state, Action<object, object> run) => Schedule(State, run, state, (run_, state_, a) => ((Action<object, object>)run_)(state_, a));
+        void SAsync.Schedule(object state, Action<object, object> run) => 
+            Schedule(State, run, state, static (run_, state_, a) => ((Action<object, object>)run_)(state_, a));
     }
 
     public interface SFiber<out A>
@@ -179,7 +182,7 @@ namespace ImTools.UnitTests.Playground
             }
         }
 
-        public S<A> Join() => S.Async<SFiberContext<A>, A>(this, (f, s1, s2, run) =>
+        public S<A> Join() => S.Async<SFiberContext<A>, A>(this, static (f, s1, s2, run) =>
         {
             if (f._state is Done doneFast)
                 run(s1, s2, doneFast.Value);
@@ -255,9 +258,9 @@ namespace ImTools.UnitTests.Playground
                     case SAsync a:
                         loop = false;
                         if (_stack == null)
-                            a.Schedule(this, (f, x) => ((SFiberContext<A>)f).Complete((A)x));
+                            a.Schedule(this, static (f, x) => ((SFiberContext<A>)f).Complete((A)x));
                         else
-                            a.Schedule(this, (f, x) => ((SFiberContext<A>)f).Resume(x.Val()));
+                            a.Schedule(this, static (f, x) => ((SFiberContext<A>)f).Resume(x.Val()));
                         break;
 
                     case var unknown:
@@ -304,17 +307,19 @@ namespace ImTools.UnitTests.Playground
         public static S<B> Then<S, A, B>(this S<A> sa, in S s, Func<S, A, S<B>> @from) => new SThen<S, A, B>(sa, s, @from);
         public static S<B> Then<S1, S2, A, B>(this S<A> sa, in S1 s1, in S2 s2, Func<S1, S2, A, S<B>> @from) => new SThen<S1, S2, A, B>(sa, s1, s2, @from);
 
-        public static S<B> To<A, B>(this S<A> sa, Func<A, B> map) => sa.Then(map, (map_, a) => map_(a).Val());
+        public static S<B> To<A, B>(this S<A> sa, Func<A, B> map) => sa.Then(map, static (map_, a) => map_(a).Val());
 
-        public static S<B> ToVal<A, B>(this S<A> sa, B b) => sa.Then(b, (b_, _) => b_.Val());
-        public static S<B> ToGet<A, B>(this S<A> sa, Func<B> getB) => sa.Then(getB, (getB_, _) => getB_().Val());
+        public static S<B> ToVal<A, B>(this S<A> sa, B b) => sa.Then(b, static (b_, _) => b_.Val());
+        public static S<B> ToGet<A, B>(this S<A> sa, Func<B> getB) => sa.Then(getB, static (getB_, _) => getB_().Val());
 
-        public static S<(A, B)> Zip<A, B>(this S<A> sa, S<B> zb) => sa.Then(zb, (zb_, a) => zb_.Then(a, (a_, b) => Val((a_, b))));
+        public static S<(A, B)> Zip<A, B>(this S<A> sa, S<B> zb) => 
+            sa.Then(zb, static (zb_, a) => zb_.Then(a, static (a_, b) => Val((a_, b))));
 
-        public static S<C> ZipWith<A, B, C>(this S<A> sa, S<B> zb, Func<A, B, C> zip) => sa.Then(zip, zb, (zip_, zb_, a) => 
-            zb.Then(zip_, a, static (zip__, a_, b) => zip__(a_, b).Val()));
+        public static S<C> ZipWith<A, B, C>(this S<A> sa, S<B> zb, Func<A, B, C> zip) => 
+            sa.Then(zip, zb, static (zip_, zb_, a) => zb_.Then(zip_, a, static (zip__, a_, b) => zip__(a_, b).Val()));
 
-        public static S<A> And<A, B>(this S<A> sa, S<B> zb) => sa.Then(zb, static (zb_, a) => zb_.Then(a, static (a_, _) => a_.Val()));
+        public static S<A> And<A, B>(this S<A> sa, S<B> zb) => 
+            sa.Then(zb, static (zb_, a) => zb_.Then(a, static (a_, _) => a_.Val()));
 
         public static S<A> RepeatN<A>(this S<A> sa, int n) => n <= 1 ? sa : sa.And(sa.RepeatN(n - 1));
 
@@ -336,9 +341,9 @@ namespace ImTools.UnitTests.Playground
         //     select (a, b);
         //
         public static S<(A, B)> ZipPar<A, B>(this S<A> sa, S<B> zb) =>
-            sa.Fork().Then(zb, (zb_, zaForked) =>
-            zb_.Then(zaForked, (zaForked_, b) =>
-            zaForked_.Join().Then(b, (b_, a) =>
+            sa.Fork().Then(zb, static (zb_, zaForked) =>
+            zb_.Then(zaForked, static (zaForked_, b) =>
+            zaForked_.Join().Then(b, static (b_, a) =>
             Val((a, b_)))));
 
         public sealed record Empty
@@ -354,8 +359,8 @@ namespace ImTools.UnitTests.Playground
         public static S<R> Select<A, R>(this S<A> sa, Func<A, R> selector) => sa.To(selector);
         public static S<R> SelectMany<A, R>(this S<A> sa, Func<A, S<R>> next) => sa.Then(next);
         public static S<R> SelectMany<A, B, R>(this S<A> sa, Func<A, S<B>> getSb, Func<A, B, R> project) =>
-            sa.Then(getSb, project, (getSb_, project_, a) => 
-                getSb_(a).Then(project_, a, (project__, a_, b) => project__(a_, b).Val()));
+            sa.Then(getSb, project, static (getSb_, project_, a) => 
+                getSb_(a).Then(project_, a, static (project__, a_, b) => project__(a_, b).Val()));
     }
 
     public class Tests
