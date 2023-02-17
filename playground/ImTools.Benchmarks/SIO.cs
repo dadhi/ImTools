@@ -284,11 +284,13 @@ namespace ImTools.SIO
             using var e = new AutoResetEvent(false);
             var res = new Box<A, AutoResetEvent>(default, e);
 
-            RunUnsafeFiber(sa.Then(res, static (res1, a) => S.Do(a, res1, static (a1, res2) =>
-            {
-                res2.Ab = a1;
-                res2.Bb.Set();
-            })));
+            RunUnsafeFiber(sa.Then(res, static (res1, a) => 
+                S.Do(a, res1, static (a1, res2) =>
+                {
+                    res2.Ab = a1;
+                    res2.Bb.Set();
+                })));
+
             e.WaitOne();
             return res.Ab;
         }
@@ -334,22 +336,23 @@ namespace ImTools.SIO
         public static S<Empty> Shift(Func<Action, object> runner) => new SShift(runner);
 
         // Here is the reference implementation of ZipPar with Linq paying the memory allocations and performance for the sugar clarity
-        // public static Z<(A, B)> ZipPar2<A, B>(this Z<A> sa, Z<B> zb) => 
-        //     from zaForked in sa.Fork()
-        //     from b in zb
-        //     from a in zaForked.Join()
+        // public static S<(A, B)> ZipPar2<A, B>(this S<A> sa, S<B> sb) => 
+        //     from saForked in sa.Fork()
+        //     from b in sb
+        //     from a in saForked.Join()
         //     select (a, b);
         //
-        public static S<(A, B)> ZipPar<A, B>(this S<A> sa, S<B> zb) =>
-            sa.Fork().Then(zb, static (zb_, zaForked) =>
-            zb_.Then(zaForked, static (zaForked_, b) =>
-            zaForked_.Join().Then(b, static (b_, a) =>
-            Val((a, b_)))));
+        public static S<(A, B)> ZipPar<A, B>(this S<A> sa, S<B> sb) =>
+            sa.Fork().Then(sb, static (sb_, saForked) => 
+                sb_.Then(saForked, static (saForked_, b) =>
+                    saForked_.Join().Then(b, static (b_, a) =>
+                        Val((a, b_)))));
 
         public sealed record Empty
         {
             public override string ToString() => "(empty)";
         }
+        
         public static readonly Empty empty = default(Empty);
 
     }
