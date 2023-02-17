@@ -17,7 +17,11 @@ namespace ImTools
             public V Value;
         }
 
+        // ReSharper disable once FieldCanBeMadeReadOnly.Local
+        // No readonly because otherwise the struct will be copied on every call.
+#pragma warning disable CS0649
         private static readonly TEqualityComparer _equalityComparer;
+#pragma warning restore CS0649
 
         /// <summary>Initial size of underlying storage, prevents the unnecessary storage re-sizing and items migrations.</summary>
         public const int InitialCapacityBitCount = 5; // aka 32'

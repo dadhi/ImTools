@@ -1,12 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-      <TargetFrameworks Condition="'$(DevMode)' == 'true'">netcoreapp3.1</TargetFrameworks>
-      <TargetFrameworks Condition="'$(DevMode)' != 'true'">netcoreapp3.1;net472</TargetFrameworks>
+      <TargetFrameworks Condition="'$(DevMode)' == 'true'">net7.0</TargetFrameworks>
+      <TargetFrameworks Condition="'$(DevMode)' != 'true'">net7.0;net6.0;net472</TargetFrameworks>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="HashMapTwickedLinear.cs" />
+    <Compile Remove="HashMapTweakedLinear.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="CsCheck" Version="2.3.1" />
+    <PackageReference Include="CsCheck" Version="2.10.1" />
   </ItemGroup>
 
 </Project>
