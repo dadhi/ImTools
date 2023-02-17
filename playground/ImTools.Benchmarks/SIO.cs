@@ -23,9 +23,9 @@ using System.Threading.Tasks;
 using NUnit.Framework;
 //using System.Runtime.CompilerServices;
 using static System.Console;
-using static ImTools.UnitTests.Playground.S;
+using static ImTools.SIO.S;
 
-namespace ImTools.UnitTests.Playground
+namespace ImTools.SIO
 {
     public interface SErased { }
 
@@ -128,8 +128,8 @@ namespace ImTools.UnitTests.Playground
 
     public sealed record SAsyncFriendly<S, A>(S State, Action<S, Action<A>> Schedule) : SImpl<A>, SAsync
     {
-        void SAsync.Schedule(object state, Action<object, object> run) => 
-            Schedule(State, a => run(state, a)); // todo: @mem make static
+        void SAsync.Schedule(object state, Action<object, object> run) =>
+            Schedule(State, a => run(state, a)); // todo: @perf make static
     }
 
     public sealed record SAsync<A>(Action<object, object, Action<object, object, A>> Schedule) : SImpl<A>, SAsync
@@ -329,7 +329,7 @@ namespace ImTools.UnitTests.Playground
         public static S<A> Async<S, A>(in S state, Action<S, Action<A>> schedule) => new SAsyncFriendly<S, A>(state, schedule);
 
         // todo: @perf @mem we may potentially reuse FiberContext when the RunLoop done or on Join?
-        public static S<SFiber<A>> Fork<A>(this S<A> sa) => new SFork<A>(sa, (z, runner) => new SFiberContext<A>(z, runner));
+        public static S<SFiber<A>> Fork<A>(this S<A> sa) => new SFork<A>(sa, static (z, runner) => new SFiberContext<A>(z, runner));
 
         public static S<Empty> Shift(Func<Action, object> runner) => new SShift(runner);
 
@@ -440,8 +440,7 @@ namespace ImTools.UnitTests.Playground
     public class Program
     {
         [Test]
-        public void SMain()
-        // public static void Main()
+        public void Run()
         {
             var t = new Tests();
 
