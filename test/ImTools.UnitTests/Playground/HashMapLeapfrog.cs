@@ -17,6 +17,8 @@ namespace ImTools
             public V Value;
         }
 
+        private static readonly TEqualityComparer _equalityComparer;
+
         /// <summary>Initial size of underlying storage, prevents the unnecessary storage re-sizing and items migrations.</summary>
         public const int InitialCapacityBitCount = 5; // aka 32'
 
@@ -27,12 +29,6 @@ namespace ImTools
         private const int ClearFirstJumpBits = ~FirstJumpBits;
         private const int ClearNextJumpBits = FirstJumpBits; // just for a nice name
 
-        // ReSharper disable once FieldCanBeMadeReadOnly.Local
-        // No readonly because otherwise the struct will be copied on every call.
-#pragma warning disable 649
-        private TEqualityComparer _equalityComparer;
-#pragma warning restore 649
-
         private Slot[] _slots;
         private Slot[] _newSlots; // The expanded transition slots. After being re-populated, they will become a regular @slots
         private int _count;
@@ -41,52 +37,15 @@ namespace ImTools
         public int Count { get { return _count; } }
 
         /// <summary>Constructor. Allows to set the <see cref="InitialCapacityBitCount"/>.</summary>
-        /// <param name="initialCapacityBitCount">Initial underlying buckets size.</param>
         public HashMapLeapfrog(int initialCapacityBitCount = InitialCapacityBitCount)
         {
             var capacity = 1 << initialCapacityBitCount;
-            _slots = new Slot[capacity + (capacity >> 2)];
+            _slots = new Slot[capacity + (capacity >> 2)]; // 125% of the capacity
         }
 
         /// <summary>Looks for the key in a map and returns the value if found.</summary>
-        /// <param name="key">Key to look for.</param> <param name="value">The found value</param>
-        /// <returns>True if contains key.</returns>
         [MethodImpl((MethodImplOptions)256)]
         public bool TryFind(K key, out V value)
-        {
-            var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromEmptyOrRemoved;
-            var slots = _slots;
-
-            var slotCount = slots.Length;
-            var capacity = slotCount & (slotCount << 2);
-            var index = hash & (capacity - 1);
-            var slot = slots[index];
-            if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
-            {
-                value = slot.Value;
-                return true;
-            }
-
-            var jump = slot.FirstAndNextJump & FirstJumpBits;
-            while (jump != 0)
-            {
-                index += jump;
-                slot = slots[index];
-                if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
-                {
-                    value = slot.Value;
-                    return true;
-                }
-
-                jump = slot.FirstAndNextJump >> ShiftToNextJumpBits;
-            }
-
-            value = default(V);
-            return false;
-        }
-
-        [MethodImpl((MethodImplOptions)256)]
-        public bool TryFind_RefLocal(K key, out V value)
         {
             var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromEmptyOrRemoved;
             var slots = _slots;
@@ -105,7 +64,7 @@ namespace ImTools
             while (jump != 0)
             {
                 index += jump;
-                slot = slots[index];
+                slot = ref slots[index];
                 if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
                 {
                     value = slot.Value;
@@ -130,9 +89,9 @@ namespace ImTools
             var slots = _slots;
 
             // Step 0: Search the key in its ideal slot.
-            var capacity = slots.Length & (slots.Length << 2);
+            var capacity = slots.Length & (slots.Length << 2); // todo: @perf we may try to avoid recalculation of capacity on each call and store it
             var index = hash & (capacity - 1);
-            var slot = slots[index];
+            ref var slot = ref slots[index];
             if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
                 return slot.Value;
 
@@ -141,7 +100,7 @@ namespace ImTools
             var jump = slot.FirstAndNextJump & FirstJumpBits;
             while (jump != 0)
             {
-                slot = slots[index += jump];
+                slot = ref slots[index += jump];
                 if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
                     return slot.Value;
                 jump = slot.FirstAndNextJump >> ShiftToNextJumpBits;
@@ -248,7 +207,7 @@ namespace ImTools
 
             for (var i = 1; i < slots.Length; ++i)
             {
-                var slot = slots[i];
+                ref var slot = ref slots[i];
                 var hash = slot.Hash;
                 if (hash == 0 || hash == HashOfRemoved)
                     continue; // skip the empty or removed items
@@ -312,7 +271,7 @@ namespace ImTools
 
             var capacity = slots.Length & (slots.Length << 2);
             var index = hash & (capacity - 1);
-            var slot = slots[index];
+            ref var slot = ref slots[index];
             if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
             {
                 if (Interlocked.CompareExchange(ref slots[index].Hash, HashOfRemoved, hash) == hash)
@@ -323,7 +282,7 @@ namespace ImTools
             var jump = slot.FirstAndNextJump & FirstJumpBits;
             while (jump != 0)
             {
-                slot = slots[index += jump];
+                slot = ref slots[index += jump];
                 if (slot.Hash == hash && key.Equals(slot.Key))
                 {   // Mark as removed with the special HashOfRemoved value
                     if (Interlocked.CompareExchange(ref slots[index].Hash, HashOfRemoved, hash) == hash)

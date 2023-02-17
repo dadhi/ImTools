@@ -7,13 +7,12 @@ namespace ImTools.UnitTests.Playground
     /// <summary>The concurrent HashTable.</summary>
     /// <typeparam name="K">Type of the key</typeparam> <typeparam name="V">Type of the value</typeparam>
     /// <typeparam name="TEqualityComparer">Better be a struct to enable `Equals` and `GetHashCode` inlining.</typeparam>
-    public class HashMapTweekedLinear<K, V, TEqualityComparer> where TEqualityComparer : struct, IEqualityComparer<K>
+    public class HashMapTweakedLinear<K, V, TEqualityComparer> where TEqualityComparer : struct, IEqualityComparer<K>
     {
         internal class KeyValue
         {
             public K Key;
             public V Value;
-
             public KeyValue(K key, V value)
             {
                 Key = key;
@@ -53,7 +52,7 @@ namespace ImTools.UnitTests.Playground
 
         /// <summary>Constructor. Allows to set the <see cref="InitialCapacityBitCount"/>.</summary>
         /// <param name="initialCapacityBitCount">Initial underlying buckets size.</param>
-        public HashMapTweekedLinear(int initialCapacityBitCount = InitialCapacityBitCount)
+        public HashMapTweakedLinear(int initialCapacityBitCount = InitialCapacityBitCount)
         {
             _slots = new Slot[1 << initialCapacityBitCount];
         }
