@@ -5,7 +5,7 @@
         <LangVersion>11</LangVersion>
 
         <Authors>Maksim Volkau</Authors>
-        <Copyright>Copyright © 2016-2022 Maksim Volkau</Copyright>
+        <Copyright>Copyright © 2016-2023 Maksim Volkau</Copyright>
 
         <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
         <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
