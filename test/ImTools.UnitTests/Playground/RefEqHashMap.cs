@@ -2,10 +2,44 @@
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace ImTools.Benchmarks
+namespace ImTools
 {
+    public struct RefKeyValue<K, V> where K : class
+    {
+        public K Key;
+        public V Value;
+        public RefKeyValue(K key, V value)
+        {
+            Key = key;
+            Value = value;
+        }
+    }
+
+    public struct RefEqHashMap<K, V> where K : class
+    {
+        //todo: @wip can we put first N slot on the stack here like in `ImTools.MapStack`
+
+        public RefKeyValue<K, V>[] _slots;
+
+        public RefEqHashMap(int initialCapacity = RefEqHashMap.InitialCapacity) =>
+            _slots = new RefKeyValue<K, V>[initialCapacity];
+
+        /// <summary>Returns the index of Slot with the give key or `-1` otherwise</summary>
+        public int IndexOf(K key) =>
+            _slots.IndexOf(key);
+
+        public V GetValueOrDefault(K key) => 
+            _slots.GetValueOrDefault(key);
+
+        public void AddOrUpdate(K key, V value) => 
+            _slots = _slots.AddOrUpdate(key, value);
+    }
+
     public static class RefEqHashMap
     {
+        public static RefKeyValue<K, V> NewSlot<K, V>(K key, V value) where K : class =>
+            new RefKeyValue<K, V>(key, value);
+
         public const int InitialCapacity = 1 << 5; // 32
 
         // reserve quarter of capacity for hash conflicts
@@ -14,28 +48,37 @@ namespace ImTools.Benchmarks
             new RefKeyValue<K, V>[initialCapacity];
 
         [MethodImpl((MethodImplOptions)256)]
-        public static V GetValueOrDefault<K, V>(this RefKeyValue<K, V>[] slots, K key)
+        public static int IndexOf<K, V>(this RefKeyValue<K, V>[] slots, K key)
             where K : class
         {
             var capacity = slots.Length;
             var capacityMask = capacity - 1;
             var hash = key.GetHashCode();
 
-            ref var idealSlot = ref slots[hash & capacityMask];
-            if (idealSlot.Key == key)
-                return idealSlot.Value;
+            var idealIndex = hash & capacityMask;
+            if (slots[idealIndex].Key == key)
+                return idealIndex;
 
             capacity >>= 2; // search only for quarter of capacity
             for (var distance = 1; distance < capacity; ++distance)
             {
-                ref var slot = ref slots[(hash + distance) & capacityMask];
+                var index = (hash + distance) & capacityMask;
+                ref var slot = ref slots[index];
                 if (slot.Key == key)
-                    return slot.Value;
+                    return index;
                 if (slot.Key == null) // not found, stop on an empty key
                     break;
             }
 
-            return default(V);
+            return -1;
+        }
+
+        [MethodImpl((MethodImplOptions)256)]
+        public static V GetValueOrDefault<K, V>(this RefKeyValue<K, V>[] slots, K key)
+            where K : class
+        {
+            var index = slots.IndexOf(key);
+            return index == -1 ? default(V) : slots[index].Value;
         }
 
         // may return new slots if old slot capacity is not enough to add a new item
@@ -87,11 +130,5 @@ namespace ImTools.Benchmarks
             }
             return false;
         }
-    }
-
-    public struct RefKeyValue<K, V> where K : class
-    {
-        public K Key;
-        public V Value;
     }
 }
