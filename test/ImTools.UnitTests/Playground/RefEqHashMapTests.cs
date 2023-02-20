@@ -22,7 +22,7 @@ namespace ImTools.UnitTests
         [Test]
         public void Can_store_and_retrieve_value_from_map()
         {
-            var map = new RefEqHashMap<Key, string>(4);
+            var map = new RefEqHashMap<Key, string>(3);
 
             map.AddOrUpdate(Key._42, "1");
             map.AddOrUpdate(Key._42_32, "2");

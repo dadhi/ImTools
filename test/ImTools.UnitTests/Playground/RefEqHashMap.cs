@@ -19,39 +19,15 @@ namespace ImTools
     public struct RefEqHashMap<K, V> where K : class
     {
         //todo: @wip can we put first N slot on the stack here like in `ImTools.MapStack`
-
         public RefKeyValue<K, V>[] _slots;
 
-        public RefEqHashMap(int initialCapacity = RefEqHashMap.InitialCapacity) =>
-            _slots = new RefKeyValue<K, V>[initialCapacity];
+        public RefEqHashMap(int capacityBits) =>
+            _slots = new RefKeyValue<K, V>[1 << capacityBits];
 
         /// <summary>Returns the index of Slot with the give key or `-1` otherwise</summary>
-        public int IndexOf(K key) =>
-            _slots.IndexOf(key);
-
-        public V GetValueOrDefault(K key) => 
-            _slots.GetValueOrDefault(key);
-
-        public void AddOrUpdate(K key, V value) => 
-            _slots = _slots.AddOrUpdate(key, value);
-    }
-
-    public static class RefEqHashMap
-    {
-        public static RefKeyValue<K, V> NewSlot<K, V>(K key, V value) where K : class =>
-            new RefKeyValue<K, V>(key, value);
-
-        public const int InitialCapacity = 1 << 5; // 32
-
-        // reserve quarter of capacity for hash conflicts
-        public static RefKeyValue<K, V>[] Empty<K, V>(int initialCapacity = InitialCapacity)
-            where K : class =>
-            new RefKeyValue<K, V>[initialCapacity];
-
-        [MethodImpl((MethodImplOptions)256)]
-        public static int IndexOf<K, V>(this RefKeyValue<K, V>[] slots, K key)
-            where K : class
+        public int IndexOf(K key)
         {
+            var slots = _slots;
             var capacity = slots.Length;
             var capacityMask = capacity - 1;
             var hash = key.GetHashCode();
@@ -74,22 +50,19 @@ namespace ImTools
             return -1;
         }
 
-        [MethodImpl((MethodImplOptions)256)]
-        public static V GetValueOrDefault<K, V>(this RefKeyValue<K, V>[] slots, K key)
-            where K : class
+        public V GetValueOrDefault(K key) 
         {
-            var index = slots.IndexOf(key);
-            return index == -1 ? default(V) : slots[index].Value;
+            var index = IndexOf(key);
+            return index == -1 ? default(V) : _slots[index].Value;   
         }
 
-        // may return new slots if old slot capacity is not enough to add a new item
-        public static RefKeyValue<K, V>[] AddOrUpdate<K, V>(this RefKeyValue<K, V>[] slots, K key, V value)
-            where K : class
-        {
+        public void AddOrUpdate(K key, V value)
+        { 
+            var slots = _slots;
             var capacity = slots.Length;
             var hash = key.GetHashCode();
             if (TryPut(slots, capacity, capacity - 1, hash, key, value))
-                return slots;
+                return;
 
             // Expand slots: Create a new slots and re-populate them from the old slots.
             // Expanding slots will double the capacity.
@@ -105,11 +78,10 @@ namespace ImTools
             }
 
             TryPut(newSlots, newCapacity, newCapacityMask, hash, key, value);
-            return newSlots;
+            _slots = newSlots;
         }
 
-        private static bool TryPut<K, V>(RefKeyValue<K, V>[] slots, int capacity, int capacityMask, int hash, K key, V value)
-            where K : class
+        private static bool TryPut(RefKeyValue<K, V>[] slots, int capacity, int capacityMask, int hash, K key, V value)
         {
             var idealIndex = hash & capacityMask;
             if (Interlocked.CompareExchange(ref slots[idealIndex].Key, key, null) == null)
