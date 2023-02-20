@@ -4,6 +4,7 @@ using System.Threading;
 
 namespace ImTools
 {
+    // todo: @perf improve the performance by storing the hash, especially when we expanding the hash map?
     public struct RefKeyValue<K, V> where K : class
     {
         public K Key;
@@ -87,30 +88,29 @@ namespace ImTools
         {
             var capacity = slots.Length;
             var hash = key.GetHashCode();
-            if (TryPut(slots, capacity, hash, key, value))
+            if (TryPut(slots, capacity, capacity - 1, hash, key, value))
                 return slots;
 
             // Expand slots: Create a new slots and re-populate them from the old slots.
             // Expanding slots will double the capacity.
             var newCapacity = capacity << 1;
-            var newSlots = new RefKeyValue<K, V>[newCapacity];
-
+            var newSlots = new RefKeyValue<K, V>[newCapacity]; // todo: @perf can we Array.Resize here?
+            var newCapacityMask = newCapacity - 1;
             for (var i = 0; i < capacity; i++)
             {
                 ref var slot = ref slots[i];
                 var slotKey = slot.Key;
                 if (slotKey != null)
-                    TryPut(newSlots, newCapacity, slotKey.GetHashCode(), slotKey, slot.Value);
+                    TryPut(newSlots, newCapacity, newCapacityMask, slotKey.GetHashCode(), slotKey, slot.Value);
             }
 
-            TryPut(newSlots, newCapacity, hash, key, value);
+            TryPut(newSlots, newCapacity, newCapacityMask, hash, key, value);
             return newSlots;
         }
 
-        private static bool TryPut<K, V>(RefKeyValue<K, V>[] slots, int capacity, int hash, K key, V value)
+        private static bool TryPut<K, V>(RefKeyValue<K, V>[] slots, int capacity, int capacityMask, int hash, K key, V value)
             where K : class
         {
-            var capacityMask = capacity - 1;
             var idealIndex = hash & capacityMask;
             if (Interlocked.CompareExchange(ref slots[idealIndex].Key, key, null) == null)
             {
@@ -121,7 +121,7 @@ namespace ImTools
             capacity >>= 2; // search only for the quarter of capacity
             for (var distance = 1; distance < capacity; ++distance)
             {
-                var index = (hash + distance) & capacityMask;
+                var index = (hash + distance) & capacityMask; // wrap around the array boundaries and start from the beginning
                 if (Interlocked.CompareExchange(ref slots[index].Key, key, null) == null)
                 {
                     slots[index].Value = value;
