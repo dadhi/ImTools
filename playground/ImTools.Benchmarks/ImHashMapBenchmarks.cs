@@ -572,6 +572,25 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 | V4_ImHashMap_AddOrUpdate |  1000 | 360.84 us | 7.210 us | 13.543 us | 355.43 us |  1.00 |    0.00 |  91.3086 |     - |     - | 280.23 KB |
 | V3_ImHashMap_AddOrUpdate |  1000 | 299.54 us | 5.907 us | 10.500 us | 294.68 us |  0.83 |    0.05 | 103.0273 |     - |     - | 316.58 KB |
 
+## Comparing EqRefHashMap vs Dict and DictSlim
+
+BenchmarkDotNet=v0.13.5, OS=Windows 10 (10.0.19042.928/20H2/October2020Update)
+Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical cores
+.NET SDK=7.0.100
+  [Host]     : .NET 7.0.0 (7.0.22.51805), X64 RyuJIT AVX2
+  DefaultJob : .NET 7.0.0 (7.0.22.51805), X64 RyuJIT AVX2
+
+
+|                   Method | Count |      Mean |     Error |    StdDev |    Median | Ratio | RatioSD |    Gen0 | Allocated | Alloc Ratio |
+|------------------------- |------ |----------:|----------:|----------:|----------:|------:|--------:|--------:|----------:|------------:|
+| RefEqHashMap_AddOrUpdate |   100 |  3.233 us | 0.1097 us | 0.3200 us |  3.079 us |  1.00 |    0.00 |  1.1597 |   3.57 KB |        1.00 |
+|          DictSlim_TryAdd |   100 |  3.103 us | 0.0614 us | 0.1348 us |  3.057 us |  0.95 |    0.11 |  2.3842 |   7.31 KB |        2.05 |
+|              Dict_TryAdd |   100 |  3.980 us | 0.0748 us | 0.1458 us |  3.960 us |  1.19 |    0.13 |  3.2425 |   9.95 KB |        2.79 |
+|                          |       |           |           |           |           |       |         |         |           |             |
+| RefEqHashMap_AddOrUpdate |  1000 | 76.547 us | 1.5221 us | 2.6256 us | 76.156 us |  1.00 |    0.00 | 20.6299 |  63.66 KB |        1.00 |
+|          DictSlim_TryAdd |  1000 | 31.762 us | 0.6174 us | 0.7582 us | 31.702 us |  0.42 |    0.01 | 18.3105 |  56.45 KB |        0.89 |
+|              Dict_TryAdd |  1000 | 42.873 us | 0.8547 us | 2.2062 us | 42.303 us |  0.56 |    0.03 | 32.2266 |  99.82 KB |        1.57 |
+
 */
             [Params(100, 1000)]
             // [Params(1, 10, 100, 1000)]
