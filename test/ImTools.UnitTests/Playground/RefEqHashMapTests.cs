@@ -36,8 +36,10 @@ namespace ImTools.UnitTests
             Assert.AreEqual("2", map.GetValueOrDefault(Key._42_32));
             Assert.AreEqual("3", map.GetValueOrDefault(Key._42_32_32));
             Assert.AreEqual(null, map.GetValueOrDefault(Key._42_32_32_32));
-
             Assert.AreEqual("a", map.GetValueOrDefault(Key._43));
+
+            map.AddOrUpdate(Key._43, "a!");
+            Assert.AreEqual("a!", map.GetValueOrDefault(Key._43));
         }
 
         // [Test]

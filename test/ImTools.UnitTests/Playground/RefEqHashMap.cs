@@ -20,7 +20,8 @@ namespace ImTools
     {
         //todo: @wip can we put first N slot on the stack here like in `ImTools.MapStack`
         public RefKeyValue<K, V>[] _slots;
-        // the actual capacity is calculated as 2^capacityBits, e.g. 2^2 = 4 slots, 2^3 = 8 slots, etc.
+
+        // <summary>The actual capacity is calculated as 2^capacityBits, e.g. 2^2 = 4 slots, 2^3 = 8 slots, etc.</summary>
         public RefEqHashMap(int capacityBits) =>
             _slots = new RefKeyValue<K, V>[1 << capacityBits];
 
@@ -80,6 +81,7 @@ namespace ImTools
                 {
                     ref var slot = ref slots[i];
                     var itemKey = slot.Key;
+                    // for every non-empty old slot, copy the item to the new slots
                     if (itemKey != null)
                     {
                         success = TryPut(newSlots, searchDistance, capacityMask, itemKey.GetHashCode(), itemKey, slot.Value);
@@ -94,18 +96,23 @@ namespace ImTools
 
         private static bool TryPut(RefKeyValue<K, V>[] slots, int searchDistance, int capacityMask, int hash, K key, V value)
         {
-            var idealIndex = hash & capacityMask;
-            if (Interlocked.CompareExchange(ref slots[idealIndex].Key, key, null) == null)
+            ref var idealSlot = ref slots[hash & capacityMask];
+            // adding the new item to the empty slot, or updating the item (checking by the reference equality)
+            if (idealSlot.Key == null || idealSlot.Key == key)
             {
-                slots[idealIndex].Value = value;
+                idealSlot.Key = key; // todo: @perf maybe not the case if we are updating the item
+                idealSlot.Value = value;
                 return true;
             }
             for (uint distance = 1; distance <= searchDistance; ++distance)
             {
-                var index = (hash + distance) & capacityMask; // wrap around the array boundaries and start from the beginning
-                if (Interlocked.CompareExchange(ref slots[index].Key, key, null) == null)
+                // wrap around the array boundaries and start from the beginning
+                ref var slot = ref slots[(hash + distance) & capacityMask];
+                // adding the new item to the empty slot, or updating the item (checking by the reference equality)
+                if (slot.Key == null || slot.Key == key)
                 {
-                    slots[index].Value = value;
+                    slot.Key = key; // todo: @perf maybe not the case if we are updating the item
+                    slot.Value = value;
                     return true;
                 }
             }
