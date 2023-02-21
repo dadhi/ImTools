@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net7.0;net6.0;net472</TargetFrameworks>
+    <NoWarn>1701;1702;AD0001;NU1608</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ImTools\ImTools.csproj" />
+  </ItemGroup>
+</Project>

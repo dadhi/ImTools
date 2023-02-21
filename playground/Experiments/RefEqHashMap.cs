@@ -1,8 +1,4 @@
-﻿using System;
-using System.Runtime.CompilerServices;
-using System.Threading;
-
-namespace ImTools
+﻿namespace ImTools.Experiments
 {
     // todo: @perf improve the performance by storing the hash, especially when we expanding the hash map?
     public struct RefKeyValue<K, V> where K : class
@@ -15,6 +11,8 @@ namespace ImTools
             Value = value;
         }
     }
+
+    public struct X<T> {}
 
     public struct RefEqHashMap<K, V> where K : class
     {

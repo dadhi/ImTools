@@ -585,7 +585,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 _types = _keys.Take(Count).ToArray();
             }
 
-            [Benchmark(Baseline = true)]
+            // [Benchmark(Baseline = true)]
             public ImTools.ImHashMap<Type, string> V4_ImHashMap_AddOrUpdate()
             {
                 var map = ImTools.ImHashMap<Type, string>.Empty;
@@ -630,88 +630,101 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return map;
             }
 
+            // // [Benchmark]
+            // public ImToolsV3.ImHashMap<Type, string> V3_ImHashMap_AddOrUpdate()
+            // {
+            //     var map = ImToolsV3.ImHashMap<Type, string>.Empty;
+
+            //     foreach (var key in _types)
+            //         map = map.AddOrUpdate(key.GetHashCode(), key, "a");
+
+            //     return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
+            // }
+
+            // // [Benchmark]
+            // public ImToolsV3.ImHashMap<Type, string>[] V3_PartitionedHashMap_AddOrUpdate()
+            // {
+            //     var map = ImToolsV3.PartitionedHashMap.CreateEmpty<Type, string>();
+
+            //     foreach (var key in _types)
+            //         map.AddOrUpdate(key, "a");
+
+            //     map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+            //     return map;
+            // }
+
+            // // [Benchmark]
+            // public ImTools.V2.ImHashMap<Type, string> V2_ImHashMap_AddOrUpdate()
+            // {
+            //     var map = ImTools.V2.ImHashMap<Type, string>.Empty;
+
+            //     foreach (var key in _types)
+            //         map = map.AddOrUpdate(key, "a");
+
+            //     return map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+            // }
+
+            // // [Benchmark]
+            // public ImTools.V2.ImHashMap<Type, string>[] ImHashMapSlots32_AddOrUpdate()
+            // {
+            //     var map = ImTools.V2.ImHashMapSlots.CreateWithEmpty<Type, string>();
+
+            //     foreach (var key in _types)
+            //         map.AddOrUpdate(key, "a");
+
+            //     map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+            //     return map;
+            // }
+
+            // // [Benchmark]
+            // public ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>> V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate()
+            // {
+            //     var map = ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>>.Empty;
+
+            //     foreach (var key in _types)
+            //         map = map.AddOrUpdate(key.GetHashCode(), key, "a");
+
+            //     return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
+            // }
+
+            // // [Benchmark]
+            // public ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>>[] Experimental_ImHashMapSlots32_AddOrUpdate()
+            // {
+            //     var map = ImTools.V2.Experimental.ImMapSlots.CreateWithEmpty<ImTools.V2.Experimental.ImMap.KValue<Type>>();
+
+            //     foreach (var key in _types)
+            //         map.AddOrUpdate(key.GetHashCode(), new ImTools.V2.Experimental.ImMap.KValue<Type>(key, "a"));
+
+            //     map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), new ImTools.V2.Experimental.ImMap.KValue<Type>(typeof(ImHashMapBenchmarks), "!"));
+            //     return map;
+            // }
+
+            // // [Benchmark]
+            // public ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>>[] Experimental_ImHashMapSlots64_AddOrUpdate()
+            // {
+            //     var map = ImTools.V2.Experimental.ImMapSlots.CreateWithEmpty<ImTools.V2.Experimental.ImMap.KValue<Type>>(64);
+
+            //     foreach (var key in _types)
+            //         map.AddOrUpdate(key.GetHashCode(), new ImTools.V2.Experimental.ImMap.KValue<Type>(key, "a"), 63);
+
+            //     map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), new ImTools.V2.Experimental.ImMap.KValue<Type>(typeof(ImHashMapBenchmarks), "!"), 63);
+            //     return map;
+            // }
+
+            [Benchmark(Baseline = true)]
+            public ImTools.Experiments.RefEqHashMap<Type, string> RefEqHashMap_AddOrUpdate()
+            {
+                var map = new ImTools.Experiments.RefEqHashMap<Type, string>(5);
+
+                foreach (var key in _types)
+                    map.AddOrUpdate(key, "a");
+
+                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+                return map;
+            }
+
+
             [Benchmark]
-            public ImToolsV3.ImHashMap<Type, string> V3_ImHashMap_AddOrUpdate()
-            {
-                var map = ImToolsV3.ImHashMap<Type, string>.Empty;
-
-                foreach (var key in _types)
-                    map = map.AddOrUpdate(key.GetHashCode(), key, "a");
-
-                return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
-            }
-
-            // [Benchmark]
-            public ImToolsV3.ImHashMap<Type, string>[] V3_PartitionedHashMap_AddOrUpdate()
-            {
-                var map = ImToolsV3.PartitionedHashMap.CreateEmpty<Type, string>();
-
-                foreach (var key in _types)
-                    map.AddOrUpdate(key, "a");
-
-                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
-                return map;
-            }
-
-            // [Benchmark]
-            public ImTools.V2.ImHashMap<Type, string> V2_ImHashMap_AddOrUpdate()
-            {
-                var map = ImTools.V2.ImHashMap<Type, string>.Empty;
-
-                foreach (var key in _types)
-                    map = map.AddOrUpdate(key, "a");
-
-                return map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
-            }
-
-            // [Benchmark]
-            public ImTools.V2.ImHashMap<Type, string>[] ImHashMapSlots32_AddOrUpdate()
-            {
-                var map = ImTools.V2.ImHashMapSlots.CreateWithEmpty<Type, string>();
-
-                foreach (var key in _types)
-                    map.AddOrUpdate(key, "a");
-
-                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
-                return map;
-            }
-
-            // [Benchmark]
-            public ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>> V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate()
-            {
-                var map = ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>>.Empty;
-
-                foreach (var key in _types)
-                    map = map.AddOrUpdate(key.GetHashCode(), key, "a");
-
-                return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
-            }
-
-            // [Benchmark]
-            public ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>>[] Experimental_ImHashMapSlots32_AddOrUpdate()
-            {
-                var map = ImTools.V2.Experimental.ImMapSlots.CreateWithEmpty<ImTools.V2.Experimental.ImMap.KValue<Type>>();
-
-                foreach (var key in _types)
-                    map.AddOrUpdate(key.GetHashCode(), new ImTools.V2.Experimental.ImMap.KValue<Type>(key, "a"));
-
-                map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), new ImTools.V2.Experimental.ImMap.KValue<Type>(typeof(ImHashMapBenchmarks), "!"));
-                return map;
-            }
-
-            // [Benchmark]
-            public ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>>[] Experimental_ImHashMapSlots64_AddOrUpdate()
-            {
-                var map = ImTools.V2.Experimental.ImMapSlots.CreateWithEmpty<ImTools.V2.Experimental.ImMap.KValue<Type>>(64);
-
-                foreach (var key in _types)
-                    map.AddOrUpdate(key.GetHashCode(), new ImTools.V2.Experimental.ImMap.KValue<Type>(key, "a"), 63);
-
-                map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), new ImTools.V2.Experimental.ImMap.KValue<Type>(typeof(ImHashMapBenchmarks), "!"), 63);
-                return map;
-            }
-
-            // [Benchmark]
             public DictionarySlim<TypeVal, string> DictSlim_TryAdd()
             {
                 var map = new DictionarySlim<TypeVal, string>();
@@ -723,7 +736,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return map;
             }
 
-            // [Benchmark]
+            [Benchmark]
             public Dictionary<Type, string> Dict_TryAdd()
             {
                 var map = new Dictionary<Type, string>();
@@ -1551,6 +1564,18 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                     map = map.AddOrUpdate(key.GetHashCode(), key, "a");
 
                 return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
+            }
+
+            private ImTools.Experiments.RefEqHashMap<Type, string> _refEqHashMap;
+            public ImTools.Experiments.RefEqHashMap<Type, string> RefEqHashMap_AddOrUpdate()
+            {
+                var map = new ImTools.Experiments.RefEqHashMap<Type, string>(5);
+
+                foreach (var key in _keys.Take(Count))
+                    map.AddOrUpdate(key, "a");
+
+                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+                return map;
             }
 
             private ImTools.ImHashMap<Type, string> _mapV4;

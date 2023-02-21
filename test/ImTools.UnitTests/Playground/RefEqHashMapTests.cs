@@ -1,6 +1,6 @@
 ﻿using NUnit.Framework;
 
-namespace ImTools.UnitTests
+namespace ImTools.Experiments.UnitTests
 {
     [TestFixture]
     public class RefEqHashMapTests

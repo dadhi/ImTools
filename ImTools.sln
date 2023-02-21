@@ -52,6 +52,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImTools.SimpleDIPlayground"
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "ImTools.UnionCsVsFsBenchmarks", "playground\ImTools.UnionCsVsFsBenchmarks\ImTools.UnionCsVsFsBenchmarks.fsproj", "{239B6CA0-2860-4A67-859F-FD4EF6DAA547}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Experiments", "playground\Experiments\Experiments.csproj", "{88D8A585-1936-41DC-9A6E-74589EB6EA97}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -82,6 +84,10 @@ Global
 		{239B6CA0-2860-4A67-859F-FD4EF6DAA547}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{239B6CA0-2860-4A67-859F-FD4EF6DAA547}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{239B6CA0-2860-4A67-859F-FD4EF6DAA547}.Release|Any CPU.Build.0 = Release|Any CPU
+		{88D8A585-1936-41DC-9A6E-74589EB6EA97}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{88D8A585-1936-41DC-9A6E-74589EB6EA97}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{88D8A585-1936-41DC-9A6E-74589EB6EA97}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{88D8A585-1936-41DC-9A6E-74589EB6EA97}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -93,6 +99,7 @@ Global
 		{EFBD055A-3C8A-45C7-8718-D9C53A66521D} = {D109DF34-CB08-42E5-8F8F-CD2D4D4A8DB3}
 		{60B58862-31B3-48DC-BFF3-42A9B0A194A5} = {D109DF34-CB08-42E5-8F8F-CD2D4D4A8DB3}
 		{239B6CA0-2860-4A67-859F-FD4EF6DAA547} = {D109DF34-CB08-42E5-8F8F-CD2D4D4A8DB3}
+		{88D8A585-1936-41DC-9A6E-74589EB6EA97} = {D109DF34-CB08-42E5-8F8F-CD2D4D4A8DB3}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B8B8E41A-6F08-46C3-828D-C74B91428793}

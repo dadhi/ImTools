@@ -1,3 +1,4 @@
+#if NET7_0_OR_GREATER
 // The source repository
 // https://github.com/dadhi/ImTools/blob/zio_from_scratch/test/ImTools.UnitTests/Playground/ZIO.cs
 
@@ -20,7 +21,6 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using NUnit.Framework;
 //using System.Runtime.CompilerServices;
 using static System.Console;
 using static ImTools.SIO.S;
@@ -439,10 +439,8 @@ namespace ImTools.SIO
         }
     }
 
-    [TestFixture]
     public class Program
     {
-        [Test]
         public void Run()
         {
             var t = new Tests();
@@ -473,3 +471,4 @@ namespace ImTools.SIO
         }
     }
 }
+#endif

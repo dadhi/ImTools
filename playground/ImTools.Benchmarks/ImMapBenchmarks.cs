@@ -4,10 +4,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using BenchmarkDotNet.Attributes;
 using ImTools;
-using ImTools.V2;
-using ImTools.UnitTests;
 using Microsoft.Collections.Extensions;
-using ImTools.V2.Experimental;
 
 #pragma warning disable CS0649
 
@@ -460,16 +457,16 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return map;
             }
 
-            [Benchmark]
-            public ImTools.V2.ImMap<string> V2_ImMap_AddOrUpdate()
-            {
-                var map = ImTools.V2.ImMap<string>.Empty;
+            // [Benchmark]
+            // public ImTools.V2.ImMap<string> V2_ImMap_AddOrUpdate()
+            // {
+            //     var map = ImTools.V2.ImMap<string>.Empty;
 
-                for (var i = 0; i < Count; i++)
-                    map = map.AddOrUpdate(i, i.ToString());
+            //     for (var i = 0; i < Count; i++)
+            //         map = map.AddOrUpdate(i, i.ToString());
 
-                return map;
-            }
+            //     return map;
+            // }
 
             // [Benchmark]
             public ImTools.ImHashMap<int, string>[] V4_PartitionedImMap_AddOrUpdate()
@@ -483,37 +480,37 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             }
 
             // [Benchmark]
-            public ImTools.V2.Experimental.ImMap<string> V2_ImMap_Experimental_AddOrUpdate()
-            {
-                var map = ImTools.V2.Experimental.ImMap<string>.Empty;
+            // public ImTools.V2.Experimental.ImMap<string> V2_ImMap_Experimental_AddOrUpdate()
+            // {
+            //     var map = ImTools.V2.Experimental.ImMap<string>.Empty;
 
-                for (var i = 0; i < Count; i++)
-                    map = map.AddOrUpdate(i, i.ToString());
+            //     for (var i = 0; i < Count; i++)
+            //         map = map.AddOrUpdate(i, i.ToString());
 
-                return map;
-            }
+            //     return map;
+            // }
 
-            // [Benchmark]
-            public ImTools.V2.Experimental.ImMap<string>[] Experimental_ImMapSlots_AddOrUpdate()
-            {
-                var slots = ImTools.V2.Experimental.ImMapSlots.CreateWithEmpty<string>();
+            // // [Benchmark]
+            // public ImTools.V2.Experimental.ImMap<string>[] Experimental_ImMapSlots_AddOrUpdate()
+            // {
+            //     var slots = ImTools.V2.Experimental.ImMapSlots.CreateWithEmpty<string>();
 
-                for (var i = 0; i < Count; i++)
-                    slots.AddOrUpdate(i, i.ToString());
+            //     for (var i = 0; i < Count; i++)
+            //         slots.AddOrUpdate(i, i.ToString());
 
-                return slots;
-            }
+            //     return slots;
+            // }
 
-            // [Benchmark]
-            public ImTools.V2.Experimental.ImMap<string>[] ImMapSlots_AddOrUpdate()
-            {
-                var slots = ImTools.V2.Experimental.ImMapSlots.CreateWithEmpty<string>();
+            // // [Benchmark]
+            // public ImTools.V2.Experimental.ImMap<string>[] ImMapSlots_AddOrUpdate()
+            // {
+            //     var slots = ImTools.V2.Experimental.ImMapSlots.CreateWithEmpty<string>();
 
-                for (var i = 0; i < Count; i++)
-                    slots.AddOrUpdate(i, i.ToString());
+            //     for (var i = 0; i < Count; i++)
+            //         slots.AddOrUpdate(i, i.ToString());
 
-                return slots;
-            }
+            //     return slots;
+            // }
 
             // [Benchmark]
             public DictionarySlim<int, string> DictSlim_GetOrAddValueRef()
@@ -865,27 +862,27 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 |  ConcurrentDict_TryGetValue | 10000 |  7.5147 ns | 0.1537 ns | 0.1437 ns |  0.43 |    0.01 |     - |     - |     - |         - |
 |   ImmutableDict_TryGetValue | 10000 | 37.8435 ns | 0.4362 ns | 0.4080 ns |  2.17 |    0.04 |     - |     - |     - |         - |
  */
-            private ImTools.V2.ImMap<string> _mapV2;
-            public ImTools.V2.ImMap<string> V2_AddOrUpdate()
-            {
-                var map = ImTools.V2.ImMap<string>.Empty;
+            // private ImTools.V2.ImMap<string> _mapV2;
+            // public ImTools.V2.ImMap<string> V2_AddOrUpdate()
+            // {
+            //     var map = ImTools.V2.ImMap<string>.Empty;
 
-                for (var i = 0; i < Count; i++)
-                    map = map.AddOrUpdate(i, i.ToString());
+            //     for (var i = 0; i < Count; i++)
+            //         map = map.AddOrUpdate(i, i.ToString());
 
-                return map;
-            }
+            //     return map;
+            // }
 
-            private ImTools.V2.Experimental.ImMap<string> _mapExp;
-            public ImTools.V2.Experimental.ImMap<string> AddOrUpdate_Exp()
-            {
-                var map = ImTools.V2.Experimental.ImMap<string>.Empty;
+            // private ImTools.V2.Experimental.ImMap<string> _mapExp;
+            // public ImTools.V2.Experimental.ImMap<string> AddOrUpdate_Exp()
+            // {
+            //     var map = ImTools.V2.Experimental.ImMap<string>.Empty;
 
-                for (var i = 0; i < Count; i++)
-                    map = map.AddOrUpdate(i, i.ToString());
+            //     for (var i = 0; i < Count; i++)
+            //         map = map.AddOrUpdate(i, i.ToString());
 
-                return map;
-            }
+            //     return map;
+            // }
 
             private ImTools.ImHashMap<int, string> _mapV4;
             public ImTools.ImHashMap<int, string> V4_AddOrUpdate_ImMap()
@@ -898,16 +895,16 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return map;
             }
 
-            private ImTools.V2.Experimental.ImMap<string>[] _mapSlots;
-            public ImTools.V2.Experimental.ImMap<string>[] AddOrUpdate_ImMapSlots()
-            {
-                var slots = ImTools.V2.Experimental.ImMapSlots.CreateWithEmpty<string>();
+            // private ImTools.V2.Experimental.ImMap<string>[] _mapSlots;
+            // public ImTools.V2.Experimental.ImMap<string>[] AddOrUpdate_ImMapSlots()
+            // {
+            //     var slots = ImTools.V2.Experimental.ImMapSlots.CreateWithEmpty<string>();
 
-                for (var i = 0; i < Count; i++)
-                    slots.AddOrUpdate(i, i.ToString());
+            //     for (var i = 0; i < Count; i++)
+            //         slots.AddOrUpdate(i, i.ToString());
 
-                return slots;
-            }
+            //     return slots;
+            // }
 
             private ImTools.ImHashMap<int, string>[] _partMapV3;
             public ImTools.ImHashMap<int, string>[] V3_AddOrUpdate_PartitionedMap()
@@ -975,7 +972,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             {
                 LookupMaxKey = Count - 1;
 
-                _mapV2 = V2_AddOrUpdate();
+                // _mapV2 = V2_AddOrUpdate();
                 // _mapExp = AddOrUpdate_Exp();
                 _mapV4 = V4_AddOrUpdate_ImMap();
                 // _mapSlots = AddOrUpdate_ImMapSlots();
@@ -994,42 +991,42 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return result;
             }
 
-            [Benchmark]
-            public string V4_PartitionedImMap_TryFind()
-            {
-                _partMapV3[LookupMaxKey & ImTools.V2.Experimental.ImMapSlots.KEY_MASK_TO_FIND_SLOT].TryFind(LookupMaxKey, out var result);
-                return result;
-            }
-
-            [Benchmark]
-            public string V2_ImMap_TryFind()
-            {
-                // return _mapV4.GetValueOrDefault(LookupMaxKey);
-                _mapV2.TryFind(LookupMaxKey, out var result);
-                return result;
-            }
+            // [Benchmark]
+            // public string V4_PartitionedImMap_TryFind()
+            // {
+            //     _partMapV3[LookupMaxKey & ImTools.V2.Experimental.ImMapSlots.KEY_MASK_TO_FIND_SLOT].TryFind(LookupMaxKey, out var result);
+            //     return result;
+            // }
 
             // [Benchmark]
-            public string Experimental_ImMap_TryFind()
-            {
-                _mapExp.TryFind(LookupMaxKey, out var result);
-                return result;
-            }
+            // public string V2_ImMap_TryFind()
+            // {
+            //     // return _mapV4.GetValueOrDefault(LookupMaxKey);
+            //     // _mapV2.TryFind(LookupMaxKey, out var result);
+            //     return result;
+            // }
 
-            //[Benchmark(Baseline = true)]
-            public string ImMap_Experimental_GetValueOrDefault() =>
-                _mapExp.GetValueOrDefault(LookupMaxKey);
+            // // [Benchmark]
+            // public string Experimental_ImMap_TryFind()
+            // {
+            //     _mapExp.TryFind(LookupMaxKey, out var result);
+            //     return result;
+            // }
+
+            // //[Benchmark(Baseline = true)]
+            // public string ImMap_Experimental_GetValueOrDefault() =>
+            //     _mapExp.GetValueOrDefault(LookupMaxKey);
 
             //[Benchmark]
             // public string ImMap_Experimental_ImMap234_GetValueOrDefault() =>
             //     _map234.GetValueOrDefault(LookupMaxKey);
 
-            //[Benchmark]
-            public string ImMapSlots_TryFind()
-            {
-                _mapSlots[LookupMaxKey & ImTools.V2.Experimental.ImMapSlots.KEY_MASK_TO_FIND_SLOT].TryFind(LookupMaxKey, out var result);
-                return result;
-            }
+            // //[Benchmark]
+            // public string ImMapSlots_TryFind()
+            // {
+            //     _mapSlots[LookupMaxKey & ImTools.V2.Experimental.ImMapSlots.KEY_MASK_TO_FIND_SLOT].TryFind(LookupMaxKey, out var result);
+            //     return result;
+            // }
 
             [Benchmark]
             public string DictSlim_TryGetValue()
@@ -1097,25 +1094,25 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             {
                 MissingKey = Count + 1;
 
-                _mapExp = AddOrUpdate_Exp();
+                // _mapExp = AddOrUpdate_Exp();
                 // _map234 = AddOrUpdate_Exp_ImMap234();
             }
 
 
-            [Benchmark(Baseline = true)]
-            public string ImMap_Experimental_GetValueOrDefault() =>
-                _mapExp.GetValueOrDefault(MissingKey);
+            // [Benchmark(Baseline = true)]
+            // public string ImMap_Experimental_GetValueOrDefault() =>
+            //     _mapExp.GetValueOrDefault(MissingKey);
 
-            private ImTools.V2.Experimental.ImMap<string> _mapExp;
-            public ImTools.V2.Experimental.ImMap<string> AddOrUpdate_Exp()
-            {
-                var map = ImTools.V2.Experimental.ImMap<string>.Empty;
+            // private ImTools.V2.Experimental.ImMap<string> _mapExp;
+            // public ImTools.V2.Experimental.ImMap<string> AddOrUpdate_Exp()
+            // {
+            //     var map = ImTools.V2.Experimental.ImMap<string>.Empty;
 
-                for (var i = 0; i < Count; i++)
-                    map = map.AddOrUpdate(i, i.ToString());
+            //     for (var i = 0; i < Count; i++)
+            //         map = map.AddOrUpdate(i, i.ToString());
 
-                return map;
-            }
+            //     return map;
+            // }
         }
 
         [MemoryDiagnoser]
@@ -1330,27 +1327,27 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 
             #region Populate
 
-            private ImTools.V2.ImMap<string> _mapV2;
-            public ImTools.V2.ImMap<string> V2_AddOrUpdate()
-            {
-                var map = ImTools.V2.ImMap<string>.Empty;
+            // private ImTools.V2.ImMap<string> _mapV2;
+            // public ImTools.V2.ImMap<string> V2_AddOrUpdate()
+            // {
+            //     var map = ImTools.V2.ImMap<string>.Empty;
 
-                for (var i = 0; i < Count; i++)
-                    map = map.AddOrUpdate(i, i.ToString());
+            //     for (var i = 0; i < Count; i++)
+            //         map = map.AddOrUpdate(i, i.ToString());
 
-                return map;
-            }
+            //     return map;
+            // }
 
-            private ImTools.V2.Experimental.ImMap<string> _mapV2Exp;
-            public ImTools.V2.Experimental.ImMap<string> V2_Exp_AddOrUpdate()
-            {
-                var map = ImTools.V2.Experimental.ImMap<string>.Empty;
+            // private ImTools.V2.Experimental.ImMap<string> _mapV2Exp;
+            // public ImTools.V2.Experimental.ImMap<string> V2_Exp_AddOrUpdate()
+            // {
+            //     var map = ImTools.V2.Experimental.ImMap<string>.Empty;
 
-                for (var i = 0; i < Count; i++)
-                    map = map.AddOrUpdate(i, i.ToString());
+            //     for (var i = 0; i < Count; i++)
+            //         map = map.AddOrUpdate(i, i.ToString());
 
-                return map;
-            }
+            //     return map;
+            // }
 
             private ImTools.ImHashMap<int, string> _mapV4;
             public ImTools.ImHashMap<int, string> V4_AddOrUpdate()
@@ -1428,7 +1425,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             {
                 _mapV4      = V4_AddOrUpdate();
                 _mapPartV4  = V4_PartitionedMap_AddOrUpdate();
-                _mapV2      = V2_AddOrUpdate();
+                // _mapV2      = V2_AddOrUpdate();
                 _dictSlim   = DictSlim();
                 _dict       = Dict();
                 _concurDict = ConcurrentDict();
@@ -1453,14 +1450,14 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return s;
             }
 
-            [Benchmark]
-            public object V2_ImMap_Enumerate()
-            {
-                var s = "";
-                foreach (var x in _mapV2.Enumerate())
-                    s = x.Value;
-                return s;
-            }
+            // [Benchmark]
+            // public object V2_ImMap_Enumerate()
+            // {
+            //     var s = "";
+            //     foreach (var x in _mapV2.Enumerate())
+            //         s = x.Value;
+            //     return s;
+            // }
 
             // [Benchmark(Baseline = true)]
             // [Benchmark]
@@ -1477,9 +1474,9 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return a;
             }
 
-            // [Benchmark]
-            public object V2_ImMap_Experimental_EnumerateToArray() =>
-                _mapV2Exp.Enumerate().ToArray();
+            // // [Benchmark]
+            // public object V2_ImMap_Experimental_EnumerateToArray() =>
+            //     _mapV2Exp.Enumerate().ToArray();
 
             // [Benchmark]
             public object V3_PartitionedImMap_foreach()

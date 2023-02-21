@@ -7,7 +7,7 @@ namespace ImTools.Benchmarks
     {
         static void Main()
         {
-            new SIO.Program().Run();
+            // new SIO.Program().Run();
 
             //var x = new ImMapBenchmarks.Populate { Count = 10 };
             //x.ImMapArray_AddOrUpdate();
@@ -21,7 +21,7 @@ namespace ImTools.Benchmarks
             // BenchmarkRunner.Run<ImMapBenchmarks.Enumerate>();
 
             
-            // BenchmarkRunner.Run<ImHashMapBenchmarks.Populate>();
+            BenchmarkRunner.Run<ImHashMapBenchmarks.Populate>();
             // BenchmarkRunner.Run<ImHashMapBenchmarks.Lookup>();
             // BenchmarkRunner.Run<ImHashMapBenchmarks.Enumerate>();
             // BenchmarkRunner.Run<ImHashMapBenchmarks.ToArray>();

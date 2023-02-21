@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\ImTools\ImTools.csproj" />
+    <ProjectReference Include="..\..\playground\Experiments\Experiments.csproj" />
   </ItemGroup>
 
   <ItemGroup>
