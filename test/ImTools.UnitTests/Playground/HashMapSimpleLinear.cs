@@ -36,65 +36,38 @@ namespace ImTools
 
         /// <summary>Constructor. Allows to set the <see cref="InitialCapacityBitCount"/>.</summary>
         /// <param name="initialCapacityBitCount">Initial underlying buckets size.</param>
-        public HashMapSimpleLinear(int initialCapacityBitCount = InitialCapacityBitCount)
-        {
+        public HashMapSimpleLinear(int initialCapacityBitCount = InitialCapacityBitCount) =>
             _slots = new Slot[1 << initialCapacityBitCount];
-        }
 
         /// <summary>Looks for the key in a map and returns the value if found.</summary>
-        /// <param name="key">Key to look for.</param> <param name="value">The found value</param>
-        /// <returns>True if contains key.</returns>
-        [MethodImpl((MethodImplOptions)256)]
         public bool TryFind(K key, out V value)
         {
             var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromEmptyOrRemoved;
 
             var slots = _slots;
-            var bits = slots.Length - 1;
+            var capacity = slots.Length;
+            var capacityMask = capacity - 1;
+
+            ref var idealSlot = ref slots[hash & capacityMask];
+            if (idealSlot.Hash == hash && _equalityComparer.Equals(idealSlot.Key, key))
+            {
+                value = idealSlot.Value;
+                return true;
+            };
 
             // Step 0: Search the key in its ideal slot.
             // Step 1+: Probe the next-to-ideal slot until the Empty Hash slot, which will indicate an absence of the key.
             // Important to proceed the search further over the removed slot, cause HashOfRemoved is different from Empty Hash slot.
-            for (var step = 0; step < bits; ++step)
+
+            capacity >>= 2; // search only for quarter of capacity
+            for (var distance = 1; distance < capacity; ++distance)
             {
-                var slot = slots[(hash + step) & bits];
+                ref var slot = ref slots[(hash + distance) & capacityMask];
                 if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
                 {
                     value = slot.Value;
                     return true;
                 }
-
-                if (slot.Hash == 0)
-                    break;
-            }
-
-            value = default(V);
-            return false;
-        }
-
-        /// <summary>Looks for the key in a map and returns the value if found.</summary>
-        /// <param name="key">Key to look for.</param> <param name="value">The found value</param>
-        /// <returns>True if contains key.</returns>
-        [MethodImpl((MethodImplOptions)256)]
-        public bool TryFind_RefLocal(K key, out V value)
-        {
-            var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromEmptyOrRemoved;
-
-            var slots = _slots;
-            var bits = slots.Length - 1;
-
-            // Step 0: Search the key in its ideal slot.
-            // Step 1+: Probe the next-to-ideal slot until the Empty Hash slot, which will indicate an absence of the key.
-            // Important to proceed the search further over the removed slot, cause HashOfRemoved is different from Empty Hash slot.
-            for (var step = 0; step < bits; ++step)
-            {
-                ref var slot = ref slots[(hash + step) & bits];
-                if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
-                {
-                    value = slot.Value;
-                    return true;
-                }
-
                 if (slot.Hash == 0)
                     break;
             }
@@ -134,7 +107,6 @@ namespace ImTools
         public void AddOrUpdate(K key, V value)
         {
             var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromEmptyOrRemoved;
-
             while (true) // retry until succeeding
             {
                 var slots = _newSlots ?? _slots; // always operate either on new or current slots
@@ -157,10 +129,10 @@ namespace ImTools
                 // starting from the ideal index position.
                 // It is Ok to search for the @bits length, which is -1 of total slots length, 
                 // because wasting one slot is not big of a deal considering it provides less calculations.
-                var bits = capacity - 1;
-                for (var step = 0; step < bits; ++step)
+                var capacityMask = capacity - 1;
+                for (var distance = 0; distance < capacityMask; ++distance)
                 {
-                    var index = (hash + step) & bits;
+                    var index = (hash + distance) & capacityMask;
 
                     // First try to put item into an empty slot or try to put it into a removed slot
                     if (Interlocked.CompareExchange(ref slots[index].Hash, hash, 0) == 0 ||

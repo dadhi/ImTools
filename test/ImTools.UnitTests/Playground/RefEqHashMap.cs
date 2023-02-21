@@ -20,7 +20,7 @@ namespace ImTools
     {
         //todo: @wip can we put first N slot on the stack here like in `ImTools.MapStack`
         public RefKeyValue<K, V>[] _slots;
-
+        // the actual capacity is calculated as 2^capacityBits, e.g. 2^2 = 4 slots, 2^3 = 8 slots, etc.
         public RefEqHashMap(int capacityBits) =>
             _slots = new RefKeyValue<K, V>[1 << capacityBits];
 
@@ -37,7 +37,7 @@ namespace ImTools
                 return idealIndex;
 
             capacity >>= 2; // search only for quarter of capacity
-            for (var distance = 1; distance < capacity; ++distance)
+            for (var distance = 1; distance <= capacity; ++distance)
             {
                 var index = (hash + distance) & capacityMask;
                 ref var slot = ref slots[index];
@@ -61,27 +61,38 @@ namespace ImTools
             var slots = _slots;
             var capacity = slots.Length;
             var hash = key.GetHashCode();
-            if (TryPut(slots, capacity, capacity - 1, hash, key, value))
+            if (TryPut(slots, capacity >> 2, capacity - 1, hash, key, value))
                 return;
 
-            // Expand slots: Create a new slots and re-populate them from the old slots.
+            // We got here because we did not find the empty slot to put the item from the ideal index to the distance equal quarter of capacity.  
+            // Expand slots in a loop (if needed, hopefully single iteration is enough).
             // Expanding slots will double the capacity.
-            var newCapacity = capacity << 1;
-            var newSlots = new RefKeyValue<K, V>[newCapacity]; // todo: @perf can we Array.Resize here?
-            var newCapacityMask = newCapacity - 1;
-            for (var i = 0; i < capacity; i++)
+            var success = false;
+            while (!success) 
             {
-                ref var slot = ref slots[i];
-                var slotKey = slot.Key;
-                if (slotKey != null)
-                    TryPut(newSlots, newCapacity, newCapacityMask, slotKey.GetHashCode(), slotKey, slot.Value);
-            }
+                expand:
+                capacity <<= 1; // double the capacity
+                var newSlots = new RefKeyValue<K, V>[capacity];
 
-            TryPut(newSlots, newCapacity, newCapacityMask, hash, key, value);
-            _slots = newSlots;
+                var capacityMask = capacity - 1;
+                var searchDistance = capacity >> 2; // search only for the quarter of capacity
+                for (var i = 0; i < slots.Length; ++i)
+                {
+                    ref var slot = ref slots[i];
+                    var itemKey = slot.Key;
+                    if (itemKey != null)
+                    {
+                        success = TryPut(newSlots, searchDistance, capacityMask, itemKey.GetHashCode(), itemKey, slot.Value);
+                        if (!success)
+                            goto expand; // if unable to put the item, try expand further
+                    }
+                }
+                if (success = TryPut(newSlots, searchDistance, capacityMask, hash, key, value))
+                    _slots = newSlots; // if we were able to put the item, set the slots to the new ones
+            }
         }
 
-        private static bool TryPut(RefKeyValue<K, V>[] slots, int capacity, int capacityMask, int hash, K key, V value)
+        private static bool TryPut(RefKeyValue<K, V>[] slots, int searchDistance, int capacityMask, int hash, K key, V value)
         {
             var idealIndex = hash & capacityMask;
             if (Interlocked.CompareExchange(ref slots[idealIndex].Key, key, null) == null)
@@ -89,9 +100,7 @@ namespace ImTools
                 slots[idealIndex].Value = value;
                 return true;
             }
-
-            capacity >>= 2; // search only for the quarter of capacity
-            for (var distance = 1; distance < capacity; ++distance)
+            for (uint distance = 1; distance <= searchDistance; ++distance)
             {
                 var index = (hash + distance) & capacityMask; // wrap around the array boundaries and start from the beginning
                 if (Interlocked.CompareExchange(ref slots[index].Key, key, null) == null)
