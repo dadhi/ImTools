@@ -73,46 +73,14 @@ namespace ImTools.UnitTests.Playground
             // Important to proceed the search further over the removed slot, cause HashOfRemoved is different from Empty Hash slot.
             for (var step = 0; step < bits; ++step)
             {
-                var slot = slots[(hash + step) & bits];
-                if (slot.KeyHash == hash && _equalityComparer.Equals(slot.KeyValue.Key, key))
-                {
-                    value = slot.KeyValue.Value;
-                    return true;
-                }
-
-                if (slot.KeyHash == 0)
-                    break;
-            }
-
-            value = default(V);
-            return false;
-        }
-
-        /// <summary>Looks for the key in a map and returns the value if found.</summary>
-        /// <param name="key">Key to look for.</param> <param name="value">The found value</param>
-        /// <returns>True if contains key.</returns>
-        [MethodImpl((MethodImplOptions)256)]
-        public bool TryFind_RefLocal(K key, out V value)
-        {
-            var hash = _equalityComparer.GetHashCode(key) | AddToHashToDistinguishFromEmptyOrRemoved;
-
-            var slots = _slots;
-            var bits = slots.Length - 1;
-
-            // Step 0: Search the key in its ideal slot.
-            // Step 1+: Probe the next-to-ideal slot until the Empty Hash slot, which will indicate an absence of the key.
-            // Important to proceed the search further over the removed slot, cause HashOfRemoved is different from Empty Hash slot.
-            for (var step = 0; step < bits; ++step)
-            {
                 ref var slot = ref slots[(hash + step) & bits];
+                if (slot.KeyHash == 0)
+                    break;
                 if (slot.KeyHash == hash && _equalityComparer.Equals(slot.KeyValue.Key, key))
                 {
                     value = slot.KeyValue.Value;
                     return true;
                 }
-
-                if (slot.KeyHash == 0)
-                    break;
             }
 
             value = default(V);
@@ -135,7 +103,7 @@ namespace ImTools.UnitTests.Playground
             // Important to proceed the search further over the removed slot, cause HashOfRemoved is different from Empty Hash slot.
             for (var step = 0; step < bits; ++step)
             {
-                var slot = slots[(hash + step) & bits];
+                ref var slot = ref slots[(hash + step) & bits];
                 if (slot.KeyHash == hash && _equalityComparer.Equals(slot.KeyValue.Key, key))
                     return slot.KeyValue.Value;
                 if (slot.KeyHash == 0)

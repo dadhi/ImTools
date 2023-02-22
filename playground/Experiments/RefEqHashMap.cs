@@ -90,7 +90,9 @@
                 {
                     // for every non-empty old slot, copy the item to the new slots
                     var h = hashes[i];
-                    if (h != 0 && !(success = TryCopy(newSlots, newHashes, searchDistance, capacityMask, h, ref slots[i])))
+                    if (h == 0)
+                        continue;
+                    if (!(success = TryCopy(newSlots, newHashes, searchDistance, capacityMask, h, ref slots[i])))
                         goto expand; // if unable to put the item, try expand further
                 }
 
