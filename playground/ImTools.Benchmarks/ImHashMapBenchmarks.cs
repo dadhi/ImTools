@@ -14,6 +14,8 @@ using ImTools.V2;
 using ImTools.V2.Experimental;
 using System.Runtime.CompilerServices;
 
+#nullable disable
+
 #pragma warning disable CS0649, CS0169
 
 namespace Playground
@@ -591,7 +593,7 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 |          DictSlim_TryAdd |  1000 | 31.762 us | 0.6174 us | 0.7582 us | 31.702 us |  0.42 |    0.01 | 18.3105 |  56.45 KB |        0.89 |
 |              Dict_TryAdd |  1000 | 42.873 us | 0.8547 us | 2.2062 us | 42.303 us |  0.56 |    0.03 | 32.2266 |  99.82 KB |        1.57 |
 
-# RefEqHashMap with the stored hashes
+## RefEqHashMap with the stored hashes
 
 |                   Method | Count |     Mean |     Error |    StdDev |   Median | Ratio | RatioSD |   Gen0 | Allocated | Alloc Ratio |
 |------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|-------:|----------:|------------:|
@@ -599,8 +601,28 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 |          DictSlim_TryAdd |   100 | 3.173 us | 0.0648 us | 0.1837 us | 3.133 us |  1.08 |    0.07 | 2.3842 |   7.31 KB |        1.62 |
 |              Dict_TryAdd |   100 | 4.103 us | 0.0819 us | 0.2241 us | 4.055 us |  1.39 |    0.11 | 3.2425 |   9.95 KB |        2.20 |
 
+## HashMapLeapfrog vs RefEqHashMap vs DictSlim
+
+|                      Method | Count |         Mean |       Error |       StdDev |       Median | Ratio | RatioSD |    Gen0 |    Gen1 | Allocated | Alloc Ratio |
+|---------------------------- |------ |-------------:|------------:|-------------:|-------------:|------:|--------:|--------:|--------:|----------:|------------:|
+|    RefEqHashMap_AddOrUpdate |    10 |     219.2 ns |     4.47 ns |      9.72 ns |     216.3 ns |  1.00 |    0.00 |  0.2193 |       - |     688 B |        1.00 |
+| HashMapLeapfrog_AddOrUpdate |    10 |     430.5 ns |    11.69 ns |     33.72 ns |     417.3 ns |  2.02 |    0.18 |  0.3262 |       - |    1024 B |        1.49 |
+|             DictSlim_TryAdd |    10 |     417.0 ns |     8.34 ns |     20.77 ns |     409.6 ns |  1.92 |    0.13 |  0.3414 |       - |    1072 B |        1.56 |
+|                             |       |              |             |              |              |       |         |         |         |           |             |
+|    RefEqHashMap_AddOrUpdate |   100 |   3,019.3 ns |    60.12 ns |    121.44 ns |   2,988.4 ns |  1.00 |    0.00 |  1.4725 |       - |    4624 B |        1.00 |
+| HashMapLeapfrog_AddOrUpdate |   100 |   8,972.9 ns |   176.35 ns |    356.23 ns |   8,915.0 ns |  2.98 |    0.18 |  2.1667 |       - |    6832 B |        1.48 |
+|             DictSlim_TryAdd |   100 |   3,418.4 ns |   114.51 ns |    337.65 ns |   3,425.9 ns |  1.07 |    0.11 |  2.3842 |       - |    7488 B |        1.62 |
+|                             |       |              |             |              |              |       |         |         |         |           |             |
+|    RefEqHashMap_AddOrUpdate |  1000 |  77,946.8 ns | 1,438.56 ns |  1,870.53 ns |  76,994.1 ns |  1.00 |    0.00 | 12.9395 | 12.8174 |   81616 B |        1.00 |
+| HashMapLeapfrog_AddOrUpdate |  1000 | 246,393.4 ns | 4,809.43 ns |  6,742.14 ns | 245,313.2 ns |  3.17 |    0.12 | 38.0859 |       - |  122128 B |        1.50 |
+|             DictSlim_TryAdd |  1000 |  31,858.0 ns |   634.49 ns |  1,352.15 ns |  31,519.7 ns |  0.41 |    0.02 | 18.3105 |       - |   57808 B |        0.71 |
+|                             |       |              |             |              |              |       |         |         |         |           |             |
+|    RefEqHashMap_AddOrUpdate | 10000 |  78,287.4 ns | 1,563.15 ns |  2,433.63 ns |  77,374.1 ns |  1.00 |    0.00 | 12.9395 | 12.8174 |   81616 B |        1.00 |
+| HashMapLeapfrog_AddOrUpdate | 10000 | 250,950.1 ns | 5,002.97 ns | 12,734.14 ns | 245,719.0 ns |  3.25 |    0.21 | 38.0859 |       - |  122128 B |        1.50 |
+|             DictSlim_TryAdd | 10000 |  32,146.4 ns |   637.43 ns |  1,712.42 ns |  31,705.0 ns |  0.41 |    0.02 | 18.3105 |       - |   57808 B |        0.71 |
+
 */
-            [Params(100)]
+            [Params(10, 100, 1000, 10000)]
             // [Params(1, 10, 100, 1000)]
             public int Count;
 
@@ -750,6 +772,18 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return map;
             }
 
+            [Benchmark]
+            public ImTools.Experiments.HashMapLeapfrog<Type, string, ImTools.Experiments.RefEqComparer> HashMapLeapfrog_AddOrUpdate()
+            {
+                var map = new ImTools.Experiments.HashMapLeapfrog<Type, string, ImTools.Experiments.RefEqComparer>();
+
+                foreach (var key in _types)
+                    map.AddOrUpdate(key, "a");
+
+                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+                return map;
+            }
+
 
             [Benchmark]
             public DictionarySlim<TypeVal, string> DictSlim_TryAdd()
@@ -763,7 +797,7 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public Dictionary<Type, string> Dict_TryAdd()
             {
                 var map = new Dictionary<Type, string>();

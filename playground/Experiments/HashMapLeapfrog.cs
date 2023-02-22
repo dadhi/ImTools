@@ -2,11 +2,16 @@
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace ImTools
+namespace ImTools.Experiments
 {
-    /// <summary>The concurrent HashTable.</summary>
-    /// <typeparam name="K">Type of the key</typeparam> <typeparam name="V">Type of the value</typeparam>
-    /// <typeparam name="TEqualityComparer">Better be a struct to enable `Equals` and `GetHashCode` inlining.</typeparam>
+    public readonly struct RefEqComparer : IEqualityComparer<object>
+    {
+        public new bool Equals(object x, object y) => ReferenceEquals(x, y);
+
+        public int GetHashCode(object obj) => RuntimeHelpers.GetHashCode(obj!);
+    }
+
+    /// <summary>The concurrent HashTable with open-addressing scheme and "leapfrog" probing.</summary>
     public class HashMapLeapfrog<K, V, TEqualityComparer> where TEqualityComparer : struct, IEqualityComparer<K>
     {
         internal struct Slot
@@ -24,10 +29,8 @@ namespace ImTools
 #pragma warning restore CS0649
 
         /// <summary>Initial size of underlying storage, prevents the unnecessary storage re-sizing and items migrations.</summary>
-        public const int InitialCapacityBitCount = 5; // aka 32'
-
+        public const int InitialCapacityBitCount = 5; // e.g. 1 << 5 == 32 items
         private const int HashOfRemoved = ~1, AddToHashToDistinguishFromEmptyOrRemoved = 1;
-
         private const int ShiftToNextJumpBits = 16;
         private const int FirstJumpBits = (1 << ShiftToNextJumpBits) - 1; // Set to first 16 bits
         private const int ClearFirstJumpBits = ~FirstJumpBits;
@@ -44,7 +47,7 @@ namespace ImTools
         public HashMapLeapfrog(int initialCapacityBitCount = InitialCapacityBitCount)
         {
             var capacity = 1 << initialCapacityBitCount;
-            _slots = new Slot[capacity + (capacity >> 2)]; // 125% of the capacity
+            _slots = new Slot[capacity + (capacity >> 2)]; // 125% of the capacity, todo: @clarify explain why 125?
         }
 
         /// <summary>Looks for the key in a map and returns the value if found.</summary>
@@ -137,14 +140,16 @@ namespace ImTools
                 for (var index = idealIndex; index <= maxIndex;)
                 {
                     // First try to put item into an empty slot or try to put it into a removed slot
-                    if (Interlocked.CompareExchange(ref slots[index].Hash, hash, 0) == 0 ||
-                        Interlocked.CompareExchange(ref slots[index].Hash, hash, HashOfRemoved) == HashOfRemoved)
+                    ref var slot = ref slots[index];
+                    if (Interlocked.CompareExchange(ref slot.Hash, hash, 0) == 0 ||
+                        Interlocked.CompareExchange(ref slot.Hash, hash, HashOfRemoved) == HashOfRemoved)
                     {
-                        slots[index].Key = key;
-                        slots[index].Value = value;
+                        slot.Key = key;
+                        slot.Value = value;
 
                         if (lastJumpIndex != -1) // record a new jump
                         {
+                            ref var lastJumpSlot = ref slots[lastJumpIndex];
                             var oldJumpBits = slots[lastJumpIndex].FirstAndNextJump;
                             int newJumpBits;
                             if (lastJumpIndex == idealIndex)
@@ -152,7 +157,7 @@ namespace ImTools
                             else
                                 newJumpBits = oldJumpBits & ClearNextJumpBits | (jump << ShiftToNextJumpBits);
 
-                            if (Interlocked.CompareExchange(ref slots[lastJumpIndex].FirstAndNextJump, newJumpBits, oldJumpBits) != oldJumpBits)
+                            if (Interlocked.CompareExchange(ref lastJumpSlot.FirstAndNextJump, newJumpBits, oldJumpBits) != oldJumpBits)
                                 continue;
                         }
 
@@ -165,9 +170,9 @@ namespace ImTools
                     }
 
                     // Then check for updating the slot
-                    if (slots[index].Hash == hash && _equalityComparer.Equals(slots[index].Key, key))
+                    if (slot.Hash == hash && _equalityComparer.Equals(slot.Key, key))
                     {
-                        slots[index].Value = value;
+                        slot.Value = value;
 
                         // ensure that we operate on the same slots: either re-populating or the stable one
                         if (slots != _newSlots && slots != _slots)
@@ -177,7 +182,7 @@ namespace ImTools
 
                     if (lastJumpIndex == -1)
                     {
-                        var jumps = slots[index].FirstAndNextJump;
+                        var jumps = slot.FirstAndNextJump;
                         jump = index == idealIndex
                             ? jumps & FirstJumpBits
                             : jumps >> ShiftToNextJumpBits;
@@ -223,10 +228,11 @@ namespace ImTools
                 var lastJumpIndex = -1;
                 for (var index = idealIndex; index <= maxIndex;)
                 {
-                    if (Interlocked.CompareExchange(ref newSlots[index].Hash, hash, 0) == 0)
+                    ref var newSlot = ref newSlots[index];
+                    if (Interlocked.CompareExchange(ref newSlot.Hash, hash, 0) == 0)
                     {
-                        newSlots[index].Key = slot.Key;
-                        newSlots[index].Value = slot.Value;
+                        newSlot.Key = slot.Key;
+                        newSlot.Value = slot.Value;
 
                         if (lastJumpIndex != -1) // record a new jump
                             newSlots[lastJumpIndex].FirstAndNextJump = lastJumpIndex == idealIndex
@@ -237,7 +243,7 @@ namespace ImTools
 
                     if (lastJumpIndex == -1)
                     {
-                        var jumps = newSlots[index].FirstAndNextJump;
+                        var jumps = newSlot.FirstAndNextJump;
                         jump = index == idealIndex
                             ? jumps & FirstJumpBits
                             : jumps >> ShiftToNextJumpBits;
