@@ -17,11 +17,16 @@
     public struct RefEqHashMap<K, V> where K : class
     {
         //todo: @wip can we put first N slot on the stack here like in `ImTools.MapStack`
+        private int[] _hashes;
         public RefKeyValue<K, V>[] _slots;
+        private const int AddToHashToDistinguishFromEmpty = 1;
 
         // <summary>The actual capacity is calculated as 2^capacityBits, e.g. 2^2 = 4 slots, 2^3 = 8 slots, etc.</summary>
-        public RefEqHashMap(int capacityBits) =>
+        public RefEqHashMap(int capacityBits)
+        {
+            _hashes = new int[1 << capacityBits];
             _slots = new RefKeyValue<K, V>[1 << capacityBits];
+        }
 
         /// <summary>Returns the index of Slot with the give key or `-1` otherwise</summary>
         public int IndexOf(K key)
@@ -29,21 +34,25 @@
             var slots = _slots;
             var capacity = slots.Length;
             var capacityMask = capacity - 1;
-            var hash = key.GetHashCode();
+            var hash = key.GetHashCode() | AddToHashToDistinguishFromEmpty;
 
             var idealIndex = hash & capacityMask;
-            if (slots[idealIndex].Key == key)
+            var h = _hashes[idealIndex];
+            if (h == 0)
+                return -1;
+            if (h == hash && slots[idealIndex].Key == key)
                 return idealIndex;
 
+            var hashes = _hashes;
             capacity >>= 2; // search only for quarter of capacity
             for (var distance = 1; distance <= capacity; ++distance)
             {
-                var index = (hash + distance) & capacityMask;
-                ref var slot = ref slots[index];
-                if (slot.Key == key)
-                    return index;
-                if (slot.Key == null) // not found, stop on an empty key
+                var i = (hash + distance) & capacityMask;
+                h = hashes[i];
+                if (h == 0) // not found, stop on an empty key
                     break;
+                if (h == hash && slots[i].Key == key)
+                    return i;
             }
 
             return -1;
@@ -58,9 +67,10 @@
         public void AddOrUpdate(K key, V value)
         { 
             var slots = _slots;
+            var hashes = _hashes;
             var capacity = slots.Length;
-            var hash = key.GetHashCode();
-            if (TryPut(slots, capacity >> 2, capacity - 1, hash, key, value))
+            var hash = key.GetHashCode() | AddToHashToDistinguishFromEmpty;
+            if (TryPut(slots, hashes, (ushort)(capacity >> 2), capacity - 1, hash, key, value))
                 return;
 
             // We got here because we did not find the empty slot to put the item from the ideal index to the distance equal quarter of capacity.  
@@ -72,45 +82,86 @@
                 expand:
                 capacity <<= 1; // double the capacity
                 var newSlots = new RefKeyValue<K, V>[capacity];
+                var newHashes = new int[capacity];
 
                 var capacityMask = capacity - 1;
-                var searchDistance = capacity >> 2; // search only for the quarter of capacity
+                var searchDistance = (ushort)(capacity >> 2); // search only for the quarter of capacity
                 for (var i = 0; i < slots.Length; ++i)
                 {
-                    ref var slot = ref slots[i];
-                    var itemKey = slot.Key;
                     // for every non-empty old slot, copy the item to the new slots
-                    if (itemKey != null)
-                    {
-                        success = TryPut(newSlots, searchDistance, capacityMask, itemKey.GetHashCode(), itemKey, slot.Value);
-                        if (!success)
-                            goto expand; // if unable to put the item, try expand further
-                    }
+                    var h = hashes[i];
+                    if (h != 0 && !(success = TryCopy(newSlots, newHashes, searchDistance, capacityMask, h, ref slots[i])))
+                        goto expand; // if unable to put the item, try expand further
                 }
-                if (success = TryPut(newSlots, searchDistance, capacityMask, hash, key, value))
-                    _slots = newSlots; // if we were able to put the item, set the slots to the new ones
+
+                // if we were able to put the item, set the slots to the new ones
+                if (success = TryPut(newSlots, newHashes, searchDistance, capacityMask, hash, key, value))
+                {
+                    _slots = newSlots;
+                    _hashes = newHashes;
+                }
             }
         }
 
-        private static bool TryPut(RefKeyValue<K, V>[] slots, int searchDistance, int capacityMask, int hash, K key, V value)
+        private static bool TryPut(RefKeyValue<K, V>[] slots, int[] hashes, ushort searchDistance, int capacityMask, int hash, K key, V value)
         {
-            ref var idealSlot = ref slots[hash & capacityMask];
-            // adding the new item to the empty slot, or updating the item (checking by the reference equality)
-            if (idealSlot.Key == null || idealSlot.Key == key)
+            var idealIndex = hash & capacityMask;
+            var h = hashes[idealIndex];
+            // add the new item
+            if (h == 0)
             {
-                idealSlot.Key = key; // todo: @perf maybe not the case if we are updating the item
+                hashes[idealIndex] = hash;
+                ref var idealSlot = ref slots[idealIndex];
+                idealSlot.Key = key;
                 idealSlot.Value = value;
                 return true;
             }
-            for (uint distance = 1; distance <= searchDistance; ++distance)
+            // update the existing item value
+            if (h == hash && slots[idealIndex].Key == key)
+            {
+                slots[idealIndex].Value = value;
+                return true;
+            }
+            for (ushort distance = 1; distance <= searchDistance; ++distance)
             {
                 // wrap around the array boundaries and start from the beginning
-                ref var slot = ref slots[(hash + distance) & capacityMask];
-                // adding the new item to the empty slot, or updating the item (checking by the reference equality)
-                if (slot.Key == null || slot.Key == key)
+                var index = (hash + distance) & capacityMask;
+                h = hashes[index];
+                if (h == 0)
                 {
-                    slot.Key = key; // todo: @perf maybe not the case if we are updating the item
+                    hashes[index] = hash;
+                    ref var slot = ref slots[index];
+                    slot.Key = key;
                     slot.Value = value;
+                    return true;
+                }
+                if (h == hash && slots[index].Key == key)
+                {
+                    slots[index].Value = value;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static bool TryCopy(RefKeyValue<K, V>[] newSlots, int[] newHashes, ushort searchDistance, int capacityMask, int hash, ref RefKeyValue<K, V> oldSlot)
+        {
+            var i = hash & capacityMask;
+            var h = newHashes[i];
+            if (h == 0)
+            {
+                newHashes[i] = hash;
+                newSlots[i] = oldSlot;
+                return true;
+            }
+            for (ushort distance = 1; distance <= searchDistance; ++distance)
+            {
+                i = (hash + distance) & capacityMask;
+                h = newHashes[i];
+                if (h == 0)
+                {
+                    newHashes[i] = hash;
+                    newSlots[i] = oldSlot;
                     return true;
                 }
             }

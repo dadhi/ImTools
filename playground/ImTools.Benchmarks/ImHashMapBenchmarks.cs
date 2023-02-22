@@ -591,8 +591,16 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 |          DictSlim_TryAdd |  1000 | 31.762 us | 0.6174 us | 0.7582 us | 31.702 us |  0.42 |    0.01 | 18.3105 |  56.45 KB |        0.89 |
 |              Dict_TryAdd |  1000 | 42.873 us | 0.8547 us | 2.2062 us | 42.303 us |  0.56 |    0.03 | 32.2266 |  99.82 KB |        1.57 |
 
+# RefEqHashMap with the stored hashes
+
+|                   Method | Count |     Mean |     Error |    StdDev |   Median | Ratio | RatioSD |   Gen0 | Allocated | Alloc Ratio |
+|------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|-------:|----------:|------------:|
+| RefEqHashMap_AddOrUpdate |   100 | 2.955 us | 0.0675 us | 0.1916 us | 2.892 us |  1.00 |    0.00 | 1.4725 |   4.52 KB |        1.00 |
+|          DictSlim_TryAdd |   100 | 3.173 us | 0.0648 us | 0.1837 us | 3.133 us |  1.08 |    0.07 | 2.3842 |   7.31 KB |        1.62 |
+|              Dict_TryAdd |   100 | 4.103 us | 0.0819 us | 0.2241 us | 4.055 us |  1.39 |    0.11 | 3.2425 |   9.95 KB |        2.20 |
+
 */
-            [Params(100, 1000)]
+            [Params(100)]
             // [Params(1, 10, 100, 1000)]
             public int Count;
 
