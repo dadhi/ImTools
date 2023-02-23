@@ -41,7 +41,7 @@ namespace ImTools.Experiments
         private int _count;
 
         /// <summary>Amount of stored items, 0 in an empty map.</summary>
-        public int Count { get { return _count; } }
+        public int Count => _count;
 
         /// <summary>Constructor. Allows to set the <see cref="InitialCapacityBitCount"/>.</summary>
         public HashMapLeapfrog(int initialCapacityBitCount = InitialCapacityBitCount)
@@ -137,7 +137,7 @@ namespace ImTools.Experiments
 
                 var jump = 0;
                 var lastJumpIndex = -1;
-                for (var index = idealIndex; index <= maxIndex;)
+                for (var index = idealIndex; (uint)index <= (uint)maxIndex;)
                 {
                     // First try to put item into an empty slot or try to put it into a removed slot
                     ref var slot = ref slots[index];
@@ -150,13 +150,9 @@ namespace ImTools.Experiments
                         if (lastJumpIndex != -1) // record a new jump
                         {
                             ref var lastJumpSlot = ref slots[lastJumpIndex];
-                            var oldJumpBits = slots[lastJumpIndex].FirstAndNextJump;
-                            int newJumpBits;
-                            if (lastJumpIndex == idealIndex)
-                                newJumpBits = oldJumpBits & ClearFirstJumpBits | jump;
-                            else
-                                newJumpBits = oldJumpBits & ClearNextJumpBits | (jump << ShiftToNextJumpBits);
-
+                            var oldJumpBits = lastJumpSlot.FirstAndNextJump;
+                            var newJumpBits = oldJumpBits & ClearFirstJumpBits;
+                            newJumpBits |= lastJumpIndex == idealIndex ? jump : jump << ShiftToNextJumpBits;
                             if (Interlocked.CompareExchange(ref lastJumpSlot.FirstAndNextJump, newJumpBits, oldJumpBits) != oldJumpBits)
                                 continue;
                         }
@@ -183,16 +179,12 @@ namespace ImTools.Experiments
                     if (lastJumpIndex == -1)
                     {
                         var jumps = slot.FirstAndNextJump;
-                        jump = index == idealIndex
-                            ? jumps & FirstJumpBits
-                            : jumps >> ShiftToNextJumpBits;
-
+                        jump = index == idealIndex ? jumps & FirstJumpBits : jumps >> ShiftToNextJumpBits;
                         if (jump == 0) // the recorded jumps are completed and we got back to step-by-step probing
                         {
                             jump = 1;              // next jump will be 1 again
                             lastJumpIndex = index; // store the last recorded jump destination to add to the chain
                         }
-
                         index += jump;
                     }
                     else
@@ -244,10 +236,7 @@ namespace ImTools.Experiments
                     if (lastJumpIndex == -1)
                     {
                         var jumps = newSlot.FirstAndNextJump;
-                        jump = index == idealIndex
-                            ? jumps & FirstJumpBits
-                            : jumps >> ShiftToNextJumpBits;
-
+                        jump = index == idealIndex ? jumps & FirstJumpBits : jumps >> ShiftToNextJumpBits;
                         if (jump == 0) // the recorded jumps are completed and we got back to step-by-step probing
                         {
                             jump = 1;              // next jump will be 1 again
