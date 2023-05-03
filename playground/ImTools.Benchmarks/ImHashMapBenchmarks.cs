@@ -621,9 +621,28 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 | HashMapLeapfrog_AddOrUpdate | 10000 | 250,950.1 ns | 5,002.97 ns | 12,734.14 ns | 245,719.0 ns |  3.25 |    0.21 | 38.0859 |       - |  122128 B |        1.50 |
 |             DictSlim_TryAdd | 10000 |  32,146.4 ns |   637.43 ns |  1,712.42 ns |  31,705.0 ns |  0.41 |    0.02 | 18.3105 |       - |   57808 B |        0.71 |
 
+
+## Simple hash map baseline, goal to be much faster than DictSlim, 
+
+### todo: @perf use IPC, SIMD, Non-moving Resize, offset-bucket, etc.
+
+``` ini
+BenchmarkDotNet=v0.13.5, OS=Windows 10 (10.0.19042.928/20H2/October2020Update)
+Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical cores
+.NET SDK=7.0.100
+  [Host]     : .NET 7.0.0 (7.0.22.51805), X64 RyuJIT AVX2
+  DefaultJob : .NET 7.0.0 (7.0.22.51805), X64 RyuJIT AVX2
+```
+
+|                      Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD |   Gen0 | Allocated | Alloc Ratio |
+|---------------------------- |------ |---------:|----------:|----------:|------:|--------:|-------:|----------:|------------:|
+|    RefEqHashMap_AddOrUpdate |   100 | 2.758 us | 0.0493 us | 0.0506 us |  1.00 |    0.00 | 1.4725 |   4.52 KB |        1.00 |
+| HashMapLeapfrog_AddOrUpdate |   100 | 8.565 us | 0.1588 us | 0.1631 us |  3.11 |    0.08 | 2.1667 |   6.67 KB |        1.48 |
+|             DictSlim_TryAdd |   100 | 2.944 us | 0.0588 us | 0.1227 us |  1.08 |    0.06 | 2.3842 |   7.31 KB |        1.62 |
+
 */
-            [Params(10, 100, 1000, 10000)]
-            // [Params(1, 10, 100, 1000)]
+            // [Params(10, 100, 1000, 10000)]
+            [Params(100)]
             public int Count;
 
             private Type[] _types;
