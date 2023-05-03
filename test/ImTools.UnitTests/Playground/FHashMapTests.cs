@@ -44,9 +44,11 @@ namespace ImTools.Experiments.UnitTests
             Assert.AreEqual("b", map.GetValueOrDefault(43 + 32));
             Assert.AreEqual("c", map.GetValueOrDefault(43 + 32 + 32));
             Assert.AreEqual("d", map.GetValueOrDefault(43 + 32 + 32 + 32));
+
+            Assert.AreEqual(12, map.Count);
         }
 
-        // [Test] // todo: @fixme @wip requires Resize
+        [Test]
         public void Can_store_and_retrieve_value_from_map_with_Expand_in_the_middle()
         {
             var map = new FHashMap1<int, string>(2);
