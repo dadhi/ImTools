@@ -13,7 +13,7 @@ public sealed class FHashMap1<TKey, TValue>
         public TValue Value;
     }
 
-    public const float MaxLoadFactor = 0.9f;
+    public const float MaxLoadFactor = 0.95f;
 
     public const int DefaultCapacity = 16;
 

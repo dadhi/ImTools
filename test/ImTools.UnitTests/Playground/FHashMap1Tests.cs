@@ -3,7 +3,7 @@
 namespace ImTools.Experiments.UnitTests
 {
     [TestFixture]
-    public class FHashMapTests
+    public class FHashMap1Tests
     {
         [Test]
         public void Can_store_and_retrieve_value_from_map()
