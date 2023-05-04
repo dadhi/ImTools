@@ -844,6 +844,18 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return map;
             }
 
+            [Benchmark]
+            public ImTools.Experiments.FHashMap3<Type, string> FHashMap3_AddOrUpdate()
+            {
+                var map = new ImTools.Experiments.FHashMap3<Type, string>();
+
+                foreach (var key in _types)
+                    map.AddOrUpdate(key, "a");
+
+                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+                return map;
+            }
+
             [Benchmark(Baseline = true)]
             public DictionarySlim<TypeVal, string> DictSlim_TryAdd()
             {

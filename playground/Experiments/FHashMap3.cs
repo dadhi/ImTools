@@ -5,7 +5,7 @@ namespace ImTools.Experiments;
 
 // Split hashes to their own array.
 // todo: @wip 0 hash is not supported yet
-public sealed class FHashMap2<TKey, TValue>
+public sealed class FHashMap3<TKey, TValue>
 {
     [DebuggerDisplay("Key: {Key}, Value: {Value}")]
     public struct Entry
@@ -25,10 +25,11 @@ public sealed class FHashMap2<TKey, TValue>
     private int _count;
     public int Count => _count;
 
-    public FHashMap2(int capacity = DefaultCapacity)
+    public FHashMap3(int capacity = DefaultCapacity)
     {
         _hashes = new int[capacity];
-        _entries = new Entry[capacity];
+        // _entries = new Entry[capacity]; // todo: create without default values using via GC.AllocateUninitializedArray<Entry>(size);
+        _entries = GC.AllocateUninitializedArray<Entry>(capacity); // todo: create without default values using via GC.AllocateUninitializedArray<Entry>(size);
     }
 
     public TValue GetValueOrDefault(TKey key, TValue defaultValue = default)
@@ -141,7 +142,8 @@ public sealed class FHashMap2<TKey, TValue>
     public void Resize(int newCapacity)
     {
         var hashes = new int[newCapacity];
-        var entries = new Entry[newCapacity];
+        // var entries = new Entry[newCapacity];
+        var entries = GC.AllocateUninitializedArray<Entry>(newCapacity); // todo: create without default values using via GC.AllocateUninitializedArray<Entry>(size);
 
         var capacityMask = newCapacity - 1;
         var maxDistanceFromIdealIndex = 0u;
