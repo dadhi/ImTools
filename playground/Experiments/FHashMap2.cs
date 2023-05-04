@@ -62,24 +62,44 @@ public sealed class FHashMap2<TKey, TValue>
         var hash = key.GetHashCode();
         var capacityMask = capacity - 1;
 
+        // ideal case when we can insert the new item at the ideal index
+        var idealIndex = hash & capacityMask;
+        var entryHash = _hashes[idealIndex];
+        if (entryHash == 0)
+        {
+            _hashes[idealIndex] = hash;
+            ref var entry = ref _entries[idealIndex];
+            entry.Key = key;
+            entry.Value = value;
+            ++_count;
+            return;
+        }
+        if (entryHash == hash)
+        {
+            ref var entry = ref _entries[idealIndex];
+            if (entry.Key.Equals(key))
+                entry.Value = value;
+            return;
+        }
+
         // we know the _maxDistanceFromIdealIndex, so the worst case would be if insert the new item at maxDistance + 1
         var worstDistance = _maxDistanceFromIdealIndex + 1;
-        for (uint distance = 0; distance <= worstDistance; ++distance)
+        for (uint distance = 1; distance <= worstDistance; ++distance)
         {
             // we need to add distance to the hash first (and not just increment the index) because we need to wrap around the entries array
             var wrappedIndex = (hash + distance) & capacityMask;
-            var entryHash = _hashes[wrappedIndex];
+            entryHash = _hashes[wrappedIndex];
             if (entryHash == 0)
             {
+                _hashes[wrappedIndex] = hash;
                 ref var entry = ref _entries[wrappedIndex];
                 entry.Key = key;
                 entry.Value = value;
-
-                _hashes[wrappedIndex] = hash;
-
-                // we are succussfully inserted the new item
+                
                 ++_count;
-                _maxDistanceFromIdealIndex = Math.Max(_maxDistanceFromIdealIndex, distance);
+
+                // we need to update the max distance
+                _maxDistanceFromIdealIndex = Math.Max(_maxDistanceFromIdealIndex, distance); // todo: @perf try to replace with simple comparison instead of the Math method call
                 return;
 
             }
@@ -92,11 +112,10 @@ public sealed class FHashMap2<TKey, TValue>
                 return;
             }
 
-            // todo: @perf skip check for distance == 0, because the later check `if (entryDistance < distance)` will always be false
             // we are using the index without wrapping to always get the correct positive entry distance  
-            var virtualIndexWithoutWrap = (hash & capacityMask) + distance;
+            var nonWrappedIndex = (hash & capacityMask) + distance;
             var entryIdealIndex = entryHash & capacityMask;
-            var entryDistance = (uint)(virtualIndexWithoutWrap - entryIdealIndex);
+            var entryDistance = (uint)(nonWrappedIndex - entryIdealIndex);
             if (entryDistance < distance)
             {
                 // If the entry distance is less than the current insert distance, then store the new key-value here, and move the current entry further
@@ -114,7 +133,7 @@ public sealed class FHashMap2<TKey, TValue>
                 _hashes[wrappedIndex] = hash;
                 hash = entryHash;
 
-                distance = entryDistance;
+                distance = entryDistance; // the distance even if 0 now, will be incremented in the next iteration of the for loop
             }
         }
     }
@@ -149,23 +168,25 @@ public sealed class FHashMap2<TKey, TValue>
                     break;
                 }
 
-                // todo: @perf skip check for distance == 0, because the later check `if (entryDistance < distance)` will always be false
-                // we are using the index without wrapping to always get the correct positive entry distance  
-                var virtualIndexWithoutWrap = (existingHash & capacityMask) + distance;
-                var entryIdealIndex = entryHash & capacityMask;
-                var entryDistance = (uint)(virtualIndexWithoutWrap - entryIdealIndex);
-                if (entryDistance < distance)
+                if (distance > 0) 
                 {
-                    // swap entries
-                    ref var entry = ref entries[wrappedIndex];
-                    var tmp = entry;
-                    entry = existingEntry;
-                    existingEntry = tmp;
+                    // we are using the index without wrapping to always get the correct positive entry distance  
+                    var nonWrappedIndex = (existingHash & capacityMask) + distance;
+                    var entryIdealIndex = entryHash & capacityMask;
+                    var entryDistance = (uint)(nonWrappedIndex - entryIdealIndex);
+                    if (entryDistance < distance)
+                    {
+                        // swap entries
+                        ref var entry = ref entries[wrappedIndex];
+                        var tmp = entry;
+                        entry = existingEntry;
+                        existingEntry = tmp;
 
-                    hashes[wrappedIndex] = existingHash;
-                    existingHash = entryHash;
-                    
-                    distance = entryDistance;
+                        hashes[wrappedIndex] = existingHash;
+                        existingHash = entryHash;
+                        
+                        distance = entryDistance;
+                    }
                 }
             }
         }

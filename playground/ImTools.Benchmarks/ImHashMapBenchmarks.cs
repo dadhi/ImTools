@@ -648,6 +648,14 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 |     FHashMap_AddOrUpdate |   100 | 3.588 us | 0.0705 us | 0.0988 us |  1.28 |    0.06 | 1.8692 |   5.75 KB |        1.27 |
 |          DictSlim_TryAdd |   100 | 2.920 us | 0.0572 us | 0.1218 us |  1.06 |    0.05 | 2.3842 |   7.31 KB |        1.62 |
 
+### FHashMap2 vs FHashMap1 vs DictionarySlim
+
+|                Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD |   Gen0 | Allocated | Alloc Ratio |
+|---------------------- |------ |---------:|----------:|----------:|------:|--------:|-------:|----------:|------------:|
+| FHashMap1_AddOrUpdate |   100 | 4.048 us | 0.0807 us | 0.1685 us |  1.36 |    0.08 | 1.8692 |   5.75 KB |        0.79 |
+| FHashMap2_AddOrUpdate |   100 | 3.914 us | 0.0779 us | 0.1385 us |  1.31 |    0.07 | 1.6022 |   4.91 KB |        0.67 |
+|       DictSlim_TryAdd |   100 | 2.988 us | 0.0553 us | 0.1053 us |  1.00 |    0.00 | 2.3842 |   7.31 KB |        1.00 |
+
 
 */
             // [Params(10, 100, 1000, 10000)]
@@ -788,7 +796,7 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
             //     return map;
             // }
 
-            [Benchmark(Baseline = true)]
+            // [Benchmark(Baseline = true)]
             public ImTools.Experiments.RefEqHashMap<Type, string> RefEqHashMap_AddOrUpdate()
             {
                 var map = new ImTools.Experiments.RefEqHashMap<Type, string>(5);
@@ -812,8 +820,8 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return map;
             }
 
-            [Benchmark]
-            public ImTools.Experiments.FHashMap1<Type, string> FHashMap_AddOrUpdate()
+            // [Benchmark]
+            public ImTools.Experiments.FHashMap1<Type, string> FHashMap1_AddOrUpdate()
             {
                 var map = new ImTools.Experiments.FHashMap1<Type, string>();
 
@@ -825,6 +833,18 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
             }
 
             [Benchmark]
+            public ImTools.Experiments.FHashMap2<Type, string> FHashMap2_AddOrUpdate()
+            {
+                var map = new ImTools.Experiments.FHashMap2<Type, string>();
+
+                foreach (var key in _types)
+                    map.AddOrUpdate(key, "a");
+
+                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+                return map;
+            }
+
+            [Benchmark(Baseline = true)]
             public DictionarySlim<TypeVal, string> DictSlim_TryAdd()
             {
                 var map = new DictionarySlim<TypeVal, string>();
