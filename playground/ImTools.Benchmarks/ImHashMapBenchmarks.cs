@@ -640,6 +640,15 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 | HashMapLeapfrog_AddOrUpdate |   100 | 8.565 us | 0.1588 us | 0.1631 us |  3.11 |    0.08 | 2.1667 |   6.67 KB |        1.48 |
 |             DictSlim_TryAdd |   100 | 2.944 us | 0.0588 us | 0.1227 us |  1.08 |    0.06 | 2.3842 |   7.31 KB |        1.62 |
 
+### FHashMap1 vs the rest
+
+|                   Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD |   Gen0 | Allocated | Alloc Ratio |
+|------------------------- |------ |---------:|----------:|----------:|------:|--------:|-------:|----------:|------------:|
+| RefEqHashMap_AddOrUpdate |   100 | 2.765 us | 0.0551 us | 0.1075 us |  1.00 |    0.00 | 1.4725 |   4.52 KB |        1.00 |
+|     FHashMap_AddOrUpdate |   100 | 3.588 us | 0.0705 us | 0.0988 us |  1.28 |    0.06 | 1.8692 |   5.75 KB |        1.27 |
+|          DictSlim_TryAdd |   100 | 2.920 us | 0.0572 us | 0.1218 us |  1.06 |    0.05 | 2.3842 |   7.31 KB |        1.62 |
+
+
 */
             // [Params(10, 100, 1000, 10000)]
             [Params(100)]
@@ -791,7 +800,7 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImTools.Experiments.HashMapLeapfrog<Type, string, ImTools.Experiments.RefEqComparer> HashMapLeapfrog_AddOrUpdate()
             {
                 var map = new ImTools.Experiments.HashMapLeapfrog<Type, string, ImTools.Experiments.RefEqComparer>();
@@ -803,6 +812,17 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return map;
             }
 
+            [Benchmark]
+            public ImTools.Experiments.FHashMap1<Type, string> FHashMap_AddOrUpdate()
+            {
+                var map = new ImTools.Experiments.FHashMap1<Type, string>();
+
+                foreach (var key in _types)
+                    map.AddOrUpdate(key, "a");
+
+                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+                return map;
+            }
 
             [Benchmark]
             public DictionarySlim<TypeVal, string> DictSlim_TryAdd()

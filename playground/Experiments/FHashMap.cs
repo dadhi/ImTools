@@ -100,6 +100,7 @@ public sealed class FHashMap1<TKey, TValue>
                 hash = entryHash;
                 key = tmp.Key;
                 value = tmp.Value;
+                
                 distance = entryDistance;
             }
         }
@@ -145,9 +146,12 @@ public sealed class FHashMap1<TKey, TValue>
                 {
                     // swap entries
                     var tmp = entry;
+                    
                     entry = existingEntry;
+
                     existingEntry = tmp;
                     existingHash = entryHash;
+                    
                     distance = entryDistance;
                 }
                 ++distance;
