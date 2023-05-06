@@ -18,34 +18,46 @@ public sealed class FHashMap3<TKey, TValue>
 
     public const int DefaultCapacity = 16;
 
+    private const int AddToHashToDistinguishFromEmpty = 0;//1; // todo: @wip change to 1
+
     private int[] _hashes;
+    private int[] _entryIndexes; // maps the hash to the corresponding entry avoiding copying/moving the entry on Resize and robin hood insert
     private Entry[] _entries;
 
-    private uint _maxDistanceFromIdealIndex;
+    private uint _maxDistanceFromIdealIndex; // todo: @perf we don't need this field if we store the PSL with hash (in the lower bits?)
     private int _count;
     public int Count => _count;
 
     public FHashMap3(int capacity = DefaultCapacity)
     {
         _hashes = new int[capacity];
-        // _entries = new Entry[capacity]; // todo: create without default values using via GC.AllocateUninitializedArray<Entry>(size);
-        _entries = GC.AllocateUninitializedArray<Entry>(capacity); // todo: create without default values using via GC.AllocateUninitializedArray<Entry>(size);
+        _entryIndexes = new int[capacity];
+        _entries = new Entry[capacity];
+        // _entries = GC.AllocateUninitializedArray<Entry>(capacity); // todo: create without default values using via GC.AllocateUninitializedArray<Entry>(size);
     }
 
     public TValue GetValueOrDefault(TKey key, TValue defaultValue = default)
     {
-        var hash = key.GetHashCode();
-        var capacityMask = _entries.Length - 1;
+        var hash = key.GetHashCode() | AddToHashToDistinguishFromEmpty;
+        var indexMask = _hashes.Length - 1; // todo: @perf move to the field
+
+        // todo: @perf you don't need to go all the way to `_maxDistanceFromIdealIndex`, just to the less distance (PSL) ans top here
+        // todo: @perf for this matter you'd better store the PSL with hash (in the lower bits?)
         for (uint distance = 0; distance <= _maxDistanceFromIdealIndex; ++distance)
         {
+            // todo: @perf @wip seems like we may just calculate once `hash & capacityMask`, and then add distance (or PSL - probe sequence length) to it.
+            // todo: @perf @wip `[hashCapacitated + 1, hashCapacitated + 2, hashCapacitated + 3]` and wrap it around the capacity by applying the mask again,
+            // todo: @perf @wip `(hashCapacitated + 1) & capacityMask`. 
+            // todo: @perf @wip That way we are avoiding storing the full hash, we just need the next bit of the hash for the hashes array double resize.
+            // todo: @perf @wip Experiment with resize just by checking the bit in Tests.
             // we need to add distance to the hash first (and not just increment the index) because we need to wrap around the entries array
-            var wrappedIndex = (hash + distance) & capacityMask;
-            var entryHash = _hashes[wrappedIndex]; 
-            if (entryHash == 0)
+            var hashIndex = (hash + distance) & indexMask;
+            var h =_hashes[hashIndex];
+            if (h == 0)
                 return defaultValue;
-            if (entryHash == hash) // todo: @perf compare distances first, so we can stop if entry distance is smaller than the current one?
+            if (h == hash)
             { 
-                ref var entry = ref _entries[wrappedIndex];
+                ref var entry = ref _entries[_entryIndexes[hashIndex]];
                 if (entry.Key.Equals(key))
                     return entry.Value;
             }
@@ -60,141 +72,156 @@ public sealed class FHashMap3<TKey, TValue>
         if (_count >= capacity * MaxLoadFactor)
             Resize(capacity <<= 1); // double the capacity, using the <<= assinment here to correctly calculate the new capacityMask later
 
-        var hash = key.GetHashCode();
-        var capacityMask = capacity - 1;
+        var indexMask = capacity - 1;
+        // var hashMask = ~indexMask; // todo: @wip upper bits 
+
+        var hash = key.GetHashCode() | AddToHashToDistinguishFromEmpty;
 
         // ideal case when we can insert the new item at the ideal index
-        var idealIndex = hash & capacityMask;
-        var entryHash = _hashes[idealIndex];
-        if (entryHash == 0)
+        var idealHashIndex = hash & indexMask;
+        var h = _hashes[idealHashIndex];
+        if (h == 0)
         {
-            _hashes[idealIndex] = hash;
-            ref var entry = ref _entries[idealIndex];
-            entry.Key = key;
-            entry.Value = value;
-            ++_count;
+            // insert the value here
+            _hashes[idealHashIndex] = hash;
+
+            // the index of the new added entry at the end of the entries
+            var newEntryIndex = _count++;
+            _entryIndexes[idealHashIndex] = newEntryIndex;
+            ref var e = ref _entries[newEntryIndex]; 
+            e.Key = key;
+            e.Value = value;
             return;
         }
-        if (entryHash == hash)
+        if (h == hash)
         {
-            ref var entry = ref _entries[idealIndex];
-            if (entry.Key.Equals(key))
-                entry.Value = value;
+            // check the existing entry key and update the value if the keys are matched
+            ref var e = ref _entries[_entryIndexes[idealHashIndex]];
+            if (e.Key.Equals(key))
+                e.Value = value;
             return;
         }
 
-        // we know the _maxDistanceFromIdealIndex, so the worst case would be if insert the new item at maxDistance + 1
-        var worstDistance = _maxDistanceFromIdealIndex + 1;
-        for (uint distance = 1; distance <= worstDistance; ++distance)
+        var hashIndex = idealHashIndex;
+        var entryIndex = _count; // by default the new entry index is the last one, but the variable may be updated mulpiple times by Robin Hood in the loop
+        for (var distance = 1u;; ++distance)
         {
             // we need to add distance to the hash first (and not just increment the index) because we need to wrap around the entries array
-            var wrappedIndex = (hash + distance) & capacityMask;
-            entryHash = _hashes[wrappedIndex];
-            if (entryHash == 0)
+            hashIndex = (hashIndex + 1) & indexMask;
+            h = _hashes[hashIndex];
+            if (h == 0)
             {
-                _hashes[wrappedIndex] = hash;
-                ref var entry = ref _entries[wrappedIndex];
-                entry.Key = key;
-                entry.Value = value;
+                // store the initial hash and index or the robin-hooded hash and index.
+                _hashes[hashIndex] = hash;
+                _entryIndexes[hashIndex] = entryIndex;
                 
-                ++_count;
+                // always insert the new entry at the end of the entries array
+                ref var e = ref _entries[_count++]; 
+                e.Key = key;
+                e.Value = value;
 
-                // we need to update the max distance
+                // updating the max distance, required for the lookup operation
                 _maxDistanceFromIdealIndex = Math.Max(_maxDistanceFromIdealIndex, distance);
                 return;
 
             }
-            if (entryHash == hash)
+            if (h == hash)
             {
-                // we are succussfully updated the existing item, nothing globally change in respect to entry count or max distance
-                ref var entry = ref _entries[wrappedIndex];
-                if (entry.Key.Equals(key))
-                    entry.Value = value;
+                // check the existing entry key and update the value if the keys are matched
+                ref var e = ref _entries[_entryIndexes[hashIndex]];
+                if (e.Key.Equals(key))
+                    e.Value = value;
                 return;
             }
 
+            // Robin Hood goes here to steal from the rich with the shorter distance to the ideal.
             // we are using the index without wrapping to always get the correct positive entry distance  
-            var nonWrappedIndex = (hash & capacityMask) + distance;
-            var entryIdealIndex = entryHash & capacityMask;
-            var entryDistance = (uint)(nonWrappedIndex - entryIdealIndex);
-            if (entryDistance < distance)
-            {
-                // If the entry distance is less than the current insert distance, then store the new key-value here, and move the current entry further
-                ref var entry = ref _entries[wrappedIndex];
-                var tmp = entry; // copying the entry struct to avoid rewriting it by the new key-value
+            var distancedHashIndex = idealHashIndex + distance; // it is a non-wrapped variant of hashIndex 
+            var entryIdealHashIndex = h & indexMask;
+            var d = (uint)(distancedHashIndex - entryIdealHashIndex);
+            if (d < distance)
+            {                
+                // Robin Hood swaps the takes the ricj hash and index and puts in their place the poor one (with the longest distance) 
+                var tmp = hash; 
+                hash = h;
+                _hashes[hashIndex] = tmp;
 
-                // store the new key-value
-                entry.Key = key;
-                entry.Value = value;
-
-                // switch to the existing entry that need to be stored in the farther distance 
-                key = tmp.Key;
-                value = tmp.Value;
+                tmp = entryIndex;
+                entryIndex = _entryIndexes[hashIndex];
+                _entryIndexes[hashIndex] = tmp;
                 
-                _hashes[wrappedIndex] = hash;
-                hash = entryHash;
-
-                distance = entryDistance; // the distance even if 0 now, will be incremented in the next iteration of the for loop
+                idealHashIndex = entryIdealHashIndex;
+                distance = d; // the distance even if 0 now, will be incremented in the next iteration of the for loop
             }
         }
     }
 
     public void Resize(int newCapacity)
     {
-        var hashes = new int[newCapacity];
-        // var entries = new Entry[newCapacity];
-        var entries = GC.AllocateUninitializedArray<Entry>(newCapacity); // todo: create without default values using via GC.AllocateUninitializedArray<Entry>(size);
+        // Just resize the _entries without copying/moving, we don't need to move them, becuase we will be moving _entryIndexes instead
+        Array.Resize(ref _entries, newCapacity);
 
-        var capacityMask = newCapacity - 1;
+        var hashes = new int[newCapacity];
+        var entryIndexes = new int[newCapacity];
+
+        var indexMask = newCapacity - 1;
         var maxDistanceFromIdealIndex = 0u;
 
-        // rehash all the entries and copy the to possibly new indexes
-        // todo: @perf track what indexes are actually changed to avoid the movement
+        // Move all hashes and indexes. We cannot optimize this process (moving just some of the hashes) 
+        // because it may introduce the gaps which wrongly indicate that the hash is empty.   
         for (var i = 0; (uint)i < _hashes.Length; i++)
         {
-            var existingHash = _hashes[i];
-            if (existingHash == 0)
+            var hash = _hashes[i];
+            if (hash == 0)
                 continue;
 
-            var existingEntry = _entries[i];
-            for (var distance = 0u;;++distance)
+            var entryIndex = _entryIndexes[i];
+
+            var idealHashIndex = hash & indexMask;
+            var h = hashes[idealHashIndex];
+            if (h == 0)
+            {
+                hashes[idealHashIndex] = hash;
+                entryIndexes[idealHashIndex] = entryIndex;
+                continue;
+            }
+
+            var hashIndex = idealHashIndex;
+            for (var distance = 1u;; ++distance)
             {
                 // we need to add distance to the hash first (and not just increment the index) because we need to wrap around the entries array
-                var wrappedIndex = (existingHash + distance) & capacityMask;
-                var entryHash = hashes[wrappedIndex];
-                if (entryHash == 0)
+                hashIndex = (hashIndex + 1) & indexMask;
+                h = hashes[hashIndex];
+                if (h == 0)
                 {
-                    hashes[wrappedIndex] = existingHash;
-                    entries[wrappedIndex] = existingEntry;
+                    hashes[hashIndex] = hash;
+                    entryIndexes[hashIndex] = entryIndex;
                     maxDistanceFromIdealIndex = Math.Max(maxDistanceFromIdealIndex, distance);
                     break;
                 }
 
-                if (distance > 0) 
-                {
-                    // we are using the index without wrapping to always get the correct positive entry distance  
-                    var nonWrappedIndex = (existingHash & capacityMask) + distance;
-                    var entryIdealIndex = entryHash & capacityMask;
-                    var entryDistance = (uint)(nonWrappedIndex - entryIdealIndex);
-                    if (entryDistance < distance)
-                    {
-                        // swap entries
-                        ref var entry = ref entries[wrappedIndex];
-                        var tmp = entry;
-                        entry = existingEntry;
-                        existingEntry = tmp;
+                // Robin Hood goes here to steal from the rich with the shorter distance to the ideal.
+                // we are using the index without wrapping to always get the correct positive entry distance  
+                var distancedHashIndex = idealHashIndex + distance; // it is a non-wrapped variant of hashIndex 
+                var entryIdealHashIndex = h & indexMask;
+                var d = (uint)(distancedHashIndex - entryIdealHashIndex);
+                if (d < distance)
+                {                
+                    // Robin Hood swaps the takes the ricj hash and index and puts in their place the poor one (with the longest distance) 
+                    var tmp = hash; 
+                    hash = h;
+                    hashes[hashIndex] = tmp;
 
-                        hashes[wrappedIndex] = existingHash;
-                        existingHash = entryHash;
-                        
-                        distance = entryDistance;
-                    }
+                    tmp = entryIndex;
+                    entryIndex = entryIndexes[hashIndex];
+                    entryIndexes[hashIndex] = tmp;
+                    
+                    distance = d; // the distance even if 0 now, will be incremented in the next iteration of the for loop
                 }
             }
         }
-
-        _hashes = hashes;
-        _entries = entries;
         _maxDistanceFromIdealIndex = maxDistanceFromIdealIndex;
+        _hashes = hashes;
+        _entryIndexes = entryIndexes;
     }
 }
