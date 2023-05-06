@@ -656,6 +656,12 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 | FHashMap2_AddOrUpdate |   100 | 3.914 us | 0.0779 us | 0.1385 us |  1.31 |    0.07 | 1.6022 |   4.91 KB |        0.67 |
 |       DictSlim_TryAdd |   100 | 2.988 us | 0.0553 us | 0.1053 us |  1.00 |    0.00 | 2.3842 |   7.31 KB |        1.00 |
 
+### FHashMap3 vs DictionarySlim
+
+|                Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD |   Gen0 | Allocated | Alloc Ratio |
+|---------------------- |------ |---------:|----------:|----------:|------:|--------:|-------:|----------:|------------:|
+| FHashMap3_AddOrUpdate |   100 | 3.289 us | 0.0649 us | 0.1103 us |  1.17 |    0.06 | 1.9455 |   5.96 KB |        0.82 |
+|       DictSlim_TryAdd |   100 | 2.813 us | 0.0536 us | 0.0924 us |  1.00 |    0.00 | 2.3842 |   7.31 KB |        1.00 |
 
 */
             // [Params(10, 100, 1000, 10000)]
@@ -832,7 +838,7 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImTools.Experiments.FHashMap2<Type, string> FHashMap2_AddOrUpdate()
             {
                 var map = new ImTools.Experiments.FHashMap2<Type, string>();
