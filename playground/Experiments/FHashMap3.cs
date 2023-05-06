@@ -25,11 +25,13 @@ public sealed class FHashMap3<TKey, TValue>
     private Entry[] _entries;
 
     private uint _maxDistanceFromIdealIndex; // todo: @perf we don't need this field if we store the PSL with hash (in the lower bits?)
+    private int _indexMax;
     private int _count;
     public int Count => _count;
 
     public FHashMap3(int capacity = DefaultCapacity)
     {
+        _indexMax = capacity - 1;
         _hashes = new int[capacity];
         _entryIndexes = new int[capacity];
         _entries = new Entry[capacity];
@@ -39,7 +41,7 @@ public sealed class FHashMap3<TKey, TValue>
     public TValue GetValueOrDefault(TKey key, TValue defaultValue = default)
     {
         var hash = key.GetHashCode() | AddToHashToDistinguishFromEmpty;
-        var indexMask = _hashes.Length - 1; // todo: @perf move to the field
+        var indexMask = _indexMax;
 
         // todo: @perf you don't need to go all the way to `_maxDistanceFromIdealIndex`, just to the less distance (PSL) ans top here
         // todo: @perf for this matter you'd better store the PSL with hash (in the lower bits?)
@@ -72,12 +74,10 @@ public sealed class FHashMap3<TKey, TValue>
         if (_count >= capacity * MaxLoadFactor)
             Resize(capacity <<= 1); // double the capacity, using the <<= assinment here to correctly calculate the new capacityMask later
 
-        var indexMask = capacity - 1;
-        // var hashMask = ~indexMask; // todo: @wip upper bits 
-
         var hash = key.GetHashCode() | AddToHashToDistinguishFromEmpty;
 
         // ideal case when we can insert the new item at the ideal index
+        var indexMask = _indexMax;
         var idealHashIndex = hash & indexMask;
         var h = _hashes[idealHashIndex];
         if (h == 0)
@@ -163,7 +163,6 @@ public sealed class FHashMap3<TKey, TValue>
 
         var hashes = new int[newCapacity];
         var entryIndexes = new int[newCapacity];
-
         var indexMask = newCapacity - 1;
         var maxDistanceFromIdealIndex = 0u;
 
@@ -221,6 +220,7 @@ public sealed class FHashMap3<TKey, TValue>
             }
         }
         _maxDistanceFromIdealIndex = maxDistanceFromIdealIndex;
+        _indexMax = indexMask;
         _hashes = hashes;
         _entryIndexes = entryIndexes;
     }
