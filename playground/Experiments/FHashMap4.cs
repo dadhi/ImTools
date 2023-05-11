@@ -64,7 +64,7 @@ public sealed class FHashMap4<K, V>
         public V Value;
     }
 
-    public const float MaxCountForCapacityFactor = 0.95f;
+    public const float MaxCountForCapacityFactor = 0.9f;
     public const int DefaultCapacity = 16;
     public const byte MaxProbeCount = 31; // 5 bits max
     public const byte ProbeCountShift = 27; // 32 - 5 bits
@@ -219,8 +219,7 @@ public sealed class FHashMap4<K, V>
         }
 
         // Avoid going outside of MaxProbeCount by resizing and recursing
-        Resize(capacity << 1);
-        AddOrUpdate(key, value);
+        Debug.WriteLine($"Reaching to the max probe count {MaxProbeCount} Resizing to {capacity << 1}");
     }
 
     public void Resize(int newCapacity)
