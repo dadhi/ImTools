@@ -101,12 +101,13 @@ public sealed class FHashMap4<K, V> where K : IEquatable<K>
         var hashMask = ~indexMask & HashAndIndexMask;
 
         var hashIndex = hash & indexMask;
+        var hashesAndIndexes = _hashesAndIndexes;
 
         var h = 0;
         byte p = 1;
         while (true)
         {
-            h = _hashesAndIndexes[hashIndex];
+            h = hashesAndIndexes[hashIndex];
             if (h == 0)
                 return defaultValue;
             if ((h >> ProbeCountShift) == p++) // skip hashes with the bigger probe count which are for the different hashes
@@ -124,7 +125,7 @@ public sealed class FHashMap4<K, V> where K : IEquatable<K>
                     return entry.Value;
             }
             hashIndex = (hashIndex + 1) & indexMask; // `& indexMask` is for wrapping acound the hashes array
-            h = _hashesAndIndexes[hashIndex];
+            h = hashesAndIndexes[hashIndex];
             if (h == 0 | ((h >> ProbeCountShift) < p))
                 break;
         };
@@ -141,6 +142,7 @@ public sealed class FHashMap4<K, V> where K : IEquatable<K>
 
         var indexMask = capacity - 1;
         var hashMask = ~indexMask & HashAndIndexMask;
+        var hashesAndIndexes = _hashesAndIndexes;
 
         var hashIndex = hash & indexMask;
         var hashMiddle = hash & hashMask;
@@ -149,11 +151,11 @@ public sealed class FHashMap4<K, V> where K : IEquatable<K>
         byte p = 1;
         while (true)
         {
-            h = _hashesAndIndexes[hashIndex];
+            h = hashesAndIndexes[hashIndex];
             if (h == 0)
             {
                 var newEntryIndex = _count++;
-                _hashesAndIndexes[hashIndex] = (p << ProbeCountShift) | hashMiddle | newEntryIndex;
+                hashesAndIndexes[hashIndex] = (p << ProbeCountShift) | hashMiddle | newEntryIndex;
                 ref var e = ref _entries[newEntryIndex];
                 e.Key = key;
                 e.Value = value;
@@ -181,11 +183,11 @@ public sealed class FHashMap4<K, V> where K : IEquatable<K>
         for (; p <= MaxProbeCount; p++) // just in case we are trying up to the max probe count and then do a Resize
         {
             hashIndex = (hashIndex + 1) & indexMask; // `& indexMask` is for wrapping acound the hashes array 
-            h = _hashesAndIndexes[hashIndex];
+            h = hashesAndIndexes[hashIndex];
             if (h == 0)
             {
                 // store the initial hash and index or the robin-hooded hash and index.
-                _hashesAndIndexes[hashIndex] = (p << ProbeCountShift) | hashMiddle | entryIndex;
+                hashesAndIndexes[hashIndex] = (p << ProbeCountShift) | hashMiddle | entryIndex;
 
                 // always insert the new entry at the end of the entries array
                 ref var e = ref _entries[_count++];
@@ -208,7 +210,7 @@ public sealed class FHashMap4<K, V> where K : IEquatable<K>
             // Robin Hood goes here to steal from the rich (with the less probe count) and give to the poor (with more probes).
             if ((h >> ProbeCountShift) < p)
             {
-                _hashesAndIndexes[hashIndex] = (p << ProbeCountShift) | hashMiddle | entryIndex;
+                hashesAndIndexes[hashIndex] = (p << ProbeCountShift) | hashMiddle | entryIndex;
                 entryIndex = h & indexMask;
                 hashMiddle = h & hashMask;
                 p = (byte)(h >> ProbeCountShift);
@@ -225,13 +227,60 @@ public sealed class FHashMap4<K, V> where K : IEquatable<K>
     {
         // Just resize the _entries without copying/moving, we don't need to move them, becuase we will be moving _entryIndexes instead
         Array.Resize(ref _entries, newCapacity);
+        var newHashesAndIndexes = new int[newCapacity];
 
-        var hashes = new int[newCapacity];
-        var entryIndexes = new int[newCapacity];
-        var indexMask = newCapacity - 1;
+        var oldHashesAndIndexes = _hashesAndIndexes;
+        var oldCapacity = _capacity;
+        var oldIndexMask = oldCapacity - 1;
+        var newIndexMask = newCapacity - 1;
 
-        // todo: @wip TBD
+        for (var i = 0; (uint)i < oldHashesAndIndexes.Length; i++)
+        {
+            var oldHash = oldHashesAndIndexes[i];
+            if (oldHash == 0)
+                continue;
+            
+            var probePos = (oldHash >> ProbeCountShift) - 1;
+            var oldHashIndex = (oldCapacity + i - probePos) & oldIndexMask;
 
-        _hashesAndIndexes = hashes;
+            var newHashIndex = ((oldHash & ~oldIndexMask) | oldHashIndex) & newIndexMask;
+            var newHashAndOldIndex = (oldHash & HashAndIndexMask & ~newIndexMask) | (oldHash & oldIndexMask);
+
+            var h = 0;
+            byte p = 1;
+            while (true)
+            {
+                h = newHashesAndIndexes[newHashIndex];
+                if (h == 0)
+                {
+                    newHashesAndIndexes[newHashIndex] = (p << ProbeCountShift) | newHashAndOldIndex;
+                    goto nextHash;
+                }
+                if ((h >> ProbeCountShift) == p++) // skip hashes with the bigger probe count which are for the different hashes
+                    break;
+                newHashIndex = (newHashIndex + 1) & newIndexMask; // `& indexMask` is for wrapping acound the hashes array
+            }
+
+            for (; p <= MaxProbeCount; p++) // just in case we are trying up to the max probe count and then do a Resize
+            {
+                newHashIndex = (newHashIndex + 1) & newIndexMask; // `& indexMask` is for wrapping acound the hashes array 
+                h = newHashesAndIndexes[newHashIndex];
+                if (h == 0)
+                {
+                    newHashesAndIndexes[newHashIndex] = (p << ProbeCountShift) | newHashAndOldIndex;
+                    goto nextHash;
+                }
+                if ((h >> ProbeCountShift) < p)
+                {
+                    newHashesAndIndexes[newHashIndex] = (p << ProbeCountShift) | newHashAndOldIndex;
+                    newHashAndOldIndex = h & HashAndIndexMask;
+                    p = (byte)(h >> ProbeCountShift);
+                }
+            }
+        nextHash:;
+        }
+
+        _capacity = newCapacity;
+        _hashesAndIndexes = newHashesAndIndexes;
     }
 }

@@ -54,7 +54,7 @@ namespace ImTools.Experiments.UnitTests
             Assert.AreEqual(13, map.Count);
         }
 
-        // [Test] // todo: @fixme
+        [Test]
         public void Can_store_and_retrieve_value_from_map_with_Expand_in_the_middle()
         {
             var map = new FHashMap4<int, string>(2);
