@@ -12,17 +12,17 @@ namespace ImTools.Experiments.UnitTests
 
             map.AddOrUpdate(42, "1");
             map.AddOrUpdate(42 + 32, "2");
+            map.AddOrUpdate(42 + 32 + 32, "3");
 
             // interrupt the keys with ne key
             map.AddOrUpdate(43, "a");
             map.AddOrUpdate(43 + 32, "b");
-            map.AddOrUpdate(42 + 32 + 32, "3");
-
             map.AddOrUpdate(43 + 32 + 32, "c");
+
             map.AddOrUpdate(42 + 32 + 32 + 32, "4");
 
             // insert 3rd variety of the keys
-            // map.AddOrUpdate(44, "*");
+            map.AddOrUpdate(44, "*");
 
             map.AddOrUpdate(42 + 32 + 32 + 32 + 32, "5");
             map.AddOrUpdate(42 + 32 + 32 + 32 + 32 + 32, "6");
@@ -35,7 +35,7 @@ namespace ImTools.Experiments.UnitTests
             Assert.AreEqual(null, map.GetValueOrDefault(43 + 32 + 32 + 32 + 32));
 
             // check for the strange key
-            // Assert.AreEqual("*", map.GetValueOrDefault(44));
+            Assert.AreEqual("*", map.GetValueOrDefault(44));
 
             Assert.AreEqual("1", map.GetValueOrDefault(42));
             Assert.AreEqual("2", map.GetValueOrDefault(42 + 32));
@@ -51,7 +51,7 @@ namespace ImTools.Experiments.UnitTests
             Assert.AreEqual("c", map.GetValueOrDefault(43 + 32 + 32));
             Assert.AreEqual("d", map.GetValueOrDefault(43 + 32 + 32 + 32));
 
-            Assert.AreEqual(12, map.Count);
+            Assert.AreEqual(13, map.Count);
         }
 
         // [Test] // todo: @fixme

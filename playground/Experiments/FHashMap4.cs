@@ -4,37 +4,83 @@ using System.Diagnostics;
 namespace ImTools.Experiments;
 
 #if DEBUG
-public static class DebugExtensions 
+public static class DebugExtensions
 {
-    public static string b(this int x) => Convert.ToString(x, 2).PadLeft(32, '0'); 
+    public static string b(this int x) => Convert.ToString(x, 2).PadLeft(32, '0');
 }
-#endif
 
-// Combine hashes with indexes to economy on memory
-public sealed class FHashMap4<TKey, TValue>
+public class FHashMap4DebugProxy<K, V> where K : IEquatable<K>
 {
-    [DebuggerDisplay("Key: {Key}, Value: {Value}")]
-    public struct Entry
+    [DebuggerDisplay("probe:{Probe}, hash:{HashPart}, kvi:{Index}, kv:{KV}")]
+    public struct Item // todo: @wip add Key and Value
     {
-        public TKey Key;
-        public TValue Value;
+        public byte Probe;
+        public string HashPart;
+        public int Index;
+        public string KV;
     }
 
-    public const float MaxLoadFactor = 0.95f;
-    public const int DefaultCapacity = 16;
-    public const int HighBitSetMask = 1 << 31;
-    public const int HashAndIndexMask = ~HighBitSetMask;
+    private readonly FHashMap4<K, V> _map;
+    public FHashMap4DebugProxy(FHashMap4<K, V> map) => _map = map;
+    [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+    public Item[] Items
+    {
+        get
+        {
+            var capacity = _map._capacity;
+            var items = new Item[capacity];
+            var indexMask = capacity - 1;
+            var entries = _map._entries;
+            var hashesAndIndexes = _map._hashesAndIndexes;
+            for (var i = 0; i < hashesAndIndexes.Length; i++)
+            {
+                var h = hashesAndIndexes[i];
+                if (h == 0)
+                    continue;
+                var probe = (byte)(h >> FHashMap4<K, V>.ProbeCountShift);
+                var hashPart = (h & FHashMap4<K, V>.HashAndIndexMask & ~indexMask).b();
+                var index = h & indexMask;
+                items[i] = new Item
+                {
+                    Probe = probe, HashPart = hashPart, Index = index,
+                    KV = probe == 0 ? null : $"{entries[index].Key}->{entries[index].Value}"
+                };
+            }
+            return items;
+        }
+    }
+}
 
-    // the int is the combination/union of the 
-    // - 1 bit for distance to indicate the hash closest to the ideal index (to account for the distance)
-    // - N higher bits of the hash, wher N == 32 - 1(bit for distance) - M bits for the index (the capacity-1 bits)
-    // - M bits for the index into the entries array (the capacity-1 bits).
-    // The index itself is stored as actual index + 1 to indicate the non-empty slot for the 0 index and the hash with empty lower bits.
+[DebuggerTypeProxy(typeof(FHashMap4DebugProxy<,>))]
+[DebuggerDisplay("Count={Count}")]
+#endif
+// Combine hashes with indexes to economy on memory
+public sealed class FHashMap4<K, V> where K : IEquatable<K>
+{
+    [DebuggerDisplay("{Key}->{Value}")]
+    public struct Entry
+    {
+        public K Key;
+        public V Value;
+    }
+
+    public const float MaxCountForCapacityFactor = 0.95f;
+    public const int DefaultCapacity = 16;
+    public const byte MaxProbeCount = 31; // 5 bits max
+    public const byte ProbeCountShift = 27; // 32 - 5 bits
+    public const int HashAndIndexMask = ~(MaxProbeCount << ProbeCountShift);
+
+    // The _hashesAndIndexes entry is the Int32 which union of: 
+    // - 5 high bit (MaxProbeCount == 31) to account for the distance from the ideal index, starting from 1 (to indicate non-empty slot).
+    // - H middle bits of the hash, wher H == 32 - 5 - I (lower Index bits)
+    // - I lower index bits for the index into the entries array, 0-based.
+    // The ProbeCount is starting from 1 to indicate non-empty slot.
     // The removed hash will be actually removed, so we don't use the removed bit here.
-    private int[] _hashesAndIndexes;
-    private Entry[] _entries;
-    private int _capacity;
-    private int _count;
+    internal int[] _hashesAndIndexes;
+    internal Entry[] _entries;
+    internal int _capacity;
+    internal int _count;
+
     public int Count => _count;
 
     public FHashMap4(int capacity = DefaultCapacity)
@@ -46,50 +92,49 @@ public sealed class FHashMap4<TKey, TValue>
         // _entries = GC.AllocateUninitializedArray<Entry>(capacity); // todo: create without default values using via GC.AllocateUninitializedArray<Entry>(size);
     }
 
-    public TValue GetValueOrDefault(TKey key, TValue defaultValue = default)
+    public V GetValueOrDefault(K key, V defaultValue = default)
     {
         var hash = key.GetHashCode();
-        
+
         var capacity = _capacity;
         var indexMask = capacity - 1;
         var hashMask = ~indexMask & HashAndIndexMask;
 
         var hashIndex = hash & indexMask;
-        
+
         var h = 0;
-        while (true) 
+        byte p = 1;
+        while (true)
         {
             h = _hashesAndIndexes[hashIndex];
             if (h == 0)
                 return defaultValue;
-            // skip hashes before the ideal index (where the distance bit is set)
-            if ((h & HighBitSetMask) != 0)
+            if ((h >> ProbeCountShift) == p++) // skip hashes with the bigger probe count which are for the different hashes
                 break;
             hashIndex = (hashIndex + 1) & indexMask; // `& indexMask` is for wrapping acound the hashes array
         }
-        
-        var higherHashPart = hash & hashMask;
-        while (true) 
+
+        var hashMiddle = hash & hashMask;
+        while (true)
         {
-            if ((h & hashMask) == higherHashPart)
-            { 
-                ref var entry = ref _entries[(h & indexMask) - 1]; // `- 1` here because we store index + 1 to indicate non-empty slot 
+            if ((h & hashMask) == hashMiddle)
+            {
+                ref var entry = ref _entries[h & indexMask];
                 if (entry.Key.Equals(key))
                     return entry.Value;
             }
             hashIndex = (hashIndex + 1) & indexMask; // `& indexMask` is for wrapping acound the hashes array
             h = _hashesAndIndexes[hashIndex];
-            if (h == 0 | (h & HighBitSetMask) != 0)
+            if (h == 0 | ((h >> ProbeCountShift) < p))
                 break;
         };
         return defaultValue;
     }
 
-    public void AddOrUpdate(TKey key, TValue value)
+    public void AddOrUpdate(K key, V value)
     {
-        // optimistic resize based on one-time check before insert
         var capacity = _capacity;
-        if (_count + 1 >= capacity * MaxLoadFactor) // `_count + 1` is required because we use `index + 1` to indicate non-empty hash slot 
+        if (_count >= capacity * MaxCountForCapacityFactor)
             Resize(capacity <<= 1); // double the capacity, using the <<= assinment here to correctly calculate the new capacityMask later
 
         var hash = key.GetHashCode();
@@ -98,31 +143,31 @@ public sealed class FHashMap4<TKey, TValue>
         var hashMask = ~indexMask & HashAndIndexMask;
 
         var hashIndex = hash & indexMask;
-        var higherHashPart = hash & hashMask;
+        var hashMiddle = hash & hashMask;
 
         var h = 0;
-        while (true) 
+        byte p = 1;
+        while (true)
         {
             h = _hashesAndIndexes[hashIndex];
             if (h == 0)
             {
                 var newEntryIndex = _count++;
-                _hashesAndIndexes[hashIndex] = HighBitSetMask | higherHashPart | (newEntryIndex + 1); // `+1` to indicate non-empty slot
+                _hashesAndIndexes[hashIndex] = (p << ProbeCountShift) | hashMiddle | newEntryIndex;
                 ref var e = ref _entries[newEntryIndex];
                 e.Key = key;
                 e.Value = value;
                 return;
             }
-            // skip hashes before the ideal index (where the distance bit is set)
-            if ((h & HighBitSetMask) != 0)
+            if ((h >> ProbeCountShift) == p++) // skip hashes with the bigger probe count which are for the different hashes
                 break;
             hashIndex = (hashIndex + 1) & indexMask; // `& indexMask` is for wrapping acound the hashes array
         }
 
-        if ((h & hashMask) == higherHashPart)
+        if ((h & hashMask) == hashMiddle)
         {
             // check the existing entry key and update the value if the keys are matched
-            ref var e = ref _entries[(h & indexMask) - 1];
+            ref var e = ref _entries[h & indexMask];
             if (e.Key.Equals(key))
             {
                 e.Value = value;
@@ -130,30 +175,29 @@ public sealed class FHashMap4<TKey, TValue>
             }
         }
 
-        // todo: @perf optimize the flags better away
-        var swapped = false;
-        var setNextAsStartInTheSeries = false;               
+        var swapped = false; // todo: @perf optimize the flag away
 
-        var entryIndexPlusOne = _count + 1; // by default the new entry index is the last one, but the variable may be updated mulpiple times by Robin Hood in the loop
-        while (true)
+        var entryIndex = _count; // by default the new entry index is the last one, but the variable may be updated mulpiple times by Robin Hood in the loop
+        for (; p <= MaxProbeCount; p++) // just in case we are trying up to the max probe count and then do a Resize
         {
             hashIndex = (hashIndex + 1) & indexMask; // `& indexMask` is for wrapping acound the hashes array 
             h = _hashesAndIndexes[hashIndex];
             if (h == 0)
             {
                 // store the initial hash and index or the robin-hooded hash and index.
-                _hashesAndIndexes[hashIndex] = higherHashPart | entryIndexPlusOne;
+                _hashesAndIndexes[hashIndex] = (p << ProbeCountShift) | hashMiddle | entryIndex;
+
                 // always insert the new entry at the end of the entries array
-                ref var e = ref _entries[_count++]; 
+                ref var e = ref _entries[_count++];
                 e.Key = key;
                 e.Value = value;
                 return;
             }
 
-            if (!swapped & ((h & hashMask) == higherHashPart))
+            if (!swapped & ((h & hashMask) == hashMiddle))
             {
-                // check the existing entry key and update the value if the keys are matched
-                ref var e = ref _entries[(h & indexMask) - 1];
+                // check the existing entry key and update the value if the keys are matched, then we are done
+                ref var e = ref _entries[h & indexMask];
                 if (e.Key.Equals(key))
                 {
                     e.Value = value;
@@ -161,34 +205,20 @@ public sealed class FHashMap4<TKey, TValue>
                 }
             }
 
-            // Robin Hood goes here to steal from the rich with the shorter distance to the ideal.
-            // e.g. inserting `h` 72 + 16 = 88, but ideal is occupied. So we need to swap it with 73 because it is further from the ideal.
-            //      | 0 | 72 | 73 | 0 |
-            // bit:       1    88  <-- swap 72 and 88 and proceed with inserting 73  
-            if ((h & HighBitSetMask) != 0)
-            {                
-                var tmp = higherHashPart | entryIndexPlusOne; 
-                
-                entryIndexPlusOne = h & indexMask;
-                higherHashPart = h & hashMask;
-                
-                _hashesAndIndexes[hashIndex] = tmp;
-                
-                swapped = true;
-                setNextAsStartInTheSeries = true;               
-                continue;
-            }
-
-            // If we swapped the hash, then we need to set the next slot as a first in the series
-            //      | 0 | 72 | 88 | 89 |
-            // bit:       1    73  -^ if swapped set idealHighBit to 0, otherwise ignore  
-            if (setNextAsStartInTheSeries)
+            // Robin Hood goes here to steal from the rich (with the less probe count) and give to the poor (with more probes).
+            if ((h >> ProbeCountShift) < p)
             {
-                _hashesAndIndexes[hashIndex] = HighBitSetMask | h;
-                setNextAsStartInTheSeries = false;
-                continue;
+                _hashesAndIndexes[hashIndex] = (p << ProbeCountShift) | hashMiddle | entryIndex;
+                entryIndex = h & indexMask;
+                hashMiddle = h & hashMask;
+                p = (byte)(h >> ProbeCountShift);
+                swapped = true;
             }
         }
+
+        // Avoid going outside of MaxProbeCount by resizing and recursing
+        Resize(capacity << 1);
+        AddOrUpdate(key, value);
     }
 
     public void Resize(int newCapacity)
@@ -202,6 +232,6 @@ public sealed class FHashMap4<TKey, TValue>
 
         // todo: @wip TBD
 
-       _hashesAndIndexes = hashes;
+        _hashesAndIndexes = hashes;
     }
 }
