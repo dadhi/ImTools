@@ -9,7 +9,7 @@ public static class DebugExtensions
     public static string b(this int x) => Convert.ToString(x, 2).PadLeft(32, '0');
 }
 
-public class FHashMap4DebugProxy<K, V> where K : IEquatable<K>
+public class FHashMap4DebugProxy<K, V>
 {
     [DebuggerDisplay("probe:{Probe}, hash:{HashPart}, kvi:{Index}, kv:{KV}")]
     public struct Item // todo: @wip add Key and Value
@@ -55,7 +55,7 @@ public class FHashMap4DebugProxy<K, V> where K : IEquatable<K>
 [DebuggerDisplay("Count={Count}")]
 #endif
 // Combine hashes with indexes to economy on memory
-public sealed class FHashMap4<K, V> where K : IEquatable<K>
+public sealed class FHashMap4<K, V>
 {
     [DebuggerDisplay("{Key}->{Value}")]
     public struct Entry
