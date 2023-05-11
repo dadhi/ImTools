@@ -4,7 +4,6 @@ using System.Diagnostics;
 namespace ImTools.Experiments;
 
 // Split hashes to their own array.
-// todo: @wip 0 hash is not supported yet
 public sealed class FHashMap3<TKey, TValue>
 {
     [DebuggerDisplay("Key: {Key}, Value: {Value}")]
