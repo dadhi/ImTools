@@ -30,12 +30,12 @@ public static class FHashMap4Extensions
             var index = h & indexMask;
 
             string hkv = null;
-            string heq = null;
+            var heq = false;
             if (probe != 0)
             {
                 var e = entries[index];
                 var kh = e.Key.GetHashCode() & FHashMap4<K, V>.HashAndIndexMask;
-                heq = kh == hash ? "==" : "!=";
+                heq = kh == hash;
                 hkv = $"{kh.b()}:{e.Key}->{e.Value}";
             }
             items[i] = new Item<K, V>{ Probe = probe, Hash = hash.b(), HEq = heq, Index = index, HKV = hkv };
@@ -43,14 +43,16 @@ public static class FHashMap4Extensions
         return items;
     }
 
-    [DebuggerDisplay("probe:{Probe}, h:{Hash}{HEq}{HKV}, i:{Index}")]
     public struct Item<K, V>
     {
         public byte Probe;
+        public bool HEq;
         public string Hash;
-        public string HEq;
         public string HKV;
         public int Index;
+        public bool IsEmpty => Probe == 0;
+        public string Output => $"{Probe}|{Hash}{(HEq ? "==" : "!=")}{HKV}";
+        public override string ToString() => IsEmpty ? "empty" : Output;
     }
 }
 
@@ -187,13 +189,21 @@ public sealed class FHashMap4<K, V>
                 e.Value = value;
                 return;
             }
-            if ((h >> ProbeCountShift) == p++) // skip hashes with the bigger probe count which are for the different hashes
+            if ((h >> ProbeCountShift) <= p++) // skip hashes with the bigger probe count which are for the different hashes
+            {
+#if DEBUG
+                Debug.WriteLine($"Loop1: `{h >> ProbeCountShift} <= {p - 1}`"); 
+#endif
                 break;
+            }
             hashIndex = (hashIndex + 1) & indexMask; // `& indexMask` is for wrapping acound the hashes array
         }
 
         if ((h & hashMask) == hashMiddle)
         {
+#if DEBUG
+            Debug.WriteLine($"hashMiddle equals for the added key:`{key}` and existing key:`{_entries[h & indexMask].Key}`"); 
+#endif
             // check the existing entry key and update the value if the keys are matched
             ref var e = ref _entries[h & indexMask];
             if (e.Key.Equals(key))
@@ -247,8 +257,8 @@ public sealed class FHashMap4<K, V>
             if ((h >> ProbeCountShift) < p)
             {
                 hashesAndIndexes[hashIndex] = (p << ProbeCountShift) | hashMiddle | entryIndex;
-                entryIndex = h & indexMask;
                 hashMiddle = h & hashMask;
+                entryIndex = h & indexMask;
                 p = (byte)(h >> ProbeCountShift);
                 swapped = true;
             }

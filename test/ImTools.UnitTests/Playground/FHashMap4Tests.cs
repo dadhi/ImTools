@@ -24,8 +24,28 @@ public class FHashMap4Tests
 
         var exp = map.Explain();
         foreach (var it in exp)
-            if (it.HEq != null)
-                Assert.AreEqual("==", it.HEq);
+            if (!it.IsEmpty)
+                Assert.True(it.HEq);
+    }
+
+    [Test]
+    public void Real_world_test_without_Resize()
+    {
+        var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(100).ToArray();
+
+        var map = new ImTools.Experiments.FHashMap4<Type, string>(128);
+
+        foreach (var key in types)
+            map.AddOrUpdate(key, "a");
+
+        map.AddOrUpdate(typeof(FHashMap4Tests), "!");
+
+        Assert.AreEqual(101, map.Count);
+
+        var exp = map.Explain();
+        foreach (var it in exp)
+            if (!it.IsEmpty)
+                Assert.True(it.HEq);
     }
 
     [Test]
@@ -78,8 +98,8 @@ public class FHashMap4Tests
 
         var exp = map.Explain();
         foreach (var it in exp)
-            if (it.HEq != null)
-                Assert.AreEqual("==", it.HEq);
+            if (!it.IsEmpty)
+                Assert.True(it.HEq);
     }
 
     [Test]
@@ -107,8 +127,8 @@ public class FHashMap4Tests
 
         var exp = map.Explain();
         foreach (var it in exp)
-            if (it.HEq != null)
-                Assert.AreEqual("==", it.HEq);
+            if (!it.IsEmpty)
+                Assert.True(it.HEq);
     }
 
     [Test]
