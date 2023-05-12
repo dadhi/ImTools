@@ -11,7 +11,7 @@ public class FHashMap4Tests
     [Test]
     public void Real_world_test()
     {
-        var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(1000).Take(100).ToArray();
+        var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(100).ToArray();
 
         var map = new ImTools.Experiments.FHashMap4<Type, string>();
 
@@ -21,6 +21,7 @@ public class FHashMap4Tests
         map.AddOrUpdate(typeof(FHashMap4Tests), "!");
 
         Assert.AreEqual(101, map.Count);
+        // todo: @wip add Verify to check that the hashes are corresponds to the keys
     }
 
     [Test]

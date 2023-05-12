@@ -66,8 +66,11 @@ public sealed class FHashMap4<K, V>
 
     public const float MaxCountForCapacityFactor = 0.9f;
     public const int DefaultCapacity = 16;
-    public const byte MaxProbeCount = 31; // 5 bits max
-    public const byte ProbeCountShift = 27; // 32 - 5 bits
+
+    public const byte MaxProbeBits = 5; // 5 bits max
+    public const byte MaxProbeCount = (1 << MaxProbeBits) - 1;
+    public const byte ProbeCountShift = 32 - MaxProbeBits;
+    
     public const int HashAndIndexMask = ~(MaxProbeCount << ProbeCountShift);
 
     // The _hashesAndIndexes entry is the Int32 which union of: 
@@ -132,6 +135,10 @@ public sealed class FHashMap4<K, V>
         return defaultValue;
     }
 
+#if DEBUG
+    int _maxProbeCount = 1;
+#endif
+
     public void AddOrUpdate(K key, V value)
     {
         var capacity = _capacity;
@@ -154,6 +161,13 @@ public sealed class FHashMap4<K, V>
             h = hashesAndIndexes[hashIndex];
             if (h == 0)
             {
+#if DEBUG
+                if (p > _maxProbeCount)
+                {
+                    _maxProbeCount = p;
+                    Debug.WriteLine($"Loop1: MaxProbeCount:{p} when adding key:`{key}`"); 
+                }
+#endif   
                 var newEntryIndex = _count++;
                 hashesAndIndexes[hashIndex] = (p << ProbeCountShift) | hashMiddle | newEntryIndex;
                 ref var e = ref _entries[newEntryIndex];
@@ -186,6 +200,13 @@ public sealed class FHashMap4<K, V>
             h = hashesAndIndexes[hashIndex];
             if (h == 0)
             {
+#if DEBUG
+                if (p > _maxProbeCount)
+                {
+                    _maxProbeCount = p;
+                    Debug.WriteLine($"Loop2: MaxProbeCount:{p} when adding key:`{key}`"); 
+                }
+#endif
                 // store the initial hash and index or the robin-hooded hash and index.
                 hashesAndIndexes[hashIndex] = (p << ProbeCountShift) | hashMiddle | entryIndex;
 
@@ -198,10 +219,13 @@ public sealed class FHashMap4<K, V>
 
             if (!swapped & ((h & hashMask) == hashMiddle))
             {
+#if DEBUG
+                Debug.WriteLine($"hashMiddle equals for the added key:`{key}` and existing key:`{_entries[h & indexMask].Key}`"); 
+#endif
                 // check the existing entry key and update the value if the keys are matched, then we are done
                 ref var e = ref _entries[h & indexMask];
                 if (e.Key.Equals(key))
-                {
+                {                
                     e.Value = value;
                     return;
                 }
@@ -218,8 +242,8 @@ public sealed class FHashMap4<K, V>
             }
         }
 
-        // Avoid going outside of MaxProbeCount by resizing and recursing
-        Debug.WriteLine($"Reaching to the max probe count {MaxProbeCount} Resizing to {capacity << 1}");
+        // todo: @wip going outside of MaxProbeCount
+        Debug.Fail($"Reaching to the max probe count {MaxProbeCount} Resizing to {capacity << 1}");
     }
 
     public void Resize(int newCapacity)
@@ -232,7 +256,10 @@ public sealed class FHashMap4<K, V>
         var oldCapacity = _capacity;
         var oldIndexMask = oldCapacity - 1;
         var newIndexMask = newCapacity - 1;
-
+#if DEBUG
+        var sameIndexes = 0;
+        var maxProbeCount = 0;
+#endif
         for (var i = 0; (uint)i < oldHashesAndIndexes.Length; i++)
         {
             var oldHash = oldHashesAndIndexes[i];
@@ -252,6 +279,9 @@ public sealed class FHashMap4<K, V>
                 h = newHashesAndIndexes[newHashIndex];
                 if (h == 0)
                 {
+#if DEBUG
+                    sameIndexes += i == newHashIndex ? 1 : 0;
+#endif
                     newHashesAndIndexes[newHashIndex] = (p << ProbeCountShift) | newHashAndOldIndex;
                     goto nextHash;
                 }
@@ -266,11 +296,18 @@ public sealed class FHashMap4<K, V>
                 h = newHashesAndIndexes[newHashIndex];
                 if (h == 0)
                 {
+#if DEBUG
+                    sameIndexes += i == newHashIndex ? 1 : 0;
+                    maxProbeCount = Math.Max(maxProbeCount, p);
+#endif
                     newHashesAndIndexes[newHashIndex] = (p << ProbeCountShift) | newHashAndOldIndex;
                     goto nextHash;
                 }
                 if ((h >> ProbeCountShift) < p)
                 {
+#if DEBUG
+                    sameIndexes += i == newHashIndex ? 1 : 0;
+#endif
                     newHashesAndIndexes[newHashIndex] = (p << ProbeCountShift) | newHashAndOldIndex;
                     newHashAndOldIndex = h & HashAndIndexMask;
                     p = (byte)(h >> ProbeCountShift);
@@ -281,5 +318,9 @@ public sealed class FHashMap4<K, V>
 
         _capacity = newCapacity;
         _hashesAndIndexes = newHashesAndIndexes;
+#if DEBUG
+        Debug.WriteLine($"Resize {oldCapacity}->{newCapacity} sameIndexes:{sameIndexes}, maxProbeCount:{maxProbeCount}");
+        _maxProbeCount = maxProbeCount;
+#endif
     }
 }
