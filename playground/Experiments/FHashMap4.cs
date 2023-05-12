@@ -15,13 +15,13 @@ public static class FHashMap4Extensions
 
         var items = new Item<K, V>[capacity];
         var indexMask = capacity - 1;
-        
+
         for (var i = 0; i < hashesAndIndexes.Length; i++)
         {
             var h = hashesAndIndexes[i];
             if (h == 0)
                 continue;
-            
+
             var probe = (byte)(h >> FHashMap4<K, V>.ProbeCountShift);
             var hashIndex = (capacity + i - (probe - 1)) & indexMask;
 
@@ -38,7 +38,7 @@ public static class FHashMap4Extensions
                 heq = kh == hash;
                 hkv = $"{kh.b()}:{e.Key}->{e.Value}";
             }
-            items[i] = new Item<K, V>{ Probe = probe, Hash = hash.b(), HEq = heq, Index = index, HKV = hkv };
+            items[i] = new Item<K, V> { Probe = probe, Hash = hash.b(), HEq = heq, Index = index, HKV = hkv };
         }
         return items;
     }
@@ -84,7 +84,7 @@ public sealed class FHashMap4<K, V>
     public const byte MaxProbeBits = 5; // 5 bits max
     public const byte MaxProbeCount = (1 << MaxProbeBits) - 1;
     public const byte ProbeCountShift = 32 - MaxProbeBits;
-    
+
     public const int HashAndIndexMask = ~(MaxProbeCount << ProbeCountShift);
 
     // The _hashesAndIndexes entry is the Int32 which union of: 
@@ -129,7 +129,7 @@ public sealed class FHashMap4<K, V>
                 return defaultValue;
             if ((h >> ProbeCountShift) == p++) // skip hashes with the bigger probe count which are for the different hashes
                 break;
-            hashIndex = (hashIndex + 1) & indexMask; // `& indexMask` is for wrapping acound the hashes array
+            hashIndex = (hashIndex + 1) & indexMask; // `& indexMask` is for wrapping around the hashes array
         }
 
         var hashMiddle = hash & hashMask;
@@ -141,9 +141,9 @@ public sealed class FHashMap4<K, V>
                 if (entry.Key.Equals(key))
                     return entry.Value;
             }
-            hashIndex = (hashIndex + 1) & indexMask; // `& indexMask` is for wrapping acound the hashes array
+            hashIndex = (hashIndex + 1) & indexMask; // `& indexMask` is for wrapping around the hashes array
             h = hashesAndIndexes[hashIndex];
-            if (h == 0 | ((h >> ProbeCountShift) < p))
+            if ((h == 0) | ((h >> ProbeCountShift) < p))
                 break;
         };
         return defaultValue;
@@ -168,100 +168,54 @@ public sealed class FHashMap4<K, V>
         var hashIndex = hash & indexMask;
         var hashMiddle = hash & hashMask;
 
+        var robinHooded = false;
         var h = 0;
-        byte p = 1;
-        while (true)
+        var entryIndex = _count; // by default the new entry index is the last one, but the variable may be updated mulpiple times by Robin Hood in the loop
+        for (byte probes = 1; probes <= MaxProbeCount; ++probes)
         {
             h = hashesAndIndexes[hashIndex];
             if (h == 0)
             {
 #if DEBUG
-                if (p > _maxProbeCount)
+                if (probes > _maxProbeCount)
                 {
-                    _maxProbeCount = p;
-                    Debug.WriteLine($"Loop1: MaxProbeCount:{p} when adding key:`{key}`"); 
+                    _maxProbeCount = probes;
+                    Debug.WriteLine($"MaxProbeCount:{probes} when adding key:`{key}`");
                 }
 #endif   
-                var newEntryIndex = _count++;
-                hashesAndIndexes[hashIndex] = (p << ProbeCountShift) | hashMiddle | newEntryIndex;
-                ref var e = ref _entries[newEntryIndex];
+                hashesAndIndexes[hashIndex] = (probes << ProbeCountShift) | hashMiddle | entryIndex;
+
+                ref var e = ref _entries[_count++]; // always add to the original entry
                 e.Key = key;
                 e.Value = value;
                 return;
             }
-            if ((h >> ProbeCountShift) <= p++) // skip hashes with the bigger probe count which are for the different hashes
+            var hp = (byte)(h >> ProbeCountShift);
+            if (hp < probes) // skip hashes with the bigger probe count until we find the same or less probes
             {
 #if DEBUG
-                Debug.WriteLine($"Loop1: `{h >> ProbeCountShift} <= {p - 1}`"); 
+                Debug.WriteLine($"Robin Hood (hp < probes): `{h >> ProbeCountShift} <= {probes}`");
 #endif
-                break;
+                // Robin Hood goes here to steal from the rich (with the less probe count) and give to the poor (with more probes).
+                hashesAndIndexes[hashIndex] = (probes << ProbeCountShift) | hashMiddle | entryIndex;
+                hashMiddle = h & hashMask;
+                entryIndex = h & indexMask;
+                probes = hp;
+                robinHooded = true;
             }
-            hashIndex = (hashIndex + 1) & indexMask; // `& indexMask` is for wrapping acound the hashes array
-        }
-
-        if ((h & hashMask) == hashMiddle)
-        {
-#if DEBUG
-            Debug.WriteLine($"hashMiddle equals for the added key:`{key}` and existing key:`{_entries[h & indexMask].Key}`"); 
-#endif
-            // check the existing entry key and update the value if the keys are matched
-            ref var e = ref _entries[h & indexMask];
-            if (e.Key.Equals(key))
-            {
-                e.Value = value;
-                return;
-            }
-        }
-
-        var swapped = false; // todo: @perf optimize the flag away
-
-        var entryIndex = _count; // by default the new entry index is the last one, but the variable may be updated mulpiple times by Robin Hood in the loop
-        for (; p <= MaxProbeCount; p++) // just in case we are trying up to the max probe count and then do a Resize
-        {
-            hashIndex = (hashIndex + 1) & indexMask; // `& indexMask` is for wrapping acound the hashes array 
-            h = hashesAndIndexes[hashIndex];
-            if (h == 0)
+            if (!robinHooded & (hp == probes) & ((h & hashMask) == hashMiddle)) // todo: @perf huh, we may either combine or keep only the hash check, cause probes and hashMiddle are parts of the hash 
             {
 #if DEBUG
-                if (p > _maxProbeCount)
-                {
-                    _maxProbeCount = p;
-                    Debug.WriteLine($"Loop2: MaxProbeCount:{p} when adding key:`{key}`"); 
-                }
+                Debug.WriteLine($"hp < probes `{probes}` and hashes are equal for the added key:`{key}` and existing key:`{_entries[h & indexMask].Key}`");
 #endif
-                // store the initial hash and index or the robin-hooded hash and index.
-                hashesAndIndexes[hashIndex] = (p << ProbeCountShift) | hashMiddle | entryIndex;
-
-                // always insert the new entry at the end of the entries array
-                ref var e = ref _entries[_count++];
-                e.Key = key;
-                e.Value = value;
-                return;
-            }
-
-            if (!swapped & ((h & hashMask) == hashMiddle))
-            {
-#if DEBUG
-                Debug.WriteLine($"hashMiddle equals for the added key:`{key}` and existing key:`{_entries[h & indexMask].Key}`"); 
-#endif
-                // check the existing entry key and update the value if the keys are matched, then we are done
-                ref var e = ref _entries[h & indexMask];
+                ref var e = ref _entries[h & indexMask]; // check the existing entry key and update the value if the keys are matched
                 if (e.Key.Equals(key))
-                {                
+                {
                     e.Value = value;
                     return;
                 }
             }
-
-            // Robin Hood goes here to steal from the rich (with the less probe count) and give to the poor (with more probes).
-            if ((h >> ProbeCountShift) < p)
-            {
-                hashesAndIndexes[hashIndex] = (p << ProbeCountShift) | hashMiddle | entryIndex;
-                hashMiddle = h & hashMask;
-                entryIndex = h & indexMask;
-                p = (byte)(h >> ProbeCountShift);
-                swapped = true;
-            }
+            hashIndex = (hashIndex + 1) & indexMask; // `& indexMask` is for wrapping around the hashes array
         }
 
         // todo: @wip going outside of MaxProbeCount
@@ -287,7 +241,7 @@ public sealed class FHashMap4<K, V>
             var oldHash = oldHashesAndIndexes[i];
             if (oldHash == 0)
                 continue;
-            
+
             var probePos = (oldHash >> ProbeCountShift) - 1;
             var oldHashIndex = (oldCapacity + i - probePos) & oldIndexMask;
 
@@ -295,47 +249,29 @@ public sealed class FHashMap4<K, V>
             var newHashAndOldIndex = (oldHash & HashAndIndexMask & ~newIndexMask) | (oldHash & oldIndexMask);
 
             var h = 0;
-            byte p = 1;
-            while (true)
+            for (byte probes = 1; probes <= MaxProbeCount; ++probes) // just in case we are trying up to the max probe count and then do a Resize
             {
                 h = newHashesAndIndexes[newHashIndex];
                 if (h == 0)
                 {
 #if DEBUG
                     sameIndexes += i == newHashIndex ? 1 : 0;
+                    maxProbeCount = Math.Max(maxProbeCount, probes);
 #endif
-                    newHashesAndIndexes[newHashIndex] = (p << ProbeCountShift) | newHashAndOldIndex;
-                    goto nextHash;
-                }
-                if ((h >> ProbeCountShift) == p++) // skip hashes with the bigger probe count which are for the different hashes
+                    newHashesAndIndexes[newHashIndex] = (probes << ProbeCountShift) | newHashAndOldIndex;
                     break;
-                newHashIndex = (newHashIndex + 1) & newIndexMask; // `& indexMask` is for wrapping acound the hashes array
-            }
-
-            for (; p <= MaxProbeCount; p++) // just in case we are trying up to the max probe count and then do a Resize
-            {
-                newHashIndex = (newHashIndex + 1) & newIndexMask; // `& indexMask` is for wrapping acound the hashes array 
-                h = newHashesAndIndexes[newHashIndex];
-                if (h == 0)
-                {
-#if DEBUG
-                    sameIndexes += i == newHashIndex ? 1 : 0;
-                    maxProbeCount = Math.Max(maxProbeCount, p);
-#endif
-                    newHashesAndIndexes[newHashIndex] = (p << ProbeCountShift) | newHashAndOldIndex;
-                    goto nextHash;
                 }
-                if ((h >> ProbeCountShift) < p)
+                if ((h >> ProbeCountShift) < probes)
                 {
 #if DEBUG
                     sameIndexes += i == newHashIndex ? 1 : 0;
 #endif
-                    newHashesAndIndexes[newHashIndex] = (p << ProbeCountShift) | newHashAndOldIndex;
+                    newHashesAndIndexes[newHashIndex] = (probes << ProbeCountShift) | newHashAndOldIndex;
                     newHashAndOldIndex = h & HashAndIndexMask;
-                    p = (byte)(h >> ProbeCountShift);
+                    probes = (byte)(h >> ProbeCountShift);
                 }
+                newHashIndex = (newHashIndex + 1) & newIndexMask; // `& indexMask` is for wrapping around the hashes array 
             }
-        nextHash:;
         }
 
         _capacity = newCapacity;
