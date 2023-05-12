@@ -3,52 +3,64 @@ using System.Diagnostics;
 
 namespace ImTools.Experiments;
 
-#if DEBUG
-public static class DebugExtensions
+public static class FHashMap4Extensions
 {
     public static string b(this int x) => Convert.ToString(x, 2).PadLeft(32, '0');
-}
 
-public class FHashMap4DebugProxy<K, V>
-{
-    [DebuggerDisplay("probe:{Probe}, hash:{HashPart}, kvi:{Index}, kv:{KV}")]
-    public struct Item // todo: @wip add Key and Value
+    public static Item<K, V>[] Explain<K, V>(this FHashMap4<K, V> map)
     {
-        public byte Probe;
-        public string HashPart;
-        public int Index;
-        public string KV;
+        var capacity = map._capacity;
+        var hashesAndIndexes = map._hashesAndIndexes;
+        var entries = map._entries;
+
+        var items = new Item<K, V>[capacity];
+        var indexMask = capacity - 1;
+        
+        for (var i = 0; i < hashesAndIndexes.Length; i++)
+        {
+            var h = hashesAndIndexes[i];
+            if (h == 0)
+                continue;
+            
+            var probe = (byte)(h >> FHashMap4<K, V>.ProbeCountShift);
+            var hashIndex = (capacity + i - (probe - 1)) & indexMask;
+
+            var hashMiddle = (h & FHashMap4<K, V>.HashAndIndexMask & ~indexMask);
+            var hash = hashMiddle | hashIndex;
+            var index = h & indexMask;
+
+            string hkv = null;
+            string heq = null;
+            if (probe != 0)
+            {
+                var e = entries[index];
+                var kh = e.Key.GetHashCode() & FHashMap4<K, V>.HashAndIndexMask;
+                heq = kh == hash ? "==" : "!=";
+                hkv = $"{kh.b()}:{e.Key}->{e.Value}";
+            }
+            items[i] = new Item<K, V>{ Probe = probe, Hash = hash.b(), HEq = heq, Index = index, HKV = hkv };
+        }
+        return items;
     }
 
+    [DebuggerDisplay("probe:{Probe}, h:{Hash}{HEq}{HKV}, i:{Index}")]
+    public struct Item<K, V>
+    {
+        public byte Probe;
+        public string Hash;
+        public string HEq;
+        public string HKV;
+        public int Index;
+    }
+}
+
+#if DEBUG
+public class FHashMap4DebugProxy<K, V>
+{
     private readonly FHashMap4<K, V> _map;
     public FHashMap4DebugProxy(FHashMap4<K, V> map) => _map = map;
     [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-    public Item[] Items
-    {
-        get
-        {
-            var capacity = _map._capacity;
-            var items = new Item[capacity];
-            var indexMask = capacity - 1;
-            var entries = _map._entries;
-            var hashesAndIndexes = _map._hashesAndIndexes;
-            for (var i = 0; i < hashesAndIndexes.Length; i++)
-            {
-                var h = hashesAndIndexes[i];
-                if (h == 0)
-                    continue;
-                var probe = (byte)(h >> FHashMap4<K, V>.ProbeCountShift);
-                var hashPart = (h & FHashMap4<K, V>.HashAndIndexMask & ~indexMask).b();
-                var index = h & indexMask;
-                items[i] = new Item
-                {
-                    Probe = probe, HashPart = hashPart, Index = index,
-                    KV = probe == 0 ? null : $"{entries[index].Key}->{entries[index].Value}"
-                };
-            }
-            return items;
-        }
-    }
+    public FHashMap4Extensions.Item<K, V>[] Items => _map.Explain();
 }
 
 [DebuggerTypeProxy(typeof(FHashMap4DebugProxy<,>))]

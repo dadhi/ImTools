@@ -21,7 +21,11 @@ public class FHashMap4Tests
         map.AddOrUpdate(typeof(FHashMap4Tests), "!");
 
         Assert.AreEqual(101, map.Count);
-        // todo: @wip add Verify to check that the hashes are corresponds to the keys
+
+        var exp = map.Explain();
+        foreach (var it in exp)
+            if (it.HEq != null)
+                Assert.AreEqual("==", it.HEq);
     }
 
     [Test]
@@ -71,6 +75,11 @@ public class FHashMap4Tests
         Assert.AreEqual("d", map.GetValueOrDefault(43 + 32 + 32 + 32));
 
         Assert.AreEqual(13, map.Count);
+
+        var exp = map.Explain();
+        foreach (var it in exp)
+            if (it.HEq != null)
+                Assert.AreEqual("==", it.HEq);
     }
 
     [Test]
@@ -95,6 +104,11 @@ public class FHashMap4Tests
 
         map.AddOrUpdate(43, "a!");
         Assert.AreEqual("a!", map.GetValueOrDefault(43));
+
+        var exp = map.Explain();
+        foreach (var it in exp)
+            if (it.HEq != null)
+                Assert.AreEqual("==", it.HEq);
     }
 
     [Test]
