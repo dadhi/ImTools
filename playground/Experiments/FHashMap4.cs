@@ -109,44 +109,37 @@ public sealed class FHashMap4<K, V>
         // _entries = GC.AllocateUninitializedArray<Entry>(capacity); // todo: create without default values using via GC.AllocateUninitializedArray<Entry>(size);
     }
 
-    // todo: @wip optimize to the single loop similar to AddOrUpdate
     public V GetValueOrDefault(K key, V defaultValue = default)
     {
-        var hash = key.GetHashCode();
+        var hash = key.GetHashCode(); // todo: @perf optimize to avoid virtual call
 
         var capacity = _capacity;
         var indexMask = capacity - 1;
         var hashMask = ~indexMask & HashAndIndexMask;
 
-        var hashIndex = hash & indexMask;
         var hashesAndIndexes = _hashesAndIndexes;
+        var hashIndex = hash & indexMask;
 
         var h = 0;
-        byte p = 1;
-        while (true)
+        for (byte probes = 1; probes <= MaxProbeCount; ++probes)
         {
             h = hashesAndIndexes[hashIndex];
             if (h == 0)
-                return defaultValue;
-            if ((h >> ProbeCountShift) == p++) // skip hashes with the bigger probe count which are for the different hashes
-                break;
-            hashIndex = (hashIndex + 1) & indexMask; // `& indexMask` is for wrapping around the hashes array
-        }
+                return defaultValue;   
 
-        var hashMiddle = hash & hashMask;
-        while (true)
-        {
-            if ((h & hashMask) == hashMiddle)
+            var hp = (byte)(h >> ProbeCountShift);
+            if ((hp == probes) & ((h & hashMask) == (hash & hashMask))) // todo: @perf huh, we may either combine or keep only the hash check, cause probes and hashMiddle are parts of the hash 
             {
                 ref var entry = ref _entries[h & indexMask];
-                if (entry.Key.Equals(key))
+                if (entry.Key.Equals(key)) // todo: @perf optimize to avoid virtual call
                     return entry.Value;
             }
-            hashIndex = (hashIndex + 1) & indexMask; // `& indexMask` is for wrapping around the hashes array
-            h = hashesAndIndexes[hashIndex];
-            if ((h == 0) | ((h >> ProbeCountShift) < p))
+
+            if (hp < probes)
                 break;
-        };
+
+            hashIndex = (hashIndex + 1) & indexMask; // `& indexMask` is for wrapping around the hashes array 
+        }
         return defaultValue;
     }
 
@@ -160,7 +153,7 @@ public sealed class FHashMap4<K, V>
         if (_count >= capacity * MaxCountForCapacityFactor)
             Resize(capacity <<= 1); // double the capacity, using the <<= assinment here to correctly calculate the new capacityMask later
 
-        var hash = key.GetHashCode();
+        var hash = key.GetHashCode(); // todo: @perf optimize to avoid virtual call
 
         var indexMask = capacity - 1;
         var hashMask = ~indexMask & HashAndIndexMask;
