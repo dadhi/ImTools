@@ -109,6 +109,7 @@ public sealed class FHashMap4<K, V>
         // _entries = GC.AllocateUninitializedArray<Entry>(capacity); // todo: create without default values using via GC.AllocateUninitializedArray<Entry>(size);
     }
 
+    // todo: @wip optimize to the single loop similar to AddOrUpdate
     public V GetValueOrDefault(K key, V defaultValue = default)
     {
         var hash = key.GetHashCode();
@@ -170,7 +171,7 @@ public sealed class FHashMap4<K, V>
 
         var robinHooded = false;
         var h = 0;
-        var entryIndex = _count; // by default the new entry index is the last one, but the variable may be updated mulpiple times by Robin Hood in the loop
+        var entryIndex = _count; // by default the new entry index is the last one, but the variable may be updated multiple times by Robin Hood in the loop
         for (byte probes = 1; probes <= MaxProbeCount; ++probes)
         {
             h = hashesAndIndexes[hashIndex];
@@ -193,14 +194,11 @@ public sealed class FHashMap4<K, V>
             var hp = (byte)(h >> ProbeCountShift);
             if (hp < probes) // skip hashes with the bigger probe count until we find the same or less probes
             {
-#if DEBUG
-                Debug.WriteLine($"Robin Hood (hp < probes): `{h >> ProbeCountShift} <= {probes}`");
-#endif
                 // Robin Hood goes here to steal from the rich (with the less probe count) and give to the poor (with more probes).
                 hashesAndIndexes[hashIndex] = (probes << ProbeCountShift) | hashMiddle | entryIndex;
+                probes = hp;
                 hashMiddle = h & hashMask;
                 entryIndex = h & indexMask;
-                probes = hp;
                 robinHooded = true;
             }
             if (!robinHooded & (hp == probes) & ((h & hashMask) == hashMiddle)) // todo: @perf huh, we may either combine or keep only the hash check, cause probes and hashMiddle are parts of the hash 
@@ -218,7 +216,7 @@ public sealed class FHashMap4<K, V>
             hashIndex = (hashIndex + 1) & indexMask; // `& indexMask` is for wrapping around the hashes array
         }
 
-        // todo: @wip going outside of MaxProbeCount
+        // todo: @wip going outside of MaxProbeCount?
         Debug.Fail($"Reaching to the max probe count {MaxProbeCount} Resizing to {capacity << 1}");
     }
 
@@ -279,6 +277,15 @@ public sealed class FHashMap4<K, V>
 #if DEBUG
         Debug.WriteLine($"Resize {oldCapacity}->{newCapacity} sameIndexes:{sameIndexes}, maxProbeCount:{maxProbeCount}");
         _maxProbeCount = maxProbeCount;
+
+        Debug.Write("old:|");
+        foreach (var it in oldHashesAndIndexes)
+            Debug.Write(it == 0 ? ".|" : $"{it & oldIndexMask}|");
+        Debug.WriteLine("");
+        Debug.Write("new:|");
+        foreach (var it in newHashesAndIndexes)
+            Debug.Write(it == 0 ? ".|" : $"{it & newIndexMask}|");
+        Debug.WriteLine("");
 #endif
     }
 }

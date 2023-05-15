@@ -663,6 +663,13 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 | FHashMap3_AddOrUpdate |   100 | 3.289 us | 0.0649 us | 0.1103 us |  1.17 |    0.06 | 1.9455 |   5.96 KB |        0.82 |
 |       DictSlim_TryAdd |   100 | 2.813 us | 0.0536 us | 0.0924 us |  1.00 |    0.00 | 2.3842 |   7.31 KB |        1.00 |
 
+### FHashMap4 vs DictionarySlim
+
+|                Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD |   Gen0 | Allocated | Alloc Ratio |
+|---------------------- |------ |---------:|----------:|----------:|------:|--------:|-------:|----------:|------------:|
+| FHashMap4_AddOrUpdate |   100 | 3.141 us | 0.0614 us | 0.0544 us |  1.11 |    0.03 | 1.6022 |   4.91 KB |        0.67 |
+|       DictSlim_TryAdd |   100 | 2.848 us | 0.0466 us | 0.0364 us |  1.00 |    0.00 | 2.3842 |   7.31 KB |        1.00 |
+
 */
             // [Params(10, 100, 1000, 10000)]
             [Params(100)]
