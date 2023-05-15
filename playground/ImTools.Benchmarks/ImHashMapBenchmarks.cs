@@ -670,6 +670,14 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 | FHashMap4_AddOrUpdate |   100 | 3.141 us | 0.0614 us | 0.0544 us |  1.11 |    0.03 | 1.6022 |   4.91 KB |        0.67 |
 |       DictSlim_TryAdd |   100 | 2.848 us | 0.0466 us | 0.0364 us |  1.00 |    0.00 | 2.3842 |   7.31 KB |        1.00 |
 
+### FHashMap4 vs FHashMap4 (without Resize) vs DictionarySlim
+
+|                          Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD |   Gen0 | Allocated | Alloc Ratio |
+|-------------------------------- |------ |---------:|----------:|----------:|------:|--------:|-------:|----------:|------------:|
+|                 DictSlim_TryAdd |   100 | 3.661 us | 0.0672 us | 0.1310 us |  1.00 |    0.00 | 2.3804 |   7.31 KB |        1.00 |
+|           FHashMap4_AddOrUpdate |   100 | 3.482 us | 0.0494 us | 0.0462 us |  0.95 |    0.02 | 1.6022 |   4.91 KB |        0.67 |
+| FHashMap4_AddOrUpdate_no_Resize |   100 | 2.197 us | 0.0312 us | 0.0243 us |  0.60 |    0.02 | 0.8430 |   2.59 KB |        0.35 |
+
 */
             // [Params(10, 100, 1000, 10000)]
             [Params(100)]
@@ -857,6 +865,18 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return map;
             }
 
+            [Benchmark(Baseline = true)]
+            public DictionarySlim<TypeVal, string> DictSlim_TryAdd()
+            {
+                var map = new DictionarySlim<TypeVal, string>();
+
+                foreach (var key in _types)
+                    map.GetOrAddValueRef(key) = "a";
+
+                map.GetOrAddValueRef(typeof(ImHashMapBenchmarks)) = "!";
+                return map;
+            }
+
             [Benchmark]
             public ImTools.Experiments.FHashMap4<Type, string> FHashMap4_AddOrUpdate()
             {
@@ -869,15 +889,15 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return map;
             }
 
-            [Benchmark(Baseline = true)]
-            public DictionarySlim<TypeVal, string> DictSlim_TryAdd()
+            [Benchmark]
+            public ImTools.Experiments.FHashMap4<Type, string> FHashMap4_AddOrUpdate_no_Resize()
             {
-                var map = new DictionarySlim<TypeVal, string>();
+                var map = new ImTools.Experiments.FHashMap4<Type, string>(128);
 
                 foreach (var key in _types)
-                    map.GetOrAddValueRef(key) = "a";
+                    map.AddOrUpdate(key, "a");
 
-                map.GetOrAddValueRef(typeof(ImHashMapBenchmarks)) = "!";
+                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
                 return map;
             }
 
