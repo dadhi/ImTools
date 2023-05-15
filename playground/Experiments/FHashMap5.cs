@@ -3,9 +3,11 @@ using System.Diagnostics;
 
 namespace ImTools.Experiments;
 
-public static class FHashMap4Extensions
+public static class FHashMap5Extensions
 {
-    public static Item<K, V>[] Explain<K, V>(this FHashMap4<K, V> map)
+    public static string b(this int x) => Convert.ToString(x, 2).PadLeft(32, '0');
+
+    public static Item<K, V>[] Explain<K, V>(this FHashMap5<K, V> map)
     {
         var capacity = map._capacity;
         var hashesAndIndexes = map._hashesAndIndexes;
@@ -20,10 +22,10 @@ public static class FHashMap4Extensions
             if (h == 0)
                 continue;
 
-            var probe = (byte)(h >> FHashMap4<K, V>.ProbeCountShift);
+            var probe = (byte)(h >> FHashMap5<K, V>.ProbeCountShift);
             var hashIndex = (capacity + i - (probe - 1)) & indexMask;
 
-            var hashMiddle = (h & FHashMap4<K, V>.HashAndIndexMask & ~indexMask);
+            var hashMiddle = (h & FHashMap5<K, V>.HashAndIndexMask & ~indexMask);
             var hash = hashMiddle | hashIndex;
             var index = h & indexMask;
 
@@ -32,7 +34,7 @@ public static class FHashMap4Extensions
             if (probe != 0)
             {
                 var e = entries[index];
-                var kh = e.Key.GetHashCode() & FHashMap4<K, V>.HashAndIndexMask;
+                var kh = e.Key.GetHashCode() & FHashMap5<K, V>.HashAndIndexMask;
                 heq = kh == hash;
                 hkv = $"{kh.b()}:{e.Key}->{e.Value}";
             }
@@ -55,19 +57,19 @@ public static class FHashMap4Extensions
 }
 
 #if DEBUG
-public class FHashMap4DebugProxy<K, V>
+public class FHashMap5DebugProxy<K, V>
 {
-    private readonly FHashMap4<K, V> _map;
-    public FHashMap4DebugProxy(FHashMap4<K, V> map) => _map = map;
+    private readonly FHashMap5<K, V> _map;
+    public FHashMap5DebugProxy(FHashMap5<K, V> map) => _map = map;
     [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-    public FHashMap4Extensions.Item<K, V>[] Items => _map.Explain();
+    public FHashMap5Extensions.Item<K, V>[] Items => _map.Explain();
 }
 
-[DebuggerTypeProxy(typeof(FHashMap4DebugProxy<,>))]
+[DebuggerTypeProxy(typeof(FHashMap5DebugProxy<,>))]
 [DebuggerDisplay("Count={Count}")]
 #endif
 // Combine hashes with indexes to economy on memory
-public sealed class FHashMap4<K, V>
+public sealed class FHashMap5<K, V>
 {
     [DebuggerDisplay("{Key}->{Value}")]
     public struct Entry
@@ -98,7 +100,7 @@ public sealed class FHashMap4<K, V>
 
     public int Count => _count;
 
-    public FHashMap4(int capacity = DefaultCapacity)
+    public FHashMap5(int capacity = DefaultCapacity)
     {
         _capacity = capacity;
         _hashesAndIndexes = new int[capacity];
