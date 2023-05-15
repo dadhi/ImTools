@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace ImTools.Experiments;
 
@@ -115,30 +117,49 @@ public sealed class FHashMap5<K, V>
 
         var capacity = _capacity;
         var indexMask = capacity - 1;
-        var hashMask = ~indexMask & HashAndIndexMask;
+        var probeAndHashMask = ~indexMask;
+        var hashMask = probeAndHashMask & HashAndIndexMask;
 
         var hashesAndIndexes = _hashesAndIndexes;
+
+        var hashMiddle = hash & hashMask;
         var hashIndex = hash & indexMask;
-
-        var h = 0;
-        for (byte probes = 1; probes <= MaxProbeCount; ++probes)
+        for (byte probes = 1; probes <= MaxProbeCount; probes += 4, hashIndex = (hashIndex + 4) & indexMask)
         {
-            h = hashesAndIndexes[hashIndex];
-            if (h == 0)
-                return defaultValue;   
+            var h0 = hashesAndIndexes[hashIndex];
+            var h1 = hashesAndIndexes[(hashIndex + 1) & indexMask];
+            var h2 = hashesAndIndexes[(hashIndex + 2) & indexMask];
+            var h3 = hashesAndIndexes[(hashIndex + 3) & indexMask];
 
-            var hp = (byte)(h >> ProbeCountShift);
-            if ((hp == probes) & ((h & hashMask) == (hash & hashMask))) // todo: @perf huh, we may either combine or keep only the hash check, cause probes and hashMiddle are parts of the hash 
+            var hit0 = (h0 & probeAndHashMask) == (( probes      << ProbeCountShift) | hashMiddle);
+            var hit1 = (h1 & probeAndHashMask) == (((probes + 1) << ProbeCountShift) | hashMiddle);
+            var hit2 = (h2 & probeAndHashMask) == (((probes + 2) << ProbeCountShift) | hashMiddle);
+            var hit3 = (h3 & probeAndHashMask) == (((probes + 3) << ProbeCountShift) | hashMiddle);
+            
+            if (hit0 | hit1 | hit2 | hit3)
             {
+                // todo: @perf optimize h calculation 
+                var hit = Unsafe.As<bool, byte>(ref hit0)
+                        | Unsafe.As<bool, byte>(ref hit1) << 1
+                        | Unsafe.As<bool, byte>(ref hit2) << 2
+                        | Unsafe.As<bool, byte>(ref hit3) << 3;
+                var dist = BitOperations.TrailingZeroCount(hit);
+                var h = hashesAndIndexes[(hashIndex + dist) & indexMask];
+
                 ref var entry = ref _entries[h & indexMask];
                 if (entry.Key.Equals(key)) // todo: @perf optimize to avoid virtual call
                     return entry.Value;
             }
 
-            if (hp < probes)
+            if (h0 == 0 | h1 == 0 | h2 == 0 | h3 == 0)
                 break;
 
-            hashIndex = (hashIndex + 1) & indexMask; // `& indexMask` is for wrapping around the hashes array 
+            var less0 = (h0 >> ProbeCountShift) <  probes;
+            var less1 = (h1 >> ProbeCountShift) < (probes + 1);
+            var less2 = (h2 >> ProbeCountShift) < (probes + 2);
+            var less3 = (h3 >> ProbeCountShift) < (probes + 3);
+            if (less0 | less1 | less2 | less3)
+                break;
         }
         return defaultValue;
     }
