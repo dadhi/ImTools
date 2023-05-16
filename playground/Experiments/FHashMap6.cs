@@ -129,7 +129,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
 
             if ((h & probeAndHashMask) == ((probes << ProbeCountShift) | (hash & hashMask)))
             {
-                ref var e = ref _entries[h & indexMask];
+                ref var e = ref _entries[h & indexMask]; // todo: @perf wrap access into the interface to separate the entries abstraction
                 if (default(TEq).Equals(e.Key, key))
                     return e.Value;
             }
@@ -182,8 +182,9 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
                 hashesAndIndexes[hashIndex] = (probes << ProbeCountShift) | hashMiddle | entryIndex;
 
                 if (_count + 1 >= _entries.Length)
-                    Array.Resize(ref _entries, _entries.Length << 1); // double the capacity, using the <<= assinment here to correctly calculate the new capacityMask later
-                ref var e = ref _entries[_count++]; // always add to the original entry
+                    Array.Resize(ref _entries, _entries.Length << 1);
+
+                ref var e = ref _entries[_count++];
                 e.Key = key;
                 e.Value = value;
                 return;
