@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Numerics;
-using System.Runtime.CompilerServices;
 
 namespace ImTools.Experiments;
 
@@ -80,8 +78,8 @@ public sealed class FHashMap5<K, V>
         public V Value;
     }
 
-    public const float MaxCountForCapacityFactor = 0.9f;
     public const int DefaultCapacity = 16;
+    public const byte MinFreeCapacityShift = 4; // e.g. for the DefaultCapacity 16 >> 4 => 1/16 => 6.25% free space  
 
     public const byte MaxProbeBits = 5; // 5 bits max
     public const byte MaxProbeCount = (1 << MaxProbeBits) - 1;
@@ -164,7 +162,7 @@ public sealed class FHashMap5<K, V>
     public void AddOrUpdate(K key, V value)
     {
         var capacity = _capacity;
-        if (_count >= capacity * MaxCountForCapacityFactor)
+        if (capacity - _count <= (capacity >> MinFreeCapacityShift)) // if the free capacity is less free slots 1/16 (6.25%)
             Resize(capacity <<= 1); // double the capacity, using the <<= assinment here to correctly calculate the new capacityMask later
 
         var hash = key.GetHashCode(); // todo: @perf optimize to avoid virtual call
@@ -173,24 +171,17 @@ public sealed class FHashMap5<K, V>
         var hashMask = ~indexMask & HashAndIndexMask;
         var hashesAndIndexes = _hashesAndIndexes;
 
-        var hashIndex = hash & indexMask;
         var hashMiddle = hash & hashMask;
 
+        var entryIndex = _count; // by default the new entry index is the last one, but the variable may be updated multiple times by Robin Hood in the loop
         var robinHooded = false;
         var h = 0;
-        var entryIndex = _count; // by default the new entry index is the last one, but the variable may be updated multiple times by Robin Hood in the loop
-        for (byte probes = 1; probes <= MaxProbeCount; ++probes)
+        int hashIndex = hash & indexMask;
+        for (byte probes = 1; probes <= MaxProbeCount; ++probes, hashIndex = (hashIndex + 1) & indexMask)
         {
             h = hashesAndIndexes[hashIndex];
             if (h == 0)
             {
-#if DEBUG
-                if (probes > _maxProbeCount)
-                {
-                    _maxProbeCount = probes;
-                    Debug.WriteLine($"MaxProbeCount:{probes} when adding key:`{key}`");
-                }
-#endif   
                 hashesAndIndexes[hashIndex] = (probes << ProbeCountShift) | hashMiddle | entryIndex;
 
                 ref var e = ref _entries[_count++]; // always add to the original entry
@@ -198,6 +189,7 @@ public sealed class FHashMap5<K, V>
                 e.Value = value;
                 return;
             }
+
             var hp = (byte)(h >> ProbeCountShift);
             if (hp < probes) // skip hashes with the bigger probe count until we find the same or less probes
             {
@@ -208,11 +200,9 @@ public sealed class FHashMap5<K, V>
                 entryIndex = h & indexMask;
                 robinHooded = true;
             }
+
             if (!robinHooded & (hp == probes) & ((h & hashMask) == hashMiddle)) // todo: @perf huh, we may either combine or keep only the hash check, cause probes and hashMiddle are parts of the hash 
             {
-#if DEBUG
-                Debug.WriteLine($"hp < probes `{probes}` and hashes are equal for the added key:`{key}` and existing key:`{_entries[h & indexMask].Key}`");
-#endif
                 ref var e = ref _entries[h & indexMask]; // check the existing entry key and update the value if the keys are matched
                 if (e.Key.Equals(key))
                 {
@@ -220,7 +210,6 @@ public sealed class FHashMap5<K, V>
                     return;
                 }
             }
-            hashIndex = (hashIndex + 1) & indexMask; // `& indexMask` is for wrapping around the hashes array
         }
 
         // todo: @wip going outside of MaxProbeCount?
@@ -279,8 +268,9 @@ public sealed class FHashMap5<K, V>
             }
         }
 
-        _capacity = newCapacity;
         _hashesAndIndexes = newHashesAndIndexes;
+        _capacity = newCapacity;
+
 #if DEBUG
         Debug.WriteLine($"Resize {oldCapacity}->{newCapacity} sameIndexes:{sameIndexes}, maxProbeCount:{maxProbeCount}");
         _maxProbeCount = maxProbeCount;
