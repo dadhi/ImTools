@@ -138,15 +138,8 @@ public sealed class FHashMap5<K, V>
             
             if (hit0 | hit1 | hit2 | hit3)
             {
-                // todo: @perf optimize h calculation 
-                var hit = Unsafe.As<bool, byte>(ref hit0)
-                        | Unsafe.As<bool, byte>(ref hit1) << 1
-                        | Unsafe.As<bool, byte>(ref hit2) << 2
-                        | Unsafe.As<bool, byte>(ref hit3) << 3;
-                var dist = BitOperations.TrailingZeroCount(hit);
-                var h = hashesAndIndexes[(hashIndex + dist) & indexMask];
-
-                ref var entry = ref _entries[h & indexMask];
+                var hitHash = hit0 ? h0 : hit1 ? h1 : hit2 ? h2 : h3;
+                ref var entry = ref _entries[hitHash & indexMask];
                 if (entry.Key.Equals(key)) // todo: @perf optimize to avoid virtual call
                     return entry.Value;
             }
