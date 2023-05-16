@@ -227,7 +227,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
         var sameIndexes = 0;
         var maxProbeCount = 0;
 #endif
-        for (var i = 0; (uint)i < oldHashesAndIndexes.Length; i++)
+        for (var i = 0; i < (uint)oldHashesAndIndexes.Length; i++)
         {
             var oldHash = oldHashesAndIndexes[i];
             if (oldHash == 0)
