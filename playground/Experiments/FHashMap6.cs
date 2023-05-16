@@ -1,11 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace ImTools.Experiments;
 
 public static class FHashMap6Extensions
 {
-    public static Item<K, V>[] Explain<K, V>(this FHashMap6<K, V> map)
+    public static Item<K, V>[] Explain<K, V, TEq>(this FHashMap6<K, V, TEq> map) where TEq : struct, IEqualityComparer<K>
     {
         var capacity = map._capacity;
         var hashesAndIndexes = map._hashesAndIndexes;
@@ -20,10 +22,10 @@ public static class FHashMap6Extensions
             if (h == 0)
                 continue;
 
-            var probe = (byte)(h >> FHashMap6<K, V>.ProbeCountShift);
+            var probe = (byte)(h >> FHashMap6<K, V, TEq>.ProbeCountShift);
             var hashIndex = (capacity + i - (probe - 1)) & indexMask;
 
-            var hashMiddle = (h & FHashMap6<K, V>.HashAndIndexMask & ~indexMask);
+            var hashMiddle = (h & FHashMap6<K, V, TEq>.HashAndIndexMask & ~indexMask);
             var hash = hashMiddle | hashIndex;
             var index = h & indexMask;
 
@@ -32,7 +34,7 @@ public static class FHashMap6Extensions
             if (probe != 0)
             {
                 var e = entries[index];
-                var kh = e.Key.GetHashCode() & FHashMap6<K, V>.HashAndIndexMask;
+                var kh = e.Key.GetHashCode() & FHashMap6<K, V, TEq>.HashAndIndexMask;
                 heq = kh == hash;
                 hkv = $"{kh.b()}:{e.Key}->{e.Value}";
             }
@@ -55,19 +57,19 @@ public static class FHashMap6Extensions
 }
 
 #if DEBUG
-public class FHashMap6DebugProxy<K, V>
+public class FHashMap6DebugProxy<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 {
-    private readonly FHashMap6<K, V> _map;
-    public FHashMap6DebugProxy(FHashMap6<K, V> map) => _map = map;
+    private readonly FHashMap6<K, V, TEq> _map;
+    public FHashMap6DebugProxy(FHashMap6<K, V, TEq> map) => _map = map;
     [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
     public FHashMap6Extensions.Item<K, V>[] Items => _map.Explain();
 }
 
-[DebuggerTypeProxy(typeof(FHashMap6DebugProxy<,>))]
+[DebuggerTypeProxy(typeof(FHashMap6DebugProxy<,,>))]
 [DebuggerDisplay("Count={Count}")]
 #endif
 // Combine hashes with indexes to economy on memory
-public sealed class FHashMap6<K, V>
+public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 {
     [DebuggerDisplay("{Key}->{Value}")]
     public struct Entry
@@ -109,7 +111,7 @@ public sealed class FHashMap6<K, V>
 
     public V GetValueOrDefault(K key, V defaultValue = default)
     {
-        var hash = key.GetHashCode(); // todo: @perf optimize to avoid virtual call
+        var hash = default(TEq).GetHashCode(key);
 
         var capacity = _capacity;
         var indexMask = capacity - 1;
@@ -128,9 +130,9 @@ public sealed class FHashMap6<K, V>
 
             if ((h & probeAndHashMask) == ((probes << ProbeCountShift) | (hash & hashMask)))
             {
-                ref var entry = ref _entries[h & indexMask];
-                if (entry.Key.Equals(key)) // todo: @perf optimize to avoid virtual call
-                    return entry.Value;
+                ref var e = ref _entries[h & indexMask];
+                if (default(TEq).Equals(e.Key, key))
+                    return e.Value;
             }
 
             if ((h >> ProbeCountShift) < probes)
@@ -151,13 +153,13 @@ public sealed class FHashMap6<K, V>
         if (capacity - _count <= (capacity >> MinFreeCapacityShift)) // if the free capacity is less free slots 1/16 (6.25%)
             Resize(capacity <<= 1); // double the capacity, using the <<= assinment here to correctly calculate the new capacityMask later
 
-        var hash = key.GetHashCode(); // todo: @perf optimize to avoid virtual call
+        var hash = default(TEq).GetHashCode(key);
 
         var indexMask = capacity - 1;
         var hashMask = ~indexMask & HashAndIndexMask;
         var hashesAndIndexes = _hashesAndIndexes;
 
-        var hashIndex = hash & indexMask;
+        var hashIndex  = hash & indexMask;
         var hashMiddle = hash & hashMask;
 
         var robinHooded = false;
@@ -198,7 +200,7 @@ public sealed class FHashMap6<K, V>
                 Debug.WriteLine($"hp < probes `{probes}` and hashes are equal for the added key:`{key}` and existing key:`{_entries[h & indexMask].Key}`");
 #endif
                 ref var e = ref _entries[h & indexMask]; // check the existing entry key and update the value if the keys are matched
-                if (e.Key.Equals(key))
+                if (default(TEq).Equals(e.Key, key))
                 {
                     e.Value = value;
                     return;
@@ -279,4 +281,37 @@ public sealed class FHashMap6<K, V>
         Debug.WriteLine("");
 #endif
     }
+}
+
+public struct DefaultEq<K> : IEqualityComparer<K>
+{
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public bool Equals(K x, K y) => x.Equals(y);
+
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public int GetHashCode(K obj) => obj.GetHashCode();
+}
+
+public struct IntEq : IEqualityComparer<int>
+{
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public bool Equals(int x, int y) => x == y;
+
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public int GetHashCode(int obj) => obj;
+}
+
+public struct RefEq<K> : IEqualityComparer<K> where K : class 
+{
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public bool Equals(K x, K y) => x == y;
+
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public int GetHashCode(K obj) => obj.GetHashCode();
 }

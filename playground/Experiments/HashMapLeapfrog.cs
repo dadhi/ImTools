@@ -210,7 +210,7 @@ namespace ImTools.Experiments
             {
                 ref var slot = ref slots[i];
                 var hash = slot.Hash;
-                if (hash == 0 || hash == HashOfRemoved)
+                if (hash == 0 | hash == HashOfRemoved)
                     continue; // skip the empty or removed items
 
                 var idealIndex = hash & (newCapacity - 1);

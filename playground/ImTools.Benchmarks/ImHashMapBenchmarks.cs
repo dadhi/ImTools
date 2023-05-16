@@ -898,9 +898,9 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
             }
 
             [Benchmark]
-            public ImTools.Experiments.FHashMap5<Type, string> FHashMap5()
+            public ImTools.Experiments.FHashMap6<Type, string, ImTools.Experiments.RefEq<Type>> FHashMap6_AddOrUpdate()
             {
-                var map = new ImTools.Experiments.FHashMap5<Type, string>();
+                var map = new ImTools.Experiments.FHashMap6<Type, string, ImTools.Experiments.RefEq<Type>>();
 
                 foreach (var key in _types)
                     map.AddOrUpdate(key, "a");

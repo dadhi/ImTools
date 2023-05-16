@@ -13,7 +13,7 @@ public class FHashMap6Tests
     {
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(100).ToArray();
 
-        var map = new ImTools.Experiments.FHashMap6<Type, string>();
+        var map = new ImTools.Experiments.FHashMap6<Type, string, RefEq<Type>>();
 
         foreach (var key in types)
             map.AddOrUpdate(key, "a");
@@ -33,7 +33,7 @@ public class FHashMap6Tests
     {
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(100).ToArray();
 
-        var map = new ImTools.Experiments.FHashMap6<Type, string>(128);
+        var map = new ImTools.Experiments.FHashMap6<Type, string, RefEq<Type>>(128);
 
         foreach (var key in types)
             map.AddOrUpdate(key, "a");
@@ -51,7 +51,7 @@ public class FHashMap6Tests
     [Test]
     public void Can_store_and_retrieve_value_from_map()
     {
-        var map = new FHashMap6<int, string>();
+        var map = new FHashMap6<int, string, IntEq>();
 
         map.AddOrUpdate(42, "1");
         map.AddOrUpdate(42 + 32, "2");
@@ -105,7 +105,7 @@ public class FHashMap6Tests
     [Test]
     public void Can_store_and_retrieve_value_from_map_with_Expand_in_the_middle()
     {
-        var map = new FHashMap6<int, string>(2);
+        var map = new FHashMap6<int, string, IntEq>(2);
 
         map.AddOrUpdate(42, "1");
         map.AddOrUpdate(42 + 32, "2");
@@ -134,7 +134,7 @@ public class FHashMap6Tests
     [Test]
     public void Can_store_and_get_stored_item_count()
     {
-        var map = new FHashMap6<int, string>();
+        var map = new FHashMap6<int, string, IntEq>();
 
         map.AddOrUpdate(42, "1");
         map.AddOrUpdate(42 + 32 + 32, "3");
@@ -145,7 +145,7 @@ public class FHashMap6Tests
     [Test]
     public void Can_update_a_stored_item_with_new_value()
     {
-        var map = new FHashMap6<int, string>();
+        var map = new FHashMap6<int, string, IntEq>();
 
         map.AddOrUpdate(42, "1");
         map.AddOrUpdate(42, "3");
