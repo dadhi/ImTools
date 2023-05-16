@@ -678,6 +678,14 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 |           FHashMap4_AddOrUpdate |   100 | 3.482 us | 0.0494 us | 0.0462 us |  0.95 |    0.02 | 1.6022 |   4.91 KB |        0.67 |
 | FHashMap4_AddOrUpdate_no_Resize |   100 | 2.197 us | 0.0312 us | 0.0243 us |  0.60 |    0.02 | 0.8430 |   2.59 KB |        0.35 |
 
+## FHashMap5 with ILP (is Bad) vs DictionarySlim
+
+|                Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD |   Gen0 | Allocated | Alloc Ratio |
+|---------------------- |------ |---------:|----------:|----------:|------:|--------:|-------:|----------:|------------:|
+|       DictSlim_TryAdd |   100 | 2.851 us | 0.0349 us | 0.0291 us |  1.00 |    0.00 | 2.3842 |   7.31 KB |        1.00 |
+| FHashMap4_AddOrUpdate |   100 | 3.326 us | 0.0645 us | 0.1389 us |  1.17 |    0.06 | 1.6022 |   4.91 KB |        0.67 |
+|             FHashMap5 |   100 | 4.793 us | 0.0929 us | 0.1418 us |  1.68 |    0.06 | 1.6022 |   4.91 KB |        0.67 |
+
 */
             // [Params(10, 100, 1000, 10000)]
             [Params(100)]
@@ -890,9 +898,9 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
             }
 
             [Benchmark]
-            public ImTools.Experiments.FHashMap4<Type, string> FHashMap4_AddOrUpdate_no_Resize()
+            public ImTools.Experiments.FHashMap5<Type, string> FHashMap5()
             {
-                var map = new ImTools.Experiments.FHashMap4<Type, string>(128);
+                var map = new ImTools.Experiments.FHashMap5<Type, string>();
 
                 foreach (var key in _types)
                     map.AddOrUpdate(key, "a");

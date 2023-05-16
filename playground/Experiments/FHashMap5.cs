@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Diagnostics;
-
+using System.Numerics;
+#if NET7_0_OR_GREATER
+using System.Runtime.CompilerServices;
+#endif
 namespace ImTools.Experiments;
 
 public static class FHashMap5Extensions
@@ -102,6 +105,8 @@ public sealed class FHashMap5<K, V>
 
     public FHashMap5(int capacity = DefaultCapacity)
     {
+        if (capacity < 4)
+            capacity = 4;
         _capacity = capacity;
         _hashesAndIndexes = new int[capacity];
         _entries = new Entry[capacity];
@@ -133,7 +138,6 @@ public sealed class FHashMap5<K, V>
             var hit1 = (h1 & probeAndHashMask) == (((probes + 1) << ProbeCountShift) | hashMiddle);
             var hit2 = (h2 & probeAndHashMask) == (((probes + 2) << ProbeCountShift) | hashMiddle);
             var hit3 = (h3 & probeAndHashMask) == (((probes + 3) << ProbeCountShift) | hashMiddle);
-            
             if (hit0 | hit1 | hit2 | hit3)
             {
                 var hitHash = hit0 ? h0 : hit1 ? h1 : hit2 ? h2 : h3;
@@ -168,21 +172,54 @@ public sealed class FHashMap5<K, V>
         var hash = key.GetHashCode(); // todo: @perf optimize to avoid virtual call
 
         var indexMask = capacity - 1;
-        var hashMask = ~indexMask & HashAndIndexMask;
+        var probeAndHashMask = ~indexMask;
+        var hashMask = probeAndHashMask & HashAndIndexMask;
         var hashesAndIndexes = _hashesAndIndexes;
 
         var hashMiddle = hash & hashMask;
 
         var entryIndex = _count; // by default the new entry index is the last one, but the variable may be updated multiple times by Robin Hood in the loop
         var robinHooded = false;
-        var h = 0;
         int hashIndex = hash & indexMask;
-        for (byte probes = 1; probes <= MaxProbeCount; ++probes, hashIndex = (hashIndex + 1) & indexMask)
+        for (byte probes = 1; probes <= MaxProbeCount; probes += 4, hashIndex = (hashIndex + 4) & indexMask)
         {
-            h = hashesAndIndexes[hashIndex];
-            if (h == 0)
+        next:
+            var h0 = hashesAndIndexes[hashIndex];
+            var h1 = hashesAndIndexes[(hashIndex + 1) & indexMask];
+            var h2 = hashesAndIndexes[(hashIndex + 2) & indexMask];
+            var h3 = hashesAndIndexes[(hashIndex + 3) & indexMask];
+
+            var hit0 = (h0 & probeAndHashMask) == (( probes      << ProbeCountShift) | hashMiddle);
+            var hit1 = (h1 & probeAndHashMask) == (((probes + 1) << ProbeCountShift) | hashMiddle);
+            var hit2 = (h2 & probeAndHashMask) == (((probes + 2) << ProbeCountShift) | hashMiddle);
+            var hit3 = (h3 & probeAndHashMask) == (((probes + 3) << ProbeCountShift) | hashMiddle);
+            if (!robinHooded & (hit0 | hit1 | hit2 | hit3))
             {
-                hashesAndIndexes[hashIndex] = (probes << ProbeCountShift) | hashMiddle | entryIndex;
+                var h = hit0 ? h0 : hit1 ? h1 : hit2 ? h2 : h3;
+                ref var e = ref _entries[h & indexMask]; // check the existing entry key and update the value if the keys are matched
+                if (e.Key.Equals(key))
+                {
+                    e.Value = value;
+                    return;
+                }
+            }
+
+            if (h0 == 0 | h1 == 0 | h2 == 0 | h3 == 0)
+            {
+#if NET7_0_OR_GREATER
+                var b0 = h0 == 0;
+                var b1 = h1 == 0;
+                var b2 = h2 == 0;
+                var b3 = h3 == 0;
+                var b = Unsafe.As<bool, byte>(ref b0) 
+                     | (Unsafe.As<bool, byte>(ref b1) << 1) 
+                     | (Unsafe.As<bool, byte>(ref b2) << 2)
+                     | (Unsafe.As<bool, byte>(ref b3) << 3);
+                var delta = BitOperations.TrailingZeroCount(b);
+#else
+                var delta = h0 == 0 ? 0 : h1 == 0 ? 1 : h2 == 0 ? 2 : 3;
+#endif
+                hashesAndIndexes[(hashIndex + delta) & indexMask] = ((probes + delta) << ProbeCountShift) | hashMiddle | entryIndex;
 
                 ref var e = ref _entries[_count++]; // always add to the original entry
                 e.Key = key;
@@ -190,25 +227,46 @@ public sealed class FHashMap5<K, V>
                 return;
             }
 
-            var hp = (byte)(h >> ProbeCountShift);
-            if (hp < probes) // skip hashes with the bigger probe count until we find the same or less probes
+            var less0 = (h0 >> ProbeCountShift) <  probes;
+            var less1 = (h1 >> ProbeCountShift) < (probes + 1);
+            var less2 = (h2 >> ProbeCountShift) < (probes + 2);
+            var less3 = (h3 >> ProbeCountShift) < (probes + 3);
+            if (less0 | less1 | less2 | less3)
             {
                 // Robin Hood goes here to steal from the rich (with the less probe count) and give to the poor (with more probes).
-                hashesAndIndexes[hashIndex] = (probes << ProbeCountShift) | hashMiddle | entryIndex;
-                probes = hp;
-                hashMiddle = h & hashMask;
-                entryIndex = h & indexMask;
-                robinHooded = true;
-            }
-
-            if (!robinHooded & (hp == probes) & ((h & hashMask) == hashMiddle)) // todo: @perf huh, we may either combine or keep only the hash check, cause probes and hashMiddle are parts of the hash 
-            {
-                ref var e = ref _entries[h & indexMask]; // check the existing entry key and update the value if the keys are matched
-                if (e.Key.Equals(key))
+                if (less0)
                 {
-                    e.Value = value;
-                    return;
+                    hashesAndIndexes[hashIndex & indexMask] = (probes << ProbeCountShift) | hashMiddle | entryIndex;
+                    hashMiddle = h0 & hashMask;
+                    entryIndex = h0 & indexMask;
+                    probes = (byte)((h0 >> ProbeCountShift) + 1);
+                    hashIndex = (hashIndex + 1) & indexMask;
                 }
+                else if (less1)
+                {
+                    hashesAndIndexes[(hashIndex + 1) & indexMask] = ((probes + 1) << ProbeCountShift) | hashMiddle | entryIndex;
+                    hashMiddle = h1 & hashMask;
+                    entryIndex = h1 & indexMask;
+                    probes = (byte)((h1 >> ProbeCountShift) + 1);
+                    hashIndex = (hashIndex + 2) & indexMask;
+                }
+                else if (less2)
+                {
+                    hashesAndIndexes[(hashIndex + 2) & indexMask] = ((probes + 2) << ProbeCountShift) | hashMiddle | entryIndex;
+                    hashMiddle = h2 & hashMask;
+                    entryIndex = h2 & indexMask;
+                    probes = (byte)((h2 >> ProbeCountShift) + 1);
+                    hashIndex = (hashIndex + 3) & indexMask;
+                }
+                else
+                {
+                    hashesAndIndexes[(hashIndex + 3) & indexMask] = ((probes + 3) << ProbeCountShift) | hashMiddle | entryIndex;
+                    hashMiddle = h3 & hashMask;
+                    entryIndex = h3 & indexMask;
+                    probes = (byte)((h3 >> ProbeCountShift) + 1);
+                    hashIndex = (hashIndex + 4) & indexMask;
+                }
+                goto next;
             }
         }
 

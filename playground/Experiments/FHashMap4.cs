@@ -76,8 +76,8 @@ public sealed class FHashMap4<K, V>
         public V Value;
     }
 
-    public const float MaxCountForCapacityFactor = 0.9f;
     public const int DefaultCapacity = 16;
+    public const byte MinFreeCapacityShift = 4; // e.g. for the DefaultCapacity 16 >> 4 => 1/16 => 6.25% free space  
 
     public const byte MaxProbeBits = 5; // 5 bits max
     public const byte MaxProbeCount = (1 << MaxProbeBits) - 1;
@@ -148,7 +148,7 @@ public sealed class FHashMap4<K, V>
     public void AddOrUpdate(K key, V value)
     {
         var capacity = _capacity;
-        if (_count >= capacity * MaxCountForCapacityFactor)
+        if (capacity - _count <= (capacity >> MinFreeCapacityShift)) // if the free capacity is less free slots 1/16 (6.25%)
             Resize(capacity <<= 1); // double the capacity, using the <<= assinment here to correctly calculate the new capacityMask later
 
         var hash = key.GetHashCode(); // todo: @perf optimize to avoid virtual call
