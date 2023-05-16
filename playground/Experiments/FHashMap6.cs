@@ -113,7 +113,8 @@ public sealed class FHashMap6<K, V>
 
         var capacity = _capacity;
         var indexMask = capacity - 1;
-        var hashMask = ~indexMask & HashAndIndexMask;
+        var probeAndHashMask = ~indexMask;
+        var hashMask = probeAndHashMask & HashAndIndexMask;
 
         var hashesAndIndexes = _hashesAndIndexes;
         var hashIndex = hash & indexMask;
@@ -123,17 +124,16 @@ public sealed class FHashMap6<K, V>
         {
             h = hashesAndIndexes[hashIndex];
             if (h == 0)
-                return defaultValue;   
+                return defaultValue;
 
-            var hp = (byte)(h >> ProbeCountShift);
-            if ((hp == probes) & ((h & hashMask) == (hash & hashMask))) // todo: @perf huh, we may either combine or keep only the hash check, cause probes and hashMiddle are parts of the hash 
+            if ((h & probeAndHashMask) == ((probes << ProbeCountShift) | (hash & hashMask)))
             {
                 ref var entry = ref _entries[h & indexMask];
                 if (entry.Key.Equals(key)) // todo: @perf optimize to avoid virtual call
                     return entry.Value;
             }
 
-            if (hp < probes)
+            if ((h >> ProbeCountShift) < probes)
                 break;
 
             hashIndex = (hashIndex + 1) & indexMask; // `& indexMask` is for wrapping around the hashes array 
