@@ -686,6 +686,13 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 | FHashMap4_AddOrUpdate |   100 | 3.326 us | 0.0645 us | 0.1389 us |  1.17 |    0.06 | 1.6022 |   4.91 KB |        0.67 |
 |             FHashMap5 |   100 | 4.793 us | 0.0929 us | 0.1418 us |  1.68 |    0.06 | 1.6022 |   4.91 KB |        0.67 |
 
+## FHashMap6 with double hashes size and independent entries
+
+|                Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD |   Gen0 | Allocated | Alloc Ratio |
+|---------------------- |------ |---------:|----------:|----------:|------:|--------:|-------:|----------:|------------:|
+| FHashMap4_AddOrUpdate |   100 | 4.145 us | 0.0821 us | 0.0843 us |  1.00 |    0.00 | 1.6022 |   4.91 KB |        1.00 |
+| FHashMap6_AddOrUpdate |   100 | 3.992 us | 0.0788 us | 0.1337 us |  0.96 |    0.04 | 1.5717 |   4.83 KB |        0.98 |
+
 */
             // [Params(10, 100, 1000, 10000)]
             [Params(100)]

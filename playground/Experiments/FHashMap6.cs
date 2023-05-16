@@ -9,9 +9,9 @@ public static class FHashMap6Extensions
 {
     public static Item<K, V>[] Explain<K, V, TEq>(this FHashMap6<K, V, TEq> map) where TEq : struct, IEqualityComparer<K>
     {
-        var capacity = map._capacity;
-        var hashesAndIndexes = map._hashesAndIndexes;
         var entries = map._entries;
+        var hashesAndIndexes = map._hashesAndIndexes;
+        var capacity = hashesAndIndexes.Length;
 
         var items = new Item<K, V>[capacity];
         var indexMask = capacity - 1;
@@ -79,7 +79,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
     }
 
     public const int DefaultCapacity = 16;
-    public const byte MinFreeCapacityShift = 4; // e.g. for the DefaultCapacity 16 >> 4 => 1/16 => 6.25% free space  
+    public const byte MinFreeCapacityShift = 3; // e.g. for the DefaultCapacity 16 >> 3 => 2, so 2 free slots is 12.5% of the capacity  
 
     public const byte MaxProbeBits = 5; // 5 bits max
     public const byte MaxProbeCount = (1 << MaxProbeBits) - 1;
@@ -95,15 +95,13 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
     // The removed hash will be actually removed, so we don't use the removed bit here.
     internal int[] _hashesAndIndexes;
     internal Entry[] _entries;
-    internal int _capacity;
     internal int _count;
 
     public int Count => _count;
 
     public FHashMap6(int capacity = DefaultCapacity)
     {
-        _capacity = capacity;
-        _hashesAndIndexes = new int[capacity];
+        _hashesAndIndexes = new int[capacity << 1]; // todo: @wip double the size of entries because hashes are cheap, review later with bms
         _entries = new Entry[capacity];
         // todo: @perf benchmark the un-initialized array?
         // _entries = GC.AllocateUninitializedArray<Entry>(capacity); // todo: create without default values using via GC.AllocateUninitializedArray<Entry>(size);
@@ -113,12 +111,13 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
     {
         var hash = default(TEq).GetHashCode(key);
 
-        var capacity = _capacity;
-        var indexMask = capacity - 1;
-        var probeAndHashMask = ~indexMask;
-        var hashMask = probeAndHashMask & HashAndIndexMask;
-
         var hashesAndIndexes = _hashesAndIndexes;
+        var capacity = hashesAndIndexes.Length;
+
+        var indexMask = capacity - 1;
+        var probeAndHashMask = ~(capacity - 1);
+        var hashMask = ~(capacity - 1) & HashAndIndexMask;
+
         var hashIndex = hash & indexMask;
 
         var h = 0;
@@ -149,17 +148,20 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
 
     public void AddOrUpdate(K key, V value)
     {
-        var capacity = _capacity;
+        var hashesAndIndexes = _hashesAndIndexes;
+        var capacity = hashesAndIndexes.Length;
         if (capacity - _count <= (capacity >> MinFreeCapacityShift)) // if the free capacity is less free slots 1/16 (6.25%)
-            Resize(capacity <<= 1); // double the capacity, using the <<= assinment here to correctly calculate the new capacityMask later
+        {
+            _hashesAndIndexes = hashesAndIndexes = DoubleSize(_hashesAndIndexes);
+            capacity <<= 1;
+        }
 
         var hash = default(TEq).GetHashCode(key);
 
         var indexMask = capacity - 1;
         var hashMask = ~indexMask & HashAndIndexMask;
-        var hashesAndIndexes = _hashesAndIndexes;
 
-        var hashIndex  = hash & indexMask;
+        var hashIndex = hash & indexMask;
         var hashMiddle = hash & hashMask;
 
         var robinHooded = false;
@@ -179,6 +181,8 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
 #endif   
                 hashesAndIndexes[hashIndex] = (probes << ProbeCountShift) | hashMiddle | entryIndex;
 
+                if (_count + 1 >= _entries.Length)
+                    Array.Resize(ref _entries, _entries.Length << 1); // double the capacity, using the <<= assinment here to correctly calculate the new capacityMask later
                 ref var e = ref _entries[_count++]; // always add to the original entry
                 e.Key = key;
                 e.Value = value;
@@ -213,14 +217,12 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
         Debug.Fail($"Reaching to the max probe count {MaxProbeCount} Resizing to {capacity << 1}");
     }
 
-    public void Resize(int newCapacity)
+    internal static int[] DoubleSize(int[] oldHashesAndIndexes)
     {
-        // Just resize the _entries without copying/moving, we don't need to move them, becuase we will be moving _entryIndexes instead
-        Array.Resize(ref _entries, newCapacity);
+        var oldCapacity = oldHashesAndIndexes.Length;
+        var newCapacity = oldCapacity << 1;
         var newHashesAndIndexes = new int[newCapacity];
 
-        var oldHashesAndIndexes = _hashesAndIndexes;
-        var oldCapacity = _capacity;
         var oldIndexMask = oldCapacity - 1;
         var newIndexMask = newCapacity - 1;
 #if DEBUG
@@ -265,12 +267,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
             }
         }
 
-        _capacity = newCapacity;
-        _hashesAndIndexes = newHashesAndIndexes;
 #if DEBUG
-        Debug.WriteLine($"Resize {oldCapacity}->{newCapacity} sameIndexes:{sameIndexes}, maxProbeCount:{maxProbeCount}");
-        _maxProbeCount = maxProbeCount;
-
         Debug.Write("old:|");
         foreach (var it in oldHashesAndIndexes)
             Debug.Write(it == 0 ? ".|" : $"{it & oldIndexMask}|");
@@ -280,6 +277,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
             Debug.Write(it == 0 ? ".|" : $"{it & newIndexMask}|");
         Debug.WriteLine("");
 #endif
+        return newHashesAndIndexes;
     }
 }
 
@@ -305,7 +303,7 @@ public struct IntEq : IEqualityComparer<int>
     public int GetHashCode(int obj) => obj;
 }
 
-public struct RefEq<K> : IEqualityComparer<K> where K : class 
+public struct RefEq<K> : IEqualityComparer<K> where K : class
 {
     /// <inheritdoc />
     [MethodImpl((MethodImplOptions)256)]
