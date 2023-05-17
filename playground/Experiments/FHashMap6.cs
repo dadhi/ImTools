@@ -91,7 +91,6 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
     public const byte MaxProbeCount = (1 << MaxProbeBits) - 1;
     public const byte ProbeCountShift = 32 - MaxProbeBits;
     public const int SingleProbeMask = 1 << ProbeCountShift;
-
     public const int HashAndIndexMask = ~(MaxProbeCount << ProbeCountShift);
 
     // The _hashesAndIndexes entry is the Int32 which union of: 
@@ -123,11 +122,11 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
         var hashesAndIndexes = _hashesAndIndexes;
         var capacity = hashesAndIndexes.Length;
 
-        var indexMask = capacity - 1;
+        var hashIndexMask = capacity - 1;
         var probeAndHashMask = ~(capacity - 1);
         var hashMask = ~(capacity - 1) & HashAndIndexMask;
 
-        var hashIndex = hash & indexMask;
+        var hashIndex = hash & hashIndexMask;
 
         var h = 0;
         for (byte probes = 1; probes <= MaxProbeCount; ++probes)
@@ -138,7 +137,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
 
             if ((h & probeAndHashMask) == ((probes << ProbeCountShift) | (hash & hashMask)))
             {
-                ref var e = ref _entries[h & indexMask]; // todo: @perf wrap access into the interface to separate the entries abstraction
+                ref var e = ref _entries[h & hashIndexMask]; // todo: @perf wrap access into the interface to separate the entries abstraction
                 if (default(TEq).Equals(e.Key, key))
                     return e.Value;
             }
@@ -146,7 +145,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
             if ((h >> ProbeCountShift) < probes)
                 break;
 
-            hashIndex = (hashIndex + 1) & indexMask; // `& indexMask` is for wrapping around the hashes array 
+            hashIndex = (hashIndex + 1) & hashIndexMask; // `& indexMask` is for wrapping around the hashes array 
         }
         return defaultValue;
     }
@@ -271,8 +270,9 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
         var newCapacity = oldCapacity << 1;
         var newHashesAndIndexes = new int[newCapacity];
 
-        var oldIndexMask = oldCapacity - 1;
-        var newIndexMask = newCapacity - 1;
+        var oldHashIndexMask = oldCapacity - 1;
+        var newHashIndexMask = newCapacity - 1;
+        var newHashMiddleMask = ~newHashIndexMask & HashAndIndexMask;
 #if DEBUG
         var sameIndexes = 0;
         var maxProbeCount = 0;
@@ -283,12 +283,16 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
             if (oldHash == 0)
                 continue;
 
-            // todo: @perf @wip review how we clearing the additional index bit
-            var probePos = (oldHash >> ProbeCountShift) - 1;
-            var oldHashIndex = (oldCapacity + i - probePos) & oldIndexMask;
+            // get the new hash index for the new capacity by restoring the (possibly wrapped) 
+            // probes count (and therefore the distance from the ideal hash position) 
+            var distance = (oldHash >> ProbeCountShift) - 1;
+            var oldHashIndex = (oldCapacity + i - distance) & oldHashIndexMask;
+            var restoredOldHash = (oldHash & ~oldHashIndexMask) | oldHashIndex;
+            var newHashIndex = restoredOldHash & newHashIndexMask;
 
-            var newHashIndex = ((oldHash & ~oldIndexMask) | oldHashIndex) & newIndexMask;
-            var newHashAndOldIndex = (oldHash & HashAndIndexMask & ~newIndexMask) | (oldHash & oldIndexMask);
+            // erasing the next to capacity bit, given the capacity was 4 and now it is 4 << 1 = 8, 
+            // we are erasing the 3rd bit to store the new count in it. 
+            var newHashAndOldIndex = oldHash & HashAndIndexMask & ~oldCapacity;
 
             var h = 0;
             for (byte probes = 1;; ++probes) // we don't need the condition for the MaxProbes because by increasing the hash space we guarantee that we fit the hashes in the finite amount of probes likely less than previous MaxProbeCount
@@ -312,18 +316,18 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
                     newHashAndOldIndex = h & HashAndIndexMask;
                     probes = (byte)(h >> ProbeCountShift);
                 }
-                newHashIndex = (newHashIndex + 1) & newIndexMask; // `& indexMask` is for wrapping around the hashes array 
+                newHashIndex = (newHashIndex + 1) & newHashIndexMask; // `& indexMask` is for wrapping around the hashes array 
             }
         }
 
 #if DEBUG
         Debug.Write("old:|");
         foreach (var it in oldHashesAndIndexes)
-            Debug.Write(it == 0 ? ".|" : $"{it & oldIndexMask}|");
+            Debug.Write(it == 0 ? ".|" : $"{it & oldHashIndexMask}|");
         Debug.WriteLine("");
         Debug.Write("new:|");
         foreach (var it in newHashesAndIndexes)
-            Debug.Write(it == 0 ? ".|" : $"{it & newIndexMask}|");
+            Debug.Write(it == 0 ? ".|" : $"{it & newHashIndexMask}|");
         Debug.WriteLine("");
 #endif
         return newHashesAndIndexes;
