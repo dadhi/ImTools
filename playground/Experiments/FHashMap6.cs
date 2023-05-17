@@ -212,6 +212,26 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
                 return;
             }
 
+            // the check is here, because it is cheaper than hash comparison below and current ont may result in early break/exit
+            var hp = h >> ProbeCountShift;
+            if (hp < probes) // skip hashes with the bigger probe count until we find the same or less probes
+            {
+                // Robin Hood goes here to steal from the rich (with the less probe count) and give to the poor (with more probes).
+                var entryCount = _entryCount;
+                hashesAndIndexes[hashIndex] = hashAndEntryIndex | entryCount;
+                hashAndEntryIndex = h & HashAndIndexMask;
+                probes = (byte)hp;
+                
+                if (entryCount + 1 >= _entries.Length)
+                    Array.Resize(ref _entries, _entries.Length << 1);
+                ref var e = ref _entries[entryCount];
+                e.Key = key;
+                e.Value = value;
+                
+                _entryCount = entryCount + 1;
+                break;
+            }
+
             if ((h & ~hashIndexMask) == hashAndEntryIndex)
             {
 #if DEBUG
@@ -223,27 +243,6 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
                     e.Value = value;
                     return;
                 }
-            }
-
-            // todo: @perf move the check up, because it is cheaper than hash comparison and it may result in early exit
-            var hp = (byte)(h >> ProbeCountShift);
-            if (hp < probes) // skip hashes with the bigger probe count until we find the same or less probes
-            {
-                // Robin Hood goes here to steal from the rich (with the less probe count) and give to the poor (with more probes).
-                var entryCount = _entryCount;
-                hashesAndIndexes[hashIndex] = hashAndEntryIndex | entryCount;
-                hashAndEntryIndex = h & HashAndIndexMask;
-                probes = hp;
-                
-                if (entryCount + 1 >= _entries.Length)
-                    Array.Resize(ref _entries, _entries.Length << 1);
-
-                ref var e = ref _entries[entryCount];
-                e.Key = key;
-                e.Value = value;
-                
-                _entryCount = entryCount + 1;
-                break;
             }
         }
 
@@ -264,12 +263,12 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
                 hashesAndIndexes[hashIndex] = (probes << ProbeCountShift) | hashAndEntryIndex;
                 return;
             }
-            var hp = (byte)(h >> ProbeCountShift);
+            var hp = h >> ProbeCountShift;
             if (hp < probes) // skip hashes with the bigger probe count until we find the same or less probes
             {
                 hashesAndIndexes[hashIndex] = (probes << ProbeCountShift) | hashAndEntryIndex;
                 hashAndEntryIndex = h & HashAndIndexMask;
-                probes = hp;
+                probes = (byte)hp;
             }
         }
     }
@@ -310,13 +309,12 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
                     newHashesAndIndexes[newHashIndex] = (probes << ProbeCountShift) | newHashAndEntryIndex;
                     break;
                 }
-
-                var hp = (byte)(h >> ProbeCountShift);
+                var hp = h >> ProbeCountShift;
                 if (hp < probes)
                 {
                     newHashesAndIndexes[newHashIndex] = (probes << ProbeCountShift) | newHashAndEntryIndex;
                     newHashAndEntryIndex = h & HashAndIndexMask;
-                    probes = hp;
+                    probes = (byte)hp; // todo: @perf Unsafe.As<int, byte>(ref hp)?
                 } 
             }
         }

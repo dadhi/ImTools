@@ -693,6 +693,13 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 | FHashMap4_AddOrUpdate |   100 | 4.145 us | 0.0821 us | 0.0843 us |  1.00 |    0.00 | 1.6022 |   4.91 KB |        1.00 |
 | FHashMap6_AddOrUpdate |   100 | 3.992 us | 0.0788 us | 0.1337 us |  0.96 |    0.04 | 1.5717 |   4.83 KB |        0.98 |
 
+## FHashMap6 vs DictionarySlim
+
+|                Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD |   Gen0 | Allocated | Alloc Ratio |
+|---------------------- |------ |---------:|----------:|----------:|------:|--------:|-------:|----------:|------------:|
+|       DictSlim_TryAdd |   100 | 2.879 us | 0.0568 us | 0.0900 us |  1.00 |    0.00 | 2.3842 |   7.31 KB |        1.00 |
+| FHashMap6_AddOrUpdate |   100 | 3.114 us | 0.0610 us | 0.0653 us |  1.09 |    0.04 | 1.5755 |   4.83 KB |        0.66 |
+
 */
             // [Params(10, 100, 1000, 10000)]
             [Params(100)]
@@ -880,7 +887,7 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return map;
             }
 
-            // [Benchmark(Baseline = true)]
+            [Benchmark(Baseline = true)]
             public DictionarySlim<TypeVal, string> DictSlim_TryAdd()
             {
                 var map = new DictionarySlim<TypeVal, string>();
@@ -893,7 +900,7 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
             }
 
             // [Benchmark]
-            [Benchmark(Baseline = true)]
+            // [Benchmark(Baseline = true)]
             public ImTools.Experiments.FHashMap4<Type, string> FHashMap4_AddOrUpdate()
             {
                 var map = new ImTools.Experiments.FHashMap4<Type, string>();
