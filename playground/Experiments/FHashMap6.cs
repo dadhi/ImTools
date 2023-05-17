@@ -7,6 +7,8 @@ namespace ImTools.Experiments;
 
 public static class FHashMap6Extensions
 {
+    // todo: @wip Verify that we don't have the same hashes in the map
+    // todo: @wip Verify that we don't have the same entry indexes
     public static Item<K, V>[] Explain<K, V, TEq>(this FHashMap6<K, V, TEq> map) where TEq : struct, IEqualityComparer<K>
     {
 #if DEBUG
@@ -175,7 +177,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
 //             {
 //                 Array.Resize(ref _entries, _entries.Length << 1);
 // #if DEBUG
-//                 Debug.WriteLine($"Resize Entries to {_entries.Length}, but the Hashes capacity is {hashesCapacity}");
+//                 Debug.WriteLine($"Resize Entries to {_entries.Length}");
 // #endif
 //             }
             
@@ -190,7 +192,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
             _hashesAndIndexes = hashesAndIndexes = DoubleSize(_hashesAndIndexes);
             hashesCapacity = hashesAndIndexes.Length;
 #if DEBUG
-            Debug.WriteLine($"Resize Hashes to {hashesCapacity}, because count:{_entryCount} but the Entries length is {_entries.Length}");
+            Debug.WriteLine($"Resize _hashesAndIndexes to {hashesCapacity} because the _entryCount:{_entryCount}");
 #endif
         }
 
@@ -211,10 +213,10 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
 #if DEBUG
                 if (probes == 1)
                     ++FirstProbeAdditions;
-                if (probes > MaxProbeCount)
+                if (probes > MaxProbes)
                 {
                     MaxProbes = probes;
-                    Debug.WriteLine($"MaxProbeCount increased to {probes} when adding key:`{key}`");
+                    Debug.WriteLine($"MaxProbes increased to {probes} when adding key:`{key}`");
                 }
 #endif   
                 hashesAndIndexes[hashIndex] = (probes << ProbeCountShift) | hashMiddle | entryIndex;
