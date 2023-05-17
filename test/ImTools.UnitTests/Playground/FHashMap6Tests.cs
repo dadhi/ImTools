@@ -8,6 +8,14 @@ namespace ImTools.Experiments.UnitTests;
 [TestFixture]
 public class FHashMap6Tests
 {
+    public static void Verify<K, V, TEq>(FHashMap6<K, V, TEq> map) where TEq : struct, IEqualityComparer<K>
+    {
+        var exp = map.Explain();
+        foreach (var it in exp)
+            if (!it.IsEmpty)
+                Assert.True(it.HEq);
+    }
+
     [Test]
     public void Real_world_test()
     {
@@ -22,10 +30,7 @@ public class FHashMap6Tests
 
         Assert.AreEqual(101, map.Count);
 
-        var exp = map.Explain();
-        foreach (var it in exp)
-            if (!it.IsEmpty)
-                Assert.True(it.HEq);
+        Verify(map);
     }
 
     [Test]
@@ -42,10 +47,7 @@ public class FHashMap6Tests
 
         Assert.AreEqual(101, map.Count);
 
-        var exp = map.Explain();
-        foreach (var it in exp)
-            if (!it.IsEmpty)
-                Assert.True(it.HEq);
+        Verify(map);
     }
 
     [Test]
@@ -96,10 +98,7 @@ public class FHashMap6Tests
 
         Assert.AreEqual(13, map.Count);
 
-        var exp = map.Explain();
-        foreach (var it in exp)
-            if (!it.IsEmpty)
-                Assert.True(it.HEq);
+        Verify(map);
     }
 
     [Test]
@@ -125,10 +124,7 @@ public class FHashMap6Tests
         map.AddOrUpdate(43, "a!");
         Assert.AreEqual("a!", map.GetValueOrDefault(43));
 
-        var exp = map.Explain();
-        foreach (var it in exp)
-            if (!it.IsEmpty)
-                Assert.True(it.HEq);
+        Verify(map);
     }
 
     [Test]
@@ -140,6 +136,7 @@ public class FHashMap6Tests
         map.AddOrUpdate(42 + 32 + 32, "3");
 
         Assert.AreEqual(2, map.Count);
+        Verify(map);
     }
 
     [Test]
@@ -152,6 +149,7 @@ public class FHashMap6Tests
 
         Assert.AreEqual("3", map.GetValueOrDefault(42));
         Assert.AreEqual(1, map.Count);
+        Verify(map);
     }
 
     // [Test]

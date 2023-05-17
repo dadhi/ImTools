@@ -244,6 +244,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
                 robinHooded = true;
             }
             
+            // todo: @perf avoid robinHooded by breaking out of the loop and swapping the existing hashes in the next loop
             if (!robinHooded & (hp == probes) & ((h & hashMiddleMask) == hashMiddle)) // todo: @perf huh, we may either combine or keep only the hash check, cause probes and hashMiddle are parts of the hash 
             {
 #if DEBUG
