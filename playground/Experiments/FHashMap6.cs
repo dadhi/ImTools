@@ -283,10 +283,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
         var oldHashIndexMask = oldCapacity - 1;
         var newHashIndexMask = newCapacity - 1;
         var newHashMiddleMask = ~newHashIndexMask & HashAndIndexMask;
-#if DEBUG
-        var sameIndexes = 0;
-        var maxProbeCount = 0;
-#endif
+
         for (var i = 0; i < (uint)oldHashesAndIndexes.Length; i++)
         {
             var oldHash = oldHashesAndIndexes[i];
@@ -310,32 +307,29 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
                 h = newHashesAndIndexes[newHashIndex];
                 if (h == 0)
                 {
-#if DEBUG
-                    sameIndexes += i == newHashIndex ? 1 : 0;
-                    maxProbeCount = Math.Max(maxProbeCount, probes);
-#endif
                     newHashesAndIndexes[newHashIndex] = (probes << ProbeCountShift) | newHashAndEntryIndex;
                     break;
                 }
+
                 var hp = (byte)(h >> ProbeCountShift);
                 if (hp < probes)
                 {
-#if DEBUG
-                    sameIndexes += i == newHashIndex ? 1 : 0;
-#endif
                     newHashesAndIndexes[newHashIndex] = (probes << ProbeCountShift) | newHashAndEntryIndex;
                     newHashAndEntryIndex = h & HashAndIndexMask;
                     probes = hp;
                 } 
             }
         }
-
 #if DEBUG
-        Debug.Write("old:");
+        // this will output somthing like this for capacity 32:
+        // -_-112--___12-3--44452-223-42311
+        // todo: @perf can we move the non`-` hashes in a one loop if possible or non move at all? 
+        Debug.Write("before resize:");
         foreach (var it in oldHashesAndIndexes)
-            Debug.Write((it & oldCapacity) == 0 
-                ? "*" 
-                : "-");
+            Debug.Write(it == 0 ? "_" 
+            : (it & oldCapacity) != 0 ? "-"
+            : (it >> ProbeCountShift).ToString());
+
         Debug.WriteLine("");
 #endif
         return newHashesAndIndexes;
