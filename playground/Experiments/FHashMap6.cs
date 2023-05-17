@@ -161,46 +161,20 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
 
         var hashesAndIndexes = _hashesAndIndexes;
         var hashesCapacity = hashesAndIndexes.Length;
-
-// todo: @wip, @fixme the test Real_world_test is failing
-//         var indexMask = hashesCapacity - 1;
-//         var hi = hash & indexMask;
-//         if (hashesAndIndexes[hi] == 0)
-//         {
-// #if DEBUG
-//             ++FirstProbeAdditions;
-// #endif
-//             var entryCount = _entryCount;
-//             _entryCount = entryCount + 1;
-//             hashesAndIndexes[hi] = SingleProbeMask | (hash & (~indexMask & HashAndIndexMask)) | entryCount;
-
-//             if (entryCount + 1 >= _entries.Length)
-//             {
-//                 Array.Resize(ref _entries, _entries.Length << 1);
-// #if DEBUG
-//                 Debug.WriteLine($"Resize Entries to {_entries.Length}");
-// #endif
-//             }
-            
-//             ref var e = ref _entries[entryCount];
-//             e.Key = key;
-//             e.Value = value;
-//             return;
-//         }
-
         if (hashesCapacity - _entryCount <= (hashesCapacity >> MinFreeCapacityShift)) // if the free capacity is less free slots 1/16 (6.25%)
         {
             _hashesAndIndexes = hashesAndIndexes = DoubleSize(_hashesAndIndexes);
             hashesCapacity = hashesAndIndexes.Length;
+
 #if DEBUG
             Debug.WriteLine($"Resize _hashesAndIndexes to {hashesCapacity} because the _entryCount:{_entryCount}");
 #endif
         }
 
-        var hashIndexMask = hashesCapacity - 1;
+        var hashIndexMask  = hashesCapacity - 1;
         var hashMiddleMask = ~hashIndexMask & HashAndIndexMask;
 
-        var hashIndex = hash & hashIndexMask;
+        var hashIndex  = hash & hashIndexMask;
         var hashMiddle = hash & hashMiddleMask;
 
         var robinHooded = false;
@@ -295,7 +269,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
             var newHashAndOldIndex = oldHash & HashAndIndexMask & ~oldCapacity;
 
             var h = 0;
-            for (byte probes = 1;; ++probes) // we don't need the condition for the MaxProbes because by increasing the hash space we guarantee that we fit the hashes in the finite amount of probes likely less than previous MaxProbeCount
+            for (byte probes = 1;; ++probes, newHashIndex = (newHashIndex + 1) & newHashIndexMask) // we don't need the condition for the MaxProbes because by increasing the hash space we guarantee that we fit the hashes in the finite amount of probes likely less than previous MaxProbeCount
             {
                 h = newHashesAndIndexes[newHashIndex];
                 if (h == 0)
@@ -307,16 +281,16 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
                     newHashesAndIndexes[newHashIndex] = (probes << ProbeCountShift) | newHashAndOldIndex;
                     break;
                 }
-                if ((h >> ProbeCountShift) < probes)
+                var hp = (byte)(h >> ProbeCountShift);
+                if (hp < probes)
                 {
 #if DEBUG
                     sameIndexes += i == newHashIndex ? 1 : 0;
 #endif
                     newHashesAndIndexes[newHashIndex] = (probes << ProbeCountShift) | newHashAndOldIndex;
                     newHashAndOldIndex = h & HashAndIndexMask;
-                    probes = (byte)(h >> ProbeCountShift);
-                }
-                newHashIndex = (newHashIndex + 1) & newHashIndexMask; // `& indexMask` is for wrapping around the hashes array 
+                    probes = hp;
+                } 
             }
         }
 
