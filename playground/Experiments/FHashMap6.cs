@@ -176,12 +176,15 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
 
         var hashIndex  = hash & hashIndexMask;
         var hashMiddle = hash & hashMiddleMask;
-
-        var robinHooded = false;
+        var hashAndEntryIndex = 0;
         var h = 0;
-        var entryIndex = _entryCount; // by default the new entry index is the last one, but the variable may be updated multiple times by Robin Hood in the loop
-        for (byte probes = 1; probes <= MaxProbeCount; ++probes, hashIndex = (hashIndex + 1) & hashIndexMask)
+        byte probes = 1;
+        for (;; ++probes, hashIndex = (hashIndex + 1) & hashIndexMask)
         {
+            Debug.Assert(probes <= MaxProbeCount, $"DEBUG ASSERT FAILED probes:{probes} <= MaxProbeCount:{MaxProbeCount}");
+            
+            hashAndEntryIndex = (probes << ProbeCountShift) | hashMiddle;
+            
             h = hashesAndIndexes[hashIndex];
             if (h == 0)
             {
@@ -191,39 +194,27 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
                 if (probes > MaxProbes)
                 {
                     MaxProbes = probes;
-                    Debug.WriteLine($"MaxProbes increased to {probes} when adding key:`{key}`");
+                    Debug.WriteLine($"NEW: MaxProbes increased to {probes} when adding key:`{key}`");
                 }
 #endif   
-                hashesAndIndexes[hashIndex] = (probes << ProbeCountShift) | hashMiddle | entryIndex;
-
-                if (_entryCount + 1 >= _entries.Length)
+                var entryCount = _entryCount;
+                hashesAndIndexes[hashIndex] = hashAndEntryIndex | entryCount;
+                
+                // todo: @wip wrap in the abstraction
+                if (entryCount + 1 >= _entries.Length)
                     Array.Resize(ref _entries, _entries.Length << 1);
-
-                ref var e = ref _entries[_entryCount++];
+                ref var e = ref _entries[entryCount];
                 e.Key = key;
                 e.Value = value;
+                
+                _entryCount = entryCount + 1;
                 return;
             }
 
-            var hp = (byte)(h >> ProbeCountShift);
-            if (hp < probes) // skip hashes with the bigger probe count until we find the same or less probes
+            if ((h & ~hashIndexMask) == hashAndEntryIndex)
             {
 #if DEBUG
-                Debug.WriteLine($"Robin Hood from hp:{hp} because probes:{probes}");
-#endif
-                // Robin Hood goes here to steal from the rich (with the less probe count) and give to the poor (with more probes).
-                hashesAndIndexes[hashIndex] = (probes << ProbeCountShift) | hashMiddle | entryIndex;
-                probes = hp;
-                hashMiddle = h & hashMiddleMask;
-                entryIndex = h & hashIndexMask;
-                robinHooded = true;
-            }
-            
-            // todo: @perf avoid robinHooded by breaking out of the loop and swapping the existing hashes in the next loop
-            if (!robinHooded & (hp == probes) & ((h & hashMiddleMask) == hashMiddle)) // todo: @perf huh, we may either combine or keep only the hash check, cause probes and hashMiddle are parts of the hash 
-            {
-#if DEBUG
-                Debug.WriteLine($"hp < probes `{probes}` and hashes are equal for the added key:`{key}` and existing key:`{_entries[h & hashIndexMask].Key}`");
+                Debug.WriteLine($"NEW: hp < probes `{probes}` and hashes are equal for the added key:`{key}` and existing key:`{_entries[h & hashIndexMask].Key}`");
 #endif
                 ref var e = ref _entries[h & hashIndexMask]; // check the existing entry key and update the value if the keys are matched
                 if (default(TEq).Equals(e.Key, key))
@@ -232,10 +223,53 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
                     return;
                 }
             }
+
+            var hp = (byte)(h >> ProbeCountShift);
+            if (hp < probes) // skip hashes with the bigger probe count until we find the same or less probes
+            {
+                // Robin Hood goes here to steal from the rich (with the less probe count) and give to the poor (with more probes).
+                var entryCount = _entryCount;
+                hashesAndIndexes[hashIndex] = hashAndEntryIndex | entryCount;
+                hashAndEntryIndex = h & HashAndIndexMask;
+                probes = hp;
+                
+                if (entryCount + 1 >= _entries.Length)
+                    Array.Resize(ref _entries, _entries.Length << 1);
+
+                ref var e = ref _entries[entryCount];
+                e.Key = key;
+                e.Value = value;
+                
+                _entryCount = entryCount + 1;
+                break;
+            }
         }
 
-        // todo: @wip going outside of MaxProbeCount?
-        Debug.Fail($"Reaching to the max probe count {MaxProbeCount} Resizing to {hashesCapacity << 1}");
+        while(true)
+        {
+            ++probes;
+            hashIndex = (hashIndex + 1) & hashIndexMask;
+            h = hashesAndIndexes[hashIndex];
+            if (h == 0)
+            {
+#if DEBUG
+                if (probes > MaxProbes)
+                {
+                    MaxProbes = probes;
+                    Debug.WriteLine($"SWAP: MaxProbes increased to {probes} when adding key:`{key}`");
+                }
+#endif   
+                hashesAndIndexes[hashIndex] = (probes << ProbeCountShift) | hashAndEntryIndex;
+                return;
+            }
+            var hp = (byte)(h >> ProbeCountShift);
+            if (hp < probes) // skip hashes with the bigger probe count until we find the same or less probes
+            {
+                hashesAndIndexes[hashIndex] = (probes << ProbeCountShift) | hashAndEntryIndex;
+                hashAndEntryIndex = h & HashAndIndexMask;
+                probes = hp;
+            }
+        }
     }
 
     internal static int[] DoubleSize(int[] oldHashesAndIndexes)
@@ -266,7 +300,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
 
             // erasing the next to capacity bit, given the capacity was 4 and now it is 4 << 1 = 8, 
             // we are erasing the 3rd bit to store the new count in it. 
-            var newHashAndOldIndex = oldHash & HashAndIndexMask & ~oldCapacity;
+            var newHashAndEntryIndex = oldHash & HashAndIndexMask & ~oldCapacity;
 
             var h = 0;
             for (byte probes = 1;; ++probes, newHashIndex = (newHashIndex + 1) & newHashIndexMask) // we don't need the condition for the MaxProbes because by increasing the hash space we guarantee that we fit the hashes in the finite amount of probes likely less than previous MaxProbeCount
@@ -278,7 +312,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
                     sameIndexes += i == newHashIndex ? 1 : 0;
                     maxProbeCount = Math.Max(maxProbeCount, probes);
 #endif
-                    newHashesAndIndexes[newHashIndex] = (probes << ProbeCountShift) | newHashAndOldIndex;
+                    newHashesAndIndexes[newHashIndex] = (probes << ProbeCountShift) | newHashAndEntryIndex;
                     break;
                 }
                 var hp = (byte)(h >> ProbeCountShift);
@@ -287,21 +321,19 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
 #if DEBUG
                     sameIndexes += i == newHashIndex ? 1 : 0;
 #endif
-                    newHashesAndIndexes[newHashIndex] = (probes << ProbeCountShift) | newHashAndOldIndex;
-                    newHashAndOldIndex = h & HashAndIndexMask;
+                    newHashesAndIndexes[newHashIndex] = (probes << ProbeCountShift) | newHashAndEntryIndex;
+                    newHashAndEntryIndex = h & HashAndIndexMask;
                     probes = hp;
                 } 
             }
         }
 
 #if DEBUG
-        Debug.Write("old:|");
+        Debug.Write("old:");
         foreach (var it in oldHashesAndIndexes)
-            Debug.Write(it == 0 ? ".|" : $"{it & oldHashIndexMask}|");
-        Debug.WriteLine("");
-        Debug.Write("new:|");
-        foreach (var it in newHashesAndIndexes)
-            Debug.Write(it == 0 ? ".|" : $"{it & newHashIndexMask}|");
+            Debug.Write((it & oldCapacity) == 0 
+                ? "*" 
+                : "-");
         Debug.WriteLine("");
 #endif
         return newHashesAndIndexes;
