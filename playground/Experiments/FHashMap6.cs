@@ -245,6 +245,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
             }
         }
 
+        // todo: @simplify factor out into the method X
         while(true)
         {
             ++probes;
@@ -252,13 +253,6 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
             h = hashesAndIndexes[hashIndex];
             if (h == 0)
             {
-#if DEBUG
-                if (probes > MaxProbes)
-                {
-                    MaxProbes = probes;
-                    Debug.WriteLine($"SWAP: MaxProbes increased to {probes} when adding key:`{key}`");
-                }
-#endif   
                 hashesAndIndexes[hashIndex] = (probes << ProbeCountShift) | hashAndEntryIndex;
                 return;
             }
@@ -300,6 +294,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
             var newHashAndEntryIndex = oldHash & HashAndIndexMask & ~oldCapacity;
 
             var h = 0;
+            // todo: @simplify factor out into the method X
             for (byte probes = 1;; ++probes, newHashIndex = (newHashIndex + 1) & newHashIndexMask) // we don't need the condition for the MaxProbes because by increasing the hash space we guarantee that we fit the hashes in the finite amount of probes likely less than previous MaxProbeCount
             {
                 h = newHashesAndIndexes[newHashIndex];
