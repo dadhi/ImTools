@@ -200,7 +200,8 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
                 var entryCount = _entryCount;
                 hashesAndIndexes[hashIndex] = hashAndEntryIndex | entryCount;
                 
-                // todo: @wip wrap in the abstraction
+                // todo: @wip wrap in the abstraction together with the check and Resize, 
+                // because the abstraction may decide to avoid it completely, e.g. by pre-allocation of enough entries
                 if (entryCount + 1 >= _entries.Length)
                     Array.Resize(ref _entries, _entries.Length << 1);
                 ref var e = ref _entries[entryCount];
@@ -224,6 +225,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
                 }
             }
 
+            // todo: @perf move the check up, because it is cheaper than hash comparison and it may result in early exit
             var hp = (byte)(h >> ProbeCountShift);
             if (hp < probes) // skip hashes with the bigger probe count until we find the same or less probes
             {
