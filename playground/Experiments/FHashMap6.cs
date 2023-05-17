@@ -129,11 +129,14 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
         var hashIndex = hash & hashIndexMask;
 
         var h = 0;
-        for (byte probes = 1; probes <= MaxProbeCount; ++probes)
+        for (byte probes = 1;; ++probes)
         {
             h = hashesAndIndexes[hashIndex];
             if (h == 0)
                 return defaultValue;
+
+            if ((h >> ProbeCountShift) < probes)
+                break;
 
             if ((h & probeAndHashMask) == ((probes << ProbeCountShift) | (hash & hashMask)))
             {
@@ -141,10 +144,6 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
                 if (default(TEq).Equals(e.Key, key))
                     return e.Value;
             }
-
-            if ((h >> ProbeCountShift) < probes)
-                break;
-
             hashIndex = (hashIndex + 1) & hashIndexMask; // `& indexMask` is for wrapping around the hashes array 
         }
         return defaultValue;
