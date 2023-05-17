@@ -14,6 +14,24 @@ public class FHashMap6Tests
         foreach (var it in exp)
             if (!it.IsEmpty)
                 Assert.True(it.HEq);
+
+        // Verify the indexes
+        var uniq = new Dictionary<K, int>(map.Count);
+        var entryIndexMask = map.HashesAndIndexes.Length - 1;
+        var entries = map.Entries;
+        foreach (var it in map.HashesAndIndexes)
+            if (it != 0)
+            {
+                var entryIndex = it & entryIndexMask;
+                var key = entries[entryIndex].Key;
+                if (!uniq.TryGetValue(key, out var count))
+                    uniq.Add(key, 1);
+                else
+                {
+                    Assert.Fail($"Duplicate key: {key}");
+                    uniq[key] = count + 1;
+                }
+            }
     }
 
     [Test]

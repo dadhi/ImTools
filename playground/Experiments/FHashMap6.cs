@@ -7,8 +7,6 @@ namespace ImTools.Experiments;
 
 public static class FHashMap6Extensions
 {
-    // todo: @wip Verify that we don't have the same hashes in the map
-    // todo: @wip Verify that we don't have the same entry indexes
     public static Item<K, V>[] Explain<K, V, TEq>(this FHashMap6<K, V, TEq> map) where TEq : struct, IEqualityComparer<K>
     {
 #if DEBUG
@@ -77,6 +75,8 @@ public class FHashMap6DebugProxy<K, V, TEq> where TEq : struct, IEqualityCompare
 // Combine hashes with indexes to economy on memory
 public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 {
+    // todo: @improve make the Entry a type parameter to map and define TEq in terms of the Entry, 
+    // todo: @improve it will allow to introduce the Set later without the Value in the Entry, end the Entry may be the Key itself
     [DebuggerDisplay("{Key}->{Value}")]
     public struct Entry
     {
@@ -104,6 +104,8 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
     internal Entry[] _entries;
     internal int _entryCount;
 
+    public int[] HashesAndIndexes => _hashesAndIndexes;
+    public Entry[] Entries => _entries;
     public int Count => _entryCount;
 
     public FHashMap6(int capacity = DefaultCapacity)
