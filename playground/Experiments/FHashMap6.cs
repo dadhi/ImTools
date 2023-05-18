@@ -135,9 +135,6 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
         for (byte probes = 1;; ++probes)
         {
             h = hashesAndIndexes[hashIndex];
-            if (h == 0)
-                break;
-
             if ((h >> ProbeCountShift) < probes)
                 break;
 
@@ -173,9 +170,6 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
         for (byte probes = 1; ; ++probes)
         {
             h = hashesAndIndexes[hashIndex];
-            if (h == 0)
-                return defaultValue;
-
             if ((h >> ProbeCountShift) < probes)
                 break;
 
