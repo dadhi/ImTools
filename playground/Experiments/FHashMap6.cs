@@ -129,7 +129,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
         var capacity = hashesAndIndexes.Length;
         var hashIndexMask = capacity - 1;
         var probeAndHashMask = ~(capacity - 1);
-        var hashMask = ~(capacity - 1) & HashAndIndexMask;
+        var hashMiddle = hash & (~(capacity - 1) & HashAndIndexMask);
 
         // super important to have it in a such `for` loop, 
         // because it makes it 2x faster than putting the `(h >> ProbeCountShift) < probes` inside the loop as a condition with break
@@ -137,7 +137,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
         var h = hashesAndIndexes[hashIndex];
         for (byte probes = 1; (h >> ProbeCountShift) < probes; ++probes)
         {
-            if ((h & probeAndHashMask) == ((probes << ProbeCountShift) | (hash & hashMask)))
+            if ((h & probeAndHashMask) == ((probes << ProbeCountShift) | hashMiddle))
             {
                 ref var e = ref _entries[h & hashIndexMask]; // todo: @perf wrap access into the interface to separate the entries abstraction
                 if (default(TEq).Equals(e.Key, key))
