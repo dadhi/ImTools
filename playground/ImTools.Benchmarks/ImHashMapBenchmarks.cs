@@ -1059,7 +1059,7 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
         [MemoryDiagnoser]
         public class Lookup
         {
-            /*
+/*
 ## 21.01.2019: All versions.
 
                Method |     Mean |     Error |    StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
@@ -1697,9 +1697,24 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 | ConcurrentDictionary_TryGetValue |  1000 | 11.358 ns | 0.1464 ns | 0.1222 ns |  0.73 |    0.03 |     - |     - |     - |         - |
 |             ImmutableDict_TryGet |  1000 | 25.875 ns | 0.3752 ns | 0.3510 ns |  1.67 |    0.06 |     - |     - |     - |         - |
 
+## Baseline FHashMap6 vs DictionarySlim vs Dictionary 
+
+BenchmarkDotNet=v0.13.5, OS=Windows 10 (10.0.19042.928/20H2/October2020Update)
+Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical cores
+.NET SDK=7.0.100
+  [Host]     : .NET 7.0.0 (7.0.22.51805), X64 RyuJIT AVX2
+  DefaultJob : .NET 7.0.0 (7.0.22.51805), X64 RyuJIT AVX2
+
+
+|                     Method | Count |      Mean |     Error |    StdDev |    Median | Ratio | RatioSD | Allocated | Alloc Ratio |
+|--------------------------- |------ |----------:|----------:|----------:|----------:|------:|--------:|----------:|------------:|
+|     Dictionary_TryGetValue |   100 | 15.234 ns | 0.3434 ns | 0.6779 ns | 14.971 ns |  1.00 |    0.00 |         - |          NA |
+| DictionarySlim_TryGetValue |   100 |  9.790 ns | 0.5518 ns | 1.6271 ns |  8.944 ns |  0.70 |    0.11 |         - |          NA |
+|       FHashMap_TryGetValue |   100 | 20.591 ns | 0.4773 ns | 0.4232 ns | 20.521 ns |  1.32 |    0.09 |         - |          NA |
+
 */
-            [Params(1, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
-            // [Params(20)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
+            // [Params(1, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
+            [Params(100)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             public int Count;
 
             [GlobalSetup]
@@ -1713,6 +1728,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 _typeDict = TypeDictionary_Add();
                 _dict = Dict();
                 _dictSlim = DictSlim();
+                _fHashMap = FillFHashMap();
                 _concurrentDict = ConcurrentDict();
                 _immutableDict = ImmutableDict();
             }
@@ -1877,6 +1893,19 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 
             private DictionarySlim<TypeVal, string> _dictSlim;
 
+            public ImTools.Experiments.FHashMap6<Type, string, ImTools.Experiments.RefEq<Type>> FillFHashMap()
+            {
+                var map = new ImTools.Experiments.FHashMap6<Type, string, ImTools.Experiments.RefEq<Type>>();
+
+                foreach (var key in _keys.Take(Count))
+                    map.AddOrUpdate(key, "a");
+
+                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+                return map;
+            }
+
+            private ImTools.Experiments.FHashMap6<Type, string, ImTools.Experiments.RefEq<Type>> _fHashMap;
+
             public ConcurrentDictionary<Type, string> ConcurrentDict()
             {
                 var map = new ConcurrentDictionary<Type, string>();
@@ -1960,14 +1989,14 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return (string)result;
             }
 
-            [Benchmark(Baseline = true)]
+            // [Benchmark(Baseline = true)]
             public string V4_ImHashMap_TryFind()
             {
                 _mapV4.TryFind(LookupKey.GetHashCode(), LookupKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public string V3_ImHashMap_TryFind()
             {
                 _mapV3.TryFind(LookupKey.GetHashCode(), LookupKey, out var result);
@@ -2003,7 +2032,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             //     return ((ImTools.Experimental.ImHashMap234<Type, string>.KeyValueEntry)entry).Value;
             // }
 
-            [Benchmark]
+            // [Benchmark]
             public string V4_PartitionedHashMap_TryFind()
             {
                 var hash = LookupKey.GetHashCode();
@@ -2011,7 +2040,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return result;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public string V3_PartitionedHashMap_TryFind()
             {
                 var hash = LookupKey.GetHashCode();
@@ -2035,6 +2064,13 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return (string)result;
             }
 
+            [Benchmark(Baseline = true)]
+            public string Dictionary_TryGetValue()
+            {
+                _dict.TryGetValue(LookupKey, out var result);
+                return result;
+            }
+
             [Benchmark]
             public string DictionarySlim_TryGetValue()
             {
@@ -2043,20 +2079,20 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             }
 
             [Benchmark]
-            public string Dictionary_TryGetValue()
+            public string FHashMap_TryGetValue()
             {
-                _dict.TryGetValue(LookupKey, out var result);
+                _fHashMap.TryGetValue(LookupKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public string ConcurrentDictionary_TryGetValue()
             {
                 _concurrentDict.TryGetValue(LookupKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public string ImmutableDict_TryGet()
             {
                 _immutableDict.TryGetValue(LookupKey, out var result);

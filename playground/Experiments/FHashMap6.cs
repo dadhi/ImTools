@@ -119,6 +119,43 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
         // _entries = GC.AllocateUninitializedArray<Entry>(capacity); // todo: create without default values using via GC.AllocateUninitializedArray<Entry>(size);
     }
 
+    public bool TryGetValue(K key, out V value)
+    {
+        var hash = default(TEq).GetHashCode(key);
+
+        var hashesAndIndexes = _hashesAndIndexes;
+        var capacity = hashesAndIndexes.Length;
+
+        var hashIndexMask = capacity - 1;
+        var probeAndHashMask = ~(capacity - 1);
+        var hashMask = ~(capacity - 1) & HashAndIndexMask;
+
+        var h = 0;
+        var hashIndex = hash & hashIndexMask;
+        for (byte probes = 1;; ++probes)
+        {
+            h = hashesAndIndexes[hashIndex];
+            if (h == 0)
+                break;
+
+            if ((h >> ProbeCountShift) < probes)
+                break;
+
+            if ((h & probeAndHashMask) == ((probes << ProbeCountShift) | (hash & hashMask)))
+            {
+                ref var e = ref _entries[h & hashIndexMask]; // todo: @perf wrap access into the interface to separate the entries abstraction
+                if (default(TEq).Equals(e.Key, key))
+                {
+                    value = e.Value;
+                    return true;
+                }
+            }
+            hashIndex = (hashIndex + 1) & hashIndexMask; // `& indexMask` is for wrapping around the hashes array 
+        }
+        value = default;
+        return false;
+    }
+
     public V GetValueOrDefault(K key, V defaultValue = default)
     {
         var hash = default(TEq).GetHashCode(key);
