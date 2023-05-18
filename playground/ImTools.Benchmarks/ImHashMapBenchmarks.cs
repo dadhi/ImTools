@@ -1711,13 +1711,13 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 | DictionarySlim_TryGetValue |   100 |  9.790 ns | 0.5518 ns | 1.6271 ns |  8.944 ns |  0.70 |    0.11 |         - |          NA |
 |       FHashMap_TryGetValue |   100 | 20.591 ns | 0.4773 ns | 0.4232 ns | 20.521 ns |  1.32 |    0.09 |         - |          NA |
 
-## FHashMap vs DictionarySlim small optimization
+## Cool, small change
 
-|                     Method | Count |      Mean |     Error |    StdDev |    Median | Ratio | RatioSD | Allocated | Alloc Ratio |
-|--------------------------- |------ |----------:|----------:|----------:|----------:|------:|--------:|----------:|------------:|
-| DictionarySlim_TryGetValue |   100 |  8.997 ns | 0.4795 ns | 1.4064 ns |  8.222 ns |  1.00 |    0.00 |         - |          NA |
-|       FHashMap_TryGetValue |   100 | 18.881 ns | 0.3780 ns | 0.3882 ns | 18.855 ns |  1.71 |    0.09 |         - |          NA |
-
+|                     Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Allocated | Alloc Ratio |
+|--------------------------- |------ |----------:|----------:|----------:|------:|--------:|----------:|------------:|
+|     Dictionary_TryGetValue |   100 | 17.555 ns | 0.8134 ns | 2.3338 ns |  1.00 |    0.00 |         - |          NA |
+| DictionarySlim_TryGetValue |   100 |  8.678 ns | 0.4078 ns | 1.1300 ns |  0.50 |    0.09 |         - |          NA |
+|       FHashMap_TryGetValue |   100 |  8.154 ns | 0.3429 ns | 0.9560 ns |  0.47 |    0.08 |         - |          NA |
 */
             // [Params(1, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             [Params(100)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
@@ -2070,14 +2070,15 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return (string)result;
             }
 
-            // [Benchmark(Baseline = true)]
+            [Benchmark(Baseline = true)]
             public string Dictionary_TryGetValue()
             {
                 _dict.TryGetValue(LookupKey, out var result);
                 return result;
             }
 
-            [Benchmark(Baseline = true)]
+            // [Benchmark(Baseline = true)]
+            [Benchmark]
             public string DictionarySlim_TryGetValue()
             {
                 _dictSlim.TryGetValue(LookupKey, out var result);

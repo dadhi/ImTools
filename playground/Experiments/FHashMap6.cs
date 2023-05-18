@@ -124,20 +124,19 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
         var hash = default(TEq).GetHashCode(key);
 
         var hashesAndIndexes = _hashesAndIndexes;
-        var capacity = hashesAndIndexes.Length;
 
+        // todo: @perf test what if we pre-calculate the mask on addition and store/load them from the fields 
+        var capacity = hashesAndIndexes.Length;
         var hashIndexMask = capacity - 1;
         var probeAndHashMask = ~(capacity - 1);
         var hashMask = ~(capacity - 1) & HashAndIndexMask;
 
-        var h = 0;
+        // super important to have it in a such `for` loop, 
+        // because it makes it 2x faster than putting the `(h >> ProbeCountShift) < probes` inside the loop as a condition with break
         var hashIndex = hash & hashIndexMask;
-        for (byte probes = 1;; ++probes)
+        var h = hashesAndIndexes[hashIndex];
+        for (byte probes = 1; (h >> ProbeCountShift) < probes; ++probes)
         {
-            h = hashesAndIndexes[hashIndex];
-            if ((h >> ProbeCountShift) < probes)
-                break;
-
             if ((h & probeAndHashMask) == ((probes << ProbeCountShift) | (hash & hashMask)))
             {
                 ref var e = ref _entries[h & hashIndexMask]; // todo: @perf wrap access into the interface to separate the entries abstraction
@@ -147,7 +146,8 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
                     return true;
                 }
             }
-            hashIndex = (hashIndex + 1) & hashIndexMask; // `& indexMask` is for wrapping around the hashes array 
+            hashIndex = (hashIndex + 1) & hashIndexMask;
+            h = hashesAndIndexes[hashIndex];
         }
         value = default;
         return false;
@@ -389,7 +389,7 @@ public struct RefEq<K> : IEqualityComparer<K> where K : class
 {
     /// <inheritdoc />
     [MethodImpl((MethodImplOptions)256)]
-    public bool Equals(K x, K y) => x == y;
+    public bool Equals(K x, K y) => ReferenceEquals(x, y);
 
     /// <inheritdoc />
     [MethodImpl((MethodImplOptions)256)]
