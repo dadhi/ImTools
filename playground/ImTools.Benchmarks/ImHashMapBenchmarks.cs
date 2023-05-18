@@ -1893,7 +1893,7 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 foreach (var key in _keys.Take(Count))
                     dict.GetOrAddValueRef(key) = "a";
 
-                dict.GetOrAddValueRef(typeof(ImHashMapBenchmarks)) = "!";
+                dict.GetOrAddValueRef(LookupKey) = "!";
                 return dict;
             }
 
@@ -1906,7 +1906,7 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 foreach (var key in _keys.Take(Count))
                     map.AddOrUpdate(key, "a");
 
-                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+                map.AddOrUpdate(LookupKey, "!");
                 return map;
             }
 
@@ -1971,7 +1971,7 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 
             #endregion
 
-            public static Type LookupKey = typeof(ImHashMapBenchmarks);
+            public static Type LookupKey = typeof(Console);
 
             // [Benchmark(Baseline = true)]
             public string V2_ImHashMap_AVL_TryFind()
