@@ -84,7 +84,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
         public V Value;
     }
 
-    public const int DefaultCapacity = 16;
+    public const int DefaultSeedCapacity = 16;
     public const byte MinFreeCapacityShift = 3; // e.g. for the DefaultCapacity 16 >> 3 => 2, so 2 free slots is 12.5% of the capacity  
 
     public const byte MaxProbeBits = 5; // 5 bits max
@@ -107,10 +107,14 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
     public Entry[] Entries => _entries;
     public int Count => _entryCount;
 
-    public FHashMap6(int capacity = DefaultCapacity)
+    public FHashMap6(int seedCapacity = DefaultSeedCapacity)
     {
-        _hashesAndIndexes = new int[capacity << 1]; // todo: @wip double the size of entries because hashes are cheap, review later with bms
-        _entries = new Entry[capacity];
+        // double the size of the hashes, because they are cheap, 
+        // this will also provide the flexibility of independence of the sizes of hashes and entries
+        _hashesAndIndexes = new int[seedCapacity << 1];
+        
+        _entries = new Entry[seedCapacity];
+
         // todo: @perf benchmark the un-initialized array?
         // _entries = GC.AllocateUninitializedArray<Entry>(capacity); // todo: create without default values using via GC.AllocateUninitializedArray<Entry>(size);
     }
@@ -129,7 +133,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
         var hashIndex = hash & hashIndexMask;
 
         var h = 0;
-        for (byte probes = 1;; ++probes)
+        for (byte probes = 1; ; ++probes)
         {
             h = hashesAndIndexes[hashIndex];
             if (h == 0)
@@ -170,20 +174,20 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
 #endif
         }
 
-        var hashIndexMask  = hashesCapacity - 1;
+        var hashIndexMask = hashesCapacity - 1;
         var hashMiddleMask = ~hashIndexMask & HashAndIndexMask;
 
-        var hashIndex  = hash & hashIndexMask;
+        var hashIndex = hash & hashIndexMask;
         var hashMiddle = hash & hashMiddleMask;
         var hashAndEntryIndex = 0;
         var h = 0;
         byte probes = 1;
-        for (;; ++probes, hashIndex = (hashIndex + 1) & hashIndexMask)
+        for (; ; ++probes, hashIndex = (hashIndex + 1) & hashIndexMask)
         {
             Debug.Assert(probes <= MaxProbeCount, $"DEBUG ASSERT FAILED probes:{probes} <= MaxProbeCount:{MaxProbeCount}");
-            
+
             hashAndEntryIndex = (probes << ProbeCountShift) | hashMiddle;
-            
+
             h = hashesAndIndexes[hashIndex];
             if (h == 0)
             {
@@ -198,7 +202,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
 #endif   
                 var entryCount = _entryCount;
                 hashesAndIndexes[hashIndex] = hashAndEntryIndex | entryCount;
-                
+
                 // todo: @wip wrap in the abstraction together with the check and Resize, 
                 // because the abstraction may decide to avoid it completely, e.g. by pre-allocation of enough entries
                 if (entryCount + 1 >= _entries.Length)
@@ -206,7 +210,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
                 ref var e = ref _entries[entryCount];
                 e.Key = key;
                 e.Value = value;
-                
+
                 _entryCount = entryCount + 1;
                 return;
             }
@@ -220,13 +224,13 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
                 hashesAndIndexes[hashIndex] = hashAndEntryIndex | entryCount;
                 hashAndEntryIndex = h & HashAndIndexMask;
                 probes = (byte)hp;
-                
+
                 if (entryCount + 1 >= _entries.Length)
                     Array.Resize(ref _entries, _entries.Length << 1);
                 ref var e = ref _entries[entryCount];
                 e.Key = key;
                 e.Value = value;
-                
+
                 _entryCount = entryCount + 1;
                 break;
             }
@@ -246,7 +250,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
         }
 
         // todo: @simplify factor out into the method X
-        while(true)
+        while (true)
         {
             ++probes;
             hashIndex = (hashIndex + 1) & hashIndexMask;
@@ -295,7 +299,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
 
             var h = 0;
             // todo: @simplify factor out into the method X
-            for (byte probes = 1;; ++probes, newHashIndex = (newHashIndex + 1) & newHashIndexMask) // we don't need the condition for the MaxProbes because by increasing the hash space we guarantee that we fit the hashes in the finite amount of probes likely less than previous MaxProbeCount
+            for (byte probes = 1; ; ++probes, newHashIndex = (newHashIndex + 1) & newHashIndexMask) // we don't need the condition for the MaxProbes because by increasing the hash space we guarantee that we fit the hashes in the finite amount of probes likely less than previous MaxProbeCount
             {
                 h = newHashesAndIndexes[newHashIndex];
                 if (h == 0)
@@ -309,7 +313,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
                     newHashesAndIndexes[newHashIndex] = (probes << ProbeCountShift) | newHashAndEntryIndex;
                     newHashAndEntryIndex = h & HashAndIndexMask;
                     probes = (byte)hp; // todo: @perf Unsafe.As<int, byte>(ref hp)?
-                } 
+                }
             }
         }
 #if DEBUG
@@ -318,7 +322,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
         // todo: @perf can we move the non`-` hashes in a one loop if possible or non move at all? 
         Debug.Write("before resize:");
         foreach (var it in oldHashesAndIndexes)
-            Debug.Write(it == 0 ? "_" 
+            Debug.Write(it == 0 ? "_"
             : (it & oldCapacity) != 0 ? "-"
             : (it >> ProbeCountShift).ToString());
 
