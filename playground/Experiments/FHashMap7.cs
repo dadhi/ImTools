@@ -5,9 +5,9 @@ using System.Runtime.CompilerServices;
 
 namespace ImTools.Experiments;
 
-public static class FHashMap6Extensions
+public static class FHashMap7Extensions
 {
-    public static Item<K, V>[] Explain<K, V, TEq>(this FHashMap6<K, V, TEq> map) where TEq : struct, IEqualityComparer<K>
+    public static Item<K, V>[] Explain<K, V, TEq>(this FHashMap7<K, V, TEq> map) where TEq : struct, IEqualityComparer<K>
     {
 #if DEBUG
         Debug.WriteLine($"FirstProbeAdditions: {map.FirstProbeAdditions}, MaxProbes: {map.MaxProbes}");
@@ -26,10 +26,10 @@ public static class FHashMap6Extensions
             if (h == 0)
                 continue;
 
-            var probe = (byte)(h >> FHashMap6<K, V, TEq>.ProbeCountShift);
+            var probe = (byte)(h >> FHashMap7<K, V, TEq>.ProbeCountShift);
             var hashIndex = (capacity + i - (probe - 1)) & indexMask;
 
-            var hashMiddle = (h & FHashMap6<K, V, TEq>.HashAndIndexMask & ~indexMask);
+            var hashMiddle = (h & FHashMap7<K, V, TEq>.HashAndIndexMask & ~indexMask);
             var hash = hashMiddle | hashIndex;
             var index = h & indexMask;
 
@@ -38,7 +38,7 @@ public static class FHashMap6Extensions
             if (probe != 0)
             {
                 var e = entries[index];
-                var kh = e.Key.GetHashCode() & FHashMap6<K, V, TEq>.HashAndIndexMask;
+                var kh = e.Key.GetHashCode() & FHashMap7<K, V, TEq>.HashAndIndexMask;
                 heq = kh == hash;
                 hkv = $"{kh.b()}:{e.Key}->{e.Value}";
             }
@@ -61,18 +61,18 @@ public static class FHashMap6Extensions
 }
 
 #if DEBUG
-public class FHashMap6DebugProxy<K, V, TEq> where TEq : struct, IEqualityComparer<K>
+public class FHashMap7DebugProxy<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 {
-    private readonly FHashMap6<K, V, TEq> _map;
-    public FHashMap6DebugProxy(FHashMap6<K, V, TEq> map) => _map = map;
+    private readonly FHashMap7<K, V, TEq> _map;
+    public FHashMap7DebugProxy(FHashMap7<K, V, TEq> map) => _map = map;
     [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-    public FHashMap6Extensions.Item<K, V>[] Items => _map.Explain();
+    public FHashMap7Extensions.Item<K, V>[] Items => _map.Explain();
 }
 
-[DebuggerTypeProxy(typeof(FHashMap6DebugProxy<,,>))]
+[DebuggerTypeProxy(typeof(FHashMap7DebugProxy<,,>))]
 [DebuggerDisplay("Count={Count}")]
 #endif
-public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K>
+public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 {
     // todo: @improve make the Entry a type parameter to map and define TEq in terms of the Entry, 
     // todo: @improve it will allow to introduce the Set later without the Value in the Entry, end the Entry may be the Key itself
@@ -92,7 +92,6 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
     public const int SingleProbeMask = 1 << ProbeCountShift;
     public const int HashAndIndexMask = ~(MaxProbeCount << ProbeCountShift);
 
-    // todo: @perf what if use the long to store a pair if entries and batch work on them in pairs?
     // The _hashesAndIndexes item is the Int32, 
     // e.g. 00010|000...110|01101
     //      |     |         |- The index into the _entries array, 0-based. It is the size of the hashes array size-1 (e.g. 15 for the 16). 
@@ -109,7 +108,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
     public Entry[] Entries => _entries;
     public int Count => _entryCount;
 
-    public FHashMap6(int seedCapacity = DefaultSeedCapacity)
+    public FHashMap7(int seedCapacity = DefaultSeedCapacity)
     {
         // double the size of the hashes, because they are cheap, 
         // this will also provide the flexibility of independence of the sizes of hashes and entries
