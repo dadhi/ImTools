@@ -330,6 +330,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
         var newIndexMask = newCapacity - 1;
         var newHashMiddleMask = ~newIndexMask & HashAndIndexMask;
 
+        // todo: @perf find the way to avoid copying the hashes with 0 next bit and with ideal+ probe count
         for (var i = 0; i < (uint)oldHashesAndIndexes.Length; i++)
         {
             var oldHash = oldHashesAndIndexes[i];
