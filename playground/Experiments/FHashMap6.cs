@@ -119,6 +119,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
         // _entries = GC.AllocateUninitializedArray<Entry>(capacity); // todo: create without default values using via GC.AllocateUninitializedArray<Entry>(size);
     }
 
+    // todo: @inline the method
     public bool TryGetValue(K key, out V value)
     {
         var hash = default(TEq).GetHashCode(key);
@@ -126,27 +127,28 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
         var hashesAndIndexes = _hashesAndIndexes;
 
         // todo: @perf test what if we pre-calculate the mask on addition and store/load them from the fields 
+        // todo: @perf or at least the `_indexMask`, so it will be 2 lines vs 4 `var probeAndHashMask = ~_indexMask; var hashMiddle = hash & probeAndHashMask &Has hAndIndexMask;` 
         var capacity = hashesAndIndexes.Length;
-        var hashIndexMask = capacity - 1;
+        var indexMask = capacity - 1;
         var probeAndHashMask = ~(capacity - 1);
         var hashMiddle = hash & (~(capacity - 1) & HashAndIndexMask);
 
         // super important to have it in a such `for` loop, 
         // because it makes it 2x faster than putting the `(h >> ProbeCountShift) < probes` inside the loop as a condition with break
-        var hashIndex = hash & hashIndexMask;
+        var hashIndex = hash & indexMask;
         var h = hashesAndIndexes[hashIndex];
-        for (byte probes = 1; (h >> ProbeCountShift) < probes; ++probes)
+        for (byte probes = 1; (h >> ProbeCountShift) >= probes; ++probes)
         {
             if ((h & probeAndHashMask) == ((probes << ProbeCountShift) | hashMiddle))
             {
-                ref var e = ref _entries[h & hashIndexMask]; // todo: @perf wrap access into the interface to separate the entries abstraction
+                ref var e = ref _entries[h & indexMask]; // todo: @perf wrap access into the interface to separate the entries abstraction
                 if (default(TEq).Equals(e.Key, key))
                 {
                     value = e.Value;
                     return true;
                 }
             }
-            hashIndex = (hashIndex + 1) & hashIndexMask;
+            hashIndex = (hashIndex + 1) & indexMask;
             h = hashesAndIndexes[hashIndex];
         }
         value = default;
