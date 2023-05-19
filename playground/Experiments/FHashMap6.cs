@@ -160,30 +160,28 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
         var hash = default(TEq).GetHashCode(key);
 
         var hashesAndIndexes = _hashesAndIndexes;
-        var capacity = hashesAndIndexes.Length;
+        var indexMask = _indexMask;
+        var probeAndHashMask = ~indexMask;
+        var hashMiddle = hash & ~indexMask & HashAndIndexMask;
 
-        var hashIndexMask = capacity - 1;
-        var probeAndHashMask = ~(capacity - 1);
-        var hashMask = ~(capacity - 1) & HashAndIndexMask;
-
-        var hashIndex = hash & hashIndexMask;
-
-        var h = 0;
-        for (byte probes = 1; ; ++probes)
+        var hashIndex = hash & indexMask;
+        byte probes = 1;
+        while (true)
         {
-            h = hashesAndIndexes[hashIndex];
+            var h = hashesAndIndexes[hashIndex];
             if ((h >> ProbeCountShift) < probes)
                 break;
 
-            if ((h & probeAndHashMask) == ((probes << ProbeCountShift) | (hash & hashMask)))
+            if ((h & probeAndHashMask) == ((probes << ProbeCountShift) | hashMiddle))
             {
-                ref var e = ref _entries[h & hashIndexMask]; // todo: @perf wrap access into the interface to separate the entries abstraction
+                ref var e = ref _entries[h & indexMask]; // todo: @perf wrap access into the interface to separate the entries abstraction
                 if (default(TEq).Equals(e.Key, key))
                     return e.Value;
             }
-            hashIndex = (hashIndex + 1) & hashIndexMask; // `& indexMask` is for wrapping around the hashes array 
+            hashIndex = (hashIndex + 1) & indexMask;
+            ++probes;
         }
-        return defaultValue;
+        return default;
     }
 
 #if DEBUG
