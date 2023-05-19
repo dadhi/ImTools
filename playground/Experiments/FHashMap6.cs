@@ -16,9 +16,9 @@ public static class FHashMap6Extensions
         var entries = map._entries;
         var hashesAndIndexes = map._hashesAndIndexes;
         var capacity = hashesAndIndexes.Length;
+        var indexMask = map._indexMask;
 
-        var items = new Item<K, V>[capacity];
-        var indexMask = capacity - 1;
+        var items = new Item<K, V>[hashesAndIndexes.Length];
 
         for (var i = 0; i < hashesAndIndexes.Length; i++)
         {
@@ -101,6 +101,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
     // The removed hash will be actually removed, so we don't use the removed bit here.
     internal int[] _hashesAndIndexes;
     internal Entry[] _entries;
+    internal int _indexMask;
     internal int _entryCount;
 
     public int[] HashesAndIndexes => _hashesAndIndexes;
@@ -112,33 +113,32 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
         // double the size of the hashes, because they are cheap, 
         // this will also provide the flexibility of independence of the sizes of hashes and entries
         _hashesAndIndexes = new int[seedCapacity << 1];
-        
         _entries = new Entry[seedCapacity];
+        _indexMask = (seedCapacity << 1) - 1;
+        _entryCount = 0;
 
         // todo: @perf benchmark the un-initialized array?
         // _entries = GC.AllocateUninitializedArray<Entry>(capacity); // todo: create without default values using via GC.AllocateUninitializedArray<Entry>(size);
     }
 
-    // todo: @inline the method
+    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
     public bool TryGetValue(K key, out V value)
     {
         var hash = default(TEq).GetHashCode(key);
 
         var hashesAndIndexes = _hashesAndIndexes;
+        var indexMask = _indexMask;
+        var probeAndHashMask = ~indexMask;
+        var hashMiddle = hash & ~indexMask & HashAndIndexMask;
 
-        // todo: @perf test what if we pre-calculate the mask on addition and store/load them from the fields 
-        // todo: @perf or at least the `_indexMask`, so it will be 2 lines vs 4 `var probeAndHashMask = ~_indexMask; var hashMiddle = hash & probeAndHashMask &Has hAndIndexMask;` 
-        var capacity = hashesAndIndexes.Length;
-        var indexMask = capacity - 1;
-        var probeAndHashMask = ~(capacity - 1);
-        var hashMiddle = hash & (~(capacity - 1) & HashAndIndexMask);
-
-        // super important to have it in a such `for` loop, 
-        // because it makes it 2x faster than putting the `(h >> ProbeCountShift) < probes` inside the loop as a condition with break
         var hashIndex = hash & indexMask;
-        var h = hashesAndIndexes[hashIndex];
-        for (byte probes = 1; (h >> ProbeCountShift) >= probes; ++probes)
+        byte probes = 1;
+        while (true)
         {
+            var h = hashesAndIndexes[hashIndex];
+            if ((h >> ProbeCountShift) < probes)
+                break;
+
             if ((h & probeAndHashMask) == ((probes << ProbeCountShift) | hashMiddle))
             {
                 ref var e = ref _entries[h & indexMask]; // todo: @perf wrap access into the interface to separate the entries abstraction
@@ -149,7 +149,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
                 }
             }
             hashIndex = (hashIndex + 1) & indexMask;
-            h = hashesAndIndexes[hashIndex];
+            ++probes;
         }
         value = default;
         return false;
@@ -196,31 +196,26 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
         var hash = default(TEq).GetHashCode(key);
 
         var hashesAndIndexes = _hashesAndIndexes;
-        var hashesCapacity = hashesAndIndexes.Length;
-        if (hashesCapacity - _entryCount <= (hashesCapacity >> MinFreeCapacityShift)) // if the free capacity is less free slots 1/16 (6.25%)
+        var indexMask = _indexMask;
+        if (indexMask - _entryCount <= (indexMask >> MinFreeCapacityShift)) // if the free capacity is less free slots 1/16 (6.25%)
         {
             _hashesAndIndexes = hashesAndIndexes = DoubleSize(_hashesAndIndexes);
-            hashesCapacity = hashesAndIndexes.Length;
-
+            _indexMask = indexMask = (indexMask << 1) | 1;
 #if DEBUG
-            Debug.WriteLine($"Resize _hashesAndIndexes to {hashesCapacity} because the _entryCount:{_entryCount}");
+            Debug.WriteLine($"Resize _hashesAndIndexes to {_indexMask + 1} because the _entryCount:{_entryCount}");
 #endif
         }
 
-        var hashIndexMask = hashesCapacity - 1;
-        var hashMiddleMask = ~hashIndexMask & HashAndIndexMask;
-
-        var hashIndex = hash & hashIndexMask;
-        var hashMiddle = hash & hashMiddleMask;
+        var hashIndex = hash & indexMask;
+        var hashMiddle = hash & ~indexMask & HashAndIndexMask;
         var hashAndEntryIndex = 0;
         var h = 0;
         byte probes = 1;
-        for (; ; ++probes, hashIndex = (hashIndex + 1) & hashIndexMask)
+        for (; ; ++probes, hashIndex = (hashIndex + 1) & indexMask)
         {
             Debug.Assert(probes <= MaxProbeCount, $"DEBUG ASSERT FAILED probes:{probes} <= MaxProbeCount:{MaxProbeCount}");
 
             hashAndEntryIndex = (probes << ProbeCountShift) | hashMiddle;
-
             h = hashesAndIndexes[hashIndex];
             if (h == 0)
             {
@@ -268,12 +263,12 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
                 break;
             }
 
-            if ((h & ~hashIndexMask) == hashAndEntryIndex)
+            if ((h & ~indexMask) == hashAndEntryIndex)
             {
 #if DEBUG
-                Debug.WriteLine($"NEW: hp < probes `{probes}` and hashes are equal for the added key:`{key}` and existing key:`{_entries[h & hashIndexMask].Key}`");
+                Debug.WriteLine($"NEW: hp < probes `{probes}` and hashes are equal for the added key:`{key}` and existing key:`{_entries[h & indexMask].Key}`");
 #endif
-                ref var e = ref _entries[h & hashIndexMask]; // check the existing entry key and update the value if the keys are matched
+                ref var e = ref _entries[h & indexMask]; // check the existing entry key and update the value if the keys are matched
                 if (default(TEq).Equals(e.Key, key))
                 {
                     e.Value = value;
@@ -286,7 +281,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
         while (true)
         {
             ++probes;
-            hashIndex = (hashIndex + 1) & hashIndexMask;
+            hashIndex = (hashIndex + 1) & indexMask;
             h = hashesAndIndexes[hashIndex];
             if (h == 0)
             {
@@ -309,9 +304,9 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
         var newCapacity = oldCapacity << 1;
         var newHashesAndIndexes = new int[newCapacity];
 
-        var oldHashIndexMask = oldCapacity - 1;
-        var newHashIndexMask = newCapacity - 1;
-        var newHashMiddleMask = ~newHashIndexMask & HashAndIndexMask;
+        var oldIndexMask = oldCapacity - 1;
+        var newIndexMask = newCapacity - 1;
+        var newHashMiddleMask = ~newIndexMask & HashAndIndexMask;
 
         for (var i = 0; i < (uint)oldHashesAndIndexes.Length; i++)
         {
@@ -322,9 +317,9 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
             // get the new hash index for the new capacity by restoring the (possibly wrapped) 
             // probes count (and therefore the distance from the ideal hash position) 
             var distance = (oldHash >> ProbeCountShift) - 1;
-            var oldHashIndex = (oldCapacity + i - distance) & oldHashIndexMask;
-            var restoredOldHash = (oldHash & ~oldHashIndexMask) | oldHashIndex;
-            var newHashIndex = restoredOldHash & newHashIndexMask;
+            var oldHashIndex = (oldCapacity + i - distance) & oldIndexMask;
+            var restoredOldHash = (oldHash & ~oldIndexMask) | oldHashIndex;
+            var newHashIndex = restoredOldHash & newIndexMask;
 
             // erasing the next to capacity bit, given the capacity was 4 and now it is 4 << 1 = 8, 
             // we are erasing the 3rd bit to store the new count in it. 
@@ -332,7 +327,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
 
             var h = 0;
             // todo: @simplify factor out into the method X
-            for (byte probes = 1; ; ++probes, newHashIndex = (newHashIndex + 1) & newHashIndexMask) // we don't need the condition for the MaxProbes because by increasing the hash space we guarantee that we fit the hashes in the finite amount of probes likely less than previous MaxProbeCount
+            for (byte probes = 1; ; ++probes, newHashIndex = (newHashIndex + 1) & newIndexMask) // we don't need the condition for the MaxProbes because by increasing the hash space we guarantee that we fit the hashes in the finite amount of probes likely less than previous MaxProbeCount
             {
                 h = newHashesAndIndexes[newHashIndex];
                 if (h == 0)

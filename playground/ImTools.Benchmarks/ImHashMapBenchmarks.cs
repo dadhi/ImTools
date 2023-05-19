@@ -1711,9 +1711,12 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 | DictionarySlim_TryGetValue |   100 |  9.790 ns | 0.5518 ns | 1.6271 ns |  8.944 ns |  0.70 |    0.11 |         - |          NA |
 |       FHashMap_TryGetValue |   100 | 20.591 ns | 0.4773 ns | 0.4232 ns | 20.521 ns |  1.32 |    0.09 |         - |          NA |
 
-## Never happened
+## Never happened?
 
-
+|                     Method | Count |     Mean |    Error |   StdDev |   Median | Ratio | RatioSD | Allocated | Alloc Ratio |
+|--------------------------- |------ |---------:|---------:|---------:|---------:|------:|--------:|----------:|------------:|
+| DictionarySlim_TryGetValue |   100 | 11.14 ns | 0.613 ns | 1.749 ns | 10.75 ns |  1.00 |    0.00 |         - |          NA |
+|       FHashMap_TryGetValue |   100 | 11.29 ns | 0.641 ns | 1.850 ns | 10.77 ns |  1.03 |    0.20 |         - |          NA |
 
 */
             // [Params(1, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
