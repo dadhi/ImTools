@@ -382,36 +382,3 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
         return newHashesAndIndexes;
     }
 }
-
-public struct DefaultEq<K> : IEqualityComparer<K>
-{
-    /// <inheritdoc />
-    [MethodImpl((MethodImplOptions)256)]
-    public bool Equals(K x, K y) => x.Equals(y);
-
-    /// <inheritdoc />
-    [MethodImpl((MethodImplOptions)256)]
-    public int GetHashCode(K obj) => obj.GetHashCode();
-}
-
-public struct IntEq : IEqualityComparer<int>
-{
-    /// <inheritdoc />
-    [MethodImpl((MethodImplOptions)256)]
-    public bool Equals(int x, int y) => x == y;
-
-    /// <inheritdoc />
-    [MethodImpl((MethodImplOptions)256)]
-    public int GetHashCode(int obj) => obj;
-}
-
-public struct RefEq<K> : IEqualityComparer<K> where K : class
-{
-    /// <inheritdoc />
-    [MethodImpl((MethodImplOptions)256)]
-    public bool Equals(K x, K y) => ReferenceEquals(x, y);
-
-    /// <inheritdoc />
-    [MethodImpl((MethodImplOptions)256)]
-    public int GetHashCode(K obj) => obj.GetHashCode();
-}
