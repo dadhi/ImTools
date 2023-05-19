@@ -47,28 +47,6 @@ public static class FHashMap6Extensions
         return items;
     }
 
-    [MethodImpl((MethodImplOptions)256)]
-    public static T GetItemNoBoundsCheck<T>(this T[] source, int i)
-    {
-#if NET7_0_OR_GREATER
-        ref var s = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(source);
-        return Unsafe.Add(ref s, i);
-#else
-        return source[i];
-#endif
-    }
-
-    [MethodImpl((MethodImplOptions)256)]
-    public static ref T GetItemNoBoundsCheckByRef<T>(this T[] source, int i)
-    {
-#if NET7_0_OR_GREATER
-        ref var s = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(source);
-        return ref Unsafe.Add(ref s, i);
-#else
-        return ref source[i];
-#endif
-    }
-
     public struct Item<K, V>
     {
         public byte Probe;
@@ -94,7 +72,6 @@ public class FHashMap6DebugProxy<K, V, TEq> where TEq : struct, IEqualityCompare
 [DebuggerTypeProxy(typeof(FHashMap6DebugProxy<,,>))]
 [DebuggerDisplay("Count={Count}")]
 #endif
-// Combine hashes with indexes to economy on memory
 public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 {
     // todo: @improve make the Entry a type parameter to map and define TEq in terms of the Entry, 
@@ -115,15 +92,16 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
     public const int SingleProbeMask = 1 << ProbeCountShift;
     public const int HashAndIndexMask = ~(MaxProbeCount << ProbeCountShift);
 
-    // The _hashesAndIndexes entry is the Int32 which union of: 
-    // - 5 high bit (MaxProbeCount == 31) to account for the distance from the ideal index, starting from 1 (to indicate non-empty slot).
-    // - H middle bits of the hash, wher H == 32 - 5 - I (lower Index bits)
-    // - I lower index bits for the index into the entries array, 0-based.
-    // The ProbeCount is starting from 1 to indicate non-empty slot.
-    // The removed hash will be actually removed, so we don't use the removed bit here.
+    // The _hashesAndIndexes item is the Int32, 
+    // e.g. 00010|000...110|01101
+    //      |     |         |- The index into the _entries array, 0-based. It is the size of the hashes array size-1 (e.g. 15 for the 16). 
+    //      |     |         | This part of the erased hash is used to get the ideal index into the hashes array, so we are safely using it to store the index into entries.
+    //      |     |- The middle bits of the hash
+    //      |- 5 high bits of the Probe count, with the minimal value of 00001  indicating non-empty slot.
+    // todo: @add For the removed hash we won't use the tumbstone but will actually remove the hash.
     internal int[] _hashesAndIndexes;
     internal Entry[] _entries;
-    internal int _indexMask;
+    internal int _indexMask; // pre-calculated and saved on the DoubleSize for the performance
     internal int _entryCount;
 
     public int[] HashesAndIndexes => _hashesAndIndexes;
@@ -155,9 +133,10 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
 #endif
         var indexMask = _indexMask;
         var probeAndHashMask = ~indexMask;
-        var hashMiddle = hash & ~indexMask & HashAndIndexMask;
 
+        var hashMiddle = hash & ~indexMask & HashAndIndexMask;
         var hashIndex = hash & indexMask;
+
         byte probes = 1;
         while (true)
         {
@@ -166,9 +145,10 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
 #else
             var h = hashesAndIndexes[hashIndex];
 #endif
-            if ((h >> ProbeCountShift) < probes)
-                break;
-
+            // the check is the first because if look fo the present key, 
+            // we will avoid the unnecessary exit condition below. 
+            // refarding the check for missing key, it is fine to pain one comparison, 
+            // imho - you  will need to select what you care for ;)
             if ((h & probeAndHashMask) == ((probes << ProbeCountShift) | hashMiddle))
             {
                 ref var e = ref _entries[h & indexMask];
@@ -178,6 +158,10 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
                     return true;
                 }
             }
+            
+            if ((h >> ProbeCountShift) < probes)
+                break;
+            
             hashIndex = (hashIndex + 1) & indexMask;
             ++probes;
         }
@@ -189,25 +173,33 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
     {
         var hash = default(TEq).GetHashCode(key);
 
+#if NET7_0_OR_GREATER
+        ref var hashesAndIndexes = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_hashesAndIndexes);
+#else
         var hashesAndIndexes = _hashesAndIndexes;
+#endif
         var indexMask = _indexMask;
         var probeAndHashMask = ~indexMask;
-        var hashMiddle = hash & ~indexMask & HashAndIndexMask;
 
+        var hashMiddle = hash & ~indexMask & HashAndIndexMask;
         var hashIndex = hash & indexMask;
+
         byte probes = 1;
         while (true)
         {
+#if NET7_0_OR_GREATER
+            var h = Unsafe.Add(ref hashesAndIndexes, hashIndex);
+#else
             var h = hashesAndIndexes[hashIndex];
-            if ((h >> ProbeCountShift) < probes)
-                break;
-
+#endif
             if ((h & probeAndHashMask) == ((probes << ProbeCountShift) | hashMiddle))
             {
                 ref var e = ref _entries[h & indexMask]; // todo: @perf wrap access into the interface to separate the entries abstraction
                 if (default(TEq).Equals(e.Key, key))
                     return e.Value;
             }
+            if ((h >> ProbeCountShift) < probes)
+                break;
             hashIndex = (hashIndex + 1) & indexMask;
             ++probes;
         }
@@ -219,6 +211,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
     public int FirstProbeAdditions = 0;
 #endif
 
+    // todo: @perf consider using GetArrayDataReference the same as Lookup methods
     public void AddOrUpdate(K key, V value)
     {
         var hash = default(TEq).GetHashCode(key);
@@ -326,6 +319,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
         }
     }
 
+    // todo: @perf pass the oldIndexMask, so we will calculate the oldCapacity out of it
     internal static int[] DoubleSize(int[] oldHashesAndIndexes)
     {
         var oldCapacity = oldHashesAndIndexes.Length;
