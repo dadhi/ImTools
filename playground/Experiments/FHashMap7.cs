@@ -121,16 +121,14 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
         // _entries = GC.AllocateUninitializedArray<Entry>(capacity); // todo: create without default values using via GC.AllocateUninitializedArray<Entry>(size);
     }
 
+#if NET7_0_OR_GREATER
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
     public bool TryGetValue(K key, out V value)
     {
         var hash = default(TEq).GetHashCode(key);
 
-#if NET7_0_OR_GREATER
         ref var hashesAndIndexes = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_hashesAndIndexes);
-#else
-        var hashesAndIndexes = _hashesAndIndexes;
-#endif
+
         var indexMask = _indexMask;
         var probeAndHashMask = ~indexMask;
 
@@ -140,11 +138,8 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
         byte probes = 1;
         while (true)
         {
-#if NET7_0_OR_GREATER
             var h = Unsafe.Add(ref hashesAndIndexes, hashIndex);
-#else
-            var h = hashesAndIndexes[hashIndex];
-#endif
+
             // the check is the first because if look fo the present key, 
             // we will avoid the unnecessary exit condition below. 
             // refarding the check for missing key, it is fine to pain one comparison, 
@@ -168,6 +163,43 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
         value = default;
         return false;
     }
+#else
+    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+    public bool TryGetValue(K key, out V value)
+    {
+        var hash = default(TEq).GetHashCode(key);
+
+        var hashesAndIndexes = _hashesAndIndexes;
+        var indexMask = _indexMask;
+        var probeAndHashMask = ~indexMask;
+
+        var hashMiddle = hash & ~indexMask & HashAndIndexMask;
+        var hashIndex = hash & indexMask;
+
+        byte probes = 1;
+        while (true)
+        {
+            var h = hashesAndIndexes[hashIndex];
+            if ((h & probeAndHashMask) == ((probes << ProbeCountShift) | hashMiddle))
+            {
+                ref var e = ref _entries[h & indexMask];
+                if (default(TEq).Equals(e.Key, key))
+                {
+                    value = e.Value;
+                    return true;
+                }
+            }
+            
+            if ((h >> ProbeCountShift) < probes)
+                break;
+            
+            hashIndex = (hashIndex + 1) & indexMask;
+            ++probes;
+        }
+        value = default;
+        return false;
+    }
+#endif
 
     public V GetValueOrDefault(K key, V defaultValue = default)
     {
