@@ -47,6 +47,28 @@ public static class FHashMap6Extensions
         return items;
     }
 
+    [MethodImpl((MethodImplOptions)256)]
+    public static T GetItemNoBoundsCheck<T>(this T[] source, int i)
+    {
+#if NET7_0_OR_GREATER
+        ref var s = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(source);
+        return Unsafe.Add(ref s, i);
+#else
+        return source[i];
+#endif
+    }
+
+    [MethodImpl((MethodImplOptions)256)]
+    public static ref T GetItemNoBoundsCheckByRef<T>(this T[] source, int i)
+    {
+#if NET7_0_OR_GREATER
+        ref var s = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(source);
+        return ref Unsafe.Add(ref s, i);
+#else
+        return ref source[i];
+#endif
+    }
+
     public struct Item<K, V>
     {
         public byte Probe;
@@ -126,7 +148,11 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
     {
         var hash = default(TEq).GetHashCode(key);
 
+#if NET7_0_OR_GREATER
+        ref var hashesAndIndexes = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_hashesAndIndexes);
+#else
         var hashesAndIndexes = _hashesAndIndexes;
+#endif
         var indexMask = _indexMask;
         var probeAndHashMask = ~indexMask;
         var hashMiddle = hash & ~indexMask & HashAndIndexMask;
@@ -135,13 +161,17 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
         byte probes = 1;
         while (true)
         {
+#if NET7_0_OR_GREATER
+            var h = Unsafe.Add(ref hashesAndIndexes, hashIndex);
+#else
             var h = hashesAndIndexes[hashIndex];
+#endif
             if ((h >> ProbeCountShift) < probes)
                 break;
 
             if ((h & probeAndHashMask) == ((probes << ProbeCountShift) | hashMiddle))
             {
-                ref var e = ref _entries[h & indexMask]; // todo: @perf wrap access into the interface to separate the entries abstraction
+                ref var e = ref _entries[h & indexMask];
                 if (default(TEq).Equals(e.Key, key))
                 {
                     value = e.Value;

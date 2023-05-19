@@ -44,7 +44,7 @@ public class FHashMap6Tests
         foreach (var key in types)
             map.AddOrUpdate(key, "a");
 
-        map.AddOrUpdate(typeof(FHashMap6Tests), "!");
+        map.AddOrUpdate(typeof(Console), "!");
 
         Assert.AreEqual(101, map.Count);
 
