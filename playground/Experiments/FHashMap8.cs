@@ -5,70 +5,8 @@ using System.Runtime.CompilerServices;
 
 namespace ImTools.Experiments;
 
-public static class FHashMap8Extensions
-{
-    public static Item<K, V>[] Explain<K, V, TEq>(this FHashMap8<K, V, TEq> map) where TEq : struct, IEqualityComparer<K>
-    {
-#if DEBUG
-        Debug.WriteLine($"FirstProbeAdditions: {map.FirstProbeAdditions}, MaxProbes: {map.MaxProbes}");
-#endif
-
-        var entries = map._entries;
-        var hashesAndIndexes = map._hashesAndIndexes;
-        var capacity = hashesAndIndexes.Length;
-        var indexMask = map._indexMask;
-
-        var items = new Item<K, V>[hashesAndIndexes.Length];
-
-        for (var i = 0; i < hashesAndIndexes.Length; i++)
-        {
-            var h = hashesAndIndexes[i];
-            if (h == 0)
-                continue;
-
-            var probe = (byte)(h >> FHashMap8<K, V, TEq>.ProbeCountShift);
-            var hashIndex = (capacity + i - (probe - 1)) & indexMask;
-
-            var hashMiddle = (h & FHashMap8<K, V, TEq>.HashAndIndexMask & ~indexMask);
-            var hash = hashMiddle | hashIndex;
-            var index = h & indexMask;
-
-            string hkv = null;
-            var heq = false;
-            if (probe != 0)
-            {
-                var e = entries[index];
-                var kh = e.Key.GetHashCode() & FHashMap8<K, V, TEq>.HashAndIndexMask;
-                heq = kh == hash;
-                hkv = $"{kh.b()}:{e.Key}->{e.Value}";
-            }
-            items[i] = new Item<K, V> { Probe = probe, Hash = hash.b(), HEq = heq, Index = index, HKV = hkv };
-        }
-        return items;
-    }
-
-    public struct Item<K, V>
-    {
-        public byte Probe;
-        public bool HEq;
-        public string Hash;
-        public string HKV;
-        public int Index;
-        public bool IsEmpty => Probe == 0;
-        public string Output => $"{Probe}|{Hash}{(HEq ? "==" : "!=")}{HKV}";
-        public override string ToString() => IsEmpty ? "empty" : Output;
-    }
-}
 
 #if DEBUG
-public class FHashMap8DebugProxy<K, V, TEq> where TEq : struct, IEqualityComparer<K>
-{
-    private readonly FHashMap8<K, V, TEq> _map;
-    public FHashMap8DebugProxy(FHashMap8<K, V, TEq> map) => _map = map;
-    [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-    public FHashMap8Extensions.Item<K, V>[] Items => _map.Explain();
-}
-
 [DebuggerTypeProxy(typeof(FHashMap8DebugProxy<,,>))]
 [DebuggerDisplay("Count={Count}")]
 #endif
@@ -383,3 +321,64 @@ public sealed class FHashMap8<K, V, TEq> where TEq : struct, IEqualityComparer<K
         return newHashesAndIndexes;
     }
 }
+
+public static class FHashMap8Extensions
+{
+    public static Item<K, V>[] Explain<K, V, TEq>(this FHashMap8<K, V, TEq> map) where TEq : struct, IEqualityComparer<K>
+    {
+        var entries = map._entries;
+        var hashesAndIndexes = map._hashesAndIndexes;
+        var capacity = hashesAndIndexes.Length;
+        var indexMask = map._indexMask;
+
+        var items = new Item<K, V>[hashesAndIndexes.Length];
+
+        for (var i = 0; i < hashesAndIndexes.Length; i++)
+        {
+            var h = hashesAndIndexes[i];
+            if (h == 0)
+                continue;
+
+            var probe = (byte)(h >> FHashMap8<K, V, TEq>.ProbeCountShift);
+            var hashIndex = (capacity + i - (probe - 1)) & indexMask;
+
+            var hashMiddle = (h & FHashMap8<K, V, TEq>.HashAndIndexMask & ~indexMask);
+            var hash = hashMiddle | hashIndex;
+            var index = h & indexMask;
+
+            string hkv = null;
+            var heq = false;
+            if (probe != 0)
+            {
+                var e = entries[index];
+                var kh = e.Key.GetHashCode() & FHashMap8<K, V, TEq>.HashAndIndexMask;
+                heq = kh == hash;
+                hkv = $"{kh.b()}:{e.Key}->{e.Value}";
+            }
+            items[i] = new Item<K, V> { Probe = probe, Hash = hash.b(), HEq = heq, Index = index, HKV = hkv };
+        }
+        return items;
+    }
+
+    public struct Item<K, V>
+    {
+        public byte Probe;
+        public bool HEq;
+        public string Hash;
+        public string HKV;
+        public int Index;
+        public bool IsEmpty => Probe == 0;
+        public string Output => $"{Probe}|{Hash}{(HEq ? "==" : "!=")}{HKV}";
+        public override string ToString() => IsEmpty ? "empty" : Output;
+    }
+}
+
+#if DEBUG
+public class FHashMap8DebugProxy<K, V, TEq> where TEq : struct, IEqualityComparer<K>
+{
+    private readonly FHashMap8<K, V, TEq> _map;
+    public FHashMap8DebugProxy(FHashMap8<K, V, TEq> map) => _map = map;
+    [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+    public FHashMap8Extensions.Item<K, V>[] Items => _map.Explain();
+}
+#endif
