@@ -89,7 +89,6 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
     public const byte MaxProbeBits = 5; // 5 bits max
     public const byte MaxProbeCount = (1 << MaxProbeBits) - 1;
     public const byte ProbeCountShift = 32 - MaxProbeBits;
-    public const int SingleProbeMask = 1 << ProbeCountShift;
     public const int HashAndIndexMask = ~(MaxProbeCount << ProbeCountShift);
 
     // todo: @perf what if use the long to store a pair if entries and batch work on them in pairs?
