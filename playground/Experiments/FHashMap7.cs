@@ -111,7 +111,7 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
     public int[] HashesAndIndexes => _hashesAndIndexes;
     // todo: @wip remove or hide or whatever
     public int HashesCapacity => _indexMask + 1;
-    
+
     public Entry[] Entries => _entries;
     public int Count => _entryCount;
 
@@ -165,15 +165,17 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
             var h4 = Unsafe.ReadUnaligned<Vector128<int>>(ref Unsafe.As<int, byte>(ref h4Ref));
 
             var h4ProbeAndHash = h4 & probeAndHashMask;
-            var cmp = Vector128.Equals(h4ProbeAndHash, hashSeed);
-            if (!cmp.Equals(Vector128<int>.Zero))
+            var eq = Vector128.Equals(h4ProbeAndHash, hashSeed);
+
+            // the check is the first because if look for the present key, 
+            // we will avoid the unnecessary exit condition below. 
+            // refarding the check for missing key, it is fine to pain one comparison, 
+            // imho - you  will need to select what you care for ;)
+            if (!eq.Equals(Vector128<int>.Zero))
             {
-                // the check is the first because if look fo the present key, 
-                // we will avoid the unnecessary exit condition below. 
-                // refarding the check for missing key, it is fine to pain one comparison, 
-                // imho - you  will need to select what you care for ;)
-                var indexes = cmp[0] | (cmp[1] << 1) | (cmp[2] << 2) | (cmp[3] << 3); // todo: @perf use Sse2.MoveMask
-                var index = System.Numerics.BitOperations.TrailingZeroCount(indexes);
+                var eqBits = Vector128.ShiftRightLogical(eq, 31);
+                var eqMask = eqBits[0] | (eqBits[1] << 1) | (eqBits[2] << 2) | (eqBits[3] << 3); // todo: @perf optimize
+                var index = System.Numerics.BitOperations.TrailingZeroCount(eqMask);
                 ref var e = ref _entries[h4[index] & indexMask];
                 if (default(TEq).Equals(e.Key, key))
                 {
