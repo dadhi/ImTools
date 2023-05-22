@@ -17,12 +17,15 @@ public class FHashMap7Tests
 
         // Verify the indexes
         var uniq = new Dictionary<K, int>(map.Count);
-        var entryIndexMask = map.HashesAndIndexes.Length - 1;
+        var capacity = map.HashesCapacity;
+        var indexMask = capacity - 1;
         var entries = map.Entries;
-        foreach (var it in map.HashesAndIndexes)
+        for (var i = 0; i < capacity; i++)
+        {
+            var it = map.HashesAndIndexes[i];
             if (it != 0)
             {
-                var entryIndex = it & entryIndexMask;
+                var entryIndex = it & indexMask;
                 var key = entries[entryIndex].Key;
                 if (!uniq.TryGetValue(key, out var count))
                     uniq.Add(key, 1);
@@ -32,6 +35,7 @@ public class FHashMap7Tests
                     uniq[key] = count + 1;
                 }
             }
+        }
     }
 
     [Test]
