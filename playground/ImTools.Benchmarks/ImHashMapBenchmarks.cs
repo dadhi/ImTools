@@ -1725,6 +1725,13 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 | DictionarySlim_TryGetValue |   100 | 8.703 ns | 0.0774 ns | 0.0686 ns |  1.00 |         - |          NA |
 |       FHashMap_TryGetValue |   100 | 7.181 ns | 0.0442 ns | 0.0345 ns |  0.83 |         - |          NA |
 
+## Initial SIMD FHashMap7 vs DictionarySlim
+
+|                     Method | Count |     Mean |     Error |    StdDev |   Median | Ratio | RatioSD | Allocated | Alloc Ratio |
+|--------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|----------:|------------:|
+| DictionarySlim_TryGetValue |   100 | 8.968 ns | 0.2581 ns | 0.4168 ns | 8.796 ns |  1.00 |    0.00 |         - |          NA |
+|       FHashMap_TryGetValue |   100 | 8.866 ns | 0.4456 ns | 1.3069 ns | 9.244 ns |  0.86 |    0.09 |         - |          NA |
+
 */
             // [Params(1, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             [Params(100)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
@@ -1906,9 +1913,9 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 
             private DictionarySlim<TypeVal, string> _dictSlim;
 
-            public ImTools.Experiments.FHashMap6<Type, string, ImTools.Experiments.RefEq<Type>> FillFHashMap()
+            public ImTools.Experiments.FHashMap7<Type, string, ImTools.Experiments.RefEq<Type>> FillFHashMap()
             {
-                var map = new ImTools.Experiments.FHashMap6<Type, string, ImTools.Experiments.RefEq<Type>>();
+                var map = new ImTools.Experiments.FHashMap7<Type, string, ImTools.Experiments.RefEq<Type>>();
 
                 foreach (var key in _keys.Take(Count))
                     map.AddOrUpdate(key, "a");
@@ -1917,7 +1924,7 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return map;
             }
 
-            private ImTools.Experiments.FHashMap6<Type, string, ImTools.Experiments.RefEq<Type>> _fHashMap;
+            private ImTools.Experiments.FHashMap7<Type, string, ImTools.Experiments.RefEq<Type>> _fHashMap;
 
             public ConcurrentDictionary<Type, string> ConcurrentDict()
             {
