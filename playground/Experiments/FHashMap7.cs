@@ -121,14 +121,14 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
             seedCapacity = 2;
 #if NET7_0_OR_GREATER
         else if (!BitOperations.IsPow2(seedCapacity))
-           seedCapacity = BitOperations.RoundUpToPowerOf2(seedCapacity);
+            seedCapacity = BitOperations.RoundUpToPowerOf2(seedCapacity);
 #endif
         // double the size of the hashes, because they are cheap, 
         // this will also provide the flexibility of independence of the sizes of hashes and entries
         var doubleCapacity = (int)(seedCapacity << 1);
         _hashesAndIndexes = CreatePaddedHashesAndIndexes(doubleCapacity);
         _indexMask = doubleCapacity - 1;
-        
+
         _entries = new Entry[seedCapacity];
         _entryCount = 0;
 
@@ -145,39 +145,38 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
         ref var hashesAndIndexes = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_hashesAndIndexes);
 
         var indexMask = _indexMask;
-        var probeAndHashMask = Vector128.Create(~indexMask);
+        var probeAndHashMaskVec = Vector128.Create(~indexMask); // todo: @perf pre-calculate and put into the map state with _indexMask
 
-        var hashMiddle = hash & ~indexMask & HashAndIndexMask;
+        var hashMiddleVec = Vector128.Create(hash & ~indexMask & HashAndIndexMask);
         var hashIndex = hash & indexMask;
 
         int probes = 1;
         while (true)
         {
-            // todo: @perf convert | and `probes` to vector
-            // create the seed for the batch comparison of 4 hashMiddle with probes incremented by 1
-            var hashSeed = Vector128.Create(
-                hashMiddle | ( probes    << ProbeCountShift),
-                hashMiddle | ((probes+1) << ProbeCountShift),
-                hashMiddle | ((probes+2) << ProbeCountShift),
-                hashMiddle | ((probes+3) << ProbeCountShift));
+            var probeVec = Vector128.Create(probes, probes + 1, probes + 2, probes + 3); // todo: @perf maybe precalculate and store it in state 
+
+            // create the hashes + probes vector for the batch comparison of the 4 elements at time
+            var hashVec = Vector128.BitwiseOr(Vector128.ShiftLeft(probeVec, ProbeCountShift), hashMiddleVec);
 
             // read the 4 hashesAndIndexes at once into the vector
             ref var h4Ref = ref Unsafe.Add(ref hashesAndIndexes, hashIndex); // todo: optimize by replacing the `hashIndex = (hashIndex + 4) & indexMask;` with it directly
-            var h4 = Unsafe.ReadUnaligned<Vector128<int>>(ref Unsafe.As<int, byte>(ref h4Ref)); // todo: @perf try move the h4 declaration outside the loop
+            var hVec = Unsafe.ReadUnaligned<Vector128<int>>(ref Unsafe.As<int, byte>(ref h4Ref)); // todo: @perf try move the h4 declaration outside the loop
 
-            var h4ProbeAndHash = h4 & probeAndHashMask;
-            var eqAny = Vector128.Equals(h4ProbeAndHash, hashSeed);
+            var hProbeAndHashVec = Vector128.BitwiseAnd(hVec, probeAndHashMaskVec);
+            var hEqHashVec = Vector128.Equals(hProbeAndHashVec, hashVec);
 
             // the check is the first because if look for the present key, 
             // we will avoid the unnecessary exit condition below. 
             // refarding the check for missing key, it is fine to pain one comparison, 
             // imho - you  will need to select what you care for ;)
-            if (eqAny != Vector128<int>.Zero)
+            if (hEqHashVec != Vector128<int>.Zero)
             {
-                var eqBits = Vector128.ShiftRightLogical(eqAny, 31);
+                var eqBits = Vector128.ShiftRightLogical(hEqHashVec, 31);
                 var eqMask = eqBits[0] | (eqBits[1] << 1) | (eqBits[2] << 2) | (eqBits[3] << 3); // todo: @perf optimize
-                var index = BitOperations.TrailingZeroCount(eqMask);
-                ref var e = ref _entries[h4[index] & indexMask];
+                var indexInEqHashVec = BitOperations.TrailingZeroCount(eqMask);
+
+                var entryIndex = hVec[indexInEqHashVec] & indexMask;
+                ref var e = ref _entries[entryIndex];
                 if (default(TEq).Equals(e.Key, key))
                 {
                     value = e.Value;
@@ -186,9 +185,7 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
             }
 
             // Basically doing this but for the 4 elements in vector `(h >> ProbeCountShift) < probes`
-            if (Vector128.LessThanAny(
-                Vector128.ShiftRightLogical(h4ProbeAndHash, ProbeCountShift), 
-                Vector128.ShiftRightLogical(hashSeed, ProbeCountShift)))
+            if (Vector128.LessThanAny(Vector128.ShiftRightLogical(hProbeAndHashVec, ProbeCountShift), probeVec))
                 break;
 
             probes += 4;
@@ -216,7 +213,8 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
             var h = hashesAndIndexes[hashIndex];
             if ((h & probeAndHashMask) == ((probes << ProbeCountShift) | hashMiddle))
             {
-                ref var e = ref _entries[h & indexMask];
+                var index = h & indexMask;
+                ref var e = ref _entries[entryIndex];
                 if (default(TEq).Equals(e.Key, key))
                 {
                     value = e.Value;
@@ -235,94 +233,9 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
     }
 #endif
 
-#if NET7_0_OR_GREATER
-    public V GetValueOrDefault(K key, V defaultValue = default)
-    {
-        var hash = default(TEq).GetHashCode(key);
-
-        ref var hashesAndIndexes = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_hashesAndIndexes);
-
-        var indexMask = _indexMask;
-        var probeAndHashMask = Vector128.Create(~indexMask);
-
-        var hashMiddle = hash & ~indexMask & HashAndIndexMask;
-        var hashIndex = hash & indexMask;
-
-        int probes = 1;
-        while (true)
-        {
-            // create the seed for the batch comparison of 4 hashMiddle with probes incremented by 1
-            var hashSeed = Vector128.Create(
-                hashMiddle | ( probes    << ProbeCountShift),
-                hashMiddle | ((probes+1) << ProbeCountShift),
-                hashMiddle | ((probes+2) << ProbeCountShift),
-                hashMiddle | ((probes+3) << ProbeCountShift));
-
-            // read the 4 hashesAndIndexes at once into the vector
-            ref var h4Ref = ref Unsafe.Add(ref hashesAndIndexes, hashIndex);
-            var h4 = Unsafe.ReadUnaligned<Vector128<int>>(ref Unsafe.As<int, byte>(ref h4Ref));
-
-            var h4ProbeAndHash = h4 & probeAndHashMask;
-            var eq = Vector128.Equals(h4ProbeAndHash, hashSeed);
-
-            // the check is the first because if look for the present key, 
-            // we will avoid the unnecessary exit condition below. 
-            // refarding the check for missing key, it is fine to pain one comparison, 
-            // imho - you  will need to select what you care for ;)
-            if (!eq.Equals(Vector128<int>.Zero))
-            {
-                var eqBits = Vector128.ShiftRightLogical(eq, 31);
-                var eqMask = eqBits[0] | (eqBits[1] << 1) | (eqBits[2] << 2) | (eqBits[3] << 3); // todo: @perf optimize
-                var index = System.Numerics.BitOperations.TrailingZeroCount(eqMask);
-                ref var e = ref _entries[h4[index] & indexMask];
-                if (default(TEq).Equals(e.Key, key))
-                    return e.Value;
-            }
-
-            // Basically doing this but for the 4 elements in vector `(h >> ProbeCountShift) < probes`
-            if (Vector128.LessThanAny(
-                Vector128.ShiftRightLogical(h4ProbeAndHash, ProbeCountShift), 
-                Vector128.ShiftRightLogical(hashSeed, ProbeCountShift)))
-                break;
-
-            probes += 4;
-            hashIndex = (hashIndex + 4) & indexMask;
-        }
-        return default;
-    }
-#else
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
-    public V GetValueOrDefault(K key, V defaultValue = default)
-    {
-        var hash = default(TEq).GetHashCode(key);
-
-        var hashesAndIndexes = _hashesAndIndexes;
-        var indexMask = _indexMask;
-        var probeAndHashMask = ~indexMask;
-
-        var hashMiddle = hash & ~indexMask & HashAndIndexMask;
-        var hashIndex = hash & indexMask;
-
-        byte probes = 1;
-        while (true)
-        {
-            var h = hashesAndIndexes[hashIndex];
-            if ((h & probeAndHashMask) == ((probes << ProbeCountShift) | hashMiddle))
-            {
-                ref var e = ref _entries[h & indexMask];
-                if (default(TEq).Equals(e.Key, key))
-                    return e.Value;
-            }
-            
-            if ((h >> ProbeCountShift) < probes)
-                break;
-            
-            hashIndex = (hashIndex + 1) & indexMask;
-            ++probes;
-        }
-        return default;
-    }
-#endif
+    public V GetValueOrDefault(K key, V defaultValue = default) =>
+        TryGetValue(key, out var value) ? value : defaultValue;
 
 #if DEBUG
     public int MaxProbes = 1;
@@ -445,7 +358,7 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
         a[capacity] = MaxProbeCount << ProbeCountShift;
         a[capacity + 1] = MaxProbeCount << ProbeCountShift;
         a[capacity + 2] = MaxProbeCount << ProbeCountShift;
-        return a; 
+        return a;
     }
 
     internal static int[] DoubleSize(int[] oldHashesAndIndexes, int oldIndexMask)

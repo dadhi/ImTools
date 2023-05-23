@@ -1732,6 +1732,13 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 | DictionarySlim_TryGetValue |   100 | 8.968 ns | 0.2581 ns | 0.4168 ns | 8.796 ns |  1.00 |    0.00 |         - |          NA |
 |       FHashMap_TryGetValue |   100 | 8.866 ns | 0.4456 ns | 1.3069 ns | 9.244 ns |  0.86 |    0.09 |         - |          NA |
 
+## Round 2, SIMD FHashMap7 vs DictionarySlim
+
+|                     Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | Allocated | Alloc Ratio |
+|--------------------------- |------ |---------:|----------:|----------:|------:|--------:|----------:|------------:|
+| DictionarySlim_TryGetValue |   100 | 9.161 ns | 0.2579 ns | 0.4309 ns |  1.00 |    0.00 |         - |          NA |
+|       FHashMap_TryGetValue |   100 | 6.714 ns | 0.1923 ns | 0.1799 ns |  0.74 |    0.04 |         - |          NA |
+
 */
             // [Params(1, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             [Params(100)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
