@@ -95,6 +95,13 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
     public const int HashAndIndexMask = ~(MaxProbeCount << ProbeCountShift);
     private const int DivBy4RemainderMask = 3;
 
+#if NET7_0_OR_GREATER
+    // First 4 probes arranged in a vector for batch operations with the hash and for the batch comparison
+    internal static readonly Vector128<int> FirstProbesVec = Vector128.Create(1, 2, 3, 4);
+    // Next probes increment, we are adding it to each element of the probesVec, e.g. <1 + 4, 2 + 4, 3 + 4, 4 + 4> -> <5, 6, 7, 8>
+    internal static readonly Vector128<int> ProbesIncVec = Vector128.Create(4); 
+#endif
+
     // The _hashesAndIndexes item is the Int32, 
     // e.g. 00010|000...110|01101
     //      |     |         |- The index into the _entries array, 0-based. It is the size of the hashes array size-1 (e.g. 15 for the 16). 
@@ -128,7 +135,6 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
         var doubleCapacity = (int)(seedCapacity << 1);
         _hashesAndIndexes = CreatePaddedHashesAndIndexes(doubleCapacity);
         _indexMask = doubleCapacity - 1;
-
         _entries = new Entry[seedCapacity];
         _entryCount = 0;
 
@@ -145,18 +151,16 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
         ref var hashesAndIndexesRef = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_hashesAndIndexes);
 
         var indexMask = _indexMask;
-        var probeAndHashMaskVec = Vector128.Create(~indexMask); // todo: @perf pre-calculate and put into the map state with _indexMask
+        var probeAndHashMaskVec = Vector128.Create(~indexMask);
 
         var hashMiddleVec = Vector128.Create(hash & ~indexMask & HashAndIndexMask);
         var hashIndex = hash & indexMask;
 
-        int probes = 1;
+        var probesVec = FirstProbesVec; 
         while (true)
         {
-            var probeVec = Vector128.Create(probes, probes + 1, probes + 2, probes + 3); // todo: @perf maybe precalculate and store it in state 
-
-            // create the hashes + probes vector for the batch comparison of the 4 elements at time
-            var hashAndProbesVec = Vector128.BitwiseOr(Vector128.ShiftLeft(probeVec, ProbeCountShift), hashMiddleVec);
+            // create the hashes + probes vector for the batch comparison of the 4 elements at once
+            var hashAndProbesVec = Vector128.BitwiseOr(Vector128.ShiftLeft(probesVec, ProbeCountShift), hashMiddleVec);
 
             // read the 4 hashesAndIndexes at once into the vector
             ref var hRef = ref Unsafe.Add(ref hashesAndIndexesRef, hashIndex);
@@ -164,7 +168,6 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
 
             // todo: @perf
             // find first hVec element equal to hashAndProbesVec element masked by probeAndHashMask, and return the index part of this element masked by indexMask
-
 
             var hProbeAndHashVec = Vector128.BitwiseAnd(hVec, probeAndHashMaskVec);
             var hEqHashVec = Vector128.Equals(hProbeAndHashVec, hashAndProbesVec);
@@ -178,7 +181,6 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
                 var indexInEqHashVec = BitOperations.TrailingZeroCount(eqMask);
 
                 var entryIndex = hVec[indexInEqHashVec] & indexMask;
-
                 ref var e = ref _entries[entryIndex];
                 if (default(TEq).Equals(e.Key, key))
                 {
@@ -188,10 +190,10 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
             }
 
             // Basically doing this but for the 4 elements in vector `(h >> ProbeCountShift) < probes`
-            if (Vector128.LessThanAny(Vector128.ShiftRightLogical(hVec, ProbeCountShift), probeVec))
+            if (Vector128.LessThanAny(Vector128.ShiftRightLogical(hVec, ProbeCountShift), probesVec))
                 break;
 
-            probes += 4;
+            probesVec = Vector128.Add(probesVec, ProbesIncVec);
             hashIndex = (hashIndex + 4) & indexMask;
         }
         value = default;
@@ -216,7 +218,7 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
             var h = hashesAndIndexes[hashIndex];
             if ((h & probeAndHashMask) == ((probes << ProbeCountShift) | hashMiddle))
             {
-                var index = h & indexMask;
+                var entryIndex = h & indexMask;
                 ref var e = ref _entries[entryIndex];
                 if (default(TEq).Equals(e.Key, key))
                 {
@@ -254,7 +256,7 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
         var indexMask = _indexMask;
         if (indexMask - _entryCount <= (indexMask >> MinFreeCapacityShift)) // if the free capacity is less free slots 1/16 (6.25%)
         {
-            _hashesAndIndexes = hashesAndIndexes = DoubleSize(_hashesAndIndexes, indexMask);
+            _hashesAndIndexes = hashesAndIndexes = Resize(_hashesAndIndexes, indexMask);
             _indexMask = indexMask = (indexMask << 1) | 1;
 #if DEBUG
             Debug.WriteLine($"Resize _hashesAndIndexes to {_indexMask + 1} because the _entryCount:{_entryCount}");
@@ -364,7 +366,7 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
         return a;
     }
 
-    internal static int[] DoubleSize(int[] oldHashesAndIndexes, int oldIndexMask)
+    internal static int[] Resize(int[] oldHashesAndIndexes, int oldIndexMask)
     {
         var oldCapacity = oldIndexMask + 1;
         var newCapacity = oldCapacity << 1;
