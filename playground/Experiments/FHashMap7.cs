@@ -292,7 +292,7 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
     }
 #else
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
-    public bool TryGetValue(K key, out V value)
+    public V GetValueOrDefault(K key, V defaultValue = default)
     {
         var hash = default(TEq).GetHashCode(key);
 
