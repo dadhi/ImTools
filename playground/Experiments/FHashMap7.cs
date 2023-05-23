@@ -153,6 +153,7 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
         int probes = 1;
         while (true)
         {
+            // todo: @perf convert | and `probes` to vector
             // create the seed for the batch comparison of 4 hashMiddle with probes incremented by 1
             var hashSeed = Vector128.Create(
                 hashMiddle | ( probes    << ProbeCountShift),
@@ -161,21 +162,21 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
                 hashMiddle | ((probes+3) << ProbeCountShift));
 
             // read the 4 hashesAndIndexes at once into the vector
-            ref var h4Ref = ref Unsafe.Add(ref hashesAndIndexes, hashIndex);
-            var h4 = Unsafe.ReadUnaligned<Vector128<int>>(ref Unsafe.As<int, byte>(ref h4Ref));
+            ref var h4Ref = ref Unsafe.Add(ref hashesAndIndexes, hashIndex); // todo: optimize by replacing the `hashIndex = (hashIndex + 4) & indexMask;` with it directly
+            var h4 = Unsafe.ReadUnaligned<Vector128<int>>(ref Unsafe.As<int, byte>(ref h4Ref)); // todo: @perf try move the h4 declaration outside the loop
 
             var h4ProbeAndHash = h4 & probeAndHashMask;
-            var eq = Vector128.Equals(h4ProbeAndHash, hashSeed);
+            var eqAny = Vector128.Equals(h4ProbeAndHash, hashSeed);
 
             // the check is the first because if look for the present key, 
             // we will avoid the unnecessary exit condition below. 
             // refarding the check for missing key, it is fine to pain one comparison, 
             // imho - you  will need to select what you care for ;)
-            if (!eq.Equals(Vector128<int>.Zero))
+            if (eqAny != Vector128<int>.Zero)
             {
-                var eqBits = Vector128.ShiftRightLogical(eq, 31);
+                var eqBits = Vector128.ShiftRightLogical(eqAny, 31);
                 var eqMask = eqBits[0] | (eqBits[1] << 1) | (eqBits[2] << 2) | (eqBits[3] << 3); // todo: @perf optimize
-                var index = System.Numerics.BitOperations.TrailingZeroCount(eqMask);
+                var index = BitOperations.TrailingZeroCount(eqMask);
                 ref var e = ref _entries[h4[index] & indexMask];
                 if (default(TEq).Equals(e.Key, key))
                 {
