@@ -142,7 +142,7 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
     {
         var hash = default(TEq).GetHashCode(key);
 
-        ref var hashesAndIndexes = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_hashesAndIndexes);
+        ref var hashesAndIndexesRef = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_hashesAndIndexes);
 
         var indexMask = _indexMask;
         var probeAndHashMaskVec = Vector128.Create(~indexMask); // todo: @perf pre-calculate and put into the map state with _indexMask
@@ -159,10 +159,10 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
             var hashVec = Vector128.BitwiseOr(Vector128.ShiftLeft(probeVec, ProbeCountShift), hashMiddleVec);
 
             // read the 4 hashesAndIndexes at once into the vector
-            ref var h4Ref = ref Unsafe.Add(ref hashesAndIndexes, hashIndex); // todo: optimize by replacing the `hashIndex = (hashIndex + 4) & indexMask;` with it directly
-            var hVec = Unsafe.ReadUnaligned<Vector128<int>>(ref Unsafe.As<int, byte>(ref h4Ref)); // todo: @perf try move the h4 declaration outside the loop
+            ref var hAtHashIndexRef = ref Unsafe.Add(ref hashesAndIndexesRef, hashIndex);
+            var hAtHashIndexVec = Unsafe.ReadUnaligned<Vector128<int>>(ref Unsafe.As<int, byte>(ref hAtHashIndexRef));
 
-            var hProbeAndHashVec = Vector128.BitwiseAnd(hVec, probeAndHashMaskVec);
+            var hProbeAndHashVec = Vector128.BitwiseAnd(hAtHashIndexVec, probeAndHashMaskVec);
             var hEqHashVec = Vector128.Equals(hProbeAndHashVec, hashVec);
 
             // the check is the first because if look for the present key, 
@@ -175,7 +175,7 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
                 var eqMask = eqBits[0] | (eqBits[1] << 1) | (eqBits[2] << 2) | (eqBits[3] << 3); // todo: @perf optimize
                 var indexInEqHashVec = BitOperations.TrailingZeroCount(eqMask);
 
-                var entryIndex = hVec[indexInEqHashVec] & indexMask;
+                var entryIndex = hAtHashIndexVec[indexInEqHashVec] & indexMask;
                 ref var e = ref _entries[entryIndex];
                 if (default(TEq).Equals(e.Key, key))
                 {
