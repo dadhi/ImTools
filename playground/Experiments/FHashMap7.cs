@@ -156,26 +156,29 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
             var probeVec = Vector128.Create(probes, probes + 1, probes + 2, probes + 3); // todo: @perf maybe precalculate and store it in state 
 
             // create the hashes + probes vector for the batch comparison of the 4 elements at time
-            var hashVec = Vector128.BitwiseOr(Vector128.ShiftLeft(probeVec, ProbeCountShift), hashMiddleVec);
+            var hashAndProbesVec = Vector128.BitwiseOr(Vector128.ShiftLeft(probeVec, ProbeCountShift), hashMiddleVec);
 
             // read the 4 hashesAndIndexes at once into the vector
-            ref var hAtHashIndexRef = ref Unsafe.Add(ref hashesAndIndexesRef, hashIndex);
-            var hAtHashIndexVec = Unsafe.ReadUnaligned<Vector128<int>>(ref Unsafe.As<int, byte>(ref hAtHashIndexRef));
+            ref var hRef = ref Unsafe.Add(ref hashesAndIndexesRef, hashIndex);
+            var hVec = Unsafe.ReadUnaligned<Vector128<int>>(ref Unsafe.As<int, byte>(ref hRef));
 
-            var hProbeAndHashVec = Vector128.BitwiseAnd(hAtHashIndexVec, probeAndHashMaskVec);
-            var hEqHashVec = Vector128.Equals(hProbeAndHashVec, hashVec);
+            // todo: @perf
+            // find first hVec element equal to hashAndProbesVec element masked by probeAndHashMask, and return the index part of this element masked by indexMask
 
-            // the check is the first because if look for the present key, 
-            // we will avoid the unnecessary exit condition below. 
-            // refarding the check for missing key, it is fine to pain one comparison, 
-            // imho - you  will need to select what you care for ;)
+
+            var hProbeAndHashVec = Vector128.BitwiseAnd(hVec, probeAndHashMaskVec);
+            var hEqHashVec = Vector128.Equals(hProbeAndHashVec, hashAndProbesVec);
+
+            // The check is the first because if looking for the present key, we will avoid the unnecessary exit condition below. 
+            // Regarding the check for missing key, it is fine to pain one comparison, imho - you  will need to select what you care for ;)
             if (hEqHashVec != Vector128<int>.Zero)
             {
                 var eqBits = Vector128.ShiftRightLogical(hEqHashVec, 31);
                 var eqMask = eqBits[0] | (eqBits[1] << 1) | (eqBits[2] << 2) | (eqBits[3] << 3); // todo: @perf optimize
                 var indexInEqHashVec = BitOperations.TrailingZeroCount(eqMask);
 
-                var entryIndex = hAtHashIndexVec[indexInEqHashVec] & indexMask;
+                var entryIndex = hVec[indexInEqHashVec] & indexMask;
+
                 ref var e = ref _entries[entryIndex];
                 if (default(TEq).Equals(e.Key, key))
                 {
@@ -185,7 +188,7 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
             }
 
             // Basically doing this but for the 4 elements in vector `(h >> ProbeCountShift) < probes`
-            if (Vector128.LessThanAny(Vector128.ShiftRightLogical(hProbeAndHashVec, ProbeCountShift), probeVec))
+            if (Vector128.LessThanAny(Vector128.ShiftRightLogical(hVec, ProbeCountShift), probeVec))
                 break;
 
             probes += 4;
