@@ -145,28 +145,26 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
         var hash = default(TEq).GetHashCode(key);
 
         ref var hashesAndIndexesRef = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_hashesAndIndexes);
-
         var indexMask = _indexMask;
-        var probeAndHashMask = ~indexMask;
+
         // var probeAndHashMaskVec = Vector128.Create(~indexMask);
-
-        var hashMiddle = hash & ~indexMask & HashAndIndexMask;
         // var hashMiddleVec = Vector128.Create(hash & ~indexMask & HashAndIndexMask);
-        var hashIndex = hash & indexMask;
+        // var probesVec = FirstProbesVec;
 
+        var probesAndHashMask = ~indexMask;
+        var hashMiddle = hash & ~indexMask & HashAndIndexMask;
+
+        var index = hash & indexMask;
         var probes = 1;
-        var probesVec = FirstProbesVec;
         while (true)
         {
             // read the 4 hashesAndIndexes at once into the vector
-            ref var hRef = ref Unsafe.Add(ref hashesAndIndexesRef, hashIndex);
+            ref var hRef = ref Unsafe.Add(ref hashesAndIndexesRef, index);
             var hVec = Unsafe.ReadUnaligned<Vector128<int>>(ref Unsafe.As<int, byte>(ref hRef));
             ref var hVecRef = ref Unsafe.As<Vector128<int>, int>(ref Unsafe.AsRef(in hVec));
             var h0 = hVecRef;
-            if ((h0 & probeAndHashMask) == (probes << ProbeCountShift | hashMiddle))
+            if ((h0 & probesAndHashMask) == (probes << ProbeCountShift | hashMiddle))
             {
-                // ref var entriesRef = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_entries);
-                // ref var e = ref Unsafe.Add(ref entriesRef, h0 & indexMask);
                 ref var e = ref _entries[h0 & indexMask];
                 if (default(TEq).Equals(e.Key, key))
                 {
@@ -174,12 +172,12 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
                     return true;
                 }
             }
+            if ((h0 >> ProbeCountShift) < probes)
+                break;
 
             var h1 = Unsafe.Add(ref hVecRef, 1);
-            if ((h1 & probeAndHashMask) == ((probes + 1) << ProbeCountShift | hashMiddle))
+            if ((h1 & probesAndHashMask) == ((probes + 1) << ProbeCountShift | hashMiddle))
             {
-                // ref var entriesRef = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_entries);
-                // ref var e = ref Unsafe.Add(ref entriesRef, h1 & indexMask);
                 ref var e = ref _entries[h1 & indexMask];
                 if (default(TEq).Equals(e.Key, key))
                 {
@@ -187,12 +185,12 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
                     return true;
                 }
             }
+            if ((h1 >> ProbeCountShift) < probes)
+                break;
 
             var h2 = Unsafe.Add(ref hVecRef, 2);
-            if ((h2 & probeAndHashMask) == ((probes + 2) << ProbeCountShift | hashMiddle))
+            if ((h2 & probesAndHashMask) == ((probes + 2) << ProbeCountShift | hashMiddle))
             {
-                // ref var entriesRef = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_entries);
-                // ref var e = ref Unsafe.Add(ref entriesRef, h2 & indexMask);
                 ref var e = ref _entries[h2 & indexMask];
                 if (default(TEq).Equals(e.Key, key))
                 {
@@ -200,12 +198,12 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
                     return true;
                 }
             }
+            if ((h2 >> ProbeCountShift) < probes)
+                break;
 
             var h3 = Unsafe.Add(ref hVecRef, 3);
-            if ((h3 & probeAndHashMask) == ((probes + 3) << ProbeCountShift | hashMiddle))
+            if ((h3 & probesAndHashMask) == ((probes + 3) << ProbeCountShift | hashMiddle))
             {
-                // ref var entriesRef = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_entries);
-                // ref var e = ref Unsafe.Add(ref entriesRef, h3 & indexMask);
                 ref var e = ref _entries[h3 & indexMask];
                 if (default(TEq).Equals(e.Key, key))
                 {
@@ -213,6 +211,8 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
                     return true;
                 }
             }
+            if ((h3 >> ProbeCountShift) < probes)
+                break;
 
             // // create the hashes + probes vector for the batch comparison of the 4 elements at once
             // // e.g. batching `probes << ProbeCountShift | hashMiddle`
@@ -226,12 +226,12 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
             // // if (hEqHashVec != Vector128<int>.Zero)
 
             // Basically doing this but for the 4 elements in vector `(h >> ProbeCountShift) < probes`
-            if (Vector128.LessThanAny(Vector128.ShiftRightLogical(hVec, ProbeCountShift), probesVec))
-                break;
+            // if (Vector128.LessThanAny(Vector128.ShiftRightLogical(hVec, ProbeCountShift), probesVec))
+            //     break;
 
+            // probesVec = Vector128.Add(probesVec, ProbesIncVec);
             probes += 4;
-            probesVec = Vector128.Add(probesVec, ProbesIncVec);
-            hashIndex = (hashIndex + 4) & indexMask;
+            index = (index + 4) & indexMask;
         }
         value = default;
         return false;
@@ -258,10 +258,67 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
         while (true)
         {
 #if NET7_0_OR_GREATER
-            var h = Unsafe.Add(ref hashesAndIndexes, index);
+            // read the 4 hashesAndIndexes at once into the vector
+            ref var hRef = ref Unsafe.Add(ref hashesAndIndexes, index);
+            var hVec = Unsafe.ReadUnaligned<Vector128<int>>(ref Unsafe.As<int, byte>(ref hRef));
+            ref var hVecRef = ref Unsafe.As<Vector128<int>, int>(ref Unsafe.AsRef(in hVec));
+
+            var h0 = hVecRef;
+            if ((h0 & probesAndHashMask) == (probes << ProbeCountShift | hashMiddle))
+            {
+                ref var e = ref _entries[h0 & indexMask];
+                if (default(TEq).Equals(e.Key, key))
+                {
+                    value = e.Value;
+                    return true;
+                }
+            }
+            if ((h0 >> ProbeCountShift) < probes)
+                break;
+
+            var h1 = Unsafe.Add(ref hVecRef, 1);
+            if ((h1 & probesAndHashMask) == ((probes + 1) << ProbeCountShift | hashMiddle))
+            {
+                ref var e = ref _entries[h1 & indexMask];
+                if (default(TEq).Equals(e.Key, key))
+                {
+                    value = e.Value;
+                    return true;
+                }
+            }
+            if ((h1 >> ProbeCountShift) < probes + 1)
+                break;
+
+            var h2 = Unsafe.Add(ref hVecRef, 2);
+            if ((h2 & probesAndHashMask) == ((probes + 2) << ProbeCountShift | hashMiddle))
+            {
+                ref var e = ref _entries[h2 & indexMask];
+                if (default(TEq).Equals(e.Key, key))
+                {
+                    value = e.Value;
+                    return true;
+                }
+            }
+            if ((h2 >> ProbeCountShift) < probes + 2)
+                break;
+
+            var h3 = Unsafe.Add(ref hVecRef, 3);
+            if ((h3 & probesAndHashMask) == ((probes + 3) << ProbeCountShift | hashMiddle))
+            {
+                ref var e = ref _entries[h3 & indexMask];
+                if (default(TEq).Equals(e.Key, key))
+                {
+                    value = e.Value;
+                    return true;
+                }
+            }
+            if ((h3 >> ProbeCountShift) < probes + 3)
+                break;
+
+            probes += 4;
+            index = (index + 4) & indexMask;
 #else
             var h = hashesAndIndexes[index];
-#endif
             if ((h & probesAndHashMask) == ((probes << ProbeCountShift) | hashMiddle))
             {
                 ref var e = ref _entries[h & indexMask];
@@ -271,12 +328,11 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
                     return true;
                 }
             }
-
             if ((h >> ProbeCountShift) < probes)
                 break;                        
-
             ++probes;
             index = (index + 1) & indexMask;
+#endif
         }
         value = default;
         return false;
