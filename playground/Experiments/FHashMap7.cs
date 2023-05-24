@@ -138,9 +138,9 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
         // _entries = GC.AllocateUninitializedArray<Entry>(capacity); // todo: create without default values using via GC.AllocateUninitializedArray<Entry>(size);
     }
 
-#if BLAH
+#if NET7_0_OR_GREATER
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
-    public bool TryGetValue(K key, out V value)
+    public bool TryGetValue2(K key, out V value)
     {
         var hash = default(TEq).GetHashCode(key);
 
@@ -236,46 +236,52 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
         value = default;
         return false;
     }
-#else
+#endif
+// #else
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
     public bool TryGetValue(K key, out V value)
     {
         var hash = default(TEq).GetHashCode(key);
 
+#if NET7_0_OR_GREATER
+        ref var hashesAndIndexes = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_hashesAndIndexes);
+#else
         var hashesAndIndexes = _hashesAndIndexes;
+#endif
         var indexMask = _indexMask;
 
-        var hashMiddleMask = ~indexMask & HashAndIndexMask;
-        var hashMiddle = hash & hashMiddleMask;
-        var hashIndex = hash & indexMask;
-
+        var probesAndHashMask = ~indexMask;
+        var hashMiddle = hash & ~indexMask & HashAndIndexMask;
+        
+        var index = hash & indexMask;
         var probes = 1;
-        int h, hProbes;
         while (true)
         {
-            h = hashesAndIndexes[hashIndex];
-            hProbes = h >> ProbeCountShift;
-            if (hProbes < probes)
-                break;
-
-            if (hProbes == probes && (h & hashMiddleMask) == hashMiddle)
+#if NET7_0_OR_GREATER
+            var h = Unsafe.Add(ref hashesAndIndexes, index);
+#else
+            var h = hashesAndIndexes[index];
+#endif
+            if ((h & probesAndHashMask) == ((probes << ProbeCountShift) | hashMiddle))
             {
-                var entryIndex = h & indexMask;
-                ref var e = ref _entries[entryIndex];
+                ref var e = ref _entries[h & indexMask];
                 if (default(TEq).Equals(e.Key, key))
                 {
                     value = e.Value;
                     return true;
                 }
             }
-                        
+
+            if ((h >> ProbeCountShift) < probes)
+                break;                        
+
             ++probes;
-            hashIndex = (hashIndex + 1) & indexMask;
+            index = (index + 1) & indexMask;
         }
         value = default;
         return false;
     }
-#endif
+// #endif
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
     public V GetValueOrDefault(K key, V defaultValue = default) =>

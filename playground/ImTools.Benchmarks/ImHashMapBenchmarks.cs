@@ -1781,6 +1781,21 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 | DictionarySlim_TryGetValue |  1000 | 8.826 ns | 0.0929 ns | 0.0776 ns |  1.00 |    0.00 |         - |          NA |
 |       FHashMap_TryGetValue |  1000 | 5.271 ns | 0.1362 ns | 0.1514 ns |  0.60 |    0.02 |         - |          NA |
 
+## Small opti No!!! SIMD FHashMap7 vs DictionarySlim (multiple params)
+
+|                     Method | Count |     Mean |     Error |    StdDev |   Median | Ratio | RatioSD | Allocated | Alloc Ratio |
+|--------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|----------:|------------:|
+| DictionarySlim_TryGetValue |     1 | 8.965 ns | 0.3526 ns | 1.0285 ns | 8.416 ns |  1.00 |    0.00 |         - |          NA |
+|       FHashMap_TryGetValue |     1 | 3.940 ns | 0.1476 ns | 0.2117 ns | 3.894 ns |  0.43 |    0.05 |         - |          NA |
+|                            |       |          |           |           |          |       |         |           |             |
+| DictionarySlim_TryGetValue |    10 | 9.154 ns | 0.2472 ns | 0.3036 ns | 9.041 ns |  1.00 |    0.00 |         - |          NA |
+|       FHashMap_TryGetValue |    10 | 5.734 ns | 0.0922 ns | 0.0770 ns | 5.733 ns |  0.62 |    0.02 |         - |          NA |
+|                            |       |          |           |           |          |       |         |           |             |
+| DictionarySlim_TryGetValue |   100 | 8.638 ns | 0.1980 ns | 0.1654 ns | 8.599 ns |  1.00 |    0.00 |         - |          NA |
+|       FHashMap_TryGetValue |   100 | 7.259 ns | 0.1361 ns | 0.1206 ns | 7.212 ns |  0.84 |    0.02 |         - |          NA |
+|                            |       |          |           |           |          |       |         |           |             |
+| DictionarySlim_TryGetValue |  1000 | 9.280 ns | 0.2481 ns | 0.4537 ns | 9.115 ns |  1.00 |    0.00 |         - |          NA |
+|       FHashMap_TryGetValue |  1000 | 3.765 ns | 0.0650 ns | 0.0576 ns | 3.760 ns |  0.40 |    0.02 |         - |          NA |
 */
             // [Params(1, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
