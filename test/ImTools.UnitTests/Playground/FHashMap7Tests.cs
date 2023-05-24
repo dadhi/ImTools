@@ -11,6 +11,7 @@ public class FHashMap7Tests
     public static void Verify<K, V, TEq>(FHashMap7<K, V, TEq> map, IEnumerable<K> expectedKeys) 
         where TEq : struct, IEqualityComparer<K>
     {
+        Console.WriteLine("<EXPLAIN>");
         var exp = map.Explain();
         foreach (var it in exp)
             if (!it.IsEmpty)
@@ -18,6 +19,7 @@ public class FHashMap7Tests
                 Console.WriteLine(it);
                 Assert.True(it.HEq);
             }
+        Console.WriteLine("</EXPLAIN>");
 
         // Verify the indexes do no contains duplicate keys
         var uniq = new Dictionary<K, int>(map.Count);
