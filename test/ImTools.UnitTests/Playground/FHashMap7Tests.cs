@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
@@ -11,15 +12,15 @@ public class FHashMap7Tests
     public static void Verify<K, V, TEq>(FHashMap7<K, V, TEq> map, IEnumerable<K> expectedKeys) 
         where TEq : struct, IEqualityComparer<K>
     {
-        Console.WriteLine("<EXPLAIN>");
+        // Console.WriteLine("<EXPLAIN>");
         var exp = map.Explain();
         foreach (var it in exp)
             if (!it.IsEmpty)
             {
-                Console.WriteLine(it);
+                // Console.WriteLine(it);
                 Assert.True(it.HEq);
             }
-        Console.WriteLine("</EXPLAIN>");
+        // Console.WriteLine("</EXPLAIN>");
 
         // Verify the indexes do no contains duplicate keys
         var uniq = new Dictionary<K, int>(map.Count);
@@ -28,18 +29,16 @@ public class FHashMap7Tests
         var entries = map.Entries;
         for (var i = 0; i < capacity; i++)
         {
-            var it = map.HashesAndIndexes[i];
-            if (it != 0)
+            var h = map.HashesAndIndexes[i];
+            if (h == 0)
+                continue;
+            var key = entries[h & indexMask].Key;
+            if (!uniq.TryGetValue(key, out var count))
+                uniq.Add(key, 1);
+            else
             {
-                var entryIndex = it & indexMask;
-                var key = entries[entryIndex].Key;
-                if (!uniq.TryGetValue(key, out var count))
-                    uniq.Add(key, 1);
-                else
-                {
-                    Assert.Fail($"Duplicate key: {key}");
-                    uniq[key] = count + 1;
-                }
+                Assert.Fail($"Duplicate key: {key}");
+                uniq[key] = count + 1;
             }
         }
 
@@ -105,7 +104,7 @@ public class FHashMap7Tests
     [Test]
     public void Can_store_and_retrieve_value_from_map()
     {
-        var map = new FHashMap7<int, string, IntEq>();
+        var map = new FHashMap7<int, string, IntEq>(16);
 
         map.AddOrUpdate(42, "1");
         map.AddOrUpdate(42 + 32, "2");

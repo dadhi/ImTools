@@ -14,8 +14,8 @@ public static class FHashMap7Extensions
     {
         var entries = map._entries;
         var hashesAndIndexes = map._hashesAndIndexes;
-        var indexMask = map._indexMask;
-        var capacity = indexMask + 1;
+        var capacity = map.HashesCapacity;
+        var indexMask = capacity - 1;
 
         var items = new Item<K, V>[capacity];
 
@@ -82,20 +82,20 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
         public V Value;
     }
 
-    public const int DefaultSeedCapacity = 16;
-    public const byte MinFreeCapacityShift = 3; // e.g. for the DefaultCapacity 16 >> 3 => 2, so 2 free slots is 12.5% of the capacity  
+    public const int DefaultSeedCapacity = 8;
+    public const byte MinFreeCapacityShift = 3; // e.g. for the DefaultCapacity=16 >> 3 => 2, so 2 free slots is 12.5% of the capacity  
 
-    public const byte MaxProbeBits = 5; // 5 bits max
-    public const byte MaxProbeCount = (1 << MaxProbeBits) - 1;
+    public const byte MaxProbeBits = 5; // 5 bits max, e.g. 31 (11111)
+    public const byte MaxProbeCount = (1 << MaxProbeBits) - 1; // e.g. 31 (11111) for the 5 bits
     public const byte ProbeCountShift = 32 - MaxProbeBits;
-    public const int HashAndIndexMask = ~(MaxProbeCount << ProbeCountShift);
-    private const int DivBy4RemainderMask = 3;
+    public const int ProbesMask = MaxProbeCount << ProbeCountShift;
+    public const int HashAndIndexMask = ~ProbesMask;
 
 #if NET7_0_OR_GREATER
     // First 4 probes arranged in a vector for batch operations with the hash and for the batch comparison
     internal static readonly Vector128<int> FirstProbesVec = Vector128.Create(1, 2, 3, 4);
     // Next probes increment, we are adding it to each element of the probesVec, e.g. <1 + 4, 2 + 4, 3 + 4, 4 + 4> -> <5, 6, 7, 8>
-    internal static readonly Vector128<int> ProbesIncVec = Vector128.Create(4); 
+    internal static readonly Vector128<int> ProbesIncVec = Vector128.Create(4);
 #endif
 
     // The _hashesAndIndexes elements are of `Int32`, 
@@ -138,7 +138,7 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
         // _entries = GC.AllocateUninitializedArray<Entry>(capacity); // todo: create without default values using via GC.AllocateUninitializedArray<Entry>(size);
     }
 
-#if NET7_0_OR_GREATER
+#if BLAH
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
     public bool TryGetValue(K key, out V value)
     {
@@ -154,8 +154,8 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
         // var hashMiddleVec = Vector128.Create(hash & ~indexMask & HashAndIndexMask);
         var hashIndex = hash & indexMask;
 
-        var probes = 1; 
-        var probesVec = FirstProbesVec; 
+        var probes = 1;
+        var probesVec = FirstProbesVec;
         while (true)
         {
             // read the 4 hashesAndIndexes at once into the vector
@@ -167,7 +167,7 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
             {
                 // ref var entriesRef = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_entries);
                 // ref var e = ref Unsafe.Add(ref entriesRef, h0 & indexMask);
-                ref var e = ref _entries[h0 & indexMask]; 
+                ref var e = ref _entries[h0 & indexMask];
                 if (default(TEq).Equals(e.Key, key))
                 {
                     value = e.Value;
@@ -180,7 +180,7 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
             {
                 // ref var entriesRef = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_entries);
                 // ref var e = ref Unsafe.Add(ref entriesRef, h1 & indexMask);
-                ref var e = ref _entries[h1 & indexMask]; 
+                ref var e = ref _entries[h1 & indexMask];
                 if (default(TEq).Equals(e.Key, key))
                 {
                     value = e.Value;
@@ -193,7 +193,7 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
             {
                 // ref var entriesRef = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_entries);
                 // ref var e = ref Unsafe.Add(ref entriesRef, h2 & indexMask);
-                ref var e = ref _entries[h2 & indexMask]; 
+                ref var e = ref _entries[h2 & indexMask];
                 if (default(TEq).Equals(e.Key, key))
                 {
                     value = e.Value;
@@ -206,7 +206,7 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
             {
                 // ref var entriesRef = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_entries);
                 // ref var e = ref Unsafe.Add(ref entriesRef, h3 & indexMask);
-                ref var e = ref _entries[h3 & indexMask]; 
+                ref var e = ref _entries[h3 & indexMask];
                 if (default(TEq).Equals(e.Key, key))
                 {
                     value = e.Value;
@@ -244,16 +244,21 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
 
         var hashesAndIndexes = _hashesAndIndexes;
         var indexMask = _indexMask;
-        var probeAndHashMask = ~indexMask;
 
-        var hashMiddle = hash & ~indexMask & HashAndIndexMask;
+        var hashMiddleMask = ~indexMask & HashAndIndexMask;
+        var hashMiddle = hash & hashMiddleMask;
         var hashIndex = hash & indexMask;
 
-        byte probes = 1;
+        var probes = 1;
+        int h, hProbes;
         while (true)
         {
-            var h = hashesAndIndexes[hashIndex];
-            if ((h & probeAndHashMask) == ((probes << ProbeCountShift) | hashMiddle))
+            h = hashesAndIndexes[hashIndex];
+            hProbes = h >> ProbeCountShift;
+            if (hProbes < probes)
+                break;
+
+            if (hProbes == probes && (h & hashMiddleMask) == hashMiddle)
             {
                 var entryIndex = h & indexMask;
                 ref var e = ref _entries[entryIndex];
@@ -263,12 +268,9 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
                     return true;
                 }
             }
-            
-            if ((h >> ProbeCountShift) < probes)
-                break;
-            
-            hashIndex = (hashIndex + 1) & indexMask;
+                        
             ++probes;
+            hashIndex = (hashIndex + 1) & indexMask;
         }
         value = default;
         return false;
@@ -295,83 +297,56 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
         {
             _hashesAndIndexes = hashesAndIndexes = Resize(_hashesAndIndexes, indexMask);
             _indexMask = indexMask = (indexMask << 1) | 1;
-#if DEBUG
-            Debug.WriteLine($"Resize _hashesAndIndexes to {_indexMask + 1} because the _entryCount:{_entryCount}");
-#endif
         }
 
+        var hashMiddleMask = ~indexMask & HashAndIndexMask;
+        var hashMiddle = hash & hashMiddleMask;
         var hashIndex = hash & indexMask;
-        var hashMiddle = hash & ~indexMask & HashAndIndexMask;
-        var hashAndEntryIndex = 0;
-        var h = 0;
-        byte probes = 1;
-        for (; ; ++probes, hashIndex = (hashIndex + 1) & indexMask)
+        var probes = 1;
+        int h, hProbes;
+        while (true)
         {
-            Debug.Assert(probes <= MaxProbeCount, $"DEBUG ASSERT FAILED probes:{probes} <= MaxProbeCount:{MaxProbeCount}");
+            Debug.Assert(probes <= MaxProbeCount, $"[AddOrUpdate] DEBUG ASSERT FAILED: probes {probes} <= MaxProbeCount {MaxProbeCount}");
 
-            hashAndEntryIndex = (probes << ProbeCountShift) | hashMiddle;
             h = hashesAndIndexes[hashIndex];
-            if (h == 0)
-            {
-#if DEBUG
-                if (probes == 1)
-                    ++FirstProbeAdditions;
-                if (probes > MaxProbes)
-                {
-                    MaxProbes = probes;
-                    Debug.WriteLine($"NEW: MaxProbes increased to {probes} when adding key:`{key}`");
-                }
-#endif   
-                var entryCount = _entryCount;
-                hashesAndIndexes[hashIndex] = hashAndEntryIndex | entryCount;
+            hProbes = h >> ProbeCountShift; 
 
-                // todo: @wip wrap in the abstraction together with the check and Resize, 
-                // because the abstraction may decide to avoid it completely, e.g. by pre-allocation of enough entries
-                if (entryCount + 1 >= _entries.Length)
-                    Array.Resize(ref _entries, _entries.Length << 1);
-                ref var e = ref _entries[entryCount];
-                e.Key = key;
-                e.Value = value;
-
-                _entryCount = entryCount + 1;
-                return;
-            }
-
-            // the check is here, because it is cheaper than hash comparison below and current ont may result in early break/exit
-            var hp = h >> ProbeCountShift;
-            if (hp < probes) // skip hashes with the bigger probe count until we find the same or less probes
-            {
-                // Robin Hood goes here to steal from the rich (with the less probe count) and give to the poor (with more probes).
-                var entryCount = _entryCount;
-                hashesAndIndexes[hashIndex] = hashAndEntryIndex | entryCount;
-                hashAndEntryIndex = h & HashAndIndexMask;
-                probes = (byte)hp;
-
-                if (entryCount + 1 >= _entries.Length)
-                    Array.Resize(ref _entries, _entries.Length << 1);
-                ref var e = ref _entries[entryCount];
-                e.Key = key;
-                e.Value = value;
-
-                _entryCount = entryCount + 1;
+            // this check is also implicitly break if `h == 0` to proceed inserting new entry 
+            if (hProbes < probes)
                 break;
-            }
-
-            if ((h & ~indexMask) == hashAndEntryIndex)
+            
+            if (hProbes == probes && (h & hashMiddleMask) == hashMiddle)
             {
+                ref var matchedEntry = ref _entries[h & indexMask];
 #if DEBUG
-                Debug.WriteLine($"NEW: hp < probes `{probes}` and hashes are equal for the added key:`{key}` and existing key:`{_entries[h & indexMask].Key}`");
+                Debug.WriteLine($"[AddOrUpdate] PROBES AND HASH MATCH: probes {probes}, compare new key `{key}` with matched key:`{matchedEntry.Key}`");
 #endif
-                ref var e = ref _entries[h & indexMask]; // check the existing entry key and update the value if the keys are matched
-                if (default(TEq).Equals(e.Key, key))
+                if (default(TEq).Equals(matchedEntry.Key, key))
                 {
-                    e.Value = value;
+                    matchedEntry.Value = value;
                     return;
                 }
             }
+            ++probes;
+            hashIndex = (hashIndex + 1) & indexMask;
         }
 
-        // todo: @simplify factor out into the method X
+        // Robin Hood goes here to steal from the rich (with the less probe count) and give to the poor (with more probes).
+        var newEntryIndex = _entryCount;
+        hashesAndIndexes[hashIndex] = (probes << ProbeCountShift) | hashMiddle | newEntryIndex;
+
+        if (newEntryIndex >= _entries.Length)
+            Array.Resize(ref _entries, _entries.Length * 2);
+        ref var e = ref _entries[newEntryIndex];
+        e.Key = key;
+        e.Value = value;
+        _entryCount = newEntryIndex + 1;
+        if (h == 0)
+            return;
+
+        // Robin Hood loop - the old hash to be re-inserted with the increased probe count
+        probes = hProbes;
+        var hashWithoutProbes = h & HashAndIndexMask;
         while (true)
         {
             ++probes;
@@ -379,15 +354,14 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
             h = hashesAndIndexes[hashIndex];
             if (h == 0)
             {
-                hashesAndIndexes[hashIndex] = (probes << ProbeCountShift) | hashAndEntryIndex;
+                hashesAndIndexes[hashIndex] = (probes << ProbeCountShift) | hashWithoutProbes;
                 return;
             }
-            var hp = h >> ProbeCountShift;
-            if (hp < probes) // skip hashes with the bigger probe count until we find the same or less probes
+            if ((h >> ProbeCountShift) < probes) // skip hashes with the bigger probe count until we find the same or less probes
             {
-                hashesAndIndexes[hashIndex] = (probes << ProbeCountShift) | hashAndEntryIndex;
-                hashAndEntryIndex = h & HashAndIndexMask;
-                probes = (byte)hp;
+                hashesAndIndexes[hashIndex] = (probes << ProbeCountShift) | hashWithoutProbes;
+                hashWithoutProbes = h & HashAndIndexMask;
+                probes = (h >> ProbeCountShift);
             }
         }
     }
@@ -395,11 +369,11 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
     [MethodImpl((MethodImplOptions)256)]
     internal static int[] CreatePaddedHashesAndIndexes(int capacity)
     {
-        // `+3` because we need to align the `a` to 4 elements boundary for the Vector128 read starting from the last index in array
+        // `+ 3` because we need to align the `a` to 4 elements boundary for the Vector128 read starting from the last index in array
         var a = new int[capacity + 3];
-        a[capacity] = MaxProbeCount << ProbeCountShift;
-        a[capacity + 1] = MaxProbeCount << ProbeCountShift;
-        a[capacity + 2] = MaxProbeCount << ProbeCountShift;
+        a[capacity + 2] = ProbesMask;
+        a[capacity + 1] = ProbesMask;
+        a[capacity] = ProbesMask;
         return a;
     }
 
@@ -407,6 +381,10 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
     {
         var oldCapacity = oldIndexMask + 1;
         var newCapacity = oldCapacity << 1;
+    #if DEBUG
+        Debug.WriteLine($"RESIZE _hashesAndIndexes, double the capacity: {oldCapacity} -> {newCapacity}");
+    #endif
+
         var newHashesAndIndexes = CreatePaddedHashesAndIndexes(newCapacity);
 
         var newIndexMask = newCapacity - 1;
@@ -432,7 +410,7 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
 
             var h = 0;
             // todo: @simplify factor out into the method X
-            for (byte probes = 1; ; ++probes, newHashIndex = (newHashIndex + 1) & newIndexMask) // we don't need the condition for the MaxProbes because by increasing the hash space we guarantee that we fit the hashes in the finite amount of probes likely less than previous MaxProbeCount
+            for (var probes = 1; ; ++probes, newHashIndex = (newHashIndex + 1) & newIndexMask) // we don't need the condition for the MaxProbes because by increasing the hash space we guarantee that we fit the hashes in the finite amount of probes likely less than previous MaxProbeCount
             {
                 h = newHashesAndIndexes[newHashIndex];
                 if (h == 0)
@@ -440,12 +418,11 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
                     newHashesAndIndexes[newHashIndex] = (probes << ProbeCountShift) | newHashAndEntryIndex;
                     break;
                 }
-                var hp = h >> ProbeCountShift;
-                if (hp < probes)
+                if ((h >> ProbeCountShift) < probes)
                 {
                     newHashesAndIndexes[newHashIndex] = (probes << ProbeCountShift) | newHashAndEntryIndex;
                     newHashAndEntryIndex = h & HashAndIndexMask;
-                    probes = (byte)hp; // todo: @perf Unsafe.As<int, byte>(ref hp)?
+                    probes = h >> ProbeCountShift;
                 }
             }
         }
