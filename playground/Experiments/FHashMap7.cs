@@ -151,37 +151,27 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
         ref var hashesAndIndexesRef = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_hashesAndIndexes);
 
         var indexMask = _indexMask;
-        var probeAndHashMaskVec = Vector128.Create(~indexMask);
+        var probeAndHashMask = ~indexMask;
+        // var probeAndHashMaskVec = Vector128.Create(~indexMask);
 
-        var hashMiddleVec = Vector128.Create(hash & ~indexMask & HashAndIndexMask);
+        var hashMiddle = hash & ~indexMask & HashAndIndexMask;
+        // var hashMiddleVec = Vector128.Create(hash & ~indexMask & HashAndIndexMask);
         var hashIndex = hash & indexMask;
 
+        var probes = 1; 
         var probesVec = FirstProbesVec; 
         while (true)
         {
-            // create the hashes + probes vector for the batch comparison of the 4 elements at once
-            var hashAndProbesVec = Vector128.BitwiseOr(Vector128.ShiftLeft(probesVec, ProbeCountShift), hashMiddleVec);
-
             // read the 4 hashesAndIndexes at once into the vector
             ref var hRef = ref Unsafe.Add(ref hashesAndIndexesRef, hashIndex);
             var hVec = Unsafe.ReadUnaligned<Vector128<int>>(ref Unsafe.As<int, byte>(ref hRef));
-
-            // todo: @perf
-            // find first hVec element equal to hashAndProbesVec element masked by probeAndHashMask, and return the index part of this element masked by indexMask
-
-            var hProbeAndHashVec = Vector128.BitwiseAnd(hVec, probeAndHashMaskVec);
-            var hEqHashVec = Vector128.Equals(hProbeAndHashVec, hashAndProbesVec);
-
-            // The check is the first because if looking for the present key, we will avoid the unnecessary exit condition below. 
-            // Regarding the check for missing key, it is fine to pain one comparison, imho - you  will need to select what you care for ;)
-            if (hEqHashVec != Vector128<int>.Zero)
+            ref var hVecRef = ref Unsafe.As<Vector128<int>, int>(ref Unsafe.AsRef(in hVec));
+            var h0 = hVecRef;
+            if ((h0 & probeAndHashMask) == (probes << ProbeCountShift | hashMiddle))
             {
-                var eqBits = Vector128.ShiftRightLogical(hEqHashVec, 31);
-                var eqMask = eqBits[0] | (eqBits[1] << 1) | (eqBits[2] << 2) | (eqBits[3] << 3); // todo: @perf optimize
-                var indexInEqHashVec = BitOperations.TrailingZeroCount(eqMask);
-
-                var entryIndex = hVec[indexInEqHashVec] & indexMask;
-                ref var e = ref _entries[entryIndex];
+                // ref var entriesRef = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_entries);
+                // ref var e = ref Unsafe.Add(ref entriesRef, h0 & indexMask);
+                ref var e = ref _entries[h0 & indexMask]; 
                 if (default(TEq).Equals(e.Key, key))
                 {
                     value = e.Value;
@@ -189,10 +179,61 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
                 }
             }
 
+            var h1 = Unsafe.Add(ref hVecRef, 1);
+            if ((h1 & probeAndHashMask) == ((probes + 1) << ProbeCountShift | hashMiddle))
+            {
+                // ref var entriesRef = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_entries);
+                // ref var e = ref Unsafe.Add(ref entriesRef, h1 & indexMask);
+                ref var e = ref _entries[h1 & indexMask]; 
+                if (default(TEq).Equals(e.Key, key))
+                {
+                    value = e.Value;
+                    return true;
+                }
+            }
+
+            var h2 = Unsafe.Add(ref hVecRef, 2);
+            if ((h2 & probeAndHashMask) == ((probes + 2) << ProbeCountShift | hashMiddle))
+            {
+                // ref var entriesRef = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_entries);
+                // ref var e = ref Unsafe.Add(ref entriesRef, h2 & indexMask);
+                ref var e = ref _entries[h2 & indexMask]; 
+                if (default(TEq).Equals(e.Key, key))
+                {
+                    value = e.Value;
+                    return true;
+                }
+            }
+
+            var h3 = Unsafe.Add(ref hVecRef, 3);
+            if ((h3 & probeAndHashMask) == ((probes + 3) << ProbeCountShift | hashMiddle))
+            {
+                // ref var entriesRef = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_entries);
+                // ref var e = ref Unsafe.Add(ref entriesRef, h3 & indexMask);
+                ref var e = ref _entries[h3 & indexMask]; 
+                if (default(TEq).Equals(e.Key, key))
+                {
+                    value = e.Value;
+                    return true;
+                }
+            }
+
+            // // create the hashes + probes vector for the batch comparison of the 4 elements at once
+            // // e.g. batching `probes << ProbeCountShift | hashMiddle`
+            // var hashProbesAndHashVec = Vector128.BitwiseOr(Vector128.ShiftLeft(probesVec, ProbeCountShift), hashMiddleVec);
+
+            // var hProbesAndHashVec = Vector128.BitwiseAnd(hVec, probeAndHashMaskVec);
+            // var hEqHashVec = Vector128.Equals(hProbesAndHashVec, hashProbesAndHashVec);
+
+            // // The check is the first because if looking for the present key, we will avoid the unnecessary exit condition below. 
+            // // Regarding the check for missing key, it is fine to pain one comparison, imho - you  will need to select what you care for ;)
+            // // if (hEqHashVec != Vector128<int>.Zero)
+
             // Basically doing this but for the 4 elements in vector `(h >> ProbeCountShift) < probes`
             if (Vector128.LessThanAny(Vector128.ShiftRightLogical(hVec, ProbeCountShift), probesVec))
                 break;
 
+            probes += 4;
             probesVec = Vector128.Add(probesVec, ProbesIncVec);
             hashIndex = (hashIndex + 4) & indexMask;
         }
