@@ -12,10 +12,6 @@ public static class FHashMap7Extensions
 {
     public static Item<K, V>[] Explain<K, V, TEq>(this FHashMap7<K, V, TEq> map) where TEq : struct, IEqualityComparer<K>
     {
-#if DEBUG
-        Debug.WriteLine($"FirstProbeAdditions: {map.FirstProbeAdditions}, MaxProbes: {map.MaxProbes}");
-#endif
-
         var entries = map._entries;
         var hashesAndIndexes = map._hashesAndIndexes;
         var indexMask = map._indexMask;
@@ -102,7 +98,7 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
     internal static readonly Vector128<int> ProbesIncVec = Vector128.Create(4); 
 #endif
 
-    // The _hashesAndIndexes item is the Int32, 
+    // The _hashesAndIndexes elements are of `Int32`, 
     // e.g. 00010|000...110|01101
     //      |     |         |- The index into the _entries array, 0-based. It is the size of the hashes array size-1 (e.g. 15 for the 16). 
     //      |     |         | This part of the erased hash is used to get the ideal index into the hashes array, so we are safely using it to store the index into entries.

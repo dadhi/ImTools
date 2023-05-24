@@ -41,7 +41,7 @@ public class FHashMap7Tests
         // Verify that all keys are store in the map
         if (expectedKeys != null)
             foreach (var key in expectedKeys)
-                Assert.True(map.TryGetValue(key, out _));
+                Assert.True(map.TryGetValue(key, out _), $"Key not found:`{key}` but found in hashes?: {uniq.ContainsKey(key)}");
     }
 
     [Test]
