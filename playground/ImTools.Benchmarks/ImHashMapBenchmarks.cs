@@ -700,9 +700,25 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 |       DictSlim_TryAdd |   100 | 2.879 us | 0.0568 us | 0.0900 us |  1.00 |    0.00 | 2.3842 |   7.31 KB |        1.00 |
 | FHashMap6_AddOrUpdate |   100 | 3.114 us | 0.0610 us | 0.0653 us |  1.09 |    0.04 | 1.5755 |   4.83 KB |        0.66 |
 
+## Non-optimized FHashMap7 vs DictionarySlim
+
+|                Method | Count |         Mean |        Error |       StdDev |       Median | Ratio | RatioSD |    Gen0 | Allocated | Alloc Ratio |
+|---------------------- |------ |-------------:|-------------:|-------------:|-------------:|------:|--------:|--------:|----------:|------------:|
+|       DictSlim_TryAdd |     1 |     70.26 ns |     1.486 ns |     3.590 ns |     68.92 ns |  1.00 |    0.00 |  0.0459 |     144 B |        1.00 |
+| FHashMap7_AddOrUpdate |     1 |     64.87 ns |     0.977 ns |     1.432 ns |     64.94 ns |  0.91 |    0.06 |  0.0943 |     296 B |        2.06 |
+|                       |       |              |              |              |              |       |         |         |           |             |
+|       DictSlim_TryAdd |    10 |    418.47 ns |     8.018 ns |    15.639 ns |    412.68 ns |  1.00 |    0.00 |  0.3414 |    1072 B |        1.00 |
+| FHashMap7_AddOrUpdate |    10 |    275.92 ns |     4.009 ns |     3.554 ns |    275.97 ns |  0.66 |    0.03 |  0.1836 |     576 B |        0.54 |
+|                       |       |              |              |              |              |       |         |         |           |             |
+|       DictSlim_TryAdd |   100 |  3,108.34 ns |    56.873 ns |    95.023 ns |  3,074.84 ns |  1.00 |    0.00 |  2.3842 |    7488 B |        1.00 |
+| FHashMap7_AddOrUpdate |   100 |  3,318.78 ns |    64.446 ns |    96.460 ns |  3,302.41 ns |  1.07 |    0.05 |  1.6708 |    5248 B |        0.70 |
+|                       |       |              |              |              |              |       |         |         |           |             |
+|       DictSlim_TryAdd |  1000 | 32,967.42 ns |   654.476 ns | 1,291.872 ns | 32,639.05 ns |  1.00 |    0.00 | 18.3105 |   57808 B |        1.00 |
+| FHashMap7_AddOrUpdate |  1000 | 60,193.41 ns | 1,114.736 ns |   988.184 ns | 60,113.00 ns |  1.83 |    0.08 | 15.7471 |   49512 B |        0.86 |
+
 */
-            // [Params(10, 100, 1000, 10000)]
-            [Params(100)]
+            [Params(1, 10, 100, 1000)]
+            // [Params(100)]
             public int Count;
 
             private Type[] _types;
@@ -899,23 +915,10 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return map;
             }
 
-            // [Benchmark]
-            // [Benchmark(Baseline = true)]
-            public ImTools.Experiments.FHashMap4<Type, string> FHashMap4_AddOrUpdate()
-            {
-                var map = new ImTools.Experiments.FHashMap4<Type, string>();
-
-                foreach (var key in _types)
-                    map.AddOrUpdate(key, "a");
-
-                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
-                return map;
-            }
-
             [Benchmark]
-            public ImTools.Experiments.FHashMap6<Type, string, ImTools.Experiments.RefEq<Type>> FHashMap6_AddOrUpdate()
+            public ImTools.Experiments.FHashMap7<Type, string, ImTools.Experiments.RefEq<Type>> FHashMap7_AddOrUpdate()
             {
-                var map = new ImTools.Experiments.FHashMap6<Type, string, ImTools.Experiments.RefEq<Type>>();
+                var map = new ImTools.Experiments.FHashMap7<Type, string, ImTools.Experiments.RefEq<Type>>();
 
                 foreach (var key in _types)
                     map.AddOrUpdate(key, "a");
@@ -1761,6 +1764,22 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 |                            |       |           |           |           |           |       |         |           |             |
 | DictionarySlim_TryGetValue |  1000 | 11.542 ns | 0.3251 ns | 0.7535 ns | 11.400 ns |  1.00 |    0.00 |         - |          NA |
 |       FHashMap_TryGetValue |  1000 |  9.579 ns | 0.4608 ns | 1.2921 ns |  9.556 ns |  0.82 |    0.12 |         - |          NA |
+
+## No!!! SIMD FHashMap7 vs DictionarySlim (multiple params)
+
+|                     Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | Allocated | Alloc Ratio |
+|--------------------------- |------ |---------:|----------:|----------:|------:|--------:|----------:|------------:|
+| DictionarySlim_TryGetValue |     1 | 9.134 ns | 0.2546 ns | 0.3569 ns |  1.00 |    0.00 |         - |          NA |
+|       FHashMap_TryGetValue |     1 | 5.174 ns | 0.0317 ns | 0.0281 ns |  0.56 |    0.02 |         - |          NA |
+|                            |       |          |           |           |       |         |           |             |
+| DictionarySlim_TryGetValue |    10 | 8.908 ns | 0.0430 ns | 0.0359 ns |  1.00 |    0.00 |         - |          NA |
+|       FHashMap_TryGetValue |    10 | 5.615 ns | 0.0722 ns | 0.0675 ns |  0.63 |    0.01 |         - |          NA |
+|                            |       |          |           |           |       |         |           |             |
+| DictionarySlim_TryGetValue |   100 | 8.964 ns | 0.1536 ns | 0.1282 ns |  1.00 |    0.00 |         - |          NA |
+|       FHashMap_TryGetValue |   100 | 7.468 ns | 0.2187 ns | 0.2148 ns |  0.83 |    0.03 |         - |          NA |
+|                            |       |          |           |           |       |         |           |             |
+| DictionarySlim_TryGetValue |  1000 | 8.826 ns | 0.0929 ns | 0.0776 ns |  1.00 |    0.00 |         - |          NA |
+|       FHashMap_TryGetValue |  1000 | 5.271 ns | 0.1362 ns | 0.1514 ns |  0.60 |    0.02 |         - |          NA |
 
 */
             // [Params(1, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
