@@ -14,7 +14,10 @@ public class FHashMap7Tests
         var exp = map.Explain();
         foreach (var it in exp)
             if (!it.IsEmpty)
+            {
+                Console.WriteLine(it);
                 Assert.True(it.HEq);
+            }
 
         // Verify the indexes do no contains duplicate keys
         var uniq = new Dictionary<K, int>(map.Count);
