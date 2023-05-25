@@ -383,6 +383,7 @@ public sealed class FHashMap6<K, V, TEq> where TEq : struct, IEqualityComparer<K
     }
 }
 
+/// <summary>Default comparer using the `object.GetHashCode` and `object.Equals` oveloads</summary>
 public struct DefaultEq<K> : IEqualityComparer<K>
 {
     /// <inheritdoc />
@@ -394,6 +395,19 @@ public struct DefaultEq<K> : IEqualityComparer<K>
     public int GetHashCode(K obj) => obj.GetHashCode();
 }
 
+/// <summary>Uses the `object.GetHashCode` and `object.ReferenceEquals`</summary>
+public struct RefEq<K> : IEqualityComparer<K> where K : class
+{
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public bool Equals(K x, K y) => ReferenceEquals(x, y);
+
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public int GetHashCode(K obj) => obj.GetHashCode();
+}
+
+/// <summary>Uses the integer itself as hash code and `==` for equality</summary>
 public struct IntEq : IEqualityComparer<int>
 {
     /// <inheritdoc />
@@ -405,13 +419,14 @@ public struct IntEq : IEqualityComparer<int>
     public int GetHashCode(int obj) => obj;
 }
 
-public struct RefEq<K> : IEqualityComparer<K> where K : class
+/// <summary>Fast-comparing the types via `==` and gets the hash faster via `RuntimeHelpers.GetHashCode`</summary>
+public struct TypeEq : IEqualityComparer<Type>
 {
     /// <inheritdoc />
     [MethodImpl((MethodImplOptions)256)]
-    public bool Equals(K x, K y) => ReferenceEquals(x, y);
+    public bool Equals(Type x, Type y) => x == y;
 
     /// <inheritdoc />
     [MethodImpl((MethodImplOptions)256)]
-    public int GetHashCode(K obj) => obj.GetHashCode();
+    public int GetHashCode(Type obj) => RuntimeHelpers.GetHashCode(obj);
 }
