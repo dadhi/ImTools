@@ -334,7 +334,11 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
 #endif
             if ((h & probesAndHashMask) == ((probes << ProbeCountShift) | hashMiddle))
             {
+#if NET7_0_OR_GREATER
+                ref var e = ref Unsafe.Add(ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_entries), h & indexMask);
+#else
                 ref var e = ref _entries[h & indexMask];
+#endif
                 if (default(TEq).Equals(e.Key, key))
                 {
                     value = e.Value;
