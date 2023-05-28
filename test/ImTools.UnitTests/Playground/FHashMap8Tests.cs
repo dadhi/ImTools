@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
@@ -8,30 +9,43 @@ namespace ImTools.Experiments.UnitTests;
 [TestFixture]
 public class FHashMap8Tests
 {
-    public static void Verify<K, V, TEq>(FHashMap8<K, V, TEq> map) where TEq : struct, IEqualityComparer<K>
+    public static void Verify<K, V, TEq>(FHashMap8<K, V, TEq> map, IEnumerable<K> expectedKeys) 
+        where TEq : struct, IEqualityComparer<K>
     {
+        // Console.WriteLine("<EXPLAIN>");
         var exp = map.Explain();
         foreach (var it in exp)
             if (!it.IsEmpty)
-                Assert.True(it.HEq);
-
-        // Verify the indexes
-        var uniq = new Dictionary<K, int>(map.Count);
-        var entryIndexMask = map.HashesAndIndexes.Length - 1;
-        var entries = map.Entries;
-        foreach (var it in map.HashesAndIndexes)
-            if (it != 0)
             {
-                var entryIndex = it & entryIndexMask;
-                var key = entries[entryIndex].Key;
-                if (!uniq.TryGetValue(key, out var count))
-                    uniq.Add(key, 1);
-                else
-                {
-                    Assert.Fail($"Duplicate key: {key}");
-                    uniq[key] = count + 1;
-                }
+                // Console.WriteLine(it);
+                Assert.True(it.HEq);
             }
+        // Console.WriteLine("</EXPLAIN>");
+
+        // Verify the indexes do no contains duplicate keys
+        var uniq = new Dictionary<K, int>(map.Count);
+        var capacity = map.HashesCapacity;
+        var indexMask = capacity - 1;
+        var entries = map.Entries;
+        for (var i = 0; i < capacity; i++)
+        {
+            var h = map.HashesAndIndexes[i];
+            if (h == 0)
+                continue;
+            var key = entries[h & indexMask].Key;
+            if (!uniq.TryGetValue(key, out var count))
+                uniq.Add(key, 1);
+            else
+            {
+                Assert.Fail($"Duplicate key: {key}");
+                uniq[key] = count + 1;
+            }
+        }
+
+        // Verify that all keys are store in the map
+        if (expectedKeys != null)
+            foreach (var key in expectedKeys)
+                Assert.True(map.TryGetValue(key, out _), $"Key not found:`{key}` but found in hashes?: {uniq.ContainsKey(key)}");
     }
 
     [Test]
@@ -48,7 +62,7 @@ public class FHashMap8Tests
 
         Assert.AreEqual(101, map.Count);
 
-        Verify(map);
+        Verify(map, types);
     }
 
     [Test]
@@ -67,7 +81,7 @@ public class FHashMap8Tests
         Assert.IsTrue(found);
         Assert.AreEqual("!", value);
 
-        Verify(map);
+        Verify(map, types);
     }
 
     [Test]
@@ -84,13 +98,13 @@ public class FHashMap8Tests
 
         Assert.AreEqual(101, map.Count);
 
-        Verify(map);
+        Verify(map, types);
     }
 
     [Test]
     public void Can_store_and_retrieve_value_from_map()
     {
-        var map = new FHashMap8<int, string, IntEq>();
+        var map = new FHashMap8<int, string, IntEq>(16);
 
         map.AddOrUpdate(42, "1");
         map.AddOrUpdate(42 + 32, "2");
@@ -135,7 +149,7 @@ public class FHashMap8Tests
 
         Assert.AreEqual(13, map.Count);
 
-        Verify(map);
+        Verify(map, null);
     }
 
     [Test]
@@ -161,7 +175,7 @@ public class FHashMap8Tests
         map.AddOrUpdate(43, "a!");
         Assert.AreEqual("a!", map.GetValueOrDefault(43));
 
-        Verify(map);
+        Verify(map, null);
     }
 
     [Test]
@@ -173,7 +187,7 @@ public class FHashMap8Tests
         map.AddOrUpdate(42 + 32 + 32, "3");
 
         Assert.AreEqual(2, map.Count);
-        Verify(map);
+        Verify(map, new[] { 42, 42 + 32 + 32});
     }
 
     [Test]
@@ -186,7 +200,7 @@ public class FHashMap8Tests
 
         Assert.AreEqual("3", map.GetValueOrDefault(42));
         Assert.AreEqual(1, map.Count);
-        Verify(map);
+        Verify(map, new[] { 42 });
     }
 
     [Test]
@@ -197,7 +211,7 @@ public class FHashMap8Tests
         map.AddOrUpdate(0, "aaa");
         map.AddOrUpdate(0 + 32, "2");
         map.AddOrUpdate(0 + 32 + 32, "3");
-        Verify(map);
+        Verify(map, new[] { 0, 0 + 32, 0 + 32 + 32 });
 
         string value;
         Assert.IsTrue(map.TryGetValue(0, out value));
@@ -216,7 +230,7 @@ public class FHashMap8Tests
         map.AddOrUpdate(45, "b");
         map.AddOrUpdate(46, "c");
         map.AddOrUpdate(42 + 32 + 32, "3");
-        Verify(map);
+        Verify(map, new[] { 42, 43, 42 + 32, 45, 46, 42 + 32 + 32 });
 
         string value;
         Assert.IsTrue(map.TryGetValue(42 + 32, out value));
