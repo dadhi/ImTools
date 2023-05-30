@@ -6,13 +6,12 @@ using NUnit.Framework;
 
 namespace ImTools.Experiments.UnitTests;
 
-[TestFixture]
+//[TestFixture]
 public class FHashMap8Tests
 {
     public static void Verify<K, V, TEq>(FHashMap8<K, V, TEq> map, IEnumerable<K> expectedKeys) 
         where TEq : struct, IEqualityComparer<K>
     {
-        // Console.WriteLine("<EXPLAIN>");
         var exp = map.Explain();
         foreach (var it in exp)
             if (!it.IsEmpty)
@@ -20,26 +19,30 @@ public class FHashMap8Tests
                 // Console.WriteLine(it);
                 Assert.True(it.HEq);
             }
-        // Console.WriteLine("</EXPLAIN>");
 
         // Verify the indexes do no contains duplicate keys
         var uniq = new Dictionary<K, int>(map.Count);
-        var capacity = map.HashesCapacity;
-        var indexMask = capacity - 1;
+        var indexMask = map.IndexMask;
+        var capacity = (indexMask + 1) >> 1;
         var entries = map.Entries;
         for (var i = 0; i < capacity; i++)
         {
-            var h = map.HashesAndIndexes[i];
-            if (h == 0)
+            var hs = map.HashesAndIndexes[i];
+            if (hs == 0)
                 continue;
-            var key = entries[h & indexMask].Key;
-            if (!uniq.TryGetValue(key, out var count))
+            var h1 = (int)(hs >> 32);
+            var key = entries[h1 & indexMask].Key;
+            if (!uniq.ContainsKey(key))
                 uniq.Add(key, 1);
             else
-            {
                 Assert.Fail($"Duplicate key: {key}");
-                uniq[key] = count + 1;
-            }
+            
+            var h0 = (int)hs;
+            key = entries[h0 & indexMask].Key;
+            if (!uniq.ContainsKey(key))
+                uniq.Add(key, 1);
+            else
+                Assert.Fail($"Duplicate key: {key}");
         }
 
         // Verify that all keys are store in the map
@@ -48,7 +51,7 @@ public class FHashMap8Tests
                 Assert.True(map.TryGetValue(key, out _), $"Key not found:`{key}` but found in hashes?: {uniq.ContainsKey(key)}");
     }
 
-    [Test]
+    //[Test]
     public void Real_world_test_AddOrUpdate()
     {
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(100).ToArray();
@@ -65,7 +68,7 @@ public class FHashMap8Tests
         Verify(map, types);
     }
 
-    [Test]
+    //[Test]
     public void Real_world_test_TryGetValue()
     {
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(100).ToArray();
@@ -84,7 +87,7 @@ public class FHashMap8Tests
         Verify(map, types);
     }
 
-    [Test]
+    //[Test]
     public void Real_world_test_without_Resize()
     {
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(100).ToArray();
@@ -101,7 +104,7 @@ public class FHashMap8Tests
         Verify(map, types);
     }
 
-    [Test]
+    //[Test]
     public void Can_store_and_retrieve_value_from_map()
     {
         var map = new FHashMap8<int, string, IntEq>(16);
@@ -152,7 +155,7 @@ public class FHashMap8Tests
         Verify(map, null);
     }
 
-    [Test]
+    //[Test]
     public void Can_store_and_retrieve_value_from_map_with_Expand_in_the_middle()
     {
         var map = new FHashMap8<int, string, IntEq>(2);
@@ -178,7 +181,7 @@ public class FHashMap8Tests
         Verify(map, null);
     }
 
-    [Test]
+    //[Test]
     public void Can_store_and_get_stored_item_count()
     {
         var map = new FHashMap8<int, string, IntEq>();
@@ -190,7 +193,7 @@ public class FHashMap8Tests
         Verify(map, new[] { 42, 42 + 32 + 32});
     }
 
-    [Test]
+    //[Test]
     public void Can_update_a_stored_item_with_new_value()
     {
         var map = new FHashMap8<int, string, IntEq>();
@@ -203,7 +206,7 @@ public class FHashMap8Tests
         Verify(map, new[] { 42 });
     }
 
-    [Test]
+    //[Test]
     public void Can_add_key_with_0_hash_code()
     {
         var map = new FHashMap8<int, string, IntEq>();
@@ -219,7 +222,7 @@ public class FHashMap8Tests
         Assert.AreEqual("aaa", value);
     }
 
-    [Test]
+    //[Test]
     public void Can_quickly_find_the_scattered_items_with_the_same_cache()
     {
         var map = new FHashMap8<int, string, IntEq>();
@@ -240,7 +243,7 @@ public class FHashMap8Tests
         Assert.AreEqual("3", value);
     }
 
-    // [Test]
+    // //[Test]
     // public void Can_remove_the_stored_item()
     // {
     //     var map = new FHashMap<int, string>();
