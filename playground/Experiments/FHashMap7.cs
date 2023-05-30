@@ -410,7 +410,6 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
             hashIndex = (hashIndex + 1) & indexMask;
         }
 
-        // Robin Hood goes here to steal from the rich (with the less probe count) and give to the poor (with more probes).
         var newEntryIndex = _entryCount;
         hashesAndIndexes[hashIndex] = (probes << ProbeCountShift) | hashMiddle | newEntryIndex;
 
