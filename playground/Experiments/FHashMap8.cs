@@ -168,21 +168,23 @@ public sealed class FHashMap8<K, V, TEq> where TEq : struct, IEqualityComparer<K
         var hashesAndIndexes = _hashesAndIndexes;
 #endif
         var indexMask = _indexMask;
+        var pHashIndexMask = indexMask >>> 1;
 
         var probesAndHashMask = ~indexMask;
         var hashMiddle = hash & ~indexMask & HashAndIndexMask;
 
-        var probes = 1;
         var index = hash & indexMask;
+        var hPairShift = (~(index & 1) & 1) << 5; // for index b???0 -> 32, for index b???1 -> 0, e.g. 0 -> 32, 1 -> 0 
+        var pHashIndex = index >>> 1;
 #if NET7_0_OR_GREATER
-        var hs = Unsafe.Add(ref hashesAndIndexes, index);
+        var hPair = Unsafe.Add(ref hashesAndIndexes, pHashIndex);
 #else
-        var hs = hashesAndIndexes[index];
+        var hPair = hashesAndIndexes[pHashIndex];
 #endif
-        var shift = (~(index & 1) & 1) << 5; // for index b???0 -> 32, for index b???1 -> 0, e.g. 0 -> 32, 1 -> 0 
+        var probes = 1;
         while (true)
         {
-            var h = (int)(hs >>> shift);
+            var h = (int)(hPair >>> hPairShift);
             if ((h & probesAndHashMask) == ((probes << ProbeCountShift) | hashMiddle))
             {
 #if NET7_0_OR_GREATER
@@ -199,16 +201,16 @@ public sealed class FHashMap8<K, V, TEq> where TEq : struct, IEqualityComparer<K
             if ((h >>> ProbeCountShift) < probes)
                 break;
 
-            if (shift == 0)
+            if (hPairShift == 0)
             {
-                index = (index + 2) & indexMask; // todo: @perf can be optimized
+                pHashIndex = (pHashIndex + 1) & pHashIndexMask;
 #if NET7_0_OR_GREATER
-                hs = Unsafe.Add(ref hashesAndIndexes, index >>> 1);
+                hPair = Unsafe.Add(ref hashesAndIndexes, pHashIndex);
 #else
-                hs = hashesAndIndexes[index >>> 1];
+                hPair = hashesAndIndexes[pHashIndex];
 #endif
             }
-            shift = ~shift & 32; // 32 -> 0, 0 -> 32
+            hPairShift = ~hPairShift & 32; // 32 -> 0, 0 -> 32
             ++probes;
         }
         value = default;

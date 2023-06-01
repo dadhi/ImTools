@@ -9,7 +9,7 @@ namespace ImTools.Experiments.UnitTests;
 [TestFixture]
 public class FHashMap8Tests
 {
-    public static void Verify<K, V, TEq>(FHashMap8<K, V, TEq> map, IEnumerable<K> expectedKeys) 
+    public static void Verify<K, V, TEq>(FHashMap8<K, V, TEq> map, IEnumerable<K> expectedKeys)
         where TEq : struct, IEqualityComparer<K>
     {
         var exp = map.Explain();
@@ -22,27 +22,33 @@ public class FHashMap8Tests
 
         // Verify the indexes do no contains duplicate keys
         var uniq = new Dictionary<K, int>(map.Count);
-        var indexMask = map.IndexMask;
-        var capacity = (indexMask + 1) >> 1;
         var entries = map.Entries;
-        for (var i = 0; i < capacity; i++)
+        var indexMask = map.IndexMask;
+        var hashesAndIndexes = map.HashesAndIndexes;
+        for (var i = 0; i < hashesAndIndexes.Length; i++)
         {
-            var hs = map.HashesAndIndexes[i];
+            var hs = hashesAndIndexes[i];
             if (hs == 0)
                 continue;
-            var h1 = (int)(hs >> 32);
-            var key = entries[h1 & indexMask].Key;
-            if (!uniq.ContainsKey(key))
-                uniq.Add(key, 1);
-            else
-                Assert.Fail($"Duplicate key: {key}");
-            
+            var h1 = (int)(hs >>> 32);
+            if (h1 != 0)
+            {
+                var key = entries[h1 & indexMask].Key;
+                if (!uniq.ContainsKey(key))
+                    uniq.Add(key, 1);
+                else
+                    Assert.Fail($"Duplicate key: {key}");
+            }
+
             var h0 = (int)hs;
-            key = entries[h0 & indexMask].Key;
-            if (!uniq.ContainsKey(key))
-                uniq.Add(key, 1);
-            else
-                Assert.Fail($"Duplicate key: {key}");
+            if (h0 != 0)
+            {
+                var key = entries[h0 & indexMask].Key;
+                if (!uniq.ContainsKey(key))
+                    uniq.Add(key, 1);
+                else
+                    Assert.Fail($"Duplicate key: {key}");
+            }
         }
 
         // Verify that all keys are store in the map
@@ -104,7 +110,7 @@ public class FHashMap8Tests
         Verify(map, types);
     }
 
-    // [Test]
+    [Test]
     public void Can_store_and_retrieve_value_from_map()
     {
         var map = new FHashMap8<int, string, IntEq>(16);
@@ -190,7 +196,7 @@ public class FHashMap8Tests
         map.AddOrUpdate(42 + 32 + 32, "3");
 
         Assert.AreEqual(2, map.Count);
-        Verify(map, new[] { 42, 42 + 32 + 32});
+        Verify(map, new[] { 42, 42 + 32 + 32 });
     }
 
     //[Test]
