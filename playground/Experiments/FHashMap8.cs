@@ -320,18 +320,18 @@ public sealed class FHashMap8<K, V, TEq> where TEq : struct, IEqualityComparer<K
     internal static long[] Resize(long[] oldHashesAndIndexes, int oldIndexMask)
     {
         // in terms of the individual hashes and not in terms of the slots, which is `capacity >> 1`
-        var oldCapacity = oldIndexMask + 1;
-        var newCapacity = oldCapacity << 1;
+        var oldIndexCapacity = oldIndexMask + 1;
+        var newIndexCapacity = oldIndexCapacity << 1;
 #if DEBUG
-        Debug.WriteLine($"RESIZE _hashesAndIndexes, double the capacity: {oldCapacity} -> {newCapacity}");
+        Debug.WriteLine($"RESIZE _hashesAndIndexes, double the capacity: {oldIndexCapacity} -> {newIndexCapacity}");
 #endif
 
-        var newHashesAndIndexes = new long[newCapacity >>> 1];
+        var newHashesAndIndexes = new long[newIndexCapacity >>> 1];
 
-        var newIndexMask = newCapacity - 1;
-        var newHashPairIndexMask = oldIndexMask; 
+        var newIndexMask = newIndexCapacity - 1;
+        var newHashPairIndexMask = oldIndexMask;
         var newHashMiddleMask = ~newIndexMask & HashAndIndexMask;
-        var newHashWithoutProbesMask = HashAndIndexMask & ~oldCapacity; // erase the old capacity bit
+        var newHashWithoutProbesMask = HashAndIndexMask & ~oldIndexCapacity; // erase the old capacity bit
 
         // todo: @perf find the way to avoid copying the hashes with 0 next bit and with ideal+ probe count
         for (var i = 0; (uint)i < (uint)oldHashesAndIndexes.Length; ++i)
@@ -346,7 +346,7 @@ public sealed class FHashMap8<K, V, TEq> where TEq : struct, IEqualityComparer<K
                 // get the new hash index for the new capacity by restoring the (possibly wrapped) 
                 // probes count (and therefore the distance from the ideal hash position) 
                 var distance = (oldHash1 >>> ProbeCountShift) - 1;
-                var oldHashIndex = (oldCapacity + (i << 1) - distance) & oldIndexMask;
+                var oldHashIndex = (oldIndexCapacity + (i << 1) - distance) & oldIndexMask;
                 var restoredOldHash = (oldHash1 & ~oldIndexMask) | oldHashIndex;
                 var hashIndex = restoredOldHash & newIndexMask;
 
@@ -379,7 +379,7 @@ public sealed class FHashMap8<K, V, TEq> where TEq : struct, IEqualityComparer<K
             if (oldHash0 != 0)
             {
                 var distance = (oldHash0 >>> ProbeCountShift) - 1;
-                var oldHashIndex = (oldCapacity + (i << 1) + 1 - distance) & oldIndexMask;
+                var oldHashIndex = (oldIndexCapacity + (i << 1) + 1 - distance) & oldIndexMask;
                 var restoredOldHash = (oldHash0 & ~oldIndexMask) | oldHashIndex;
                 var hashIndex = restoredOldHash & newIndexMask;
 
@@ -415,9 +415,9 @@ public sealed class FHashMap8<K, V, TEq> where TEq : struct, IEqualityComparer<K
         foreach (var it in oldHashesAndIndexes)
         {
             var it1 = (int)(it >>> 32);
-            Debug.Write(it1 == 0 ? "_" : (it1 & oldCapacity) != 0 ? "-" : (it1 >>> ProbeCountShift).ToString());
+            Debug.Write(it1 == 0 ? "_" : (it1 & oldIndexCapacity) != 0 ? "-" : (it1 >>> ProbeCountShift).ToString());
             var it0 = (int)(it);
-            Debug.Write(it0 == 0 ? "_" : (it0 & oldCapacity) != 0 ? "-" : (it0 >>> ProbeCountShift).ToString());
+            Debug.Write(it0 == 0 ? "_" : (it0 & oldIndexCapacity) != 0 ? "-" : (it0 >>> ProbeCountShift).ToString());
         }
 
         Debug.WriteLine("");
