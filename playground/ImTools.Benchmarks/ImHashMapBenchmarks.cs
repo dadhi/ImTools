@@ -716,6 +716,20 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 |       DictSlim_TryAdd |  1000 | 32,967.42 ns |   654.476 ns | 1,291.872 ns | 32,639.05 ns |  1.00 |    0.00 | 18.3105 |   57808 B |        1.00 |
 | FHashMap7_AddOrUpdate |  1000 | 60,193.41 ns | 1,114.736 ns |   988.184 ns | 60,113.00 ns |  1.83 |    0.08 | 15.7471 |   49512 B |        0.86 |
 
+## Non-optimized FHashMap8 vs DictionarySlim
+
+|---------------------- |------ |-------------:|-------------:|-------------:|-------------:|------:|--------:|--------:|----------:|------------:|
+|       DictSlim_TryAdd |     1 |     73.67 ns |     2.802 ns |     8.129 ns |     74.83 ns |  1.00 |    0.00 |  0.0459 |     144 B |        1.00 |
+| FHashMap8_AddOrUpdate |     1 |     63.50 ns |     1.143 ns |     1.361 ns |     63.37 ns |  0.78 |    0.04 |  0.0892 |     280 B |        1.94 |
+|                       |       |              |              |              |              |       |         |         |           |             |
+|       DictSlim_TryAdd |    10 |    409.06 ns |     8.185 ns |    13.675 ns |    403.66 ns |  1.00 |    0.00 |  0.3414 |    1072 B |        1.00 |
+| FHashMap8_AddOrUpdate |    10 |    273.84 ns |     5.466 ns |    12.113 ns |    270.12 ns |  0.67 |    0.04 |  0.1783 |     560 B |        0.52 |
+|                       |       |              |              |              |              |       |         |         |           |             |
+|       DictSlim_TryAdd |   100 |  2,947.60 ns |    57.154 ns |    72.281 ns |  2,943.45 ns |  1.00 |    0.00 |  2.3842 |    7488 B |        1.00 |
+| FHashMap8_AddOrUpdate |   100 |  4,093.32 ns |   135.161 ns |   396.403 ns |  4,013.70 ns |  1.38 |    0.15 |  1.6479 |    5184 B |        0.69 |
+|                       |       |              |              |              |              |       |         |         |           |             |
+|       DictSlim_TryAdd |  1000 | 33,222.32 ns |   949.755 ns | 2,709.703 ns | 32,182.39 ns |  1.00 |    0.00 | 18.3105 |   57808 B |        1.00 |
+| FHashMap8_AddOrUpdate |  1000 | 77,317.74 ns | 1,491.225 ns | 2,978.138 ns | 76,471.37 ns |  2.28 |    0.19 | 15.6250 |   49384 B |        0.85 |
 */
             [Params(1, 10, 100, 1000)]
             // [Params(100)]
@@ -915,10 +929,22 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImTools.Experiments.FHashMap7<Type, string, ImTools.Experiments.RefEq<Type>> FHashMap7_AddOrUpdate()
             {
                 var map = new ImTools.Experiments.FHashMap7<Type, string, ImTools.Experiments.RefEq<Type>>();
+
+                foreach (var key in _types)
+                    map.AddOrUpdate(key, "a");
+
+                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+                return map;
+            }
+
+            [Benchmark]
+            public ImTools.Experiments.FHashMap8<Type, string, ImTools.Experiments.RefEq<Type>> FHashMap8_AddOrUpdate()
+            {
+                var map = new ImTools.Experiments.FHashMap8<Type, string, ImTools.Experiments.RefEq<Type>>();
 
                 foreach (var key in _types)
                     map.AddOrUpdate(key, "a");
