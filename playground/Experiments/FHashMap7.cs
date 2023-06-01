@@ -419,22 +419,15 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
         e.Key = key;
         e.Value = value;
         _entryCount = newEntryIndex + 1;
-        if (h == 0)
-            return;
 
         // Robin Hood loop - the old hash to be re-inserted with the increased probe count
-        probes = hProbes;
         var hashWithoutProbes = h & HashAndIndexMask;
-        while (true)
+        probes = hProbes;
+        while (h != 0)
         {
             ++probes;
             hashIndex = (hashIndex + 1) & indexMask;
             h = hashesAndIndexes[hashIndex];
-            if (h == 0)
-            {
-                hashesAndIndexes[hashIndex] = (probes << ProbeCountShift) | hashWithoutProbes;
-                return;
-            }
             if ((h >>> ProbeCountShift) < probes) // skip hashes with the bigger probe count until we find the same or less probes
             {
                 hashesAndIndexes[hashIndex] = (probes << ProbeCountShift) | hashWithoutProbes;
@@ -448,10 +441,11 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
     internal static int[] CreatePaddedHashesAndIndexes(int capacity)
     {
         // `+ 3` because we need to align the `a` to 4 elements boundary for the Vector128 read starting from the last index in array
-        var a = new int[capacity + 3];
-        a[capacity + 2] = ProbesMask;
-        a[capacity + 1] = ProbesMask;
-        a[capacity] = ProbesMask;
+        var a = new int[capacity];
+        // var a = new int[capacity + 3]; // todo: @wip for the Vector128 read starting from the last index in array
+        // a[capacity + 2] = ProbesMask;
+        // a[capacity + 1] = ProbesMask;
+        // a[capacity] = ProbesMask;
         return a;
     }
 
@@ -491,7 +485,7 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
             for (var probes = 1; ; ++probes, newHashIndex = (newHashIndex + 1) & newIndexMask) // we don't need the condition for the MaxProbes because by increasing the hash space we guarantee that we fit the hashes in the finite amount of probes likely less than previous MaxProbeCount
             {
                 h = newHashesAndIndexes[newHashIndex];
-                if (h == 0)
+                if (h == 0) // todo: @perf combine the solutions
                 {
                     newHashesAndIndexes[newHashIndex] = (probes << ProbeCountShift) | newHashAndEntryIndex;
                     break;
