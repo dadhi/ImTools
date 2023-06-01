@@ -6,7 +6,7 @@ using NUnit.Framework;
 
 namespace ImTools.Experiments.UnitTests;
 
-//[TestFixture]
+[TestFixture]
 public class FHashMap8Tests
 {
     public static void Verify<K, V, TEq>(FHashMap8<K, V, TEq> map, IEnumerable<K> expectedKeys) 
@@ -104,7 +104,7 @@ public class FHashMap8Tests
         Verify(map, types);
     }
 
-    //[Test]
+    // [Test]
     public void Can_store_and_retrieve_value_from_map()
     {
         var map = new FHashMap8<int, string, IntEq>(16);

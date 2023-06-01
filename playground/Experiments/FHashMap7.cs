@@ -394,7 +394,7 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
             if (hProbes < probes)
                 break;
             
-            if (hProbes == probes && (h & hashMiddleMask) == hashMiddle)
+            if ((hProbes == probes) & ((h & hashMiddleMask) == hashMiddle))
             {
                 ref var matchedEntry = ref _entries[h & indexMask];
 #if DEBUG

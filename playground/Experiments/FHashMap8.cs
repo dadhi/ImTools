@@ -27,11 +27,11 @@ public static class FHashMap8Extensions
             if (hs == 0)
                 continue;
 
-            var hHigh = (int)(hs >> 32); // get the higher 32 bits of the double-hash
+            var hHigh = (int)(hs >>> 32); // get the higher 32 bits of the double-hash
             var hHighIndex = i << 1; // 0->0, 1->2, 2->4, 3->6
 
             // calculate the index from the probe count taking the wrap over arra into account
-            var probe = hHigh >> probeShift;
+            var probe = hHigh >>> probeShift;
             var deltaFromTheIdealIndex = probe - 1;
             var hashIndex = (indexCapacity + hHighIndex - deltaFromTheIdealIndex) & indexMask;
 
@@ -52,7 +52,7 @@ public static class FHashMap8Extensions
             var hLow = (int)hs;
             var hLowIndex = (i << 1) + 1; // 0->1, 1->3, 2->5
 
-            probe = hLow >> probeShift;
+            probe = hLow >>> probeShift;
             deltaFromTheIdealIndex = probe - 1;
             hashIndex = (indexCapacity + hLowIndex - deltaFromTheIdealIndex) & indexMask;
 
@@ -81,7 +81,7 @@ public static class FHashMap8Extensions
         public string HKV;
         public int Index;
         public bool IsEmpty => Probe == 0;
-        public string Output => $"{Probe}|{Hash}{(HEq ? "==" : "!=")}{HKV}";
+        public string Output => $"{Probe}|{(HEq ? "" : "" + Hash)}{(HEq ? "==" : "!=")}{HKV}";
         public override string ToString() => IsEmpty ? "empty" : Output;
     }
 }
@@ -116,6 +116,7 @@ public sealed class FHashMap8<K, V, TEq> where TEq : struct, IEqualityComparer<K
     public const byte ProbeCountShift = 32 - MaxProbeBits;
     public const int ProbesMask = MaxProbeCount << ProbeCountShift;
     public const int HashAndIndexMask = ~ProbesMask;
+    public const long ClearLowPairPartMask = ~((1L << 32) - 1); // b111...1|000...0
 
     // The _hashesAndIndexes elements are of `Int32`, 
     // e.g. 00010|000...110|01101
@@ -181,7 +182,7 @@ public sealed class FHashMap8<K, V, TEq> where TEq : struct, IEqualityComparer<K
         var shift = (~(index & 1) & 1) << 5; // for index b???0 -> 32, for index b???1 -> 0, e.g. 0 -> 32, 1 -> 0 
         while (true)
         {
-            var h = (int)(hs >> shift);
+            var h = (int)(hs >>> shift);
             if ((h & probesAndHashMask) == ((probes << ProbeCountShift) | hashMiddle))
             {
 #if NET7_0_OR_GREATER
@@ -195,16 +196,16 @@ public sealed class FHashMap8<K, V, TEq> where TEq : struct, IEqualityComparer<K
                     return true;
                 }
             }
-            if ((h >> ProbeCountShift) < probes)
+            if ((h >>> ProbeCountShift) < probes)
                 break;
 
             if (shift == 0)
             {
-                index = (index + 1) & indexMask; // todo: @perf can be optimized
+                index = (index + 2) & indexMask; // todo: @perf can be optimized
 #if NET7_0_OR_GREATER
-                hs = Unsafe.Add(ref hashesAndIndexes, index >> 1);
+                hs = Unsafe.Add(ref hashesAndIndexes, index >>> 1);
 #else
-                hs = hashesAndIndexes[index >> 1];
+                hs = hashesAndIndexes[index >>> 1];
 #endif
             }
             shift = ~shift & 32; // 32 -> 0, 0 -> 32
@@ -229,103 +230,88 @@ public sealed class FHashMap8<K, V, TEq> where TEq : struct, IEqualityComparer<K
 
         var hashesAndIndexes = _hashesAndIndexes;
         var indexMask = _indexMask;
-        if (indexMask - _entryCount <= (indexMask >> MinFreeCapacityShift)) // if the free capacity is less free slots 1/16 (6.25%)
+        if (indexMask - _entryCount <= (indexMask >>> MinFreeCapacityShift)) // if the free capacity is less free slots 1/16 (6.25%)
         {
-            _hashesAndIndexes = hashesAndIndexes = Resize(_hashesAndIndexes, indexMask);
+            _hashesAndIndexes = hashesAndIndexes = Resize(hashesAndIndexes, indexMask);
             _indexMask = indexMask = (indexMask << 1) | 1;
         }
 
         var hashMiddleMask = ~indexMask & HashAndIndexMask;
         var hashMiddle = hash & hashMiddleMask;
-        var index = hash & indexMask;
 
-        int probes = 1;
-        int h;
-        // hashIndex == 2(b10) in 0:[0|1],1:[2|3] -> 2>>1 -> 1 in 0:[__],1:[2|3] -> shift 2(b10)==32 in 0:[__],1:[2_]
-        var hs = hashesAndIndexes[index >> 1];
-        var shift = (~(index & 1) & 1) << 5; // for index b???0 -> 32, for index b???1 -> 0, e.g. 0 -> 32, 1 -> 0 
+        var hashIndex = hash & indexMask;
+        var hPairShift = (~(hashIndex & 1) & 1) << 5; // for index b???0 -> 32, for index b???1 -> 0, e.g. 0 -> 32, 1 -> 0
+        var hPairIndex = hashIndex >>> 1;
+        var hPair = hashesAndIndexes[hPairIndex];
+        int probes = 1, h;
         while (true)
         {
             Debug.Assert(probes <= MaxProbeCount, $"[AddOrUpdate] DEBUG ASSERT FAILED: probes {probes} <= MaxProbeCount {MaxProbeCount}");
 
-            h = (int)(hs >> shift);
-            var hProbes = h >> ProbeCountShift;
-
-            // this check is also implicitly breaks if `h == 0` to proceed inserting new entry 
-            if (hProbes < probes)
+            h = (int)(hPair >>> hPairShift);
+            if ((h >>> ProbeCountShift) < probes) // this check is also implicitly breaks if `h == 0` to proceed inserting new entry
                 break;
-
-            if (hProbes == probes && (h & hashMiddleMask) == hashMiddle)
+            if (((h >>> ProbeCountShift) == probes) & ((h & hashMiddleMask) == hashMiddle))
             {
                 ref var matchedEntry = ref _entries[h & indexMask];
-#if DEBUG
-                Debug.WriteLine($"[AddOrUpdate] PROBES AND HASH MATCH: probes {probes}, compare new key `{key}` with matched key:`{matchedEntry.Key}`");
-#endif
                 if (default(TEq).Equals(matchedEntry.Key, key))
                 {
                     matchedEntry.Value = value;
                     return;
                 }
             }
-            if (shift == 0)
-            {
-                index = (index + 1) & indexMask;
-                hs = hashesAndIndexes[index >> 1]; // todo: @perf can be optimized
-            }
-            shift = ~shift & 32; // 32 -> 0, 0 -> 32
+            // todo: @perf what if we step in 2 hashes instead of 1, to reduce the number of steps for the probes > 1?
+            // todo: @perf ...further we may align the step by the next pair boundary to simplify the conditional logic.
+            if (hPairShift == 0)
+                hPair = hashesAndIndexes[hPairIndex = (hPairIndex + 1) & (indexMask >>> 1)]; // todo: @perf can be optimized
+            hPairShift = ~hPairShift & 32; // 32 -> 0, 0 -> 32
             ++probes;
         }
 
         var newEntryIndex = _entryCount;
-        hashesAndIndexes[index >> 1] = hs | ((long)((probes << ProbeCountShift) | hashMiddle | newEntryIndex) << shift);
-
-#if DEBUG
-        if (probes > MaxProbes)
-        {
-            MaxProbes = probes;
-            Debug.WriteLine($"AddOrUpdate: MaxProbes now is {MaxProbes}");
-        }
-#endif
-
         if (newEntryIndex >= _entries.Length)
             Array.Resize(ref _entries, _entries.Length * 2);
         ref var e = ref _entries[newEntryIndex];
         e.Key = key;
         e.Value = value;
         _entryCount = newEntryIndex + 1;
-        if (h == 0)
-            return;
 
-        // Robin Hood loop - the old hash to be re-inserted with the increased probe count
-        probes = (h >> ProbeCountShift) + 1;
+        var a = (long)((probes << ProbeCountShift) | hashMiddle | newEntryIndex);
+        // we need to clear the respective part of pair before adding the a, 
+        // so we moving new zeroes or keeping the current zeroes via `ClearLowPairPartMask >> hPairShift`, 
+        // e.g. 11110000 >> 4 -> 00001111, 11110000 >> 0 -> 11110000
+        hPair = (hPair & (ClearLowPairPartMask >>> hPairShift)) | (a << hPairShift); // we need to override the pair, because we may used it later in the modified state
+        hashesAndIndexes[hPairIndex] = hPair;
+#if DEBUG
+        if (h == 0 && probes > MaxProbes)
+            Debug.WriteLine($"AddOrUpdate: MaxProbes now is {MaxProbes = probes}");
+#endif
         var hashWithoutProbes = h & HashAndIndexMask;
-        if (shift == 0)
+        probes = h >>> ProbeCountShift;
+        // The 2 statemente above may be wasted but that's fine because the bit operations are cheap and we saving the one `h == 0` condition, 
+        // basically we are combining the condition for the plain insert and for the robing-good insert into one.
+        while (h != 0)
         {
-            index = (index + 1) & indexMask;
-            hs = hashesAndIndexes[index >> 1];
-        }
-        shift = ~shift & 32; // 32 -> 0, 0 -> 32
-        while (true)
-        {
-            h = (int)(hs >> shift);
-            if (h == 0)
-            {
-                hashesAndIndexes[index >> 1] = hs | ((long)((probes << ProbeCountShift) | hashWithoutProbes) << shift);
-                return;
-            }
-            if ((h >> ProbeCountShift) < probes) // skip hashes with the bigger probe count until we find the same or less probes
-            {
-                hashesAndIndexes[index >> 1] = hs | ((long)((probes << ProbeCountShift) | hashWithoutProbes) << shift);
-                hashWithoutProbes = h & HashAndIndexMask;
-                probes = (h >> ProbeCountShift);
-            }
-            if (shift == 0)
-            {
-                index = (index + 1) & indexMask;
-                hs = hashesAndIndexes[index >> 1];
-            }
-            shift = ~shift & 32; // 32 -> 0, 0 -> 32
             ++probes;
+            Debug.Assert(probes <= MaxProbeCount, $"[AddOrUpdate] DEBUG ASSERT FAILED: probes {probes} <= MaxProbeCount {MaxProbeCount}");
+
+            if (hPairShift == 0)
+                hPair = hashesAndIndexes[hPairIndex = (hPairIndex + 1) & (indexMask >>> 1)]; // todo: @perf can be optimized
+            hPairShift = ~hPairShift & 32; // 32 -> 0, 0 -> 32
+
+            h = (int)(hPair >>> hPairShift);
+            if ((h >>> ProbeCountShift) < probes) // it is also `true` if `h == 0`
+            {
+                var b = (long)((probes << ProbeCountShift) | hashWithoutProbes);
+                hPair = (hPair & (ClearLowPairPartMask >>> hPairShift)) | (b << hPairShift);
+                hashesAndIndexes[hPairIndex] = hPair;
+#if DEBUG
+                if (h == 0 && probes > MaxProbes)
+                    Debug.WriteLine($"AddOrUpdate: MaxProbes now is {MaxProbes = probes}");
+#endif
+                hashWithoutProbes = h & HashAndIndexMask;
+                probes = h >>> ProbeCountShift;
+            }
         }
     }
 
@@ -338,9 +324,10 @@ public sealed class FHashMap8<K, V, TEq> where TEq : struct, IEqualityComparer<K
         Debug.WriteLine($"RESIZE _hashesAndIndexes, double the capacity: {oldCapacity} -> {newCapacity}");
 #endif
 
-        var newHashesAndIndexes = new long[newCapacity >> 1];
+        var newHashesAndIndexes = new long[newCapacity >>> 1];
 
         var newIndexMask = newCapacity - 1;
+        var newHashPairIndexMask = oldIndexMask; 
         var newHashMiddleMask = ~newIndexMask & HashAndIndexMask;
         var newHashWithoutProbesMask = HashAndIndexMask & ~oldCapacity; // erase the old capacity bit
 
@@ -351,77 +338,69 @@ public sealed class FHashMap8<K, V, TEq> where TEq : struct, IEqualityComparer<K
             if (oldHashes == 0)
                 continue; // 2 empty slots can be skipped
 
-            var oldHash1 = (int)(oldHashes >> 32);
+            var oldHash1 = (int)(oldHashes >>> 32);
             if (oldHash1 != 0)
             {
                 // get the new hash index for the new capacity by restoring the (possibly wrapped) 
                 // probes count (and therefore the distance from the ideal hash position) 
-                var distance = (oldHash1 >> ProbeCountShift) - 1;
+                var distance = (oldHash1 >>> ProbeCountShift) - 1;
                 var oldHashIndex = (oldCapacity + (i << 1) - distance) & oldIndexMask;
                 var restoredOldHash = (oldHash1 & ~oldIndexMask) | oldHashIndex;
-                var index = restoredOldHash & newIndexMask;
+                var hashIndex = restoredOldHash & newIndexMask;
 
-                // erasing the next to capacity bit, given the capacity was 4 and now it is 4 << 1 = 8, 
-                // we are erasing the 3rd bit to store the new count in it. 
-                var probes = 1;
+                // erasing the next to capacity bit with `newHashWithoutProbesMask`, 
+                // given the capacity was 4 and now it is 4 << 1 = 8, we are erasing the 3rd bit to store the new count in it. 
                 var newHashWithoutProbes = oldHash1 & newHashWithoutProbesMask;
-                var hs = newHashesAndIndexes[index >> 1];
-                var shift = (~(index & 1) & 1) << 5; // for index b???0 -> 32, for index b???1 -> 0, e.g. 0 -> 32, 1 -> 0 
+                var hPairShift = (~(hashIndex & 1) & 1) << 5; // for index b???0 -> 32, for index b???1 -> 0, e.g. 0 -> 32, 1 -> 0 
+                var hPairIndex = hashIndex >>> 1;
+                var hPair = newHashesAndIndexes[hPairIndex];
+                var probes = 1;
                 while (true) // we don't need the condition for the MaxProbes because by increasing the hash space we guarantee that we fit the hashes in the finite amount of probes likely less than previous MaxProbeCount
                 {
-                    var h = (int)(hs >> shift);
-                    if (h == 0)
+                    var h = (int)(hPair >>> hPairShift);
+                    if ((h >>> ProbeCountShift) < probes) // it is also `true` if `h == 0`
                     {
-                        newHashesAndIndexes[index >> 1] = hs | ((long)((probes << ProbeCountShift) | newHashWithoutProbes) << shift);
-                        break;
-                    }
-                    if ((h >> ProbeCountShift) < probes)
-                    {
-                        newHashesAndIndexes[index >> 1] = hs | ((long)((probes << ProbeCountShift) | newHashWithoutProbes) << shift);
+                        var a = (long)((probes << ProbeCountShift) | newHashWithoutProbes);
+                        newHashesAndIndexes[hPairIndex] = (hPair & (ClearLowPairPartMask >>> hPairShift)) | (a << hPairShift);
+                        if (h == 0) 
+                            break;
                         newHashWithoutProbes = h & HashAndIndexMask;
-                        probes = h >> ProbeCountShift;
+                        probes = h >>> ProbeCountShift;
                     }
-                    if (shift == 0)
-                    {
-                        index = (index + 1) & newIndexMask;
-                        hs = newHashesAndIndexes[index >> 1]; // todo: @perf can be optimized
-                    }
-                    shift = ~shift & 32; // 32 -> 0, 0 -> 32
+                    if (hPairShift == 0)
+                        hPair = newHashesAndIndexes[hPairIndex = (hPairIndex + 1) & newHashPairIndexMask];
+                    hPairShift = ~hPairShift & 32; // 32 -> 0, 0 -> 32
                     ++probes;
                 }
             }
             var oldHash0 = (int)(oldHashes);
             if (oldHash0 != 0)
             {
-                var distance = (oldHash0 >> ProbeCountShift) - 1;
+                var distance = (oldHash0 >>> ProbeCountShift) - 1;
                 var oldHashIndex = (oldCapacity + (i << 1) + 1 - distance) & oldIndexMask;
                 var restoredOldHash = (oldHash0 & ~oldIndexMask) | oldHashIndex;
-                var index = restoredOldHash & newIndexMask;
+                var hashIndex = restoredOldHash & newIndexMask;
 
-                var probes = 1;
                 var newHashWithoutProbes = oldHash0 & newHashWithoutProbesMask;
-                var hs = newHashesAndIndexes[index >> 1];
-                var shift = (~(index & 1) & 1) << 5; // for index b???0 -> 32, for index b???1 -> 0, e.g. 0 -> 32, 1 -> 0 
+                var hPairShift = (~(hashIndex & 1) & 1) << 5; // for index b???0 -> 32, for index b???1 -> 0, e.g. 0 -> 32, 1 -> 0 
+                var hPairIndex = hashIndex >>> 1;
+                var hPair = newHashesAndIndexes[hPairIndex];
+                var probes = 1;
                 while (true) // we don't need the condition for the MaxProbes because by increasing the hash space we guarantee that we fit the hashes in the finite amount of probes likely less than previous MaxProbeCount
                 {
-                    var h = (int)(hs >> shift);
-                    if (h == 0)
+                    var h = (int)(hPair >>> hPairShift);
+                    if ((h >>> ProbeCountShift) < probes) // it is also `true` if `h == 0`
                     {
-                        newHashesAndIndexes[index >> 1] = hs | ((long)((probes << ProbeCountShift) | newHashWithoutProbes) << shift);
-                        break;
-                    }
-                    if ((h >> ProbeCountShift) < probes)
-                    {
-                        newHashesAndIndexes[index >> 1] = hs | ((long)((probes << ProbeCountShift) | newHashWithoutProbes) << shift);
+                        var a = (long)((probes << ProbeCountShift) | newHashWithoutProbes);
+                        newHashesAndIndexes[hPairIndex] = (hPair & (ClearLowPairPartMask >>> hPairShift)) | (a << hPairShift);
+                        if (h == 0) 
+                            break;
                         newHashWithoutProbes = h & HashAndIndexMask;
-                        probes = h >> ProbeCountShift;
+                        probes = h >>> ProbeCountShift;
                     }
-                    if (shift == 0)
-                    {
-                        index = (index + 1) & newIndexMask;
-                        hs = newHashesAndIndexes[index >> 1]; // todo: @perf can be optimized
-                    }
-                    shift = ~shift & 32; // 32 -> 0, 0 -> 32
+                    if (hPairShift == 0)
+                        hPair = newHashesAndIndexes[hPairIndex = (hPairIndex + 1) & newHashPairIndexMask];
+                    hPairShift = ~hPairShift & 32; // 32 -> 0, 0 -> 32
                     ++probes;
                 }
             }
@@ -433,10 +412,10 @@ public sealed class FHashMap8<K, V, TEq> where TEq : struct, IEqualityComparer<K
         Debug.Write("Resize: before resize ");
         foreach (var it in oldHashesAndIndexes)
         {
-            var it1 = (int)(it >> 32);
-            Debug.Write(it1 == 0 ? "_" : (it1 & oldCapacity) != 0 ? "-" : (it1 >> ProbeCountShift).ToString());
+            var it1 = (int)(it >>> 32);
+            Debug.Write(it1 == 0 ? "_" : (it1 & oldCapacity) != 0 ? "-" : (it1 >>> ProbeCountShift).ToString());
             var it0 = (int)(it);
-            Debug.Write(it0 == 0 ? "_" : (it0 & oldCapacity) != 0 ? "-" : (it0 >> ProbeCountShift).ToString());
+            Debug.Write(it0 == 0 ? "_" : (it0 & oldCapacity) != 0 ? "-" : (it0 >>> ProbeCountShift).ToString());
         }
 
         Debug.WriteLine("");
