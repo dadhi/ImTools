@@ -163,7 +163,6 @@ public sealed class FHashMap8<K, V, TEq> where TEq : struct, IEqualityComparer<K
     public bool TryGetValue(K key, out V value)
     {
         var hash = default(TEq).GetHashCode(key);
-
 #if NET7_0_OR_GREATER
         ref var hashesAndIndexes = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_hashesAndIndexes);
 #else
@@ -175,24 +174,22 @@ public sealed class FHashMap8<K, V, TEq> where TEq : struct, IEqualityComparer<K
         var probesAndHashMask = ~indexMask;
         var hashMiddle = hash & ~indexMask & HashAndIndexMask;
 
-        var index = hash & indexMask;
-        var hPairShift = (~(index & 1) & 1) << 5; // for index b???0 -> 32, for index b???1 -> 0, e.g. 0 -> 32, 1 -> 0 
-        var pHashIndex = index >>> 1;
-#if NET7_0_OR_GREATER
-        var hPair = Unsafe.Add(ref hashesAndIndexes, pHashIndex);
-#else
-        var hPair = hashesAndIndexes[pHashIndex];
-#endif
-        var probes = 1;
+        var probes = ~(hash & indexMask) & 1;
+        var abIndex = (hash & indexMask) >>> 1;
         while (true)
         {
-            var h = (int)(hPair >>> hPairShift);
-            if ((h & probesAndHashMask) == ((probes << ProbeCountShift) | hashMiddle))
+#if NET7_0_OR_GREATER
+            var ab = Unsafe.Add(ref hashesAndIndexes, abIndex);
+#else
+            var ab = hashesAndIndexes[abIndex];
+#endif
+            var a = (int)(ab >>> 32);
+            if ((a & probesAndHashMask) == ((probes << ProbeCountShift) | hashMiddle))
             {
 #if NET7_0_OR_GREATER
-                ref var e = ref Unsafe.Add(ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_entries), h & indexMask);
+                ref var e = ref Unsafe.Add(ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_entries), a & indexMask);
 #else
-                ref var e = ref _entries[h & indexMask];
+                ref var e = ref _entries[a & indexMask];
 #endif
                 if (default(TEq).Equals(e.Key, key))
                 {
@@ -200,20 +197,27 @@ public sealed class FHashMap8<K, V, TEq> where TEq : struct, IEqualityComparer<K
                     return true;
                 }
             }
-            if ((h >>> ProbeCountShift) < probes)
+
+            var b = (int)(ab);
+            if ((b & probesAndHashMask) == (((probes + 1) << ProbeCountShift) | hashMiddle))
+            {
+#if NET7_0_OR_GREATER
+                ref var e = ref Unsafe.Add(ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_entries), b & indexMask);
+#else
+                ref var e = ref _entries[b & indexMask];
+#endif
+                if (default(TEq).Equals(e.Key, key))
+                {
+                    value = e.Value;
+                    return true;
+                }
+            }
+
+            if ((b >>> ProbeCountShift) < probes + 1)
                 break;
 
-            if (hPairShift == 0)
-            {
-                pHashIndex = (pHashIndex + 1) & pHashIndexMask;
-#if NET7_0_OR_GREATER
-                hPair = Unsafe.Add(ref hashesAndIndexes, pHashIndex);
-#else
-                hPair = hashesAndIndexes[pHashIndex];
-#endif
-            }
-            hPairShift = ~hPairShift & 32; // 32 -> 0, 0 -> 32
-            ++probes;
+            abIndex = (abIndex + 1) & pHashIndexMask;
+            probes += 2;
         }
         value = default;
         return false;
@@ -367,7 +371,7 @@ public sealed class FHashMap8<K, V, TEq> where TEq : struct, IEqualityComparer<K
                         var a = (long)((probes << ProbeCountShift) | newHashWithoutProbes);
                         hPair = (hPair & (ClearLowPairPartMask >>> hPairShift)) | (a << hPairShift);
                         newHashesAndIndexes[hPairIndex] = hPair;
-                        if (h == 0) 
+                        if (h == 0)
                             break;
                         newHashWithoutProbes = h & HashAndIndexMask;
                         probes = h >>> ProbeCountShift;
@@ -399,7 +403,7 @@ public sealed class FHashMap8<K, V, TEq> where TEq : struct, IEqualityComparer<K
                         var a = (long)((probes << ProbeCountShift) | newHashWithoutProbes);
                         hPair = (hPair & (ClearLowPairPartMask >>> hPairShift)) | (a << hPairShift);
                         newHashesAndIndexes[hPairIndex] = hPair;
-                        if (h == 0) 
+                        if (h == 0)
                             break;
                         newHashWithoutProbes = h & HashAndIndexMask;
                         probes = h >>> ProbeCountShift;
