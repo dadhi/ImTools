@@ -15,10 +15,7 @@ public class FHashMap8Tests
         var exp = map.Explain();
         foreach (var it in exp)
             if (!it.IsEmpty)
-            {
-                // Console.WriteLine(it);
                 Assert.True(it.HEq);
-            }
 
         // Verify the indexes do no contains duplicate keys
         var uniq = new Dictionary<K, int>(map.Count);
@@ -57,7 +54,7 @@ public class FHashMap8Tests
                 Assert.True(map.TryGetValue(key, out _), $"Key not found:`{key}` but found in hashes?: {uniq.ContainsKey(key)}");
     }
 
-    //[Test]
+    [Test]
     public void Real_world_test_AddOrUpdate()
     {
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(100).ToArray();
@@ -74,7 +71,7 @@ public class FHashMap8Tests
         Verify(map, types);
     }
 
-    //[Test]
+    [Test]
     public void Real_world_test_TryGetValue()
     {
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(100).ToArray();
@@ -93,7 +90,7 @@ public class FHashMap8Tests
         Verify(map, types);
     }
 
-    //[Test]
+    [Test]
     public void Real_world_test_without_Resize()
     {
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(100).ToArray();
@@ -187,7 +184,7 @@ public class FHashMap8Tests
         Verify(map, null);
     }
 
-    //[Test]
+    [Test]
     public void Can_store_and_get_stored_item_count()
     {
         var map = new FHashMap8<int, string, IntEq>();
@@ -199,7 +196,7 @@ public class FHashMap8Tests
         Verify(map, new[] { 42, 42 + 32 + 32 });
     }
 
-    //[Test]
+    [Test]
     public void Can_update_a_stored_item_with_new_value()
     {
         var map = new FHashMap8<int, string, IntEq>();
@@ -212,7 +209,7 @@ public class FHashMap8Tests
         Verify(map, new[] { 42 });
     }
 
-    //[Test]
+    [Test]
     public void Can_add_key_with_0_hash_code()
     {
         var map = new FHashMap8<int, string, IntEq>();
@@ -228,7 +225,7 @@ public class FHashMap8Tests
         Assert.AreEqual("aaa", value);
     }
 
-    //[Test]
+    [Test]
     public void Can_quickly_find_the_scattered_items_with_the_same_cache()
     {
         var map = new FHashMap8<int, string, IntEq>();

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Linq;
 #if NET7_0_OR_GREATER
 using System.Runtime.Intrinsics;
 using System.Numerics;
@@ -16,8 +17,9 @@ public static class FHashMap8Extensions
         var hashesAndIndexes = map._hashesAndIndexes;
         var indexMask = map.IndexMask;
         var indexCapacity = indexMask + 1;
-        var hashMiddleMask = ~indexMask & FHashMap8<K, V, TEq>.HashAndIndexMask;
-        var probeShift = FHashMap8<K, V, TEq>.ProbeCountShift;
+        var probeCountShift = FHashMap8<K, V, TEq>.ProbeCountShift;
+        var hashAndIndexMask = FHashMap8<K, V, TEq>.HashAndIndexMask;
+        var hashMiddleMask = ~indexMask & hashAndIndexMask;
 
         var items = new Item<K, V>[indexCapacity];
 
@@ -28,10 +30,10 @@ public static class FHashMap8Extensions
                 continue;
 
             var hHigh = (int)(hs >>> 32); // get the higher 32 bits of the double-hash
-            var hHighIndex = i << 1; // 0->0, 1->2, 2->4, 3->6
 
-            // calculate the index from the probe count taking the wrap over arra into account
-            var probe = hHigh >>> probeShift;
+            // calculate the index from the probe count taking the wrap over array into account
+            var hHighIndex = i << 1; // 0->0, 1->2, 2->4, 3->6
+            var probe = hHigh >>> probeCountShift;
             var deltaFromTheIdealIndex = probe - 1;
             var hashIndex = (indexCapacity + hHighIndex - deltaFromTheIdealIndex) & indexMask;
 
@@ -43,16 +45,16 @@ public static class FHashMap8Extensions
             if (probe != 0)
             {
                 var e = entries[index];
-                var kh = e.Key.GetHashCode() & FHashMap8<K, V, TEq>.HashAndIndexMask;
-                heq = kh == hash;
+                var kh = e.Key.GetHashCode();
+                heq = (kh & hashAndIndexMask) == hash;
                 hkv = $"{kh.b()}:{e.Key}->{e.Value}";
             }
             items[i << 1] = new Item<K, V> { Probe = probe, Hash = hash.b(), HEq = heq, Index = index, HKV = hkv };
 
             var hLow = (int)hs;
-            var hLowIndex = (i << 1) + 1; // 0->1, 1->3, 2->5
 
-            probe = hLow >>> probeShift;
+            var hLowIndex = (i << 1) + 1; // 0->1, 1->3, 2->5
+            probe = hLow >>> probeCountShift;
             deltaFromTheIdealIndex = probe - 1;
             hashIndex = (indexCapacity + hLowIndex - deltaFromTheIdealIndex) & indexMask;
 
@@ -64,8 +66,8 @@ public static class FHashMap8Extensions
             if (probe != 0)
             {
                 var e = entries[index];
-                var kh = e.Key.GetHashCode() & FHashMap8<K, V, TEq>.HashAndIndexMask;
-                heq = kh == hash;
+                var kh = e.Key.GetHashCode();
+                heq = (kh & hashAndIndexMask) == hash;
                 hkv = $"{kh.b()}:{e.Key}->{e.Value}";
             }
             items[(i << 1) + 1] = new Item<K, V> { Probe = probe, Hash = hash.b(), HEq = heq, Index = index, HKV = hkv };
@@ -282,7 +284,7 @@ public sealed class FHashMap8<K, V, TEq> where TEq : struct, IEqualityComparer<K
         // we need to clear the respective part of pair before adding the a, 
         // so we moving new zeroes or keeping the current zeroes via `ClearLowPairPartMask >> hPairShift`, 
         // e.g. 11110000 >> 4 -> 00001111, 11110000 >> 0 -> 11110000
-        hPair = (hPair & (ClearLowPairPartMask >>> hPairShift)) | (a << hPairShift); // we need to override the pair, because we may used it later in the modified state
+        hPair = (hPair & (ClearLowPairPartMask >>> hPairShift)) | (a << hPairShift); // we need to override the pair, because we may use it later in the modified state
         hashesAndIndexes[hPairIndex] = hPair;
 #if DEBUG
         if (h == 0 && probes > MaxProbes)
@@ -345,8 +347,8 @@ public sealed class FHashMap8<K, V, TEq> where TEq : struct, IEqualityComparer<K
             {
                 // get the new hash index for the new capacity by restoring the (possibly wrapped) 
                 // probes count (and therefore the distance from the ideal hash position) 
-                var distance = (oldHash1 >>> ProbeCountShift) - 1;
-                var oldHashIndex = (oldIndexCapacity + (i << 1) - distance) & oldIndexMask;
+                var deltaFromTheIdealIndex = (oldHash1 >>> ProbeCountShift) - 1;
+                var oldHashIndex = (oldIndexCapacity + (i << 1) - deltaFromTheIdealIndex) & oldIndexMask;
                 var restoredOldHash = (oldHash1 & ~oldIndexMask) | oldHashIndex;
                 var hashIndex = restoredOldHash & newIndexMask;
 
@@ -363,7 +365,8 @@ public sealed class FHashMap8<K, V, TEq> where TEq : struct, IEqualityComparer<K
                     if ((h >>> ProbeCountShift) < probes) // it is also `true` if `h == 0`
                     {
                         var a = (long)((probes << ProbeCountShift) | newHashWithoutProbes);
-                        newHashesAndIndexes[hPairIndex] = (hPair & (ClearLowPairPartMask >>> hPairShift)) | (a << hPairShift);
+                        hPair = (hPair & (ClearLowPairPartMask >>> hPairShift)) | (a << hPairShift);
+                        newHashesAndIndexes[hPairIndex] = hPair;
                         if (h == 0) 
                             break;
                         newHashWithoutProbes = h & HashAndIndexMask;
@@ -378,8 +381,8 @@ public sealed class FHashMap8<K, V, TEq> where TEq : struct, IEqualityComparer<K
             var oldHash0 = (int)(oldHashes);
             if (oldHash0 != 0)
             {
-                var distance = (oldHash0 >>> ProbeCountShift) - 1;
-                var oldHashIndex = (oldIndexCapacity + (i << 1) + 1 - distance) & oldIndexMask;
+                var deltaFromTheIdealIndex = (oldHash0 >>> ProbeCountShift) - 1;
+                var oldHashIndex = (oldIndexCapacity + (i << 1) + 1 - deltaFromTheIdealIndex) & oldIndexMask;
                 var restoredOldHash = (oldHash0 & ~oldIndexMask) | oldHashIndex;
                 var hashIndex = restoredOldHash & newIndexMask;
 
@@ -394,7 +397,8 @@ public sealed class FHashMap8<K, V, TEq> where TEq : struct, IEqualityComparer<K
                     if ((h >>> ProbeCountShift) < probes) // it is also `true` if `h == 0`
                     {
                         var a = (long)((probes << ProbeCountShift) | newHashWithoutProbes);
-                        newHashesAndIndexes[hPairIndex] = (hPair & (ClearLowPairPartMask >>> hPairShift)) | (a << hPairShift);
+                        hPair = (hPair & (ClearLowPairPartMask >>> hPairShift)) | (a << hPairShift);
+                        newHashesAndIndexes[hPairIndex] = hPair;
                         if (h == 0) 
                             break;
                         newHashWithoutProbes = h & HashAndIndexMask;

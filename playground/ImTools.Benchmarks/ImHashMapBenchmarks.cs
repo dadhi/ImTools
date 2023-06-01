@@ -1812,6 +1812,23 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 |                            |       |          |           |           |          |       |         |           |             |
 | DictionarySlim_TryGetValue |  1000 | 9.066 ns | 0.1819 ns | 0.1612 ns | 9.013 ns |  1.00 |    0.00 |         - |          NA |
 |       FHashMap_TryGetValue |  1000 | 4.935 ns | 0.1353 ns | 0.1661 ns | 4.891 ns |  0.55 |    0.02 |         - |          NA |
+
+## Adding FHashMap8 vs DictionarySlim
+
+|                     Method | Count |     Mean |     Error |    StdDev |   Median | Ratio | RatioSD | Allocated | Alloc Ratio |
+|--------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|----------:|------------:|
+| DictionarySlim_TryGetValue |     1 | 9.446 ns | 0.2718 ns | 0.5038 ns | 9.329 ns |  1.00 |    0.00 |         - |          NA |
+|      FHashMap8_TryGetValue |     1 | 5.485 ns | 0.1832 ns | 0.3009 ns | 5.402 ns |  0.58 |    0.04 |         - |          NA |
+|                            |       |          |           |           |          |       |         |           |             |
+| DictionarySlim_TryGetValue |    10 | 9.659 ns | 0.2123 ns | 0.1882 ns | 9.654 ns |  1.00 |    0.00 |         - |          NA |
+|      FHashMap8_TryGetValue |    10 | 7.044 ns | 0.1443 ns | 0.1205 ns | 7.003 ns |  0.73 |    0.01 |         - |          NA |
+|                            |       |          |           |           |          |       |         |           |             |
+| DictionarySlim_TryGetValue |   100 | 9.368 ns | 0.2697 ns | 0.3600 ns | 9.259 ns |  1.00 |    0.00 |         - |          NA |
+|      FHashMap8_TryGetValue |   100 | 9.770 ns | 0.2736 ns | 0.3360 ns | 9.748 ns |  1.04 |    0.06 |         - |          NA |
+|                            |       |          |           |           |          |       |         |           |             |
+| DictionarySlim_TryGetValue |  1000 | 9.743 ns | 0.2676 ns | 0.4686 ns | 9.573 ns |  1.00 |    0.00 |         - |          NA |
+|      FHashMap8_TryGetValue |  1000 | 6.043 ns | 0.1946 ns | 0.4146 ns | 5.883 ns |  0.62 |    0.05 |         - |          NA |
+
 */
             // [Params(1, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
@@ -1828,7 +1845,8 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 _typeDict = TypeDictionary_Add();
                 _dict = Dict();
                 _dictSlim = DictSlim();
-                _fHashMap = FillFHashMap();
+                _fHashMap7 = FillFHashMap7();
+                _fHashMap8 = FillFHashMap8();
                 _concurrentDict = ConcurrentDict();
                 _immutableDict = ImmutableDict();
             }
@@ -1993,7 +2011,7 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 
             private DictionarySlim<TypeVal, string> _dictSlim;
 
-            public ImTools.Experiments.FHashMap7<Type, string, ImTools.Experiments.RefEq<Type>> FillFHashMap()
+            public ImTools.Experiments.FHashMap7<Type, string, ImTools.Experiments.RefEq<Type>> FillFHashMap7()
             {
                 var map = new ImTools.Experiments.FHashMap7<Type, string, ImTools.Experiments.RefEq<Type>>();
 
@@ -2004,7 +2022,20 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return map;
             }
 
-            private ImTools.Experiments.FHashMap7<Type, string, ImTools.Experiments.RefEq<Type>> _fHashMap;
+            private ImTools.Experiments.FHashMap7<Type, string, ImTools.Experiments.RefEq<Type>> _fHashMap7;
+
+            public ImTools.Experiments.FHashMap8<Type, string, ImTools.Experiments.RefEq<Type>> FillFHashMap8()
+            {
+                var map = new ImTools.Experiments.FHashMap8<Type, string, ImTools.Experiments.RefEq<Type>>();
+
+                foreach (var key in _keys.Take(Count))
+                    map.AddOrUpdate(key, "a");
+
+                map.AddOrUpdate(LookupKey, "!");
+                return map;
+            }
+
+            private ImTools.Experiments.FHashMap8<Type, string, ImTools.Experiments.RefEq<Type>> _fHashMap8;
 
             public ConcurrentDictionary<Type, string> ConcurrentDict()
             {
@@ -2179,11 +2210,18 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
             }
 
             [Benchmark]
-            public string FHashMap_TryGetValue()
+            public string FHashMap8_TryGetValue()
             {
-                _fHashMap.TryGetValue(LookupKey, out var result);
+                _fHashMap8.TryGetValue(LookupKey, out var result);
                 return result;
             }
+
+            // [Benchmark]
+            // public string FHashMap_TryGetValue()
+            // {
+            //     _fHashMap7.TryGetValue(LookupKey, out var result);
+            //     return result;
+            // }
 
             // [Benchmark]
             public string ConcurrentDictionary_TryGetValue()
