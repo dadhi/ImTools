@@ -1857,20 +1857,19 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 
 ## Lookup FHashMap8 vs DictionarySlim after simplifying
 
-|                     Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Allocated | Alloc Ratio |
-|--------------------------- |------ |----------:|----------:|----------:|------:|--------:|----------:|------------:|
-| DictionarySlim_TryGetValue |     1 |  8.715 ns | 0.0571 ns | 0.0446 ns |  1.00 |    0.00 |         - |          NA |
-|      FHashMap8_TryGetValue |     1 |  6.998 ns | 0.4353 ns | 1.2697 ns |  0.71 |    0.07 |         - |          NA |
-|                            |       |           |           |           |       |         |           |             |
-| DictionarySlim_TryGetValue |    10 |  9.001 ns | 0.2133 ns | 0.1665 ns |  1.00 |    0.00 |         - |          NA |
-|      FHashMap8_TryGetValue |    10 |  4.666 ns | 0.1770 ns | 0.1569 ns |  0.52 |    0.02 |         - |          NA |
-|                            |       |           |           |           |       |         |           |             |
-| DictionarySlim_TryGetValue |   100 | 11.597 ns | 0.3486 ns | 0.9832 ns |  1.00 |    0.00 |         - |          NA |
-|      FHashMap8_TryGetValue |   100 |  7.834 ns | 0.1708 ns | 0.1597 ns |  0.70 |    0.10 |         - |          NA |
-|                            |       |           |           |           |       |         |           |             |
-| DictionarySlim_TryGetValue |  1000 |  8.947 ns | 0.2496 ns | 0.2670 ns |  1.00 |    0.00 |         - |          NA |
-|      FHashMap8_TryGetValue |  1000 |  4.870 ns | 0.1463 ns | 0.1626 ns |  0.55 |    0.02 |         - |          NA |
-
+|                     Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | Allocated | Alloc Ratio |
+|--------------------------- |------ |---------:|----------:|----------:|------:|--------:|----------:|------------:|
+| DictionarySlim_TryGetValue |     1 | 8.649 ns | 0.0707 ns | 0.0662 ns |  1.00 |    0.00 |         - |          NA |
+|      FHashMap8_TryGetValue |     1 | 5.447 ns | 0.0784 ns | 0.0654 ns |  0.63 |    0.01 |         - |          NA |
+|                            |       |          |           |           |       |         |           |             |
+| DictionarySlim_TryGetValue |    10 | 8.948 ns | 0.0405 ns | 0.0316 ns |  1.00 |    0.00 |         - |          NA |
+|      FHashMap8_TryGetValue |    10 | 5.471 ns | 0.1656 ns | 0.2375 ns |  0.62 |    0.03 |         - |          NA |
+|                            |       |          |           |           |       |         |           |             |
+| DictionarySlim_TryGetValue |   100 | 9.081 ns | 0.2568 ns | 0.5583 ns |  1.00 |    0.00 |         - |          NA |
+|      FHashMap8_TryGetValue |   100 | 6.294 ns | 0.1585 ns | 0.1886 ns |  0.69 |    0.05 |         - |          NA |
+|                            |       |          |           |           |       |         |           |             |
+| DictionarySlim_TryGetValue |  1000 | 8.990 ns | 0.2087 ns | 0.1850 ns |  1.00 |    0.00 |         - |          NA |
+|      FHashMap8_TryGetValue |  1000 | 4.950 ns | 0.1508 ns | 0.2719 ns |  0.55 |    0.03 |         - |          NA |
 
 */
             // [Params(1, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]

@@ -236,14 +236,18 @@ public class FHashMap8Tests
         map.AddOrUpdate(45, "b");
         map.AddOrUpdate(46, "c");
         map.AddOrUpdate(42 + 32 + 32, "3");
-        Verify(map, new[] { 42, 43, 42 + 32, 45, 46, 42 + 32 + 32 });
-
+        
         string value;
+        Assert.IsTrue(map.TryGetValue(43, out value));
+        Assert.AreEqual("a", value);
+
         Assert.IsTrue(map.TryGetValue(42 + 32, out value));
         Assert.AreEqual("2", value);
 
         Assert.IsTrue(map.TryGetValue(42 + 32 + 32, out value));
         Assert.AreEqual("3", value);
+
+        Verify(map, new[] { 42, 43, 42 + 32, 45, 46, 42 + 32 + 32 });
     }
 
     // //[Test]

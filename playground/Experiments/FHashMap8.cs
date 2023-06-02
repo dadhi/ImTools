@@ -111,7 +111,7 @@ public sealed class FHashMap8<K, V, TEq> where TEq : struct, IEqualityComparer<K
         public V Value;
     }
 
-    public const int DefaultSeedCapacity = 8;
+    public const int DefaultSeedCapacity = 2;
     public const byte MinFreeCapacityShift = 3; // e.g. for the DefaultCapacity=16 >> 3 => 2, so 2 free slots is 12.5% of the capacity  
     public const byte MaxProbeBits = 5; // 5 bits max, e.g. 31 (11111)
     public const byte MaxProbeCount = (1 << MaxProbeBits) - 1; // e.g. 31 (11111) for the 5 bits
@@ -170,20 +170,55 @@ public sealed class FHashMap8<K, V, TEq> where TEq : struct, IEqualityComparer<K
 #endif
         var indexMask = _indexMask;
         var pHashIndexMask = indexMask >>> 1;
-
         var probesAndHashMask = ~indexMask;
         var hashMiddle = hash & ~indexMask & HashAndIndexMask;
 
-        var probes = ~(hash & indexMask) & 1;
+        var probes = 1;
         var abIndex = (hash & indexMask) >>> 1;
+
+        // handling the aligning case when index `b` is here `[0:_,1:b]` in a pair
+        // it will simplify the logic below
+        if (((hash & indexMask) & 1) != 0)
+        {
+#if NET7_0_OR_GREATER
+            var b = Unsafe.As<long, int>(ref Unsafe.Add(ref hashesAndIndexes, abIndex));
+#else
+            var b = (int)hashesAndIndexes[abIndex];
+#endif
+            if (b == 0)
+            {
+                value = default;
+                return false;
+            }
+            if ((b & probesAndHashMask) == ((probes << ProbeCountShift) | hashMiddle))
+            {
+#if NET7_0_OR_GREATER
+                ref var e = ref Unsafe.Add(ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_entries), b & indexMask);
+#else
+                ref var e = ref _entries[b & indexMask];
+#endif
+                if (default(TEq).Equals(e.Key, key))
+                {
+                    value = e.Value;
+                    return true;
+                }
+            }
+            abIndex = (abIndex + 1) & pHashIndexMask;
+            ++probes;
+        }
+        // handling the rest of the pairs without worry about aligning`
         while (true)
         {
 #if NET7_0_OR_GREATER
             var ab = Unsafe.Add(ref hashesAndIndexes, abIndex);
+            var aa = ab >>> 32;
+            var a = Unsafe.As<long, int>(ref aa);
+            var b = Unsafe.As<long, int>(ref ab);
 #else
             var ab = hashesAndIndexes[abIndex];
-#endif
             var a = (int)(ab >>> 32);
+            var b = (int)(ab);
+#endif
             if ((a & probesAndHashMask) == ((probes << ProbeCountShift) | hashMiddle))
             {
 #if NET7_0_OR_GREATER
@@ -197,8 +232,6 @@ public sealed class FHashMap8<K, V, TEq> where TEq : struct, IEqualityComparer<K
                     return true;
                 }
             }
-
-            var b = (int)(ab);
             if ((b & probesAndHashMask) == (((probes + 1) << ProbeCountShift) | hashMiddle))
             {
 #if NET7_0_OR_GREATER
@@ -212,7 +245,6 @@ public sealed class FHashMap8<K, V, TEq> where TEq : struct, IEqualityComparer<K
                     return true;
                 }
             }
-
             if ((b >>> ProbeCountShift) < probes + 1)
                 break;
 
