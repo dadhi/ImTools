@@ -758,6 +758,13 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 |       DictSlim_TryAdd |   100 | 2.748 us | 0.0367 us | 0.0343 us |  1.00 |    0.00 | 2.3842 |   7.31 KB |        1.00 |
 | FHashMap7_AddOrUpdate |   100 | 2.506 us | 0.0496 us | 0.0510 us |  0.91 |    0.02 | 1.7281 |    5.3 KB |        0.72 |
 
+### map is struct now
+
+|                Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD |   Gen0 | Allocated | Alloc Ratio |
+|---------------------- |------ |---------:|----------:|----------:|------:|--------:|-------:|----------:|------------:|
+|       DictSlim_TryAdd |   100 | 5.281 us | 0.2175 us | 0.6240 us |  1.00 |    0.00 | 2.3804 |   7.31 KB |        1.00 |
+| FHashMap7_AddOrUpdate |   100 | 4.463 us | 0.1731 us | 0.5048 us |  0.85 |    0.14 | 1.7090 |   5.26 KB |        0.72 |
+
 */
             // [Params(1, 10, 100, 1000)]
             [Params(100)]
