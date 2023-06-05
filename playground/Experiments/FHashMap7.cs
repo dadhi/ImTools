@@ -54,7 +54,7 @@ public static class FHashMap7Extensions
         public string HKV;
         public int Index;
         public bool IsEmpty => Probe == 0;
-        public string Output => $"{Probe}|{Hash}{(HEq ? "==" : "!=")}{HKV}";
+        public string Output => $"{Probe}|{(HEq ? "" : "" + Hash)}{(HEq ? "==" : "!=")}{HKV}";
         public override string ToString() => IsEmpty ? "empty" : Output;
     }
 }
@@ -378,14 +378,13 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
         var indexMask = _indexMask;
         if (indexMask - _entryCount <= (indexMask >>> MinFreeCapacityShift)) // if the free capacity is less free slots 1/16 (6.25%)
         {
-            _hashesAndIndexes = Resize(_hashesAndIndexes, indexMask);
-            _indexMask = indexMask = (indexMask << 1) | 1;
-
 #if NET7_0_OR_GREATER
+            _hashesAndIndexes = Resize(ref hashesAndIndexes, indexMask);
             hashesAndIndexes = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_hashesAndIndexes);
 #else
-            hashesAndIndexes = _hashesAndIndexes;
+            _hashesAndIndexes = hashesAndIndexes = Resize(_hashesAndIndexes, indexMask);
 #endif
+            _indexMask = indexMask = (indexMask << 1) | 1;
         }
 
         var probesAndHashMask = ~indexMask;
@@ -466,23 +465,31 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
         }
     }
 
+#if NET7_0_OR_GREATER
+    internal static int[] Resize(ref int oldHash, int oldIndexMask)
+#else
     internal static int[] Resize(int[] oldHashesAndIndexes, int oldIndexMask)
+#endif
     {
         var oldCapacity = oldIndexMask + 1;
         var newCapacity = oldCapacity << 1;
+        var newIndexMask = (oldCapacity << 1) - 1;
+        var hashAndIndexMaskWithNextIndexBitErased = HashAndIndexMask & ~oldCapacity;
 #if DEBUG
         Debug.WriteLine($"RESIZE _hashesAndIndexes, double the capacity: {oldCapacity} -> {newCapacity}");
 #endif
+        // todo: @perf is there a way to avoid the copying of the hashes and indexes, at least some of them?
+        var newHashesAndIndexes = new int[newCapacity]; // double the hashes capacity
 
-        var newHashesAndIndexes = new int[newCapacity];
-
-        var newIndexMask = newCapacity - 1;
-        var newHashMiddleMask = ~newIndexMask & HashAndIndexMask;
-
-        // todo: @perf find the way to avoid copying the hashes with 0 next bit and with ideal+ probe count
-        for (var i = 0; (uint)i < (uint)oldCapacity; ++i)
+#if NET7_0_OR_GREATER
+        ref var newHashRef = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(newHashesAndIndexes);
+        for (var i = 0; i < oldCapacity; ++i, oldHash = ref Unsafe.Add(ref oldHash, 1))
         {
-            var oldHash = oldHashesAndIndexes[i];
+#else
+        for (var i = 0; (uint)i < (uint)oldHashesAndIndexes.Length; ++i)
+        {
+            ref var oldHash = ref oldHashesAndIndexes[i];
+#endif
             if (oldHash == 0)
                 continue;
 
@@ -493,40 +500,34 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
             var restoredOldHash = (oldHash & ~oldIndexMask) | oldHashIndex;
             var newHashIndex = restoredOldHash & newIndexMask;
 
-            // erasing the next to capacity bit, given the capacity was 4 and now it is 4 << 1 = 8, 
+            // erasing the next to capacity bit, given the capacity was 4 and now it is 8 == 4 << 1,
             // we are erasing the 3rd bit to store the new count in it. 
-            var newHashAndEntryIndex = oldHash & HashAndIndexMask & ~oldCapacity;
-
-            var h = 0;
-            // todo: @simplify factor out into the method X
-            for (var probes = 1; ; ++probes, newHashIndex = (newHashIndex + 1) & newIndexMask) // we don't need the condition for the MaxProbes because by increasing the hash space we guarantee that we fit the hashes in the finite amount of probes likely less than previous MaxProbeCount
+            var oldHashWithNewIndexBits = oldHash & hashAndIndexMaskWithNextIndexBitErased;
+            var probes = 1;
+            while(true)
             {
-                h = newHashesAndIndexes[newHashIndex];
-                if (h == 0) // todo: @perf combine the solutions
+#if NET7_0_OR_GREATER
+                ref var h = ref Unsafe.Add(ref newHashRef, newHashIndex);
+#else
+                ref var h = ref newHashesAndIndexes[newHashIndex];
+#endif
+                if (h == 0)
                 {
-                    newHashesAndIndexes[newHashIndex] = (probes << ProbeCountShift) | newHashAndEntryIndex;
+                    h = (probes << ProbeCountShift) | oldHashWithNewIndexBits;
                     break;
                 }
                 if ((h >>> ProbeCountShift) < probes)
                 {
-                    newHashesAndIndexes[newHashIndex] = (probes << ProbeCountShift) | newHashAndEntryIndex;
-                    newHashAndEntryIndex = h & HashAndIndexMask;
-                    probes = h >>> ProbeCountShift;
+                    var hAndIndex = h & HashAndIndexMask;
+                    var hProbes = h >>> ProbeCountShift;
+                    h = (probes << ProbeCountShift) | oldHashWithNewIndexBits;
+                    oldHashWithNewIndexBits = hAndIndex;
+                    probes = hProbes;
                 }
+                ++probes;
+                 newHashIndex = (newHashIndex + 1) & newIndexMask;
             }
         }
-#if DEBUG
-        // this will output somthing like this for capacity 32:
-        // -_-112--___12-3--44452-223-42311
-        // todo: @perf can we move the non`-` hashes in a one loop if possible or non move at all? 
-        Debug.Write("before resize:");
-        foreach (var it in oldHashesAndIndexes)
-            Debug.Write(it == 0 ? "_"
-            : (it & oldCapacity) != 0 ? "-"
-            : (it >>> ProbeCountShift).ToString());
-
-        Debug.WriteLine("");
-#endif
         return newHashesAndIndexes;
     }
 }
