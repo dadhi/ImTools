@@ -168,8 +168,8 @@ public struct FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         _entries = new Entry[entriesCapacity];
         _entryCount = 0;
 
-        // todo: @perf benchmark the un-initialized array?
-        // _entries = GC.AllocateUninitializedArray<Entry>(capacity); // todo: create without default values using via GC.AllocateUninitializedArray<Entry>(size);
+        // todo: @perf benchmark the un-initialized array, me personally did not see any benifits for the small maps?
+        // _entries = GC.AllocateUninitializedArray<Entry>(capacity);
     }
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
