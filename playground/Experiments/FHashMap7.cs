@@ -82,7 +82,7 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
         public V Value;
     }
 
-    public const int DefaultSeedCapacity = 8;
+    public const int DefaultSeedCapacity = 2;
     public const byte MinFreeCapacityShift = 3; // e.g. for the DefaultCapacity=16 >> 3 => 2, so 2 free slots is 12.5% of the capacity  
 
     public const byte MaxProbeBits = 5; // 5 bits max, e.g. 31 (11111)

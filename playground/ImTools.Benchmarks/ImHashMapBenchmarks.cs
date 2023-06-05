@@ -730,9 +730,30 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 |                       |       |              |              |              |              |       |         |         |           |             |
 |       DictSlim_TryAdd |  1000 | 33,222.32 ns |   949.755 ns | 2,709.703 ns | 32,182.39 ns |  1.00 |    0.00 | 18.3105 |   57808 B |        1.00 |
 | FHashMap8_AddOrUpdate |  1000 | 77,317.74 ns | 1,491.225 ns | 2,978.138 ns | 76,471.37 ns |  2.28 |    0.19 | 15.6250 |   49384 B |        0.85 |
+
+## Optimized FHashMap7 vs DictionarySlim vs Dictionary
+
+|                Method | Count |         Mean |      Error |       StdDev |       Median | Ratio | RatioSD |    Gen0 | Allocated | Alloc Ratio |
+|---------------------- |------ |-------------:|-----------:|-------------:|-------------:|------:|--------:|--------:|----------:|------------:|
+|       DictSlim_TryAdd |     1 |     65.26 ns |   1.361 ns |     1.063 ns |     65.13 ns |  1.00 |    0.00 |  0.0459 |     144 B |        1.00 |
+| FHashMap7_AddOrUpdate |     1 |     70.60 ns |   3.955 ns |    11.412 ns |     70.55 ns |  0.87 |    0.11 |  0.0433 |     136 B |        0.94 |
+|           Dict_TryAdd |     1 |     87.23 ns |   3.461 ns |    10.150 ns |     87.62 ns |  1.50 |    0.11 |  0.0688 |     216 B |        1.50 |
+|                       |       |              |            |              |              |       |         |         |           |             |
+|       DictSlim_TryAdd |    10 |    403.97 ns |   8.060 ns |    19.310 ns |    397.01 ns |  1.00 |    0.00 |  0.3414 |    1072 B |        1.00 |
+| FHashMap7_AddOrUpdate |    10 |    365.24 ns |   7.954 ns |    22.822 ns |    356.94 ns |  0.90 |    0.07 |  0.2546 |     800 B |        0.75 |
+|           Dict_TryAdd |    10 |    430.18 ns |   8.437 ns |    10.971 ns |    428.38 ns |  1.05 |    0.06 |  0.3157 |     992 B |        0.93 |
+|                       |       |              |            |              |              |       |         |         |           |             |
+|       DictSlim_TryAdd |   100 |  3,024.87 ns |  67.955 ns |   199.302 ns |  2,938.55 ns |  1.00 |    0.00 |  2.3842 |    7488 B |        1.00 |
+| FHashMap7_AddOrUpdate |   100 |  3,074.75 ns |  67.783 ns |   196.652 ns |  2,986.41 ns |  1.02 |    0.10 |  1.7281 |    5424 B |        0.72 |
+|           Dict_TryAdd |   100 |  3,930.13 ns |  77.698 ns |   203.323 ns |  3,843.66 ns |  1.30 |    0.10 |  3.2425 |   10192 B |        1.36 |
+|                       |       |              |            |              |              |       |         |         |           |             |
+|       DictSlim_TryAdd |  1000 | 30,837.91 ns | 599.904 ns |   641.890 ns | 31,013.55 ns |  1.00 |    0.00 | 18.3105 |   57808 B |        1.00 |
+| FHashMap7_AddOrUpdate |  1000 | 52,709.33 ns | 966.756 ns |   754.779 ns | 52,828.52 ns |  1.70 |    0.04 | 15.7471 |   49624 B |        0.86 |
+|           Dict_TryAdd |  1000 | 41,041.25 ns | 814.150 ns | 2,072.271 ns | 40,181.67 ns |  1.36 |    0.07 | 32.2266 |  102216 B |        1.77 |
+
 */
-            // [Params(1, 10, 100, 1000)]
-            [Params(100)]
+            [Params(1, 10, 100, 1000)]
+            // [Params(100)]
             public int Count;
 
             private Type[] _types;
