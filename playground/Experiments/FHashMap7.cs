@@ -111,7 +111,7 @@ public class FHashMap7DebugProxy<K, V, TEq> where TEq : struct, IEqualityCompare
 [DebuggerTypeProxy(typeof(FHashMap7DebugProxy<,,>))]
 [DebuggerDisplay("Count={Count}")]
 #endif
-public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K>
+public struct FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 {
     // todo: @improve make the Entry a type parameter to map and define TEq in terms of the Entry, 
     // todo: @improve it will allow to introduce the Set later without the Value in the Entry, end the Entry may be the Key itself
@@ -140,7 +140,8 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
     // todo: @feature For the removed hash we won't use the tumbstone but will actually remove the hash.
     private int[] _packedHashesAndIndexes;
     private Entry[] _entries;
-    private int _indexMask; // pre-calculated and saved on the DoubleSize for the performance
+    // pre-calculated and saved on the DoubleSize for the performance
+    private int _indexMask;
     private int _entryCount;
 
     public int Count => _entryCount;
@@ -149,7 +150,9 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
     internal int HashesCapacity => _indexMask + 1;
     internal Entry[] Entries => _entries;
 
-    public FHashMap7(uint entriesCapacity = DefaultEntriesCapacity)
+    public FHashMap7() : this(DefaultEntriesCapacity) { }
+
+    public FHashMap7(uint entriesCapacity)
     {
         if (entriesCapacity < 2)
             entriesCapacity = 2;
