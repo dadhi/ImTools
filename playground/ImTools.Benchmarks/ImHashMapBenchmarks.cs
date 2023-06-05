@@ -1868,6 +1868,30 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 | DictionarySlim_TryGetValue |  1000 | 8.990 ns | 0.2087 ns | 0.1850 ns |  1.00 |    0.00 |         - |          NA |
 |      FHashMap8_TryGetValue |  1000 | 4.950 ns | 0.1508 ns | 0.2719 ns |  0.55 |    0.03 |         - |          NA |
 
+## Lookup FHashMap7 vs FHashMap8 vs DictionarySlim vs Dictionary
+
+|                     Method | Count |      Mean |     Error |    StdDev |    Median | Ratio | RatioSD | Allocated | Alloc Ratio |
+|--------------------------- |------ |----------:|----------:|----------:|----------:|------:|--------:|----------:|------------:|
+| DictionarySlim_TryGetValue |     1 |  9.470 ns | 0.2655 ns | 0.7269 ns |  9.193 ns |  1.00 |    0.00 |         - |          NA |
+|     Dictionary_TryGetValue |     1 | 12.842 ns | 0.3375 ns | 0.7192 ns | 12.628 ns |  1.36 |    0.12 |         - |          NA |
+|      FHashMap8_TryGetValue |     1 |  5.212 ns | 0.1734 ns | 0.1448 ns |  5.202 ns |  0.52 |    0.05 |         - |          NA |
+|      FHashMap7_TryGetValue |     1 |  4.365 ns | 0.1630 ns | 0.2981 ns |  4.269 ns |  0.45 |    0.05 |         - |          NA |
+|                            |       |           |           |           |           |       |         |           |             |
+| DictionarySlim_TryGetValue |    10 |  9.585 ns | 0.2755 ns | 0.7992 ns |  9.292 ns |  1.00 |    0.00 |         - |          NA |
+|     Dictionary_TryGetValue |    10 | 10.675 ns | 0.2063 ns | 0.1723 ns | 10.674 ns |  1.13 |    0.10 |         - |          NA |
+|      FHashMap8_TryGetValue |    10 |  5.584 ns | 0.1895 ns | 0.2028 ns |  5.546 ns |  0.57 |    0.07 |         - |          NA |
+|      FHashMap7_TryGetValue |    10 |  5.676 ns | 0.0982 ns | 0.0964 ns |  5.680 ns |  0.58 |    0.06 |         - |          NA |
+|                            |       |           |           |           |           |       |         |           |             |
+| DictionarySlim_TryGetValue |   100 | 11.095 ns | 0.4470 ns | 1.2236 ns | 11.427 ns |  1.00 |    0.00 |         - |          NA |
+|     Dictionary_TryGetValue |   100 | 10.694 ns | 0.2975 ns | 0.7013 ns | 10.484 ns |  0.94 |    0.11 |         - |          NA |
+|      FHashMap8_TryGetValue |   100 |  7.313 ns | 0.2226 ns | 0.4071 ns |  7.107 ns |  0.65 |    0.07 |         - |          NA |
+|      FHashMap7_TryGetValue |   100 |  7.119 ns | 0.2135 ns | 0.1997 ns |  7.095 ns |  0.67 |    0.11 |         - |          NA |
+|                            |       |           |           |           |           |       |         |           |             |
+| DictionarySlim_TryGetValue |  1000 |  9.049 ns | 0.2662 ns | 0.5953 ns |  8.826 ns |  1.00 |    0.00 |         - |          NA |
+|     Dictionary_TryGetValue |  1000 | 13.465 ns | 0.3476 ns | 0.3251 ns | 13.483 ns |  1.50 |    0.12 |         - |          NA |
+|      FHashMap8_TryGetValue |  1000 |  4.926 ns | 0.1781 ns | 0.3120 ns |  4.809 ns |  0.54 |    0.05 |         - |          NA |
+|      FHashMap7_TryGetValue |  1000 |  4.314 ns | 0.1559 ns | 0.1601 ns |  4.290 ns |  0.48 |    0.04 |         - |          NA |
+
 */
             // [Params(1, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
@@ -2234,17 +2258,17 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return (string)result;
             }
 
-            // [Benchmark]
-            public string Dictionary_TryGetValue()
-            {
-                _dict.TryGetValue(LookupKey, out var result);
-                return result;
-            }
-
             [Benchmark(Baseline = true)]
             public string DictionarySlim_TryGetValue()
             {
                 _dictSlim.TryGetValue(LookupKey, out var result);
+                return result;
+            }
+
+            [Benchmark]
+            public string Dictionary_TryGetValue()
+            {
+                _dict.TryGetValue(LookupKey, out var result);
                 return result;
             }
 
