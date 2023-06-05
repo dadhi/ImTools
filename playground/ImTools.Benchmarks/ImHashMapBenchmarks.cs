@@ -2255,12 +2255,12 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return result;
             }
 
-            // [Benchmark]
-            // public string FHashMap_TryGetValue()
-            // {
-            //     _fHashMap7.TryGetValue(LookupKey, out var result);
-            //     return result;
-            // }
+            [Benchmark]
+            public string FHashMap7_TryGetValue()
+            {
+                _fHashMap7.TryGetValue(LookupKey, out var result);
+                return result;
+            }
 
             // [Benchmark]
             public string ConcurrentDictionary_TryGetValue()

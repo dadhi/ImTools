@@ -350,11 +350,9 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
             ++probes;
             index = (index + 1) & indexMask;
         }
-        // #endif
         value = default;
         return false;
     }
-    // #endif
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
     public V GetValueOrDefault(K key, V defaultValue = default) =>
@@ -398,7 +396,7 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
 #if NET7_0_OR_GREATER
             ref var h = ref Unsafe.Add(ref hashesAndIndexes, hashIndex);
 #else
-            ref h = ref hashesAndIndexes[hashIndex];
+            ref var h = ref hashesAndIndexes[hashIndex];
 #endif
             // this check is also implicitly break if `h == 0` to proceed inserting new entry 
             if (h == 0)
