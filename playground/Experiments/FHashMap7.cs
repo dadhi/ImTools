@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 #if NET7_0_OR_GREATER
-using System.Runtime.Intrinsics;
 using System.Numerics;
 #endif
 namespace ImTools.Experiments;
@@ -138,7 +137,7 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
     //      |     |         | This part of the erased hash is used to get the ideal index into the hashes array, so we are safely using it to store the index into entries.
     //      |     |- The middle bits of the hash
     //      |- 5 high bits of the Probe count, with the minimal value of 00001  indicating non-empty slot.
-    // todo: @add For the removed hash we won't use the tumbstone but will actually remove the hash.
+    // todo: @feature For the removed hash we won't use the tumbstone but will actually remove the hash.
     internal int[] _packedHashesAndIndexes;
     internal Entry[] _entries;
     internal int _indexMask; // pre-calculated and saved on the DoubleSize for the performance
@@ -224,7 +223,6 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
     public int FirstProbeAdditions = 0;
 #endif
 
-    // todo: @perf consider using GetArrayDataReference the same as Lookup methods
     public void AddOrUpdate(K key, V value)
     {
         var hash = default(TEq).GetHashCode(key);
@@ -330,6 +328,7 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
     internal static int[] Resize(int[] oldHashesAndIndexes, int oldIndexMask)
 #endif
     {
+        // double the hashes capacity
         var oldCapacity = oldIndexMask + 1;
         var newCapacity = oldCapacity << 1;
         var newIndexMask = (oldCapacity << 1) - 1;
@@ -338,7 +337,7 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
         Debug.WriteLine($"RESIZE _packedHashesAndIndexes, double the capacity: {oldCapacity} -> {newCapacity}");
 #endif
         // todo: @perf is there a way to avoid the copying of the hashes and indexes, at least some of them?
-        var newHashesAndIndexes = new int[newCapacity]; // double the hashes capacity
+        var newHashesAndIndexes = new int[newCapacity];
 
 #if NET7_0_OR_GREATER
         ref var newHashRef = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(newHashesAndIndexes);
@@ -352,6 +351,7 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
             if (oldHash == 0)
                 continue;
 
+            // todo: @perf ways to simplify?
             // get the new hash index for the new capacity by restoring the (possibly wrapped) 
             // probes count (and therefore the distance from the ideal hash position) 
             var distance = (oldHash >>> ProbeCountShift) - 1;
@@ -363,7 +363,7 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
             // we are erasing the 3rd bit to store the new count in it. 
             var oldHashWithNewIndexBits = oldHash & hashAndIndexMaskWithNextIndexBitErased;
             var probes = 1;
-            while(true)
+            while (true)
             {
 #if NET7_0_OR_GREATER
                 ref var h = ref Unsafe.Add(ref newHashRef, newHashIndex);
@@ -384,7 +384,7 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
                     probes = hProbes;
                 }
                 ++probes;
-                 newHashIndex = (newHashIndex + 1) & newIndexMask;
+                newHashIndex = (newHashIndex + 1) & newIndexMask;
             }
         }
         return newHashesAndIndexes;
