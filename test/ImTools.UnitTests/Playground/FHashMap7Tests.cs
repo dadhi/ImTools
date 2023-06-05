@@ -9,43 +9,13 @@ namespace ImTools.Experiments.UnitTests;
 [TestFixture]
 public class FHashMap7Tests
 {
-    public static void Verify<K, V, TEq>(FHashMap7<K, V, TEq> map, IEnumerable<K> expectedKeys) 
+    internal static void Verify<K, V, TEq>(FHashMap7<K, V, TEq> map, IEnumerable<K> expectedKeys)
         where TEq : struct, IEqualityComparer<K>
     {
-        // Console.WriteLine("<EXPLAIN>");
-        var exp = map.Explain();
-        foreach (var it in exp)
-            if (!it.IsEmpty)
-            {
-                // Console.WriteLine(it);
-                Assert.True(it.HEq);
-            }
-        // Console.WriteLine("</EXPLAIN>");
-
-        // Verify the indexes do no contains duplicate keys
-        var uniq = new Dictionary<K, int>(map.Count);
-        var capacity = map.HashesCapacity;
-        var indexMask = capacity - 1;
-        var entries = map.Entries;
-        for (var i = 0; i < capacity; i++)
-        {
-            var h = map.HashesAndIndexes[i];
-            if (h == 0)
-                continue;
-            var key = entries[h & indexMask].Key;
-            if (!uniq.TryGetValue(key, out var count))
-                uniq.Add(key, 1);
-            else
-            {
-                Assert.Fail($"Duplicate key: {key}");
-                uniq[key] = count + 1;
-            }
-        }
-
-        // Verify that all keys are store in the map
+        map.VerifyHashesAndKeysEq(eq => Assert.True(eq));
+        map.VerifyNoDuplicateKeys(key => Assert.Fail($"Duplicate key: {key}"));
         if (expectedKeys != null)
-            foreach (var key in expectedKeys)
-                Assert.True(map.TryGetValue(key, out _), $"Key not found:`{key}` but found in hashes?: {uniq.ContainsKey(key)}");
+            map.VerifyContainAllKeys(expectedKeys, (contains, key) => Assert.True(contains, $"Key not found:`{key}`"));
     }
 
     [Test]
@@ -187,7 +157,7 @@ public class FHashMap7Tests
         map.AddOrUpdate(42 + 32 + 32, "3");
 
         Assert.AreEqual(2, map.Count);
-        Verify(map, new[] { 42, 42 + 32 + 32});
+        Verify(map, new[] { 42, 42 + 32 + 32 });
     }
 
     [Test]
