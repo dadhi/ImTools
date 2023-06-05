@@ -12,8 +12,8 @@ public static class FHashMap7Diagnostics
     /// <summary>Converts the packed hashes and indexes array into the human readable info</summary>
     public static Item<K, V>[] Explain<K, V, TEq>(this FHashMap7<K, V, TEq> map) where TEq : struct, IEqualityComparer<K>
     {
-        var entries = map._entries;
-        var hashesAndIndexes = map._packedHashesAndIndexes;
+        var entries = map.Entries;
+        var hashesAndIndexes = map.PackedHashesAndIndexes;
         var capacity = map.HashesCapacity;
         var indexMask = capacity - 1;
 
@@ -138,16 +138,16 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
     //      |     |- The middle bits of the hash
     //      |- 5 high bits of the Probe count, with the minimal value of 00001  indicating non-empty slot.
     // todo: @feature For the removed hash we won't use the tumbstone but will actually remove the hash.
-    internal int[] _packedHashesAndIndexes;
-    internal Entry[] _entries;
-    internal int _indexMask; // pre-calculated and saved on the DoubleSize for the performance
-    internal int _entryCount;
+    private int[] _packedHashesAndIndexes;
+    private Entry[] _entries;
+    private int _indexMask; // pre-calculated and saved on the DoubleSize for the performance
+    private int _entryCount;
+
+    public int Count => _entryCount;
 
     internal int[] PackedHashesAndIndexes => _packedHashesAndIndexes;
     internal int HashesCapacity => _indexMask + 1;
-
-    public Entry[] Entries => _entries;
-    public int Count => _entryCount;
+    internal Entry[] Entries => _entries;
 
     public FHashMap7(uint entriesCapacity = DefaultEntriesCapacity)
     {
@@ -167,6 +167,16 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
 
         // todo: @perf benchmark the un-initialized array?
         // _entries = GC.AllocateUninitializedArray<Entry>(capacity); // todo: create without default values using via GC.AllocateUninitializedArray<Entry>(size);
+    }
+
+    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+    private ref Entry TryGetEntryRef(int index)
+    {
+#if NET7_0_OR_GREATER
+        return ref Unsafe.Add(ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_entries), index);
+#else
+        return ref _entries[index];
+#endif
     }
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
@@ -194,11 +204,7 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
 #endif
             if ((h & probesAndHashMask) == ((probes << ProbeCountShift) | hashMiddle))
             {
-#if NET7_0_OR_GREATER
-                ref var e = ref Unsafe.Add(ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_entries), h & indexMask);
-#else
-                ref var e = ref _entries[h & indexMask];
-#endif
+                ref var e = ref TryGetEntryRef(h & indexMask);
                 if (default(TEq).Equals(e.Key, key))
                 {
                     value = e.Value;
@@ -223,6 +229,25 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
     public int FirstProbeAdditions = 0;
 #endif
 
+    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+    private int AppendEntry(in K key, in V value)
+    {
+        var newEntryIndex = _entryCount;
+        if (newEntryIndex >= (uint)_entries.Length)
+            Array.Resize(ref _entries, _entries.Length << 1);
+#if NET7_0_OR_GREATER
+        ref var entriesData = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_entries);
+        ref var e = ref Unsafe.Add(ref entriesData, newEntryIndex);
+#else
+        ref var e = ref _entries[newEntryIndex];
+#endif
+        e.Key = key;
+        e.Value = value;
+        _entryCount = newEntryIndex + 1;
+        return newEntryIndex;
+    }
+
+    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
     public void AddOrUpdate(K key, V value)
     {
         var hash = default(TEq).GetHashCode(key);
@@ -260,26 +285,14 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
             // this check is also implicitly break if `h == 0` to proceed inserting new entry 
             if (h == 0)
             {
-                var newEntryIndex = _entryCount;
-                if (newEntryIndex >= _entries.Length) Array.Resize(ref _entries, _entries.Length << 1);
-                ref var e = ref _entries[newEntryIndex];
-                e.Key = key;
-                e.Value = value;
-                _entryCount = newEntryIndex + 1;
-
+                var newEntryIndex = AppendEntry(in key, in value);
                 h = (probes << ProbeCountShift) | hashMiddle | newEntryIndex;
                 return;
             }
+            // Robin Hood loop - the old hash to be re-inserted with the increased probe count
             if ((h >>> ProbeCountShift) < probes)
             {
-                var newEntryIndex = _entryCount;
-                if (newEntryIndex >= _entries.Length) Array.Resize(ref _entries, _entries.Length << 1);
-                ref var e = ref _entries[newEntryIndex];
-                e.Key = key;
-                e.Value = value;
-                _entryCount = newEntryIndex + 1;
-
-                // Robin Hood loop - the old hash to be re-inserted with the increased probe count
+                var newEntryIndex = AppendEntry(in key, in value);
                 var hWithoutProbes = h & HashAndIndexMask;
                 var hProbes = h >>> ProbeCountShift;
                 h = (probes << ProbeCountShift) | hashMiddle | newEntryIndex;
@@ -307,13 +320,14 @@ public sealed class FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K
             }
             if ((h & probesAndHashMask) == ((probes << ProbeCountShift) | hashMiddle))
             {
-                ref var matchedEntry = ref _entries[h & indexMask];
+
+                ref var e = ref TryGetEntryRef(h & indexMask);
 #if DEBUG
-                Debug.WriteLine($"[AddOrUpdate] PROBES AND HASH MATCH: probes {probes}, compare new key `{key}` with matched key:`{matchedEntry.Key}`");
+                Debug.WriteLine($"[AddOrUpdate] PROBES AND HASH MATCH: probes {probes}, compare new key `{key}` with matched key:`{e.Key}`");
 #endif
-                if (default(TEq).Equals(matchedEntry.Key, key))
+                if (default(TEq).Equals(e.Key, key))
                 {
-                    matchedEntry.Value = value;
+                    e.Value = value;
                     return;
                 }
             }
