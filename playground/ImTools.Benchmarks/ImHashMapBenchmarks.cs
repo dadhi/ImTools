@@ -751,9 +751,16 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 | FHashMap7_AddOrUpdate |  1000 | 52,709.33 ns | 966.756 ns |   754.779 ns | 52,828.52 ns |  1.70 |    0.04 | 15.7471 |   49624 B |        0.86 |
 |           Dict_TryAdd |  1000 | 41,041.25 ns | 814.150 ns | 2,072.271 ns | 40,181.67 ns |  1.36 |    0.07 | 32.2266 |  102216 B |        1.77 |
 
+## FHashMap7 vs DictionarySlim entries optimized
+
+|                Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD |   Gen0 | Allocated | Alloc Ratio |
+|---------------------- |------ |---------:|----------:|----------:|------:|--------:|-------:|----------:|------------:|
+|       DictSlim_TryAdd |   100 | 2.748 us | 0.0367 us | 0.0343 us |  1.00 |    0.00 | 2.3842 |   7.31 KB |        1.00 |
+| FHashMap7_AddOrUpdate |   100 | 2.506 us | 0.0496 us | 0.0510 us |  0.91 |    0.02 | 1.7281 |    5.3 KB |        0.72 |
+
 */
-            [Params(1, 10, 100, 1000)]
-            // [Params(100)]
+            // [Params(1, 10, 100, 1000)]
+            [Params(100)]
             public int Count;
 
             private Type[] _types;
@@ -950,7 +957,7 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public Dictionary<Type, string> Dict_TryAdd()
             {
                 var map = new Dictionary<Type, string>();
