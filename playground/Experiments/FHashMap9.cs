@@ -12,6 +12,9 @@ public static class FHashMap9Diagnostics
     /// <summary>Converts the packed hashes and indexes array into the human readable info</summary>
     public static Item<K, V>[] Explain<K, V, TEq>(this FHashMap9<K, V, TEq> map) where TEq : struct, IEqualityComparer<K>
     {
+        var probeCountShift = FHashMap9<K, V, TEq>.ProbeCountShift;
+        var hashAndIndexMask = FHashMap9<K, V, TEq>.HashAndIndexMask;
+
         var entries = map.Entries;
         var hashesAndIndexes = map.PackedHashesAndIndexes;
         var capacity = map.HashesCapacity;
@@ -25,10 +28,10 @@ public static class FHashMap9Diagnostics
             if (h == 0)
                 continue;
 
-            var probe = (byte)(h >>> FHashMap9<K, V, TEq>.ProbeCountShift);
+            var probe = (byte)(h >>> probeCountShift);
             var hashIndex = (capacity + i - (probe - 1)) & indexMask;
 
-            var hashMiddle = (h & FHashMap9<K, V, TEq>.HashAndIndexMask & ~indexMask);
+            var hashMiddle = (h & hashAndIndexMask & ~indexMask);
             var hash = hashMiddle | hashIndex;
             var index = h & indexMask;
 
@@ -37,7 +40,7 @@ public static class FHashMap9Diagnostics
             if (probe != 0)
             {
                 var e = entries[index];
-                var kh = e.Key.GetHashCode() & FHashMap9<K, V, TEq>.HashAndIndexMask;
+                var kh = e.Key.GetHashCode() & hashAndIndexMask;
                 heq = kh == hash;
                 hkv = $"{toB(kh)}:{e.Key}->{e.Value}";
             }
