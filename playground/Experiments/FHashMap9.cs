@@ -7,10 +7,10 @@ using System.Numerics;
 #endif
 namespace ImTools.Experiments;
 
-public static class FHashMap7Diagnostics
+public static class FHashMap9Diagnostics
 {
     /// <summary>Converts the packed hashes and indexes array into the human readable info</summary>
-    public static Item<K, V>[] Explain<K, V, TEq>(this FHashMap7<K, V, TEq> map) where TEq : struct, IEqualityComparer<K>
+    public static Item<K, V>[] Explain<K, V, TEq>(this FHashMap9<K, V, TEq> map) where TEq : struct, IEqualityComparer<K>
     {
         var entries = map.Entries;
         var hashesAndIndexes = map.PackedHashesAndIndexes;
@@ -25,10 +25,10 @@ public static class FHashMap7Diagnostics
             if (h == 0)
                 continue;
 
-            var probe = (byte)(h >>> FHashMap7<K, V, TEq>.ProbeCountShift);
+            var probe = (byte)(h >>> FHashMap9<K, V, TEq>.ProbeCountShift);
             var hashIndex = (capacity + i - (probe - 1)) & indexMask;
 
-            var hashMiddle = (h & FHashMap7<K, V, TEq>.HashAndIndexMask & ~indexMask);
+            var hashMiddle = (h & FHashMap9<K, V, TEq>.HashAndIndexMask & ~indexMask);
             var hash = hashMiddle | hashIndex;
             var index = h & indexMask;
 
@@ -37,20 +37,18 @@ public static class FHashMap7Diagnostics
             if (probe != 0)
             {
                 var e = entries[index];
-                var kh = e.Key.GetHashCode() & FHashMap7<K, V, TEq>.HashAndIndexMask;
+                var kh = e.Key.GetHashCode() & FHashMap9<K, V, TEq>.HashAndIndexMask;
                 heq = kh == hash;
-                hkv = $"{kh.ToBinary()}:{e.Key}->{e.Value}";
+                hkv = $"{toB(kh)}:{e.Key}->{e.Value}";
             }
-            items[i] = new Item<K, V> { Probe = probe, Hash = hash.ToBinary(), HEq = heq, Index = index, HKV = hkv };
+            items[i] = new Item<K, V> { Probe = probe, Hash = toB(hash), HEq = heq, Index = index, HKV = hkv };
         }
         return items;
+        static string toB(int x) => Convert.ToString(x, 2).PadLeft(32, '0');
     }
 
-    public static string ToBinary(this int x) => Convert.ToString(x, 2).PadLeft(32, '0');
-
-
     /// <summary>Verifies that the hashes correspond to the keys stroed in the entries. May be called from the tests.</summary>
-    public static void VerifyHashesAndKeysEq<K, V, TEq>(this FHashMap7<K, V, TEq> map, Action<bool> assertEq)
+    public static void VerifyHashesAndKeysEq<K, V, TEq>(this FHashMap9<K, V, TEq> map, Action<bool> assertEq)
          where TEq : struct, IEqualityComparer<K>
     {
         var exp = map.Explain();
@@ -60,7 +58,7 @@ public static class FHashMap7Diagnostics
     }
 
     /// <summary>Verifies that there is no duplicate keys stored in hashes -> entries. May be called from the tests.</summary>
-    public static void VerifyNoDuplicateKeys<K, V, TEq>(this FHashMap7<K, V, TEq> map, Action<K> assertKey)
+    public static void VerifyNoDuplicateKeys<K, V, TEq>(this FHashMap9<K, V, TEq> map, Action<K> assertKey)
         where TEq : struct, IEqualityComparer<K>
     {
         // Verify the indexes do no contains duplicate keys
@@ -82,7 +80,7 @@ public static class FHashMap7Diagnostics
     }
 
     /// <summary>Verifies that the map contains all passed keys. May be called from the tests.</summary>
-    public static void VerifyContainAllKeys<K, V, TEq>(this FHashMap7<K, V, TEq> map, IEnumerable<K> expectedKeys, Action<bool, K> assertContainKey)
+    public static void VerifyContainAllKeys<K, V, TEq>(this FHashMap9<K, V, TEq> map, IEnumerable<K> expectedKeys, Action<bool, K> assertContainKey)
          where TEq : struct, IEqualityComparer<K>
     {
         foreach (var key in expectedKeys)
@@ -103,18 +101,18 @@ public static class FHashMap7Diagnostics
 }
 
 #if DEBUG
-public class FHashMap7DebugProxy<K, V, TEq> where TEq : struct, IEqualityComparer<K>
+public class FHashMap9DebugProxy<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 {
-    private readonly FHashMap7<K, V, TEq> _map;
-    public FHashMap7DebugProxy(FHashMap7<K, V, TEq> map) => _map = map;
+    private readonly FHashMap9<K, V, TEq> _map;
+    public FHashMap9DebugProxy(FHashMap9<K, V, TEq> map) => _map = map;
     [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-    public FHashMap7Diagnostics.Item<K, V>[] Items => _map.Explain();
+    public FHashMap9Diagnostics.Item<K, V>[] Items => _map.Explain();
 }
 
-[DebuggerTypeProxy(typeof(FHashMap7DebugProxy<,,>))]
+[DebuggerTypeProxy(typeof(FHashMap9DebugProxy<,,>))]
 [DebuggerDisplay("Count={Count}")]
 #endif
-public struct FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K>
+public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 {
     // todo: @improve make the Entry a type parameter to map and define TEq in terms of the Entry, 
     // todo: @improve it will allow to introduce the Set later without the Value in the Entry, end the Entry may be the Key itself
@@ -153,9 +151,9 @@ public struct FHashMap7<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     internal int HashesCapacity => _indexMask + 1;
     internal Entry[] Entries => _entries;
 
-    public FHashMap7() : this(DefaultEntriesCapacity) { }
+    public FHashMap9() : this(DefaultEntriesCapacity) { }
 
-    public FHashMap7(uint entriesCapacity)
+    public FHashMap9(uint entriesCapacity)
     {
         if (entriesCapacity < 2)
             entriesCapacity = 2;
