@@ -289,7 +289,6 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
             _indexMask = indexMask = (indexMask << 1) | 1;
         }
 
-        var probesAndHashMask = ~indexMask;
         var hashMiddle = hash & ~indexMask & HashAndIndexMask;
 
         var hashIndex = hash & indexMask;
@@ -338,9 +337,8 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
                     }
                 }
             }
-            if ((h & probesAndHashMask) == ((probes << ProbeCountShift) | hashMiddle))
+            if ((h & ~indexMask) == ((probes << ProbeCountShift) | hashMiddle))
             {
-
                 ref var e = ref TryGetEntryRef(h & indexMask);
 #if DEBUG
                 Debug.WriteLine($"[AddOrUpdate] PROBES AND HASH MATCH: probes {probes}, compare new key `{key}` with matched key:`{e.Key}`");
