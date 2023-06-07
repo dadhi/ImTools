@@ -154,7 +154,16 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     internal int HashesCapacity => _indexMask + 1;
     internal Entry[] Entries => _entries;
 
-    public FHashMap9() : this(DefaultEntriesCapacity) { }
+    internal static int[] _singleCellHashesAndIndexes = new int[1];
+
+    public FHashMap9() 
+    {
+        // using single cell array for hashes instead of empty one to allow the Lookup to work without the additional check for the emptiness
+        _packedHashesAndIndexes = _singleCellHashesAndIndexes;
+        _entries = Array.Empty<Entry>(); 
+        _indexMask = 0;
+        _entryCount = 0;
+    }
 
     public FHashMap9(uint entriesCapacity)
     {
@@ -237,11 +246,16 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 #endif
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
-    private int AppendEntry(in K key, in V value)
+    private void AppendEntry(in K key, in V value)
     {
         var newEntryIndex = _entryCount;
-        if (newEntryIndex >= (uint)_entries.Length)
-            Array.Resize(ref _entries, _entries.Length << 1);
+        if (newEntryIndex >= _entries.Length)
+        {
+            if (_entries.Length != 0)
+                Array.Resize(ref _entries, _entries.Length << 1);
+            else
+                _entries = new Entry[DefaultEntriesCapacity];
+        }
 #if NET7_0_OR_GREATER
         ref var entriesData = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_entries);
         ref var e = ref Unsafe.Add(ref entriesData, newEntryIndex);
@@ -251,7 +265,6 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         e.Key = key;
         e.Value = value;
         _entryCount = newEntryIndex + 1;
-        return newEntryIndex;
     }
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
@@ -292,18 +305,18 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
             // this check is also implicitly break if `h == 0` to proceed inserting new entry 
             if (h == 0)
             {
-                var newEntryIndex = AppendEntry(in key, in value);
-                h = (probes << ProbeCountShift) | hashMiddle | newEntryIndex;
+                h = (probes << ProbeCountShift) | hashMiddle | _entryCount;
+                AppendEntry(in key, in value);
                 return;
             }
             // Robin Hood loop - the old hash to be re-inserted with the increased probe count
             if ((h >>> ProbeCountShift) < probes)
             {
-                var newEntryIndex = AppendEntry(in key, in value);
                 var hWithoutProbes = h & HashAndIndexMask;
                 var hProbes = h >>> ProbeCountShift;
-                h = (probes << ProbeCountShift) | hashMiddle | newEntryIndex;
+                h = (probes << ProbeCountShift) | hashMiddle | _entryCount;
                 probes = hProbes;
+                AppendEntry(in key, in value);
                 while (true)
                 {
                     ++probes;

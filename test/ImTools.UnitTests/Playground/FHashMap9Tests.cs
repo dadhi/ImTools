@@ -125,7 +125,9 @@ public class FHashMap9Tests
     [Test]
     public void Can_store_and_retrieve_value_from_map_with_Expand_in_the_middle()
     {
-        var map = new FHashMap9<int, string, IntEq>(2);
+        var map = new FHashMap9<int, string, IntEq>();
+
+        Assert.IsFalse(map.TryGetValue(42, out _));
 
         map.AddOrUpdate(42, "1");
         map.AddOrUpdate(42 + 32, "2");
