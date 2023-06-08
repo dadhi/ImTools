@@ -308,13 +308,13 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
                 return;
             }
             // Robin Hood comes here - to steal the slot with the smaller probes
-            if ((h >>> ProbeCountShift) < probes)
+            var hProbes = h >>> ProbeCountShift;
+            if (hProbes < probes)
             {
                 var hWithoutProbes = h & HashAndIndexMask;
-                var hProbes = h >>> ProbeCountShift;
                 h = (probes << ProbeCountShift) | hashMiddle | _entryCount;
-                probes = hProbes;
                 AppendEntry(in key, in value);
+                probes = hProbes;
                 while (true)
                 {
                     ++probes;
@@ -391,7 +391,7 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     #if NET7_0_OR_GREATER
                     ref var h = ref Unsafe.Add(ref newHashRef, oldHashNewIndex);
     #else
-                    ref var h = ref newHashesAndIndexes[newHashIndex];
+                    ref var h = ref newHashesAndIndexes[oldHashNewIndex];
     #endif
                     if (h == 0)
                     {

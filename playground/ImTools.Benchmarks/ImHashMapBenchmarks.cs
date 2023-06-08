@@ -768,8 +768,8 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 | FHashMap7_AddOrUpdate |   100 | 4.463 us | 0.1731 us | 0.5048 us |  0.85 |    0.14 | 1.7090 |   5.26 KB |        0.72 |
 
 */
-            // [Params(1, 10, 100, 1000)]
-            [Params(100)]
+            [Params(1, 10, 100, 1000)]
+            // [Params(100)]
             public int Count;
 
             private Type[] _types;
@@ -930,7 +930,7 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return map;
             }
 
-            [Benchmark(Baseline = true)]
+            // [Benchmark(Baseline = true)]
             public DictionarySlim<TypeVal, string> DictSlim_TryAdd()
             {
                 var map = new DictionarySlim<TypeVal, string>();
@@ -942,10 +942,23 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return map;
             }
 
-            [Benchmark]
+            [Benchmark(Baseline = true)]
+            // [Benchmark]
             public ImTools.Experiments.FHashMap7<Type, string, ImTools.Experiments.RefEq<Type>> FHashMap7_AddOrUpdate()
             {
                 var map = new ImTools.Experiments.FHashMap7<Type, string, ImTools.Experiments.RefEq<Type>>();
+
+                foreach (var key in _types)
+                    map.AddOrUpdate(key, "a");
+
+                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+                return map;
+            }
+
+            [Benchmark]
+            public ImTools.Experiments.FHashMap9<Type, string, ImTools.Experiments.RefEq<Type>> FHashMap9_AddOrUpdate()
+            {
+                var map = new ImTools.Experiments.FHashMap9<Type, string, ImTools.Experiments.RefEq<Type>>();
 
                 foreach (var key in _types)
                     map.AddOrUpdate(key, "a");
