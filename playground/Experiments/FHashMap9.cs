@@ -290,7 +290,6 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         }
 
         var hashMiddle = hash & ~indexMask & HashAndIndexMask;
-
         var hashIndex = hash & indexMask;
         var probes = 1;
         while (true)
@@ -308,7 +307,7 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
                 AppendEntry(in key, in value);
                 return;
             }
-            // Robin Hood loop - the old hash to be re-inserted with the increased probe count
+            // Robin Hood comes here - to steal the slot with the smaller probes
             if ((h >>> ProbeCountShift) < probes)
             {
                 var hWithoutProbes = h & HashAndIndexMask;
@@ -360,14 +359,13 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     internal static int[] Resize(int[] oldHashesAndIndexes, int oldIndexMask)
 #endif
     {
-        // double the hashes capacity
         var oldCapacity = oldIndexMask + 1;
-        var newIndexMask = (oldCapacity << 1) - 1;
+        var newIndexMask = (oldIndexMask << 1) | 1;
 #if DEBUG
         Debug.WriteLine($"RESIZE _packedHashesAndIndexes, double the capacity: {oldCapacity} -> {oldCapacity << 1}");
 #endif
         // todo: @perf is there a way to avoid the copying of the hashes and indexes, at least some of them?
-        var newHashesAndIndexes = new int[oldCapacity << 1];
+        var newHashesAndIndexes = new int[oldCapacity << 1]; // double the hashes capacity
 #if NET7_0_OR_GREATER
         ref var newHashRef = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(newHashesAndIndexes);
         for (var i = 0; i < oldCapacity; ++i, oldHash = ref Unsafe.Add(ref oldHash, 1))
@@ -386,7 +384,7 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 
                 // erasing the next to capacity bit, given the capacity was 4 and now it is 8 == 4 << 1,
                 // we are erasing the 3rd bit to store the new entry index in it.
-                var oldHashWithNextIndexBitErased = oldHash & HashAndIndexMask & ~oldCapacity;
+                var oldHashWithNextIndexBitErased = oldHash & ~oldCapacity & HashAndIndexMask;
                 var probes = 1;
                 while (true)
                 {
