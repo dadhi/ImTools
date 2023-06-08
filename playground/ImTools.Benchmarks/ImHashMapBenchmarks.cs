@@ -767,9 +767,25 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 |       DictSlim_TryAdd |   100 | 5.281 us | 0.2175 us | 0.6240 us |  1.00 |    0.00 | 2.3804 |   7.31 KB |        1.00 |
 | FHashMap7_AddOrUpdate |   100 | 4.463 us | 0.1731 us | 0.5048 us |  0.85 |    0.14 | 1.7090 |   5.26 KB |        0.72 |
 
+## FHashMap7 vs FHashMap9 with HardwareCounters
+
+|                Method | Count |         Mean |        Error |       StdDev |       Median | Ratio | RatioSD | BranchMispredictions/Op | CacheMisses/Op | BranchInstructions/Op |    Gen0 | Allocated | Alloc Ratio |
+|---------------------- |------ |-------------:|-------------:|-------------:|-------------:|------:|--------:|------------------------:|---------------:|----------------------:|--------:|----------:|------------:|
+| FHashMap7_AddOrUpdate |     1 |     48.67 ns |     0.992 ns |     0.879 ns |     48.70 ns |  1.00 |    0.00 |                       0 |              1 |                    73 |  0.0305 |      96 B |        1.00 |
+| FHashMap9_AddOrUpdate |     1 |     77.07 ns |     2.566 ns |     7.443 ns |     77.99 ns |  1.45 |    0.19 |                       0 |              2 |                    93 |  0.0408 |     128 B |        1.33 |
+|                       |       |              |              |              |              |       |         |                         |                |                       |         |           |             |
+| FHashMap7_AddOrUpdate |    10 |    378.59 ns |     7.602 ns |    17.920 ns |    372.70 ns |  1.00 |    0.00 |                       3 |              9 |                   537 |  0.2422 |     760 B |        1.00 |
+| FHashMap9_AddOrUpdate |    10 |    401.29 ns |     8.894 ns |    25.662 ns |    394.29 ns |  1.07 |    0.09 |                       3 |             10 |                   564 |  0.2518 |     792 B |        1.04 |
+|                       |       |              |              |              |              |       |         |                         |                |                       |         |           |             |
+| FHashMap7_AddOrUpdate |   100 |  3,242.53 ns |    64.789 ns |   150.158 ns |  3,186.36 ns |  1.00 |    0.00 |                      14 |             69 |                 4,727 |  1.7090 |    5384 B |        1.00 |
+| FHashMap9_AddOrUpdate |   100 |  3,140.29 ns |    61.509 ns |   102.768 ns |  3,128.71 ns |  0.97 |    0.05 |                      15 |             68 |                 4,760 |  1.7242 |    5416 B |        1.01 |
+|                       |       |              |              |              |              |       |         |                         |                |                       |         |           |             |
+| FHashMap7_AddOrUpdate |  1000 | 60,846.67 ns | 1,197.301 ns | 1,175.910 ns | 60,725.63 ns |  1.00 |    0.00 |                   2,486 |          1,009 |                54,747 | 15.7471 |   49584 B |        1.00 |
+| FHashMap9_AddOrUpdate |  1000 | 56,548.38 ns | 1,093.330 ns | 1,856.557 ns | 56,079.03 ns |  0.93 |    0.04 |                   2,149 |            976 |                54,730 | 15.7471 |   49616 B |        1.00 |
+
 */
-            [Params(1, 10, 100, 1000)]
-            // [Params(100)]
+            // [Params(1, 10, 100, 1000)]
+            [Params(100)]
             public int Count;
 
             private Type[] _types;
