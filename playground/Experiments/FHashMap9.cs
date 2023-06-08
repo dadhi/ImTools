@@ -181,7 +181,7 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         _entries = new Entry[entriesCapacity];
         _entryCount = 0;
 
-        // todo: @perf benchmark the un-initialized array, me personally did not see any benifits for the small maps?
+        // todo: @perf benchmark the un-initialized array, me personally did not see any benifits for the small maps...
         // _entries = GC.AllocateUninitializedArray<Entry>(capacity);
     }
 
