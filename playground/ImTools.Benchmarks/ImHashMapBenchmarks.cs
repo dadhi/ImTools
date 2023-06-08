@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Diagnosers;
 
 using Microsoft.Collections.Extensions;
 using ImTools;
@@ -35,6 +36,7 @@ namespace Playground
             public override int GetHashCode() => Type.GetHashCode();
         }
 
+        [HardwareCounters(HardwareCounter.CacheMisses, HardwareCounter.BranchMispredictions, HardwareCounter.BranchInstructions)]
         [MemoryDiagnoser]
         public class Populate
         {
@@ -1096,6 +1098,7 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
             }
         }
 
+        [HardwareCounters(HardwareCounter.CacheMisses, HardwareCounter.BranchMispredictions, HardwareCounter.BranchInstructions)]
         [MemoryDiagnoser]
         public class Lookup
         {
