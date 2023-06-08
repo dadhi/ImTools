@@ -280,6 +280,7 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         if (indexMask - _entryCount <= (indexMask >>> MinFreeCapacityShift)) // if the free capacity is less free slots 1/16 (6.25%)
         {
 #if NET7_0_OR_GREATER
+
             _packedHashesAndIndexes = Resize(ref hashesAndIndexes, indexMask);
             hashesAndIndexes = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
 #else
@@ -361,14 +362,12 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     {
         // double the hashes capacity
         var oldCapacity = oldIndexMask + 1;
-        var newCapacity = oldCapacity << 1;
         var newIndexMask = (oldCapacity << 1) - 1;
-        var hashAndIndexMaskWithNextIndexBitErased = HashAndIndexMask & ~oldCapacity;
 #if DEBUG
-        Debug.WriteLine($"RESIZE _packedHashesAndIndexes, double the capacity: {oldCapacity} -> {newCapacity}");
+        Debug.WriteLine($"RESIZE _packedHashesAndIndexes, double the capacity: {oldCapacity} -> {oldCapacity << 1}");
 #endif
         // todo: @perf is there a way to avoid the copying of the hashes and indexes, at least some of them?
-        var newHashesAndIndexes = new int[newCapacity];
+        var newHashesAndIndexes = new int[oldCapacity << 1];
 #if NET7_0_OR_GREATER
         ref var newHashRef = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(newHashesAndIndexes);
         for (var i = 0; i < oldCapacity; ++i, oldHash = ref Unsafe.Add(ref oldHash, 1))
@@ -378,40 +377,40 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         {
             ref var oldHash = ref oldHashesAndIndexes[i];
 #endif
-            if (oldHash == 0)
-                continue;
-
-            // get the new hash index for the new capacity by restoring the (possibly wrapped) old one from the probes - 1, 
-            // to account for the wrapping we use `(oldCapacity + i...) & oldIndexMask` 
-            var distance = (oldHash >>> ProbeCountShift) - 1;
-            var oldHashNewIndex = (oldHash & oldCapacity) | ((oldCapacity + i - distance) & oldIndexMask);
-
-            // erasing the next to capacity bit, given the capacity was 4 and now it is 8 == 4 << 1,
-            // we are erasing the 3rd bit to store the new entry index in it.
-            var oldHashWithNextIndexBitErased = oldHash & hashAndIndexMaskWithNextIndexBitErased;
-            var probes = 1;
-            while (true)
+            if (oldHash != 0)
             {
-#if NET7_0_OR_GREATER
-                ref var h = ref Unsafe.Add(ref newHashRef, oldHashNewIndex);
-#else
-                ref var h = ref newHashesAndIndexes[newHashIndex];
-#endif
-                if (h == 0)
+                // get the new hash index for the new capacity by restoring the (possibly wrapped) old one from the probes - 1, 
+                // to account for the wrapping we use `(oldCapacity + i...) & oldIndexMask` 
+                var distance = (oldHash >>> ProbeCountShift) - 1;
+                var oldHashNewIndex = (oldHash & oldCapacity) | ((oldCapacity + i - distance) & oldIndexMask);
+
+                // erasing the next to capacity bit, given the capacity was 4 and now it is 8 == 4 << 1,
+                // we are erasing the 3rd bit to store the new entry index in it.
+                var oldHashWithNextIndexBitErased = oldHash & HashAndIndexMask & ~oldCapacity;
+                var probes = 1;
+                while (true)
                 {
-                    h = (probes << ProbeCountShift) | oldHashWithNextIndexBitErased;
-                    break;
+    #if NET7_0_OR_GREATER
+                    ref var h = ref Unsafe.Add(ref newHashRef, oldHashNewIndex);
+    #else
+                    ref var h = ref newHashesAndIndexes[newHashIndex];
+    #endif
+                    if (h == 0)
+                    {
+                        h = (probes << ProbeCountShift) | oldHashWithNextIndexBitErased;
+                        break;
+                    }
+                    if ((h >>> ProbeCountShift) < probes)
+                    {
+                        var hAndIndex = h & HashAndIndexMask;
+                        var hProbes = h >>> ProbeCountShift;
+                        h = (probes << ProbeCountShift) | oldHashWithNextIndexBitErased;
+                        oldHashWithNextIndexBitErased = hAndIndex;
+                        probes = hProbes;
+                    }
+                    ++probes;
+                    oldHashNewIndex = (oldHashNewIndex + 1) & newIndexMask;
                 }
-                if ((h >>> ProbeCountShift) < probes)
-                {
-                    var hAndIndex = h & HashAndIndexMask;
-                    var hProbes = h >>> ProbeCountShift;
-                    h = (probes << ProbeCountShift) | oldHashWithNextIndexBitErased;
-                    oldHashWithNextIndexBitErased = hAndIndex;
-                    probes = hProbes;
-                }
-                ++probes;
-                oldHashNewIndex = (oldHashNewIndex + 1) & newIndexMask;
             }
         }
         return newHashesAndIndexes;
