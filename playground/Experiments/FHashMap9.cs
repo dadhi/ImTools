@@ -141,7 +141,7 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     //      |     |         | This part of the erased hash is used to get the ideal index into the hashes array, so we are safely using it to store the index into entries.
     //      |     |- The middle bits of the hash
     //      |- 5 high bits of the Probe count, with the minimal value of 00001  indicating non-empty slot.
-    // todo: @feature For the removed hash we won't use the tumbstone but will actually remove the hash.
+    // todo: @feature remove - for the removed hash we won't use the tumbstone but will actually remove the hash.
     private int[] _packedHashesAndIndexes;
     private Entry[] _entries;
     // pre-calculated and saved on the DoubleSize for the performance
@@ -177,8 +177,8 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         // this will also provide the flexibility of independence of the sizes of hashes and entries
         var doubleCapacity = (int)(entriesCapacity << 1);
         _packedHashesAndIndexes = new int[doubleCapacity];
-        _indexMask = doubleCapacity - 1;
         _entries = new Entry[entriesCapacity];
+        _indexMask = doubleCapacity - 1;
         _entryCount = 0;
 
         // todo: @perf benchmark the un-initialized array, me personally did not see any benifits for the small maps...
@@ -271,23 +271,18 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     {
         var hash = default(TEq).GetHashCode(key);
 
+        var indexMask = _indexMask;
+        if (indexMask - _entryCount <= (indexMask >>> MinFreeCapacityShift)) // if the free space is less than 1/8 of capacity (12.5%)
+        {
+            _packedHashesAndIndexes = indexMask == 0 ? new int[2] : ResizeToDoubleCapacity(_packedHashesAndIndexes, indexMask);
+            _indexMask = indexMask = (indexMask << 1) | 1;
+        }
+
 #if NET7_0_OR_GREATER
         ref var hashesAndIndexes = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
 #else
         var hashesAndIndexes = _packedHashesAndIndexes;
 #endif
-        var indexMask = _indexMask;
-        if (indexMask - _entryCount <= (indexMask >>> MinFreeCapacityShift)) // if the free capacity is less free slots 1/16 (6.25%)
-        {
-#if NET7_0_OR_GREATER
-
-            _packedHashesAndIndexes = Resize(ref hashesAndIndexes, indexMask);
-            hashesAndIndexes = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
-#else
-            _packedHashesAndIndexes = hashesAndIndexes = Resize(_packedHashesAndIndexes, indexMask);
-#endif
-            _indexMask = indexMask = (indexMask << 1) | 1;
-        }
 
         var hashMiddle = hash & ~indexMask & HashAndIndexMask;
         var hashIndex = hash & indexMask;
@@ -345,21 +340,20 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         }
     }
 
-#if NET7_0_OR_GREATER
-    internal static int[] Resize(ref int oldHash, int oldIndexMask)
-#else
-    internal static int[] Resize(int[] oldHashesAndIndexes, int oldIndexMask)
-#endif
+    internal static int[] ResizeToDoubleCapacity(int[] oldHashesAndIndexes, int oldIndexMask)
     {
         var oldCapacity = oldIndexMask + 1;
         var newIndexMask = (oldIndexMask << 1) | 1;
 #if DEBUG
         Debug.WriteLine($"RESIZE _packedHashesAndIndexes, double the capacity: {oldCapacity} -> {oldCapacity << 1}");
 #endif
+
         // todo: @perf is there a way to avoid the copying of the hashes and indexes, at least some of them?
         var newHashesAndIndexes = new int[oldCapacity << 1]; // double the hashes capacity
+
 #if NET7_0_OR_GREATER
-        ref var newHashRef = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(newHashesAndIndexes);
+        ref var oldHash = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(oldHashesAndIndexes);
+        ref var newHash = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(newHashesAndIndexes);
         for (var i = 0; i < oldCapacity; ++i, oldHash = ref Unsafe.Add(ref oldHash, 1))
         {
 #else
@@ -380,11 +374,11 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
                 var probes = 1;
                 while (true)
                 {
-    #if NET7_0_OR_GREATER
-                    ref var h = ref Unsafe.Add(ref newHashRef, oldHashNewIndex);
-    #else
+#if NET7_0_OR_GREATER
+                    ref var h = ref Unsafe.Add(ref newHash, oldHashNewIndex);
+#else
                     ref var h = ref newHashesAndIndexes[oldHashNewIndex];
-    #endif
+#endif
                     if (h == 0)
                     {
                         h = (probes << ProbeCountShift) | oldHashWithNextIndexBitErased;
