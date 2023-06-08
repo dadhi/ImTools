@@ -783,6 +783,13 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 | FHashMap7_AddOrUpdate |  1000 | 60,846.67 ns | 1,197.301 ns | 1,175.910 ns | 60,725.63 ns |  1.00 |    0.00 |                   2,486 |          1,009 |                54,747 | 15.7471 |   49584 B |        1.00 |
 | FHashMap9_AddOrUpdate |  1000 | 56,548.38 ns | 1,093.330 ns | 1,856.557 ns | 56,079.03 ns |  0.93 |    0.04 |                   2,149 |            976 |                54,730 | 15.7471 |   49616 B |        1.00 |
 
+## Small things, less jumps
+
+|                Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | CacheMisses/Op | BranchInstructions/Op | BranchMispredictions/Op |   Gen0 | Allocated | Alloc Ratio |
+|---------------------- |------ |---------:|----------:|----------:|------:|--------:|---------------:|----------------------:|------------------------:|-------:|----------:|------------:|
+| FHashMap7_AddOrUpdate |   100 | 3.455 us | 0.0687 us | 0.1673 us |  1.00 |    0.00 |             89 |                 4,731 |                      17 | 1.7090 |   5.26 KB |        1.00 |
+| FHashMap9_AddOrUpdate |   100 | 3.380 us | 0.0640 us | 0.1558 us |  0.98 |    0.07 |             72 |                 4,666 |                      16 | 1.7242 |   5.29 KB |        1.01 |
+
 */
             // [Params(1, 10, 100, 1000)]
             [Params(100)]

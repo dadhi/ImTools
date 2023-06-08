@@ -300,22 +300,15 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 #else
             ref var h = ref hashesAndIndexes[hashIndex];
 #endif
-            // this check is also implicitly break if `h == 0` to proceed inserting new entry 
-            if (h == 0)
-            {
-                h = (probes << ProbeCountShift) | hashMiddle | _entryCount;
-                AppendEntry(in key, in value);
-                return;
-            }
             // Robin Hood comes here - to steal the slot with the smaller probes
             var hProbes = h >>> ProbeCountShift;
-            if (hProbes < probes)
+            if (hProbes < probes) // this check is also includes the check for the empty slot `h == 0`
             {
                 var hWithoutProbes = h & HashAndIndexMask;
                 h = (probes << ProbeCountShift) | hashMiddle | _entryCount;
                 AppendEntry(in key, in value);
                 probes = hProbes;
-                while (true)
+                while (probes != 0) // check for the empty slot `h == 0`, because non-empty slot can't have zero probes
                 {
                     ++probes;
                     hashIndex = (hashIndex + 1) & indexMask;
@@ -329,12 +322,11 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
                     {
                         var nextHWithoutProbes = h & HashAndIndexMask;
                         h = (probes << ProbeCountShift) | hWithoutProbes;
-                        if (hProbes == 0)
-                            return;
                         hWithoutProbes = nextHWithoutProbes;
                         probes = hProbes;
                     }
                 }
+                return;
             }
             if ((h & ~indexMask) == ((probes << ProbeCountShift) | hashMiddle))
             {
