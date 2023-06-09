@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 #if NET7_0_OR_GREATER
 using System.Numerics;
+using System.Runtime.InteropServices;
 #endif
 namespace ImTools.Experiments;
 
@@ -180,16 +181,13 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         _entries = new Entry[entriesCapacity];
         _indexMask = doubleCapacity - 1;
         _entryCount = 0;
-
-        // todo: @perf benchmark the un-initialized array, me personally did not see any benifits for the small maps...
-        // _entries = GC.AllocateUninitializedArray<Entry>(capacity);
     }
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
     private ref Entry GetEntryRef(int index)
     {
 #if NET7_0_OR_GREATER
-        return ref Unsafe.Add(ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_entries), index);
+        return ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entries), index);
 #else
         return ref _entries[index];
 #endif
@@ -200,7 +198,7 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     {
         var hash = default(TEq).GetHashCode(key);
 #if NET7_0_OR_GREATER
-        ref var hashesAndIndexes = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
+        ref var hashesAndIndexes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
 #else
         var hashesAndIndexes = _packedHashesAndIndexes;
 #endif
@@ -256,8 +254,7 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
                 _entries = new Entry[DefaultEntriesCapacity];
         }
 #if NET7_0_OR_GREATER
-        ref var entriesData = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_entries);
-        ref var e = ref Unsafe.Add(ref entriesData, newEntryIndex);
+        ref var e = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entries), newEntryIndex);
 #else
         ref var e = ref _entries[newEntryIndex];
 #endif
@@ -279,7 +276,7 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         }
 
 #if NET7_0_OR_GREATER
-        ref var hashesAndIndexes = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
+        ref var hashesAndIndexes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
 #else
         var hashesAndIndexes = _packedHashesAndIndexes;
 #endif
@@ -352,8 +349,8 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         var newHashesAndIndexes = new int[oldCapacity << 1]; // double the hashes capacity
 
 #if NET7_0_OR_GREATER
-        ref var oldHash = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(oldHashesAndIndexes);
-        ref var newHash = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(newHashesAndIndexes);
+        ref var oldHash = ref MemoryMarshal.GetArrayDataReference(oldHashesAndIndexes);
+        ref var newHash = ref MemoryMarshal.GetArrayDataReference(newHashesAndIndexes);
         for (var i = 0; i < oldCapacity; ++i, oldHash = ref Unsafe.Add(ref oldHash, 1))
         {
 #else
