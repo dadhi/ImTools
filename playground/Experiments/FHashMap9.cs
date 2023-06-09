@@ -156,11 +156,11 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 
     internal static int[] _singleCellHashesAndIndexes = new int[1];
 
-    public FHashMap9() 
+    public FHashMap9()
     {
         // using single cell array for hashes instead of empty one to allow the Lookup to work without the additional check for the emptiness
         _packedHashesAndIndexes = _singleCellHashesAndIndexes;
-        _entries = Array.Empty<Entry>(); 
+        _entries = Array.Empty<Entry>();
         _indexMask = 0;
         _entryCount = 0;
     }
@@ -186,7 +186,7 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     }
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
-    private ref Entry TryGetEntryRef(int index)
+    private ref Entry GetEntryRef(int index)
     {
 #if NET7_0_OR_GREATER
         return ref Unsafe.Add(ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(_entries), index);
@@ -220,7 +220,7 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 #endif
             if ((h & probesAndHashMask) == ((probes << ProbeCountShift) | hashMiddle))
             {
-                ref var e = ref TryGetEntryRef(h & indexMask);
+                ref var e = ref GetEntryRef(h & indexMask);
                 if (default(TEq).Equals(e.Key, key))
                 {
                     value = e.Value;
@@ -325,7 +325,7 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
             }
             if ((h & ~indexMask) == ((probes << ProbeCountShift) | hashMiddle))
             {
-                ref var e = ref TryGetEntryRef(h & indexMask);
+                ref var e = ref GetEntryRef(h & indexMask);
 #if DEBUG
                 Debug.WriteLine($"[AddOrUpdate] PROBES AND HASH MATCH: probes {probes}, compare new key `{key}` with matched key:`{e.Key}`");
 #endif
