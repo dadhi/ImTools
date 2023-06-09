@@ -30,23 +30,6 @@ public class FHashMap9Tests
 
         map.AddOrUpdate(typeof(Console), "!");
 
-        Assert.AreEqual(101, map.Count);
-
-        Verify(map, types);
-    }
-
-    [Test]
-    public void Real_world_test_TryGetValue()
-    {
-        var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(100).ToArray();
-
-        var map = new ImTools.Experiments.FHashMap9<Type, string, RefEq<Type>>();
-
-        foreach (var key in types)
-            map.AddOrUpdate(key, "a");
-
-        map.AddOrUpdate(typeof(Console), "!");
-
         var found = map.TryGetValue(typeof(Console), out var value);
         Assert.IsTrue(found);
         Assert.AreEqual("!", value);
@@ -55,7 +38,7 @@ public class FHashMap9Tests
     }
 
     [Test]
-    public void Real_world_test_without_Resize()
+    public void Real_world_test_AddOrUpdate_NO_Resize()
     {
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(100).ToArray();
 

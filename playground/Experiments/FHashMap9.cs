@@ -127,6 +127,7 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         public V Value;
     }
 
+    public const uint GoldenRatio32 = 2654435769; // 2^32 / phi for the Fibonacci hashing, where phi is the golden ratio ~1.61803
     public const int DefaultEntriesCapacity = 2;
     public const byte MinFreeCapacityShift = 3; // e.g. for the DefaultCapacity=16 >> 3 => 2, so 2 free slots is 12.5% of the capacity  
 
@@ -176,10 +177,10 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 #endif
         // double the size of the hashes, because they are cheap, 
         // this will also provide the flexibility of independence of the sizes of hashes and entries
-        var doubleCapacity = (int)(entriesCapacity << 1);
-        _packedHashesAndIndexes = new int[doubleCapacity];
+        var hashesCapacity = (int)(entriesCapacity << 1);
+        _packedHashesAndIndexes = new int[hashesCapacity];
         _entries = new Entry[entriesCapacity];
-        _indexMask = doubleCapacity - 1;
+        _indexMask = hashesCapacity - 1;
         _entryCount = 0;
     }
 
@@ -248,6 +249,9 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         var newEntryIndex = _entryCount;
         if (newEntryIndex >= _entries.Length)
         {
+#if DEBUG
+                Debug.WriteLine($"[AppendEntry] Resize {_entries.Length} -> {_entries.Length << 1}");
+#endif
             if (_entries.Length != 0)
                 Array.Resize(ref _entries, _entries.Length << 1);
             else
@@ -298,6 +302,10 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
             {
                 var hWithoutProbes = h & HashAndIndexMask;
                 h = (probes << ProbeCountShift) | hashMiddle | _entryCount;
+#if DEBUG
+                if (probes > MaxProbes)
+                    Debug.WriteLine($"[AddOrUpdate] MaxProbes {MaxProbes = probes}");
+#endif
                 AppendEntry(in key, in value);
                 probes = hProbes;
                 while (probes != 0) // check for the empty slot `h == 0`, because non-empty slot can't have zero probes
@@ -314,6 +322,10 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
                     {
                         var nextHWithoutProbes = h & HashAndIndexMask;
                         h = (probes << ProbeCountShift) | hWithoutProbes;
+#if DEBUG
+                    if (probes > MaxProbes)
+                        Debug.WriteLine($"[AddOrUpdate] MaxProbes {MaxProbes = probes}");
+#endif
                         hWithoutProbes = nextHWithoutProbes;
                         probes = hProbes;
                     }
@@ -324,7 +336,7 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
             {
                 ref var e = ref GetEntryRef(h & indexMask);
 #if DEBUG
-                Debug.WriteLine($"[AddOrUpdate] PROBES AND HASH MATCH: probes {probes}, compare new key `{key}` with matched key:`{e.Key}`");
+                Debug.WriteLine($"[AddOrUpdate] Probes and Hash parts are matching: probes {probes}, new key:`{key}` with matched key:`{e.Key}`");
 #endif
                 if (default(TEq).Equals(e.Key, key))
                 {
@@ -342,7 +354,7 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         var oldCapacity = oldIndexMask + 1;
         var newIndexMask = (oldIndexMask << 1) | 1;
 #if DEBUG
-        Debug.WriteLine($"RESIZE _packedHashesAndIndexes, double the capacity: {oldCapacity} -> {oldCapacity << 1}");
+        Debug.WriteLine($"[ResizeToDoubleCapacity] {oldCapacity} -> {oldCapacity << 1}");
 #endif
 
         // todo: @perf is there a way to avoid the copying of the hashes and indexes, at least some of them?
