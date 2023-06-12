@@ -297,55 +297,32 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         var hashesAndIndexes = _packedHashesAndIndexes;
 #endif
 
-        var hashMiddle = hash & ~indexMask & HashAndIndexMask;
         var hashIndex = FitHashToIndex(hash, indexMask);
 
+#if NET7_0_OR_GREATER
+        ref var h = ref Unsafe.Add(ref hashesAndIndexes, hashIndex);
+#else
+        ref var h = ref hashesAndIndexes[hashIndex];
+#endif
+
         var probes = 1;
-        while (true)
+
+        // 1. Skip hashes with the bigger probes - the hashes overlapping from the earlier ideal positions
+        while ((h >>> ProbeCountShift) > probes)
         {
-            Debug.Assert(probes <= MaxProbeCount, $"[AddOrUpdate] DEBUG ASSERT FAILED: probes {probes} <= MaxProbeCount {MaxProbeCount}");
+            hashIndex = (hashIndex + 1) & indexMask;
 #if NET7_0_OR_GREATER
-            ref var h = ref Unsafe.Add(ref hashesAndIndexes, hashIndex);
+            h = ref Unsafe.Add(ref hashesAndIndexes, hashIndex);
 #else
-            ref var h = ref hashesAndIndexes[hashIndex];
+            h = ref hashesAndIndexes[hashIndex];
 #endif
-            // Robin Hood comes here - to steal the slot with the smaller probes
-            var hProbes = h >>> ProbeCountShift;
-            if (hProbes < probes) // this check is also includes the check for the empty slot `h == 0`
-            {
-                var hWithoutProbes = h & HashAndIndexMask;
-                h = (probes << ProbeCountShift) | hashMiddle | _entryCount;
-#if DEBUG
-                if (probes > MaxProbes)
-                    Debug.WriteLine($"[AddOrUpdate] MaxProbes {MaxProbes = probes}");
-#endif
-                AppendEntry(in key, in value);
-                probes = hProbes;
-                while (probes != 0) // check for the empty slot `h == 0`, because non-empty slot can't have zero probes
-                {
-                    ++probes;
-                    hashIndex = (hashIndex + 1) & indexMask;
-#if NET7_0_OR_GREATER
-                    h = ref Unsafe.Add(ref hashesAndIndexes, hashIndex);
-#else
-                    h = ref hashesAndIndexes[hashIndex];
-#endif
-                    hProbes = h >>> ProbeCountShift;
-                    if (hProbes < probes) // skip hashes with the bigger probe count until we find the same or less probes
-                    {
-                        var nextHWithoutProbes = h & HashAndIndexMask;
-                        h = (probes << ProbeCountShift) | hWithoutProbes;
-#if DEBUG
-                    if (probes > MaxProbes)
-                        Debug.WriteLine($"[AddOrUpdate] MaxProbes {MaxProbes = probes}");
-#endif
-                        hWithoutProbes = nextHWithoutProbes;
-                        probes = hProbes;
-                    }
-                }
-                return;
-            }
-            if ((h & ~indexMask) == ((probes << ProbeCountShift) | hashMiddle))
+            ++probes;
+        }
+
+        // 2. For the equal probes check for equality the hash middle part, and update the entry if the keys are equal too 
+        while ((h >> ProbeCountShift) == probes)
+        {
+            if ((h & ~indexMask & HashAndIndexMask) == (hash & ~indexMask & HashAndIndexMask))
             {
                 ref var e = ref GetEntryRef(h & indexMask);
 #if DEBUG
@@ -357,8 +334,46 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
                     return;
                 }
             }
-            ++probes;
             hashIndex = (hashIndex + 1) & indexMask;
+#if NET7_0_OR_GREATER
+            h = ref Unsafe.Add(ref hashesAndIndexes, hashIndex);
+#else
+            h = ref hashesAndIndexes[hashIndex];
+#endif
+            ++probes;
+        }
+
+        // 3. We did not find the hash and therefore the key, so insert the new entry
+        var hHooded = h;
+        h = (probes << ProbeCountShift) | (hash & ~indexMask & HashAndIndexMask) | _entryCount;
+#if DEBUG
+        if (probes > MaxProbes)
+            Debug.WriteLine($"[AddOrUpdate] MaxProbes {MaxProbes = probes}");
+#endif
+        AppendEntry(in key, in value);
+
+        // 4. If old hash is empty then we stop
+        // 5. Robin Hood goes here - to steal the slot with the smaller probes
+        probes = hHooded >>> ProbeCountShift;
+        while (hHooded != 0)
+        {
+            hashIndex = (hashIndex + 1) & indexMask;
+#if NET7_0_OR_GREATER
+            h = ref Unsafe.Add(ref hashesAndIndexes, hashIndex);
+#else
+            h = ref hashesAndIndexes[hashIndex];
+#endif
+            if ((h >>> ProbeCountShift) < (++probes))
+            {
+                var hHoodedNext = h;
+                h = (probes << ProbeCountShift) | (hHooded & HashAndIndexMask);
+#if DEBUG
+                if (probes > MaxProbes)
+                    Debug.WriteLine($"[AddOrUpdate] MaxProbes {MaxProbes = probes}");
+#endif
+                hHooded = hHoodedNext;
+                probes = hHoodedNext >>> ProbeCountShift;
+            }
         }
     }
 
