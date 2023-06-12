@@ -785,14 +785,15 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 
 ## Small things, less jumps
 
-|                Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | CacheMisses/Op | BranchInstructions/Op | BranchMispredictions/Op |   Gen0 | Allocated | Alloc Ratio |
-|---------------------- |------ |---------:|----------:|----------:|------:|--------:|---------------:|----------------------:|------------------------:|-------:|----------:|------------:|
-| FHashMap7_AddOrUpdate |   100 | 3.455 us | 0.0687 us | 0.1673 us |  1.00 |    0.00 |             89 |                 4,731 |                      17 | 1.7090 |   5.26 KB |        1.00 |
-| FHashMap9_AddOrUpdate |   100 | 3.380 us | 0.0640 us | 0.1558 us |  0.98 |    0.07 |             72 |                 4,666 |                      16 | 1.7242 |   5.29 KB |        1.01 |
+|                 Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | BranchInstructions/Op | CacheMisses/Op | BranchMispredictions/Op |   Gen0 | Allocated | Alloc Ratio |
+|----------------------- |------ |---------:|----------:|----------:|------:|--------:|----------------------:|---------------:|------------------------:|-------:|----------:|------------:|
+|  FHashMap7_AddOrUpdate |   100 | 3.198 us | 0.0618 us | 0.0825 us |  1.00 |    0.00 |                 4,728 |             69 |                      15 | 1.7090 |   5.26 KB |        1.00 |
+|  FHashMap9_AddOrUpdate |   100 | 2.942 us | 0.0569 us | 0.0532 us |  0.93 |    0.03 |                 4,595 |             37 |                      13 | 1.7242 |   5.29 KB |        1.01 |
+| FHashMap91_AddOrUpdate |   100 | 3.078 us | 0.0484 us | 0.0646 us |  0.96 |    0.03 |                 4,546 |             39 |                      14 | 1.7242 |   5.29 KB |        1.01 |
 
 */
-            // [Params(1, 10, 100, 1000)]
-            [Params(100)]
+            [Params(1, 10, 100, 1000)]
+            // [Params(100)]
             public int Count;
 
             private Type[] _types;
@@ -982,6 +983,18 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
             public ImTools.Experiments.FHashMap9<Type, string, ImTools.Experiments.RefEq<Type>> FHashMap9_AddOrUpdate()
             {
                 var map = new ImTools.Experiments.FHashMap9<Type, string, ImTools.Experiments.RefEq<Type>>();
+
+                foreach (var key in _types)
+                    map.AddOrUpdate(key, "a");
+
+                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+                return map;
+            }
+
+            [Benchmark]
+            public ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.RefEq<Type>> FHashMap91_AddOrUpdate()
+            {
+                var map = new ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.RefEq<Type>>();
 
                 foreach (var key in _types)
                     map.AddOrUpdate(key, "a");
