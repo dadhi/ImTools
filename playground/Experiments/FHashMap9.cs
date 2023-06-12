@@ -208,14 +208,15 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         var probesAndHashMask = ~indexMask;
         var hashMiddle = hash & ~indexMask & HashAndIndexMask;
 
-        var index = hash & indexMask;
+        var hashIndex = GetHashIndex(hash, indexMask);
+
         var probes = 1;
         while (true)
         {
 #if NET7_0_OR_GREATER
-            var h = Unsafe.Add(ref hashesAndIndexes, index);
+            var h = Unsafe.Add(ref hashesAndIndexes, hashIndex);
 #else
-            var h = hashesAndIndexes[index];
+            var h = hashesAndIndexes[hashIndex];
 #endif
             if ((h & probesAndHashMask) == ((probes << ProbeCountShift) | hashMiddle))
             {
@@ -229,7 +230,7 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
             if ((h >>> ProbeCountShift) < probes)
                 break;
             ++probes;
-            index = (index + 1) & indexMask;
+            hashIndex = (hashIndex + 1) & indexMask;
         }
         value = default;
         return false;
@@ -250,7 +251,7 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         if (newEntryIndex >= _entries.Length)
         {
 #if DEBUG
-                Debug.WriteLine($"[AppendEntry] Resize {_entries.Length} -> {_entries.Length << 1}");
+            Debug.WriteLine($"[AppendEntry] Resize {_entries.Length} -> {_entries.Length << 1}");
 #endif
             if (_entries.Length != 0)
                 Array.Resize(ref _entries, _entries.Length << 1);
@@ -265,6 +266,17 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         e.Key = key;
         e.Value = value;
         _entryCount = newEntryIndex + 1;
+    }
+
+    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+    private static int GetHashIndex(int hash, int indexMask)
+    {
+#if NET7_0_OR_GREATER
+        return hash & indexMask;
+        // return (int)(((uint)hash * GoldenRatio32) >> BitOperations.TrailingZeroCount(indexMask + 1));
+#else
+        return hash & indexMask;
+#endif
     }
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
@@ -286,7 +298,7 @@ public struct FHashMap9<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 #endif
 
         var hashMiddle = hash & ~indexMask & HashAndIndexMask;
-        var hashIndex = hash & indexMask;
+        var hashIndex = GetHashIndex(hash, indexMask);
         var probes = 1;
         while (true)
         {
