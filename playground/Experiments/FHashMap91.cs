@@ -308,21 +308,10 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         var probes = 1;
 
         // 1. Skip hashes with the bigger probes - the hashes overlapping from the earlier ideal positions
-        while ((h >>> ProbeCountShift) > probes)
+        while ((h >>> ProbeCountShift) >= probes)
         {
-            hashIndex = (hashIndex + 1) & indexMask;
-#if NET7_0_OR_GREATER
-            h = ref Unsafe.Add(ref hashesAndIndexes, hashIndex);
-#else
-            h = ref hashesAndIndexes[hashIndex];
-#endif
-            ++probes;
-        }
-
-        // 2. For the equal probes check for equality the hash middle part, and update the entry if the keys are equal too 
-        while ((h >> ProbeCountShift) == probes)
-        {
-            if ((h & ~indexMask & HashAndIndexMask) == (hash & ~indexMask & HashAndIndexMask))
+            // 2. For the equal probes check for equality the hash middle part, and update the entry if the keys are equal too 
+            if ((h & ~indexMask) == ((probes << ProbeCountShift) | (hash & ~indexMask & HashAndIndexMask)))
             {
                 ref var e = ref GetEntryRef(h & indexMask);
 #if DEBUG

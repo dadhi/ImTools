@@ -783,17 +783,22 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 | FHashMap7_AddOrUpdate |  1000 | 60,846.67 ns | 1,197.301 ns | 1,175.910 ns | 60,725.63 ns |  1.00 |    0.00 |                   2,486 |          1,009 |                54,747 | 15.7471 |   49584 B |        1.00 |
 | FHashMap9_AddOrUpdate |  1000 | 56,548.38 ns | 1,093.330 ns | 1,856.557 ns | 56,079.03 ns |  0.93 |    0.04 |                   2,149 |            976 |                54,730 | 15.7471 |   49616 B |        1.00 |
 
-## Small things, less jumps
+## Small things, less jumps and cache misses
 
-|                 Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | BranchInstructions/Op | CacheMisses/Op | BranchMispredictions/Op |   Gen0 | Allocated | Alloc Ratio |
-|----------------------- |------ |---------:|----------:|----------:|------:|--------:|----------------------:|---------------:|------------------------:|-------:|----------:|------------:|
-|  FHashMap7_AddOrUpdate |   100 | 3.198 us | 0.0618 us | 0.0825 us |  1.00 |    0.00 |                 4,728 |             69 |                      15 | 1.7090 |   5.26 KB |        1.00 |
-|  FHashMap9_AddOrUpdate |   100 | 2.942 us | 0.0569 us | 0.0532 us |  0.93 |    0.03 |                 4,595 |             37 |                      13 | 1.7242 |   5.29 KB |        1.01 |
-| FHashMap91_AddOrUpdate |   100 | 3.078 us | 0.0484 us | 0.0646 us |  0.96 |    0.03 |                 4,546 |             39 |                      14 | 1.7242 |   5.29 KB |        1.01 |
+BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValley2)
+11th Gen Intel Core i7-1185G7 3.00GHz, 1 CPU, 8 logical and 4 physical cores
+.NET SDK=7.0.302
+  [Host]     : .NET 7.0.5 (7.0.523.17405), X64 RyuJIT AVX2
+  DefaultJob : .NET 7.0.5 (7.0.523.17405), X64 RyuJIT AVX2
 
+|                 Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | BranchInstructions/Op | CacheMisses/Op | BranchMispredictions/Op |   Gen0 |   Gen1 | Allocated | Alloc Ratio |
+|----------------------- |------ |---------:|----------:|----------:|------:|--------:|----------------------:|---------------:|------------------------:|-------:|-------:|----------:|------------:|
+|  FHashMap7_AddOrUpdate |   100 | 3.727 us | 0.2813 us | 0.8025 us |  1.00 |    0.00 |                 1,822 |             61 |                      10 | 0.8545 | 0.0114 |   5.26 KB |        1.00 |
+|  FHashMap9_AddOrUpdate |   100 | 2.782 us | 0.1069 us | 0.3118 us |  0.79 |    0.20 |                 1,845 |             50 |                       8 | 0.8621 | 0.0076 |   5.29 KB |        1.01 |
+| FHashMap91_AddOrUpdate |   100 | 2.369 us | 0.0790 us | 0.2267 us |  0.67 |    0.20 |                 2,564 |             17 |                       7 | 0.8621 | 0.0076 |   5.29 KB |        1.01 |
 */
-            [Params(1, 10, 100, 1000)]
-            // [Params(100)]
+            // [Params(1, 10, 100, 1000)]
+            [Params(100)]
             public int Count;
 
             private Type[] _types;
