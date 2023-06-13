@@ -394,18 +394,14 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 #else
                     ref var h = ref newHashesAndIndexes[oldHashNewIndex];
 #endif
-                    if (h == 0)
-                    {
-                        h = (probes << ProbeCountShift) | oldHashWithNextIndexBitErased;
-                        break;
-                    }
                     if ((h >>> ProbeCountShift) < probes)
                     {
-                        var hAndIndex = h & HashAndIndexMask;
-                        var hProbes = h >>> ProbeCountShift;
+                        var hHooded = h;
                         h = (probes << ProbeCountShift) | oldHashWithNextIndexBitErased;
-                        oldHashWithNextIndexBitErased = hAndIndex;
-                        probes = hProbes;
+                        if (hHooded == 0)
+                            break;
+                        oldHashWithNextIndexBitErased = hHooded & HashAndIndexMask;
+                        probes = hHooded >>> ProbeCountShift;
                     }
                     ++probes;
                     oldHashNewIndex = (oldHashNewIndex + 1) & newIndexMask;
