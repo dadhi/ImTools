@@ -1963,9 +1963,24 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 |      FHashMap8_TryGetValue |  1000 |  4.926 ns | 0.1781 ns | 0.3120 ns |  4.809 ns |  0.54 |    0.05 |         - |          NA |
 |      FHashMap7_TryGetValue |  1000 |  4.314 ns | 0.1559 ns | 0.1601 ns |  4.290 ns |  0.48 |    0.04 |         - |          NA |
 
+## FHM9.1 and 9
+
+BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValley2)
+11th Gen Intel Core i7-1185G7 3.00GHz, 1 CPU, 8 logical and 4 physical cores
+.NET SDK=7.0.302
+  [Host]     : .NET 7.0.5 (7.0.523.17405), X64 RyuJIT AVX2
+  DefaultJob : .NET 7.0.5 (7.0.523.17405), X64 RyuJIT AVX2
+
+|                     Method | Count |     Mean |     Error |    StdDev |   Median | Ratio | RatioSD | BranchInstructions/Op | BranchMispredictions/Op | CacheMisses/Op | Allocated | Alloc Ratio |
+|--------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|----------------------:|------------------------:|---------------:|----------:|------------:|
+| DictionarySlim_TryGetValue |   100 | 8.005 ns | 0.3077 ns | 0.9025 ns | 7.934 ns |  1.00 |    0.00 |                    20 |                       0 |              0 |         - |          NA |
+|      FHashMap7_TryGetValue |   100 | 4.256 ns | 0.1741 ns | 0.5051 ns | 4.135 ns |  0.54 |    0.09 |                    11 |                       0 |             -0 |         - |          NA |
+|      FHashMap9_TryGetValue |   100 | 4.840 ns | 0.3474 ns | 1.0242 ns | 4.554 ns |  0.61 |    0.14 |                    11 |                       - |              0 |         - |          NA |
+|     FHashMap91_TryGetValue |   100 | 4.215 ns | 0.1810 ns | 0.5164 ns | 4.197 ns |  0.53 |    0.09 |                    11 |                      -0 |             -0 |         - |          NA |
+
 */
-            // [Params(1, 10, 100, 1_000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
-            [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
+            // [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
+            [Params(100)]
             public int Count;
 
             [GlobalSetup]
@@ -1980,7 +1995,8 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 _dict = Dict();
                 _dictSlim = DictSlim();
                 _fHashMap7 = FillFHashMap7();
-                _fHashMap8 = FillFHashMap8();
+                _fHashMap9 = FillFHashMap9();
+                _fHashMap91 = FillFHashMap91();
                 _concurrentDict = ConcurrentDict();
                 _immutableDict = ImmutableDict();
             }
@@ -2158,9 +2174,9 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 
             private ImTools.Experiments.FHashMap7<Type, string, ImTools.Experiments.RefEq<Type>> _fHashMap7;
 
-            public ImTools.Experiments.FHashMap8<Type, string, ImTools.Experiments.RefEq<Type>> FillFHashMap8()
+            public ImTools.Experiments.FHashMap9<Type, string, ImTools.Experiments.RefEq<Type>> FillFHashMap9()
             {
-                var map = new ImTools.Experiments.FHashMap8<Type, string, ImTools.Experiments.RefEq<Type>>();
+                var map = new ImTools.Experiments.FHashMap9<Type, string, ImTools.Experiments.RefEq<Type>>();
 
                 foreach (var key in _keys.Take(Count))
                     map.AddOrUpdate(key, "a");
@@ -2169,7 +2185,20 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return map;
             }
 
-            private ImTools.Experiments.FHashMap8<Type, string, ImTools.Experiments.RefEq<Type>> _fHashMap8;
+            private ImTools.Experiments.FHashMap9<Type, string, ImTools.Experiments.RefEq<Type>> _fHashMap9;
+
+            public ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.RefEq<Type>> FillFHashMap91()
+            {
+                var map = new ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.RefEq<Type>>();
+
+                foreach (var key in _keys.Take(Count))
+                    map.AddOrUpdate(key, "a");
+
+                map.AddOrUpdate(LookupKey, "!");
+                return map;
+            }
+
+            private ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.RefEq<Type>> _fHashMap91;
 
             public ConcurrentDictionary<Type, string> ConcurrentDict()
             {
@@ -2336,24 +2365,33 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return result;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public string Dictionary_TryGetValue()
             {
                 _dict.TryGetValue(LookupKey, out var result);
                 return result;
             }
 
-            [Benchmark]
-            public string FHashMap8_TryGetValue()
-            {
-                _fHashMap8.TryGetValue(LookupKey, out var result);
-                return result;
-            }
 
+            // [Benchmark(Baseline = true)]
             [Benchmark]
             public string FHashMap7_TryGetValue()
             {
                 _fHashMap7.TryGetValue(LookupKey, out var result);
+                return result;
+            }
+
+            [Benchmark]
+            public string FHashMap9_TryGetValue()
+            {
+                _fHashMap9.TryGetValue(LookupKey, out var result);
+                return result;
+            }
+
+            [Benchmark]
+            public string FHashMap91_TryGetValue()
+            {
+                _fHashMap91.TryGetValue(LookupKey, out var result);
                 return result;
             }
 

@@ -198,27 +198,25 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     public bool TryGetValue(K key, out V value)
     {
         var hash = default(TEq).GetHashCode(key);
-#if NET7_0_OR_GREATER
-        ref var hashesAndIndexes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
-#else
-        var hashesAndIndexes = _packedHashesAndIndexes;
-#endif
+
         var indexMask = _indexMask;
-
-        var probesAndHashMask = ~indexMask;
-        var hashMiddle = hash & ~indexMask & HashAndIndexMask;
-
         var hashIndex = FitHashToIndex(hash, indexMask);
 
-        var probes = 1;
-        while (true)
-        {
 #if NET7_0_OR_GREATER
-            var h = Unsafe.Add(ref hashesAndIndexes, hashIndex);
+        ref var hashesAndIndexes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
+        var h = Unsafe.Add(ref hashesAndIndexes, hashIndex);
 #else
-            var h = hashesAndIndexes[hashIndex];
+        var hashesAndIndexes = _packedHashesAndIndexes;
+        var h = hashesAndIndexes[hashIndex];
 #endif
-            if ((h & probesAndHashMask) == ((probes << ProbeCountShift) | hashMiddle))
+
+        var probes = 1;
+
+        // 1. Skip over hashes with the bigger and equal probes. The hashes with bigger probes overlapping from the earlier ideal positions
+        while ((h >>> ProbeCountShift) >= probes)
+        {
+            // 2. For the equal probes check for equality the hash middle part, and update the entry if the keys are equal too 
+            if ((h & ~indexMask) == ((probes << ProbeCountShift) | (hash & ~indexMask & HashAndIndexMask)))
             {
                 ref var e = ref GetEntryRef(h & indexMask);
                 if (default(TEq).Equals(e.Key, key))
@@ -227,11 +225,16 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
                     return true;
                 }
             }
-            if ((h >>> ProbeCountShift) < probes)
-                break;
-            ++probes;
+
             hashIndex = (hashIndex + 1) & indexMask;
+#if NET7_0_OR_GREATER
+            h = Unsafe.Add(ref hashesAndIndexes, hashIndex);
+#else
+            h = hashesAndIndexes[hashIndex];
+#endif
+            ++probes;
         }
+
         value = default;
         return false;
     }
