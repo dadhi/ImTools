@@ -291,23 +291,19 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
             _indexMask = indexMask = (indexMask << 1) | 1;
         }
 
-#if NET7_0_OR_GREATER
-        ref var hashesAndIndexes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
-#else
-        var hashesAndIndexes = _packedHashesAndIndexes;
-#endif
-
         var hashIndex = FitHashToIndex(hash, indexMask);
 
 #if NET7_0_OR_GREATER
+        ref var hashesAndIndexes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
         ref var h = ref Unsafe.Add(ref hashesAndIndexes, hashIndex);
 #else
+        var hashesAndIndexes = _packedHashesAndIndexes;
         ref var h = ref hashesAndIndexes[hashIndex];
 #endif
 
         var probes = 1;
 
-        // 1. Skip hashes with the bigger probes - the hashes overlapping from the earlier ideal positions
+        // 1. Skip over hashes with the bigger and equal probes. The hashes with bigger probes overlapping from the earlier ideal positions
         while ((h >>> ProbeCountShift) >= probes)
         {
             // 2. For the equal probes check for equality the hash middle part, and update the entry if the keys are equal too 
