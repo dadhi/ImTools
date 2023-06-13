@@ -127,6 +127,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         public V Value;
     }
 
+    // todo: @unused, tested but the benchmarks degraded significally for some reason. Will keep it here until the moral improves, or rather it is suggested to apply it on the side of the user if necessary.
     public const uint GoldenRatio32 = 2654435769; // 2^32 / phi for the Fibonacci hashing, where phi is the golden ratio ~1.61803
     public const int DefaultEntriesCapacity = 2;
     public const byte MinFreeCapacityShift = 3; // e.g. for the DefaultCapacity=16 >> 3 => 2, so 2 free slots is 12.5% of the capacity  
@@ -200,7 +201,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         var hash = default(TEq).GetHashCode(key);
 
         var indexMask = _indexMask;
-        var hashIndex = FitHashToIndex(hash, indexMask);
+        var hashIndex = hash & indexMask;
 
 #if NET7_0_OR_GREATER
         ref var hashesAndIndexes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
@@ -272,17 +273,6 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     }
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
-    private static int FitHashToIndex(int hash, int indexMask)
-    {
-#if NET7_0_OR_GREATER
-        return hash & indexMask;
-        // return (int)(((uint)hash * GoldenRatio32) >> BitOperations.TrailingZeroCount(indexMask + 1));
-#else
-        return hash & indexMask;
-#endif
-    }
-
-    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
     public void AddOrUpdate(K key, V value)
     {
         var hash = default(TEq).GetHashCode(key);
@@ -294,7 +284,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
             _indexMask = indexMask = (indexMask << 1) | 1;
         }
 
-        var hashIndex = FitHashToIndex(hash, indexMask);
+        var hashIndex = hash & indexMask;
 
 #if NET7_0_OR_GREATER
         ref var hashesAndIndexes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
