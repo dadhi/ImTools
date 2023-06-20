@@ -195,8 +195,50 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 #endif
     }
 
+#if NET7_0_OR_GREATER
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
-    public bool TryGetValue(K key, out V value)
+    public static bool TryGetValue(in Span<int> hashesAndIndexes, in Span<Entry> entries, K key, out V value)
+    {
+        var hash = default(TEq).GetHashCode(key);
+
+        var indexMask = hashesAndIndexes.Length - 1;
+        var hashIndex = hash & indexMask;
+
+        ref var hashesRef = ref MemoryMarshal.GetReference(hashesAndIndexes);
+        var h = Unsafe.Add(ref hashesRef, hashIndex);
+
+        // 1. Skip over hashes with the bigger and equal probes. The hashes with bigger probes overlapping from the earlier ideal positions
+        var probes = 1;
+        while ((h >>> ProbeCountShift) >= probes)
+        {
+            // 2. For the equal probes check for equality the hash middle part, and update the entry if the keys are equal too 
+            if ((h & ~indexMask) == ((probes << ProbeCountShift) | (hash & ~indexMask & HashAndIndexMask)))
+            {
+                var e = entries[h & indexMask];
+                if (default(TEq).Equals(e.Key, key))
+                {
+                    value = e.Value;
+                    return true;
+                }
+            }
+
+            h = Unsafe.Add(ref hashesRef, ++hashIndex & indexMask);
+            ++probes;
+        }
+
+        value = default;
+        return false;
+    }
+
+    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+    public bool TryGetValue(K key, out V value) => TryGetValue(_packedHashesAndIndexes, _entries, key, out value);
+#else
+    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+    public bool TryGetValue(K key, out V value) => TryGetValue_stable(key, out value);
+#endif
+
+    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+    public bool TryGetValue_stable(K key, out V value)
     {
         var hash = default(TEq).GetHashCode(key);
 
