@@ -1978,6 +1978,10 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 |      FHashMap9_TryGetValue |   100 | 4.840 ns | 0.3474 ns | 1.0242 ns | 4.554 ns |  0.61 |    0.14 |                    11 |                       - |              0 |         - |          NA |
 |     FHashMap91_TryGetValue |   100 | 4.215 ns | 0.1810 ns | 0.5164 ns | 4.197 ns |  0.53 |    0.09 |                    11 |                      -0 |             -0 |         - |          NA |
 
+|                     Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | BranchInstructions/Op | CacheMisses/Op | BranchMispredictions/Op | Allocated | Alloc Ratio |
+|--------------------------- |------ |---------:|----------:|----------:|------:|--------:|----------------------:|---------------:|------------------------:|----------:|------------:|
+| DictionarySlim_TryGetValue |   100 | 7.086 ns | 0.1758 ns | 0.1559 ns |  1.00 |    0.00 |                    20 |              0 |                       0 |         - |          NA |
+|     FHashMap91_TryGetValue |   100 | 4.183 ns | 0.1174 ns | 0.0980 ns |  0.59 |    0.02 |                    13 |              - |                       0 |         - |          NA |
 */
             // [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             [Params(100)]
@@ -2374,14 +2378,14 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 
 
             // [Benchmark(Baseline = true)]
-            [Benchmark]
+            // [Benchmark]
             public string FHashMap7_TryGetValue()
             {
                 _fHashMap7.TryGetValue(LookupKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public string FHashMap9_TryGetValue()
             {
                 _fHashMap9.TryGetValue(LookupKey, out var result);

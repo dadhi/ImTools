@@ -197,7 +197,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 
 #if NET7_0_OR_GREATER
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
-    public static bool TryGetValue(in Span<int> hashesAndIndexes, in Span<Entry> entries, K key, out V value)
+    public static bool TryGetValue(in ReadOnlySpan<int> hashesAndIndexes, in ReadOnlySpan<Entry> entries, K key, out V value)
     {
         var hash = default(TEq).GetHashCode(key);
 
@@ -214,7 +214,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
             // 2. For the equal probes check for equality the hash middle part, and update the entry if the keys are equal too 
             if ((h & ~indexMask) == ((probes << ProbeCountShift) | (hash & ~indexMask & HashAndIndexMask)))
             {
-                var e = entries[h & indexMask];
+                ref var e = ref Unsafe.Add(ref MemoryMarshal.GetReference(entries), h & indexMask);
                 if (default(TEq).Equals(e.Key, key))
                 {
                     value = e.Value;
