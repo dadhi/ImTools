@@ -140,7 +140,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 
     // The _packedHashesAndIndexes elements are of `Int32`, 
     // e.g. 00010|000...110|01101
-    //      |     |         |- The index into the _entries array, 0-based. It is the size of the hashes array size-1 (e.g. 15 for the 16). 
+    //      |     |         |- The index into the _entries array, 0-based. It is the size of the hashes array size-1 (e.g. 15 for the 16).
     //      |     |         | This part of the erased hash is used to get the ideal index into the hashes array, so we are safely using it to store the index into entries.
     //      |     |- The middle bits of the hash
     //      |- 5 high bits of the Probe count, with the minimal value of 00001  indicating non-empty slot.
@@ -196,6 +196,30 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     }
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+    private void AppendEntry(in K key, in V value)
+    {
+        var newEntryIndex = _entryCount;
+        if (newEntryIndex >= _entries.Length)
+        {
+#if DEBUG
+            Debug.WriteLine($"[AppendEntry] Resize {_entries.Length} -> {_entries.Length << 1}");
+#endif
+            if (_entries.Length != 0)
+                Array.Resize(ref _entries, _entries.Length << 1);
+            else
+                _entries = new Entry[DefaultEntriesCapacity];
+        }
+#if NET7_0_OR_GREATER
+        ref var e = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entries), newEntryIndex);
+#else
+        ref var e = ref _entries[newEntryIndex];
+#endif
+        e.Key = key;
+        e.Value = value;
+        _entryCount = newEntryIndex + 1;
+    }
+
+    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
     public bool TryGetValue(K key, out V value)
     {
         var hash = default(TEq).GetHashCode(key);
@@ -247,30 +271,6 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 #if DEBUG
     public int MaxProbes = 1;
 #endif
-
-    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
-    private void AppendEntry(in K key, in V value)
-    {
-        var newEntryIndex = _entryCount;
-        if (newEntryIndex >= _entries.Length)
-        {
-#if DEBUG
-            Debug.WriteLine($"[AppendEntry] Resize {_entries.Length} -> {_entries.Length << 1}");
-#endif
-            if (_entries.Length != 0)
-                Array.Resize(ref _entries, _entries.Length << 1);
-            else
-                _entries = new Entry[DefaultEntriesCapacity];
-        }
-#if NET7_0_OR_GREATER
-        ref var e = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entries), newEntryIndex);
-#else
-        ref var e = ref _entries[newEntryIndex];
-#endif
-        e.Key = key;
-        e.Value = value;
-        _entryCount = newEntryIndex + 1;
-    }
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
     public void AddOrUpdate(K key, V value)
