@@ -195,57 +195,14 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 #endif
     }
 
-#if NET7_0_OR_GREATER
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
-    public static bool TryGetValue(in ReadOnlySpan<int> hashesAndIndexes, in ReadOnlySpan<Entry> entries, K key, out V value)
-    {
-        var hash = default(TEq).GetHashCode(key);
-
-        var indexMask = hashesAndIndexes.Length - 1;
-        var hashIndex = hash & indexMask;
-        var hashPart = hash & ~indexMask & HashAndIndexMask;
-
-        ref var hashesRef = ref MemoryMarshal.GetReference(hashesAndIndexes);
-        var h = Unsafe.Add(ref hashesRef, hashIndex);
-
-        // 1. Skip over hashes with the bigger and equal probes. The hashes with bigger probes overlapping from the earlier ideal positions
-        var probes = 1;
-        while ((h >>> ProbeCountShift) >= probes)
-        {
-            // 2. For the equal probes check for equality the hash middle part, and update the entry if the keys are equal too 
-            if ((h & ~indexMask) == ((probes << ProbeCountShift) | hashPart))
-            {
-                ref var e = ref Unsafe.Add(ref MemoryMarshal.GetReference(entries), h & indexMask);
-                if (default(TEq).Equals(e.Key, key))
-                {
-                    value = e.Value;
-                    return true;
-                }
-            }
-
-            h = Unsafe.Add(ref hashesRef, ++hashIndex & indexMask);
-            ++probes;
-        }
-
-        value = default;
-        return false;
-    }
-
-    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
-    public bool TryGetValue(K key, out V value) => TryGetValue(_packedHashesAndIndexes, _entries, key, out value);
-#else
-    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
-    public bool TryGetValue(K key, out V value) => TryGetValue_stable(key, out value);
-#endif
-
-    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
-    public bool TryGetValue_stable(K key, out V value)
+    public bool TryGetValue(K key, out V value)
     {
         var hash = default(TEq).GetHashCode(key);
 
         var indexMask = _indexMask;
+        var hashPartMask = ~indexMask & HashAndIndexMask;
         var hashIndex = hash & indexMask;
-        var hashPart = hash & ~indexMask & HashAndIndexMask;
 
 #if NET7_0_OR_GREATER
         ref var hashesAndIndexes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
@@ -261,7 +218,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         while ((h >>> ProbeCountShift) >= probes)
         {
             // 2. For the equal probes check for equality the hash middle part, and update the entry if the keys are equal too 
-            if ((h & ~indexMask) == ((probes << ProbeCountShift) | hashPart))
+            if (((h >>> ProbeCountShift) == probes) & ((h & hashPartMask) == (hash & hashPartMask)))
             {
                 ref var e = ref GetEntryRef(h & indexMask);
                 if (default(TEq).Equals(e.Key, key))
