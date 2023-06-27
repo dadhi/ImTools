@@ -785,15 +785,20 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 
 ## Small things, less jumps and cache misses
 
-|                 Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | CacheMisses/Op | BranchInstructions/Op | BranchMispredictions/Op |   Gen0 |   Gen1 | Allocated | Alloc Ratio |
-|----------------------- |------ |---------:|----------:|----------:|------:|--------:|---------------:|----------------------:|------------------------:|-------:|-------:|----------:|------------:|
-|        DictSlim_TryAdd |   100 | 2.328 us | 0.0392 us | 0.0306 us |  1.00 |    0.00 |             31 |                 5,817 |                      13 | 1.1902 | 0.0153 |   7.31 KB |        1.00 |
-|  FHashMap7_AddOrUpdate |   100 | 2.071 us | 0.0395 us | 0.0309 us |  0.89 |    0.01 |             19 |                 4,658 |                       8 | 0.8545 | 0.0114 |   5.26 KB |        0.72 |
-| FHashMap91_AddOrUpdate |   100 | 2.149 us | 0.0426 us | 0.0769 us |  0.91 |    0.04 |              9 |                 4,420 |                       7 | 0.8621 | 0.0076 |   5.29 KB |        0.72 |
+BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValley2)
+11th Gen Intel Core i7-1185G7 3.00GHz, 1 CPU, 8 logical and 4 physical cores
+.NET SDK=7.0.304
+  [Host]     : .NET 7.0.7 (7.0.723.27404), X64 RyuJIT AVX2
+  DefaultJob : .NET 7.0.7 (7.0.723.27404), X64 RyuJIT AVX2
+
+|                 Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | BranchInstructions/Op | CacheMisses/Op | BranchMispredictions/Op |   Gen0 |   Gen1 | Allocated | Alloc Ratio |
+|----------------------- |------ |---------:|----------:|----------:|------:|--------:|----------------------:|---------------:|------------------------:|-------:|-------:|----------:|------------:|
+|        DictSlim_TryAdd |   100 | 2.522 us | 0.0350 us | 0.0292 us |  1.00 |    0.00 |                 5,819 |             35 |                      13 | 1.1902 | 0.0191 |   7.31 KB |        1.00 |
+| FHashMap91_AddOrUpdate |   100 | 2.133 us | 0.0384 us | 0.0321 us |  0.85 |    0.02 |                 4,534 |              8 |                       7 | 0.8621 | 0.0076 |   5.29 KB |        0.72 |
 
 */
-            // [Params(1, 10, 100, 1000)]
-            [Params(100)]
+            [Params(1, 10, 100, 1000)]
+            // [Params(100)]
             public int Count;
 
             private Type[] _types;
@@ -966,7 +971,7 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImTools.Experiments.FHashMap7<Type, string, ImTools.Experiments.RefEq<Type>> FHashMap7_AddOrUpdate()
             {
                 var map = new ImTools.Experiments.FHashMap7<Type, string, ImTools.Experiments.RefEq<Type>>();
@@ -1014,7 +1019,7 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
                 return map;
             }
 
-            // [Benchmark]
+            [Benchmark]
             public Dictionary<Type, string> Dict_TryAdd()
             {
                 var map = new Dictionary<Type, string>();

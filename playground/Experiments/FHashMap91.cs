@@ -368,7 +368,9 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 #if NET7_0_OR_GREATER
         ref var oldHash = ref MemoryMarshal.GetArrayDataReference(oldHashesAndIndexes);
         ref var newHash = ref MemoryMarshal.GetArrayDataReference(newHashesAndIndexes);
-        for (var i = 0; i < oldCapacity; ++i, oldHash = ref Unsafe.Add(ref oldHash, 1))
+
+        var i = 0;
+        while (true)
         {
 #else
         for (var i = 0; (uint)i < (uint)oldHashesAndIndexes.Length; ++i)
@@ -406,6 +408,12 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
                     ++oldHashNewIndex;
                 }
             }
+#if NET7_0_OR_GREATER
+            if (i >= oldIndexMask)
+                break;
+            ++i;
+            oldHash = ref Unsafe.Add(ref oldHash, 1);
+#endif
         }
         return newHashesAndIndexes;
     }
