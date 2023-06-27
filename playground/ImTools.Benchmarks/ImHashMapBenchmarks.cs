@@ -785,17 +785,12 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 
 ## Small things, less jumps and cache misses
 
-BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValley2)
-11th Gen Intel Core i7-1185G7 3.00GHz, 1 CPU, 8 logical and 4 physical cores
-.NET SDK=7.0.302
-  [Host]     : .NET 7.0.5 (7.0.523.17405), X64 RyuJIT AVX2
-  DefaultJob : .NET 7.0.5 (7.0.523.17405), X64 RyuJIT AVX2
+|                 Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | CacheMisses/Op | BranchInstructions/Op | BranchMispredictions/Op |   Gen0 |   Gen1 | Allocated | Alloc Ratio |
+|----------------------- |------ |---------:|----------:|----------:|------:|--------:|---------------:|----------------------:|------------------------:|-------:|-------:|----------:|------------:|
+|        DictSlim_TryAdd |   100 | 2.328 us | 0.0392 us | 0.0306 us |  1.00 |    0.00 |             31 |                 5,817 |                      13 | 1.1902 | 0.0153 |   7.31 KB |        1.00 |
+|  FHashMap7_AddOrUpdate |   100 | 2.071 us | 0.0395 us | 0.0309 us |  0.89 |    0.01 |             19 |                 4,658 |                       8 | 0.8545 | 0.0114 |   5.26 KB |        0.72 |
+| FHashMap91_AddOrUpdate |   100 | 2.149 us | 0.0426 us | 0.0769 us |  0.91 |    0.04 |              9 |                 4,420 |                       7 | 0.8621 | 0.0076 |   5.29 KB |        0.72 |
 
-|                 Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | BranchInstructions/Op | CacheMisses/Op | BranchMispredictions/Op |   Gen0 |   Gen1 | Allocated | Alloc Ratio |
-|----------------------- |------ |---------:|----------:|----------:|------:|--------:|----------------------:|---------------:|------------------------:|-------:|-------:|----------:|------------:|
-|  FHashMap7_AddOrUpdate |   100 | 3.727 us | 0.2813 us | 0.8025 us |  1.00 |    0.00 |                 1,822 |             61 |                      10 | 0.8545 | 0.0114 |   5.26 KB |        1.00 |
-|  FHashMap9_AddOrUpdate |   100 | 2.782 us | 0.1069 us | 0.3118 us |  0.79 |    0.20 |                 1,845 |             50 |                       8 | 0.8621 | 0.0076 |   5.29 KB |        1.01 |
-| FHashMap91_AddOrUpdate |   100 | 2.369 us | 0.0790 us | 0.2267 us |  0.67 |    0.20 |                 2,564 |             17 |                       7 | 0.8621 | 0.0076 |   5.29 KB |        1.01 |
 */
             // [Params(1, 10, 100, 1000)]
             [Params(100)]
@@ -959,7 +954,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return map;
             }
 
-            // [Benchmark(Baseline = true)]
+            [Benchmark(Baseline = true)]
             public DictionarySlim<TypeVal, string> DictSlim_TryAdd()
             {
                 var map = new DictionarySlim<TypeVal, string>();
@@ -971,8 +966,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return map;
             }
 
-            [Benchmark(Baseline = true)]
-            // [Benchmark]
+            [Benchmark]
             public ImTools.Experiments.FHashMap7<Type, string, ImTools.Experiments.RefEq<Type>> FHashMap7_AddOrUpdate()
             {
                 var map = new ImTools.Experiments.FHashMap7<Type, string, ImTools.Experiments.RefEq<Type>>();
@@ -984,7 +978,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImTools.Experiments.FHashMap9<Type, string, ImTools.Experiments.RefEq<Type>> FHashMap9_AddOrUpdate()
             {
                 var map = new ImTools.Experiments.FHashMap9<Type, string, ImTools.Experiments.RefEq<Type>>();
@@ -1963,19 +1957,31 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 |      FHashMap8_TryGetValue |  1000 |  4.926 ns | 0.1781 ns | 0.3120 ns |  4.809 ns |  0.54 |    0.05 |         - |          NA |
 |      FHashMap7_TryGetValue |  1000 |  4.314 ns | 0.1559 ns | 0.1601 ns |  4.290 ns |  0.48 |    0.04 |         - |          NA |
 
-## FHM9.1 and 9
+## FHM9.1 vs Dict and DictSlim
 
 BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValley2)
 11th Gen Intel Core i7-1185G7 3.00GHz, 1 CPU, 8 logical and 4 physical cores
-.NET SDK=7.0.302
-  [Host]     : .NET 7.0.5 (7.0.523.17405), X64 RyuJIT AVX2
-  DefaultJob : .NET 7.0.5 (7.0.523.17405), X64 RyuJIT AVX2
+.NET SDK=7.0.304
+  [Host]     : .NET 7.0.7 (7.0.723.27404), X64 RyuJIT AVX2
+  DefaultJob : .NET 7.0.7 (7.0.723.27404), X64 RyuJIT AVX2
 
-|                     Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | BranchInstructions/Op | CacheMisses/Op | BranchMispredictions/Op | Allocated | Alloc Ratio |
-|--------------------------- |------ |----------:|----------:|----------:|------:|--------:|----------------------:|---------------:|------------------------:|----------:|------------:|
-| DictionarySlim_TryGetValue |   100 |  6.965 ns | 0.4248 ns | 1.2119 ns |  1.00 |    0.00 |                    -4 |              0 |                      -0 |         - |          NA |
-|     Dictionary_TryGetValue |   100 | 10.072 ns | 0.1752 ns | 0.1639 ns |  1.26 |    0.13 |                    25 |              0 |                       0 |         - |          NA |
-|     FHashMap91_TryGetValue |   100 |  3.821 ns | 0.1104 ns | 0.0979 ns |  0.47 |    0.04 |                    11 |             -0 |                       0 |         - |          NA |
+|                     Method | Count |      Mean |     Error |    StdDev |    Median | Ratio | RatioSD | BranchInstructions/Op | CacheMisses/Op | BranchMispredictions/Op | Allocated | Alloc Ratio |
+|--------------------------- |------ |----------:|----------:|----------:|----------:|------:|--------:|----------------------:|---------------:|------------------------:|----------:|------------:|
+| DictionarySlim_TryGetValue |     1 |  6.236 ns | 0.1823 ns | 0.1872 ns |  6.221 ns |  1.00 |    0.00 |                    20 |              0 |                       0 |         - |          NA |
+|     Dictionary_TryGetValue |     1 | 10.070 ns | 0.2035 ns | 0.2090 ns | 10.038 ns |  1.62 |    0.05 |                    31 |              0 |                       0 |         - |          NA |
+|     FHashMap91_TryGetValue |     1 |  5.084 ns | 0.2665 ns | 0.7773 ns |  5.267 ns |  0.67 |    0.08 |                    11 |              0 |                       0 |         - |          NA |
+|                            |       |           |           |           |           |       |         |                       |                |                         |           |             |
+| DictionarySlim_TryGetValue |    10 |  8.515 ns | 0.2330 ns | 0.3763 ns |  8.407 ns |  1.00 |    0.00 |                    20 |              0 |                       0 |         - |          NA |
+|     Dictionary_TryGetValue |    10 | 10.296 ns | 0.4517 ns | 1.3247 ns | 10.439 ns |  1.30 |    0.10 |                    25 |              0 |                       0 |         - |          NA |
+|     FHashMap91_TryGetValue |    10 |  3.857 ns | 0.1311 ns | 0.2904 ns |  3.777 ns |  0.46 |    0.04 |                    11 |              0 |                       0 |         - |          NA |
+|                            |       |           |           |           |           |       |         |                       |                |                         |           |             |
+| DictionarySlim_TryGetValue |   100 |  7.105 ns | 0.1931 ns | 0.5221 ns |  6.860 ns |  1.00 |    0.00 |                    20 |              0 |                       0 |         - |          NA |
+|     Dictionary_TryGetValue |   100 |  8.443 ns | 0.2081 ns | 0.2397 ns |  8.402 ns |  1.14 |    0.11 |                    25 |              0 |                       0 |         - |          NA |
+|     FHashMap91_TryGetValue |   100 |  4.037 ns | 0.1339 ns | 0.2201 ns |  3.994 ns |  0.56 |    0.06 |                    11 |              0 |                       0 |         - |          NA |
+|                            |       |           |           |           |           |       |         |                       |                |                         |           |             |
+| DictionarySlim_TryGetValue |  1000 |  6.325 ns | 0.1933 ns | 0.4632 ns |  6.124 ns |  1.00 |    0.00 |                    20 |              0 |                       0 |         - |          NA |
+|     Dictionary_TryGetValue |  1000 |  9.146 ns | 0.2185 ns | 0.2044 ns |  9.176 ns |  1.42 |    0.10 |                    25 |              0 |                       0 |         - |          NA |
+|     FHashMap91_TryGetValue |  1000 |  5.917 ns | 0.1505 ns | 0.1334 ns |  5.909 ns |  0.92 |    0.07 |                    13 |              0 |                       0 |         - |          NA |
 */
             [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             // [Params(100)]
