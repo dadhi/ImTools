@@ -796,9 +796,17 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 |        DictSlim_TryAdd |   100 | 2.522 us | 0.0350 us | 0.0292 us |  1.00 |    0.00 |                 5,819 |             35 |                      13 | 1.1902 | 0.0191 |   7.31 KB |        1.00 |
 | FHashMap91_AddOrUpdate |   100 | 2.133 us | 0.0384 us | 0.0321 us |  0.85 |    0.02 |                 4,534 |              8 |                       7 | 0.8621 | 0.0076 |   5.29 KB |        0.72 |
 
+## With sparse array for entries 
+
+|                 Method | Count |     Mean |    Error |   StdDev |   Median | Ratio | RatioSD | BranchInstructions/Op | CacheMisses/Op | BranchMispredictions/Op |    Gen0 |   Gen1 | Allocated | Alloc Ratio |
+|----------------------- |------ |---------:|---------:|---------:|---------:|------:|--------:|----------------------:|---------------:|------------------------:|--------:|-------:|----------:|------------:|
+|        DictSlim_TryAdd |  1000 | 26.22 us | 1.144 us | 3.372 us | 24.64 us |  1.00 |    0.00 |                51,566 |            287 |                     308 |  9.1553 | 0.7935 |  56.45 KB |        1.00 |
+| FHashMap91_AddOrUpdate |  1000 | 25.26 us | 0.495 us | 1.000 us | 24.98 us |  0.91 |    0.11 |                51,304 |            221 |                      73 |  5.9509 | 0.7324 |  36.57 KB |        0.65 |
+|            Dict_TryAdd |  1000 | 33.88 us | 1.015 us | 2.879 us | 32.59 us |  1.30 |    0.14 |                58,849 |            605 |                     388 | 16.2354 | 3.2349 |  99.82 KB |        1.77 |
+
 */
-            [Params(1, 10, 100, 1000)]
-            // [Params(100)]
+            // [Params(1, 10, 100, 1000)]
+            [Params(1000)]
             public int Count;
 
             private Type[] _types;

@@ -147,6 +147,12 @@ public class FHashMap91Tests
         map.AddOrUpdate(43, "a!");
         Assert.AreEqual("a!", map.GetValueOrDefault(43));
 
+        map.AddOrUpdate(47, "x");
+        map.AddOrUpdate(53, "y");
+        Assert.AreEqual("x", map.GetValueOrDefault(47));
+        Assert.AreEqual("y", map.GetValueOrDefault(53));
+
+
         Verify(map, null);
     }
 
