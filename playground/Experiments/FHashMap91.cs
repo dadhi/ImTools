@@ -16,7 +16,6 @@ public static class FHashMap91Diagnostics
         var probeCountShift = FHashMap91<K, V, TEq>.ProbeCountShift;
         var hashAndIndexMask = FHashMap91<K, V, TEq>.HashAndIndexMask;
 
-        var entries = map.Entries;
         var hashesAndIndexes = map.PackedHashesAndIndexes;
         var capacity = map.HashesCapacity;
         var indexMask = capacity - 1;
@@ -40,7 +39,7 @@ public static class FHashMap91Diagnostics
             var heq = false;
             if (probe != 0)
             {
-                var e = entries[index];
+                ref var e = ref map.GetEntryRef(index);
                 var kh = e.Key.GetHashCode() & hashAndIndexMask;
                 heq = kh == hash;
                 hkv = $"{toB(kh)}:{e.Key}->{e.Value}";
@@ -190,7 +189,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     }
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
-    private ref Entry GetEntryRef(int index)
+    internal ref Entry GetEntryRef(int index)
     {
 #if NET7_0_OR_GREATER
         if (_entriesBatch == null)
@@ -200,7 +199,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 #else
         if (_entriesBatch == null)
             return ref _entries[index];
-        return _entriesBatch[index >>> EntriesMaxIndexBitCount][index & EntriesMaxIndexMask];
+        return ref _entriesBatch[index >>> EntriesMaxIndexBitCount][index & EntriesMaxIndexMask];
 #endif
     }
 
