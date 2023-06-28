@@ -131,7 +131,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     public const uint GoldenRatio32 = 2654435769; // 2^32 / phi for the Fibonacci hashing, where phi is the golden ratio ~1.61803
     public const int MinEntriesCapacity = 2;
     public const byte MinFreeCapacityShift = 3; // e.g. for the capacity 16: 16 >> 3 => 2, so 2 free slots is 12.5% of the capacity
-
+    public const int MinCapacity = 8;
     public const byte MaxProbeBits = 5; // 5 bits max, e.g. 31 (11111)
     public const byte MaxProbeCount = (1 << MaxProbeBits) - 1; // e.g. 31 (11111) for the 5 bits
     public const byte ProbeCountShift = 32 - MaxProbeBits;
@@ -230,7 +230,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 #if DEBUG
             Debug.WriteLine($"[AllocateEntries] {_entryCount} -> {_entryCount << 1}");
 #endif
-            if (_entries.Length != 0)
+            if (_entryCount != 0)
                 Array.Resize(ref _entries, _entryCount << 1);
             else
                 _entries = new Entry[MinEntriesCapacity];
@@ -241,7 +241,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
             {
                 if ((_entryCount >>> EntriesMaxIndexBitCount) == _entriesBatch.Length) // check that index is outside of the batch
                     Array.Resize(ref _entriesBatch, _entriesBatch.Length << 1); // double the batch in order to speedup the index calculation by shift avoiding the div cost.
-                _entriesBatch[_entryCount >>> EntriesMaxIndexBitCount] = _entries = new Entry[EntriesMaxIndexMask + 1];
+                _entriesBatch[_entryCount >>> EntriesMaxIndexBitCount] = _entries = new Entry[EntriesMaxIndexMask + 1]; // todo: @optimize with non-initialized entries
             }
             else
                 _entriesBatch = new Entry[][] { _entries, _entries = new Entry[EntriesMaxIndexMask + 1] };
@@ -309,8 +309,8 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         var indexMask = _indexMask;
         if (indexMask - _entryCount <= (indexMask >>> MinFreeCapacityShift)) // if the free space is less than 1/8 of capacity (12.5%)
         {
-            _packedHashesAndIndexes = indexMask == 0 ? new int[2] : ResizeToDoubleCapacity(_packedHashesAndIndexes, indexMask);
-            _indexMask = indexMask = (indexMask << 1) | 1;
+            _packedHashesAndIndexes = indexMask != 0 ? ResizeToDoubleCapacity(_packedHashesAndIndexes, indexMask) : new int[MinCapacity];
+            _indexMask = indexMask = _packedHashesAndIndexes.Length - 1;
         }
 
         var hashIndex = hash & indexMask;

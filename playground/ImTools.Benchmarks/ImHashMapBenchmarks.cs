@@ -798,15 +798,23 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 
 ## With sparse array for entries 
 
-|                 Method | Count |     Mean |    Error |   StdDev |   Median | Ratio | RatioSD | BranchInstructions/Op | CacheMisses/Op | BranchMispredictions/Op |    Gen0 |   Gen1 | Allocated | Alloc Ratio |
-|----------------------- |------ |---------:|---------:|---------:|---------:|------:|--------:|----------------------:|---------------:|------------------------:|--------:|-------:|----------:|------------:|
-|        DictSlim_TryAdd |  1000 | 26.22 us | 1.144 us | 3.372 us | 24.64 us |  1.00 |    0.00 |                51,566 |            287 |                     308 |  9.1553 | 0.7935 |  56.45 KB |        1.00 |
-| FHashMap91_AddOrUpdate |  1000 | 25.26 us | 0.495 us | 1.000 us | 24.98 us |  0.91 |    0.11 |                51,304 |            221 |                      73 |  5.9509 | 0.7324 |  36.57 KB |        0.65 |
-|            Dict_TryAdd |  1000 | 33.88 us | 1.015 us | 2.879 us | 32.59 us |  1.30 |    0.14 |                58,849 |            605 |                     388 | 16.2354 | 3.2349 |  99.82 KB |        1.77 |
-
+|                 Method | Count |         Mean |      Error |     StdDev | Ratio | RatioSD | BranchInstructions/Op | CacheMisses/Op | BranchMispredictions/Op |   Gen0 |   Gen1 | Allocated | Alloc Ratio |
+|----------------------- |------ |-------------:|-----------:|-----------:|------:|--------:|----------------------:|---------------:|------------------------:|-------:|-------:|----------:|------------:|
+|        DictSlim_TryAdd |     1 |     59.40 ns |   1.166 ns |   2.218 ns |  1.00 |    0.00 |                   130 |              0 |                       0 | 0.0229 |      - |     144 B |        1.00 |
+| FHashMap91_AddOrUpdate |     1 |     44.01 ns |   0.935 ns |   2.204 ns |  0.75 |    0.04 |                    89 |              0 |                       0 | 0.0178 |      - |     112 B |        0.78 |
+|                        |       |              |            |            |       |         |                       |                |                         |        |        |           |             |
+|        DictSlim_TryAdd |    10 |    497.00 ns |   9.826 ns |  15.298 ns |  1.00 |    0.00 |                   829 |              3 |                       1 | 0.1707 |      - |    1072 B |        1.00 |
+| FHashMap91_AddOrUpdate |    10 |    274.55 ns |   2.068 ns |   1.727 ns |  0.55 |    0.02 |                   546 |              1 |                       1 | 0.1144 |      - |     720 B |        0.67 |
+|                        |       |              |            |            |       |         |                       |                |                         |        |        |           |             |
+|        DictSlim_TryAdd |   100 |  2,627.29 ns |  20.070 ns |  17.792 ns |  1.00 |    0.00 |                 5,820 |             11 |                      13 | 1.1902 | 0.0191 |    7488 B |        1.00 |
+| FHashMap91_AddOrUpdate |   100 |  2,541.61 ns |  42.030 ns |  46.716 ns |  0.97 |    0.02 |                 4,550 |             22 |                       7 | 0.8507 | 0.0076 |    5344 B |        0.71 |
+|                        |       |              |            |            |       |         |                       |                |                         |        |        |           |             |
+|        DictSlim_TryAdd |  1000 | 27,667.85 ns | 296.137 ns | 247.288 ns |  1.00 |    0.00 |                51,590 |            303 |                     347 | 9.1553 | 0.7935 |   57808 B |        1.00 |
+| FHashMap91_AddOrUpdate |  1000 | 27,538.54 ns | 537.618 ns | 660.243 ns |  1.01 |    0.03 |                51,152 |            157 |                      87 | 5.9204 | 0.4883 |   37376 B |        0.65 |
 */
-            // [Params(1, 10, 100, 1000)]
-            [Params(1000)]
+            [Params(1, 10, 100, 1000)]
+            // [Params(100)]
+            // [Params(1000)]
             public int Count;
 
             private Type[] _types;
@@ -1027,7 +1035,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public Dictionary<Type, string> Dict_TryAdd()
             {
                 var map = new Dictionary<Type, string>();
@@ -1995,6 +2003,22 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 | DictionarySlim_TryGetValue |  1000 |  6.325 ns | 0.1933 ns | 0.4632 ns |  6.124 ns |  1.00 |    0.00 |                    20 |              0 |                       0 |         - |          NA |
 |     Dictionary_TryGetValue |  1000 |  9.146 ns | 0.2185 ns | 0.2044 ns |  9.176 ns |  1.42 |    0.10 |                    25 |              0 |                       0 |         - |          NA |
 |     FHashMap91_TryGetValue |  1000 |  5.917 ns | 0.1505 ns | 0.1334 ns |  5.909 ns |  0.92 |    0.07 |                    13 |              0 |                       0 |         - |          NA |
+
+## FHM9.1 sparse entries
+
+|                     Method | Count |     Mean |     Error |    StdDev |   Median | Ratio | RatioSD | BranchInstructions/Op | BranchMispredictions/Op | CacheMisses/Op | Allocated | Alloc Ratio |
+|--------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|----------------------:|------------------------:|---------------:|----------:|------------:|
+| DictionarySlim_TryGetValue |     1 | 8.722 ns | 0.6952 ns | 2.0169 ns | 7.559 ns |  1.00 |    0.00 |                    20 |                       0 |              0 |         - |          NA |
+|     FHashMap91_TryGetValue |     1 | 4.399 ns | 0.1061 ns | 0.1135 ns | 4.395 ns |  0.60 |    0.04 |                    13 |                       0 |              0 |         - |          NA |
+|                            |       |          |           |           |          |       |         |                       |                         |                |           |             |
+| DictionarySlim_TryGetValue |    10 | 7.244 ns | 0.1993 ns | 0.2858 ns | 7.144 ns |  1.00 |    0.00 |                    20 |                       0 |              0 |         - |          NA |
+|     FHashMap91_TryGetValue |    10 | 4.427 ns | 0.1328 ns | 0.1529 ns | 4.372 ns |  0.61 |    0.03 |                    13 |                       0 |              0 |         - |          NA |
+|                            |       |          |           |           |          |       |         |                       |                         |                |           |             |
+| DictionarySlim_TryGetValue |   100 | 7.734 ns | 0.2745 ns | 0.7696 ns | 7.343 ns |  1.00 |    0.00 |                    20 |                       0 |              0 |         - |          NA |
+|     FHashMap91_TryGetValue |   100 | 5.260 ns | 0.2861 ns | 0.8437 ns | 4.993 ns |  0.69 |    0.12 |                    13 |                       0 |              0 |         - |          NA |
+|                            |       |          |           |           |          |       |         |                       |                         |                |           |             |
+| DictionarySlim_TryGetValue |  1000 | 7.148 ns | 0.1918 ns | 0.1700 ns | 7.093 ns |  1.00 |    0.00 |                    20 |                       0 |              0 |         - |          NA |
+|     FHashMap91_TryGetValue |  1000 | 5.649 ns | 0.0958 ns | 0.0896 ns | 5.677 ns |  0.79 |    0.02 |                    14 |                       0 |              0 |         - |          NA |
 */
             [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             // [Params(100)]
@@ -2382,13 +2406,12 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return result;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public string Dictionary_TryGetValue()
             {
                 _dict.TryGetValue(LookupKey, out var result);
                 return result;
             }
-
 
             // [Benchmark(Baseline = true)]
             // [Benchmark]
