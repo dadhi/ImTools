@@ -192,7 +192,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     internal ref Entry GetEntryRef(int index)
     {
 #if NET7_0_OR_GREATER
-        if (_entriesBatch == null)
+        if (_entriesBatch == null) // todo: @perf can we optimize by always using the batch?
             return ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entries), index);
         ref var entries = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entriesBatch), index >>> EntriesMaxIndexBitCount);
         return ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(entries), index & EntriesMaxIndexMask);
@@ -252,7 +252,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     {
         var hash = default(TEq).GetHashCode(key);
 
-        var indexMask = _indexMask;
+        var indexMask = _packedHashesAndIndexes.Length - 1;
         var hashPartMask = ~indexMask & HashAndIndexMask;
         var hashIndex = hash & indexMask;
 

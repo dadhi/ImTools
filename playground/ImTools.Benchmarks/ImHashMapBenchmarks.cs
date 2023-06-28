@@ -2006,19 +2006,19 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 
 ## FHM9.1 sparse entries
 
-|                     Method | Count |     Mean |     Error |    StdDev |   Median | Ratio | RatioSD | BranchInstructions/Op | BranchMispredictions/Op | CacheMisses/Op | Allocated | Alloc Ratio |
-|--------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|----------------------:|------------------------:|---------------:|----------:|------------:|
-| DictionarySlim_TryGetValue |     1 | 8.722 ns | 0.6952 ns | 2.0169 ns | 7.559 ns |  1.00 |    0.00 |                    20 |                       0 |              0 |         - |          NA |
-|     FHashMap91_TryGetValue |     1 | 4.399 ns | 0.1061 ns | 0.1135 ns | 4.395 ns |  0.60 |    0.04 |                    13 |                       0 |              0 |         - |          NA |
-|                            |       |          |           |           |          |       |         |                       |                         |                |           |             |
-| DictionarySlim_TryGetValue |    10 | 7.244 ns | 0.1993 ns | 0.2858 ns | 7.144 ns |  1.00 |    0.00 |                    20 |                       0 |              0 |         - |          NA |
-|     FHashMap91_TryGetValue |    10 | 4.427 ns | 0.1328 ns | 0.1529 ns | 4.372 ns |  0.61 |    0.03 |                    13 |                       0 |              0 |         - |          NA |
-|                            |       |          |           |           |          |       |         |                       |                         |                |           |             |
-| DictionarySlim_TryGetValue |   100 | 7.734 ns | 0.2745 ns | 0.7696 ns | 7.343 ns |  1.00 |    0.00 |                    20 |                       0 |              0 |         - |          NA |
-|     FHashMap91_TryGetValue |   100 | 5.260 ns | 0.2861 ns | 0.8437 ns | 4.993 ns |  0.69 |    0.12 |                    13 |                       0 |              0 |         - |          NA |
-|                            |       |          |           |           |          |       |         |                       |                         |                |           |             |
-| DictionarySlim_TryGetValue |  1000 | 7.148 ns | 0.1918 ns | 0.1700 ns | 7.093 ns |  1.00 |    0.00 |                    20 |                       0 |              0 |         - |          NA |
-|     FHashMap91_TryGetValue |  1000 | 5.649 ns | 0.0958 ns | 0.0896 ns | 5.677 ns |  0.79 |    0.02 |                    14 |                       0 |              0 |         - |          NA |
+|                     Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | CacheMisses/Op | BranchInstructions/Op | BranchMispredictions/Op | Allocated | Alloc Ratio |
+|--------------------------- |------ |---------:|----------:|----------:|------:|--------:|---------------:|----------------------:|------------------------:|----------:|------------:|
+| DictionarySlim_TryGetValue |     1 | 7.813 ns | 0.2096 ns | 0.2243 ns |  1.00 |    0.00 |              0 |                    20 |                       0 |         - |          NA |
+|     FHashMap91_TryGetValue |     1 | 4.608 ns | 0.1493 ns | 0.1888 ns |  0.59 |    0.03 |              0 |                    13 |                      -0 |         - |          NA |
+|                            |       |          |           |           |       |         |                |                       |                         |           |             |
+| DictionarySlim_TryGetValue |    10 | 7.677 ns | 0.1647 ns | 0.1375 ns |  1.00 |    0.00 |              0 |                    20 |                       0 |         - |          NA |
+|     FHashMap91_TryGetValue |    10 | 4.488 ns | 0.1183 ns | 0.1049 ns |  0.59 |    0.02 |              0 |                    13 |                       0 |         - |          NA |
+|                            |       |          |           |           |       |         |                |                       |                         |           |             |
+| DictionarySlim_TryGetValue |   100 | 7.824 ns | 0.2102 ns | 0.2947 ns |  1.00 |    0.00 |              0 |                    20 |                       0 |         - |          NA |
+|     FHashMap91_TryGetValue |   100 | 3.459 ns | 0.1538 ns | 0.3277 ns |  0.45 |    0.05 |             -0 |                    13 |                      -0 |         - |          NA |
+|                            |       |          |           |           |       |         |                |                       |                         |           |             |
+| DictionarySlim_TryGetValue |  1000 | 7.608 ns | 0.1997 ns | 0.1770 ns |  1.00 |    0.00 |              0 |                    20 |                       0 |         - |          NA |
+|     FHashMap91_TryGetValue |  1000 | 6.384 ns | 0.1427 ns | 0.1114 ns |  0.84 |    0.03 |              0 |                    14 |                       0 |         - |          NA |
 */
             [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             // [Params(100)]
