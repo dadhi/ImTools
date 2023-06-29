@@ -140,8 +140,9 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     public const int ProbesMask = MaxProbeCount << ProbeCountShift;
     public const int HashAndIndexMask = ~ProbesMask;
 
-    internal const int EntriesMaxIndexBitCount = 8; // todo: @wip mAsyncTaskMethodBuilder configurable?
-    internal const int EntriesMaxIndexMask = (1 << EntriesMaxIndexBitCount) - 1; // e.g. 256 - 1 = 255
+    public const int DefaultEntriesMaxIndexBitsBeforeSplit = 8;
+    private int _entriesMaxIndexBitsBeforeSplit;
+    private int _entriesMaxIndexMask;
 
     // The _packedHashesAndIndexes elements are of `Int32`, 
     // e.g. 00010|000...110|01101
@@ -163,24 +164,26 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 
     public FHashMap91()
     {
+        _entriesMaxIndexBitsBeforeSplit = DefaultEntriesMaxIndexBitsBeforeSplit;
+        _entriesMaxIndexMask = (1 << DefaultEntriesMaxIndexBitsBeforeSplit) - 1; // e.g. 256 - 1 = 255
+
         // using single cell array for hashes instead of empty one to allow the Lookup to work without the additional check for the emptiness
         _packedHashesAndIndexes = FHashMap91.SingleCellHashesAndIndexes;
         _entries = Array.Empty<Entry>();
         _entryCount = 0;
     }
 
-    public FHashMap91(uint entriesCapacity)
+    /// <summary>Capacity calculates as `1 << capacityBitShift`</summary>
+    public FHashMap91(byte capacityBitShift, byte entriesMaxIndexBitsBeforeSplit = DefaultEntriesMaxIndexBitsBeforeSplit)
     {
-        if (entriesCapacity < 2)
-            entriesCapacity = 2;
-#if NET7_0_OR_GREATER
-        else if (!BitOperations.IsPow2(entriesCapacity))
-            entriesCapacity = BitOperations.RoundUpToPowerOf2(entriesCapacity);
-#endif
-        // double the size of the hashes, because they are cheap, 
+        var capacity = 1 << capacityBitShift;
+        _entriesMaxIndexBitsBeforeSplit = entriesMaxIndexBitsBeforeSplit;
+        _entriesMaxIndexMask = (1 << entriesMaxIndexBitsBeforeSplit) - 1; // e.g. 256 - 1 = 255
+
+        // double the size of the hashes, because they are cheap,
         // this will also provide the flexibility of independence of the sizes of hashes and entries
-        _packedHashesAndIndexes = new int[entriesCapacity << 1];
-        _entries = new Entry[entriesCapacity];
+        _packedHashesAndIndexes = new int[capacity << 1];
+        _entries = new Entry[capacity];
         _entryCount = 0;
     }
 
@@ -190,19 +193,19 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 #if NET7_0_OR_GREATER
         if (_entriesBatch == null) // todo: @perf can we optimize by always using the batch?
             return ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entries), index);
-        ref var entries = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entriesBatch), index >>> EntriesMaxIndexBitCount);
-        return ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(entries), index & EntriesMaxIndexMask);
+        ref var entries = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entriesBatch), index >>> _entriesMaxIndexBitsBeforeSplit);
+        return ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(entries), index & _entriesMaxIndexMask);
 #else
         if (_entriesBatch == null)
             return ref _entries[index];
-        return ref _entriesBatch[index >>> EntriesMaxIndexBitCount][index & EntriesMaxIndexMask];
+        return ref _entriesBatch[index >>> _entriesMaxIndexBitsBeforeSplit][index & _entriesMaxIndexMask];
 #endif
     }
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
     private void AppendEntry(in K key, in V value)
     {
-        var newEntryIndex = _entryCount & EntriesMaxIndexMask;
+        var newEntryIndex = _entryCount & _entriesMaxIndexMask;
 
         // if the new entry index is on the edge of the entries then we always need to resize or allocate more for the batch
         if ((newEntryIndex == 0) | (newEntryIndex == _entries.Length))
@@ -220,7 +223,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 
     private void AllocateEntries()
     {
-        if (_entryCount <= EntriesMaxIndexMask) // for the small indexes which fit in the single entries
+        if (_entryCount <= _entriesMaxIndexMask) // for the small indexes which fit in the single entries
         {
 #if DEBUG
             Debug.WriteLine($"[AllocateEntries] {_entryCount} -> {_entryCount << 1}");
@@ -234,12 +237,12 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         {
             if (_entriesBatch != null)
             {
-                if ((_entryCount >>> EntriesMaxIndexBitCount) == _entriesBatch.Length) // check that index is outside of the batch
+                if ((_entryCount >>> _entriesMaxIndexBitsBeforeSplit) == _entriesBatch.Length) // check that index is outside of the batch
                     Array.Resize(ref _entriesBatch, _entriesBatch.Length << 1); // double the batch in order to speedup the index calculation by shift avoiding the div cost.
-                _entriesBatch[_entryCount >>> EntriesMaxIndexBitCount] = _entries = new Entry[EntriesMaxIndexMask + 1]; // todo: @optimize with non-initialized entries
+                _entriesBatch[_entryCount >>> _entriesMaxIndexBitsBeforeSplit] = _entries = new Entry[_entriesMaxIndexMask + 1]; // todo: @perf with non-initialized entries
             }
             else
-                _entriesBatch = new Entry[][] { _entries, _entries = new Entry[EntriesMaxIndexMask + 1] };
+                _entriesBatch = new Entry[][] { _entries, _entries = new Entry[_entriesMaxIndexMask + 1] };
         }
     }
 
