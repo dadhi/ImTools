@@ -8,23 +8,25 @@ using System.Runtime.InteropServices;
 #endif
 namespace ImTools.Experiments;
 
-public static class FHashMap91Diagnostics
+public static class FHashMap91
 {
+    internal static readonly int[] SingleCellHashesAndIndexes = new int[1];
+
     /// <summary>Converts the packed hashes and indexes array into the human readable info</summary>
     public static Item<K, V>[] Explain<K, V, TEq>(this FHashMap91<K, V, TEq> map) where TEq : struct, IEqualityComparer<K>
     {
         var probeCountShift = FHashMap91<K, V, TEq>.ProbeCountShift;
         var hashAndIndexMask = FHashMap91<K, V, TEq>.HashAndIndexMask;
 
-        var hashesAndIndexes = map.PackedHashesAndIndexes;
-        var capacity = map.HashesCapacity;
+        var hashes = map.PackedHashesAndIndexes;
+        var capacity = hashes.Length;
         var indexMask = capacity - 1;
 
         var items = new Item<K, V>[capacity];
 
         for (var i = 0; i < capacity; i++)
         {
-            var h = hashesAndIndexes[i];
+            var h = hashes[i];
             if (h == 0)
                 continue;
 
@@ -66,12 +68,13 @@ public static class FHashMap91Diagnostics
     {
         // Verify the indexes do no contains duplicate keys
         var uniq = new Dictionary<K, int>(map.Count);
-        var capacity = map.HashesCapacity;
+        var hashes = map.PackedHashesAndIndexes;
+        var capacity = hashes.Length;
         var indexMask = capacity - 1;
         var entries = map.Entries;
         for (var i = 0; i < capacity; i++)
         {
-            var h = map.PackedHashesAndIndexes[i];
+            var h = hashes[i];
             if (h == 0)
                 continue;
             var key = entries[h & indexMask].Key;
@@ -109,7 +112,7 @@ public class FHashMap91DebugProxy<K, V, TEq> where TEq : struct, IEqualityCompar
     private readonly FHashMap91<K, V, TEq> _map;
     public FHashMap91DebugProxy(FHashMap91<K, V, TEq> map) => _map = map;
     [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-    public FHashMap91Diagnostics.Item<K, V>[] Items => _map.Explain();
+    public FHashMap91.Item<K, V>[] Items => _map.Explain();
 }
 
 [DebuggerTypeProxy(typeof(FHashMap91DebugProxy<,,>))]
@@ -151,23 +154,18 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     private Entry[] _entries; // for the performance it always contains the current entries (maybe a nested array in the batch) where we are adding the new entry
     private Entry[][] _entriesBatch;
     // pre-calculated and saved on the DoubleSize for the performance
-    private int _indexMask;
     private int _entryCount;
 
     public int Count => _entryCount;
 
     internal int[] PackedHashesAndIndexes => _packedHashesAndIndexes;
-    internal int HashesCapacity => _indexMask + 1;
     internal Entry[] Entries => _entries;
-
-    internal static int[] _singleCellHashesAndIndexes = new int[1];
 
     public FHashMap91()
     {
         // using single cell array for hashes instead of empty one to allow the Lookup to work without the additional check for the emptiness
-        _packedHashesAndIndexes = _singleCellHashesAndIndexes;
+        _packedHashesAndIndexes = FHashMap91.SingleCellHashesAndIndexes;
         _entries = Array.Empty<Entry>();
-        _indexMask = 0;
         _entryCount = 0;
     }
 
@@ -181,10 +179,8 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 #endif
         // double the size of the hashes, because they are cheap, 
         // this will also provide the flexibility of independence of the sizes of hashes and entries
-        var hashesCapacity = (int)(entriesCapacity << 1);
-        _packedHashesAndIndexes = new int[hashesCapacity];
+        _packedHashesAndIndexes = new int[entriesCapacity << 1];
         _entries = new Entry[entriesCapacity];
-        _indexMask = hashesCapacity - 1;
         _entryCount = 0;
     }
 
@@ -305,11 +301,11 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     {
         var hash = default(TEq).GetHashCode(key);
 
-        var indexMask = _indexMask;
+        var indexMask = _packedHashesAndIndexes.Length - 1;
         if (indexMask - _entryCount <= (indexMask >>> MinFreeCapacityShift)) // if the free space is less than 1/8 of capacity (12.5%)
         {
             _packedHashesAndIndexes = indexMask != 0 ? ResizeToDoubleCapacity(_packedHashesAndIndexes, indexMask) : new int[MinCapacity];
-            _indexMask = indexMask = _packedHashesAndIndexes.Length - 1;
+            indexMask = _packedHashesAndIndexes.Length - 1;
         }
 
         var hashIndex = hash & indexMask;
