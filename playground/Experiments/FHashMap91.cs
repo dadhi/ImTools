@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 #if NET7_0_OR_GREATER
-using System.Numerics;
 using System.Runtime.InteropServices;
 #endif
 namespace ImTools.Experiments;
