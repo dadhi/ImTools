@@ -304,7 +304,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         var indexMask = _packedHashesAndIndexes.Length - 1;
         if (indexMask - _entryCount <= (indexMask >>> MinFreeCapacityShift)) // if the free space is less than 1/8 of capacity (12.5%)
         {
-            _packedHashesAndIndexes = indexMask != 0 ? ResizeToDoubleCapacity(_packedHashesAndIndexes, indexMask) : new int[MinCapacity];
+            _packedHashesAndIndexes = ResizeHashes(_packedHashesAndIndexes);
             indexMask = _packedHashesAndIndexes.Length - 1;
         }
 
@@ -378,9 +378,13 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         }
     }
 
-    internal static int[] ResizeToDoubleCapacity(int[] oldHashesAndIndexes, int oldIndexMask)
+    internal static int[] ResizeHashes(int[] oldHashesAndIndexes)
     {
-        var oldCapacity = oldIndexMask + 1;
+        var oldCapacity = oldHashesAndIndexes.Length;
+        if (oldCapacity == 1)
+            return new int[MinCapacity];
+
+        var oldIndexMask = oldCapacity - 1;
         var newIndexMask = (oldIndexMask << 1) | 1;
 #if DEBUG
         Debug.WriteLine($"[ResizeToDoubleCapacity] {oldCapacity} -> {oldCapacity << 1}");
