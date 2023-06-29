@@ -238,7 +238,8 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
             {
                 if ((_entryCount >>> _entriesMaxIndexBitsBeforeSplit) == _entriesBatch.Length) // check that index is outside of the batch
                     Array.Resize(ref _entriesBatch, _entriesBatch.Length << 1); // double the batch in order to speedup the index calculation by shift avoiding the div cost.
-                _entriesBatch[_entryCount >>> _entriesMaxIndexBitsBeforeSplit] = _entries = new Entry[_entriesMaxIndexMask + 1]; // todo: @perf with non-initialized entries
+                // note: We're not using GC.UninitializedArray here, because it makes sense only for the entries bigger than 2kb, but we usually split into the lesser entries in the batch.
+                _entriesBatch[_entryCount >>> _entriesMaxIndexBitsBeforeSplit] = _entries = new Entry[_entriesMaxIndexMask + 1];
             }
             else
                 _entriesBatch = new Entry[][] { _entries, _entries = new Entry[_entriesMaxIndexMask + 1] };
