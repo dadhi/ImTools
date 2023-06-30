@@ -74,7 +74,7 @@ public class FHashMap91Tests
     [Test]
     public void Can_store_and_retrieve_value_from_map()
     {
-        var map = new FHashMap91<int, string, IntEq>(16);
+        var map = new FHashMap91<int, string, IntEq>(3);
 
         map.AddOrUpdate(42, "1");
         map.AddOrUpdate(42 + 32, "2");
@@ -125,7 +125,7 @@ public class FHashMap91Tests
     [Test]
     public void Can_store_and_retrieve_value_from_map_with_Expand_in_the_middle()
     {
-        var map = new FHashMap91<int, string, IntEq>();
+        var map = new FHashMap91<int, string, IntEq>(1);
 
         Assert.IsFalse(map.TryGetValue(42, out _));
 

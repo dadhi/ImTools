@@ -175,14 +175,13 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     /// <summary>Capacity calculates as `1 << capacityBitShift`</summary>
     public FHashMap91(byte capacityBitShift, byte entriesMaxIndexBitsBeforeSplit = DefaultEntriesMaxIndexBitsBeforeSplit)
     {
-        var capacity = 1 << capacityBitShift;
         _entriesMaxIndexBitsBeforeSplit = entriesMaxIndexBitsBeforeSplit;
         _entriesMaxIndexMask = (1 << entriesMaxIndexBitsBeforeSplit) - 1; // e.g. 256 - 1 = 255
 
         // double the size of the hashes, because they are cheap,
         // this will also provide the flexibility of independence of the sizes of hashes and entries
-        _packedHashesAndIndexes = new int[capacity << 1];
-        _entries = new Entry[capacity];
+        _packedHashesAndIndexes = new int[1 << capacityBitShift];
+        _entries = new Entry[1 << capacityBitShift];
         _entryCount = 0;
     }
 
