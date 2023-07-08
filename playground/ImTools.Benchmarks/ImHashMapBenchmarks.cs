@@ -811,6 +811,14 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 |                        |       |              |            |            |       |         |                       |                |                         |        |        |           |             |
 |        DictSlim_TryAdd |  1000 | 27,667.85 ns | 296.137 ns | 247.288 ns |  1.00 |    0.00 |                51,590 |            303 |                     347 | 9.1553 | 0.7935 |   57808 B |        1.00 |
 | FHashMap91_AddOrUpdate |  1000 | 27,538.54 ns | 537.618 ns | 660.243 ns |  1.01 |    0.03 |                51,152 |            157 |                      87 | 5.9204 | 0.4883 |   37376 B |        0.65 |
+
+## Funny comparison with ImHashMap v4
+
+|                   Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | BranchInstructions/Op | CacheMisses/Op | BranchMispredictions/Op |   Gen0 |   Gen1 | Allocated | Alloc Ratio |
+|------------------------- |------ |---------:|----------:|----------:|------:|--------:|----------------------:|---------------:|------------------------:|-------:|-------:|----------:|------------:|
+| V4_ImHashMap_AddOrUpdate |   100 | 8.011 us | 0.1816 us | 0.5268 us |  3.02 |    0.27 |                15,398 |            100 |                      32 | 2.9755 | 0.0305 |  18.27 KB |        2.50 |
+|          DictSlim_TryAdd |   100 | 2.662 us | 0.0607 us | 0.1741 us |  1.00 |    0.00 |                 5,820 |             25 |                      13 | 1.1902 | 0.0191 |   7.31 KB |        1.00 |
+|   FHashMap91_AddOrUpdate |   100 | 2.635 us | 0.0650 us | 0.1864 us |  0.99 |    0.09 |                 4,838 |             14 |                       8 | 0.8507 | 0.0076 |   5.22 KB |        0.71 |
 */
             [Params(1, 10, 100, 1000)]
             // [Params(100)]
@@ -826,6 +834,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             }
 
             // [Benchmark(Baseline = true)]
+            // [Benchmark]
             public ImTools.ImHashMap<Type, string> V4_ImHashMap_AddOrUpdate()
             {
                 var map = ImTools.ImHashMap<Type, string>.Empty;
