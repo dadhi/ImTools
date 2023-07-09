@@ -819,10 +819,25 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 | V4_ImHashMap_AddOrUpdate |   100 | 8.011 us | 0.1816 us | 0.5268 us |  3.02 |    0.27 |                15,398 |            100 |                      32 | 2.9755 | 0.0305 |  18.27 KB |        2.50 |
 |          DictSlim_TryAdd |   100 | 2.662 us | 0.0607 us | 0.1741 us |  1.00 |    0.00 |                 5,820 |             25 |                      13 | 1.1902 | 0.0191 |   7.31 KB |        1.00 |
 |   FHashMap91_AddOrUpdate |   100 | 2.635 us | 0.0650 us | 0.1864 us |  0.99 |    0.09 |                 4,838 |             14 |                       8 | 0.8507 | 0.0076 |   5.22 KB |        0.71 |
+
+## Without Array.Resize
+
+|                 Method | Count |     Mean |    Error |   StdDev |   Median | Ratio | RatioSD | BranchInstructions/Op | BranchMispredictions/Op | CacheMisses/Op |   Gen0 |   Gen1 | Allocated | Alloc Ratio |
+|----------------------- |------ |---------:|---------:|---------:|---------:|------:|--------:|----------------------:|------------------------:|---------------:|-------:|-------:|----------:|------------:|
+|        DictSlim_TryAdd |  1000 | 25.06 us | 0.483 us | 0.644 us | 25.16 us |  1.00 |    0.00 |                51,572 |                     343 |            290 | 9.1553 | 0.7935 |  56.45 KB |        1.00 |
+| FHashMap91_AddOrUpdate |  1000 | 27.05 us | 0.539 us | 1.238 us | 26.55 us |  1.08 |    0.07 |                52,368 |                      80 |            152 | 5.9204 | 0.4883 |   36.5 KB |        0.65 |
+
+|                 Method | Count |     Mean |    Error |   StdDev |   Median | Ratio | RatioSD | BranchInstructions/Op | BranchMispredictions/Op | CacheMisses/Op |   Gen0 |   Gen1 | Allocated | Alloc Ratio |
+|----------------------- |------ |---------:|---------:|---------:|---------:|------:|--------:|----------------------:|------------------------:|---------------:|-------:|-------:|----------:|------------:|
+|        DictSlim_TryAdd |  1000 | 26.14 us | 0.195 us | 0.163 us | 26.11 us |  1.00 |    0.00 |                51,590 |                     344 |            376 | 9.1553 | 0.7935 |  56.45 KB |        1.00 |
+| FHashMap91_AddOrUpdate |  1000 | 31.23 us | 0.838 us | 2.458 us | 30.21 us |  1.26 |    0.10 |                50,333 |                     184 |            185 | 5.9204 | 0.4883 |   36.5 KB |        0.65 |
+
+
+
 */
             // [Params(1, 10, 100, 1000)]
-            [Params(100)]
-            // [Params(1000)]
+            // [Params(100)]
+            [Params(1000)]
             public int Count;
 
             private Type[] _types;

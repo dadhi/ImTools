@@ -309,7 +309,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         var indexMask = _packedHashesAndIndexes.Length - 1;
         if (indexMask - _entryCount <= (indexMask >>> MinFreeCapacityShift)) // if the free space is less than 1/8 of capacity (12.5%)
         {
-            ResizeHashes();
+            _packedHashesAndIndexes = ResizeHashes(_packedHashesAndIndexes);
             indexMask = _packedHashesAndIndexes.Length - 1;
         }
 
@@ -383,107 +383,71 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         }
     }
 
-    internal void ResizeHashes()
+    internal static int[] ResizeHashes(int[] oldHashesAndIndexes)
     {
-        var oldCapacity = _packedHashesAndIndexes.Length;
+        var oldCapacity = oldHashesAndIndexes.Length;
         if (oldCapacity == 1)
-        {
-            _packedHashesAndIndexes = new int[MinCapacity];
-            return;
-        }
+            return new int[MinCapacity];
 
         var oldIndexMask = oldCapacity - 1;
         var newIndexMask = (oldIndexMask << 1) | 1;
 #if DEBUG
         Debug.WriteLine($"[ResizeToDoubleCapacity] {oldCapacity} -> {oldCapacity << 1}");
 #endif
+
         // todo: @perf is there a way to avoid the copying of the hashes and indexes, at least some of them?
-        Array.Resize(ref _packedHashesAndIndexes, oldCapacity << 1); // double the hashes capacity
+        var newHashesAndIndexes = new int[oldCapacity << 1]; // double the hashes capacity
 
 #if NET7_0_OR_GREATER
-        ref var hash = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
-        ref var hashesStart = ref hash;
-        for (var i = 0; i < oldCapacity; ++i, hash = ref Unsafe.Add(ref hash, 1))
+        ref var oldHash = ref MemoryMarshal.GetArrayDataReference(oldHashesAndIndexes);
+        ref var newHash = ref MemoryMarshal.GetArrayDataReference(newHashesAndIndexes);
+
+        var i = 0;
+        while (true)
         {
 #else
-        ref var hash = ref _packedHashesAndIndexes[0];
-        for (var i = 0; i < oldCapacity; ++i, hash = ref _packedHashesAndIndexes[i])
+        for (var i = 0; (uint)i < (uint)oldHashesAndIndexes.Length; ++i)
         {
+            ref var oldHash = ref oldHashesAndIndexes[i];
 #endif
-            var newIndexBit = hash & oldCapacity;
-            var hashProbes = hash >>> ProbeCountShift;
-            if (newIndexBit == 0 & hashProbes <= 1)
-                continue;
-
-            // get the new hash index for the new capacity by restoring the (possibly wrapped) old one from the probes - 1, 
-            // to account for the wrapping we use `(oldCapacity + i...) & oldIndexMask`
-            var hashNewIndex = newIndexBit | ((i + oldCapacity - hashProbes + 1) & oldIndexMask);
-
-            // erasing the next to capacity bit, given the capacity was 4 and now it is 8 == 4 << 1,
-            // we are erasing the 3rd bit to store the new entry index in it.
-            var hashWithNewIndexBitErased = hash & ~oldCapacity & HashAndIndexMask;
-
-            // Now we can erase the old hash slot because we will not need it for hooded robing
-            hash = 0;
-
-            var probes = 1;
-            while (true)
+            if (oldHash != 0)
             {
-#if NET7_0_OR_GREATER
-                ref var newHash = ref Unsafe.Add(ref hashesStart, hashNewIndex & newIndexMask);
-#else
-                    ref var newHash = ref _packedHashesAndIndexes[hashNewIndex & newIndexMask];
-#endif
-                if ((newHash >>> ProbeCountShift) < probes)
+                // get the new hash index for the new capacity by restoring the (possibly wrapped) old one from the probes - 1, 
+                // to account for the wrapping we use `(oldCapacity + i...) & oldIndexMask` 
+                var distance = (oldHash >>> ProbeCountShift) - 1;
+                var oldHashNewIndex = (oldHash & oldCapacity) | ((oldCapacity + i - distance) & oldIndexMask);
+
+                // erasing the next to capacity bit, given the capacity was 4 and now it is 8 == 4 << 1,
+                // we are erasing the 3rd bit to store the new entry index in it.
+                var oldHashWithNextIndexBitErased = oldHash & ~oldCapacity & HashAndIndexMask;
+                var probes = 1;
+                while (true)
                 {
-                    var hHooded = newHash;
-                    newHash = (probes << ProbeCountShift) | hashWithNewIndexBitErased;
-                    if (hHooded == 0)
-                        break;
-                    hashWithNewIndexBitErased = hHooded & HashAndIndexMask;
-                    probes = hHooded >>> ProbeCountShift;
-                }
-                ++probes;
-                ++hashNewIndex;
-            }
-        }
-
-        // todo: @wip handle the overflowed hashes at the end to put them in the right position if the empty slot for them is available
-        // stop if the next hash is empty or ideally positioned (hash is 0 or probe is 1)
-        for (var j = oldCapacity; (hash >>> ProbeCountShift) > 1; ++j, // todo: @perf remove unnecessary work if condition is false
 #if NET7_0_OR_GREATER
-            hash = ref Unsafe.Add(ref hash, 1)
+                    ref var h = ref Unsafe.Add(ref newHash, oldHashNewIndex & newIndexMask);
 #else
-            hash = ref _packedHashesAndIndexes[j]
+                    ref var h = ref newHashesAndIndexes[oldHashNewIndex & newIndexMask];
 #endif
-        )
-        {
-            var hashRestoredIndex = (hash & ~newIndexMask) | (j - (hash >>> ProbeCountShift) + 1);
-            var hashWithoutProbes = hash & HashAndIndexMask;
-
-            // Now we can erase the old hash slot because we will not need it for hooded robing
-            hash = 0;
-
-            var probes = 1;
-            while (true)
-            {
-#if NET7_0_OR_GREATER
-                ref var newHash = ref Unsafe.Add(ref hashesStart, hashRestoredIndex & newIndexMask);
-#else
-                ref var newHash = ref _packedHashesAndIndexes[hashRestoredIndex & newIndexMask];
-#endif
-                if ((newHash >>> ProbeCountShift) < probes)
-                {
-                    var hHooded = newHash;
-                    newHash = (probes << ProbeCountShift) | hashWithoutProbes;
-                    if (hHooded == 0)
-                        break;
-                    hashWithoutProbes = hHooded & HashAndIndexMask;
-                    probes = hHooded >>> ProbeCountShift;
+                    if ((h >>> ProbeCountShift) < probes)
+                    {
+                        var hHooded = h;
+                        h = (probes << ProbeCountShift) | oldHashWithNextIndexBitErased;
+                        if (hHooded == 0)
+                            break;
+                        oldHashWithNextIndexBitErased = hHooded & HashAndIndexMask;
+                        probes = hHooded >>> ProbeCountShift;
+                    }
+                    ++probes;
+                    ++oldHashNewIndex;
                 }
-                ++probes;
-                ++hashRestoredIndex;
             }
+#if NET7_0_OR_GREATER
+            if (i >= oldIndexMask)
+                break;
+            ++i;
+            oldHash = ref Unsafe.Add(ref oldHash, 1);
+#endif
         }
+        return newHashesAndIndexes;
     }
 }
