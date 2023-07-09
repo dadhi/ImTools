@@ -156,6 +156,23 @@ public class FHashMap91Tests
     }
 
     [Test]
+    public void Can_resize_without_moving()
+    {
+        var map = new FHashMap91<int, string, IntEq>(2);
+
+        map.AddOrUpdate(0, "0");
+        map.AddOrUpdate(1, "1");
+        map.AddOrUpdate(9, "9");
+
+        // resize goes here
+        map.AddOrUpdate(3, "3");
+
+        map.AddOrUpdate(5, "5");
+
+        Verify(map, new[] { 0, 1, 3, 5, 9 });
+    }
+
+    [Test]
     public void Can_store_and_get_stored_item_count()
     {
         var map = new FHashMap91<int, string, IntEq>();

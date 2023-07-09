@@ -820,8 +820,8 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 |          DictSlim_TryAdd |   100 | 2.662 us | 0.0607 us | 0.1741 us |  1.00 |    0.00 |                 5,820 |             25 |                      13 | 1.1902 | 0.0191 |   7.31 KB |        1.00 |
 |   FHashMap91_AddOrUpdate |   100 | 2.635 us | 0.0650 us | 0.1864 us |  0.99 |    0.09 |                 4,838 |             14 |                       8 | 0.8507 | 0.0076 |   5.22 KB |        0.71 |
 */
-            [Params(1, 10, 100, 1000)]
-            // [Params(100)]
+            // [Params(1, 10, 100, 1000)]
+            [Params(100)]
             // [Params(1000)]
             public int Count;
 
