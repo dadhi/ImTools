@@ -117,7 +117,7 @@ public class FHashMap91DebugProxy<K, V, TEq> where TEq : struct, IEqualityCompar
     public FHashMap91.Item<K, V>[] Items => _map.Explain();
 }
 
-[DebuggerTypeProxy(typeof(FHashMap91DebugProxy<,,>))]
+// [DebuggerTypeProxy(typeof(FHashMap91DebugProxy<,,>))] // todo: @wip add separately for the packed hashes
 [DebuggerDisplay("Count={Count}")]
 #endif
 public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
@@ -382,6 +382,70 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
             }
         }
     }
+
+    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+    public bool TryRemove(K key)
+    {
+        var hash = default(TEq).GetHashCode(key);
+
+        var indexMask = _packedHashesAndIndexes.Length - 1;
+        var hashPartMask = ~indexMask & HashAndIndexMask;
+        var hashIndex = hash & indexMask;
+
+#if NET7_0_OR_GREATER
+        ref var hashesAndIndexes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
+#else
+        var hashesAndIndexes = _packedHashesAndIndexes;
+#endif
+        ref var h = ref GetElementRef(ref hashesAndIndexes, hashIndex);
+
+        var removed = false;
+        var probes = 1;
+
+        // 1. Skip over hashes with the bigger and equal probes. The hashes with bigger probes overlapping from the earlier ideal positions
+        while ((h >>> ProbeCountShift) >= probes)
+        {
+            // 2. For the equal probes check for equality the hash middle part, and update the entry if the keys are equal too 
+            if (((h >>> ProbeCountShift) == probes) & ((h & hashPartMask) == (hash & hashPartMask)))
+            {
+                ref var e = ref GetEntryRef(h & indexMask);
+                if (default(TEq).Equals(e.Key, key))
+                {
+                    removed = true;
+                    h = 0;
+                    e = default;
+                    --_entryCount;
+                    break;
+                }
+            }
+            h = ref GetElementRef(ref hashesAndIndexes, ++hashIndex & indexMask);
+            ++probes;
+        }
+
+        if (!removed)
+            return false;
+
+        ref var emptied = ref h;
+        h = ref GetElementRef(ref hashesAndIndexes, ++hashIndex & indexMask);
+
+        // move the next hash into the emptied slot until the next hash is empty or ideally positioned (hash is 0 or probe is 1)
+        while ((h >>> ProbeCountShift) > 1)
+        {
+            emptied = (((h >>> ProbeCountShift) - 1) << ProbeCountShift) | (h & HashAndIndexMask); // decrease the probe count by one cause we moving the hash closer to the ideal index
+            h = 0;
+
+            emptied = ref h;
+            h = ref GetElementRef(ref hashesAndIndexes, ++hashIndex & indexMask);
+        }
+        return true;
+    }
+
+    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+#if NET7_0_OR_GREATER
+    private static ref int GetElementRef(ref int start, int distance) => ref Unsafe.Add(ref start, distance);
+#else
+    private static ref int GetElementRef(int[] start, int distance) => ref hashesAndIndexes[distance];
+#endif
 
     internal static int[] ResizeHashes(int[] oldHashesAndIndexes)
     {

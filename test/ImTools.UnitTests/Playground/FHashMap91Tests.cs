@@ -72,6 +72,25 @@ public class FHashMap91Tests
     }
 
     [Test]
+    public void Real_world_test_Resize()
+    {
+        var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(100).ToArray();
+
+        var map = new ImTools.Experiments.FHashMap91<Type, string, RefEq<Type>>(128);
+
+        foreach (var key in types)
+            map.AddOrUpdate(key, "a");
+
+        map.AddOrUpdate(typeof(FHashMap91Tests), "!");
+        Assert.AreEqual(101, map.Count);
+
+        Assert.IsTrue(map.TryRemove(typeof(FHashMap91Tests)));
+        Assert.AreEqual(100, map.Count);
+
+        Verify(map, types);
+    }
+
+    [Test]
     public void Can_store_and_retrieve_value_from_map()
     {
         var map = new FHashMap91<int, string, IntEq>(3);
@@ -234,17 +253,19 @@ public class FHashMap91Tests
         Assert.AreEqual("3", value);
     }
 
-    // [Test]
-    // public void Can_remove_the_stored_item()
-    // {
-    //     var map = new FHashMap<int, string>();
+    [Test]
+    public void Can_remove_the_stored_item()
+    {
+        var map = new FHashMap91<int, string, IntEq>(2);
 
-    //     map.AddOrUpdate(42, "1");
-    //     map.AddOrUpdate(42 + 32, "2");
-    //     map.AddOrUpdate(42 + 32 + 32, "3");
+        map.AddOrUpdate(42, "1");
+        map.AddOrUpdate(42 + 32, "2");
+        map.AddOrUpdate(42 + 32 + 32, "3");
 
-    //     map.Remove(42 + 32);
+        var r = map.TryRemove(42 + 32);
+        Assert.IsTrue(r);
 
-    //     Assert.AreEqual(2, map.Count);
-    // }
+        Assert.AreEqual(2, map.Count);
+        Verify(map, new[] { 42, 42 + 32 + 32 });
+    }
 }
