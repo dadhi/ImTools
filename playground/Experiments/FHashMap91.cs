@@ -513,54 +513,59 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         // todo: @perf is there a way to avoid the copying of the hashes and indexes, at least some of them?
         var newHashesAndIndexes = new int[oldCapacity << 1]; // double the hashes capacity
 
-#if NET7_0_OR_GREATER
-        ref var oldHash = ref MemoryMarshal.GetArrayDataReference(oldHashesAndIndexes);
-        ref var newHash = ref MemoryMarshal.GetArrayDataReference(newHashesAndIndexes);
-
+        // skip the overflow so that we iterate the rest in order and overflow at the end
+        // todo: @perf add overflow buffer to avoid this step
         var i = 0;
+#if NET7_0_OR_GREATER
+        ref var newHash = ref MemoryMarshal.GetArrayDataReference(newHashesAndIndexes);
+        ref var oldHashes = ref MemoryMarshal.GetArrayDataReference(oldHashesAndIndexes);
+        var oldHash = oldHashes;
+        while ((oldHash >>> ProbeCountShift) > i + 1)
+            oldHash = Unsafe.Add(ref oldHashes, ++i);
+#else
+        var oldHash = oldHashesAndIndexes[0];
+        while ((oldHash >>> ProbeCountShift) > i + 1)
+            oldHash = oldHashesAndIndexes[++i];
+#endif
+
+        var end = i + oldIndexMask;
         while (true)
         {
-#else
-        for (var i = 0; (uint)i < (uint)oldHashesAndIndexes.Length; ++i)
-        {
-            ref var oldHash = ref oldHashesAndIndexes[i];
-#endif
             if (oldHash != 0)
             {
                 // get the new hash index for the new capacity by restoring the (possibly wrapped) old one from the probes - 1, 
                 // to account for the wrapping we use `(oldCapacity + i...) & oldIndexMask` 
                 var distance = (oldHash >>> ProbeCountShift) - 1;
-                var oldHashNewIndex = (oldHash & oldCapacity) | ((oldCapacity + i - distance) & oldIndexMask);
+                var oldHashNewIndex = (oldHash & oldCapacity) | ((i - distance) & oldIndexMask);
 
                 // erasing the next to capacity bit, given the capacity was 4 and now it is 8 == 4 << 1,
                 // we are erasing the 3rd bit to store the new entry index in it.
                 var oldHashWithNextIndexBitErased = oldHash & ~oldCapacity & HashAndIndexMask;
-                var probes = 1;
-                while (true)
+
+                // no need for robinhooding because we already did it for the old hashes and now just sparcing the hashes which are already in order
+                var newHashIndex = oldHashNewIndex;
+#if NET7_0_OR_GREATER
+                ref var h = ref Unsafe.Add(ref newHash, oldHashNewIndex & newIndexMask);
+#else
+                ref var h = ref newHashesAndIndexes[oldHashNewIndex & newIndexMask];
+#endif
+                while (h != 0)
                 {
 #if NET7_0_OR_GREATER
-                    ref var h = ref Unsafe.Add(ref newHash, oldHashNewIndex & newIndexMask);
+                    h = ref Unsafe.Add(ref newHash, ++oldHashNewIndex & newIndexMask);
 #else
-                    ref var h = ref newHashesAndIndexes[oldHashNewIndex & newIndexMask];
+                    h = ref newHashesAndIndexes[++oldHashNewIndex & newIndexMask];
 #endif
-                    if ((h >>> ProbeCountShift) < probes)
-                    {
-                        var hHooded = h;
-                        h = (probes << ProbeCountShift) | oldHashWithNextIndexBitErased;
-                        if (hHooded == 0)
-                            break;
-                        oldHashWithNextIndexBitErased = hHooded & HashAndIndexMask;
-                        probes = hHooded >>> ProbeCountShift;
-                    }
-                    ++probes;
-                    ++oldHashNewIndex;
                 }
+                h = ((oldHashNewIndex - newHashIndex + 1) << ProbeCountShift) | oldHashWithNextIndexBitErased;
             }
-#if NET7_0_OR_GREATER
-            if (i >= oldIndexMask)
+            if (i >= end)
                 break;
             ++i;
-            oldHash = ref Unsafe.Add(ref oldHash, 1);
+#if NET7_0_OR_GREATER
+            oldHash = Unsafe.Add(ref oldHashes, i & oldIndexMask);
+#else
+            oldHash = oldHashesAndIndexes[i & oldIndexMask];
 #endif
         }
         return newHashesAndIndexes;

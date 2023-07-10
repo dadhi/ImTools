@@ -832,12 +832,21 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 |        DictSlim_TryAdd |  1000 | 26.14 us | 0.195 us | 0.163 us | 26.11 us |  1.00 |    0.00 |                51,590 |                     344 |            376 | 9.1553 | 0.7935 |  56.45 KB |        1.00 |
 | FHashMap91_AddOrUpdate |  1000 | 31.23 us | 0.838 us | 2.458 us | 30.21 us |  1.26 |    0.10 |                50,333 |                     184 |            185 | 5.9204 | 0.4883 |   36.5 KB |        0.65 |
 
+## New Resize without robinhooding
 
+|                 Method | Count |     Mean |    Error |   StdDev | Ratio | RatioSD | BranchInstructions/Op | BranchMispredictions/Op | CacheMisses/Op |   Gen0 |   Gen1 | Allocated | Alloc Ratio |
+|----------------------- |------ |---------:|---------:|---------:|------:|--------:|----------------------:|------------------------:|---------------:|-------:|-------:|----------:|------------:|
+|        DictSlim_TryAdd |  1000 | 25.17 us | 0.495 us | 0.508 us |  1.00 |    0.00 |                51,567 |                     348 |            388 | 9.1553 | 0.8240 |  56.45 KB |        1.00 |
+| FHashMap91_AddOrUpdate |  1000 | 27.12 us | 0.520 us | 0.461 us |  1.08 |    0.02 |                49,909 |                      81 |            184 | 5.9204 | 0.4883 |   36.5 KB |        0.65 |
 
+|                 Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | BranchInstructions/Op | CacheMisses/Op | BranchMispredictions/Op |   Gen0 |   Gen1 | Allocated | Alloc Ratio |
+|----------------------- |------ |---------:|----------:|----------:|------:|--------:|----------------------:|---------------:|------------------------:|-------:|-------:|----------:|------------:|
+|        DictSlim_TryAdd |   100 | 2.360 us | 0.1385 us | 0.4018 us |  1.00 |    0.00 |                 2,140 |             28 |                      12 | 1.1902 | 0.0153 |   7.31 KB |        1.00 |
+| FHashMap91_AddOrUpdate |   100 | 2.510 us | 0.0938 us | 0.2720 us |  1.10 |    0.23 |                 2,383 |             29 |                       7 | 0.8507 | 0.0076 |   5.22 KB |        0.71 |
 */
             // [Params(1, 10, 100, 1000)]
-            // [Params(100)]
-            [Params(1000)]
+            [Params(100)]
+            // [Params(1000)]
             public int Count;
 
             private Type[] _types;
