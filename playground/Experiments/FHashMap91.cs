@@ -9,6 +9,8 @@ namespace ImTools.Experiments;
 
 public static class FHashMap91
 {
+    internal const uint GoldenRatio32 = 2654435769; // 2^32 / phi for the Fibonacci hashing, where phi is the golden ratio ~1.61803
+
     internal static readonly int[] SingleCellHashesAndIndexes = new int[1];
 
     public struct Item<K, V>
@@ -108,6 +110,54 @@ public static class FHashMap91
     }
 }
 
+/// <summary>Default comparer using the `object.GetHashCode` and `object.Equals` oveloads</summary>
+public struct DefaultEq<K> : IEqualityComparer<K>
+{
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public bool Equals(K x, K y) => x.Equals(y);
+
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public int GetHashCode(K obj) => obj.GetHashCode();
+}
+
+/// <summary>Uses the `object.GetHashCode` and `object.ReferenceEquals`</summary>
+public struct RefEq<K> : IEqualityComparer<K> where K : class
+{
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public bool Equals(K x, K y) => ReferenceEquals(x, y);
+
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public int GetHashCode(K obj) => obj.GetHashCode();
+}
+
+/// <summary>Uses the integer itself as hash code and `==` for equality</summary>
+public struct IntEq : IEqualityComparer<int>
+{
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public bool Equals(int x, int y) => x == y;
+
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public int GetHashCode(int obj) => obj; // todo: @perf @wip add the `* GoldenRatio32` for more fare bits usage and protection from overflow attacks
+}
+
+/// <summary>Fast-comparing the types via `==` and gets the hash faster via `RuntimeHelpers.GetHashCode`</summary>
+public struct TypeEq : IEqualityComparer<Type>
+{
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public bool Equals(Type x, Type y) => x == y;
+
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public int GetHashCode(Type obj) => RuntimeHelpers.GetHashCode(obj);
+}
+
 #if DEBUG
 public class FHashMap91DebugProxy<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 {
@@ -183,7 +233,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 
         // double the size of the hashes, because they are cheap,
         // this will also provide the flexibility of independence of the sizes of hashes and entries
-        _packedHashesAndIndexes = new int[1 << capacityBitShift];
+        _packedHashesAndIndexes = new int[1 << capacityBitShift]; // todo: @perf add the overflow tail to the hashes of the size log2N where N==capacityBitShift, it is probably fine to have the check for the overlow of capacity because it will be mispredicted only once at the end of iteration (and even the a rare case)
         _entries = new Entry[1 << capacityBitShift];
         _entryCount = 0;
     }
@@ -444,9 +494,10 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 #if NET7_0_OR_GREATER
     private static ref int GetElementRef(ref int start, int distance) => ref Unsafe.Add(ref start, distance);
 #else
-    private static ref int GetElementRef(int[] start, int distance) => ref hashesAndIndexes[distance];
+    private static ref int GetElementRef(ref int[] start, int distance) => ref start[distance];
 #endif
 
+    // todo: @perf we don't need the robinhooding when resizing because the iTimeSpan are in an proper chain/cluster order
     internal static int[] ResizeHashes(int[] oldHashesAndIndexes)
     {
         var oldCapacity = oldHashesAndIndexes.Length;
