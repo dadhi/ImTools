@@ -21,7 +21,7 @@ public static class FHashMap91
         public string HKV;
         public int Index;
         public bool IsEmpty => Probe == 0;
-        public string Output => $"{Probe}|{(HEq ? "" : "" + Hash)}|{Index}{(HEq ? "==" : "!=")}{HKV}";
+        public string Output => $"{Probe}|{Hash}|{Index}";
         public override string ToString() => IsEmpty ? "empty" : Output;
     }
 
@@ -33,34 +33,34 @@ public static class FHashMap91
         var hashAndIndexMask = FHashMap91<K, V, TEq>.HashAndIndexMask;
 
         var hashes = map.PackedHashesAndIndexes;
-        var capacity = hashes.Length;
+        var capacityBits = map.CapacityBits;
+        var capacity = 1 << capacityBits;
         var indexMask = capacity - 1;
 
-        var items = new Item<K, V>[capacity];
-
-        for (var i = 0; i < capacity; i++)
+        var items = new Item<K, V>[hashes.Length];
+        for (var i = 0; i < hashes.Length; i++)
         {
             var h = hashes[i];
             if (h == 0)
                 continue;
 
             var probe = h >>> probeCountShift;
-            var hashIndex = (capacity + i - (probe - 1)) & indexMask;
+            var hashIndex = i - probe + 1;
 
             var hashMiddle = (h & hashAndIndexMask & ~indexMask);
             var hash = hashMiddle | hashIndex;
-            var index = h & indexMask;
+            var entryIndex = h & indexMask;
 
             string hkv = null;
             var heq = false;
             if (probe != 0)
             {
-                ref var e = ref map.GetEntryRef(index);
+                ref var e = ref map.GetEntryRef(entryIndex);
                 var kh = e.Key.GetHashCode() & hashAndIndexMask;
                 heq = kh == hash;
-                hkv = $"{toB(kh)}:{e.Key}->{e.Value}";
+                // hkv = $"{toB(kh)}:{e.Key}->{e.Value}";
             }
-            items[i] = new Item<K, V> { Probe = probe, Hash = toB(hash), HEq = heq, Index = index, HKV = hkv };
+            items[i] = new Item<K, V> { Probe = probe, Hash = toB(hash), HEq = heq, Index = entryIndex, HKV = hkv };
         }
         return items;
 
@@ -85,10 +85,11 @@ public static class FHashMap91
         // Verify the indexes do no contains duplicate keys
         var uniq = new Dictionary<K, int>(map.Count);
         var hashes = map.PackedHashesAndIndexes;
-        var capacity = hashes.Length;
+        var capacityBits = map.CapacityBits;
+        var capacity = 1 << capacityBits;
         var indexMask = capacity - 1;
         var entries = map.Entries;
-        for (var i = 0; i < capacity; i++)
+        for (var i = 0; i < hashes.Length; i++)
         {
             var h = hashes[i];
             if (h == 0)
@@ -167,7 +168,7 @@ public class FHashMap91DebugProxy<K, V, TEq> where TEq : struct, IEqualityCompar
     public FHashMap91.Item<K, V>[] Items => _map.Explain();
 }
 
-// [DebuggerTypeProxy(typeof(FHashMap91DebugProxy<,,>))] // todo: @wip add separately for the packed hashes
+[DebuggerTypeProxy(typeof(FHashMap91DebugProxy<,,>))] // todo: @wip add separately for the packed hashes
 [DebuggerDisplay("Count={Count}")]
 #endif
 public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
@@ -185,7 +186,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     public const uint GoldenRatio32 = 2654435769; // 2^32 / phi for the Fibonacci hashing, where phi is the golden ratio ~1.61803
     public const int MinEntriesCapacity = 2;
     public const byte MinFreeCapacityShift = 3; // e.g. for the capacity 16: 16 >> 3 => 2, so 2 free slots is 12.5% of the capacity
-    public const int MinCapacity = 8;
+    public const byte MinCapacityBits = 4; // 1 << 4 == 8
     public const byte MaxProbeBits = 5; // 5 bits max, e.g. 31 (11111)
     public const byte MaxProbeCount = (1 << MaxProbeBits) - 1; // e.g. 31 (11111) for the 5 bits
     public const byte ProbeCountShift = 32 - MaxProbeBits;
@@ -193,8 +194,10 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     public const int HashAndIndexMask = ~ProbesMask;
 
     public const int DefaultEntriesMaxIndexBitsBeforeSplit = 8;
+    private bool _hashesOverflowBufferIsFull;
     private int _entriesMaxIndexBitsBeforeSplit;
     private int _entriesMaxIndexMask;
+    private byte _capacityBits;
 
     // The _packedHashesAndIndexes elements are of `Int32`, 
     // e.g. 00010|000...110|01101
@@ -210,12 +213,14 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     private int _entryCount;
 
     public int Count => _entryCount;
+    public int CapacityBits => _capacityBits;
 
     internal int[] PackedHashesAndIndexes => _packedHashesAndIndexes;
     internal Entry[] Entries => _entries;
 
     public FHashMap91()
     {
+        _capacityBits = 0;
         _entriesMaxIndexBitsBeforeSplit = DefaultEntriesMaxIndexBitsBeforeSplit;
         _entriesMaxIndexMask = (1 << DefaultEntriesMaxIndexBitsBeforeSplit) - 1; // e.g. 256 - 1 = 255
 
@@ -226,15 +231,16 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     }
 
     /// <summary>Capacity calculates as `1 << capacityBitShift`</summary>
-    public FHashMap91(byte capacityBitShift, byte entriesMaxIndexBitsBeforeSplit = DefaultEntriesMaxIndexBitsBeforeSplit)
+    public FHashMap91(byte capacityBits, byte entriesMaxIndexBitsBeforeSplit = DefaultEntriesMaxIndexBitsBeforeSplit)
     {
+        _capacityBits = capacityBits;
         _entriesMaxIndexBitsBeforeSplit = entriesMaxIndexBitsBeforeSplit;
         _entriesMaxIndexMask = (1 << entriesMaxIndexBitsBeforeSplit) - 1; // e.g. 256 - 1 = 255
 
-        // double the size of the hashes, because they are cheap,
-        // this will also provide the flexibility of independence of the sizes of hashes and entries
-        _packedHashesAndIndexes = new int[1 << capacityBitShift]; // todo: @perf add the overflow tail to the hashes of the size log2N where N==capacityBitShift, it is probably fine to have the check for the overlow of capacity because it will be mispredicted only once at the end of iteration (and even the a rare case)
-        _entries = new Entry[1 << capacityBitShift];
+        // the overflow tail to the hashes is the size of log2N where N==capacityBits, 
+        // it is probably fine to have the check for the overlow of capacity because it will be mispredicted only once at the end of loop (it even rarely for the lookup)
+        _packedHashesAndIndexes = new int[(1 << capacityBits) + capacityBits];
+        _entries = new Entry[1 << capacityBits];
         _entryCount = 0;
     }
 
@@ -303,7 +309,8 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     {
         var hash = default(TEq).GetHashCode(key);
 
-        var indexMask = _packedHashesAndIndexes.Length - 1;
+        var indexMask = (1 << _capacityBits) - 1;
+        var lastIndex = (1 << _capacityBits) + (_capacityBits - 1);
         var hashPartMask = ~indexMask & HashAndIndexMask;
         var hashIndex = hash & indexMask;
 
@@ -315,9 +322,8 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         var h = hashesAndIndexes[hashIndex];
 #endif
 
-        var probes = 1;
-
         // 1. Skip over hashes with the bigger and equal probes. The hashes with bigger probes overlapping from the earlier ideal positions
+        var probes = 1;
         while ((h >>> ProbeCountShift) >= probes)
         {
             // 2. For the equal probes check for equality the hash middle part, and update the entry if the keys are equal too 
@@ -331,10 +337,13 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
                 }
             }
 
+            if (hashIndex == lastIndex)
+                break;
+
 #if NET7_0_OR_GREATER
-            h = Unsafe.Add(ref hashesAndIndexes, ++hashIndex & indexMask);
+            h = Unsafe.Add(ref hashesAndIndexes, ++hashIndex);
 #else
-            h = hashesAndIndexes[++hashIndex & indexMask];
+            h = hashesAndIndexes[++hashIndex];
 #endif
             ++probes;
         }
@@ -356,11 +365,16 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     {
         var hash = default(TEq).GetHashCode(key);
 
-        var indexMask = _packedHashesAndIndexes.Length - 1;
-        if (indexMask - _entryCount <= (indexMask >>> MinFreeCapacityShift)) // if the free space is less than 1/8 of capacity (12.5%)
+        var indexMask = (1 << _capacityBits) - 1;
+        var lastIndex = (1 << _capacityBits) + (_capacityBits - 1);
+        // if the overflow space is filled-in or
+        // if the free space is less than 1/8 of capacity (12.5%) then Resize
+        if (_hashesOverflowBufferIsFull | (indexMask - _entryCount <= (indexMask >>> MinFreeCapacityShift)))
         {
-            _packedHashesAndIndexes = ResizeHashes(_packedHashesAndIndexes);
-            indexMask = _packedHashesAndIndexes.Length - 1;
+            ResizeHashes();
+            indexMask = (1 << _capacityBits) - 1;
+            lastIndex = (1 << _capacityBits) + (_capacityBits - 1);
+            _hashesOverflowBufferIsFull = false;
         }
 
         var hashIndex = hash & indexMask;
@@ -374,9 +388,8 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         ref var h = ref hashesAndIndexes[hashIndex];
 #endif
 
-        var probes = 1;
-
         // 1. Skip over hashes with the bigger and equal probes. The hashes with bigger probes overlapping from the earlier ideal positions
+        var probes = 1; // todo: @perf save the idealIndex and calculate the probes
         while ((h >>> ProbeCountShift) >= probes)
         {
             // 2. For the equal probes check for equality the hash middle part, and update the entry if the keys are equal too 
@@ -392,10 +405,11 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
                     return;
                 }
             }
+
 #if NET7_0_OR_GREATER
-            h = ref Unsafe.Add(ref hashesAndIndexes, ++hashIndex & indexMask);
+            h = ref Unsafe.Add(ref hashesAndIndexes, ++hashIndex); // todo: @perf use +1 
 #else
-            h = ref hashesAndIndexes[++hashIndex & indexMask];
+            h = ref hashesAndIndexes[++hashIndex];
 #endif
             ++probes;
         }
@@ -411,13 +425,13 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 
         // 4. If old hash is empty then we stop
         // 5. Robin Hood goes here - to steal the slot with the smaller probes
-        probes = hHooded >>> ProbeCountShift;
+        probes = hHooded >>> ProbeCountShift; // todo: @perf use hashIndex - idealIndex for the probes
         while (hHooded != 0)
         {
 #if NET7_0_OR_GREATER
-            h = ref Unsafe.Add(ref hashesAndIndexes, ++hashIndex & indexMask);
+            h = ref Unsafe.Add(ref hashesAndIndexes, ++hashIndex);
 #else
-            h = ref hashesAndIndexes[++hashIndex & indexMask];
+            h = ref hashesAndIndexes[++hashIndex];
 #endif
             if ((h >>> ProbeCountShift) < (++probes))
             {
@@ -431,6 +445,8 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
                 probes = hHoodedNext >>> ProbeCountShift;
             }
         }
+        // keep the already met overflow or set it if the last inserted index is the last one
+        _hashesOverflowBufferIsFull |= lastIndex == hashIndex;
     }
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
@@ -438,7 +454,8 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     {
         var hash = default(TEq).GetHashCode(key);
 
-        var indexMask = _packedHashesAndIndexes.Length - 1;
+        var indexMask = (1 << _capacityBits) - 1;
+        var lastIndex = (1 << _capacityBits) + (_capacityBits - 1);
         var hashPartMask = ~indexMask & HashAndIndexMask;
         var hashIndex = hash & indexMask;
 
@@ -468,7 +485,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
                     break;
                 }
             }
-            h = ref GetElementRef(ref hashesAndIndexes, ++hashIndex & indexMask);
+            h = ref GetElementRef(ref hashesAndIndexes, ++hashIndex);
             ++probes;
         }
 
@@ -476,7 +493,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
             return false;
 
         ref var emptied = ref h;
-        h = ref GetElementRef(ref hashesAndIndexes, ++hashIndex & indexMask);
+        h = ref GetElementRef(ref hashesAndIndexes, ++hashIndex);
 
         // move the next hash into the emptied slot until the next hash is empty or ideally positioned (hash is 0 or probe is 1)
         while ((h >>> ProbeCountShift) > 1)
@@ -485,7 +502,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
             h = 0;
 
             emptied = ref h;
-            h = ref GetElementRef(ref hashesAndIndexes, ++hashIndex & indexMask);
+            h = ref GetElementRef(ref hashesAndIndexes, ++hashIndex);
         }
         return true;
     }
@@ -497,77 +514,73 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     private static ref int GetElementRef(ref int[] start, int distance) => ref start[distance];
 #endif
 
-    // todo: @perf we don't need the robinhooding when resizing because the iTimeSpan are in an proper chain/cluster order
-    internal static int[] ResizeHashes(int[] oldHashesAndIndexes)
+    internal void ResizeHashes()
     {
-        var oldCapacity = oldHashesAndIndexes.Length;
+        var oldCapacity = 1 << _capacityBits;
         if (oldCapacity == 1)
-            return new int[MinCapacity];
-
-        var oldIndexMask = oldCapacity - 1;
-        var newIndexMask = (oldIndexMask << 1) | 1;
+        {
+            _capacityBits = MinCapacityBits;
+            _packedHashesAndIndexes = new int[(1 << MinCapacityBits) + MinCapacityBits];
+            // no need to reset _lastAddedIndex because it will be reassigned by AddOrUpdate anyway
 #if DEBUG
-        Debug.WriteLine($"[ResizeToDoubleCapacity] {oldCapacity} -> {oldCapacity << 1}");
+            Debug.WriteLine($"[ResizeHashes] new empty hashes with overflow buffer {1} -> {_packedHashesAndIndexes.Length}");
 #endif
+            return;
+        }
 
-        // todo: @perf is there a way to avoid the copying of the hashes and indexes, at least some of them?
-        var newHashesAndIndexes = new int[oldCapacity << 1]; // double the hashes capacity
+        var lastOldIndex = oldCapacity + (_capacityBits - 1);
+        var newHashesAndIndexes = new int[(oldCapacity << 1) + (_capacityBits + 1)];
 
-        // skip the overflow so that we iterate the rest in order and overflow at the end
-        // todo: @perf add overflow buffer to avoid this step
-        var i = 0;
 #if NET7_0_OR_GREATER
         ref var newHash = ref MemoryMarshal.GetArrayDataReference(newHashesAndIndexes);
-        ref var oldHashes = ref MemoryMarshal.GetArrayDataReference(oldHashesAndIndexes);
-        var oldHash = oldHashes;
-        while ((oldHash >>> ProbeCountShift) > i + 1)
-            oldHash = Unsafe.Add(ref oldHashes, ++i);
+        ref var oldHash = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
 #else
-        var oldHash = oldHashesAndIndexes[0];
-        while ((oldHash >>> ProbeCountShift) > i + 1)
-            oldHash = oldHashesAndIndexes[++i];
+        ref var oldHash = ref oldHashesAndIndexes[0];
 #endif
-
-        var end = i + oldIndexMask;
+        var i = 0;
         while (true)
         {
             if (oldHash != 0)
             {
-                // get the new hash index for the new capacity by restoring the (possibly wrapped) old one from the probes - 1, 
-                // to account for the wrapping we use `(oldCapacity + i...) & oldIndexMask` 
-                var distance = (oldHash >>> ProbeCountShift) - 1;
-                var oldHashNewIndex = (oldHash & oldCapacity) | ((i - distance) & oldIndexMask);
+                // get the new hash index from the old one with the next bit equal to the `oldCapacity`
+                var indexWithNextBit = (oldHash & oldCapacity) | (i - (oldHash >>> ProbeCountShift) + 1);
 
                 // erasing the next to capacity bit, given the capacity was 4 and now it is 8 == 4 << 1,
                 // we are erasing the 3rd bit to store the new entry index in it.
-                var oldHashWithNextIndexBitErased = oldHash & ~oldCapacity & HashAndIndexMask;
+                var hashWithNextBitErased = oldHash & ~oldCapacity & HashAndIndexMask;
 
                 // no need for robinhooding because we already did it for the old hashes and now just sparcing the hashes which are already in order
-                var newHashIndex = oldHashNewIndex;
+                var idealIndex = indexWithNextBit;
 #if NET7_0_OR_GREATER
-                ref var h = ref Unsafe.Add(ref newHash, oldHashNewIndex & newIndexMask);
+                ref var h = ref Unsafe.Add(ref newHash, indexWithNextBit);
 #else
-                ref var h = ref newHashesAndIndexes[oldHashNewIndex & newIndexMask];
+                ref var h = ref newHashesAndIndexes[indexWithNextBit];
 #endif
                 while (h != 0)
                 {
+                    ++indexWithNextBit;
 #if NET7_0_OR_GREATER
-                    h = ref Unsafe.Add(ref newHash, ++oldHashNewIndex & newIndexMask);
+                    h = ref Unsafe.Add(ref h, 1);
 #else
-                    h = ref newHashesAndIndexes[++oldHashNewIndex & newIndexMask];
+                    h = ref newHashesAndIndexes[indexWithNextBit];
 #endif
                 }
-                h = ((oldHashNewIndex - newHashIndex + 1) << ProbeCountShift) | oldHashWithNextIndexBitErased;
+                h = ((indexWithNextBit - idealIndex + 1) << ProbeCountShift) | hashWithNextBitErased;
             }
-            if (i >= end)
+            if (i == lastOldIndex)
                 break;
             ++i;
 #if NET7_0_OR_GREATER
-            oldHash = Unsafe.Add(ref oldHashes, i & oldIndexMask);
+            oldHash = ref Unsafe.Add(ref oldHash, 1);
 #else
-            oldHash = oldHashesAndIndexes[i & oldIndexMask];
+            oldHash = ref oldHashesAndIndexes[i];
 #endif
         }
-        return newHashesAndIndexes;
+
+#if DEBUG
+        Debug.WriteLine($"[ResizeHashes] with overflow buffer {_packedHashesAndIndexes.Length} -> {newHashesAndIndexes.Length}");
+#endif
+        ++_capacityBits;
+        _packedHashesAndIndexes = newHashesAndIndexes;
     }
 }
