@@ -58,7 +58,7 @@ public static class FHashMap91
                 ref var e = ref map.GetEntryRef(entryIndex);
                 var kh = e.Key.GetHashCode() & hashAndIndexMask;
                 heq = kh == hash;
-                // hkv = $"{toB(kh)}:{e.Key}->{e.Value}";
+                // hkv = $"{toB(kh)}:{e.Key}->{e.Value}"; // todo: @wip
             }
             items[i] = new Item<K, V> { Probe = probe, Hash = toB(hash), HEq = heq, Index = entryIndex, HKV = hkv };
         }
@@ -389,7 +389,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 #endif
 
         // 1. Skip over hashes with the bigger and equal probes. The hashes with bigger probes overlapping from the earlier ideal positions
-        var probes = 1; // todo: @perf save the idealIndex and calculate the probes
+        var probes = 1;
         while ((h >>> ProbeCountShift) >= probes)
         {
             // 2. For the equal probes check for equality the hash middle part, and update the entry if the keys are equal too 
@@ -406,12 +406,13 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
                 }
             }
 
-#if NET7_0_OR_GREATER
-            h = ref Unsafe.Add(ref hashesAndIndexes, ++hashIndex); // todo: @perf use +1 
-#else
-            h = ref hashesAndIndexes[++hashIndex];
-#endif
+            ++hashIndex;
             ++probes;
+#if NET7_0_OR_GREATER
+            h = ref Unsafe.Add(ref h, 1);
+#else
+            h = ref hashesAndIndexes[hashIndex];
+#endif
         }
 
         // 3. We did not find the hash and therefore the key, so insert the new entry
@@ -425,15 +426,17 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 
         // 4. If old hash is empty then we stop
         // 5. Robin Hood goes here - to steal the slot with the smaller probes
-        probes = hHooded >>> ProbeCountShift; // todo: @perf use hashIndex - idealIndex for the probes
+        probes = hHooded >>> ProbeCountShift;
         while (hHooded != 0)
         {
+            ++hashIndex;
+            ++probes;
 #if NET7_0_OR_GREATER
-            h = ref Unsafe.Add(ref hashesAndIndexes, ++hashIndex);
+            h = ref Unsafe.Add(ref h, 1);
 #else
-            h = ref hashesAndIndexes[++hashIndex];
+            h = ref hashesAndIndexes[hashIndex];
 #endif
-            if ((h >>> ProbeCountShift) < (++probes))
+            if ((h >>> ProbeCountShift) < probes)
             {
                 var hHoodedNext = h;
                 h = (probes << ProbeCountShift) | (hHooded & HashAndIndexMask);
@@ -535,7 +538,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         ref var newHash = ref MemoryMarshal.GetArrayDataReference(newHashesAndIndexes);
         ref var oldHash = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
 #else
-        ref var oldHash = ref oldHashesAndIndexes[0];
+        ref var oldHash = ref _packedHashesAndIndexes[0];
 #endif
         var i = 0;
         while (true)
@@ -573,7 +576,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 #if NET7_0_OR_GREATER
             oldHash = ref Unsafe.Add(ref oldHash, 1);
 #else
-            oldHash = ref oldHashesAndIndexes[i];
+            oldHash = ref _packedHashesAndIndexes[i];
 #endif
         }
 
