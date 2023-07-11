@@ -40,7 +40,8 @@ public class FHashMap91Tests
     {
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(100).ToArray();
 
-        var map = new ImTools.Experiments.FHashMap91<Type, string, RefEq<Type>>();
+        // var map = new ImTools.Experiments.FHashMap91<Type, string, RefEq<Type>>();
+        var map = new ImTools.Experiments.FHashMap91<Type, string, GoldenRefEq<Type>>();
 
         foreach (var key in types)
             map.AddOrUpdate(key, "a");
@@ -59,7 +60,7 @@ public class FHashMap91Tests
     {
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(100).ToArray();
 
-        var map = new ImTools.Experiments.FHashMap91<Type, string, RefEq<Type>>(128);
+        var map = new ImTools.Experiments.FHashMap91<Type, string, RefEq<Type>>(8);
 
         foreach (var key in types)
             map.AddOrUpdate(key, "a");

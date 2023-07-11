@@ -56,7 +56,7 @@ public static class FHashMap91
             if (probe != 0)
             {
                 ref var e = ref map.GetEntryRef(entryIndex);
-                var kh = e.Key.GetHashCode() & hashAndIndexMask;
+                var kh = default(TEq).GetHashCode(e.Key) & hashAndIndexMask;
                 heq = kh == hash;
                 // hkv = $"{toB(kh)}:{e.Key}->{e.Value}"; // todo: @wip
             }
@@ -135,6 +135,18 @@ public struct RefEq<K> : IEqualityComparer<K> where K : class
     public int GetHashCode(K obj) => obj.GetHashCode();
 }
 
+/// <summary>Uses the `object.GetHashCode` and `object.ReferenceEquals`</summary>
+public struct GoldenRefEq<K> : IEqualityComparer<K> where K : class
+{
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public bool Equals(K x, K y) => ReferenceEquals(x, y);
+
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public int GetHashCode(K obj) => (int)(obj.GetHashCode() * FHashMap91.GoldenRatio32);
+}
+
 /// <summary>Uses the integer itself as hash code and `==` for equality</summary>
 public struct IntEq : IEqualityComparer<int>
 {
@@ -186,14 +198,14 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     public const uint GoldenRatio32 = 2654435769; // 2^32 / phi for the Fibonacci hashing, where phi is the golden ratio ~1.61803
     public const int MinEntriesCapacity = 2;
     public const byte MinFreeCapacityShift = 3; // e.g. for the capacity 16: 16 >> 3 => 2, so 2 free slots is 12.5% of the capacity
-    public const byte MinCapacityBits = 4; // 1 << 4 == 8
+    public const byte MinCapacityBits = 3; // 1 << 3 == 8
     public const byte MaxProbeBits = 5; // 5 bits max, e.g. 31 (11111)
     public const byte MaxProbeCount = (1 << MaxProbeBits) - 1; // e.g. 31 (11111) for the 5 bits
     public const byte ProbeCountShift = 32 - MaxProbeBits;
     public const int ProbesMask = MaxProbeCount << ProbeCountShift;
     public const int HashAndIndexMask = ~ProbesMask;
 
-    public const int DefaultEntriesMaxIndexBitsBeforeSplit = 8;
+    public const byte DefaultEntriesMaxIndexBitsBeforeSplit = 8;
     private bool _hashesOverflowBufferIsFull;
     private int _entriesMaxIndexBitsBeforeSplit;
     private int _entriesMaxIndexMask;
@@ -288,7 +300,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
             if (_entryCount != 0)
                 Array.Resize(ref _entries, _entryCount << 1);
             else
-                _entries = new Entry[MinEntriesCapacity];
+                _entries = new Entry[MinEntriesCapacity]; // todo: @wip, @bug of reallocating if the _entryCount == 0
         }
         else
         {
@@ -554,6 +566,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 
                 // no need for robinhooding because we already did it for the old hashes and now just sparcing the hashes which are already in order
                 var idealIndex = indexWithNextBit;
+                // todo: @perf vectorize this - lookup for the first empty slot
 #if NET7_0_OR_GREATER
                 ref var h = ref Unsafe.Add(ref newHash, indexWithNextBit);
 #else
