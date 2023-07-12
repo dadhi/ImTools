@@ -408,15 +408,13 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     {
         var hash = default(TEq).GetHashCode(key);
 
-        var indexMask = (1 << _capacityBits) - 1;
-        var lastIndex = (1 << _capacityBits) + (_capacityBits - 1);
         // if the overflow space is filled-in or
         // if the free space is less than 1/8 of capacity (12.5%) then Resize
+        var indexMask = (1 << _capacityBits) - 1;
         if ((indexMask - _entryCount <= (indexMask >>> MinFreeCapacityShift)) | _hashesOverflowBufferIsFull)
         {
-            ResizeHashes();
+            ResizeHashes(indexMask);
             indexMask = (1 << _capacityBits) - 1;
-            lastIndex = (1 << _capacityBits) + (_capacityBits - 1);
             _hashesOverflowBufferIsFull = false;
         }
 
@@ -492,7 +490,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
             }
         }
         // keep the already met overflow or set it if the last inserted index is the last one
-        _hashesOverflowBufferIsFull |= lastIndex == hashIndex;
+        _hashesOverflowBufferIsFull |= (hashIndex + 1) == _packedHashesAndIndexes.Length;
     }
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
@@ -560,10 +558,9 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     private static ref int GetElementRef(ref int[] start, int distance) => ref start[distance];
 #endif
 
-    internal void ResizeHashes()
+    internal void ResizeHashes(int indexMask)
     {
-        var oldCapacity = 1 << _capacityBits;
-        if (oldCapacity == 1)
+        if (indexMask == 0)
         {
             _capacityBits = MinCapacityBits;
             _packedHashesAndIndexes = new int[(1 << MinCapacityBits) + MinCapacityBits];
@@ -574,6 +571,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
             return;
         }
 
+        var oldCapacity = indexMask + 1;
         var lastOldIndex = oldCapacity + (_capacityBits - 1);
         var newHashesAndIndexes = new int[(oldCapacity << 1) + (_capacityBits + 1)];
 
