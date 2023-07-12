@@ -135,7 +135,7 @@ public struct RefEq<K> : IEqualityComparer<K> where K : class
     public int GetHashCode(K obj) => obj.GetHashCode();
 }
 
-/// <summary>Uses the `object.GetHashCode` and `object.ReferenceEquals`</summary>
+/// <summary>Uses Fibonacci hashing by multiplying the original hash on the factor derived from the GoldenRatio</summary>
 public struct GoldenRefEq<K> : IEqualityComparer<K> where K : class
 {
     /// <inheritdoc />
@@ -156,7 +156,19 @@ public struct IntEq : IEqualityComparer<int>
 
     /// <inheritdoc />
     [MethodImpl((MethodImplOptions)256)]
-    public int GetHashCode(int obj) => obj; // todo: @perf @wip add the `* GoldenRatio32` for more fare bits usage and protection from overflow attacks
+    public int GetHashCode(int obj) => obj;
+}
+
+/// <summary>Uses Fibonacci hashing by multiplying the integer on the factor derived from the GoldenRatio</summary>
+public struct GoldenIntEq : IEqualityComparer<int>
+{
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public bool Equals(int x, int y) => x == y;
+
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public int GetHashCode(int obj) => (int)(obj * FHashMap91.GoldenRatio32);
 }
 
 /// <summary>Fast-comparing the types via `==` and gets the hash faster via `RuntimeHelpers.GetHashCode`</summary>
@@ -280,15 +292,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         var newEntryIndex = _entryCount;
         var entriesCapacity = _entries.Length;
         if (newEntryIndex >= _entries.Length)
-        {
-#if DEBUG
-            Debug.WriteLine($"[AppendEntry] Resize {entriesCapacity} -> {entriesCapacity << 1}");
-#endif
-            if (entriesCapacity != 0)
-                Array.Resize(ref _entries, entriesCapacity << 1);
-            else
-                _entries = new Entry[MinEntriesCapacity];
-        }
+            AllocateEntries(entriesCapacity);
 
         // if the new entry index is on the edge of the entries then we always need to resize or allocate more for the batch
         // var newEntryIndex = _entryCount & _entriesMaxIndexMask;
@@ -306,31 +310,42 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         ++_entryCount;
     }
 
-//     private void AllocateEntries(int entriesCapacity)
-//     {
-//         if (_entryCount <= _entriesMaxIndexMask) // for the small indexes which fit in the single entries
-//         {
-// #if DEBUG
-//             Debug.WriteLine($"[AllocateEntries] {_entryCount} -> {_entryCount << 1}");
-// #endif
-//             if (entriesCapacity != 0)
-//                 Array.Resize(ref _entries, entriesCapacity << 1);
-//             else
-//                 _entries = new Entry[MinEntriesCapacity]; // todo: @wip, @bug of reallocating if the _entryCount == 0
-//         }
-//         else
-//         {
-//             if (_entriesBatch != null)
-//             {
-//                 if ((_entryCount >>> _entriesMaxIndexBitsBeforeSplit) == _entriesBatch.Length) // check that index is outside of the batch
-//                     Array.Resize(ref _entriesBatch, _entriesBatch.Length << 1); // double the batch in order to speedup the index calculation by shift avoiding the div cost.
-//                 // note: We're not using GC.UninitializedArray here, because it makes sense only for the entries bigger than 2kb, but we usually split into the lesser entries in the batch.
-//                 _entriesBatch[_entryCount >>> _entriesMaxIndexBitsBeforeSplit] = _entries = new Entry[_entriesMaxIndexMask + 1];
-//             }
-//             else
-//                 _entriesBatch = new Entry[][] { _entries, _entries = new Entry[_entriesMaxIndexMask + 1] };
-//         }
-//     }
+    private void AllocateEntries(int entriesCapacity)
+    {
+#if DEBUG
+        Debug.WriteLine($"[AllocateEntries] Resize entries: {entriesCapacity} -> {entriesCapacity << 1}");
+#endif
+        if (entriesCapacity != 0)
+            Array.Resize(ref _entries, entriesCapacity << 1);
+        else
+            _entries = new Entry[MinEntriesCapacity];
+    }
+
+    //     private void AllocateEntries(int entriesCapacity)
+    //     {
+    //         if (_entryCount <= _entriesMaxIndexMask) // for the small indexes which fit in the single entries
+    //         {
+    // #if DEBUG
+    //             Debug.WriteLine($"[AllocateEntries] {_entryCount} -> {_entryCount << 1}");
+    // #endif
+    //             if (entriesCapacity != 0)
+    //                 Array.Resize(ref _entries, entriesCapacity << 1);
+    //             else
+    //                 _entries = new Entry[MinEntriesCapacity]; // todo: @wip, @bug of reallocating if the _entryCount == 0
+    //         }
+    //         else
+    //         {
+    //             if (_entriesBatch != null)
+    //             {
+    //                 if ((_entryCount >>> _entriesMaxIndexBitsBeforeSplit) == _entriesBatch.Length) // check that index is outside of the batch
+    //                     Array.Resize(ref _entriesBatch, _entriesBatch.Length << 1); // double the batch in order to speedup the index calculation by shift avoiding the div cost.
+    //                 // note: We're not using GC.UninitializedArray here, because it makes sense only for the entries bigger than 2kb, but we usually split into the lesser entries in the batch.
+    //                 _entriesBatch[_entryCount >>> _entriesMaxIndexBitsBeforeSplit] = _entries = new Entry[_entriesMaxIndexMask + 1];
+    //             }
+    //             else
+    //                 _entriesBatch = new Entry[][] { _entries, _entries = new Entry[_entriesMaxIndexMask + 1] };
+    //         }
+    //     }
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
     public bool TryGetValue(K key, out V value)

@@ -94,7 +94,7 @@ public class FHashMap91Tests
     [Test]
     public void Can_store_and_retrieve_value_from_map()
     {
-        var map = new FHashMap91<int, string, IntEq>(3);
+        var map = new FHashMap91<int, string, GoldenIntEq>(3);
 
         map.AddOrUpdate(42, "1");
         map.AddOrUpdate(42 + 32, "2");

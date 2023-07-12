@@ -851,10 +851,31 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 |----------------------- |------ |---------:|---------:|---------:|------:|--------:|----------------------:|------------------------:|---------------:|-------:|-------:|------------:|------------:|
 |        DictSlim_TryAdd |  1000 | 28.42 us | 0.585 us | 1.661 us |  1.00 |    0.00 |                51,595 |                     266 |            338 | 9.1553 | 0.7935 |  56.45 KB |        1.00 |
 | FHashMap91_AddOrUpdate |  1000 | 32.17 us | 0.621 us | 1.151 us |  1.11 |    0.07 |                56,017 |                     165 |            255 | 5.9814 | 0.5493 |   36.7 KB |        0.65 |
+
+## Removing sparce and against the fibonacci hashing
+
+|                        Method | Count |         Mean |      Error |     StdDev |       Median | Ratio | RatioSD | BranchInstructions/Op | CacheMisses/Op | BranchMispredictions/Op |   Gen0 |   Gen1 | Allocated | Alloc Ratio |
+|------------------------------ |------ |-------------:|-----------:|-----------:|-------------:|------:|--------:|----------------------:|---------------:|------------------------:|-------:|-------:|----------:|------------:|
+|               DictSlim_TryAdd |     1 |     59.07 ns |   1.188 ns |   2.373 ns |     58.35 ns |  1.00 |    0.00 |                   129 |              1 |                       0 | 0.0229 |      - |     144 B |        1.00 |
+|        FHashMap91_AddOrUpdate |     1 |     40.20 ns |   0.474 ns |   0.370 ns |     40.29 ns |  0.68 |    0.03 |                    82 |              0 |                       0 | 0.0204 |      - |     128 B |        0.89 |
+| FHashMap91_AddOrUpdate_Golden |     1 |     41.10 ns |   0.838 ns |   1.574 ns |     40.51 ns |  0.70 |    0.04 |                    82 |              0 |                       0 | 0.0204 |      - |     128 B |        0.89 |
+|                               |       |              |            |            |              |       |         |                       |                |                         |        |        |           |             |
+|               DictSlim_TryAdd |    10 |    356.98 ns |   7.152 ns |  13.078 ns |    354.61 ns |  1.00 |    0.00 |                   828 |              2 |                       1 | 0.1707 |      - |    1072 B |        1.00 |
+|        FHashMap91_AddOrUpdate |    10 |    255.94 ns |   5.004 ns |   4.178 ns |    255.33 ns |  0.71 |    0.03 |                   545 |              2 |                       1 | 0.1197 |      - |     752 B |        0.70 |
+| FHashMap91_AddOrUpdate_Golden |    10 |    262.42 ns |   5.290 ns |  13.368 ns |    257.85 ns |  0.74 |    0.05 |                   544 |              2 |                       1 | 0.1197 |      - |     752 B |        0.70 |
+|                               |       |              |            |            |              |       |         |                       |                |                         |        |        |           |             |
+|               DictSlim_TryAdd |   100 |  2,921.83 ns | 118.119 ns | 348.275 ns |  2,782.95 ns |  1.00 |    0.00 |                 5,825 |             33 |                      13 | 1.1902 | 0.0191 |    7488 B |        1.00 |
+|        FHashMap91_AddOrUpdate |   100 |  2,421.76 ns |  45.352 ns |  75.772 ns |  2,406.90 ns |  0.90 |    0.05 |                 4,749 |             16 |                       8 | 0.8659 | 0.0076 |    5456 B |        0.73 |
+| FHashMap91_AddOrUpdate_Golden |   100 |  2,692.55 ns |  53.738 ns |  77.069 ns |  2,686.73 ns |  1.00 |    0.06 |                 5,163 |             20 |                       8 | 0.8659 | 0.0076 |    5456 B |        0.73 |
+|                               |       |              |            |            |              |       |         |                       |                |                         |        |        |           |             |
+|               DictSlim_TryAdd |  1000 | 26,605.27 ns | 521.747 ns | 488.043 ns | 26,690.93 ns |  1.00 |    0.00 |                51,591 |            367 |                     344 | 9.1553 | 0.7935 |   57808 B |        1.00 |
+|        FHashMap91_AddOrUpdate |  1000 | 30,728.56 ns | 555.025 ns | 463.471 ns | 30,643.40 ns |  1.15 |    0.02 |                56,180 |            390 |                     150 | 7.9346 | 1.0986 |   49816 B |        0.86 |
+| FHashMap91_AddOrUpdate_Golden |  1000 | 24,296.32 ns | 461.675 ns | 583.871 ns | 24,109.52 ns |  0.92 |    0.03 |                46,825 |            251 |                      62 | 7.9346 | 1.0986 |   49816 B |        0.86 |
+
 */
-            // [Params(1, 10, 100, 1000)]
+            [Params(1, 10, 100, 1000)]
             // [Params(100)]
-            [Params(1000)]
+            // [Params(1000)]
             public int Count;
 
             private Type[] _types;
@@ -1056,6 +1077,18 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             public ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.RefEq<Type>> FHashMap91_AddOrUpdate()
             {
                 var map = new ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.RefEq<Type>>();
+
+                foreach (var key in _types)
+                    map.AddOrUpdate(key, "a");
+
+                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+                return map;
+            }
+
+            [Benchmark]
+            public ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.GoldenRefEq<Type>> FHashMap91_AddOrUpdate_Golden()
+            {
+                var map = new ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.GoldenRefEq<Type>>();
 
                 foreach (var key in _types)
                     map.AddOrUpdate(key, "a");
@@ -2060,6 +2093,27 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 |                            |       |          |           |           |       |         |                |                       |                         |           |             |
 | DictionarySlim_TryGetValue |  1000 | 7.608 ns | 0.1997 ns | 0.1770 ns |  1.00 |    0.00 |              0 |                    20 |                       0 |         - |          NA |
 |     FHashMap91_TryGetValue |  1000 | 6.384 ns | 0.1427 ns | 0.1114 ns |  0.84 |    0.03 |              0 |                    14 |                       0 |         - |          NA |
+
+## No more sparce anymore
+
+|                        Method | Count |     Mean |     Error |    StdDev |   Median | Ratio | RatioSD | BranchInstructions/Op | CacheMisses/Op | BranchMispredictions/Op | Allocated | Alloc Ratio |
+|------------------------------ |------ |---------:|----------:|----------:|---------:|------:|--------:|----------------------:|---------------:|------------------------:|----------:|------------:|
+|    DictionarySlim_TryGetValue |     1 | 6.759 ns | 0.2002 ns | 0.2603 ns | 6.704 ns |  1.00 |    0.00 |                    20 |              0 |                      -0 |         - |          NA |
+|        FHashMap91_TryGetValue |     1 | 4.512 ns | 0.1337 ns | 0.2271 ns | 4.432 ns |  0.67 |    0.05 |                    11 |              0 |                      -0 |         - |          NA |
+| FHashMap91_TryGetValue_Golden |     1 | 4.187 ns | 0.1022 ns | 0.0906 ns | 4.167 ns |  0.62 |    0.03 |                    11 |             -0 |                      -0 |         - |          NA |
+|                               |       |          |           |           |          |       |         |                       |                |                         |           |             |
+|    DictionarySlim_TryGetValue |    10 | 8.225 ns | 0.4388 ns | 1.2938 ns | 7.602 ns |  1.00 |    0.00 |                    20 |              0 |                       0 |         - |          NA |
+|        FHashMap91_TryGetValue |    10 | 4.434 ns | 0.1415 ns | 0.1453 ns | 4.434 ns |  0.58 |    0.06 |                    11 |              0 |                       0 |         - |          NA |
+| FHashMap91_TryGetValue_Golden |    10 | 4.498 ns | 0.1236 ns | 0.1033 ns | 4.472 ns |  0.59 |    0.05 |                    11 |              0 |                       0 |         - |          NA |
+|                               |       |          |           |           |          |       |         |                       |                |                         |           |             |
+|    DictionarySlim_TryGetValue |   100 | 7.067 ns | 0.1470 ns | 0.1303 ns | 7.080 ns |  1.00 |    0.00 |                    20 |              0 |                       0 |         - |          NA |
+|        FHashMap91_TryGetValue |   100 | 4.481 ns | 0.1484 ns | 0.2311 ns | 4.398 ns |  0.64 |    0.04 |                    11 |              0 |                      -0 |         - |          NA |
+| FHashMap91_TryGetValue_Golden |   100 | 8.215 ns | 0.2181 ns | 0.2240 ns | 8.178 ns |  1.17 |    0.04 |                    17 |              0 |                       0 |         - |          NA |
+|                               |       |          |           |           |          |       |         |                       |                |                         |           |             |
+|    DictionarySlim_TryGetValue |  1000 | 8.744 ns | 0.6189 ns | 1.8151 ns | 7.838 ns |  1.00 |    0.00 |                    20 |              0 |                       0 |         - |          NA |
+|        FHashMap91_TryGetValue |  1000 | 5.755 ns | 0.1660 ns | 0.1912 ns | 5.715 ns |  0.73 |    0.09 |                    14 |              0 |                       0 |         - |          NA |
+| FHashMap91_TryGetValue_Golden |  1000 | 7.732 ns | 0.1953 ns | 0.2325 ns | 7.705 ns |  0.97 |    0.13 |                    17 |              0 |                       0 |         - |          NA |
+
 */
             [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             // [Params(100)]
@@ -2079,6 +2133,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 _fHashMap7 = FillFHashMap7();
                 _fHashMap9 = FillFHashMap9();
                 _fHashMap91 = FillFHashMap91();
+                _fHashMap91golden = FillFHashMap91Golden();
                 _concurrentDict = ConcurrentDict();
                 _immutableDict = ImmutableDict();
             }
@@ -2282,6 +2337,19 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 
             private ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.RefEq<Type>> _fHashMap91;
 
+            public ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.GoldenRefEq<Type>> FillFHashMap91Golden()
+            {
+                var map = new ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.GoldenRefEq<Type>>();
+
+                foreach (var key in _keys.Take(Count))
+                    map.AddOrUpdate(key, "a");
+
+                map.AddOrUpdate(LookupKey, "!");
+                return map;
+            }
+
+            private ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.GoldenRefEq<Type>> _fHashMap91golden;
+
             public ConcurrentDictionary<Type, string> ConcurrentDict()
             {
                 var map = new ConcurrentDictionary<Type, string>();
@@ -2473,6 +2541,13 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             public string FHashMap91_TryGetValue()
             {
                 _fHashMap91.TryGetValue(LookupKey, out var result);
+                return result;
+            }
+
+            [Benchmark]
+            public string FHashMap91_TryGetValue_Golden()
+            {
+                _fHashMap91golden.TryGetValue(LookupKey, out var result);
                 return result;
             }
 
