@@ -598,7 +598,8 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
                 var indexWithNextBit = (oldHash & oldCapacity) | (i - (oldHash >>> ProbeCountShift) + 1);
 
                 // no need for robinhooding because we already did it for the old hashes and now just sparcing the hashes which are already in order
-                var idealIndex = indexWithNextBit;
+                var probes = 1;
+
                 // todo: @perf vectorize this - lookup for the first empty slot
 #if NET7_0_OR_GREATER
                 ref var h = ref Unsafe.Add(ref newHashes, indexWithNextBit);
@@ -607,14 +608,14 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 #endif
                 while (h != 0)
                 {
-                    ++indexWithNextBit;
 #if NET7_0_OR_GREATER
-                    h = ref Unsafe.Add(ref h, 1);
+                    h = ref Unsafe.Add(ref newHashes, indexWithNextBit + probes);
 #else
-                    h = ref newHashesAndIndexes[indexWithNextBit];
+                    h = ref newHashesAndIndexes[indexWithNextBit + probes];
 #endif
+                    ++probes;
                 }
-                h = ((indexWithNextBit - idealIndex + 1) << ProbeCountShift) | (oldHash & newHashAndIndexMask);
+                h = (probes << ProbeCountShift) | (oldHash & newHashAndIndexMask);
             }
         }
 
