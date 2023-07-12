@@ -242,7 +242,9 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     }
 
     /// <summary>Capacity calculates as `1 << capacityBitShift`</summary>
-    public FHashMap91(byte capacityBits, byte entriesMaxIndexBitsBeforeSplit = DefaultEntriesMaxIndexBitsBeforeSplit)
+    public FHashMap91(byte capacityBits
+        //, byte entriesMaxIndexBitsBeforeSplit = DefaultEntriesMaxIndexBitsBeforeSplit
+        )
     {
         _capacityBits = capacityBits;
         // _entriesMaxIndexBitsBeforeSplit = entriesMaxIndexBitsBeforeSplit;
