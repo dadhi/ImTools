@@ -412,7 +412,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         var lastIndex = (1 << _capacityBits) + (_capacityBits - 1);
         // if the overflow space is filled-in or
         // if the free space is less than 1/8 of capacity (12.5%) then Resize
-        if (_hashesOverflowBufferIsFull | (indexMask - _entryCount <= (indexMask >>> MinFreeCapacityShift)))
+        if ((indexMask - _entryCount <= (indexMask >>> MinFreeCapacityShift)) | _hashesOverflowBufferIsFull)
         {
             ResizeHashes();
             indexMask = (1 << _capacityBits) - 1;

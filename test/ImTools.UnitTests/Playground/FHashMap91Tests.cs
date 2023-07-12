@@ -40,8 +40,10 @@ public class FHashMap91Tests
     {
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(100).ToArray();
 
-        // var map = new ImTools.Experiments.FHashMap91<Type, string, RefEq<Type>>(); // todo: @wip
-        var map = new ImTools.Experiments.FHashMap91<Type, string, GoldenRefEq<Type>>();
+        // todo: @perf testing diff equality comparers
+        // var map = new ImTools.Experiments.FHashMap91<Type, string, TypeEq>();         // MaxProbes -> 8
+        // var map = new ImTools.Experiments.FHashMap91<Type, string, RefEq<Type>>();    // MaxProbes -> 7
+        var map = new ImTools.Experiments.FHashMap91<Type, string, GoldenRefEq<Type>>(); // MaxProbes -> 5
 
         foreach (var key in types)
             map.AddOrUpdate(key, "a");
