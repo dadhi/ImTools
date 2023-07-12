@@ -205,10 +205,10 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     public const int ProbesMask = MaxProbeCount << ProbeCountShift;
     public const int HashAndIndexMask = ~ProbesMask;
 
-    public const byte DefaultEntriesMaxIndexBitsBeforeSplit = 8;
+    // public const byte DefaultEntriesMaxIndexBitsBeforeSplit = 8;
     private bool _hashesOverflowBufferIsFull;
-    private int _entriesMaxIndexBitsBeforeSplit;
-    private int _entriesMaxIndexMask;
+    // private int _entriesMaxIndexBitsBeforeSplit;
+    // private int _entriesMaxIndexMask;
     private byte _capacityBits;
 
     // The _packedHashesAndIndexes elements are of `Int32`, 
@@ -220,8 +220,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     // todo: @feature remove - for the removed hash we won't use the tumbstone but will actually remove the hash.
     private int[] _packedHashesAndIndexes;
     private Entry[] _entries; // for the performance it always contains the current entries (maybe a nested array in the batch) where we are adding the new entry
-    private Entry[][] _entriesBatch;
-    // pre-calculated and saved on the DoubleSize for the performance
+    // private Entry[][] _entriesBatch;
     private int _entryCount;
 
     public int Count => _entryCount;
@@ -233,8 +232,8 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     public FHashMap91()
     {
         _capacityBits = 0;
-        _entriesMaxIndexBitsBeforeSplit = DefaultEntriesMaxIndexBitsBeforeSplit;
-        _entriesMaxIndexMask = (1 << DefaultEntriesMaxIndexBitsBeforeSplit) - 1; // e.g. 256 - 1 = 255
+        // _entriesMaxIndexBitsBeforeSplit = DefaultEntriesMaxIndexBitsBeforeSplit;
+        // _entriesMaxIndexMask = (1 << DefaultEntriesMaxIndexBitsBeforeSplit) - 1; // e.g. 256 - 1 = 255
 
         // using single cell array for hashes instead of empty one to allow the Lookup to work without the additional check for the emptiness
         _packedHashesAndIndexes = FHashMap91.SingleCellHashesAndIndexes;
@@ -246,8 +245,8 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     public FHashMap91(byte capacityBits, byte entriesMaxIndexBitsBeforeSplit = DefaultEntriesMaxIndexBitsBeforeSplit)
     {
         _capacityBits = capacityBits;
-        _entriesMaxIndexBitsBeforeSplit = entriesMaxIndexBitsBeforeSplit;
-        _entriesMaxIndexMask = (1 << entriesMaxIndexBitsBeforeSplit) - 1; // e.g. 256 - 1 = 255
+        // _entriesMaxIndexBitsBeforeSplit = entriesMaxIndexBitsBeforeSplit;
+        // _entriesMaxIndexMask = (1 << entriesMaxIndexBitsBeforeSplit) - 1; // e.g. 256 - 1 = 255
 
         // the overflow tail to the hashes is the size of log2N where N==capacityBits, 
         // it is probably fine to have the check for the overlow of capacity because it will be mispredicted only once at the end of loop (it even rarely for the lookup)
@@ -260,25 +259,40 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     internal ref Entry GetEntryRef(int index)
     {
 #if NET7_0_OR_GREATER
-        if (_entriesBatch == null) // todo: @perf can we optimize by always using the batch?
-            return ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entries), index);
-        ref var entries = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entriesBatch), index >>> _entriesMaxIndexBitsBeforeSplit);
-        return ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(entries), index & _entriesMaxIndexMask);
+        return ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entries), index);
+        // if (_entriesBatch == null) // todo: @perf can we optimize by always using the batch?
+        //     return ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entries), index);
+        // ref var entries = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entriesBatch), index >>> _entriesMaxIndexBitsBeforeSplit);
+        // return ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(entries), index & _entriesMaxIndexMask);
 #else
-        if (_entriesBatch == null)
-            return ref _entries[index];
-        return ref _entriesBatch[index >>> _entriesMaxIndexBitsBeforeSplit][index & _entriesMaxIndexMask];
+        return ref _entries[index];
+        // if (_entriesBatch == null)
+        //     return ref _entries[index];
+        // return ref _entriesBatch[index >>> _entriesMaxIndexBitsBeforeSplit][index & _entriesMaxIndexMask];
 #endif
     }
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
     private void AppendEntry(in K key, in V value)
     {
-        var newEntryIndex = _entryCount & _entriesMaxIndexMask;
+        var newEntryIndex = _entryCount;
+        var entriesCapacity = _entries.Length;
+        if (newEntryIndex >= _entries.Length)
+        {
+#if DEBUG
+            Debug.WriteLine($"[AppendEntry] Resize {entriesCapacity} -> {entriesCapacity << 1}");
+#endif
+            if (entriesCapacity != 0)
+                Array.Resize(ref _entries, entriesCapacity << 1);
+            else
+                _entries = new Entry[MinEntriesCapacity];
+        }
 
         // if the new entry index is on the edge of the entries then we always need to resize or allocate more for the batch
-        if ((newEntryIndex == 0) | (newEntryIndex == _entries.Length))
-            AllocateEntries();
+        // var newEntryIndex = _entryCount & _entriesMaxIndexMask;
+        // var entriesCapacity = _entries.Length;
+        // if ((newEntryIndex == 0) | (newEntryIndex == entriesCapacity))
+        //     AllocateEntries(entriesCapacity);
 
 #if NET7_0_OR_GREATER
         ref var e = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entries), newEntryIndex);
@@ -290,31 +304,31 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         ++_entryCount;
     }
 
-    private void AllocateEntries()
-    {
-        if (_entryCount <= _entriesMaxIndexMask) // for the small indexes which fit in the single entries
-        {
-#if DEBUG
-            Debug.WriteLine($"[AllocateEntries] {_entryCount} -> {_entryCount << 1}");
-#endif
-            if (_entryCount != 0)
-                Array.Resize(ref _entries, _entryCount << 1);
-            else
-                _entries = new Entry[MinEntriesCapacity]; // todo: @wip, @bug of reallocating if the _entryCount == 0
-        }
-        else
-        {
-            if (_entriesBatch != null)
-            {
-                if ((_entryCount >>> _entriesMaxIndexBitsBeforeSplit) == _entriesBatch.Length) // check that index is outside of the batch
-                    Array.Resize(ref _entriesBatch, _entriesBatch.Length << 1); // double the batch in order to speedup the index calculation by shift avoiding the div cost.
-                // note: We're not using GC.UninitializedArray here, because it makes sense only for the entries bigger than 2kb, but we usually split into the lesser entries in the batch.
-                _entriesBatch[_entryCount >>> _entriesMaxIndexBitsBeforeSplit] = _entries = new Entry[_entriesMaxIndexMask + 1];
-            }
-            else
-                _entriesBatch = new Entry[][] { _entries, _entries = new Entry[_entriesMaxIndexMask + 1] };
-        }
-    }
+//     private void AllocateEntries(int entriesCapacity)
+//     {
+//         if (_entryCount <= _entriesMaxIndexMask) // for the small indexes which fit in the single entries
+//         {
+// #if DEBUG
+//             Debug.WriteLine($"[AllocateEntries] {_entryCount} -> {_entryCount << 1}");
+// #endif
+//             if (entriesCapacity != 0)
+//                 Array.Resize(ref _entries, entriesCapacity << 1);
+//             else
+//                 _entries = new Entry[MinEntriesCapacity]; // todo: @wip, @bug of reallocating if the _entryCount == 0
+//         }
+//         else
+//         {
+//             if (_entriesBatch != null)
+//             {
+//                 if ((_entryCount >>> _entriesMaxIndexBitsBeforeSplit) == _entriesBatch.Length) // check that index is outside of the batch
+//                     Array.Resize(ref _entriesBatch, _entriesBatch.Length << 1); // double the batch in order to speedup the index calculation by shift avoiding the div cost.
+//                 // note: We're not using GC.UninitializedArray here, because it makes sense only for the entries bigger than 2kb, but we usually split into the lesser entries in the batch.
+//                 _entriesBatch[_entryCount >>> _entriesMaxIndexBitsBeforeSplit] = _entries = new Entry[_entriesMaxIndexMask + 1];
+//             }
+//             else
+//                 _entriesBatch = new Entry[][] { _entries, _entries = new Entry[_entriesMaxIndexMask + 1] };
+//         }
+//     }
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
     public bool TryGetValue(K key, out V value)
