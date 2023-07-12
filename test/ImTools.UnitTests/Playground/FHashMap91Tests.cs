@@ -75,21 +75,41 @@ public class FHashMap91Tests
     }
 
     [Test]
-    public void Real_world_test_Resize()
+    public void Real_world_test_with_TryRemove_from_1000_items()
     {
-        var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(100).ToArray();
+        var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(1000).ToArray();
 
-        var map = new ImTools.Experiments.FHashMap91<Type, string, RefEq<Type>>(128);
+        var map = new ImTools.Experiments.FHashMap91<Type, string, RefEq<Type>>();
 
         foreach (var key in types)
             map.AddOrUpdate(key, "a");
 
         map.AddOrUpdate(typeof(FHashMap91Tests), "!");
-        Assert.AreEqual(101, map.Count);
+        Assert.AreEqual(1001, map.Count);
 
         Assert.IsTrue(map.TryRemove(typeof(FHashMap91Tests)));
-        Assert.AreEqual(100, map.Count);
+        Assert.AreEqual(1000, map.Count);
 
+        Verify(map, types);
+    }
+
+    [Test]
+    public void Real_world_test_with_TryRemove_from_1000_items_GoldenRefEq()
+    {
+        var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(1000).ToArray();
+
+        var map = new ImTools.Experiments.FHashMap91<Type, string, GoldenRefEq<Type>>();
+
+        foreach (var key in types)
+            map.AddOrUpdate(key, "a");
+
+        map.AddOrUpdate(typeof(FHashMap91Tests), "!");
+        Assert.AreEqual(1001, map.Count);
+
+        Assert.IsTrue(map.TryRemove(types[500]));
+        Assert.AreEqual(1000, map.Count);
+
+        types[500] = typeof(FHashMap91Tests);
         Verify(map, types);
     }
 

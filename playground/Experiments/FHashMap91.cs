@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 #if NET7_0_OR_GREATER
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 #endif
 namespace ImTools.Experiments;
 
@@ -400,7 +402,33 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         TryGetValue(key, out var value) ? value : defaultValue;
 
 #if DEBUG
-    public int MaxProbes = 1;
+    internal int[] Probes = new int[1];
+
+    // will output something like
+    // [label] max_probes= 17, all_probes= [1= 334, 2= 654, 3= 565, 4= 415, 5= 279, 6= 188, 7= 132, 8= 97, 9= 63, 10= 54, 11= 48, 12= 43, 13= 40, 14= 35, 15= 19, 16= 6, 17= 1]
+    // [label] max_probes= 15, all_probes= [1= 296, 2= 609, 3= 604, 4= 433, 5= 302, 6= 187, 7= 129, 8= 94, 9= 56, 10= 38, 11= 17, 12= 14, 13= 11, 14= 3, 15= 1]
+    internal void CollectAndOutputProbes(int probes, [CallerMemberName]string label="")
+    {
+        if (probes > Probes.Length)
+        {
+            Array.Resize(ref Probes, probes);
+            Probes[probes - 1] = 1;
+            Debug.Write($"[{label}] max_probes= {probes}, all_probes= [");
+            var first4probes = 0;
+            for (var i = 0; i < Probes.Length; i++)
+            {
+                Debug.Write($"{(i == 0 ? "" : ", ")}{i + 1}= {Probes[i]}");
+                if (i < 4)
+                    first4probes += Probes[i];
+            }
+            Debug.WriteLine("]");
+            Debug.WriteLine($"[{label}] first_4_probes_total= {first4probes}");
+        }
+        else
+        {
+            ++Probes[probes - 1];
+        }
+    }
 #endif
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
@@ -414,6 +442,10 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         if ((indexMask - _entryCount <= (indexMask >>> MinFreeCapacityShift)) | _hashesOverflowBufferIsFull)
         {
             ResizeHashes(indexMask);
+#if DEBUG
+            if (_hashesOverflowBufferIsFull)
+                Debug.WriteLine("_hashesOverflowBufferIsFull!");
+#endif
             indexMask = (1 << _capacityBits) - 1;
             _hashesOverflowBufferIsFull = false;
         }
@@ -459,8 +491,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         var hHooded = h;
         h = (probes << ProbeCountShift) | (hash & hashPartMask) | _entryCount;
 #if DEBUG
-        if (probes > MaxProbes)
-            Debug.WriteLine($"[AddOrUpdate] MaxProbes {MaxProbes = probes}");
+        CollectAndOutputProbes(probes);
 #endif
 
         AppendEntry(in key, in value);
@@ -481,8 +512,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
                 var hHoodedNext = h;
                 h = (probes << ProbeCountShift) | (hHooded & HashAndIndexMask);
 #if DEBUG
-                if (probes > MaxProbes)
-                    Debug.WriteLine($"[AddOrUpdate] MaxProbes {MaxProbes = probes}");
+                CollectAndOutputProbes(probes);
 #endif
                 hHooded = hHoodedNext;
                 probes = hHoodedNext >>> ProbeCountShift;
@@ -525,6 +555,9 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
                     h = 0;
                     e = default;
                     --_entryCount;
+#if DEBUG
+                    --Probes[probes - 1];
+#endif
                     break;
                 }
             }
@@ -600,9 +633,14 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
                 // no need for robinhooding because we already did it for the old hashes and now just sparcing the hashes which are already in order
                 var probes = 1;
 
-                // todo: @perf vectorize this - lookup for the first empty slot
 #if NET7_0_OR_GREATER
                 ref var h = ref Unsafe.Add(ref newHashes, indexWithNextBit);
+
+                // todo: @wip
+                // read the 4 hashesAndIndexes at once into the vector
+                // var hVec = Unsafe.ReadUnaligned<Vector128<int>>(ref Unsafe.As<int, byte>(ref h));
+                // var zeroMask = Vector128.Equals(hVec, Vector128<int>.Zero).ExtractMostSignificantBits();
+                // var distance = BitOperations.TrailingZeroCount(zeroMask);
 #else
                 ref var h = ref newHashesAndIndexes[indexWithNextBit];
 #endif
@@ -620,7 +658,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         }
 
 #if DEBUG
-        Debug.WriteLine($"[ResizeHashes] with overflow buffer {oldCapacityWithOverflow} -> {newHashesAndIndexes.Length}");
+        Debug.WriteLine($"[ResizeHashes] with overflow buffer {oldCapacity}+{_capacityBits}={oldCapacityWithOverflow} -> {oldCapacity << 1}+{_capacityBits+1}={newHashesAndIndexes.Length}");
 #endif
         ++_capacityBits;
         _packedHashesAndIndexes = newHashesAndIndexes;
