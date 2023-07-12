@@ -415,14 +415,17 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
             Probes[probes - 1] = 1;
             Debug.Write($"[{label}] max_probes= {probes}, all_probes= [");
             var first4probes = 0;
+            var allProbes = 0;
             for (var i = 0; i < Probes.Length; i++)
             {
-                Debug.Write($"{(i == 0 ? "" : ", ")}{i + 1}= {Probes[i]}");
+                var p = Probes[i];
+                Debug.Write($"{(i == 0 ? "" : ", ")}{i + 1}= {p}");
                 if (i < 4)
-                    first4probes += Probes[i];
+                    first4probes += p;
+                allProbes += p;
             }
             Debug.WriteLine("]");
-            Debug.WriteLine($"[{label}] first_4_probes_total= {first4probes}");
+            Debug.WriteLine($"[{label}] first 4 probes total is {first4probes} out of {allProbes}");
         }
         else
         {
@@ -602,6 +605,9 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 #endif
             return;
         }
+#if DEBUG
+        Probes = new int[1]; // reset the probes
+#endif
 
         var oldCapacityBits = _capacityBits;
         var oldCapacity = indexMask + 1;
@@ -654,6 +660,9 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
                 }
 #endif
                 h = (probes << ProbeCountShift) | (oldHash & newHashAndIndexMask);
+#if DEBUG
+                CollectAndOutputProbes(probes);
+#endif
             }
         }
 
