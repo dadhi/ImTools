@@ -190,8 +190,8 @@ public class FHashMap91DebugProxy<K, V, TEq> where TEq : struct, IEqualityCompar
 {
     private readonly FHashMap91<K, V, TEq> _map;
     public FHashMap91DebugProxy(FHashMap91<K, V, TEq> map) => _map = map;
-    [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-    public FHashMap91.Item<K, V>[] Items => _map.Explain();
+    public FHashMap91.Item<K, V>[] PackedHashes => _map.Explain();
+    // public int[] Entries => new[] { 0, 2, 3 }; // todo: @improve add entries
 }
 
 [DebuggerTypeProxy(typeof(FHashMap91DebugProxy<,,>))] // todo: @wip add separately for the packed hashes
@@ -636,23 +636,23 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 #if NET7_0_OR_GREATER
                 ref var h = ref Unsafe.Add(ref newHashes, indexWithNextBit);
 
-                // todo: @wip
                 // read the 4 hashesAndIndexes at once into the vector
                 // var hVec = Unsafe.ReadUnaligned<Vector128<int>>(ref Unsafe.As<int, byte>(ref h));
                 // var zeroMask = Vector128.Equals(hVec, Vector128<int>.Zero).ExtractMostSignificantBits();
                 // var distance = BitOperations.TrailingZeroCount(zeroMask);
-#else
-                ref var h = ref newHashesAndIndexes[indexWithNextBit];
-#endif
                 while (h != 0)
                 {
-#if NET7_0_OR_GREATER
                     h = ref Unsafe.Add(ref newHashes, indexWithNextBit + probes);
-#else
-                    h = ref newHashesAndIndexes[indexWithNextBit + probes];
-#endif
                     ++probes;
                 }
+#else
+                ref var h = ref newHashesAndIndexes[indexWithNextBit];
+                while (h != 0)
+                {
+                    h = ref newHashesAndIndexes[indexWithNextBit + probes];
+                    ++probes;
+                }
+#endif
                 h = (probes << ProbeCountShift) | (oldHash & newHashAndIndexMask);
             }
         }
