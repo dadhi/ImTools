@@ -418,8 +418,8 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
             _hashesOverflowBufferIsFull = false;
         }
 
+        var hashPartMask = ~indexMask & HashAndIndexMask;
         var hashIndex = hash & indexMask;
-        var hashPart = hash & ~indexMask & HashAndIndexMask;
 
 #if NET7_0_OR_GREATER
         ref var hashesAndIndexes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
@@ -434,7 +434,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         while ((h >>> ProbeCountShift) >= probes)
         {
             // 2. For the equal probes check for equality the hash middle part, and update the entry if the keys are equal too 
-            if ((h & ~indexMask) == ((probes << ProbeCountShift) | hashPart))
+            if (((h >>> ProbeCountShift) == probes) & ((h & hashPartMask) == (hash & hashPartMask)))
             {
                 ref var e = ref GetEntryRef(h & indexMask);
 #if DEBUG
@@ -447,22 +447,22 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
                 }
             }
 
-            ++hashIndex;
-            ++probes;
 #if NET7_0_OR_GREATER
-            h = ref Unsafe.Add(ref h, 1);
+            h = ref Unsafe.Add(ref hashesAndIndexes, ++hashIndex);
 #else
-            h = ref hashesAndIndexes[hashIndex];
+            h = ref hashesAndIndexes[++hashIndex];
 #endif
+            ++probes;
         }
 
         // 3. We did not find the hash and therefore the key, so insert the new entry
         var hHooded = h;
-        h = (probes << ProbeCountShift) | hashPart | _entryCount;
+        h = (probes << ProbeCountShift) | (hash & hashPartMask) | _entryCount;
 #if DEBUG
         if (probes > MaxProbes)
             Debug.WriteLine($"[AddOrUpdate] MaxProbes {MaxProbes = probes}");
 #endif
+
         AppendEntry(in key, in value);
 
         // 4. If old hash is empty then we stop
@@ -470,13 +470,12 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         probes = hHooded >>> ProbeCountShift;
         while (hHooded != 0)
         {
-            ++hashIndex;
-            ++probes;
 #if NET7_0_OR_GREATER
-            h = ref Unsafe.Add(ref h, 1);
+            h = ref Unsafe.Add(ref hashesAndIndexes, ++hashIndex);
 #else
-            h = ref hashesAndIndexes[hashIndex];
+            h = ref hashesAndIndexes[++hashIndex];
 #endif
+            ++probes;
             if ((h >>> ProbeCountShift) < probes)
             {
                 var hHoodedNext = h;
@@ -571,33 +570,38 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
             return;
         }
 
+        var oldCapacityBits = _capacityBits;
         var oldCapacity = indexMask + 1;
-        var lastOldIndex = oldCapacity + (_capacityBits - 1);
-        var newHashesAndIndexes = new int[(oldCapacity << 1) + (_capacityBits + 1)];
+        var oldCapacityWithOverflow = oldCapacity + oldCapacityBits;
+        var newHashAndIndexMask = ~oldCapacity & HashAndIndexMask;
+        var newHashesAndIndexes = new int[(oldCapacity << 1) + (oldCapacityBits + 1)];
 
 #if NET7_0_OR_GREATER
-        ref var newHash = ref MemoryMarshal.GetArrayDataReference(newHashesAndIndexes);
-        ref var oldHash = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
+        ref var newHashes = ref MemoryMarshal.GetArrayDataReference(newHashesAndIndexes);
+        ref var oldHashes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
 #else
-        ref var oldHash = ref _packedHashesAndIndexes[0];
+        var oldHashes = _packedHashesAndIndexes;
 #endif
-        var i = 0;
-        while (true)
+
+#if NET7_0_OR_GREATER
+        for (var i = 0; i < oldCapacityWithOverflow; ++i)
         {
+            var oldHash = Unsafe.Add(ref oldHashes, i);
+#else
+        for (var i = 0; (uint)i < (uint)_packedHashesAndIndexes.Length; ++i)
+        {
+            var oldHash = _packedHashesAndIndexes[i];
+#endif
             if (oldHash != 0)
             {
                 // get the new hash index from the old one with the next bit equal to the `oldCapacity`
                 var indexWithNextBit = (oldHash & oldCapacity) | (i - (oldHash >>> ProbeCountShift) + 1);
 
-                // erasing the next to capacity bit, given the capacity was 4 and now it is 8 == 4 << 1,
-                // we are erasing the 3rd bit to store the new entry index in it.
-                var hashWithNextBitErased = oldHash & ~oldCapacity & HashAndIndexMask;
-
                 // no need for robinhooding because we already did it for the old hashes and now just sparcing the hashes which are already in order
                 var idealIndex = indexWithNextBit;
                 // todo: @perf vectorize this - lookup for the first empty slot
 #if NET7_0_OR_GREATER
-                ref var h = ref Unsafe.Add(ref newHash, indexWithNextBit);
+                ref var h = ref Unsafe.Add(ref newHashes, indexWithNextBit);
 #else
                 ref var h = ref newHashesAndIndexes[indexWithNextBit];
 #endif
@@ -610,20 +614,12 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
                     h = ref newHashesAndIndexes[indexWithNextBit];
 #endif
                 }
-                h = ((indexWithNextBit - idealIndex + 1) << ProbeCountShift) | hashWithNextBitErased;
+                h = ((indexWithNextBit - idealIndex + 1) << ProbeCountShift) | (oldHash & newHashAndIndexMask);
             }
-            if (i == lastOldIndex)
-                break;
-            ++i;
-#if NET7_0_OR_GREATER
-            oldHash = ref Unsafe.Add(ref oldHash, 1);
-#else
-            oldHash = ref _packedHashesAndIndexes[i];
-#endif
         }
 
 #if DEBUG
-        Debug.WriteLine($"[ResizeHashes] with overflow buffer {_packedHashesAndIndexes.Length} -> {newHashesAndIndexes.Length}");
+        Debug.WriteLine($"[ResizeHashes] with overflow buffer {oldCapacityWithOverflow} -> {newHashesAndIndexes.Length}");
 #endif
         ++_capacityBits;
         _packedHashesAndIndexes = newHashesAndIndexes;
