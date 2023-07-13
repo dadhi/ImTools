@@ -235,7 +235,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     // todo: @unused, tested but the benchmarks degraded significally for some reason. Will keep it here until the moral improves, or rather it is suggested to apply it on the side of the user if necessary.
     public const uint GoldenRatio32 = 2654435769; // 2^32 / phi for the Fibonacci hashing, where phi is the golden ratio ~1.61803
     public const int MinEntriesCapacity = 2;
-    public const byte MinFreeCapacityShift = 3; // e.g. for the capacity 16: 16 >> 3 => 2, so 2 free slots is 12.5% of the capacity
+    public const byte MinFreeCapacityShift = 2; // e.g. for the capacity 16: 16 >> 2 => 4, 25% of the free hash slots (it does not mean the entries free slot)
     public const byte MinCapacityBits = 3; // 1 << 3 == 8
     public const byte MaxProbeBits = 5; // 5 bits max, e.g. 31 (11111)
     public const byte MaxProbeCount = (1 << MaxProbeBits) - 1; // e.g. 31 (11111) for the 5 bits

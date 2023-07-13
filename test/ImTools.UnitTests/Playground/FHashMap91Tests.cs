@@ -94,6 +94,25 @@ public class FHashMap91Tests
     }
 
     [Test]
+    public void Real_world_test_with_TryRemove_from_1000_items_TypeEq()
+    {
+        var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(1000).ToArray();
+
+        var map = new ImTools.Experiments.FHashMap91<Type, string, TypeEq>();
+
+        foreach (var key in types)
+            map.AddOrUpdate(key, "a");
+
+        map.AddOrUpdate(typeof(FHashMap91Tests), "!");
+        Assert.AreEqual(1001, map.Count);
+
+        Assert.IsTrue(map.TryRemove(typeof(FHashMap91Tests)));
+        Assert.AreEqual(1000, map.Count);
+
+        Verify(map, types);
+    }
+
+    [Test]
     public void Real_world_test_with_TryRemove_from_1000_items_GoldenRefEq()
     {
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(1000).ToArray();
