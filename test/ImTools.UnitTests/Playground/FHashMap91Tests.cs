@@ -116,7 +116,137 @@ public class FHashMap91Tests
     [Test]
     public void Can_store_and_retrieve_value_from_map()
     {
-        var map = new FHashMap91<int, string, GoldenIntEq>(2);
+        var map = new FHashMap91<int, string, IntEq>(2);
+
+        map.AddOrUpdate(42, "1");
+        map.AddOrUpdate(42 + 32, "2");
+        map.AddOrUpdate(42 + 32 + 32, "3");
+
+        // interrupt the keys with ne key
+        map.AddOrUpdate(43, "a");
+        map.AddOrUpdate(43 + 32, "b");
+        map.AddOrUpdate(43 + 32 + 32, "c");
+
+        map.AddOrUpdate(42 + 32 + 32 + 32, "4");
+
+        // insert 3rd variety of the keys
+        map.AddOrUpdate(44, "*");
+
+        map.AddOrUpdate(42 + 32 + 32 + 32 + 32, "5");
+        map.AddOrUpdate(42 + 32 + 32 + 32 + 32 + 32, "6");
+        map.AddOrUpdate(43 + 32 + 32 + 32, "d");
+
+        map.AddOrUpdate(42 + 32 + 32 + 32 + 32 + 32 + 32, "7");
+        map.AddOrUpdate(42 + 32 + 32 + 32 + 32 + 32 + 32 + 32, "8");
+
+        // check for the missing key
+        Assert.AreEqual(null, map.GetValueOrDefault(43 + 32 + 32 + 32 + 32));
+
+        // check for the strange key
+        Assert.AreEqual("*", map.GetValueOrDefault(44));
+
+        Assert.AreEqual("1", map.GetValueOrDefault(42));
+        Assert.AreEqual("2", map.GetValueOrDefault(42 + 32));
+        Assert.AreEqual("3", map.GetValueOrDefault(42 + 32 + 32));
+        Assert.AreEqual("4", map.GetValueOrDefault(42 + 32 + 32 + 32));
+        Assert.AreEqual("5", map.GetValueOrDefault(42 + 32 + 32 + 32 + 32));
+        Assert.AreEqual("6", map.GetValueOrDefault(42 + 32 + 32 + 32 + 32 + 32));
+        Assert.AreEqual("7", map.GetValueOrDefault(42 + 32 + 32 + 32 + 32 + 32 + 32));
+        Assert.AreEqual("8", map.GetValueOrDefault(42 + 32 + 32 + 32 + 32 + 32 + 32 + 32));
+
+        Assert.AreEqual("a", map.GetValueOrDefault(43));
+        Assert.AreEqual("b", map.GetValueOrDefault(43 + 32));
+        Assert.AreEqual("c", map.GetValueOrDefault(43 + 32 + 32));
+        Assert.AreEqual("d", map.GetValueOrDefault(43 + 32 + 32 + 32));
+
+        Assert.AreEqual(13, map.Count);
+
+        Verify(map, null);
+    }
+
+/*
+## The comparison is very interesting
+
+// RefEq
+[AddOrUpdate] max_probes = 2, all probes = [1: 1, 2: 1]
+[AddOrUpdate] first 4 probes total is 2 out of 2
+[AddOrUpdate] max_probes = 3, all probes = [1: 1, 2: 1, 3: 1]
+[AddOrUpdate] first 4 probes total is 3 out of 3
+[ResizeHashes] with overflow buffer 4+2=6 -> 8+3=11
+[ResizeHashes] max_probes = 3, all probes = [1: 1, 2: 1, 3: 1]
+[ResizeHashes] first 4 probes total is 3 out of 3
+[AddOrUpdate] max_probes = 4, all probes = [1: 1, 2: 1, 3: 2, 4: 1]
+[AddOrUpdate] first 4 probes total is 5 out of 5
+[AllocateEntries] Resize entries: 4 -> 8
+[AddOrUpdate] max_probes = 5, all probes = [1: 1, 2: 1, 3: 2, 4: 1, 5: 1]
+[AddOrUpdate] first 4 probes total is 5 out of 6
+[AddOrUpdate-RH] max_probes = 6, all probes = [1: 1, 2: 1, 3: 2, 4: 2, 5: 1, 6: 1]
+[AddOrUpdate-RH] first 4 probes total is 6 out of 8
+[ResizeHashes] with overflow buffer 8+3=11 -> 16+4=20
+[ResizeHashes] max_probes = 6, all probes = [1: 1, 2: 1, 3: 1, 4: 2, 5: 1, 6: 1]
+[ResizeHashes] first 4 probes total is 5 out of 7
+[AllocateEntries] Resize entries: 8 -> 16
+[AddOrUpdate-RH] max_probes = 7, all probes = [1: 1, 2: 1, 3: 1, 4: 2, 5: 2, 6: 1, 7: 1]
+[AddOrUpdate-RH] first 4 probes total is 5 out of 9
+[AddOrUpdate-RH] max_probes = 8, all probes = [1: 1, 2: 1, 3: 1, 4: 2, 5: 2, 6: 2, 7: 1, 8: 1]
+[AddOrUpdate-RH] first 4 probes total is 5 out of 11
+[ResizeHashes] with overflow buffer 16+4=20 -> 32+5=37
+[ResizeHashes] max_probes = 8, all probes = [1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 2, 7: 1, 8: 2]
+[ResizeHashes] first 4 probes total is 4 out of 10
+_hashesOverflowBufferIsFull!
+[AddOrUpdate] max_probes = 9, all probes = [1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 2, 7: 1, 8: 2, 9: 1]
+[AddOrUpdate] first 4 probes total is 4 out of 11
+[AddOrUpdate-RH] max_probes = 10, all probes = [1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 2, 7: 2, 8: 2, 9: 1, 10: 1]
+[AddOrUpdate-RH] first 4 probes total is 4 out of 13
+[AddOrUpdate-RH] max_probes = 11, all probes = [1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 2, 7: 2, 8: 3, 9: 1, 10: 1, 11: 1]
+[AddOrUpdate-RH] first 4 probes total is 4 out of 15
+
+// GoldenRefEq
+[AddOrUpdate] max_probes = 2, all probes = [1: 1, 2: 1]
+[AddOrUpdate] first 4 probes total is 2 out of 2
+[AddOrUpdate] max_probes = 3, all probes = [1: 1, 2: 1, 3: 1]
+[AddOrUpdate] first 4 probes total is 3 out of 3
+[ResizeHashes] with overflow buffer 4+2=6 -> 8+3=11
+[ResizeHashes] max_probes = 3, all probes = [1: 1, 2: 1, 3: 1]
+[ResizeHashes] first 4 probes total is 3 out of 3
+[AddOrUpdate] max_probes = 4, all probes = [1: 1, 2: 1, 3: 2, 4: 1]
+[AddOrUpdate] first 4 probes total is 5 out of 5
+[AllocateEntries] Resize entries: 4 -> 8
+[AddOrUpdate] max_probes = 5, all probes = [1: 1, 2: 1, 3: 2, 4: 1, 5: 1]
+[AddOrUpdate] first 4 probes total is 5 out of 6
+[AddOrUpdate-RH] max_probes = 6, all probes = [1: 1, 2: 1, 3: 2, 4: 2, 5: 1, 6: 1]
+[AddOrUpdate-RH] first 4 probes total is 6 out of 8
+[ResizeHashes] with overflow buffer 8+3=11 -> 16+4=20
+[ResizeHashes] max_probes = 4, all probes = [1: 2, 2: 2, 3: 2, 4: 1]
+[ResizeHashes] first 4 probes total is 7 out of 7
+[AddOrUpdate] max_probes = 5, all probes = [1: 2, 2: 2, 3: 3, 4: 1, 5: 1]
+[AddOrUpdate] first 4 probes total is 8 out of 9
+[AllocateEntries] Resize entries: 8 -> 16
+[AddOrUpdate] max_probes = 6, all probes = [1: 2, 2: 2, 3: 3, 4: 2, 5: 1, 6: 1]
+[AddOrUpdate] first 4 probes total is 9 out of 11
+[AddOrUpdate] max_probes = 7, all probes = [1: 2, 2: 2, 3: 3, 4: 3, 5: 2, 6: 1, 7: 1]
+[AddOrUpdate] first 4 probes total is 10 out of 14
+[AddOrUpdate] max_probes = 8, all probes = [1: 2, 2: 2, 3: 3, 4: 3, 5: 2, 6: 2, 7: 1, 8: 1]
+[AddOrUpdate] first 4 probes total is 10 out of 16
+
+// GoldenShift5RefEq
+[ResizeHashes] with overflow buffer 4+2=6 -> 8+3=11
+[ResizeHashes] max_probes = 1, all probes = [1: 3]
+[ResizeHashes] first 4 probes total is 3 out of 3
+[AllocateEntries] Resize entries: 4 -> 8
+[AddOrUpdate] max_probes = 2, all probes = [1: 5, 2: 1]
+[AddOrUpdate] first 4 probes total is 6 out of 6
+[ResizeHashes] with overflow buffer 8+3=11 -> 16+4=20
+[ResizeHashes] max_probes = 2, all probes = [1: 6, 2: 1]
+[ResizeHashes] first 4 probes total is 7 out of 7
+[AllocateEntries] Resize entries: 8 -> 16
+*/
+    [Test]
+    public void Can_store_and_retrieve_value_from_map_Golden()
+    {
+        // var map = new FHashMap91<int, string, IntEq>(2);
+        // var map = new FHashMap91<int, string, GoldenIntEq>(2);
+        var map = new FHashMap91<int, string, GoldenShiftIntEq>(2);
 
         map.AddOrUpdate(42, "1");
         map.AddOrUpdate(42 + 32, "2");
