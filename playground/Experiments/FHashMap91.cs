@@ -158,7 +158,7 @@ public struct GoldenShiftRefEq<K> : IEqualityComparer<K> where K : class
 
     /// <inheritdoc />
     [MethodImpl((MethodImplOptions)256)]
-    public int GetHashCode(K obj) => (int)(obj.GetHashCode() * FHashMap91.GoldenRatio32) >>> 5;
+    public int GetHashCode(K obj) => (int)(obj.GetHashCode() * FHashMap91.GoldenRatio32) >>> 5; // ProbesBits
 }
 
 /// <summary>Uses the integer itself as hash code and `==` for equality</summary>
@@ -426,6 +426,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         TryGetValue(key, out var value) ? value : defaultValue;
 
 #if DEBUG
+    internal int MaxProbes = 1;
     internal int[] Probes = new int[1];
 
     // will output something like
@@ -433,7 +434,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     // [AddOrUpdate] first 4 probes total is 365 out of 369
     internal void DebugOutputProbes(string label)
     {
-        Debug.Write($"[{label}] max_probes = {Probes.Length}, all probes = [");
+        Debug.Write($"[{label}] Probes abs max = {MaxProbes}, max = {Probes.Length}, all = [");
         var first4probes = 0;
         var allProbes = 0;
         for (var i = 0; i < Probes.Length; i++)
@@ -452,6 +453,8 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     {
         if (probes > Probes.Length)
         {
+            if (probes > MaxProbes)
+                MaxProbes = probes;
             Array.Resize(ref Probes, probes);
             Probes[probes - 1] = 1;
             DebugOutputProbes(label);
@@ -467,6 +470,8 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         {
             if (h == 0) continue;
             var p = h >>> ProbeCountShift;
+            if (p > MaxProbes)
+                MaxProbes = p;
             if (p > newProbes.Length)
                 Array.Resize(ref newProbes, p);
             ++newProbes[p - 1];
