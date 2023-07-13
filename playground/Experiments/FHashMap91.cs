@@ -405,32 +405,50 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     internal int[] Probes = new int[1];
 
     // will output something like
-    // [label] max_probes= 17, all_probes= [1= 334, 2= 654, 3= 565, 4= 415, 5= 279, 6= 188, 7= 132, 8= 97, 9= 63, 10= 54, 11= 48, 12= 43, 13= 40, 14= 35, 15= 19, 16= 6, 17= 1]
-    // [label] max_probes= 15, all_probes= [1= 296, 2= 609, 3= 604, 4= 433, 5= 302, 6= 187, 7= 129, 8= 94, 9= 56, 10= 38, 11= 17, 12= 14, 13= 11, 14= 3, 15= 1]
-    internal void CollectAndOutputProbes(int probes, [CallerMemberName]string label="")
+    // [AddOrUpdate] max_probes = 6, all probes = [1: 180, 2: 103, 3: 59, 4: 23, 5: 3, 6: 1]
+    // [AddOrUpdate] first 4 probes total is 365 out of 369
+    internal void DebugOutputProbes(string label)
+    {
+        Debug.Write($"[{label}] max_probes = {Probes.Length}, all probes = [");
+        var first4probes = 0;
+        var allProbes = 0;
+        for (var i = 0; i < Probes.Length; i++)
+        {
+            var p = Probes[i];
+            Debug.Write($"{(i == 0 ? "" : ", ")}{i + 1}: {p}");
+            if (i < 4)
+                first4probes += p;
+            allProbes += p;
+        }
+        Debug.WriteLine("]");
+        Debug.WriteLine($"[{label}] first 4 probes total is {first4probes} out of {allProbes}");
+    }
+
+    internal void DebugCollectAndOutputProbes(int probes, [CallerMemberName] string label = "")
     {
         if (probes > Probes.Length)
         {
             Array.Resize(ref Probes, probes);
             Probes[probes - 1] = 1;
-            Debug.Write($"[{label}] max_probes= {probes}, all_probes= [");
-            var first4probes = 0;
-            var allProbes = 0;
-            for (var i = 0; i < Probes.Length; i++)
-            {
-                var p = Probes[i];
-                Debug.Write($"{(i == 0 ? "" : ", ")}{i + 1}= {p}");
-                if (i < 4)
-                    first4probes += p;
-                allProbes += p;
-            }
-            Debug.WriteLine("]");
-            Debug.WriteLine($"[{label}] first 4 probes total is {first4probes} out of {allProbes}");
+            DebugOutputProbes(label);
         }
         else
-        {
             ++Probes[probes - 1];
+    }
+
+    internal void DebugReCollectAndOutputProbes(int[] packedHashes, [CallerMemberName] string label = "")
+    {
+        var newProbes = new int[1];
+        foreach (var h in packedHashes)
+        {
+            if (h == 0) continue;
+            var p = h >>> ProbeCountShift;
+            if (p > newProbes.Length)
+                Array.Resize(ref newProbes, p);
+            ++newProbes[p - 1];
         }
+        Probes = newProbes;
+        DebugOutputProbes(label);
     }
 #endif
 
@@ -494,7 +512,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         var hHooded = h;
         h = (probes << ProbeCountShift) | (hash & hashPartMask) | _entryCount;
 #if DEBUG
-        CollectAndOutputProbes(probes);
+        DebugCollectAndOutputProbes(probes);
 #endif
 
         AppendEntry(in key, in value);
@@ -512,11 +530,13 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
             ++probes;
             if ((h >>> ProbeCountShift) < probes)
             {
+#if DEBUG
+                if (h != 0)
+                    --Probes[(h >>> ProbeCountShift) - 1];
+                DebugCollectAndOutputProbes(probes, "AddOrUpdate-RH");
+#endif
                 var hHoodedNext = h;
                 h = (probes << ProbeCountShift) | (hHooded & HashAndIndexMask);
-#if DEBUG
-                CollectAndOutputProbes(probes);
-#endif
                 hHooded = hHoodedNext;
                 probes = hHoodedNext >>> ProbeCountShift;
             }
@@ -605,9 +625,6 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 #endif
             return;
         }
-#if DEBUG
-        Probes = new int[1]; // reset the probes
-#endif
 
         var oldCapacityBits = _capacityBits;
         var oldCapacity = indexMask + 1;
@@ -660,14 +677,12 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
                 }
 #endif
                 h = (probes << ProbeCountShift) | (oldHash & newHashAndIndexMask);
-#if DEBUG
-                CollectAndOutputProbes(probes);
-#endif
             }
         }
 
 #if DEBUG
-        Debug.WriteLine($"[ResizeHashes] with overflow buffer {oldCapacity}+{_capacityBits}={oldCapacityWithOverflow} -> {oldCapacity << 1}+{_capacityBits+1}={newHashesAndIndexes.Length}");
+        Debug.WriteLine($"[ResizeHashes] with overflow buffer {oldCapacity}+{_capacityBits}={oldCapacityWithOverflow} -> {oldCapacity << 1}+{_capacityBits + 1}={newHashesAndIndexes.Length}");
+        DebugReCollectAndOutputProbes(newHashesAndIndexes);
 #endif
         ++_capacityBits;
         _packedHashesAndIndexes = newHashesAndIndexes;
