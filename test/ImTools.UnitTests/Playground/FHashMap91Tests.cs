@@ -165,9 +165,9 @@ public class FHashMap91Tests
     }
 
 /*
-## The comparison is very interesting
+## The comparison if IntEq vs GoldenIntEq vs GoldenShiftIntEq
 
-// RefEq
+// IntEq
 [AddOrUpdate] max_probes = 2, all probes = [1: 1, 2: 1]
 [AddOrUpdate] first 4 probes total is 2 out of 2
 [AddOrUpdate] max_probes = 3, all probes = [1: 1, 2: 1, 3: 1]
@@ -201,7 +201,7 @@ _hashesOverflowBufferIsFull!
 [AddOrUpdate-RH] max_probes = 11, all probes = [1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 2, 7: 2, 8: 3, 9: 1, 10: 1, 11: 1]
 [AddOrUpdate-RH] first 4 probes total is 4 out of 15
 
-// GoldenRefEq
+// GoldenIntEq
 [AddOrUpdate] max_probes = 2, all probes = [1: 1, 2: 1]
 [AddOrUpdate] first 4 probes total is 2 out of 2
 [AddOrUpdate] max_probes = 3, all probes = [1: 1, 2: 1, 3: 1]
@@ -229,7 +229,7 @@ _hashesOverflowBufferIsFull!
 [AddOrUpdate] max_probes = 8, all probes = [1: 2, 2: 2, 3: 3, 4: 3, 5: 2, 6: 2, 7: 1, 8: 1]
 [AddOrUpdate] first 4 probes total is 10 out of 16
 
-// GoldenShift5RefEq
+// GoldenShiftIntEq (shift 5)
 [ResizeHashes] with overflow buffer 4+2=6 -> 8+3=11
 [ResizeHashes] max_probes = 1, all probes = [1: 3]
 [ResizeHashes] first 4 probes total is 3 out of 3
