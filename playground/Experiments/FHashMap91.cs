@@ -683,29 +683,47 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
                 var indexWithNextBit = (oldHash & oldCapacity) | (i - (oldHash >>> ProbeCountShift) + 1);
 
                 // no need for robinhooding because we already did it for the old hashes and now just sparcing the hashes which are already in order
-                var probes = 1;
+                // var probes = 1;
 
 #if NET7_0_OR_GREATER
+                var probes = 1;
                 ref var h = ref Unsafe.Add(ref newHashes, indexWithNextBit);
+                while (h != 0)
+                {
+                    h = ref Unsafe.Add(ref newHashes, ++indexWithNextBit);
+                    ++probes;
+                }
+                h = (probes << ProbeCountShift) | (oldHash & newHashAndIndexMask);
 
                 // read the 4 hashesAndIndexes at once into the vector
                 // var hVec = Unsafe.ReadUnaligned<Vector128<int>>(ref Unsafe.As<int, byte>(ref h));
                 // var zeroMask = Vector128.Equals(hVec, Vector128<int>.Zero).ExtractMostSignificantBits();
                 // var distance = BitOperations.TrailingZeroCount(zeroMask);
-                while (h != 0)
-                {
-                    h = ref Unsafe.Add(ref newHashes, indexWithNextBit + probes);
-                    ++probes;
-                }
+                // if (distance == 0) {}
+                // else if (distance < 4)
+                // {
+                //     h = ref Unsafe.Add(ref newHashes, indexWithNextBit + distance);
+                // }
+                // else
+                // {
+                //     distance = 3;
+                //     do
+                //     {
+                //         ++distance;
+                //         h = ref Unsafe.Add(ref newHashes, indexWithNextBit + distance);
+                //     } while (h != 0);
+                // }
+                // h = ((distance + 1) << ProbeCountShift) | (oldHash & newHashAndIndexMask);
 #else
+                var probes = 1;
                 ref var h = ref newHashesAndIndexes[indexWithNextBit];
                 while (h != 0)
                 {
-                    h = ref newHashesAndIndexes[indexWithNextBit + probes];
+                    h = ref newHashesAndIndexes[++indexWithNextBit];
                     ++probes;
                 }
-#endif
                 h = (probes << ProbeCountShift) | (oldHash & newHashAndIndexMask);
+#endif
             }
         }
 

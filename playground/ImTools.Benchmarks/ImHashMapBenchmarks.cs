@@ -872,9 +872,21 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 |        FHashMap91_AddOrUpdate |  1000 | 30,728.56 ns | 555.025 ns | 463.471 ns | 30,643.40 ns |  1.15 |    0.02 |                56,180 |            390 |                     150 | 7.9346 | 1.0986 |   49816 B |        0.86 |
 | FHashMap91_AddOrUpdate_Golden |  1000 | 24,296.32 ns | 461.675 ns | 583.871 ns | 24,109.52 ns |  0.92 |    0.03 |                46,825 |            251 |                      62 | 7.9346 | 1.0986 |   49816 B |        0.86 |
 
+## Golden shift and simplest resize, and 75% loading factor
+
+|                        Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | BranchInstructions/Op | CacheMisses/Op | BranchMispredictions/Op |   Gen0 |   Gen1 | Allocated | Alloc Ratio |
+|------------------------------ |------ |---------:|----------:|----------:|------:|--------:|----------------------:|---------------:|------------------------:|-------:|-------:|----------:|------------:|
+|               DictSlim_TryAdd |   100 | 2.358 us | 0.0459 us | 0.0546 us |  1.00 |    0.00 |                 5,818 |             34 |                      13 | 1.1902 | 0.0191 |   7.31 KB |        1.00 |
+| FHashMap91_AddOrUpdate_Golden |   100 | 2.327 us | 0.0319 us | 0.0266 us |  0.99 |    0.02 |                 4,739 |             11 |                       8 | 1.0414 | 0.0114 |   6.38 KB |        0.87 |
+
+|                        Method | Count |     Mean |    Error |   StdDev | Ratio | RatioSD | BranchInstructions/Op | BranchMispredictions/Op | CacheMisses/Op |   Gen0 |   Gen1 | Allocated | Alloc Ratio |
+|------------------------------ |------ |---------:|---------:|---------:|------:|--------:|----------------------:|------------------------:|---------------:|-------:|-------:|----------:|------------:|
+|               DictSlim_TryAdd |  1000 | 23.27 us | 0.462 us | 0.567 us |  1.00 |    0.00 |                51,524 |                     304 |            253 | 9.1553 | 0.8240 |  56.45 KB |        1.00 |
+| FHashMap91_AddOrUpdate_Golden |  1000 | 21.69 us | 0.427 us | 0.747 us |  0.93 |    0.04 |                41,367 |                      69 |            299 | 7.9346 | 0.7324 |  48.65 KB |        0.86 |
+
 */
-            [Params(1, 10, 100, 1000)]
-            // [Params(100)]
+            // [Params(1, 10, 100, 1000)]
+            [Params(100)]
             // [Params(1000)]
             public int Count;
 
@@ -1073,7 +1085,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.RefEq<Type>> FHashMap91_AddOrUpdate()
             {
                 var map = new ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.RefEq<Type>>();
@@ -1086,9 +1098,9 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             }
 
             [Benchmark]
-            public ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.GoldenRefEq<Type>> FHashMap91_AddOrUpdate_Golden()
+            public ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.GoldenShiftRefEq<Type>> FHashMap91_AddOrUpdate_Golden()
             {
-                var map = new ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.GoldenRefEq<Type>>();
+                var map = new ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.GoldenShiftRefEq<Type>>();
 
                 foreach (var key in _types)
                     map.AddOrUpdate(key, "a");
