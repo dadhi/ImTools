@@ -884,6 +884,13 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 |               DictSlim_TryAdd |  1000 | 23.27 us | 0.462 us | 0.567 us |  1.00 |    0.00 |                51,524 |                     304 |            253 | 9.1553 | 0.8240 |  56.45 KB |        1.00 |
 | FHashMap91_AddOrUpdate_Golden |  1000 | 21.69 us | 0.427 us | 0.747 us |  0.93 |    0.04 |                41,367 |                      69 |            299 | 7.9346 | 0.7324 |  48.65 KB |        0.86 |
 
+|                        Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD |   Gen0 | BranchInstructions/Op | CacheMisses/Op | BranchMispredictions/Op |   Gen1 | Allocated | Alloc Ratio |
+|------------------------------ |------ |---------:|----------:|----------:|------:|--------:|-------:|----------------------:|---------------:|------------------------:|-------:|----------:|------------:|
+|               DictSlim_TryAdd |   100 | 2.578 us | 0.0492 us | 0.1141 us |  1.00 |    0.00 | 1.1902 |                 5,512 |             38 |                      13 | 0.0191 |   7.31 KB |        1.00 |
+|        FHashMap91_AddOrUpdate |   100 | 2.565 us | 0.0508 us | 0.1048 us |  1.00 |    0.07 | 1.0414 |                 4,668 |             27 |                       7 | 0.0114 |   6.38 KB |        0.87 |
+| FHashMap91_AddOrUpdate_TypeEq |   100 | 2.477 us | 0.0493 us | 0.1326 us |  0.97 |    0.08 | 1.0414 |                 4,430 |             15 |                       7 | 0.0114 |   6.38 KB |        0.87 |
+| FHashMap91_AddOrUpdate_Golden |   100 | 2.696 us | 0.0531 us | 0.0902 us |  1.06 |    0.06 | 1.0414 |                 4,746 |             40 |                       8 | 0.0114 |   6.38 KB |        0.87 |
+
 */
             // [Params(1, 10, 100, 1000)]
             [Params(100)]
@@ -1085,7 +1092,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return map;
             }
 
-            // [Benchmark]
+            [Benchmark]
             public ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.RefEq<Type>> FHashMap91_AddOrUpdate()
             {
                 var map = new ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.RefEq<Type>>();
@@ -1098,9 +1105,21 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             }
 
             [Benchmark]
-            public ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.GoldenShiftRefEq<Type>> FHashMap91_AddOrUpdate_Golden()
+            public ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.TypeEq> FHashMap91_AddOrUpdate_TypeEq()
             {
-                var map = new ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.GoldenShiftRefEq<Type>>();
+                var map = new ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.TypeEq>();
+
+                foreach (var key in _types)
+                    map.AddOrUpdate(key, "a");
+
+                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+                return map;
+            }
+
+            [Benchmark]
+            public ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.GoldenRefEq<Type>> FHashMap91_AddOrUpdate_Golden()
+            {
+                var map = new ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.GoldenRefEq<Type>>();
 
                 foreach (var key in _types)
                     map.AddOrUpdate(key, "a");
@@ -2127,8 +2146,8 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 | FHashMap91_TryGetValue_Golden |  1000 | 7.732 ns | 0.1953 ns | 0.2325 ns | 7.705 ns |  0.97 |    0.13 |                    17 |              0 |                       0 |         - |          NA |
 
 */
-            [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
-            // [Params(100)]
+            // [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
+            [Params(100)]
             public int Count;
 
             [GlobalSetup]

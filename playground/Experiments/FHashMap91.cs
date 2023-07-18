@@ -1,26 +1,43 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 #if NET7_0_OR_GREATER
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 #endif
 namespace ImTools.Experiments;
+
+using static FHashMap91;
 
 public static class FHashMap91
 {
     internal const uint GoldenRatio32 = 2654435769; // 2^32 / phi for the Fibonacci hashing, where phi is the golden ratio ~1.61803
 
+    public const int MinEntriesCapacity = 2;
+    public const byte MinFreeCapacityShift = 2; // e.g. for the capacity 16: 16 >> 2 => 4, 25% of the free hash slots (it does not mean the entries free slot)
+    public const byte MinCapacityBits = 3; // 1 << 3 == 8
+    public const byte MaxProbeBits = 5; // 5 bits max, e.g. 31 (11111)
+    public const byte MaxProbeCount = (1 << MaxProbeBits) - 1; // e.g. 31 (11111) for the 5 bits
+    public const byte ProbeCountShift = 32 - MaxProbeBits;
+    public const int ProbesMask = MaxProbeCount << ProbeCountShift;
+    public const int HashAndIndexMask = ~ProbesMask;
+
     internal static readonly int[] SingleCellHashesAndIndexes = new int[1];
 
-    public struct Item<K, V>
+    // todo: @improve make the Entry a type parameter to map and define TEq in terms of the Entry, 
+    // todo: @improve it will allow to introduce the Set later without the Value in the Entry, end the Entry may be the Key itself
+    [DebuggerDisplay("{Key}->{Value}")]
+    public struct Entry<K, V>
+    {
+        public K Key;
+        public V Value;
+    }
+
+    public struct DebugItem<K, V>
     {
         public int Probe;
         public bool HEq;
         public string Hash;
-        public string HKV;
         public int Index;
         public bool IsEmpty => Probe == 0;
         public string Output => $"{Probe}|{Hash}|{Index}";
@@ -29,40 +46,35 @@ public static class FHashMap91
 
     /// <summary>Converts the packed hashes and entries into the human readable info.
     /// This also used for the debugging view of the <paramref name="map"/> and by the Verify... methods in tests.</summary>
-    public static Item<K, V>[] Explain<K, V, TEq>(this FHashMap91<K, V, TEq> map) where TEq : struct, IEqualityComparer<K>
+    public static DebugItem<K, V>[] Explain<K, V, TEq>(this FHashMap91<K, V, TEq> map) where TEq : struct, IEqualityComparer<K>
     {
-        var probeCountShift = FHashMap91<K, V, TEq>.ProbeCountShift;
-        var hashAndIndexMask = FHashMap91<K, V, TEq>.HashAndIndexMask;
-
         var hashes = map.PackedHashesAndIndexes;
         var capacityBits = map.CapacityBits;
         var capacity = 1 << capacityBits;
         var indexMask = capacity - 1;
 
-        var items = new Item<K, V>[hashes.Length];
+        var items = new DebugItem<K, V>[hashes.Length];
         for (var i = 0; i < hashes.Length; i++)
         {
             var h = hashes[i];
             if (h == 0)
                 continue;
 
-            var probe = h >>> probeCountShift;
+            var probe = h >>> ProbeCountShift;
             var hashIndex = i - probe + 1;
 
-            var hashMiddle = (h & hashAndIndexMask & ~indexMask);
+            var hashMiddle = (h & HashAndIndexMask & ~indexMask);
             var hash = hashMiddle | hashIndex;
             var entryIndex = h & indexMask;
 
-            string hkv = null;
             var heq = false;
             if (probe != 0)
             {
                 ref var e = ref map.GetEntryRef(entryIndex);
-                var kh = default(TEq).GetHashCode(e.Key) & hashAndIndexMask;
+                var kh = default(TEq).GetHashCode(e.Key) & HashAndIndexMask;
                 heq = kh == hash;
-                // hkv = $"{toB(kh)}:{e.Key}->{e.Value}"; // todo: @wip
             }
-            items[i] = new Item<K, V> { Probe = probe, Hash = toB(hash), HEq = heq, Index = entryIndex, HKV = hkv };
+            items[i] = new DebugItem<K, V> { Probe = probe, Hash = toB(hash), HEq = heq, Index = entryIndex };
         }
         return items;
 
@@ -146,19 +158,7 @@ public struct GoldenRefEq<K> : IEqualityComparer<K> where K : class
 
     /// <inheritdoc />
     [MethodImpl((MethodImplOptions)256)]
-    public int GetHashCode(K obj) => (int)(obj.GetHashCode() * FHashMap91.GoldenRatio32);
-}
-
-/// <summary>Uses Fibonacci hashing by multiplying the original hash on the factor derived from the GoldenRatio</summary>
-public struct GoldenShiftRefEq<K> : IEqualityComparer<K> where K : class
-{
-    /// <inheritdoc />
-    [MethodImpl((MethodImplOptions)256)]
-    public bool Equals(K x, K y) => ReferenceEquals(x, y);
-
-    /// <inheritdoc />
-    [MethodImpl((MethodImplOptions)256)]
-    public int GetHashCode(K obj) => (int)(obj.GetHashCode() * FHashMap91.GoldenRatio32) >>> 5; // ProbesBits
+    public int GetHashCode(K obj) => (int)(obj.GetHashCode() * FHashMap91.GoldenRatio32) >>> FHashMap91.MaxProbeBits;
 }
 
 /// <summary>Uses the integer itself as hash code and `==` for equality</summary>
@@ -182,19 +182,7 @@ public struct GoldenIntEq : IEqualityComparer<int>
 
     /// <inheritdoc />
     [MethodImpl((MethodImplOptions)256)]
-    public int GetHashCode(int obj) => (int)(obj * FHashMap91.GoldenRatio32);
-}
-
-/// <summary>Uses Fibonacci hashing by multiplying the integer on the factor derived from the GoldenRatio</summary>
-public struct GoldenShiftIntEq : IEqualityComparer<int>
-{
-    /// <inheritdoc />
-    [MethodImpl((MethodImplOptions)256)]
-    public bool Equals(int x, int y) => x == y;
-
-    /// <inheritdoc />
-    [MethodImpl((MethodImplOptions)256)]
-    public int GetHashCode(int obj) => (int)(obj * FHashMap91.GoldenRatio32) >>> 5;
+    public int GetHashCode(int obj) => (int)(obj * FHashMap91.GoldenRatio32) >>> FHashMap91.MaxProbeBits;
 }
 
 /// <summary>Fast-comparing the types via `==` and gets the hash faster via `RuntimeHelpers.GetHashCode`</summary>
@@ -214,39 +202,16 @@ public class FHashMap91DebugProxy<K, V, TEq> where TEq : struct, IEqualityCompar
 {
     private readonly FHashMap91<K, V, TEq> _map;
     public FHashMap91DebugProxy(FHashMap91<K, V, TEq> map) => _map = map;
-    public FHashMap91.Item<K, V>[] PackedHashes => _map.Explain();
-    // public int[] Entries => new[] { 0, 2, 3 }; // todo: @improve add entries
+    public FHashMap91.DebugItem<K, V>[] PackedHashes => _map.Explain();
+    public FHashMap91.Entry<K, V>[] Entries => _map.Entries;
 }
 
-[DebuggerTypeProxy(typeof(FHashMap91DebugProxy<,,>))] // todo: @wip add separately for the packed hashes
+[DebuggerTypeProxy(typeof(FHashMap91DebugProxy<,,>))]
 [DebuggerDisplay("Count={Count}")]
 #endif
 public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 {
-    // todo: @improve make the Entry a type parameter to map and define TEq in terms of the Entry, 
-    // todo: @improve it will allow to introduce the Set later without the Value in the Entry, end the Entry may be the Key itself
-    [DebuggerDisplay("{Key}->{Value}")]
-    public struct Entry
-    {
-        public K Key;
-        public V Value;
-    }
-
-    // todo: @unused, tested but the benchmarks degraded significally for some reason. Will keep it here until the moral improves, or rather it is suggested to apply it on the side of the user if necessary.
-    public const uint GoldenRatio32 = 2654435769; // 2^32 / phi for the Fibonacci hashing, where phi is the golden ratio ~1.61803
-    public const int MinEntriesCapacity = 2;
-    public const byte MinFreeCapacityShift = 2; // e.g. for the capacity 16: 16 >> 2 => 4, 25% of the free hash slots (it does not mean the entries free slot)
-    public const byte MinCapacityBits = 3; // 1 << 3 == 8
-    public const byte MaxProbeBits = 5; // 5 bits max, e.g. 31 (11111)
-    public const byte MaxProbeCount = (1 << MaxProbeBits) - 1; // e.g. 31 (11111) for the 5 bits
-    public const byte ProbeCountShift = 32 - MaxProbeBits;
-    public const int ProbesMask = MaxProbeCount << ProbeCountShift;
-    public const int HashAndIndexMask = ~ProbesMask;
-
-    // public const byte DefaultEntriesMaxIndexBitsBeforeSplit = 8;
     private bool _hashesOverflowBufferIsFull;
-    // private int _entriesMaxIndexBitsBeforeSplit;
-    // private int _entriesMaxIndexMask;
     private byte _capacityBits;
 
     // The _packedHashesAndIndexes elements are of `Int32`, 
@@ -257,58 +222,42 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     //      |- 5 high bits of the Probe count, with the minimal value of 00001  indicating non-empty slot.
     // todo: @feature remove - for the removed hash we won't use the tumbstone but will actually remove the hash.
     private int[] _packedHashesAndIndexes;
-    private Entry[] _entries; // for the performance it always contains the current entries (maybe a nested array in the batch) where we are adding the new entry
-    // private Entry[][] _entriesBatch;
+    private Entry<K, V>[] _entries; // for the performance it always contains the current entries (maybe a nested array in the batch) where we are adding the new entry
     private int _entryCount;
 
     public int Count => _entryCount;
     public int CapacityBits => _capacityBits;
 
     internal int[] PackedHashesAndIndexes => _packedHashesAndIndexes;
-    internal Entry[] Entries => _entries;
+    internal Entry<K, V>[] Entries => _entries;
 
     public FHashMap91()
     {
         _capacityBits = 0;
-        // _entriesMaxIndexBitsBeforeSplit = DefaultEntriesMaxIndexBitsBeforeSplit;
-        // _entriesMaxIndexMask = (1 << DefaultEntriesMaxIndexBitsBeforeSplit) - 1; // e.g. 256 - 1 = 255
-
         // using single cell array for hashes instead of empty one to allow the Lookup to work without the additional check for the emptiness
         _packedHashesAndIndexes = FHashMap91.SingleCellHashesAndIndexes;
-        _entries = Array.Empty<Entry>();
+        _entries = Array.Empty<Entry<K, V>>();
         _entryCount = 0;
     }
 
     /// <summary>Capacity calculates as `1 << capacityBitShift`</summary>
-    public FHashMap91(byte capacityBits
-        //, byte entriesMaxIndexBitsBeforeSplit = DefaultEntriesMaxIndexBitsBeforeSplit
-        )
+    public FHashMap91(byte capacityBits)
     {
         _capacityBits = capacityBits;
-        // _entriesMaxIndexBitsBeforeSplit = entriesMaxIndexBitsBeforeSplit;
-        // _entriesMaxIndexMask = (1 << entriesMaxIndexBitsBeforeSplit) - 1; // e.g. 256 - 1 = 255
-
         // the overflow tail to the hashes is the size of log2N where N==capacityBits, 
         // it is probably fine to have the check for the overlow of capacity because it will be mispredicted only once at the end of loop (it even rarely for the lookup)
         _packedHashesAndIndexes = new int[(1 << capacityBits) + capacityBits];
-        _entries = new Entry[1 << capacityBits];
+        _entries = new Entry<K, V>[1 << capacityBits];
         _entryCount = 0;
     }
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
-    internal ref Entry GetEntryRef(int index)
+    internal ref Entry<K, V> GetEntryRef(int index)
     {
 #if NET7_0_OR_GREATER
         return ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entries), index);
-        // if (_entriesBatch == null) // todo: @perf can we optimize by always using the batch?
-        //     return ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entries), index);
-        // ref var entries = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entriesBatch), index >>> _entriesMaxIndexBitsBeforeSplit);
-        // return ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(entries), index & _entriesMaxIndexMask);
 #else
         return ref _entries[index];
-        // if (_entriesBatch == null)
-        //     return ref _entries[index];
-        // return ref _entriesBatch[index >>> _entriesMaxIndexBitsBeforeSplit][index & _entriesMaxIndexMask];
 #endif
     }
 
@@ -319,13 +268,6 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         var entriesCapacity = _entries.Length;
         if (newEntryIndex >= _entries.Length)
             AllocateEntries(entriesCapacity);
-
-        // if the new entry index is on the edge of the entries then we always need to resize or allocate more for the batch
-        // var newEntryIndex = _entryCount & _entriesMaxIndexMask;
-        // var entriesCapacity = _entries.Length;
-        // if ((newEntryIndex == 0) | (newEntryIndex == entriesCapacity))
-        //     AllocateEntries(entriesCapacity);
-
 #if NET7_0_OR_GREATER
         ref var e = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entries), newEntryIndex);
 #else
@@ -344,34 +286,8 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         if (entriesCapacity != 0)
             Array.Resize(ref _entries, entriesCapacity << 1);
         else
-            _entries = new Entry[MinEntriesCapacity];
+            _entries = new Entry<K, V>[MinEntriesCapacity];
     }
-
-    //     private void AllocateEntries(int entriesCapacity)
-    //     {
-    //         if (_entryCount <= _entriesMaxIndexMask) // for the small indexes which fit in the single entries
-    //         {
-    // #if DEBUG
-    //             Debug.WriteLine($"[AllocateEntries] {_entryCount} -> {_entryCount << 1}");
-    // #endif
-    //             if (entriesCapacity != 0)
-    //                 Array.Resize(ref _entries, entriesCapacity << 1);
-    //             else
-    //                 _entries = new Entry[MinEntriesCapacity]; // todo: @wip, @bug of reallocating if the _entryCount == 0
-    //         }
-    //         else
-    //         {
-    //             if (_entriesBatch != null)
-    //             {
-    //                 if ((_entryCount >>> _entriesMaxIndexBitsBeforeSplit) == _entriesBatch.Length) // check that index is outside of the batch
-    //                     Array.Resize(ref _entriesBatch, _entriesBatch.Length << 1); // double the batch in order to speedup the index calculation by shift avoiding the div cost.
-    //                 // note: We're not using GC.UninitializedArray here, because it makes sense only for the entries bigger than 2kb, but we usually split into the lesser entries in the batch.
-    //                 _entriesBatch[_entryCount >>> _entriesMaxIndexBitsBeforeSplit] = _entries = new Entry[_entriesMaxIndexMask + 1];
-    //             }
-    //             else
-    //                 _entriesBatch = new Entry[][] { _entries, _entries = new Entry[_entriesMaxIndexMask + 1] };
-    //         }
-    //     }
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
     public bool TryGetValue(K key, out V value)
@@ -580,7 +496,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         var hash = default(TEq).GetHashCode(key);
 
         var indexMask = (1 << _capacityBits) - 1;
-        var lastIndex = (1 << _capacityBits) + (_capacityBits - 1);
+        // var lastIndex = (1 << _capacityBits) + (_capacityBits - 1); // todo: @wip is not used but should be
         var hashPartMask = ~indexMask & HashAndIndexMask;
         var hashIndex = hash & indexMask;
 
@@ -683,47 +599,23 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
                 var indexWithNextBit = (oldHash & oldCapacity) | (i - (oldHash >>> ProbeCountShift) + 1);
 
                 // no need for robinhooding because we already did it for the old hashes and now just sparcing the hashes which are already in order
-                // var probes = 1;
-
-#if NET7_0_OR_GREATER
                 var probes = 1;
+#if NET7_0_OR_GREATER
                 ref var h = ref Unsafe.Add(ref newHashes, indexWithNextBit);
                 while (h != 0)
                 {
                     h = ref Unsafe.Add(ref newHashes, ++indexWithNextBit);
                     ++probes;
                 }
-                h = (probes << ProbeCountShift) | (oldHash & newHashAndIndexMask);
-
-                // read the 4 hashesAndIndexes at once into the vector
-                // var hVec = Unsafe.ReadUnaligned<Vector128<int>>(ref Unsafe.As<int, byte>(ref h));
-                // var zeroMask = Vector128.Equals(hVec, Vector128<int>.Zero).ExtractMostSignificantBits();
-                // var distance = BitOperations.TrailingZeroCount(zeroMask);
-                // if (distance == 0) {}
-                // else if (distance < 4)
-                // {
-                //     h = ref Unsafe.Add(ref newHashes, indexWithNextBit + distance);
-                // }
-                // else
-                // {
-                //     distance = 3;
-                //     do
-                //     {
-                //         ++distance;
-                //         h = ref Unsafe.Add(ref newHashes, indexWithNextBit + distance);
-                //     } while (h != 0);
-                // }
-                // h = ((distance + 1) << ProbeCountShift) | (oldHash & newHashAndIndexMask);
 #else
-                var probes = 1;
                 ref var h = ref newHashesAndIndexes[indexWithNextBit];
                 while (h != 0)
                 {
                     h = ref newHashesAndIndexes[++indexWithNextBit];
                     ++probes;
                 }
-                h = (probes << ProbeCountShift) | (oldHash & newHashAndIndexMask);
 #endif
+                h = (probes << ProbeCountShift) | (oldHash & newHashAndIndexMask);
             }
         }
 
