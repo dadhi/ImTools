@@ -2149,9 +2149,25 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 |        FHashMap91_TryGetValue |  1000 | 5.755 ns | 0.1660 ns | 0.1912 ns | 5.715 ns |  0.73 |    0.09 |                    14 |              0 |                       0 |         - |          NA |
 | FHashMap91_TryGetValue_Golden |  1000 | 7.732 ns | 0.1953 ns | 0.2325 ns | 7.705 ns |  0.97 |    0.13 |                    17 |              0 |                       0 |         - |          NA |
 
+## Final load factor 87.5% and no golden results
+
+|                     Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | BranchInstructions/Op | BranchMispredictions/Op | CacheMisses/Op | Allocated | Alloc Ratio |
+|--------------------------- |------ |---------:|----------:|----------:|------:|--------:|----------------------:|------------------------:|---------------:|----------:|------------:|
+| DictionarySlim_TryGetValue |     1 | 6.830 ns | 0.1073 ns | 0.1004 ns |  1.00 |    0.00 |                    20 |                       0 |              0 |         - |          NA |
+|     FHashMap91_TryGetValue |     1 | 4.230 ns | 0.1149 ns | 0.1075 ns |  0.62 |    0.02 |                    11 |                       0 |              0 |         - |          NA |
+|                            |       |          |           |           |       |         |                       |                         |                |           |             |
+| DictionarySlim_TryGetValue |    10 | 6.980 ns | 0.0918 ns | 0.0717 ns |  1.00 |    0.00 |                    20 |                       0 |              0 |         - |          NA |
+|     FHashMap91_TryGetValue |    10 | 4.259 ns | 0.0673 ns | 0.0562 ns |  0.61 |    0.01 |                    11 |                       0 |              0 |         - |          NA |
+|                            |       |          |           |           |       |         |                       |                         |                |           |             |
+| DictionarySlim_TryGetValue |   100 | 6.975 ns | 0.1016 ns | 0.0849 ns |  1.00 |    0.00 |                    20 |                       0 |              0 |         - |          NA |
+|     FHashMap91_TryGetValue |   100 | 4.414 ns | 0.1426 ns | 0.2342 ns |  0.64 |    0.03 |                    11 |                       0 |              0 |         - |          NA |
+|                            |       |          |           |           |       |         |                       |                         |                |           |             |
+| DictionarySlim_TryGetValue |  1000 | 6.889 ns | 0.0773 ns | 0.0685 ns |  1.00 |    0.00 |                    20 |                       0 |              0 |         - |          NA |
+|     FHashMap91_TryGetValue |  1000 | 5.633 ns | 0.1079 ns | 0.1243 ns |  0.82 |    0.02 |                    14 |                       0 |              0 |         - |          NA |
+
 */
-            // [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
-            [Params(100)]
+            [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
+            // [Params(100)]
             public int Count;
 
             [GlobalSetup]
@@ -2579,7 +2595,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return result;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public string FHashMap91_TryGetValue_Golden()
             {
                 _fHashMap91golden.TryGetValue(LookupKey, out var result);
