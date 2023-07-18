@@ -891,9 +891,25 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 | FHashMap91_AddOrUpdate_TypeEq |   100 | 2.477 us | 0.0493 us | 0.1326 us |  0.97 |    0.08 | 1.0414 |                 4,430 |             15 |                       7 | 0.0114 |   6.38 KB |        0.87 |
 | FHashMap91_AddOrUpdate_Golden |   100 | 2.696 us | 0.0531 us | 0.0902 us |  1.06 |    0.06 | 1.0414 |                 4,746 |             40 |                       8 | 0.0114 |   6.38 KB |        0.87 |
 
+## RefEq final test with the buffer overflow and 87.5% load factor
+
+|                 Method | Count |         Mean |      Error |       StdDev |       Median | Ratio | RatioSD | BranchInstructions/Op | CacheMisses/Op | BranchMispredictions/Op |   Gen0 |   Gen1 | Allocated | Alloc Ratio |
+|----------------------- |------ |-------------:|-----------:|-------------:|-------------:|------:|--------:|----------------------:|---------------:|------------------------:|-------:|-------:|----------:|------------:|
+|        DictSlim_TryAdd |     1 |     52.34 ns |   0.624 ns |     0.553 ns |     52.28 ns |  1.00 |    0.00 |                   129 |              0 |                       0 | 0.0229 |      - |     144 B |        1.00 |
+| FHashMap91_AddOrUpdate |     1 |     37.97 ns |   0.791 ns |     1.719 ns |     37.45 ns |  0.74 |    0.04 |                    80 |              0 |                       0 | 0.0204 |      - |     128 B |        0.89 |
+|                        |       |              |            |              |              |       |         |                       |                |                         |        |        |           |             |
+|        DictSlim_TryAdd |    10 |    340.80 ns |   5.749 ns |     6.391 ns |    340.02 ns |  1.00 |    0.00 |                   828 |              2 |                       1 | 0.1707 |      - |    1072 B |        1.00 |
+| FHashMap91_AddOrUpdate |    10 |    243.98 ns |   4.861 ns |     8.386 ns |    241.36 ns |  0.72 |    0.03 |                   519 |              1 |                       1 | 0.1197 |      - |     752 B |        0.70 |
+|                        |       |              |            |              |              |       |         |                       |                |                         |        |        |           |             |
+|        DictSlim_TryAdd |   100 |  2,553.31 ns |  49.545 ns |    58.980 ns |  2,539.58 ns |  1.00 |    0.00 |                 5,820 |             28 |                      13 | 1.1902 | 0.0153 |    7488 B |        1.00 |
+| FHashMap91_AddOrUpdate |   100 |  2,611.60 ns | 107.918 ns |   318.199 ns |  2,431.71 ns |  1.18 |    0.07 |                 4,439 |             15 |                       7 | 0.8659 | 0.0076 |    5456 B |        0.73 |
+|                        |       |              |            |              |              |       |         |                       |                |                         |        |        |           |             |
+|        DictSlim_TryAdd |  1000 | 24,608.23 ns | 490.198 ns | 1,012.345 ns | 24,170.67 ns |  1.00 |    0.00 |                51,545 |            223 |                     275 | 9.1553 | 0.8240 |   57808 B |        1.00 |
+| FHashMap91_AddOrUpdate |  1000 | 29,997.71 ns | 541.296 ns |   904.383 ns | 29,789.29 ns |  1.22 |    0.05 |                52,374 |            252 |                     129 | 7.9346 | 1.0986 |   49816 B |        0.86 |
+
 */
-            // [Params(1, 10, 100, 1000)]
-            [Params(100)]
+            [Params(1, 10, 100, 1000)]
+            // [Params(100)]
             // [Params(1000)]
             public int Count;
 
@@ -1080,18 +1096,6 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return map;
             }
 
-            // [Benchmark]
-            public ImTools.Experiments.FHashMap9<Type, string, ImTools.Experiments.RefEq<Type>> FHashMap9_AddOrUpdate()
-            {
-                var map = new ImTools.Experiments.FHashMap9<Type, string, ImTools.Experiments.RefEq<Type>>();
-
-                foreach (var key in _types)
-                    map.AddOrUpdate(key, "a");
-
-                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
-                return map;
-            }
-
             [Benchmark]
             public ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.RefEq<Type>> FHashMap91_AddOrUpdate()
             {
@@ -1104,7 +1108,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.TypeEq> FHashMap91_AddOrUpdate_TypeEq()
             {
                 var map = new ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.TypeEq>();
@@ -1116,7 +1120,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.GoldenRefEq<Type>> FHashMap91_AddOrUpdate_Golden()
             {
                 var map = new ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.GoldenRefEq<Type>>();
