@@ -263,7 +263,6 @@ public class FHashMap91Tests
     public void Can_store_and_retrieve_value_from_map_Golden()
     {
         // var map = new FHashMap91<int, string, IntEq>(2);
-        // var map = new FHashMap91<int, string, GoldenIntEq>(2);
         var map = new FHashMap91<int, string, GoldenIntEq>(2);
 
         map.AddOrUpdate(42, "1");
@@ -341,6 +340,11 @@ public class FHashMap91Tests
         map.AddOrUpdate(53, "y");
         Assert.AreEqual("x", map.GetValueOrDefault(47));
         Assert.AreEqual("y", map.GetValueOrDefault(53));
+
+        map.AddOrUpdate(47 + 16, "x!");
+        map.AddOrUpdate(53 + 16, "y!");
+        Assert.AreEqual("x!", map.GetValueOrDefault(47 + 16));
+        Assert.AreEqual("y!", map.GetValueOrDefault(53 + 16));
 
         Verify(map, null);
     }

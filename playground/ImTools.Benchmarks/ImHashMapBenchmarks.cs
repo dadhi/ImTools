@@ -908,9 +908,9 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 | FHashMap91_AddOrUpdate |  1000 | 29,997.71 ns | 541.296 ns |   904.383 ns | 29,789.29 ns |  1.22 |    0.05 |                52,374 |            252 |                     129 | 7.9346 | 1.0986 |   49816 B |        0.86 |
 
 */
-            [Params(1, 10, 100, 1000)]
+            // [Params(1, 10, 100, 1000)]
             // [Params(100)]
-            // [Params(1000)]
+            [Params(1000)]
             public int Count;
 
             private Type[] _types;
