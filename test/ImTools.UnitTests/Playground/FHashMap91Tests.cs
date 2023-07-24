@@ -437,10 +437,13 @@ public class FHashMap91Tests
         map.AddOrUpdate(42 + 32, "2");
         map.AddOrUpdate(42 + 32 + 32, "3");
 
+        Assert.AreEqual("2", map.GetValueOrDefault(42 + 32));
         var r = map.TryRemove(42 + 32);
         Assert.IsTrue(r);
 
         Assert.AreEqual(2, map.Count);
-        Verify(map, new[] { 42, 42 + 32 + 32 });
+        Assert.AreEqual("1", map.GetValueOrDefault(42));
+        Assert.AreEqual("3", map.GetValueOrDefault(42 + 32 + 32));
+        Verify(map, null);
     }
 }

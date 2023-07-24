@@ -70,7 +70,7 @@ public static class FHashMap91
             var heq = false;
             if (probe != 0)
             {
-                ref var e = ref map.GetEntryRef(entryIndex);
+                ref var e = ref map.GetSurePresentEntryRef(entryIndex);
                 var kh = default(TEq).GetHashCode(e.Key) & HashAndIndexMask;
                 heq = kh == hash;
             }
@@ -102,13 +102,12 @@ public static class FHashMap91
         var capacityBitShift = map.CapacityBitShift;
         var capacity = 1 << capacityBitShift;
         var indexMask = capacity - 1;
-        var entries = map.Entries;
         for (var i = 0; i < hashes.Length; i++)
         {
             var h = hashes[i];
             if (h == 0)
                 continue;
-            var key = entries[h & indexMask].Key;
+            var key = map.GetSurePresentEntryRef(h & indexMask).Key;
             if (!uniq.TryGetValue(key, out var count))
                 uniq.Add(key, 1);
             else
@@ -137,6 +136,79 @@ public static class FHashMap91
 #else
     internal static int GetHash(ref int[] start, int distance) => start[distance];
 #endif
+
+    public interface IEntries<K, V>
+    {
+        int GetCount();
+        ref Entry<K, V> GetSurePresentEntryRef(int index);
+        void AppendEntry(in K key, in V value);
+    }
+
+    internal struct ArrayEntries<K, V> : IEntries<K, V>
+    {
+        int _entryCount;
+        Entry<K, V>[] _entries;
+
+        public ArrayEntries()
+        {
+            _entryCount = 0;
+            _entries = Array.Empty<Entry<K, V>>();
+        }
+
+        public ArrayEntries(uint capacity)
+        {
+            _entryCount = 0;
+            _entries = new Entry<K, V>[capacity];
+        }
+
+        [MethodImpl((MethodImplOptions)256)]
+        public int GetCount() => _entryCount;
+
+        [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+        public ref Entry<K, V> GetSurePresentEntryRef(int index)
+        {
+#if NET7_0_OR_GREATER
+            return ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entries), index);
+#else
+            return ref _entries[index];
+#endif
+        }
+
+        [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+        public void AppendEntry(in K key, in V value)
+        {
+            var newEntryIndex = _entryCount;
+            var entriesCapacity = _entries.Length;
+            if (newEntryIndex >= entriesCapacity)
+                AllocateEntries(entriesCapacity);
+#if NET7_0_OR_GREATER
+            ref var e = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entries), newEntryIndex);
+#else
+            ref var e = ref _entries[newEntryIndex];
+#endif
+            e.Key = key;
+            e.Value = value;
+            ++_entryCount;
+        }
+
+        private void AllocateEntries(int entriesCapacity)
+        {
+#if DEBUG
+            Debug.WriteLine($"[AllocateEntries] Resize entries: {entriesCapacity} -> {entriesCapacity << 1}");
+#endif
+            if (entriesCapacity != 0)
+                Array.Resize(ref _entries, entriesCapacity << 1);
+            else
+                _entries = new Entry<K, V>[MinEntriesCapacity];
+        }
+
+        [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+        internal void RemoveSurePresentEntry(int index)
+        {
+            GetSurePresentEntryRef(index) = default;
+            --_entryCount;
+        }
+    }
 }
 
 /// <summary>Default comparer using the `object.GetHashCode` and `object.Equals` oveloads</summary>
@@ -217,7 +289,7 @@ public class FHashMap91DebugProxy<K, V, TEq> where TEq : struct, IEqualityCompar
     private readonly FHashMap91<K, V, TEq> _map;
     public FHashMap91DebugProxy(FHashMap91<K, V, TEq> map) => _map = map;
     public FHashMap91.DebugItem<K, V>[] PackedHashes => _map.Explain();
-    public FHashMap91.Entry<K, V>[] Entries => _map.Entries;
+    // public FHashMap91.Entry<K, V>[] Entries => _map.Entries; // todo: @wip
 }
 
 [DebuggerTypeProxy(typeof(FHashMap91DebugProxy<,,>))]
@@ -236,23 +308,18 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     //      |- 5 high bits of the Probe count, with the minimal value of 00001  indicating non-empty slot.
     // todo: @feature remove - for the removed hash we won't use the tumbstone but will actually remove the hash.
     private int[] _packedHashesAndIndexes;
-    private Entry<K, V>[] _entries; // for the performance it always contains the current entries (maybe a nested array in the batch) where we are adding the new entry
-    private int _entryCount;
-
-    public int Count => _entryCount;
     public int CapacityBitShift => _capacityBitShift;
-
     internal int[] PackedHashesAndIndexes => _packedHashesAndIndexes;
-    internal Entry<K, V>[] Entries => _entries;
-
+    private ArrayEntries<K, V> _entries;
+    public int Count => _entries.GetCount();
+    public ref Entry<K, V> GetSurePresentEntryRef(int index) => ref _entries.GetSurePresentEntryRef(index);
     public FHashMap91()
     {
         _capacityBitShift = 0;
         _hashesOverflowBufferIsFull = false;
         // using single cell array for hashes instead of empty one to allow the Lookup to work without the additional check for the emptiness
         _packedHashesAndIndexes = FHashMap91.SingleCellHashesAndIndexes;
-        _entries = Array.Empty<Entry<K, V>>();
-        _entryCount = 0;
+        _entries = new ArrayEntries<K, V>();
     }
 
     /// <summary>Capacity calculates as `1 << capacityBitShift`</summary>
@@ -264,46 +331,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         // the overflow tail to the hashes is the size of log2N where N==capacityBitShift, 
         // it is probably fine to have the check for the overlow of capacity because it will be mispredicted only once at the end of loop (it even rarely for the lookup)
         _packedHashesAndIndexes = new int[(1 << capacityBitShift) + capacityBitShift];
-        _entries = new Entry<K, V>[1 << capacityBitShift];
-        _entryCount = 0;
-    }
-
-    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
-    internal ref Entry<K, V> GetEntryRef(int index)
-    {
-#if NET7_0_OR_GREATER
-        return ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entries), index);
-#else
-        return ref _entries[index];
-#endif
-    }
-
-    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
-    private void AppendEntry(in K key, in V value)
-    {
-        var newEntryIndex = _entryCount;
-        var entriesCapacity = _entries.Length;
-        if (newEntryIndex >= _entries.Length)
-            AllocateEntries(entriesCapacity);
-#if NET7_0_OR_GREATER
-        ref var e = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entries), newEntryIndex);
-#else
-        ref var e = ref _entries[newEntryIndex];
-#endif
-        e.Key = key;
-        e.Value = value;
-        ++_entryCount;
-    }
-
-    private void AllocateEntries(int entriesCapacity)
-    {
-#if DEBUG
-        Debug.WriteLine($"[AllocateEntries] Resize entries: {entriesCapacity} -> {entriesCapacity << 1}");
-#endif
-        if (entriesCapacity != 0)
-            Array.Resize(ref _entries, entriesCapacity << 1);
-        else
-            _entries = new Entry<K, V>[MinEntriesCapacity];
+        _entries = new ArrayEntries<K, V>(1u << capacityBitShift);
     }
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
@@ -331,7 +359,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
             // 2. For the equal probes check for equality the hash middle part, and update the entry if the keys are equal too 
             if (((h >>> ProbeCountShift) == probes) & ((h & hashPartMask) == (hash & hashPartMask)))
             {
-                ref var e = ref GetEntryRef(h & indexMask);
+                ref var e = ref _entries.GetSurePresentEntryRef(h & indexMask);
                 if (default(TEq).Equals(e.Key, key))
                 {
                     value = e.Value;
@@ -418,7 +446,8 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         // if the overflow space is filled-in or
         // if the free space is less than 1/8 of capacity (12.5%) then Resize
         var indexMask = (1 << _capacityBitShift) - 1;
-        if ((indexMask - _entryCount <= (indexMask >>> MinFreeCapacityShift)) | _hashesOverflowBufferIsFull)
+        var entryCount = _entries.GetCount();
+        if ((indexMask - entryCount <= (indexMask >>> MinFreeCapacityShift)) | _hashesOverflowBufferIsFull)
         {
             ResizeHashes(indexMask);
 #if DEBUG
@@ -446,7 +475,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
             // 2. For the equal probes check for equality the hash middle part, and update the entry if the keys are equal too 
             if (((h >>> ProbeCountShift) == probes) & ((h & hashPartMask) == (hash & hashPartMask)))
             {
-                ref var e = ref GetEntryRef(h & indexMask);
+                ref var e = ref _entries.GetSurePresentEntryRef(h & indexMask);
 #if DEBUG
                 Debug.WriteLine($"[AddOrUpdate] Probes and Hash parts are matching: probes {probes}, new key:`{key}` with matched key:`{e.Key}`");
 #endif
@@ -462,12 +491,12 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 
         // 3. We did not find the hash and therefore the key, so insert the new entry
         var hHooded = h;
-        h = (probes << ProbeCountShift) | (hash & hashPartMask) | _entryCount;
+        h = (probes << ProbeCountShift) | (hash & hashPartMask) | entryCount;
 #if DEBUG
         DebugCollectAndOutputProbes(probes);
 #endif
 
-        AppendEntry(in key, in value);
+        _entries.AppendEntry(in key, in value);
 
         // 4. If old hash is empty then we stop
         // 5. Robin Hood goes here - to steal the slot with the smaller probes
@@ -518,13 +547,12 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
             // 2. For the equal probes check for equality the hash middle part, and update the entry if the keys are equal too 
             if (((h >>> ProbeCountShift) == probes) & ((h & hashPartMask) == (hash & hashPartMask)))
             {
-                ref var e = ref GetEntryRef(h & indexMask);
+                ref var e = ref _entries.GetSurePresentEntryRef(h & indexMask);
                 if (default(TEq).Equals(e.Key, key))
                 {
+                    _entries.RemoveSurePresentEntry(h & indexMask);
                     removed = true;
                     h = 0;
-                    e = default;
-                    --_entryCount;
 #if DEBUG
                     --Probes[probes - 1];
 #endif
