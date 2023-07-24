@@ -907,6 +907,13 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 |        DictSlim_TryAdd |  1000 | 24,608.23 ns | 490.198 ns | 1,012.345 ns | 24,170.67 ns |  1.00 |    0.00 |                51,545 |            223 |                     275 | 9.1553 | 0.8240 |   57808 B |        1.00 |
 | FHashMap91_AddOrUpdate |  1000 | 29,997.71 ns | 541.296 ns |   904.383 ns | 29,789.29 ns |  1.22 |    0.05 |                52,374 |            252 |                     129 | 7.9346 | 1.0986 |   49816 B |        0.86 |
 
+## ArrayEntries abstraction
+
+|                 Method | Count |     Mean |    Error |   StdDev | Ratio | RatioSD | BranchInstructions/Op | CacheMisses/Op | BranchMispredictions/Op |   Gen0 |   Gen1 | Allocated | Alloc Ratio |
+|----------------------- |------ |---------:|---------:|---------:|------:|--------:|----------------------:|---------------:|------------------------:|-------:|-------:|----------:|------------:|
+|        DictSlim_TryAdd |  1000 | 23.76 us | 0.474 us | 0.843 us |  1.00 |    0.00 |                51,564 |            274 |                     296 | 9.1553 | 0.7935 |  56.45 KB |        1.00 |
+| FHashMap91_AddOrUpdate |  1000 | 24.63 us | 0.490 us | 0.777 us |  1.03 |    0.04 |                48,248 |            229 |                      70 | 7.9346 | 1.1292 |  48.65 KB |        0.86 |
+
 */
             // [Params(1, 10, 100, 1000)]
             // [Params(100)]
@@ -2165,9 +2172,17 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 | DictionarySlim_TryGetValue |  1000 | 6.889 ns | 0.0773 ns | 0.0685 ns |  1.00 |    0.00 |                    20 |                       0 |              0 |         - |          NA |
 |     FHashMap91_TryGetValue |  1000 | 5.633 ns | 0.1079 ns | 0.1243 ns |  0.82 |    0.02 |                    14 |                       0 |              0 |         - |          NA |
 
+## ArrayEntries
+
+|                     Method | Count |     Mean |     Error |    StdDev |   Median | Ratio | RatioSD | CacheMisses/Op | BranchInstructions/Op | BranchMispredictions/Op | Allocated | Alloc Ratio |
+|--------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|---------------:|----------------------:|------------------------:|----------:|------------:|
+| DictionarySlim_TryGetValue |  1000 | 7.223 ns | 0.2535 ns | 0.7193 ns | 6.887 ns |  1.00 |    0.00 |              0 |                    20 |                       0 |         - |          NA |
+|     FHashMap91_TryGetValue |  1000 | 5.108 ns | 0.1634 ns | 0.2819 ns | 4.996 ns |  0.69 |    0.09 |             -0 |                    14 |                       0 |         - |          NA |
+
 */
-            [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
+            // [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             // [Params(100)]
+            [Params(1000)]
             public int Count;
 
             [GlobalSetup]
