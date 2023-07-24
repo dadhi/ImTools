@@ -11,7 +11,7 @@ using static FHashMap91;
 
 public static class FHashMap91
 {
-    internal const uint GoldenRatio32 = 2654435769; // 2^32 / phi for the Fibonacci hashing, where phi is the golden ratio ~1.61803
+    public const uint GoldenRatio32 = 2654435769; // 2^32 / phi for the Fibonacci hashing, where phi is the golden ratio ~1.61803
 
     public const int MinEntriesCapacity = 2;
     public const byte MinFreeCapacityShift = 3; // e.g. for the capacity 16: 16 >> 3 => 2, 12.5% of the free hash slots (it does not mean the entries free slot)
@@ -123,6 +123,20 @@ public static class FHashMap91
         foreach (var key in expectedKeys)
             assertContainKey(map.TryGetValue(key, out _), key);
     }
+
+    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+#if NET7_0_OR_GREATER
+    internal static ref int GetElementRef(ref int start, int distance) => ref Unsafe.Add(ref start, distance);
+#else
+    internal static ref int GetElementRef(ref int[] start, int distance) => ref start[distance];
+#endif
+
+    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+#if NET7_0_OR_GREATER
+    internal static int GetElement(ref int start, int distance) => Unsafe.Add(ref start, distance);
+#else
+    internal static int GetElement(ref int[] start, int distance) => start[distance];
+#endif
 }
 
 /// <summary>Default comparer using the `object.GetHashCode` and `object.Equals` oveloads</summary>
@@ -301,11 +315,11 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 
 #if NET7_0_OR_GREATER
         ref var hashesAndIndexes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
-        var h = Unsafe.Add(ref hashesAndIndexes, hashIndex);
 #else
         var hashesAndIndexes = _packedHashesAndIndexes;
-        var h = hashesAndIndexes[hashIndex];
 #endif
+
+        var h = GetElement(ref hashesAndIndexes, hashIndex);
 
         // 1. Skip over hashes with the bigger and equal probes. The hashes with bigger probes overlapping from the earlier ideal positions
         var probes = 1;
@@ -325,11 +339,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
             if (hashIndex == lastIndex)
                 break;
 
-#if NET7_0_OR_GREATER
-            h = Unsafe.Add(ref hashesAndIndexes, ++hashIndex);
-#else
-            h = hashesAndIndexes[++hashIndex];
-#endif
+            h = GetElement(ref hashesAndIndexes, ++hashIndex);
             ++probes;
         }
 
@@ -550,13 +560,6 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         return true;
     }
 
-    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
-#if NET7_0_OR_GREATER
-    private static ref int GetElementRef(ref int start, int distance) => ref Unsafe.Add(ref start, distance);
-#else
-    private static ref int GetElementRef(ref int[] start, int distance) => ref start[distance];
-#endif
-
     internal void ResizeHashes(int indexMask)
     {
         if (indexMask == 0)
@@ -581,39 +584,24 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         ref var oldHashes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
 #else
         var oldHashes = _packedHashesAndIndexes;
+        var newHashes = newHashesAndIndexes;
 #endif
-
-#if NET7_0_OR_GREATER
         for (var i = 0; i < oldCapacityWithOverflow; ++i)
         {
-            var oldHash = Unsafe.Add(ref oldHashes, i);
-#else
-        for (var i = 0; (uint)i < (uint)_packedHashesAndIndexes.Length; ++i)
-        {
-            var oldHash = _packedHashesAndIndexes[i];
-#endif
+            var oldHash = GetElement(ref oldHashes, i);
             if (oldHash != 0)
             {
                 // get the new hash index from the old one with the next bit equal to the `oldCapacity`
-                var indexWithNextBit = (oldHash & oldCapacity) | (i - (oldHash >>> ProbeCountShift) + 1);
+                var indexWithNextBit = (oldHash & oldCapacity) | ((i + 1) - (oldHash >>> ProbeCountShift));
 
                 // no need for robinhooding because we already did it for the old hashes and now just sparcing the hashes which are already in order
                 var probes = 1;
-#if NET7_0_OR_GREATER
-                ref var h = ref Unsafe.Add(ref newHashes, indexWithNextBit);
+                ref var h = ref GetElementRef(ref newHashes, indexWithNextBit);
                 while (h != 0)
                 {
-                    h = ref Unsafe.Add(ref newHashes, ++indexWithNextBit);
+                    h = ref GetElementRef(ref newHashes, ++indexWithNextBit);
                     ++probes;
                 }
-#else
-                ref var h = ref newHashesAndIndexes[indexWithNextBit];
-                while (h != 0)
-                {
-                    h = ref newHashesAndIndexes[++indexWithNextBit];
-                    ++probes;
-                }
-#endif
                 h = (probes << ProbeCountShift) | (oldHash & newHashAndIndexMask);
             }
         }
