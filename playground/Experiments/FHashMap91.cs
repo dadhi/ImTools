@@ -49,8 +49,8 @@ public static class FHashMap91
     public static DebugItem<K, V>[] Explain<K, V, TEq>(this FHashMap91<K, V, TEq> map) where TEq : struct, IEqualityComparer<K>
     {
         var hashes = map.PackedHashesAndIndexes;
-        var capacityBits = map.CapacityBits;
-        var capacity = 1 << capacityBits;
+        var capacityBitShift = map.CapacityBitShift;
+        var capacity = 1 << capacityBitShift;
         var indexMask = capacity - 1;
 
         var items = new DebugItem<K, V>[hashes.Length];
@@ -99,8 +99,8 @@ public static class FHashMap91
         // Verify the indexes do no contains duplicate keys
         var uniq = new Dictionary<K, int>(map.Count);
         var hashes = map.PackedHashesAndIndexes;
-        var capacityBits = map.CapacityBits;
-        var capacity = 1 << capacityBits;
+        var capacityBitShift = map.CapacityBitShift;
+        var capacity = 1 << capacityBitShift;
         var indexMask = capacity - 1;
         var entries = map.Entries;
         for (var i = 0; i < hashes.Length; i++)
@@ -226,7 +226,7 @@ public class FHashMap91DebugProxy<K, V, TEq> where TEq : struct, IEqualityCompar
 public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 {
     private bool _hashesOverflowBufferIsFull;
-    private byte _capacityBits;
+    private byte _capacityBitShift;
 
     // The _packedHashesAndIndexes elements are of `Int32`, 
     // e.g. 00010|000...110|01101
@@ -240,14 +240,15 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     private int _entryCount;
 
     public int Count => _entryCount;
-    public int CapacityBits => _capacityBits;
+    public int CapacityBitShift => _capacityBitShift;
 
     internal int[] PackedHashesAndIndexes => _packedHashesAndIndexes;
     internal Entry<K, V>[] Entries => _entries;
 
     public FHashMap91()
     {
-        _capacityBits = 0;
+        _capacityBitShift = 0;
+        _hashesOverflowBufferIsFull = false;
         // using single cell array for hashes instead of empty one to allow the Lookup to work without the additional check for the emptiness
         _packedHashesAndIndexes = FHashMap91.SingleCellHashesAndIndexes;
         _entries = Array.Empty<Entry<K, V>>();
@@ -255,13 +256,15 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     }
 
     /// <summary>Capacity calculates as `1 << capacityBitShift`</summary>
-    public FHashMap91(byte capacityBits)
+    public FHashMap91(byte capacityBitShift)
     {
-        _capacityBits = capacityBits;
-        // the overflow tail to the hashes is the size of log2N where N==capacityBits, 
+        _capacityBitShift = capacityBitShift;
+        _hashesOverflowBufferIsFull = false;
+
+        // the overflow tail to the hashes is the size of log2N where N==capacityBitShift, 
         // it is probably fine to have the check for the overlow of capacity because it will be mispredicted only once at the end of loop (it even rarely for the lookup)
-        _packedHashesAndIndexes = new int[(1 << capacityBits) + capacityBits];
-        _entries = new Entry<K, V>[1 << capacityBits];
+        _packedHashesAndIndexes = new int[(1 << capacityBitShift) + capacityBitShift];
+        _entries = new Entry<K, V>[1 << capacityBitShift];
         _entryCount = 0;
     }
 
@@ -308,8 +311,8 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     {
         var hash = default(TEq).GetHashCode(key);
 
-        var indexMask = (1 << _capacityBits) - 1;
-        var lastIndex = (1 << _capacityBits) + (_capacityBits - 1);
+        var indexMask = (1 << _capacityBitShift) - 1;
+        var lastIndex = (1 << _capacityBitShift) + (_capacityBitShift - 1);
         var hashPartMask = ~indexMask & HashAndIndexMask;
         var hashIndex = hash & indexMask;
 
@@ -414,7 +417,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 
         // if the overflow space is filled-in or
         // if the free space is less than 1/8 of capacity (12.5%) then Resize
-        var indexMask = (1 << _capacityBits) - 1;
+        var indexMask = (1 << _capacityBitShift) - 1;
         if ((indexMask - _entryCount <= (indexMask >>> MinFreeCapacityShift)) | _hashesOverflowBufferIsFull)
         {
             ResizeHashes(indexMask);
@@ -422,7 +425,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
             if (_hashesOverflowBufferIsFull)
                 Debug.WriteLine("_hashesOverflowBufferIsFull!");
 #endif
-            indexMask = (1 << _capacityBits) - 1;
+            indexMask = (1 << _capacityBitShift) - 1;
             _hashesOverflowBufferIsFull = false;
         }
 
@@ -495,7 +498,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     {
         var hash = default(TEq).GetHashCode(key);
 
-        var indexMask = (1 << _capacityBits) - 1;
+        var indexMask = (1 << _capacityBitShift) - 1;
         var hashPartMask = ~indexMask & HashAndIndexMask;
         var hashIndex = hash & indexMask;
 
@@ -554,7 +557,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     {
         if (indexMask == 0)
         {
-            _capacityBits = MinCapacityBits;
+            _capacityBitShift = MinCapacityBits;
             _packedHashesAndIndexes = new int[(1 << MinCapacityBits) + MinCapacityBits];
 #if DEBUG
             Debug.WriteLine($"[ResizeHashes] new empty hashes with overflow buffer {1} -> {_packedHashesAndIndexes.Length}");
@@ -562,7 +565,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
             return;
         }
 
-        var oldCapacityBits = _capacityBits;
+        var oldCapacityBits = _capacityBitShift;
         var oldCapacity = indexMask + 1;
         var oldCapacityWithOverflow = oldCapacity + oldCapacityBits;
         var newHashAndIndexMask = ~oldCapacity & HashAndIndexMask;
@@ -594,10 +597,10 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         }
 
 #if DEBUG
-        Debug.WriteLine($"[ResizeHashes] with overflow buffer {oldCapacity}+{_capacityBits}={oldCapacityWithOverflow} -> {oldCapacity << 1}+{_capacityBits + 1}={newHashesAndIndexes.Length}");
+        Debug.WriteLine($"[ResizeHashes] with overflow buffer {oldCapacity}+{_capacityBitShift}={oldCapacityWithOverflow} -> {oldCapacity << 1}+{_capacityBitShift + 1}={newHashesAndIndexes.Length}");
         DebugReCollectAndOutputProbes(newHashesAndIndexes);
 #endif
-        ++_capacityBits;
+        ++_capacityBitShift;
         _packedHashesAndIndexes = newHashesAndIndexes;
     }
 }
