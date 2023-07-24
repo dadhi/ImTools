@@ -916,8 +916,8 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 
 */
             // [Params(1, 10, 100, 1000)]
-            // [Params(100)]
-            [Params(1000)]
+            [Params(100, 1000)]
+            // [Params(1000)]
             public int Count;
 
             private Type[] _types;

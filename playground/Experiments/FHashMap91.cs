@@ -477,7 +477,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
             {
                 ref var e = ref _entries.GetSurePresentEntryRef(h & indexMask);
 #if DEBUG
-                Debug.WriteLine($"[AddOrUpdate] Probes and Hash parts are matching: probes {probes}, new key:`{key}` with matched key:`{e.Key}`");
+                Debug.WriteLine($"[AddOrUpdate] Probes and Hash parts are matching: probes {probes}, new key:`{key}` with matched hash of key:`{e.Key}`");
 #endif
                 if (default(TEq).Equals(e.Key, key))
                 {
@@ -498,24 +498,23 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 
         _entries.AppendEntry(in key, in value);
 
-        // 4. If old hash is empty then we stop
-        // 5. Robin Hood goes here - to steal the slot with the smaller probes
+        // 4. If the hooded hash is empty then we stop
+        // 5. Otherwise we steal the slot with the smaller probes
         probes = hHooded >>> ProbeCountShift;
         while (hHooded != 0)
         {
             h = ref GetHashRef(ref hashesAndIndexes, ++hashIndex);
-            ++probes;
-            if ((h >>> ProbeCountShift) < probes)
+            if ((h >>> ProbeCountShift) < ++probes)
             {
 #if DEBUG
                 if (h != 0)
                     --Probes[(h >>> ProbeCountShift) - 1];
                 DebugCollectAndOutputProbes(probes, "AddOrUpdate-RH");
 #endif
-                var hHoodedNext = h;
+                var hPrev = h;
                 h = (probes << ProbeCountShift) | (hHooded & HashAndIndexMask);
-                hHooded = hHoodedNext;
-                probes = hHoodedNext >>> ProbeCountShift;
+                hHooded = hPrev;
+                probes = hPrev >>> ProbeCountShift;
             }
         }
         // keep the already met overflow or set it if the last inserted index is the last one
