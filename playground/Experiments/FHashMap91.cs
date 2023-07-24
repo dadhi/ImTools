@@ -126,16 +126,16 @@ public static class FHashMap91
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
 #if NET7_0_OR_GREATER
-    internal static ref int GetElementRef(ref int start, int distance) => ref Unsafe.Add(ref start, distance);
+    internal static ref int GetHashRef(ref int start, int distance) => ref Unsafe.Add(ref start, distance);
 #else
-    internal static ref int GetElementRef(ref int[] start, int distance) => ref start[distance];
+    internal static ref int GetHashRef(ref int[] start, int distance) => ref start[distance];
 #endif
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
 #if NET7_0_OR_GREATER
-    internal static int GetElement(ref int start, int distance) => Unsafe.Add(ref start, distance);
+    internal static int GetHash(ref int start, int distance) => Unsafe.Add(ref start, distance);
 #else
-    internal static int GetElement(ref int[] start, int distance) => start[distance];
+    internal static int GetHash(ref int[] start, int distance) => start[distance];
 #endif
 }
 
@@ -319,7 +319,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         var hashesAndIndexes = _packedHashesAndIndexes;
 #endif
 
-        var h = GetElement(ref hashesAndIndexes, hashIndex);
+        var h = GetHash(ref hashesAndIndexes, hashIndex);
 
         // 1. Skip over hashes with the bigger and equal probes. The hashes with bigger probes overlapping from the earlier ideal positions
         var probes = 1;
@@ -339,7 +339,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
             if (hashIndex == lastIndex)
                 break;
 
-            h = GetElement(ref hashesAndIndexes, ++hashIndex);
+            h = GetHash(ref hashesAndIndexes, ++hashIndex);
             ++probes;
         }
 
@@ -431,11 +431,10 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 
 #if NET7_0_OR_GREATER
         ref var hashesAndIndexes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
-        ref var h = ref Unsafe.Add(ref hashesAndIndexes, hashIndex);
 #else
         var hashesAndIndexes = _packedHashesAndIndexes;
-        ref var h = ref hashesAndIndexes[hashIndex];
 #endif
+        ref var h = ref GetHashRef(ref hashesAndIndexes, hashIndex);
 
         // 1. Skip over hashes with the bigger and equal probes. The hashes with bigger probes overlapping from the earlier ideal positions
         var probes = 1;
@@ -454,12 +453,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
                     return;
                 }
             }
-
-#if NET7_0_OR_GREATER
-            h = ref Unsafe.Add(ref hashesAndIndexes, ++hashIndex);
-#else
-            h = ref hashesAndIndexes[++hashIndex];
-#endif
+            h = ref GetHashRef(ref hashesAndIndexes, ++hashIndex);
             ++probes;
         }
 
@@ -477,11 +471,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         probes = hHooded >>> ProbeCountShift;
         while (hHooded != 0)
         {
-#if NET7_0_OR_GREATER
-            h = ref Unsafe.Add(ref hashesAndIndexes, ++hashIndex);
-#else
-            h = ref hashesAndIndexes[++hashIndex];
-#endif
+            h = ref GetHashRef(ref hashesAndIndexes, ++hashIndex);
             ++probes;
             if ((h >>> ProbeCountShift) < probes)
             {
@@ -514,7 +504,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 #else
         var hashesAndIndexes = _packedHashesAndIndexes;
 #endif
-        ref var h = ref GetElementRef(ref hashesAndIndexes, hashIndex);
+        ref var h = ref GetHashRef(ref hashesAndIndexes, hashIndex);
 
         var removed = false;
         var probes = 1;
@@ -538,7 +528,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
                     break;
                 }
             }
-            h = ref GetElementRef(ref hashesAndIndexes, ++hashIndex);
+            h = ref GetHashRef(ref hashesAndIndexes, ++hashIndex);
             ++probes;
         }
 
@@ -546,7 +536,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
             return false;
 
         ref var emptied = ref h;
-        h = ref GetElementRef(ref hashesAndIndexes, ++hashIndex);
+        h = ref GetHashRef(ref hashesAndIndexes, ++hashIndex);
 
         // move the next hash into the emptied slot until the next hash is empty or ideally positioned (hash is 0 or probe is 1)
         while ((h >>> ProbeCountShift) > 1)
@@ -555,7 +545,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
             h = 0;
 
             emptied = ref h;
-            h = ref GetElementRef(ref hashesAndIndexes, ++hashIndex);
+            h = ref GetHashRef(ref hashesAndIndexes, ++hashIndex);
         }
         return true;
     }
@@ -566,7 +556,6 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         {
             _capacityBits = MinCapacityBits;
             _packedHashesAndIndexes = new int[(1 << MinCapacityBits) + MinCapacityBits];
-            // no need to reset _lastAddedIndex because it will be reassigned by AddOrUpdate anyway
 #if DEBUG
             Debug.WriteLine($"[ResizeHashes] new empty hashes with overflow buffer {1} -> {_packedHashesAndIndexes.Length}");
 #endif
@@ -577,6 +566,7 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         var oldCapacity = indexMask + 1;
         var oldCapacityWithOverflow = oldCapacity + oldCapacityBits;
         var newHashAndIndexMask = ~oldCapacity & HashAndIndexMask;
+
         var newHashesAndIndexes = new int[(oldCapacity << 1) + (oldCapacityBits + 1)];
 
 #if NET7_0_OR_GREATER
@@ -588,21 +578,18 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
 #endif
         for (var i = 0; i < oldCapacityWithOverflow; ++i)
         {
-            var oldHash = GetElement(ref oldHashes, i);
+            var oldHash = GetHash(ref oldHashes, i);
             if (oldHash != 0)
             {
                 // get the new hash index from the old one with the next bit equal to the `oldCapacity`
                 var indexWithNextBit = (oldHash & oldCapacity) | ((i + 1) - (oldHash >>> ProbeCountShift));
 
-                // no need for robinhooding because we already did it for the old hashes and now just sparcing the hashes which are already in order
-                var probes = 1;
-                ref var h = ref GetElementRef(ref newHashes, indexWithNextBit);
+                // no need for robinhooding because we already did it for the old hashes and now just sparcing the hashes into the new array which are already in order
+                var idealIndexMinusOne = indexWithNextBit - 1;
+                ref var h = ref GetHashRef(ref newHashes, indexWithNextBit);
                 while (h != 0)
-                {
-                    h = ref GetElementRef(ref newHashes, ++indexWithNextBit);
-                    ++probes;
-                }
-                h = (probes << ProbeCountShift) | (oldHash & newHashAndIndexMask);
+                    h = ref GetHashRef(ref newHashes, ++indexWithNextBit);
+                h = ((indexWithNextBit - idealIndexMinusOne) << ProbeCountShift) | (oldHash & newHashAndIndexMask);
             }
         }
 
