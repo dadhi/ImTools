@@ -24,9 +24,9 @@ public static class FHashMap91
     internal static readonly int[] SingleCellHashesAndIndexes = new int[1];
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
-    public static FHashMap91<K, V, TEq, ArrayEntries<K, V>> New<K, V, TEq>(byte capacityBitShift = 0) // todo: @wip provide the capacity as is
+    public static FHashMap91<K, V, TEq, ArrayArrayEntries<K, V>> New<K, V, TEq>(byte capacityBitShift = 0) // todo: @wip provide the capacity as is
         where TEq : struct, IEqualityComparer<K> =>
-        new FHashMap91<K, V, TEq, ArrayEntries<K, V>>(capacityBitShift);
+        new FHashMap91<K, V, TEq, ArrayArrayEntries<K, V>>(capacityBitShift);
 
     // todo: @improve make the Entry a type parameter to map and define TEq in terms of the Entry, 
     // todo: @improve it will allow to introduce the Set later without the Value in the Entry, end the Entry may be the Key itself
@@ -209,7 +209,7 @@ public static class FHashMap91
         }
     }
 
-    const byte BucketCapacityBitShift = 8;
+    const byte BucketCapacityBitShift = 2; // todo: @wip make it 8 == 256
     const int BucketCapacity = 1 << BucketCapacityBitShift;
     const int BucketCapacityMask = BucketCapacity - 1;
 
@@ -237,38 +237,64 @@ public static class FHashMap91
 
         public void AppendEntry(in K key, in V value)
         {
-            var index = _entryCount;
-            if ((index & BucketCapacityMask) == 0)
+            var index = _entryCount++;
+            if ((index >>> BucketCapacityBitShift) == 0) // small count of element fit into a single array
             {
-                if (_entries == null)
-                    _entries = new[] { new Entry<K, V>[MinEntriesCapacity] };
-                else
+                if (index == 0)
                 {
-                    if ((index >>> BucketCapacityBitShift) == _entries.Length)
-                        Array.Resize(ref _entries, _entries.Length << 1);
+                    var bucket = new Entry<K, V>[MinEntriesCapacity];
 #if NET7_0_OR_GREATER
-                    ref var entries = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entries), index >>> BucketCapacityBitShift);
+                    ref var first = ref MemoryMarshal.GetArrayDataReference(bucket);
 #else
-                    ref var entries = ref _entries[index >>> BucketCapacityBitShift];
+                    ref var first = ref bucket[0];
 #endif
-                    entries = new Entry<K, V>[BucketCapacity];
+                    first.Key = key;
+                    first.Value = value;
+                    _entries = new[] { bucket };
+                    return;
                 }
-            }
-            else if ((index >>> BucketCapacityBitShift) == 0)
-            {
+
 #if NET7_0_OR_GREATER
                 ref var entries = ref MemoryMarshal.GetArrayDataReference(_entries);
 #else
                 ref var entries = ref _entries[0];
 #endif
-                if ((index & BucketCapacityMask) > entries.Length)
-                    Array.Resize(ref entries, entries.Length << 1);
+                if (index == entries.Length)
+                    Array.Resize(ref entries, index << 1);
+
+#if NET7_0_OR_GREATER
+                ref var e = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(entries), index);
+#else
+                ref var e = ref entries[index];
+#endif
+                e.Key = key;
+                e.Value = value;
+                return;
             }
 
-            ref var e = ref GetSurePresentEntryRef(index);
-            e.Key = key;
-            e.Value = value;
-            ++_entryCount;
+            if ((index & BucketCapacityMask) == 0)
+            {
+                if ((index >>> BucketCapacityBitShift) == _entries.Length)
+                    Array.Resize(ref _entries, _entries.Length << 1);
+#if NET7_0_OR_GREATER
+                ref var bucket = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entries), index >>> BucketCapacityBitShift);
+#else
+                ref var bucket = ref _entries[index >>> BucketCapacityBitShift];
+#endif
+                bucket = new Entry<K, V>[BucketCapacity];
+#if NET7_0_OR_GREATER
+                ref var first = ref MemoryMarshal.GetArrayDataReference(bucket);
+#else
+                ref var first = ref bucket[0];
+#endif
+                first.Key = key;
+                first.Value = value;
+                return;
+            }
+
+            ref var ee = ref GetSurePresentEntryRef(index);
+            ee.Key = key;
+            ee.Value = value;
         }
 
         public void AppendEntry2(in K key, in V value) // todo: @wip
