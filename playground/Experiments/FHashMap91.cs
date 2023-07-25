@@ -139,6 +139,7 @@ public static class FHashMap91
 
     public interface IEntries<K, V>
     {
+        void Init(byte capacityBitShift);
         int GetCount();
         ref Entry<K, V> GetSurePresentEntryRef(int index);
         void AppendEntry(in K key, in V value);
@@ -148,17 +149,15 @@ public static class FHashMap91
     {
         int _entryCount;
         Entry<K, V>[] _entries;
-
         public ArrayEntries()
         {
             _entryCount = 0;
             _entries = Array.Empty<Entry<K, V>>();
         }
 
-        public ArrayEntries(uint capacity)
+        public void Init(byte capacityBitShift)
         {
-            _entryCount = 0;
-            _entries = new Entry<K, V>[capacity];
+            _entries = new Entry<K, V>[1 << capacityBitShift];
         }
 
         [MethodImpl((MethodImplOptions)256)]
@@ -200,6 +199,84 @@ public static class FHashMap91
                 Array.Resize(ref _entries, entriesCapacity << 1);
             else
                 _entries = new Entry<K, V>[MinEntriesCapacity];
+        }
+
+        [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+        internal void RemoveSurePresentEntry(int index)
+        {
+            GetSurePresentEntryRef(index) = default;
+            --_entryCount;
+        }
+    }
+
+    const byte BucketCapacityBitShift = 8;
+    const int BucketCapacity = 1 << BucketCapacityBitShift;
+    const int BucketCapacityMask = BucketCapacity - 1;
+
+    internal struct ArrayArrayEntries<K, V> : IEntries<K, V>
+    {
+        int _entryCount;
+        Entry<K, V>[][] _entries;
+
+        public ArrayArrayEntries()
+        {
+            _entryCount = 0;
+            _entries = null;
+        }
+
+        public void Init(byte capacityBitShift)
+        {
+            _entries = new[] { new Entry<K, V>[(1 << capacityBitShift) & BucketCapacityMask] };
+        }
+
+        [MethodImpl((MethodImplOptions)256)]
+        public int GetCount() => _entryCount;
+
+        [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+        public ref Entry<K, V> GetSurePresentEntryRef(int index)
+        {
+#if NET7_0_OR_GREATER
+            ref var entries = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entries), index >>> BucketCapacityBitShift);
+            return ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(entries), index & BucketCapacityMask);
+#else
+            return ref _entries[index >>> BucketCapacityBitShift][index & BucketCapacityMask];
+#endif
+        }
+
+        public void AppendEntry(in K key, in V value)
+        {
+            var index = _entryCount;
+            if ((index & BucketCapacityMask) == 0)
+            {
+                if (_entries == null)
+                    _entries = new[] { new Entry<K, V>[4] };
+                else
+                {
+                    if ((index >>> BucketCapacityBitShift) == _entries.Length)
+                        Array.Resize(ref _entries, _entries.Length << 1);
+#if NET7_0_OR_GREATER
+                    ref var entries = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entries), index >>> BucketCapacityBitShift);
+#else
+                    ref var entries = ref _entries[index >>> BucketCapacityBitShift];
+#endif
+                    entries = new Entry<K, V>[BucketCapacity];
+                }
+            }
+            else if ((index >>> BucketCapacityBitShift) == 0)
+            {
+#if NET7_0_OR_GREATER
+                ref var entries = ref MemoryMarshal.GetArrayDataReference(_entries);
+#else
+                ref var entries = ref _entries[0];
+#endif
+                if ((index & BucketCapacityMask) > entries.Length)
+                    Array.Resize(ref entries, entries.Length << 1);
+            }
+
+            ref var e = ref GetSurePresentEntryRef(index);
+            e.Key = key;
+            e.Value = value;
+            ++_entryCount;
         }
 
         [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
@@ -331,7 +408,8 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         // the overflow tail to the hashes is the size of log2N where N==capacityBitShift, 
         // it is probably fine to have the check for the overlow of capacity because it will be mispredicted only once at the end of loop (it even rarely for the lookup)
         _packedHashesAndIndexes = new int[(1 << capacityBitShift) + capacityBitShift];
-        _entries = new ArrayEntries<K, V>(1u << capacityBitShift);
+        _entries = new ArrayEntries<K, V>();
+        _entries.Init(capacityBitShift);
     }
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
