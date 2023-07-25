@@ -24,13 +24,17 @@ public static class FHashMap91
     internal static readonly int[] SingleCellHashesAndIndexes = new int[1];
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
-    public static FHashMap91<K, V, TEq, ArrayArrayEntries<K, V>> New<K, V, TEq>(byte capacityBitShift = 0) // todo: @wip provide the capacity as is
+    public static FHashMap91<K, V, TEq, SingleArrayEntries<K, V>> New<K, V, TEq>(byte capacityBitShift = 0)
         where TEq : struct, IEqualityComparer<K> =>
-        new FHashMap91<K, V, TEq, ArrayArrayEntries<K, V>>(capacityBitShift);
+        new FHashMap91<K, V, TEq, SingleArrayEntries<K, V>>(capacityBitShift);
 
-    // todo: @improve make the Entry a type parameter to map and define TEq in terms of the Entry, 
-    // todo: @improve it will allow to introduce the Set later without the Value in the Entry, end the Entry may be the Key itself
-    [DebuggerDisplay("{Key}->{Value}")]
+    // todo: @name better name like NewMemEfficient or NewAddFocused ?
+    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+    public static FHashMap91<K, V, TEq, ChunkedArrayEntries<K, V>> NewChunked<K, V, TEq>(byte capacityBitShift = 0)
+        where TEq : struct, IEqualityComparer<K> =>
+        new FHashMap91<K, V, TEq, ChunkedArrayEntries<K, V>>(capacityBitShift);
+
+    [DebuggerDisplay("{Key.ToString()}->{Value}")]
     public struct Entry<K, V>
     {
         public K Key;
@@ -76,7 +80,7 @@ public static class FHashMap91
             var heq = false;
             if (probe != 0)
             {
-                ref var e = ref map.GetSurePresentEntryRef(entryIndex);
+                ref var e = ref map.Entries.GetSurePresentEntryRef(entryIndex);
                 var kh = default(TEq).GetHashCode(e.Key) & HashAndIndexMask;
                 heq = kh == hash;
             }
@@ -115,7 +119,7 @@ public static class FHashMap91
             var h = hashes[i];
             if (h == 0)
                 continue;
-            var key = map.GetSurePresentEntryRef(h & indexMask).Key;
+            var key = map.Entries.GetSurePresentEntryRef(h & indexMask).Key;
             if (!uniq.TryGetValue(key, out var count))
                 uniq.Add(key, 1);
             else
@@ -146,6 +150,8 @@ public static class FHashMap91
     internal static int GetHash(ref int[] start, int distance) => start[distance];
 #endif
 
+    // todo: @improve can we move the Entry into the type parameter to configure and possibly save the memory e.g. for the sets? 
+    /// <summary>Abstraction to configure your own entries data structure. Check the derivitives for the examples</summary>
     public interface IEntries<K, V>
     {
         void Init(byte capacityBitShift);
@@ -157,7 +163,7 @@ public static class FHashMap91
 
     public const int MinEntriesCapacity = 2;
 
-    public struct ArrayEntries<K, V> : IEntries<K, V>
+    public struct SingleArrayEntries<K, V> : IEntries<K, V>
     {
         int _entryCount;
         Entry<K, V>[] _entries;
@@ -209,17 +215,17 @@ public static class FHashMap91
         }
     }
 
-    const byte BucketCapacityBitShift = 2; // todo: @wip make it 8 == 256
-    const int BucketCapacity = 1 << BucketCapacityBitShift;
-    const int BucketCapacityMask = BucketCapacity - 1;
+    const byte ChunkCapacityBitShift = 8; // 8 bits == 256
+    const int ChunkCapacity = 1 << ChunkCapacityBitShift;
+    const int ChunkCapacityMask = ChunkCapacity - 1;
 
-    public struct ArrayArrayEntries<K, V> : IEntries<K, V>
+    public struct ChunkedArrayEntries<K, V> : IEntries<K, V>
     {
         int _entryCount;
         Entry<K, V>[][] _entries;
 
         public void Init(byte capacityBitShift) =>
-            _entries = new[] { new Entry<K, V>[(1 << capacityBitShift) & BucketCapacityMask] };
+            _entries = new[] { new Entry<K, V>[(1 << capacityBitShift) & ChunkCapacityMask] };
 
         [MethodImpl((MethodImplOptions)256)]
         public int GetCount() => _entryCount;
@@ -228,109 +234,76 @@ public static class FHashMap91
         public ref Entry<K, V> GetSurePresentEntryRef(int index)
         {
 #if NET7_0_OR_GREATER
-            ref var entries = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entries), index >>> BucketCapacityBitShift);
-            return ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(entries), index & BucketCapacityMask);
+            ref var entries = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entries), index >>> ChunkCapacityBitShift);
+            return ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(entries), index & ChunkCapacityMask);
 #else
-            return ref _entries[index >>> BucketCapacityBitShift][index & BucketCapacityMask];
+            return ref _entries[index >>> ChunkCapacityBitShift][index & ChunkCapacityMask];
 #endif
         }
 
         public void AppendEntry(in K key, in V value)
         {
             var index = _entryCount++;
-            if ((index >>> BucketCapacityBitShift) == 0) // small count of element fit into a single array
+            var bucketIndex = index >>> ChunkCapacityBitShift;
+            if (bucketIndex == 0) // small count of element fit into a single array
             {
-                if (index == 0)
+                if (index != 0)
+                {
+    #if NET7_0_OR_GREATER
+                    ref var bucket = ref MemoryMarshal.GetArrayDataReference(_entries);
+    #else
+                    ref var bucket = ref _entries[0];
+    #endif
+                    if (index == bucket.Length)
+                        Array.Resize(ref bucket, index << 1);
+
+    #if NET7_0_OR_GREATER
+                    ref var e = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(bucket), index);
+    #else
+                    ref var e = ref bucket[index];
+    #endif
+                    e.Key = key;
+                    e.Value = value;
+                    return;
+                }
                 {
                     var bucket = new Entry<K, V>[MinEntriesCapacity];
 #if NET7_0_OR_GREATER
-                    ref var first = ref MemoryMarshal.GetArrayDataReference(bucket);
+                    ref var e = ref MemoryMarshal.GetArrayDataReference(bucket);
 #else
-                    ref var first = ref bucket[0];
+                    ref var e = ref bucket[0];
 #endif
-                    first.Key = key;
-                    first.Value = value;
+                    e.Key = key;
+                    e.Value = value;
                     _entries = new[] { bucket };
                     return;
                 }
+            }
 
-#if NET7_0_OR_GREATER
-                ref var entries = ref MemoryMarshal.GetArrayDataReference(_entries);
-#else
-                ref var entries = ref _entries[0];
-#endif
-                if (index == entries.Length)
-                    Array.Resize(ref entries, index << 1);
-
-#if NET7_0_OR_GREATER
-                ref var e = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(entries), index);
-#else
-                ref var e = ref entries[index];
-#endif
+            if ((index & ChunkCapacityMask) != 0)
+            {
+                ref var e = ref GetSurePresentEntryRef(index);
                 e.Key = key;
                 e.Value = value;
                 return;
             }
-
-            if ((index & BucketCapacityMask) == 0)
             {
-                if ((index >>> BucketCapacityBitShift) == _entries.Length)
-                    Array.Resize(ref _entries, _entries.Length << 1);
+                if (bucketIndex == _entries.Length)
+                    Array.Resize(ref _entries, bucketIndex << 1);
 #if NET7_0_OR_GREATER
-                ref var bucket = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entries), index >>> BucketCapacityBitShift);
+                ref var bucket = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entries), bucketIndex);
 #else
-                ref var bucket = ref _entries[index >>> BucketCapacityBitShift];
+                ref var bucket = ref _entries[bucketIndex];
 #endif
-                bucket = new Entry<K, V>[BucketCapacity];
+                bucket = new Entry<K, V>[ChunkCapacity];
 #if NET7_0_OR_GREATER
-                ref var first = ref MemoryMarshal.GetArrayDataReference(bucket);
+                ref var e = ref MemoryMarshal.GetArrayDataReference(bucket);
 #else
-                ref var first = ref bucket[0];
+                ref var e = ref bucket[0];
 #endif
-                first.Key = key;
-                first.Value = value;
-                return;
+                e.Key = key;
+                e.Value = value;
             }
-
-            ref var ee = ref GetSurePresentEntryRef(index);
-            ee.Key = key;
-            ee.Value = value;
-        }
-
-        public void AppendEntry2(in K key, in V value) // todo: @wip
-        {
-            var index = _entryCount;
-            if ((index & BucketCapacityMask) == 0)
-            {
-                if (_entries == null)
-                    _entries = new[] { new Entry<K, V>[MinEntriesCapacity] };
-                else
-                {
-                    if ((index >>> BucketCapacityBitShift) == _entries.Length)
-                        Array.Resize(ref _entries, _entries.Length << 1);
-#if NET7_0_OR_GREATER
-                    ref var entries = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entries), index >>> BucketCapacityBitShift);
-#else
-                    ref var entries = ref _entries[index >>> BucketCapacityBitShift];
-#endif
-                    entries = new Entry<K, V>[BucketCapacity];
-                }
-            }
-            else if ((index >>> BucketCapacityBitShift) == 0)
-            {
-#if NET7_0_OR_GREATER
-                ref var entries = ref MemoryMarshal.GetArrayDataReference(_entries);
-#else
-                ref var entries = ref _entries[0];
-#endif
-                if ((index & BucketCapacityMask) > entries.Length)
-                    Array.Resize(ref entries, entries.Length << 1);
-            }
-
-            ref var e = ref GetSurePresentEntryRef(index);
-            e.Key = key;
-            e.Value = value;
-            ++_entryCount;
         }
 
         [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
@@ -338,6 +311,7 @@ public static class FHashMap91
         {
             GetSurePresentEntryRef(index) = default;
             --_entryCount;
+            // todo: @perf we may try to free the chunk if it is empty
         }
     }
 }
@@ -422,7 +396,7 @@ public class FHashMap91DebugProxy<K, V, TEq, TEntries>
     private readonly FHashMap91<K, V, TEq, TEntries> _map;
     public FHashMap91DebugProxy(FHashMap91<K, V, TEq, TEntries> map) => _map = map;
     public FHashMap91.DebugItem<K, V>[] PackedHashes => _map.Explain();
-    // public FHashMap91.Entry<K, V>[] Entries => _map.Entries; // todo: @wip
+    public TEntries Entries => _map.Entries;
 }
 
 [DebuggerTypeProxy(typeof(FHashMap91DebugProxy<,,,>))]
@@ -447,7 +421,7 @@ public struct FHashMap91<K, V, TEq, TEntries>
     internal int[] PackedHashesAndIndexes => _packedHashesAndIndexes;
     private TEntries _entries;
     public int Count => _entries.GetCount();
-    public ref Entry<K, V> GetSurePresentEntryRef(int index) => ref _entries.GetSurePresentEntryRef(index);
+    internal TEntries Entries => _entries;
     public FHashMap91()
     {
         _capacityBitShift = 0;

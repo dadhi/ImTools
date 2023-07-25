@@ -101,7 +101,7 @@ public class FHashMap91Tests
     {
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(1000).ToArray();
 
-        var map = FHashMap91.New<Type, string, TypeEq>();
+        var map = FHashMap91.NewChunked<Type, string, TypeEq>();
 
         foreach (var key in types)
             map.AddOrUpdate(key, "a");

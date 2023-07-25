@@ -15,7 +15,7 @@ using ImTools.V2;
 using ImTools.V2.Experimental;
 using System.Runtime.CompilerServices;
 
-using FHashMap91TypeString = ImTools.Experiments.FHashMap91<System.Type, string, ImTools.Experiments.RefEq<System.Type>, ImTools.Experiments.FHashMap91.ArrayEntries<System.Type, string>>;
+using FHashMap91TypeString = ImTools.Experiments.FHashMap91<System.Type, string, ImTools.Experiments.RefEq<System.Type>, ImTools.Experiments.FHashMap91.ChunkedArrayEntries<System.Type, string>>;
 
 #nullable disable
 
@@ -924,6 +924,10 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 |                        |       |              |            |            |       |         |        |                       |                |                         |        |           |             |
 |        DictSlim_TryAdd |  1000 | 25,177.61 ns | 408.712 ns | 401.410 ns |  1.00 |    0.00 | 9.1553 |                51,565 |            267 |                     266 | 0.7935 |   57808 B |        1.00 |
 | FHashMap91_AddOrUpdate |  1000 | 27,887.94 ns | 492.979 ns | 437.013 ns |  1.11 |    0.02 | 7.9346 |                49,282 |            292 |                      90 | 1.0986 |   49816 B |        0.86 |
+
+## ArrayArrayEntries
+
+
 */
             [Params(1, 10, 100, 1000)]
             // [Params(100, 1000)]
@@ -2165,10 +2169,26 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 | DictionarySlim_TryGetValue |  1000 | 7.223 ns | 0.2535 ns | 0.7193 ns | 6.887 ns |  1.00 |    0.00 |              0 |                    20 |                       0 |         - |          NA |
 |     FHashMap91_TryGetValue |  1000 | 5.108 ns | 0.1634 ns | 0.2819 ns | 4.996 ns |  0.69 |    0.09 |             -0 |                    14 |                       0 |         - |          NA |
 
+## ArrayArrayEntries
+
+|                     Method | Count |     Mean |     Error |    StdDev |   Median | Ratio | RatioSD | BranchInstructions/Op | BranchMispredictions/Op | CacheMisses/Op | Allocated | Alloc Ratio |
+|--------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|----------------------:|------------------------:|---------------:|----------:|------------:|
+| DictionarySlim_TryGetValue |     1 | 7.053 ns | 0.1174 ns | 0.1041 ns | 7.021 ns |  1.00 |    0.00 |                    20 |                       0 |              0 |         - |          NA |
+|     FHashMap91_TryGetValue |     1 | 4.948 ns | 0.1446 ns | 0.2119 ns | 4.845 ns |  0.70 |    0.04 |                    11 |                       0 |              0 |         - |          NA |
+|                            |       |          |           |           |          |       |         |                       |                         |                |           |             |
+| DictionarySlim_TryGetValue |    10 | 7.475 ns | 0.1732 ns | 0.2747 ns | 7.384 ns |  1.00 |    0.00 |                    20 |                       0 |              0 |         - |          NA |
+|     FHashMap91_TryGetValue |    10 | 4.900 ns | 0.1541 ns | 0.1366 ns | 4.862 ns |  0.65 |    0.03 |                    11 |                       0 |              0 |         - |          NA |
+|                            |       |          |           |           |          |       |         |                       |                         |                |           |             |
+| DictionarySlim_TryGetValue |   100 | 8.120 ns | 0.4747 ns | 1.3995 ns | 7.386 ns |  1.00 |    0.00 |                    20 |                      -0 |              0 |         - |          NA |
+|     FHashMap91_TryGetValue |   100 | 5.129 ns | 0.1593 ns | 0.4251 ns | 4.985 ns |  0.64 |    0.12 |                    11 |                       0 |              0 |         - |          NA |
+|                            |       |          |           |           |          |       |         |                       |                         |                |           |             |
+| DictionarySlim_TryGetValue |  1000 | 7.289 ns | 0.1912 ns | 0.3088 ns | 7.137 ns |  1.00 |    0.00 |                    20 |                       0 |              0 |         - |          NA |
+|     FHashMap91_TryGetValue |  1000 | 6.262 ns | 0.1232 ns | 0.0962 ns | 6.277 ns |  0.86 |    0.04 |                    14 |                       0 |              0 |         - |          NA |
+
 */
-            // [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
+            [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             // [Params(100)]
-            [Params(1000)]
+            // [Params(1000)]
             public int Count;
 
             [GlobalSetup]
