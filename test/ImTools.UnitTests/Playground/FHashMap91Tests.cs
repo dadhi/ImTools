@@ -6,11 +6,14 @@ using NUnit.Framework;
 
 namespace ImTools.Experiments.UnitTests;
 
+using static FHashMap91;
+
 [TestFixture]
 public class FHashMap91Tests
 {
-    internal static void Verify<K, V, TEq>(FHashMap91<K, V, TEq> map, IEnumerable<K> expectedKeys)
+    internal static void Verify<K, V, TEq, TEntries>(FHashMap91<K, V, TEq, TEntries> map, IEnumerable<K> expectedKeys)
         where TEq : struct, IEqualityComparer<K>
+        where TEntries : struct, IEntries<K, V>
     {
         map.VerifyHashesAndKeysEq(eq => Assert.True(eq));
         map.VerifyNoDuplicateKeys(key => Assert.Fail($"Duplicate key: {key}"));
@@ -41,9 +44,9 @@ public class FHashMap91Tests
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(100).ToArray();
 
         // todo: @perf testing diff equality comparers
-        // var map = new ImTools.Experiments.FHashMap91<Type, string, TypeEq>();         // MaxProbes -> 8
-        // var map = new ImTools.Experiments.FHashMap91<Type, string, RefEq<Type>>();    // MaxProbes -> 7
-        var map = new ImTools.Experiments.FHashMap91<Type, string, GoldenRefEq<Type>>(); // MaxProbes -> 5
+        // var map = new FHashMap91<Type, string, TypeEq>();         // MaxProbes -> 8
+        // var map = new FHashMap91<Type, string, RefEq<Type>>();    // MaxProbes -> 7
+        var map = FHashMap91.New<Type, string, GoldenRefEq<Type>>(); // MaxProbes -> 5
 
         foreach (var key in types)
             map.AddOrUpdate(key, "a");
@@ -62,7 +65,7 @@ public class FHashMap91Tests
     {
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(100).ToArray();
 
-        var map = new ImTools.Experiments.FHashMap91<Type, string, RefEq<Type>>(8);
+        var map = FHashMap91.New<Type, string, RefEq<Type>>(8);
 
         foreach (var key in types)
             map.AddOrUpdate(key, "a");
@@ -79,7 +82,7 @@ public class FHashMap91Tests
     {
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(1000).ToArray();
 
-        var map = new ImTools.Experiments.FHashMap91<Type, string, RefEq<Type>>();
+        var map = FHashMap91.New<Type, string, RefEq<Type>>();
 
         foreach (var key in types)
             map.AddOrUpdate(key, "a");
@@ -98,7 +101,7 @@ public class FHashMap91Tests
     {
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(1000).ToArray();
 
-        var map = new ImTools.Experiments.FHashMap91<Type, string, TypeEq>();
+        var map = FHashMap91.New<Type, string, TypeEq>();
 
         foreach (var key in types)
             map.AddOrUpdate(key, "a");
@@ -117,7 +120,7 @@ public class FHashMap91Tests
     {
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(1000).ToArray();
 
-        var map = new ImTools.Experiments.FHashMap91<Type, string, GoldenRefEq<Type>>();
+        var map = FHashMap91.New<Type, string, GoldenRefEq<Type>>();
 
         foreach (var key in types)
             map.AddOrUpdate(key, "a");
@@ -134,7 +137,7 @@ public class FHashMap91Tests
     [Test]
     public void Can_store_and_retrieve_value_from_map()
     {
-        var map = new FHashMap91<int, string, IntEq>(2);
+        var map = FHashMap91.New<int, string, IntEq>(2);
 
         map.AddOrUpdate(42, "1");
         map.AddOrUpdate(42 + 32, "2");
@@ -262,8 +265,8 @@ public class FHashMap91Tests
     [Test]
     public void Can_store_and_retrieve_value_from_map_Golden()
     {
-        // var map = new FHashMap91<int, string, IntEq>(2);
-        var map = new FHashMap91<int, string, GoldenIntEq>(2);
+        // var map = FHashMap91.New<int, string, IntEq>(2);
+        var map = FHashMap91.New<int, string, GoldenIntEq>(2);
 
         map.AddOrUpdate(42, "1");
         map.AddOrUpdate(42 + 32, "2");
@@ -314,7 +317,7 @@ public class FHashMap91Tests
     [Test]
     public void Can_store_and_retrieve_value_from_map_with_Expand_in_the_middle()
     {
-        var map = new FHashMap91<int, string, IntEq>(1);
+        var map = FHashMap91.New<int, string, IntEq>(1);
 
         Assert.IsFalse(map.TryGetValue(42, out _));
 
@@ -352,7 +355,7 @@ public class FHashMap91Tests
     [Test]
     public void Can_resize_without_moving()
     {
-        var map = new FHashMap91<int, string, IntEq>(2);
+        var map = FHashMap91.New<int, string, IntEq>(2);
 
         map.AddOrUpdate(0, "0");
         map.AddOrUpdate(1, "1");
@@ -369,7 +372,7 @@ public class FHashMap91Tests
     [Test]
     public void Can_store_and_get_stored_item_count()
     {
-        var map = new FHashMap91<int, string, IntEq>();
+        var map = FHashMap91.New<int, string, IntEq>();
 
         map.AddOrUpdate(42, "1");
         map.AddOrUpdate(42 + 32 + 32, "3");
@@ -381,7 +384,7 @@ public class FHashMap91Tests
     [Test]
     public void Can_update_a_stored_item_with_new_value()
     {
-        var map = new FHashMap91<int, string, IntEq>();
+        var map = FHashMap91.New<int, string, IntEq>();
 
         map.AddOrUpdate(42, "1");
         map.AddOrUpdate(42, "3");
@@ -394,7 +397,7 @@ public class FHashMap91Tests
     [Test]
     public void Can_add_key_with_0_hash_code()
     {
-        var map = new FHashMap91<int, string, IntEq>();
+        var map = FHashMap91.New<int, string, IntEq>();
 
         map.AddOrUpdate(0, "aaa");
         map.AddOrUpdate(0 + 32, "2");
@@ -410,7 +413,7 @@ public class FHashMap91Tests
     [Test]
     public void Can_quickly_find_the_scattered_items_with_the_same_cache()
     {
-        var map = new FHashMap91<int, string, IntEq>();
+        var map = FHashMap91.New<int, string, IntEq>();
 
         map.AddOrUpdate(42, "1");
         map.AddOrUpdate(43, "a");
@@ -431,7 +434,7 @@ public class FHashMap91Tests
     [Test]
     public void Can_remove_the_stored_item()
     {
-        var map = new FHashMap91<int, string, IntEq>(2);
+        var map = FHashMap91.New<int, string, IntEq>(2);
 
         map.AddOrUpdate(42, "1");
         map.AddOrUpdate(42 + 32, "2");

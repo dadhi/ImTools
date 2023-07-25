@@ -24,6 +24,11 @@ public static class FHashMap91
 
     internal static readonly int[] SingleCellHashesAndIndexes = new int[1];
 
+    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+    public static FHashMap91<K, V, TEq, ArrayEntries<K, V>> New<K, V, TEq>(byte capacityBitShift = 0) // todo: @wip provide the capacity as is
+        where TEq : struct, IEqualityComparer<K> =>
+        new FHashMap91<K, V, TEq, ArrayEntries<K, V>>(capacityBitShift);
+
     // todo: @improve make the Entry a type parameter to map and define TEq in terms of the Entry, 
     // todo: @improve it will allow to introduce the Set later without the Value in the Entry, end the Entry may be the Key itself
     [DebuggerDisplay("{Key}->{Value}")]
@@ -46,7 +51,9 @@ public static class FHashMap91
 
     /// <summary>Converts the packed hashes and entries into the human readable info.
     /// This also used for the debugging view of the <paramref name="map"/> and by the Verify... methods in tests.</summary>
-    public static DebugItem<K, V>[] Explain<K, V, TEq>(this FHashMap91<K, V, TEq> map) where TEq : struct, IEqualityComparer<K>
+    public static DebugItem<K, V>[] Explain<K, V, TEq, TEntries>(this FHashMap91<K, V, TEq, TEntries> map)
+        where TEq : struct, IEqualityComparer<K>
+        where TEntries : struct, IEntries<K, V>
     {
         var hashes = map.PackedHashesAndIndexes;
         var capacityBitShift = map.CapacityBitShift;
@@ -83,8 +90,9 @@ public static class FHashMap91
     }
 
     /// <summary>Verifies that the hashes correspond to the keys stroed in the entries. May be called from the tests.</summary>
-    public static void VerifyHashesAndKeysEq<K, V, TEq>(this FHashMap91<K, V, TEq> map, Action<bool> assertEq)
-         where TEq : struct, IEqualityComparer<K>
+    public static void VerifyHashesAndKeysEq<K, V, TEq, TEntries>(this FHashMap91<K, V, TEq, TEntries> map, Action<bool> assertEq)
+        where TEq : struct, IEqualityComparer<K>
+        where TEntries : struct, IEntries<K, V>
     {
         var exp = map.Explain();
         foreach (var it in exp)
@@ -93,8 +101,9 @@ public static class FHashMap91
     }
 
     /// <summary>Verifies that there is no duplicate keys stored in hashes -> entries. May be called from the tests.</summary>
-    public static void VerifyNoDuplicateKeys<K, V, TEq>(this FHashMap91<K, V, TEq> map, Action<K> assertKey)
+    public static void VerifyNoDuplicateKeys<K, V, TEq, TEntries>(this FHashMap91<K, V, TEq, TEntries> map, Action<K> assertKey)
         where TEq : struct, IEqualityComparer<K>
+        where TEntries : struct, IEntries<K, V>
     {
         // Verify the indexes do no contains duplicate keys
         var uniq = new Dictionary<K, int>(map.Count);
@@ -116,8 +125,9 @@ public static class FHashMap91
     }
 
     /// <summary>Verifies that the map contains all passed keys. May be called from the tests.</summary>
-    public static void VerifyContainAllKeys<K, V, TEq>(this FHashMap91<K, V, TEq> map, IEnumerable<K> expectedKeys, Action<bool, K> assertContainKey)
-         where TEq : struct, IEqualityComparer<K>
+    public static void VerifyContainAllKeys<K, V, TEq, TEntries>(this FHashMap91<K, V, TEq, TEntries> map, IEnumerable<K> expectedKeys, Action<bool, K> assertContainKey)
+        where TEq : struct, IEqualityComparer<K>
+        where TEntries : struct, IEntries<K, V>
     {
         foreach (var key in expectedKeys)
             assertContainKey(map.TryGetValue(key, out _), key);
@@ -145,20 +155,13 @@ public static class FHashMap91
         void AppendEntry(in K key, in V value);
     }
 
-    internal struct ArrayEntries<K, V> : IEntries<K, V>
+    public struct ArrayEntries<K, V> : IEntries<K, V>
     {
         int _entryCount;
         Entry<K, V>[] _entries;
-        public ArrayEntries()
-        {
-            _entryCount = 0;
-            _entries = Array.Empty<Entry<K, V>>();
-        }
 
-        public void Init(byte capacityBitShift)
-        {
+        public void Init(byte capacityBitShift) =>
             _entries = new Entry<K, V>[1 << capacityBitShift];
-        }
 
         [MethodImpl((MethodImplOptions)256)]
         public int GetCount() => _entryCount;
@@ -173,32 +176,27 @@ public static class FHashMap91
 #endif
         }
 
-        [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+        // [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining // todo: @wip
         public void AppendEntry(in K key, in V value)
         {
-            var newEntryIndex = _entryCount;
-            var entriesCapacity = _entries.Length;
-            if (newEntryIndex >= entriesCapacity)
-                AllocateEntries(entriesCapacity);
+            var index = _entryCount;
+            if (index == 0)
+                _entries = new Entry<K, V>[MinEntriesCapacity];
+            else if (index == _entries.Length)
+            {
+#if DEBUG
+                Debug.WriteLine($"[AllocateEntries] Resize entries: {index} -> {index << 1}");
+#endif
+                Array.Resize(ref _entries, index << 1);
+            }
 #if NET7_0_OR_GREATER
-            ref var e = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entries), newEntryIndex);
+            ref var e = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entries), index);
 #else
-            ref var e = ref _entries[newEntryIndex];
+            ref var e = ref _entries[index];
 #endif
             e.Key = key;
             e.Value = value;
             ++_entryCount;
-        }
-
-        private void AllocateEntries(int entriesCapacity)
-        {
-#if DEBUG
-            Debug.WriteLine($"[AllocateEntries] Resize entries: {entriesCapacity} -> {entriesCapacity << 1}");
-#endif
-            if (entriesCapacity != 0)
-                Array.Resize(ref _entries, entriesCapacity << 1);
-            else
-                _entries = new Entry<K, V>[MinEntriesCapacity];
         }
 
         [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
@@ -213,21 +211,13 @@ public static class FHashMap91
     const int BucketCapacity = 1 << BucketCapacityBitShift;
     const int BucketCapacityMask = BucketCapacity - 1;
 
-    internal struct ArrayArrayEntries<K, V> : IEntries<K, V>
+    public struct ArrayArrayEntries<K, V> : IEntries<K, V>
     {
         int _entryCount;
         Entry<K, V>[][] _entries;
 
-        public ArrayArrayEntries()
-        {
-            _entryCount = 0;
-            _entries = null;
-        }
-
-        public void Init(byte capacityBitShift)
-        {
+        public void Init(byte capacityBitShift) =>
             _entries = new[] { new Entry<K, V>[(1 << capacityBitShift) & BucketCapacityMask] };
-        }
 
         [MethodImpl((MethodImplOptions)256)]
         public int GetCount() => _entryCount;
@@ -361,18 +351,22 @@ public struct TypeEq : IEqualityComparer<Type>
 }
 
 #if DEBUG
-public class FHashMap91DebugProxy<K, V, TEq> where TEq : struct, IEqualityComparer<K>
+public class FHashMap91DebugProxy<K, V, TEq, TEntries>
+    where TEq : struct, IEqualityComparer<K>
+    where TEntries : struct, IEntries<K, V>
 {
-    private readonly FHashMap91<K, V, TEq> _map;
-    public FHashMap91DebugProxy(FHashMap91<K, V, TEq> map) => _map = map;
+    private readonly FHashMap91<K, V, TEq, TEntries> _map;
+    public FHashMap91DebugProxy(FHashMap91<K, V, TEq, TEntries> map) => _map = map;
     public FHashMap91.DebugItem<K, V>[] PackedHashes => _map.Explain();
     // public FHashMap91.Entry<K, V>[] Entries => _map.Entries; // todo: @wip
 }
 
-[DebuggerTypeProxy(typeof(FHashMap91DebugProxy<,,>))]
+[DebuggerTypeProxy(typeof(FHashMap91DebugProxy<,,,>))]
 [DebuggerDisplay("Count={Count}")]
 #endif
-public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
+public struct FHashMap91<K, V, TEq, TEntries>
+    where TEq : struct, IEqualityComparer<K>
+    where TEntries : struct, IEntries<K, V>
 {
     private bool _hashesOverflowBufferIsFull;
     private byte _capacityBitShift;
@@ -394,9 +388,11 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
     {
         _capacityBitShift = 0;
         _hashesOverflowBufferIsFull = false;
+
         // using single cell array for hashes instead of empty one to allow the Lookup to work without the additional check for the emptiness
         _packedHashesAndIndexes = FHashMap91.SingleCellHashesAndIndexes;
-        _entries = new ArrayEntries<K, V>();
+
+        _entries = default;
     }
 
     /// <summary>Capacity calculates as `1 << capacityBitShift`</summary>
@@ -408,7 +404,8 @@ public struct FHashMap91<K, V, TEq> where TEq : struct, IEqualityComparer<K>
         // the overflow tail to the hashes is the size of log2N where N==capacityBitShift, 
         // it is probably fine to have the check for the overlow of capacity because it will be mispredicted only once at the end of loop (it even rarely for the lookup)
         _packedHashesAndIndexes = new int[(1 << capacityBitShift) + capacityBitShift];
-        _entries = new ArrayEntries<K, V>();
+
+        _entries = default;
         _entries.Init(capacityBitShift);
     }
 

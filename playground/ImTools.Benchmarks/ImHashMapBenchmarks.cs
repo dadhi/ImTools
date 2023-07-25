@@ -15,6 +15,8 @@ using ImTools.V2;
 using ImTools.V2.Experimental;
 using System.Runtime.CompilerServices;
 
+using FHashMap91TypeString = ImTools.Experiments.FHashMap91<System.Type, string, ImTools.Experiments.RefEq<System.Type>, ImTools.Experiments.FHashMap91.ArrayEntries<System.Type, string>>;
+
 #nullable disable
 
 #pragma warning disable CS0649, CS0169
@@ -1104,33 +1106,9 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             }
 
             [Benchmark]
-            public ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.RefEq<Type>> FHashMap91_AddOrUpdate()
+            public FHashMap91TypeString FHashMap91_AddOrUpdate()
             {
-                var map = new ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.RefEq<Type>>();
-
-                foreach (var key in _types)
-                    map.AddOrUpdate(key, "a");
-
-                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
-                return map;
-            }
-
-            // [Benchmark]
-            public ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.TypeEq> FHashMap91_AddOrUpdate_TypeEq()
-            {
-                var map = new ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.TypeEq>();
-
-                foreach (var key in _types)
-                    map.AddOrUpdate(key, "a");
-
-                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
-                return map;
-            }
-
-            // [Benchmark]
-            public ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.GoldenRefEq<Type>> FHashMap91_AddOrUpdate_Golden()
-            {
-                var map = new ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.GoldenRefEq<Type>>();
+                var map = new FHashMap91TypeString();
 
                 foreach (var key in _types)
                     map.AddOrUpdate(key, "a");
@@ -2199,7 +2177,6 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 _fHashMap7 = FillFHashMap7();
                 _fHashMap9 = FillFHashMap9();
                 _fHashMap91 = FillFHashMap91();
-                _fHashMap91golden = FillFHashMap91Golden();
                 _concurrentDict = ConcurrentDict();
                 _immutableDict = ImmutableDict();
             }
@@ -2390,9 +2367,9 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 
             private ImTools.Experiments.FHashMap9<Type, string, ImTools.Experiments.RefEq<Type>> _fHashMap9;
 
-            public ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.RefEq<Type>> FillFHashMap91()
+            public FHashMap91TypeString FillFHashMap91()
             {
-                var map = new ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.RefEq<Type>>();
+                var map = new FHashMap91TypeString();
 
                 foreach (var key in _keys.Take(Count))
                     map.AddOrUpdate(key, "a");
@@ -2401,20 +2378,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return map;
             }
 
-            private ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.RefEq<Type>> _fHashMap91;
-
-            public ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.GoldenRefEq<Type>> FillFHashMap91Golden()
-            {
-                var map = new ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.GoldenRefEq<Type>>();
-
-                foreach (var key in _keys.Take(Count))
-                    map.AddOrUpdate(key, "a");
-
-                map.AddOrUpdate(LookupKey, "!");
-                return map;
-            }
-
-            private ImTools.Experiments.FHashMap91<Type, string, ImTools.Experiments.GoldenRefEq<Type>> _fHashMap91golden;
+            private FHashMap91TypeString _fHashMap91;
 
             public ConcurrentDictionary<Type, string> ConcurrentDict()
             {
@@ -2607,13 +2571,6 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             public string FHashMap91_TryGetValue()
             {
                 _fHashMap91.TryGetValue(LookupKey, out var result);
-                return result;
-            }
-
-            // [Benchmark]
-            public string FHashMap91_TryGetValue_Golden()
-            {
-                _fHashMap91golden.TryGetValue(LookupKey, out var result);
                 return result;
             }
 
