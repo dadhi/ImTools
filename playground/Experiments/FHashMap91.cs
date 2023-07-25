@@ -417,19 +417,18 @@ public struct FHashMap91<K, V, TEq, TEntries>
     //      |- 5 high bits of the Probe count, with the minimal value of 00001  indicating non-empty slot.
     // todo: @feature remove - for the removed hash we won't use the tumbstone but will actually remove the hash.
     private int[] _packedHashesAndIndexes;
+    private TEntries _entries;
+
     public int CapacityBitShift => _capacityBitShift;
     internal int[] PackedHashesAndIndexes => _packedHashesAndIndexes;
-    private TEntries _entries;
     public int Count => _entries.GetCount();
     internal TEntries Entries => _entries;
     public FHashMap91()
     {
         _capacityBitShift = 0;
         _hashesOverflowBufferIsFull = false;
-
         // using single cell array for hashes instead of empty one to allow the Lookup to work without the additional check for the emptiness
-        _packedHashesAndIndexes = FHashMap91.SingleCellHashesAndIndexes;
-
+        _packedHashesAndIndexes = FHashMap91.SingleCellHashesAndIndexes; // todo: @improve can we avoid single cell array and enable use of `default` map same as for `_entries`
         _entries = default;
     }
 
@@ -442,7 +441,6 @@ public struct FHashMap91<K, V, TEq, TEntries>
         // the overflow tail to the hashes is the size of log2N where N==capacityBitShift, 
         // it is probably fine to have the check for the overlow of capacity because it will be mispredicted only once at the end of loop (it even rarely for the lookup)
         _packedHashesAndIndexes = new int[(1 << capacityBitShift) + capacityBitShift];
-
         _entries = default;
         _entries.Init(capacityBitShift);
     }
@@ -494,62 +492,6 @@ public struct FHashMap91<K, V, TEq, TEntries>
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
     public V GetValueOrDefault(K key, V defaultValue = default) =>
         TryGetValue(key, out var value) ? value : defaultValue;
-
-#if DEBUG
-    internal int MaxProbes = 1;
-    internal int[] Probes = new int[1];
-
-    // will output something like
-    // [AddOrUpdate] max_probes = 6, all probes = [1: 180, 2: 103, 3: 59, 4: 23, 5: 3, 6: 1]
-    // [AddOrUpdate] first 4 probes total is 365 out of 369
-    internal void DebugOutputProbes(string label)
-    {
-        Debug.Write($"[{label}] Probes abs max = {MaxProbes}, max = {Probes.Length}, all = [");
-        var first4probes = 0;
-        var allProbes = 0;
-        for (var i = 0; i < Probes.Length; i++)
-        {
-            var p = Probes[i];
-            Debug.Write($"{(i == 0 ? "" : ", ")}{i + 1}: {p}");
-            if (i < 4)
-                first4probes += p;
-            allProbes += p;
-        }
-        Debug.WriteLine("]");
-        Debug.WriteLine($"[{label}] first 4 probes total is {first4probes} out of {allProbes}");
-    }
-
-    internal void DebugCollectAndOutputProbes(int probes, [CallerMemberName] string label = "")
-    {
-        if (probes > Probes.Length)
-        {
-            if (probes > MaxProbes)
-                MaxProbes = probes;
-            Array.Resize(ref Probes, probes);
-            Probes[probes - 1] = 1;
-            DebugOutputProbes(label);
-        }
-        else
-            ++Probes[probes - 1];
-    }
-
-    internal void DebugReCollectAndOutputProbes(int[] packedHashes, [CallerMemberName] string label = "")
-    {
-        var newProbes = new int[1];
-        foreach (var h in packedHashes)
-        {
-            if (h == 0) continue;
-            var p = h >>> ProbeCountShift;
-            if (p > MaxProbes)
-                MaxProbes = p;
-            if (p > newProbes.Length)
-                Array.Resize(ref newProbes, p);
-            ++newProbes[p - 1];
-        }
-        Probes = newProbes;
-        DebugOutputProbes(label);
-    }
-#endif
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
     public void AddOrUpdate(K key, V value)
@@ -743,4 +685,60 @@ public struct FHashMap91<K, V, TEq, TEntries>
         ++_capacityBitShift;
         _packedHashesAndIndexes = newHashesAndIndexes;
     }
+
+#if DEBUG
+    internal int MaxProbes = 1;
+    internal int[] Probes = new int[1];
+
+    // will output something like
+    // [AddOrUpdate] Probes abs max = 10, max = 6, all = [1: 180, 2: 103, 3: 59, 4: 23, 5: 3, 6: 1]
+    // [AddOrUpdate] first 4 probes total is 365 out of 369
+    internal void DebugOutputProbes(string label)
+    {
+        Debug.Write($"[{label}] Probes abs max = {MaxProbes}, max = {Probes.Length}, all = [");
+        var first4probes = 0;
+        var allProbes = 0;
+        for (var i = 0; i < Probes.Length; i++)
+        {
+            var p = Probes[i];
+            Debug.Write($"{(i == 0 ? "" : ", ")}{i + 1}: {p}");
+            if (i < 4)
+                first4probes += p;
+            allProbes += p;
+        }
+        Debug.WriteLine("]");
+        Debug.WriteLine($"[{label}] first 4 probes total is {first4probes} out of {allProbes}");
+    }
+
+    internal void DebugCollectAndOutputProbes(int probes, [CallerMemberName] string label = "")
+    {
+        if (probes > Probes.Length)
+        {
+            if (probes > MaxProbes)
+                MaxProbes = probes;
+            Array.Resize(ref Probes, probes);
+            Probes[probes - 1] = 1;
+            DebugOutputProbes(label);
+        }
+        else
+            ++Probes[probes - 1];
+    }
+
+    internal void DebugReCollectAndOutputProbes(int[] packedHashes, [CallerMemberName] string label = "")
+    {
+        var newProbes = new int[1];
+        foreach (var h in packedHashes)
+        {
+            if (h == 0) continue;
+            var p = h >>> ProbeCountShift;
+            if (p > MaxProbes)
+                MaxProbes = p;
+            if (p > newProbes.Length)
+                Array.Resize(ref newProbes, p);
+            ++newProbes[p - 1];
+        }
+        Probes = newProbes;
+        DebugOutputProbes(label);
+    }
+#endif
 }
