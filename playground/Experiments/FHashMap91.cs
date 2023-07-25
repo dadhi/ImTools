@@ -152,6 +152,7 @@ public static class FHashMap91
         int GetCount();
         ref Entry<K, V> GetSurePresentEntryRef(int index);
         void AppendEntry(in K key, in V value);
+        void RemoveSurePresentEntry(int index);
     }
 
     public const int MinEntriesCapacity = 2;
@@ -201,7 +202,7 @@ public static class FHashMap91
         }
 
         [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
-        internal void RemoveSurePresentEntry(int index)
+        public void RemoveSurePresentEntry(int index)
         {
             GetSurePresentEntryRef(index) = default;
             --_entryCount;
@@ -270,8 +271,44 @@ public static class FHashMap91
             ++_entryCount;
         }
 
+        public void AppendEntry2(in K key, in V value) // todo: @wip
+        {
+            var index = _entryCount;
+            if ((index & BucketCapacityMask) == 0)
+            {
+                if (_entries == null)
+                    _entries = new[] { new Entry<K, V>[MinEntriesCapacity] };
+                else
+                {
+                    if ((index >>> BucketCapacityBitShift) == _entries.Length)
+                        Array.Resize(ref _entries, _entries.Length << 1);
+#if NET7_0_OR_GREATER
+                    ref var entries = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_entries), index >>> BucketCapacityBitShift);
+#else
+                    ref var entries = ref _entries[index >>> BucketCapacityBitShift];
+#endif
+                    entries = new Entry<K, V>[BucketCapacity];
+                }
+            }
+            else if ((index >>> BucketCapacityBitShift) == 0)
+            {
+#if NET7_0_OR_GREATER
+                ref var entries = ref MemoryMarshal.GetArrayDataReference(_entries);
+#else
+                ref var entries = ref _entries[0];
+#endif
+                if ((index & BucketCapacityMask) > entries.Length)
+                    Array.Resize(ref entries, entries.Length << 1);
+            }
+
+            ref var e = ref GetSurePresentEntryRef(index);
+            e.Key = key;
+            e.Value = value;
+            ++_entryCount;
+        }
+
         [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
-        internal void RemoveSurePresentEntry(int index)
+        public void RemoveSurePresentEntry(int index)
         {
             GetSurePresentEntryRef(index) = default;
             --_entryCount;
@@ -382,7 +419,7 @@ public struct FHashMap91<K, V, TEq, TEntries>
     private int[] _packedHashesAndIndexes;
     public int CapacityBitShift => _capacityBitShift;
     internal int[] PackedHashesAndIndexes => _packedHashesAndIndexes;
-    private ArrayEntries<K, V> _entries;
+    private TEntries _entries;
     public int Count => _entries.GetCount();
     public ref Entry<K, V> GetSurePresentEntryRef(int index) => ref _entries.GetSurePresentEntryRef(index);
     public FHashMap91()
