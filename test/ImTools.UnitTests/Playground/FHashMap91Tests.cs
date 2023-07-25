@@ -186,79 +186,17 @@ public class FHashMap91Tests
     }
 
     /*
-    ## The comparison if IntEq vs GoldenIntEq vs GoldenShiftIntEq
+    ## The example of the output
 
-    // IntEq
-    [AddOrUpdate] max_probes = 2, all probes = [1: 1, 2: 1]
-    [AddOrUpdate] first 4 probes total is 2 out of 2
-    [AddOrUpdate] max_probes = 3, all probes = [1: 1, 2: 1, 3: 1]
-    [AddOrUpdate] first 4 probes total is 3 out of 3
+    [AllocateEntries] Resize entries: 2 -> 4
     [ResizeHashes] with overflow buffer 4+2=6 -> 8+3=11
-    [ResizeHashes] max_probes = 3, all probes = [1: 1, 2: 1, 3: 1]
-    [ResizeHashes] first 4 probes total is 3 out of 3
-    [AddOrUpdate] max_probes = 4, all probes = [1: 1, 2: 1, 3: 2, 4: 1]
-    [AddOrUpdate] first 4 probes total is 5 out of 5
-    [AllocateEntries] Resize entries: 4 -> 8
-    [AddOrUpdate] max_probes = 5, all probes = [1: 1, 2: 1, 3: 2, 4: 1, 5: 1]
-    [AddOrUpdate] first 4 probes total is 5 out of 6
-    [AddOrUpdate-RH] max_probes = 6, all probes = [1: 1, 2: 1, 3: 2, 4: 2, 5: 1, 6: 1]
-    [AddOrUpdate-RH] first 4 probes total is 6 out of 8
-    [ResizeHashes] with overflow buffer 8+3=11 -> 16+4=20
-    [ResizeHashes] max_probes = 6, all probes = [1: 1, 2: 1, 3: 1, 4: 2, 5: 1, 6: 1]
-    [ResizeHashes] first 4 probes total is 5 out of 7
-    [AllocateEntries] Resize entries: 8 -> 16
-    [AddOrUpdate-RH] max_probes = 7, all probes = [1: 1, 2: 1, 3: 1, 4: 2, 5: 2, 6: 1, 7: 1]
-    [AddOrUpdate-RH] first 4 probes total is 5 out of 9
-    [AddOrUpdate-RH] max_probes = 8, all probes = [1: 1, 2: 1, 3: 1, 4: 2, 5: 2, 6: 2, 7: 1, 8: 1]
-    [AddOrUpdate-RH] first 4 probes total is 5 out of 11
-    [ResizeHashes] with overflow buffer 16+4=20 -> 32+5=37
-    [ResizeHashes] max_probes = 8, all probes = [1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 2, 7: 1, 8: 2]
-    [ResizeHashes] first 4 probes total is 4 out of 10
-    _hashesOverflowBufferIsFull!
-    [AddOrUpdate] max_probes = 9, all probes = [1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 2, 7: 1, 8: 2, 9: 1]
-    [AddOrUpdate] first 4 probes total is 4 out of 11
-    [AddOrUpdate-RH] max_probes = 10, all probes = [1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 2, 7: 2, 8: 2, 9: 1, 10: 1]
-    [AddOrUpdate-RH] first 4 probes total is 4 out of 13
-    [AddOrUpdate-RH] max_probes = 11, all probes = [1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 2, 7: 2, 8: 3, 9: 1, 10: 1, 11: 1]
-    [AddOrUpdate-RH] first 4 probes total is 4 out of 15
-
-    // GoldenIntEq
-    [AddOrUpdate] max_probes = 2, all probes = [1: 1, 2: 1]
-    [AddOrUpdate] first 4 probes total is 2 out of 2
-    [AddOrUpdate] max_probes = 3, all probes = [1: 1, 2: 1, 3: 1]
-    [AddOrUpdate] first 4 probes total is 3 out of 3
-    [ResizeHashes] with overflow buffer 4+2=6 -> 8+3=11
-    [ResizeHashes] max_probes = 3, all probes = [1: 1, 2: 1, 3: 1]
-    [ResizeHashes] first 4 probes total is 3 out of 3
-    [AddOrUpdate] max_probes = 4, all probes = [1: 1, 2: 1, 3: 2, 4: 1]
-    [AddOrUpdate] first 4 probes total is 5 out of 5
-    [AllocateEntries] Resize entries: 4 -> 8
-    [AddOrUpdate] max_probes = 5, all probes = [1: 1, 2: 1, 3: 2, 4: 1, 5: 1]
-    [AddOrUpdate] first 4 probes total is 5 out of 6
-    [AddOrUpdate-RH] max_probes = 6, all probes = [1: 1, 2: 1, 3: 2, 4: 2, 5: 1, 6: 1]
-    [AddOrUpdate-RH] first 4 probes total is 6 out of 8
-    [ResizeHashes] with overflow buffer 8+3=11 -> 16+4=20
-    [ResizeHashes] max_probes = 4, all probes = [1: 2, 2: 2, 3: 2, 4: 1]
-    [ResizeHashes] first 4 probes total is 7 out of 7
-    [AddOrUpdate] max_probes = 5, all probes = [1: 2, 2: 2, 3: 3, 4: 1, 5: 1]
-    [AddOrUpdate] first 4 probes total is 8 out of 9
-    [AllocateEntries] Resize entries: 8 -> 16
-    [AddOrUpdate] max_probes = 6, all probes = [1: 2, 2: 2, 3: 3, 4: 2, 5: 1, 6: 1]
-    [AddOrUpdate] first 4 probes total is 9 out of 11
-    [AddOrUpdate] max_probes = 7, all probes = [1: 2, 2: 2, 3: 3, 4: 3, 5: 2, 6: 1, 7: 1]
-    [AddOrUpdate] first 4 probes total is 10 out of 14
-    [AddOrUpdate] max_probes = 8, all probes = [1: 2, 2: 2, 3: 3, 4: 3, 5: 2, 6: 2, 7: 1, 8: 1]
-    [AddOrUpdate] first 4 probes total is 10 out of 16
-
-    // GoldenShiftIntEq (shift 5)
-    [ResizeHashes] with overflow buffer 4+2=6 -> 8+3=11
-    [ResizeHashes] max_probes = 1, all probes = [1: 3]
+    [ResizeHashes] Probes abs max = 1, max = 1, all = [1: 3]
     [ResizeHashes] first 4 probes total is 3 out of 3
     [AllocateEntries] Resize entries: 4 -> 8
-    [AddOrUpdate] max_probes = 2, all probes = [1: 5, 2: 1]
+    [AddOrUpdate] Probes abs max = 2, max = 2, all = [1: 5, 2: 1]
     [AddOrUpdate] first 4 probes total is 6 out of 6
     [ResizeHashes] with overflow buffer 8+3=11 -> 16+4=20
-    [ResizeHashes] max_probes = 2, all probes = [1: 6, 2: 1]
+    [ResizeHashes] Probes abs max = 2, max = 2, all = [1: 6, 2: 1]
     [ResizeHashes] first 4 probes total is 7 out of 7
     [AllocateEntries] Resize entries: 8 -> 16
     */

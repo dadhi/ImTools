@@ -249,19 +249,19 @@ public static class FHashMap91
             {
                 if (index != 0)
                 {
-    #if NET7_0_OR_GREATER
+#if NET7_0_OR_GREATER
                     ref var bucket = ref MemoryMarshal.GetArrayDataReference(_entries);
-    #else
+#else
                     ref var bucket = ref _entries[0];
-    #endif
+#endif
                     if (index == bucket.Length)
                         Array.Resize(ref bucket, index << 1);
 
-    #if NET7_0_OR_GREATER
+#if NET7_0_OR_GREATER
                     ref var e = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(bucket), index);
-    #else
+#else
                     ref var e = ref bucket[index];
-    #endif
+#endif
                     e.Key = key;
                     e.Value = value;
                     return;
@@ -399,6 +399,69 @@ public class FHashMap91DebugProxy<K, V, TEq, TEntries>
     public TEntries Entries => _map.Entries;
 }
 
+struct FHashMap91Debug
+{
+    internal int MaxProbes;
+    internal int[] Probes;
+
+    public FHashMap91Debug()
+    {
+        MaxProbes = 1;
+        Probes = new int[1];
+    }
+
+    // will output something like
+    // [AddOrUpdate] Probes abs max = 10, max = 6, all = [1: 180, 2: 103, 3: 59, 4: 23, 5: 3, 6: 1]
+    // [AddOrUpdate] first 4 probes total is 365 out of 369
+    internal void DebugOutputProbes(string label)
+    {
+        Debug.Write($"[{label}] Probes abs max = {MaxProbes}, max = {Probes.Length}, all = [");
+        var first4probes = 0;
+        var allProbes = 0;
+        for (var i = 0; i < Probes.Length; i++)
+        {
+            var p = Probes[i];
+            Debug.Write($"{(i == 0 ? "" : ", ")}{i + 1}: {p}");
+            if (i < 4)
+                first4probes += p;
+            allProbes += p;
+        }
+        Debug.WriteLine("]");
+        Debug.WriteLine($"[{label}] first 4 probes total is {first4probes} out of {allProbes}");
+    }
+
+    internal void DebugCollectAndOutputProbes(int probes, [CallerMemberName] string label = "")
+    {
+        if (probes > Probes.Length)
+        {
+            if (probes > MaxProbes)
+                MaxProbes = probes;
+            Array.Resize(ref Probes, probes);
+            Probes[probes - 1] = 1;
+            DebugOutputProbes(label);
+        }
+        else
+            ++Probes[probes - 1];
+    }
+
+    internal void DebugReCollectAndOutputProbes(int[] packedHashes, [CallerMemberName] string label = "")
+    {
+        var newProbes = new int[1];
+        foreach (var h in packedHashes)
+        {
+            if (h == 0) continue;
+            var p = h >>> ProbeCountShift;
+            if (p > MaxProbes)
+                MaxProbes = p;
+            if (p > newProbes.Length)
+                Array.Resize(ref newProbes, p);
+            ++newProbes[p - 1];
+        }
+        Probes = newProbes;
+        DebugOutputProbes(label);
+    }
+}
+
 [DebuggerTypeProxy(typeof(FHashMap91DebugProxy<,,,>))]
 [DebuggerDisplay("Count={Count}")]
 #endif
@@ -406,6 +469,9 @@ public struct FHashMap91<K, V, TEq, TEntries>
     where TEq : struct, IEqualityComparer<K>
     where TEntries : struct, IEntries<K, V>
 {
+#if DEBUG
+    FHashMap91Debug _dbg = new();
+#endif
     private bool _hashesOverflowBufferIsFull;
     private byte _capacityBitShift;
 
@@ -548,7 +614,7 @@ public struct FHashMap91<K, V, TEq, TEntries>
         var hHooded = h;
         h = (probes << ProbeCountShift) | (hash & hashPartMask) | entryCount;
 #if DEBUG
-        DebugCollectAndOutputProbes(probes);
+        _dbg.DebugCollectAndOutputProbes(probes);
 #endif
 
         _entries.AppendEntry(in key, in value);
@@ -563,8 +629,8 @@ public struct FHashMap91<K, V, TEq, TEntries>
             {
 #if DEBUG
                 if (h != 0)
-                    --Probes[(h >>> ProbeCountShift) - 1];
-                DebugCollectAndOutputProbes(probes, "AddOrUpdate-RH");
+                    --_dbg.Probes[(h >>> ProbeCountShift) - 1];
+                _dbg.DebugCollectAndOutputProbes(probes, "AddOrUpdate-RH");
 #endif
                 var hPrev = h;
                 h = (probes << ProbeCountShift) | (hHooded & HashAndIndexMask);
@@ -608,7 +674,7 @@ public struct FHashMap91<K, V, TEq, TEntries>
                     removed = true;
                     h = 0;
 #if DEBUG
-                    --Probes[probes - 1];
+                    --_dbg.Probes[probes - 1];
 #endif
                     break;
                 }
@@ -680,65 +746,9 @@ public struct FHashMap91<K, V, TEq, TEntries>
 
 #if DEBUG
         Debug.WriteLine($"[ResizeHashes] with overflow buffer {oldCapacity}+{_capacityBitShift}={oldCapacityWithOverflow} -> {oldCapacity << 1}+{_capacityBitShift + 1}={newHashesAndIndexes.Length}");
-        DebugReCollectAndOutputProbes(newHashesAndIndexes);
+        _dbg.DebugReCollectAndOutputProbes(newHashesAndIndexes);
 #endif
         ++_capacityBitShift;
         _packedHashesAndIndexes = newHashesAndIndexes;
     }
-
-#if DEBUG
-    internal int MaxProbes = 1;
-    internal int[] Probes = new int[1];
-
-    // will output something like
-    // [AddOrUpdate] Probes abs max = 10, max = 6, all = [1: 180, 2: 103, 3: 59, 4: 23, 5: 3, 6: 1]
-    // [AddOrUpdate] first 4 probes total is 365 out of 369
-    internal void DebugOutputProbes(string label)
-    {
-        Debug.Write($"[{label}] Probes abs max = {MaxProbes}, max = {Probes.Length}, all = [");
-        var first4probes = 0;
-        var allProbes = 0;
-        for (var i = 0; i < Probes.Length; i++)
-        {
-            var p = Probes[i];
-            Debug.Write($"{(i == 0 ? "" : ", ")}{i + 1}: {p}");
-            if (i < 4)
-                first4probes += p;
-            allProbes += p;
-        }
-        Debug.WriteLine("]");
-        Debug.WriteLine($"[{label}] first 4 probes total is {first4probes} out of {allProbes}");
-    }
-
-    internal void DebugCollectAndOutputProbes(int probes, [CallerMemberName] string label = "")
-    {
-        if (probes > Probes.Length)
-        {
-            if (probes > MaxProbes)
-                MaxProbes = probes;
-            Array.Resize(ref Probes, probes);
-            Probes[probes - 1] = 1;
-            DebugOutputProbes(label);
-        }
-        else
-            ++Probes[probes - 1];
-    }
-
-    internal void DebugReCollectAndOutputProbes(int[] packedHashes, [CallerMemberName] string label = "")
-    {
-        var newProbes = new int[1];
-        foreach (var h in packedHashes)
-        {
-            if (h == 0) continue;
-            var p = h >>> ProbeCountShift;
-            if (p > MaxProbes)
-                MaxProbes = p;
-            if (p > newProbes.Length)
-                Array.Resize(ref newProbes, p);
-            ++newProbes[p - 1];
-        }
-        Probes = newProbes;
-        DebugOutputProbes(label);
-    }
-#endif
 }
