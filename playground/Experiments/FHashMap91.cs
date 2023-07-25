@@ -13,7 +13,6 @@ public static class FHashMap91
 {
     public const uint GoldenRatio32 = 2654435769; // 2^32 / phi for the Fibonacci hashing, where phi is the golden ratio ~1.61803
 
-    public const int MinEntriesCapacity = 2;
     public const byte MinFreeCapacityShift = 3; // e.g. for the capacity 16: 16 >> 3 => 2, 12.5% of the free hash slots (it does not mean the entries free slot)
     public const byte MinCapacityBits = 3; // 1 << 3 == 8
     public const byte MaxProbeBits = 5; // 5 bits max, e.g. 31 (11111)
@@ -155,6 +154,8 @@ public static class FHashMap91
         void AppendEntry(in K key, in V value);
     }
 
+    public const int MinEntriesCapacity = 2;
+
     public struct ArrayEntries<K, V> : IEntries<K, V>
     {
         int _entryCount;
@@ -176,7 +177,7 @@ public static class FHashMap91
 #endif
         }
 
-        // [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining // todo: @wip
+        [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
         public void AppendEntry(in K key, in V value)
         {
             var index = _entryCount;
@@ -239,7 +240,7 @@ public static class FHashMap91
             if ((index & BucketCapacityMask) == 0)
             {
                 if (_entries == null)
-                    _entries = new[] { new Entry<K, V>[4] };
+                    _entries = new[] { new Entry<K, V>[MinEntriesCapacity] };
                 else
                 {
                     if ((index >>> BucketCapacityBitShift) == _entries.Length)
