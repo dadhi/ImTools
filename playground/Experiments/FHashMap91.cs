@@ -1018,17 +1018,18 @@ public struct FHashMap91<K, V, TEq, TEntries>
         var oldHashes = _packedHashesAndIndexes;
         var oldHash = oldHashes[0];
 #endif
+        // Overflow segment is wrapped-around hashes and! the hashes at the beginning robin hooded by the wrapped-around hashes
         var i = 0;
         while ((oldHash >>> ProbeCountShift) > 1)
             oldHash = GetHash(ref oldHashes, ++i);
 
-        var overflowEndsOnIndex = i;
+        var oldCapacityWithOverflowSegment = i + oldCapacity;
         while (true)
         {
             if (oldHash != 0)
             {
                 // get the new hash index from the old one with the next bit equal to the `oldCapacity`
-                var indexWithNextBit = (oldHash & oldCapacity) | ((i + 1) - (oldHash >>> ProbeCountShift));
+                var indexWithNextBit = (oldHash & oldCapacity) | (((i + 1) - (oldHash >>> ProbeCountShift)) & indexMask);
 
                 // no need for robinhooding because we already did it for the old hashes and now just sparcing the hashes into the new array which are already in order
                 var probes = 1;
@@ -1040,67 +1041,10 @@ public struct FHashMap91<K, V, TEq, TEntries>
                 }
                 newHash = (probes << ProbeCountShift) | (oldHash & newHashAndIndexMask);
             }
-            if (++i >= oldCapacity)
+            if (++i >= oldCapacityWithOverflowSegment)
                 break;
-            oldHash = GetHash(ref oldHashes, i);
+            oldHash = GetHash(ref oldHashes, i & indexMask);
         }
-
-        if (overflowEndsOnIndex != 0)
-        {
-            var alarms = 0;
-            for (var j = 0; j < overflowEndsOnIndex; ++j)
-            {
-                var empty = GetHash(ref newHashes, j);
-                if (empty != 0)
-                {
-                    Console.WriteLine($"ALARM ALARM j:{j}, p:{empty >>> ProbeCountShift}");
-                    ++alarms;
-                }
-            }
-            if (alarms != 0)
-                Console.WriteLine($"ALARMS {alarms} from {oldCapacity << 1}");
-
-            alarms = 0;
-            for (var j = oldCapacity; j < oldCapacity + overflowEndsOnIndex; ++j)
-            {
-                var empty = GetHash(ref newHashes, j);
-                if (empty != 0)
-                {
-                    Console.WriteLine($"MRALA MRALA j:{j}, p:{empty >>> ProbeCountShift}");
-                    ++alarms;
-                }
-            }
-            if (alarms != 0)
-                Console.WriteLine($"MRALAS {alarms} from {oldCapacity << 1}");
-
-            for (var j = 0; j < overflowEndsOnIndex; ++j)
-            {
-                oldHash = GetHash(ref oldHashes, j);
-                var indexWithNextBit = (oldHash & oldCapacity) | (((oldCapacity + j + 1) - (oldHash >>> ProbeCountShift)) & indexMask);
-                var oldHashWithNextIndexBitErased = oldHash & newHashAndIndexMask;
-                var probes = 1;
-                while (true)
-                {
-                    ref var h = ref GetHashRef(ref newHashes, indexWithNextBit & newIndexMask);
-                    if (h == 0)
-                    {
-                        h = (probes << ProbeCountShift) | oldHashWithNextIndexBitErased;
-                        break;
-                    }
-                    if ((h >>> ProbeCountShift) < probes)
-                    {
-                        var hAndIndex = h & HashAndIndexMask;
-                        var hProbes = h >>> ProbeCountShift;
-                        h = (probes << ProbeCountShift) | oldHashWithNextIndexBitErased;
-                        oldHashWithNextIndexBitErased = hAndIndex;
-                        probes = hProbes;
-                    }
-                    ++probes;
-                    ++indexWithNextBit;
-                }
-            }
-        }
-
 #if DEBUG
         Debug.WriteLine($"[ResizeHashes] {oldCapacity} -> {newHashesAndIndexes.Length}");
         _dbg.DebugReCollectAndOutputProbes(newHashesAndIndexes);
