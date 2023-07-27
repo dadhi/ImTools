@@ -998,13 +998,13 @@ public struct FHashMap91<K, V, TEq, TEntries>
             _capacityBitShift = MinCapacityBits;
             _packedHashesAndIndexes = new int[1 << MinCapacityBits];
 #if DEBUG
-            Debug.WriteLine($"[ResizeHashes] new empty hashes with overflow buffer {1} -> {_packedHashesAndIndexes.Length}");
+            Debug.WriteLine($"[ResizeHashes] new empty hashes {1} -> {_packedHashesAndIndexes.Length}");
 #endif
             return (1 << MinCapacityBits) - 1;
         }
 
         var oldCapacity = indexMask + 1;
-        var newHashAndIndexMask = ~oldCapacity & HashAndIndexMask;
+        var newHashAndIndexMask = HashAndIndexMask & ~oldCapacity;
         var newIndexMask = (indexMask << 1) | 1;
 
         var newHashesAndIndexes = new int[oldCapacity << 1];
@@ -1019,7 +1019,7 @@ public struct FHashMap91<K, V, TEq, TEntries>
         var oldHash = oldHashes[0];
 #endif
         var i = 0;
-        while ((oldHash >>> ProbeCountShift) > (i + 1))
+        while ((oldHash >>> ProbeCountShift) > 1)
             oldHash = GetHash(ref oldHashes, ++i);
 
         var overflowEndsOnIndex = i;
@@ -1032,13 +1032,13 @@ public struct FHashMap91<K, V, TEq, TEntries>
 
                 // no need for robinhooding because we already did it for the old hashes and now just sparcing the hashes into the new array which are already in order
                 var probes = 1;
-                ref var h = ref GetHashRef(ref newHashes, indexWithNextBit);
-                while (h != 0)
+                ref var newHash = ref GetHashRef(ref newHashes, indexWithNextBit);
+                while (newHash != 0)
                 {
-                    h = ref GetHashRef(ref newHashes, ++indexWithNextBit & newIndexMask);
+                    newHash = ref GetHashRef(ref newHashes, ++indexWithNextBit & newIndexMask);
                     ++probes;
                 }
-                h = (probes << ProbeCountShift) | (oldHash & newHashAndIndexMask);
+                newHash = (probes << ProbeCountShift) | (oldHash & newHashAndIndexMask);
             }
             if (++i >= oldCapacity)
                 break;
@@ -1047,6 +1047,32 @@ public struct FHashMap91<K, V, TEq, TEntries>
 
         if (overflowEndsOnIndex != 0)
         {
+            var alarms = 0;
+            for (var j = 0; j < overflowEndsOnIndex; ++j)
+            {
+                var empty = GetHash(ref newHashes, j);
+                if (empty != 0)
+                {
+                    Console.WriteLine($"ALARM ALARM j:{j}, p:{empty >>> ProbeCountShift}");
+                    ++alarms;
+                }
+            }
+            if (alarms != 0)
+                Console.WriteLine($"ALARMS {alarms} from {oldCapacity << 1}");
+
+            alarms = 0;
+            for (var j = oldCapacity; j < oldCapacity + overflowEndsOnIndex; ++j)
+            {
+                var empty = GetHash(ref newHashes, j);
+                if (empty != 0)
+                {
+                    Console.WriteLine($"MRALA MRALA j:{j}, p:{empty >>> ProbeCountShift}");
+                    ++alarms;
+                }
+            }
+            if (alarms != 0)
+                Console.WriteLine($"MRALAS {alarms} from {oldCapacity << 1}");
+
             for (var j = 0; j < overflowEndsOnIndex; ++j)
             {
                 oldHash = GetHash(ref oldHashes, j);
