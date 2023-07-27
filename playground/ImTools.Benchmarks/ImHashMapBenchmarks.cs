@@ -16,6 +16,7 @@ using ImTools.V2.Experimental;
 using System.Runtime.CompilerServices;
 
 using FHashMap91TypeString = ImTools.Experiments.FHashMap91<System.Type, string, ImTools.Experiments.RefEq<System.Type>, ImTools.Experiments.FHashMap91.ChunkedArrayEntries<System.Type, string>>;
+using FHashMap91_OverflowTypeString = ImTools.Experiments.FHashMap91_Overflow<System.Type, string, ImTools.Experiments.RefEq<System.Type>, ImTools.Experiments.FHashMap91.ChunkedArrayEntries<System.Type, string>>;
 
 #nullable disable
 
@@ -925,8 +926,21 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 |        DictSlim_TryAdd |  1000 | 25,177.61 ns | 408.712 ns | 401.410 ns |  1.00 |    0.00 | 9.1553 |                51,565 |            267 |                     266 | 0.7935 |   57808 B |        1.00 |
 | FHashMap91_AddOrUpdate |  1000 | 27,887.94 ns | 492.979 ns | 437.013 ns |  1.11 |    0.02 | 7.9346 |                49,282 |            292 |                      90 | 1.0986 |   49816 B |        0.86 |
 
-## ArrayArrayEntries
+## Overflow vs No
 
+|                          Method | Count |         Mean |      Error |     StdDev | Ratio | RatioSD |   Gen0 | CacheMisses/Op | BranchInstructions/Op | BranchMispredictions/Op |   Gen1 | Allocated | Alloc Ratio |
+|-------------------------------- |------ |-------------:|-----------:|-----------:|------:|--------:|-------:|---------------:|----------------------:|------------------------:|-------:|----------:|------------:|
+|          FHashMap91_AddOrUpdate |     1 |     38.27 ns |   0.679 ns |   0.602 ns |  1.00 |    0.00 | 0.0178 |              0 |                    80 |                       0 |      - |     112 B |        1.00 |
+| FHashMap91_Overflow_AddOrUpdate |     1 |     40.06 ns |   1.489 ns |   4.248 ns |  1.04 |    0.11 | 0.0204 |              0 |                    47 |                       0 |      - |     128 B |        1.14 |
+|                                 |       |              |            |            |       |         |        |                |                       |                         |        |           |             |
+|          FHashMap91_AddOrUpdate |    10 |    248.86 ns |   4.990 ns |   4.668 ns |  1.00 |    0.00 | 0.1144 |              2 |                   527 |                       1 |      - |     720 B |        1.00 |
+| FHashMap91_Overflow_AddOrUpdate |    10 |    253.51 ns |   5.006 ns |   4.180 ns |  1.02 |    0.03 | 0.1197 |              2 |                   520 |                       1 |      - |     752 B |        1.04 |
+|                                 |       |              |            |            |       |         |        |                |                       |                         |        |           |             |
+|          FHashMap91_AddOrUpdate |   100 |  3,156.20 ns |  63.140 ns | 135.915 ns |  1.00 |    0.00 | 0.8469 |             42 |                 4,578 |                       8 | 0.0076 |    5344 B |        1.00 |
+| FHashMap91_Overflow_AddOrUpdate |   100 |  2,325.19 ns |  19.140 ns |  14.944 ns |  0.75 |    0.04 | 0.8659 |             20 |                 4,386 |                       7 | 0.0076 |    5456 B |        1.02 |
+|                                 |       |              |            |            |       |         |        |                |                       |                         |        |           |             |
+|          FHashMap91_AddOrUpdate |  1000 | 28,834.10 ns | 567.635 ns | 776.985 ns |  1.00 |    0.00 | 7.8735 |            381 |                52,217 |                      98 | 0.8545 |   49544 B |        1.00 |
+| FHashMap91_Overflow_AddOrUpdate |  1000 | 27,810.84 ns | 254.710 ns | 212.695 ns |  0.96 |    0.03 | 7.9346 |            351 |                49,273 |                      87 | 1.0986 |   49816 B |        1.01 |
 
 */
             [Params(1, 10, 100, 1000)]
@@ -1093,7 +1107,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return map;
             }
 
-            [Benchmark(Baseline = true)]
+            // [Benchmark(Baseline = true)]
             public DictionarySlim<TypeVal, string> DictSlim_TryAdd()
             {
                 var map = new DictionarySlim<TypeVal, string>();
@@ -1117,10 +1131,23 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return map;
             }
 
-            [Benchmark]
+            [Benchmark(Baseline = true)]
+            // [Benchmark]
             public FHashMap91TypeString FHashMap91_AddOrUpdate()
             {
                 var map = new FHashMap91TypeString();
+
+                foreach (var key in _types)
+                    map.AddOrUpdate(key, "a");
+
+                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+                return map;
+            }
+
+            [Benchmark]
+            public FHashMap91_OverflowTypeString FHashMap91_Overflow_AddOrUpdate()
+            {
+                var map = new FHashMap91_OverflowTypeString();
 
                 foreach (var key in _types)
                     map.AddOrUpdate(key, "a");
