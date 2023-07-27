@@ -177,7 +177,7 @@ public static class FHashMap91
     public struct SingleArrayEntries<K, V> : IEntries<K, V>
     {
         int _entryCount;
-        public Entry<K, V>[] _entries; // todo: @wip
+        internal Entry<K, V>[] _entries;
 
         public void Init(byte capacityBitShift) =>
             _entries = new Entry<K, V>[1 << capacityBitShift];
@@ -193,20 +193,6 @@ public static class FHashMap91
 #else
             return ref _entries[index];
 #endif
-        }
-
-        // todo: @wip
-        public enum ContainsResult { No, RefEquals, Equals }
-        public ContainsResult Contains(K key)
-        {
-            foreach (var e in _entries)
-            {
-                if (ReferenceEquals(e.Key, key))
-                    return ContainsResult.RefEquals;
-                if (Equals(e.Key, key))
-                    return ContainsResult.Equals;
-            }
-            return ContainsResult.No;
         }
 
         [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
@@ -518,7 +504,7 @@ public struct FHashMap91_Overflow<K, V, TEq, TEntries>
     public int CapacityBitShift => _capacityBitShift;
     internal int[] PackedHashesAndIndexes => _packedHashesAndIndexes;
     public int Count => _entries.GetCount();
-    public TEntries Entries => _entries; // todo: @wip
+    public TEntries Entries => _entries;
     public FHashMap91_Overflow()
     {
         _capacityBitShift = 0;
@@ -832,11 +818,6 @@ public struct FHashMap91<K, V, TEq, TEntries>
     {
         var hash = default(TEq).GetHashCode(key);
 
-        if (ReferenceEquals(key, typeof(Tuple<>)))
-            Console.WriteLine($"th1:{hash}");
-        if (ReferenceEquals(key, typeof(Tuple<,>)))
-            Console.WriteLine($"th2:{hash}");
-
         var indexMask = (1 << _capacityBitShift) - 1;
         var hashMiddleMask = HashAndIndexMask & ~indexMask;
         var hashMiddle = hash & hashMiddleMask;
@@ -868,11 +849,6 @@ public struct FHashMap91<K, V, TEq, TEntries>
             h = GetHash(ref hashesAndIndexes, ++hashIndex & indexMask);
             ++probes;
         }
-
-        if (ReferenceEquals(key, typeof(Tuple<>)))
-            Console.WriteLine($"th1:not found");
-        if (ReferenceEquals(key, typeof(Tuple<,>)))
-            Console.WriteLine($"th2:not found");
 
         value = default;
         return false;
@@ -1044,17 +1020,7 @@ public struct FHashMap91<K, V, TEq, TEntries>
 #endif
         var i = 0;
         while ((oldHash >>> ProbeCountShift) > (i + 1))
-        {
-            Console.WriteLine($"OVERFLOW: {i}: p{oldHash >>> ProbeCountShift}, {oldHash & indexMask} -> {_entries.GetSurePresentEntryRef(oldHash & indexMask).Key.ToString()}");
             oldHash = GetHash(ref oldHashes, ++i);
-        }
-        if (i != 0)
-        {
-            if (oldHash == 0)
-                Console.WriteLine("OVERFLOW END ON 0");
-            else
-                Console.WriteLine($"OVERFLOW END ON: {i}: p{oldHash >>> ProbeCountShift}, {oldHash & indexMask} -> {_entries.GetSurePresentEntryRef(oldHash & indexMask).Key.ToString()}");
-        }
 
         var overflowEndsOnIndex = i;
         while (true)
@@ -1067,22 +1033,12 @@ public struct FHashMap91<K, V, TEq, TEntries>
                 // no need for robinhooding because we already did it for the old hashes and now just sparcing the hashes into the new array which are already in order
                 var probes = 1;
                 ref var h = ref GetHashRef(ref newHashes, indexWithNextBit);
-                var hPrev = 0;
                 while (h != 0)
                 {
-                    hPrev = h;
                     h = ref GetHashRef(ref newHashes, ++indexWithNextBit & newIndexMask);
                     ++probes;
                 }
                 h = (probes << ProbeCountShift) | (oldHash & newHashAndIndexMask);
-
-                // todo: @wip replace with Assert and the test
-                if (probes - (hPrev >>> ProbeCountShift) > 1)
-                {
-                    Console.WriteLine($"WRONG PROBES! before: {(indexWithNextBit - 1) & newIndexMask}: p{hPrev >>> ProbeCountShift}, {hPrev & indexMask} -> {_entries.GetSurePresentEntryRef(hPrev & indexMask).Key.ToString()}");
-                    Console.WriteLine($"WRONG PROBES! after : {indexWithNextBit & newIndexMask}: p{probes}, {h & indexMask} -> {_entries.GetSurePresentEntryRef(h & indexMask).Key.ToString()}");
-                    Console.WriteLine($"WRONG PROBES! overflow index: {overflowEndsOnIndex}");
-                }
             }
             if (++i >= oldCapacity)
                 break;

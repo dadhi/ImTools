@@ -129,60 +129,8 @@ public class FHashMap91Tests
         map.AddOrUpdate(typeof(FHashMap91Tests), "!");
         Assert.AreEqual(1001, map.Count);
 
-        // Assert.IsTrue(map.TryRemove(typeof(FHashMap91Tests)));
-        // Assert.AreEqual(1000, map.Count);
-
-        var entries = (SingleArrayEntries<Type, string>)map.Entries;
-        Console.WriteLine(entries.Contains(typeof(Tuple<>)));
-        Console.WriteLine(entries.Contains(typeof(Tuple<,>)));
-        Console.WriteLine(entries.Contains(typeof(TimeZoneInfo.TransitionTime)));
-
-        var t1h = default(GoldenRefEq<Type>).GetHashCode(typeof(Tuple<>));
-        var t2h = default(GoldenRefEq<Type>).GetHashCode(typeof(Tuple<,>));
-        Console.WriteLine($"t1h:{t1h} == t2h:{t2h} --> {t1h == t2h}");
-
-        var hashes = map.PackedHashesAndIndexes;
-        var indexMask = (hashes.Length - 1);
-        var hashPartMask = HashAndIndexMask & ~indexMask;
-        var i = 0;
-        foreach (var h in hashes)
-        {
-            var hPart = h & hashPartMask;
-            if (hPart == (t1h & hashPartMask) || hPart == (t2h & hashPartMask))
-            {
-                var probes = h >>> ProbeCountShift;
-                Console.WriteLine($"{i}: p{probes}, {h & indexMask} -> {entries._entries[h & indexMask].Key.Name}");
-                if (probes > i)
-                {
-                    var prev1 = (hashes.Length + i - 1) & indexMask;
-                    var h1 = hashes[prev1];
-                    Console.WriteLine($"PREV1 {prev1}: p{h1 >>> ProbeCountShift}, {h1 & indexMask} -> {entries._entries[h1 & indexMask].Key.Name}");
-                    var prev2 = (hashes.Length + i - 2) & indexMask;
-                    var h2 = hashes[prev2];
-                    Console.WriteLine($"PREV2 {prev2}: p{h2 >>> ProbeCountShift}, {h2 & indexMask} -> {entries._entries[h2 & indexMask].Key.Name}");
-                    var prev3 = (hashes.Length + i - 3) & indexMask;
-                    var h3 = hashes[prev3];
-                    Console.WriteLine($"PREV3 {prev3}: p{h3 >>> ProbeCountShift}, {h3 & indexMask} -> {entries._entries[h3 & indexMask].Key.Name}");
-                }
-            }
-            ++i;
-        }
-
-        /*
-          Standard Output Messages:
-         RefEquals
-         RefEquals
-         RefEquals
-         t1h:2017736702 == t2h:208253299 --> False
-         1: p4, 451 -> Tuple`1
-         371: p1, 452 -> Tuple`2
-         th1:2017736702
-         th1:not found
-        */
-
-        // problematic types
-        Assert.IsTrue(map.TryGetValue(typeof(Tuple<>), out _));
-        Assert.IsTrue(map.TryGetValue(typeof(Tuple<,>), out _));
+        Assert.IsTrue(map.TryRemove(typeof(FHashMap91Tests)));
+        Assert.AreEqual(1000, map.Count);
 
         Verify(map, types);
     }
@@ -197,10 +145,7 @@ public class FHashMap91Tests
         var keys = new[] { typeof(Tuple<>), typeof(Tuple<,>), typeof(Tuple<,,>) };
         var i = 1;
         foreach (var k in keys)
-        {
             map.AddOrUpdate(k, "" + i++);
-            // Console.WriteLine($"{k.ToString()}: {default(RefEq<Type>).GetHashCode()} -- {default(TypeEq).GetHashCode()}");
-        }
 
         Assert.AreEqual(3, map.Count);
 
