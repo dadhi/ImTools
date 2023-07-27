@@ -41,29 +41,28 @@ public static class FHashMap91
         public V Value;
     }
 
-    public struct DebugItem<K, V>
+    public struct DebugHashItem<K, V>
     {
         public int Probe;
-        public bool HEq;
         public string Hash;
         public int Index;
         public bool IsEmpty => Probe == 0;
-        public string Output => $"{Probe}|{Hash}|{Index}";
-        public override string ToString() => IsEmpty ? "empty" : Output;
+        public bool HEq;
+
+        public override string ToString() => IsEmpty ? "empty" : $"{Probe}|{Hash}|{Index}";
     }
 
     /// <summary>Converts the packed hashes and entries into the human readable info.
     /// This also used for the debugging view of the <paramref name="map"/> and by the Verify... methods in tests.</summary>
-    public static DebugItem<K, V>[] Explain<K, V, TEq, TEntries>(this FHashMap91<K, V, TEq, TEntries> map)
+    public static DebugHashItem<K, V>[] Explain<K, V, TEq, TEntries>(this FHashMap91<K, V, TEq, TEntries> map)
         where TEq : struct, IEqualityComparer<K>
         where TEntries : struct, IEntries<K, V>
     {
         var hashes = map.PackedHashesAndIndexes;
-        var capacityBitShift = map.CapacityBitShift;
-        var capacity = 1 << capacityBitShift;
+        var capacity = (1 << map.CapacityBitShift);
         var indexMask = capacity - 1;
 
-        var items = new DebugItem<K, V>[hashes.Length];
+        var items = new DebugHashItem<K, V>[hashes.Length];
         for (var i = 0; i < hashes.Length; i++)
         {
             var h = hashes[i];
@@ -71,20 +70,15 @@ public static class FHashMap91
                 continue;
 
             var probe = h >>> ProbeCountShift;
-            var hashIndex = i - probe + 1;
+            var hashIndex = ((capacity + i) - (probe - 1)) & indexMask;
 
-            var hashMiddle = (h & HashAndIndexMask & ~indexMask);
-            var hash = hashMiddle | hashIndex;
+            var hash = (h & HashAndIndexMask & ~indexMask) | hashIndex;
             var entryIndex = h & indexMask;
 
-            var heq = false;
-            if (probe != 0)
-            {
-                ref var e = ref map.Entries.GetSurePresentEntryRef(entryIndex);
-                var kh = default(TEq).GetHashCode(e.Key) & HashAndIndexMask;
-                heq = kh == hash;
-            }
-            items[i] = new DebugItem<K, V> { Probe = probe, Hash = toB(hash), HEq = heq, Index = entryIndex };
+            ref var e = ref map.Entries.GetSurePresentEntryRef(entryIndex);
+            var kh = default(TEq).GetHashCode(e.Key) & HashAndIndexMask;
+            var heq = kh == hash;
+            items[i] = new DebugHashItem<K, V> { Probe = probe, Hash = toB(hash), Index = entryIndex, HEq = heq };
         }
         return items;
 
@@ -111,8 +105,7 @@ public static class FHashMap91
         // Verify the indexes do no contains duplicate keys
         var uniq = new Dictionary<K, int>(map.Count);
         var hashes = map.PackedHashesAndIndexes;
-        var capacityBitShift = map.CapacityBitShift;
-        var capacity = 1 << capacityBitShift;
+        var capacity = 1 << map.CapacityBitShift;
         var indexMask = capacity - 1;
         for (var i = 0; i < hashes.Length; i++)
         {
@@ -124,6 +117,24 @@ public static class FHashMap91
                 uniq.Add(key, 1);
             else
                 assertKey(key);
+        }
+    }
+
+    public static void VerifyProbesAreFitRobinHood<K, V, TEq, TEntries>(this FHashMap91<K, V, TEq, TEntries> map, Action<string> reportFail)
+        where TEq : struct, IEqualityComparer<K>
+        where TEntries : struct, IEntries<K, V>
+    {
+        var hashes = map.PackedHashesAndIndexes;
+        var capacity = 1 << map.CapacityBitShift;
+        var indexMask = capacity - 1;
+        var prevProbes = -1;
+        for (var i = 0; i < hashes.Length; i++)
+        {
+            var h = hashes[i];
+            var probes = h >>> ProbeCountShift;
+            if (prevProbes != -1 && probes - prevProbes > 1)
+                reportFail($"Probes are not consequent: {prevProbes}, {probes} for {i}: p{probes}, {h & indexMask} -> {map.Entries.GetSurePresentEntryRef(h & indexMask).Key.ToString()}");
+            prevProbes = probes;
         }
     }
 
@@ -166,7 +177,7 @@ public static class FHashMap91
     public struct SingleArrayEntries<K, V> : IEntries<K, V>
     {
         int _entryCount;
-        Entry<K, V>[] _entries;
+        public Entry<K, V>[] _entries; // todo: @wip
 
         public void Init(byte capacityBitShift) =>
             _entries = new Entry<K, V>[1 << capacityBitShift];
@@ -182,6 +193,20 @@ public static class FHashMap91
 #else
             return ref _entries[index];
 #endif
+        }
+
+        // todo: @wip
+        public enum ContainsResult { No, RefEquals, Equals }
+        public ContainsResult Contains(K key)
+        {
+            foreach (var e in _entries)
+            {
+                if (ReferenceEquals(e.Key, key))
+                    return ContainsResult.RefEquals;
+                if (Equals(e.Key, key))
+                    return ContainsResult.Equals;
+            }
+            return ContainsResult.No;
         }
 
         [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
@@ -219,6 +244,11 @@ public static class FHashMap91
     const int ChunkCapacity = 1 << ChunkCapacityBitShift;
     const int ChunkCapacityMask = ChunkCapacity - 1;
 
+    // todo: @perf research on the similar growable indexed collection with append to the end semantics
+    /// <summary>The array of array buckets, where bucket is the fixed size. 
+    /// It enables adding the new bucket without for the new entries without reallocating the existing data.
+    /// It may allow to drop the empty bucket as well, reclaiming the memory after remove.
+    /// The structure is similar to Hashed Array Tree (HAT)</summary>
     public struct ChunkedArrayEntries<K, V> : IEntries<K, V>
     {
         int _entryCount;
@@ -349,7 +379,7 @@ public struct GoldenRefEq<K> : IEqualityComparer<K> where K : class
 
     /// <inheritdoc />
     [MethodImpl((MethodImplOptions)256)]
-    public int GetHashCode(K obj) => (int)(obj.GetHashCode() * FHashMap91.GoldenRatio32) >>> FHashMap91.MaxProbeBits;
+    public int GetHashCode(K obj) => (int)((obj.GetHashCode() * FHashMap91.GoldenRatio32) >>> FHashMap91.MaxProbeBits);
 }
 
 /// <summary>Uses the integer itself as hash code and `==` for equality</summary>
@@ -395,7 +425,7 @@ public class FHashMap91DebugProxy<K, V, TEq, TEntries>
 {
     private readonly FHashMap91<K, V, TEq, TEntries> _map;
     public FHashMap91DebugProxy(FHashMap91<K, V, TEq, TEntries> map) => _map = map;
-    public FHashMap91.DebugItem<K, V>[] PackedHashes => _map.Explain();
+    public FHashMap91.DebugHashItem<K, V>[] PackedHashes => _map.Explain();
     public TEntries Entries => _map.Entries;
 }
 
@@ -465,7 +495,7 @@ struct FHashMap91Debug
 [DebuggerTypeProxy(typeof(FHashMap91DebugProxy<,,,>))]
 [DebuggerDisplay("Count={Count}")]
 #endif
-public struct FHashMap91<K, V, TEq, TEntries>
+public struct FHashMap91_Overflow<K, V, TEq, TEntries>
     where TEq : struct, IEqualityComparer<K>
     where TEntries : struct, IEntries<K, V>
 {
@@ -488,8 +518,8 @@ public struct FHashMap91<K, V, TEq, TEntries>
     public int CapacityBitShift => _capacityBitShift;
     internal int[] PackedHashesAndIndexes => _packedHashesAndIndexes;
     public int Count => _entries.GetCount();
-    internal TEntries Entries => _entries;
-    public FHashMap91()
+    public TEntries Entries => _entries; // todo: @wip
+    public FHashMap91_Overflow()
     {
         _capacityBitShift = 0;
         _hashesOverflowBufferIsFull = false;
@@ -499,7 +529,7 @@ public struct FHashMap91<K, V, TEq, TEntries>
     }
 
     /// <summary>Capacity calculates as `1 << capacityBitShift`</summary>
-    public FHashMap91(byte capacityBitShift)
+    public FHashMap91_Overflow(byte capacityBitShift)
     {
         _capacityBitShift = capacityBitShift;
         _hashesOverflowBufferIsFull = false;
@@ -750,5 +780,351 @@ public struct FHashMap91<K, V, TEq, TEntries>
 #endif
         ++_capacityBitShift;
         _packedHashesAndIndexes = newHashesAndIndexes;
+    }
+}
+
+public struct FHashMap91<K, V, TEq, TEntries>
+    where TEq : struct, IEqualityComparer<K>
+    where TEntries : struct, IEntries<K, V>
+{
+#if DEBUG
+    FHashMap91Debug _dbg = new();
+#endif
+    private byte _capacityBitShift;
+
+    // The _packedHashesAndIndexes elements are of `Int32`, 
+    // e.g. 00010|000...110|01101
+    //      |     |         |- The index into the _entries array, 0-based. It is the size of the hashes array size-1 (e.g. 15 for the 16).
+    //      |     |         | This part of the erased hash is used to get the ideal index into the hashes array, so we are safely using it to store the index into entries.
+    //      |     |- The middle bits of the hash
+    //      |- 5 high bits of the Probe count, with the minimal value of 00001  indicating non-empty slot.
+    // todo: @feature remove - for the removed hash we won't use the tumbstone but will actually remove the hash.
+    private int[] _packedHashesAndIndexes;
+    private TEntries _entries;
+
+    public int CapacityBitShift => _capacityBitShift;
+    public int[] PackedHashesAndIndexes => _packedHashesAndIndexes;
+    public int Count => _entries.GetCount();
+    public TEntries Entries => _entries;
+    public FHashMap91()
+    {
+        _capacityBitShift = 0;
+
+        // using single cell array for hashes instead of empty one to allow the Lookup to work without the additional check for the emptiness
+        _packedHashesAndIndexes = FHashMap91.SingleCellHashesAndIndexes; // todo: @improve can we avoid single cell array and enable use of `default` map same as for `_entries`
+        _entries = default;
+    }
+
+    /// <summary>Capacity calculates as `1 << capacityBitShift`</summary>
+    public FHashMap91(byte capacityBitShift)
+    {
+        _capacityBitShift = capacityBitShift;
+
+        // the overflow tail to the hashes is the size of log2N where N==capacityBitShift, 
+        // it is probably fine to have the check for the overlow of capacity because it will be mispredicted only once at the end of loop (it even rarely for the lookup)
+        _packedHashesAndIndexes = new int[1 << capacityBitShift];
+        _entries = default;
+        _entries.Init(capacityBitShift);
+    }
+
+    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+    public bool TryGetValue(K key, out V value)
+    {
+        var hash = default(TEq).GetHashCode(key);
+
+        if (ReferenceEquals(key, typeof(Tuple<>)))
+            Console.WriteLine($"th1:{hash}");
+        if (ReferenceEquals(key, typeof(Tuple<,>)))
+            Console.WriteLine($"th2:{hash}");
+
+        var indexMask = (1 << _capacityBitShift) - 1;
+        var hashMiddleMask = HashAndIndexMask & ~indexMask;
+        var hashMiddle = hash & hashMiddleMask;
+        var hashIndex = hash & indexMask;
+
+#if NET7_0_OR_GREATER
+        ref var hashesAndIndexes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
+#else
+        var hashesAndIndexes = _packedHashesAndIndexes;
+#endif
+
+        var h = GetHash(ref hashesAndIndexes, hashIndex);
+
+        // 1. Skip over hashes with the bigger and equal probes. The hashes with bigger probes overlapping from the earlier ideal positions
+        var probes = 1;
+        while ((h >>> ProbeCountShift) >= probes)
+        {
+            // 2. For the equal probes check for equality the hash middle part, and update the entry if the keys are equal too 
+            if (((h >>> ProbeCountShift) == probes) & ((h & hashMiddleMask) == hashMiddle))
+            {
+                ref var e = ref _entries.GetSurePresentEntryRef(h & indexMask);
+                if (default(TEq).Equals(e.Key, key))
+                {
+                    value = e.Value;
+                    return true;
+                }
+            }
+
+            h = GetHash(ref hashesAndIndexes, ++hashIndex & indexMask);
+            ++probes;
+        }
+
+        if (ReferenceEquals(key, typeof(Tuple<>)))
+            Console.WriteLine($"th1:not found");
+        if (ReferenceEquals(key, typeof(Tuple<,>)))
+            Console.WriteLine($"th2:not found");
+
+        value = default;
+        return false;
+    }
+
+    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+    public V GetValueOrDefault(K key, V defaultValue = default) =>
+        TryGetValue(key, out var value) ? value : defaultValue;
+
+    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+    public void AddOrUpdate(K key, V value)
+    {
+        var hash = default(TEq).GetHashCode(key);
+
+        // if the overflow space is filled-in or
+        // if the free space is less than 1/8 of capacity (12.5%) then Resize
+        var indexMask = (1 << _capacityBitShift) - 1;
+        var entryCount = _entries.GetCount();
+        if (indexMask - entryCount <= (indexMask >>> MinFreeCapacityShift))
+            indexMask = ResizeHashes(indexMask);
+
+        var hashMiddleMask = HashAndIndexMask & ~indexMask;
+        var hashMiddle = hash & hashMiddleMask;
+        var hashIndex = hash & indexMask;
+
+#if NET7_0_OR_GREATER
+        ref var hashesAndIndexes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
+#else
+        var hashesAndIndexes = _packedHashesAndIndexes;
+#endif
+        ref var h = ref GetHashRef(ref hashesAndIndexes, hashIndex);
+
+        // 1. Skip over hashes with the bigger and equal probes. The hashes with bigger probes overlapping from the earlier ideal positions
+        var probes = 1;
+        while ((h >>> ProbeCountShift) >= probes)
+        {
+            // 2. For the equal probes check for equality the hash middle part, and update the entry if the keys are equal too 
+            if (((h >>> ProbeCountShift) == probes) & ((h & hashMiddleMask) == hashMiddle))
+            {
+                ref var e = ref _entries.GetSurePresentEntryRef(h & indexMask);
+#if DEBUG
+                Debug.WriteLine($"[AddOrUpdate] Probes and Hash parts are matching: probes {probes}, new key:`{key}` with matched hash of key:`{e.Key}`");
+#endif
+                if (default(TEq).Equals(e.Key, key))
+                {
+                    e.Value = value;
+                    return;
+                }
+            }
+            h = ref GetHashRef(ref hashesAndIndexes, ++hashIndex & indexMask);
+            ++probes;
+        }
+
+        // 3. We did not find the hash and therefore the key, so insert the new entry
+        var hRobinHooded = h;
+        h = (probes << ProbeCountShift) | hashMiddle | entryCount;
+#if DEBUG
+        _dbg.DebugCollectAndOutputProbes(probes);
+#endif
+        _entries.AppendEntry(in key, in value);
+
+        // 4. If the robin hooded hash is empty then we stop
+        // 5. Otherwise we steal the slot with the smaller probes
+        probes = hRobinHooded >>> ProbeCountShift;
+        while (hRobinHooded != 0)
+        {
+            h = ref GetHashRef(ref hashesAndIndexes, ++hashIndex & indexMask);
+            if ((h >>> ProbeCountShift) < ++probes)
+            {
+#if DEBUG
+                if (h != 0)
+                    --_dbg.Probes[(h >>> ProbeCountShift) - 1];
+                _dbg.DebugCollectAndOutputProbes(probes, "AddOrUpdate-RH");
+#endif
+                var tmp = h;
+                h = (probes << ProbeCountShift) | (hRobinHooded & HashAndIndexMask);
+                hRobinHooded = tmp;
+                probes = hRobinHooded >>> ProbeCountShift;
+            }
+        }
+    }
+
+    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+    public bool TryRemove(K key)
+    {
+        var hash = default(TEq).GetHashCode(key);
+
+        var indexMask = (1 << _capacityBitShift) - 1;
+        var hashMiddleMask = ~indexMask & HashAndIndexMask;
+        var hashMiddle = hash & hashMiddleMask;
+        var hashIndex = hash & indexMask;
+
+#if NET7_0_OR_GREATER
+        ref var hashesAndIndexes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
+#else
+        var hashesAndIndexes = _packedHashesAndIndexes;
+#endif
+        ref var h = ref GetHashRef(ref hashesAndIndexes, hashIndex);
+
+        var removed = false;
+
+        // 1. Skip over hashes with the bigger and equal probes. The hashes with bigger probes overlapping from the earlier ideal positions
+        var probes = 1;
+        while ((h >>> ProbeCountShift) >= probes)
+        {
+            // 2. For the equal probes check for equality the hash middle part, and update the entry if the keys are equal too 
+            if (((h >>> ProbeCountShift) == probes) & ((h & hashMiddleMask) == hashMiddle))
+            {
+                ref var e = ref _entries.GetSurePresentEntryRef(h & indexMask);
+                if (default(TEq).Equals(e.Key, key))
+                {
+                    _entries.RemoveSurePresentEntry(h & indexMask);
+                    removed = true;
+                    h = 0;
+#if DEBUG
+                    --_dbg.Probes[probes - 1];
+#endif
+                    break;
+                }
+            }
+            h = ref GetHashRef(ref hashesAndIndexes, ++hashIndex & indexMask);
+            ++probes;
+        }
+
+        if (!removed)
+            return false;
+
+        ref var emptied = ref h;
+        h = ref GetHashRef(ref hashesAndIndexes, ++hashIndex & indexMask);
+
+        // move the next hash into the emptied slot until the next hash is empty or ideally positioned (hash is 0 or probe is 1)
+        while ((h >>> ProbeCountShift) > 1)
+        {
+            emptied = (((h >>> ProbeCountShift) - 1) << ProbeCountShift) | (h & HashAndIndexMask); // decrease the probe count by one cause we moving the hash closer to the ideal index
+            h = 0;
+
+            emptied = ref h;
+            h = ref GetHashRef(ref hashesAndIndexes, ++hashIndex & indexMask);
+        }
+        return true;
+    }
+
+    internal int ResizeHashes(int indexMask)
+    {
+        if (indexMask == 0)
+        {
+            _capacityBitShift = MinCapacityBits;
+            _packedHashesAndIndexes = new int[1 << MinCapacityBits];
+#if DEBUG
+            Debug.WriteLine($"[ResizeHashes] new empty hashes with overflow buffer {1} -> {_packedHashesAndIndexes.Length}");
+#endif
+            return (1 << MinCapacityBits) - 1;
+        }
+
+        var oldCapacity = indexMask + 1;
+        var newHashAndIndexMask = ~oldCapacity & HashAndIndexMask;
+        var newIndexMask = (indexMask << 1) | 1;
+
+        var newHashesAndIndexes = new int[oldCapacity << 1];
+
+#if NET7_0_OR_GREATER
+        ref var newHashes = ref MemoryMarshal.GetArrayDataReference(newHashesAndIndexes);
+        ref var oldHashes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
+        var oldHash = oldHashes;
+#else
+        var newHashes = newHashesAndIndexes;
+        var oldHashes = _packedHashesAndIndexes;
+        var oldHash = oldHashes[0];
+#endif
+        var i = 0;
+        while ((oldHash >>> ProbeCountShift) > (i + 1))
+        {
+            Console.WriteLine($"OVERFLOW: {i}: p{oldHash >>> ProbeCountShift}, {oldHash & indexMask} -> {_entries.GetSurePresentEntryRef(oldHash & indexMask).Key.ToString()}");
+            oldHash = GetHash(ref oldHashes, ++i);
+        }
+        if (i != 0)
+        {
+            if (oldHash == 0)
+                Console.WriteLine("OVERFLOW END ON 0");
+            else
+                Console.WriteLine($"OVERFLOW END ON: {i}: p{oldHash >>> ProbeCountShift}, {oldHash & indexMask} -> {_entries.GetSurePresentEntryRef(oldHash & indexMask).Key.ToString()}");
+        }
+
+        var overflowEndsOnIndex = i;
+        while (true)
+        {
+            if (oldHash != 0)
+            {
+                // get the new hash index from the old one with the next bit equal to the `oldCapacity`
+                var indexWithNextBit = (oldHash & oldCapacity) | ((i + 1) - (oldHash >>> ProbeCountShift));
+
+                // no need for robinhooding because we already did it for the old hashes and now just sparcing the hashes into the new array which are already in order
+                var probes = 1;
+                ref var h = ref GetHashRef(ref newHashes, indexWithNextBit);
+                var hPrev = 0;
+                while (h != 0)
+                {
+                    hPrev = h;
+                    h = ref GetHashRef(ref newHashes, ++indexWithNextBit & newIndexMask);
+                    ++probes;
+                }
+                h = (probes << ProbeCountShift) | (oldHash & newHashAndIndexMask);
+
+                // todo: @wip replace with Assert and the test
+                if (probes - (hPrev >>> ProbeCountShift) > 1)
+                {
+                    Console.WriteLine($"WRONG PROBES! before: {(indexWithNextBit - 1) & newIndexMask}: p{hPrev >>> ProbeCountShift}, {hPrev & indexMask} -> {_entries.GetSurePresentEntryRef(hPrev & indexMask).Key.ToString()}");
+                    Console.WriteLine($"WRONG PROBES! after : {indexWithNextBit & newIndexMask}: p{probes}, {h & indexMask} -> {_entries.GetSurePresentEntryRef(h & indexMask).Key.ToString()}");
+                    Console.WriteLine($"WRONG PROBES! overflow index: {overflowEndsOnIndex}");
+                }
+            }
+            if (++i >= oldCapacity)
+                break;
+            oldHash = GetHash(ref oldHashes, i);
+        }
+
+        if (overflowEndsOnIndex != 0)
+        {
+            for (var j = 0; j < overflowEndsOnIndex; ++j)
+            {
+                oldHash = GetHash(ref oldHashes, j);
+                var indexWithNextBit = (oldHash & oldCapacity) | (((oldCapacity + j + 1) - (oldHash >>> ProbeCountShift)) & indexMask);
+                var oldHashWithNextIndexBitErased = oldHash & newHashAndIndexMask;
+                var probes = 1;
+                while (true)
+                {
+                    ref var h = ref GetHashRef(ref newHashes, indexWithNextBit & newIndexMask);
+                    if (h == 0)
+                    {
+                        h = (probes << ProbeCountShift) | oldHashWithNextIndexBitErased;
+                        break;
+                    }
+                    if ((h >>> ProbeCountShift) < probes)
+                    {
+                        var hAndIndex = h & HashAndIndexMask;
+                        var hProbes = h >>> ProbeCountShift;
+                        h = (probes << ProbeCountShift) | oldHashWithNextIndexBitErased;
+                        oldHashWithNextIndexBitErased = hAndIndex;
+                        probes = hProbes;
+                    }
+                    ++probes;
+                    ++indexWithNextBit;
+                }
+            }
+        }
+
+#if DEBUG
+        Debug.WriteLine($"[ResizeHashes] {oldCapacity} -> {newHashesAndIndexes.Length}");
+        _dbg.DebugReCollectAndOutputProbes(newHashesAndIndexes);
+#endif
+        ++_capacityBitShift;
+        _packedHashesAndIndexes = newHashesAndIndexes;
+        return newIndexMask;
     }
 }
