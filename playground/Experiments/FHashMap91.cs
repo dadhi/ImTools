@@ -427,11 +427,10 @@ struct FHashMap91Debug
     }
 
     // will output something like
-    // [AddOrUpdate] Probes abs max = 10, max = 6, all = [1: 180, 2: 103, 3: 59, 4: 23, 5: 3, 6: 1]
-    // [AddOrUpdate] first 4 probes total is 365 out of 369
+    // [AddOrUpdate] Probes abs max = 10, max = 6, all = [1: 180, 2: 103, 3: 59, 4: 23, 5: 3, 6: 1]; first 4 probes are 365 out of 369
     internal void DebugOutputProbes(string label)
     {
-        Debug.Write($"[{label}] Probes abs max = {MaxProbes}, max = {Probes.Length}, all = [");
+        Debug.Write($"[{label}] Probes abs max={MaxProbes}, max={Probes.Length}, all=[");
         var first4probes = 0;
         var allProbes = 0;
         for (var i = 0; i < Probes.Length; i++)
@@ -442,8 +441,7 @@ struct FHashMap91Debug
                 first4probes += p;
             allProbes += p;
         }
-        Debug.WriteLine("]");
-        Debug.WriteLine($"[{label}] first 4 probes total is {first4probes} out of {allProbes}");
+        Debug.WriteLine($"]; first 4 probes are {first4probes} out of {allProbes}");
     }
 
     internal void DebugCollectAndOutputProbes(int probes, [CallerMemberName] string label = "")
