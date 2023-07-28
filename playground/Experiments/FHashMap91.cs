@@ -495,7 +495,6 @@ public struct FHashMap91_Overflow<K, V, TEq, TEntries>
     //      |     |         | This part of the erased hash is used to get the ideal index into the hashes array, so we are safely using it to store the index into entries.
     //      |     |- The middle bits of the hash
     //      |- 5 high bits of the Probe count, with the minimal value of 00001  indicating non-empty slot.
-    // todo: @feature remove - for the removed hash we won't use the tumbstone but will actually remove the hash.
     private int[] _packedHashesAndIndexes;
     private TEntries _entries;
 
@@ -782,7 +781,6 @@ public struct FHashMap91<K, V, TEq, TEntries>
     //      |     |         | This part of the erased hash is used to get the ideal index into the hashes array, so we are safely using it to store the index into entries.
     //      |     |- The middle bits of the hash
     //      |- 5 high bits of the Probe count, with the minimal value of 00001  indicating non-empty slot.
-    // todo: @feature remove - for the removed hash we won't use the tumbstone but will actually remove the hash.
     private int[] _packedHashesAndIndexes;
     private TEntries _entries;
 
