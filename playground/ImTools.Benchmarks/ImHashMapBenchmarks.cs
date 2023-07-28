@@ -15,8 +15,8 @@ using ImTools.V2;
 using ImTools.V2.Experimental;
 using System.Runtime.CompilerServices;
 
-using FHashMap91TypeString = ImTools.Experiments.FHashMap91<System.Type, string, ImTools.Experiments.RefEq<System.Type>, ImTools.Experiments.FHashMap91.ChunkedArrayEntries<System.Type, string>>;
-using FHashMap91_OverflowTypeString = ImTools.Experiments.FHashMap91_Overflow<System.Type, string, ImTools.Experiments.RefEq<System.Type>, ImTools.Experiments.FHashMap91.ChunkedArrayEntries<System.Type, string>>;
+using FHashMap91TypeString = ImTools.Experiments.FHashMap91<System.Type, string, ImTools.Experiments.RefEq<System.Type>, ImTools.Experiments.FHashMap91.SingleArrayEntries<System.Type, string>>;
+using FHashMap91_OverflowTypeString = ImTools.Experiments.FHashMap91_Overflow<System.Type, string, ImTools.Experiments.RefEq<System.Type>, ImTools.Experiments.FHashMap91.SingleArrayEntries<System.Type, string>>;
 
 #nullable disable
 
