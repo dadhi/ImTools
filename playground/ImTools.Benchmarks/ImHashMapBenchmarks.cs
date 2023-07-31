@@ -16,7 +16,6 @@ using ImTools.V2.Experimental;
 using System.Runtime.CompilerServices;
 
 using FHashMap91TypeString = ImTools.Experiments.FHashMap91<System.Type, string, ImTools.Experiments.RefEq<System.Type>, ImTools.Experiments.FHashMap91.SingleArrayEntries<System.Type, string>>;
-using FHashMap91_OverflowTypeString = ImTools.Experiments.FHashMap91_Overflow<System.Type, string, ImTools.Experiments.RefEq<System.Type>, ImTools.Experiments.FHashMap91.SingleArrayEntries<System.Type, string>>;
 
 #nullable disable
 
@@ -1162,18 +1161,6 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             public FHashMap91TypeString FHashMap91_AddOrUpdate()
             {
                 var map = new FHashMap91TypeString();
-
-                foreach (var key in _types)
-                    map.AddOrUpdate(key, "a");
-
-                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
-                return map;
-            }
-
-            // [Benchmark]
-            public FHashMap91_OverflowTypeString FHashMap91_Overflow_AddOrUpdate()
-            {
-                var map = new FHashMap91_OverflowTypeString();
 
                 foreach (var key in _types)
                     map.AddOrUpdate(key, "a");
