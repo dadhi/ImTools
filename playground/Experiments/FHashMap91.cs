@@ -777,6 +777,7 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<KeyValuePair
         }
 
         /// <summary>Move to next entry in the order of their addition to the map</summary>
+        [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
         public bool MoveNext()
         {
             if (_index < _entries.GetCount())

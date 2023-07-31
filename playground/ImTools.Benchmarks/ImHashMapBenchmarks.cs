@@ -2944,12 +2944,20 @@ BenchmarkDotNet v0.13.6, Windows 11 (10.0.22621.1992/22H2/2022Update/SunValley2)
   [Host]     : .NET 7.0.9 (7.0.923.32018), X64 RyuJIT AVX2
   DefaultJob : .NET 7.0.9 (7.0.923.32018), X64 RyuJIT AVX2
 
-
 |                   Method | Count |     Mean |    Error |   StdDev | Ratio | RatioSD | Allocated | Alloc Ratio |
 |------------------------- |------ |---------:|---------:|---------:|------:|--------:|----------:|------------:|
 | DictionarySlim_Enumerate |   100 | 513.2 ns | 10.32 ns | 17.23 ns |  1.00 |    0.00 |         - |          NA |
 |     Dictionary_Enumerate |   100 | 331.4 ns |  6.69 ns | 13.21 ns |  0.65 |    0.04 |         - |          NA |
 |     FHashMap91_Enumerate |   100 | 979.7 ns | 18.99 ns | 22.61 ns |  1.91 |    0.09 |         - |          NA |
+
+## ... now inlining :)
+
+|                   Method | Count |     Mean |   Error |  StdDev | Ratio | RatioSD | Allocated | Alloc Ratio |
+|------------------------- |------ |---------:|--------:|--------:|------:|--------:|----------:|------------:|
+| DictionarySlim_Enumerate |   100 | 454.0 ns | 7.96 ns | 7.45 ns |  1.00 |    0.00 |         - |          NA |
+|     Dictionary_Enumerate |   100 | 308.2 ns | 6.17 ns | 6.60 ns |  0.68 |    0.02 |         - |          NA |
+|     FHashMap91_Enumerate |   100 | 110.0 ns | 2.09 ns | 1.96 ns |  0.24 |    0.01 |         - |          NA |
+
 */
 
             // [Params(1, 10, 100, 1_000)]
