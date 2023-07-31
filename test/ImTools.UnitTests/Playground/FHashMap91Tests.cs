@@ -114,6 +114,26 @@ public class FHashMap91Tests
     }
 
     [Test]
+    public void Real_world_test_with_Enumerating_the_entries()
+    {
+        var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(1000).ToArray();
+
+        var map = FHashMap91.NewChunked<Type, string, TypeEq>();
+
+        foreach (var key in types)
+            map.AddOrUpdate(key, "a");
+
+        var keys = map.Select(kv => kv.Key).ToList();
+        CollectionAssert.AreEqual(types, keys);
+
+        // Check the second enumeration is working
+        var keys2 = map.Select(kv => kv.Key).ToList();
+        CollectionAssert.AreEqual(keys, keys2);
+
+        Verify(map, types);
+    }
+
+    [Test]
     public void Simplified_test_with_equal_hashes_RefEq()
     {
         var map = FHashMap91.New<Type, string, RefEq<Type>>();

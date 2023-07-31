@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -230,7 +231,7 @@ public static class FHashMap91
     const int ChunkCapacity = 1 << ChunkCapacityBitShift;
     const int ChunkCapacityMask = ChunkCapacity - 1;
 
-    // todo: @perf research on the similar growable indexed collection with append to the end semantics
+    // todo: @perf research on the similar growable indexed collection with append-to-end semantics
     /// <summary>The array of array buckets, where bucket is the fixed size. 
     /// It enables adding the new bucket without for the new entries without reallocating the existing data.
     /// It may allow to drop the empty bucket as well, reclaiming the memory after remove.
@@ -467,7 +468,7 @@ struct FHashMap91Debug
 [DebuggerTypeProxy(typeof(FHashMap91DebugProxy<,,,>))]
 [DebuggerDisplay("Count={Count}")]
 #endif
-public struct FHashMap91<K, V, TEq, TEntries>
+public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<KeyValuePair<K, V>>
     where TEq : struct, IEqualityComparer<K>
     where TEntries : struct, IEntries<K, V>
 {
@@ -740,7 +741,7 @@ public struct FHashMap91<K, V, TEq, TEntries>
             }
             if (++i >= oldCapacityWithOverflowSegment)
                 break;
-                
+
             oldHash = GetHash(ref oldHashes, i & indexMask);
         }
 #if DEBUG
@@ -750,5 +751,54 @@ public struct FHashMap91<K, V, TEq, TEntries>
         ++_capacityBitShift;
         _packedHashesAndIndexes = newHashesAndIndexes;
         return newIndexMask;
+    }
+
+    /// <inheritdoc />
+    public Enumerator GetEnumerator() => new Enumerator(this); // prevents the boxing of the enumerator struct
+
+    /// <inheritdoc />
+    IEnumerator<KeyValuePair<K, V>> IEnumerable<KeyValuePair<K, V>>.GetEnumerator() => new Enumerator(this);
+
+    /// <inheritdoc />
+    IEnumerator IEnumerable.GetEnumerator() => new Enumerator(this);
+
+    /// <summary>Enumerator of the entries in the order of their addition to the map</summary>
+    public struct Enumerator : IEnumerator<KeyValuePair<K, V>>
+    {
+        private int _index;
+        private KeyValuePair<K, V> _current;
+        private readonly TEntries _entries;
+
+        internal Enumerator(FHashMap91<K, V, TEq, TEntries> map)
+        {
+            _index = 0;
+            _current = default;
+            _entries = map.Entries;
+        }
+
+        /// <summary>Move to next entry in the order of their addition to the map</summary>
+        public bool MoveNext()
+        {
+            if (_index < _entries.GetCount())
+            {
+                ref var e = ref _entries.GetSurePresentEntryRef(_index++);
+                _current = new KeyValuePair<K, V>(e.Key, e.Value);
+                return true;
+            }
+            _current = default;
+            return false;
+        }
+
+        public KeyValuePair<K, V> Current => _current;
+
+        object IEnumerator.Current => _current;
+
+        void IEnumerator.Reset()
+        {
+            _index = 0;
+            _current = default;
+        }
+
+        public void Dispose() { }
     }
 }

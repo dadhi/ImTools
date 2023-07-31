@@ -2935,10 +2935,25 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 |            Dictionary_Enumerate |  1000 |  5,700.68 ns |  65.696 ns |  61.452 ns |  5,698.15 ns |  0.26 |    0.00 |      - |     - |     - |         - |
 |    ConcurrentDictionary_foreach |  1000 | 43,550.74 ns | 848.746 ns | 752.391 ns | 43,765.79 ns |  1.96 |    0.04 |      - |     - |     - |      64 B |
 |         ImmutableDict_Enumerate |  1000 | 46,089.57 ns | 524.157 ns | 464.651 ns | 46,183.41 ns |  2.07 |    0.03 |      - |     - |     - |         - |
+
+## Interesting first result
+
+BenchmarkDotNet v0.13.6, Windows 11 (10.0.22621.1992/22H2/2022Update/SunValley2)
+11th Gen Intel Core i7-1185G7 3.00GHz, 1 CPU, 8 logical and 4 physical cores
+.NET SDK 7.0.306
+  [Host]     : .NET 7.0.9 (7.0.923.32018), X64 RyuJIT AVX2
+  DefaultJob : .NET 7.0.9 (7.0.923.32018), X64 RyuJIT AVX2
+
+
+|                   Method | Count |     Mean |    Error |   StdDev | Ratio | RatioSD | Allocated | Alloc Ratio |
+|------------------------- |------ |---------:|---------:|---------:|------:|--------:|----------:|------------:|
+| DictionarySlim_Enumerate |   100 | 513.2 ns | 10.32 ns | 17.23 ns |  1.00 |    0.00 |         - |          NA |
+|     Dictionary_Enumerate |   100 | 331.4 ns |  6.69 ns | 13.21 ns |  0.65 |    0.04 |         - |          NA |
+|     FHashMap91_Enumerate |   100 | 979.7 ns | 18.99 ns | 22.61 ns |  1.91 |    0.09 |         - |          NA |
 */
 
-            [Params(1, 10, 100, 1_000)]
-            // [Params(100, 1_000)]
+            // [Params(1, 10, 100, 1_000)]
+            [Params(100)]
             public int Count;
 
             [GlobalSetup]
@@ -2951,7 +2966,8 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 _mapPartV4 = V4_PartionedHashMap_AddOrUpdate();
                 _mapPartV3 = V3_PartionedHashMap_AddOrUpdate();
                 _dict = Dict();
-                _dictSlim = DictSlim();
+                _dictSlim = DictSlim_GetOrAddValueRef();
+                _fHashMap = FHashMap_AddOrUpdate();
                 _concurrentDict = ConcurrentDict();
                 _immutableDict = ImmutableDict();
             }
@@ -3040,7 +3056,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 
             private Dictionary<Type, string> _dict;
 
-            public DictionarySlim<TypeVal, string> DictSlim()
+            public DictionarySlim<TypeVal, string> DictSlim_GetOrAddValueRef()
             {
                 var dict = new DictionarySlim<TypeVal, string>();
 
@@ -3048,6 +3064,18 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                     dict.GetOrAddValueRef(key) = "a";
 
                 return dict;
+            }
+
+            private FHashMap91TypeString _fHashMap;
+
+            public FHashMap91TypeString FHashMap_AddOrUpdate()
+            {
+                var map = new FHashMap91TypeString();
+
+                foreach (var key in _keys.Take(Count))
+                    map.AddOrUpdate(key, "a");
+
+                return map;
             }
 
             private DictionarySlim<TypeVal, string> _dictSlim;
@@ -3078,7 +3106,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 
             #endregion
 
-            [Benchmark(Baseline = true)]
+            // [Benchmark(Baseline = true)]
             public object V4_ImHashMap_Enumerate()
             {
                 var s = "";
@@ -3087,7 +3115,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return s;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public object V3_ImHashMap_Enumerate()
             {
                 var s = "";
@@ -3096,7 +3124,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return s;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public object V4_PartitionedHashMap_Enumerate()
             {
                 var s = "";
@@ -3105,7 +3133,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return s;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public object V3_PartitionedHashMap_Enumerate()
             {
                 var s = "";
@@ -3123,7 +3151,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return s;
             }
 
-            [Benchmark]
+            [Benchmark(Baseline = true)]
             public object DictionarySlim_Enumerate()
             {
                 var s = "";
@@ -3142,6 +3170,15 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
             }
 
             [Benchmark]
+            public object FHashMap91_Enumerate()
+            {
+                var s = "";
+                foreach (var x in _fHashMap)
+                    s = x.Value;
+                return s;
+            }
+
+            // [Benchmark]
             public object ConcurrentDictionary_foreach()
             {
                 var s = "";
@@ -3150,7 +3187,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
                 return s;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public object ImmutableDict_Enumerate()
             {
                 var s = "";
