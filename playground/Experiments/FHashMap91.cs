@@ -356,18 +356,6 @@ public struct RefEq<K> : IEqualityComparer<K> where K : class
     public int GetHashCode(K obj) => obj.GetHashCode();
 }
 
-/// <summary>Uses Fibonacci hashing by multiplying the original hash on the factor derived from the GoldenRatio</summary>
-public struct GoldenRefEq<K> : IEqualityComparer<K> where K : class
-{
-    /// <inheritdoc />
-    [MethodImpl((MethodImplOptions)256)]
-    public bool Equals(K x, K y) => ReferenceEquals(x, y);
-
-    /// <inheritdoc />
-    [MethodImpl((MethodImplOptions)256)]
-    public int GetHashCode(K obj) => (int)((obj.GetHashCode() * FHashMap91.GoldenRatio32) >>> FHashMap91.MaxProbeBits);
-}
-
 /// <summary>Uses the integer itself as hash code and `==` for equality</summary>
 public struct IntEq : IEqualityComparer<int>
 {

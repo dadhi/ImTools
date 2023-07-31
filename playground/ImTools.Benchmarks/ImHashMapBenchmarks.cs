@@ -942,9 +942,35 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 |          FHashMap91_AddOrUpdate |  1000 | 28,834.10 ns | 567.635 ns | 776.985 ns |  1.00 |    0.00 | 7.8735 |            381 |                52,217 |                      98 | 0.8545 |   49544 B |        1.00 |
 | FHashMap91_Overflow_AddOrUpdate |  1000 | 27,810.84 ns | 254.710 ns | 212.695 ns |  0.96 |    0.03 | 7.9346 |            351 |                49,273 |                      87 | 1.0986 |   49816 B |        1.01 |
 
+## Overflow vs No MaxProbes resize
+
+|                          Method | Count |         Mean |      Error |     StdDev |       Median | Ratio | RatioSD |   Gen0 | BranchInstructions/Op | CacheMisses/Op | BranchMispredictions/Op |   Gen1 | Allocated | Alloc Ratio |
+|-------------------------------- |------ |-------------:|-----------:|-----------:|-------------:|------:|--------:|-------:|----------------------:|---------------:|------------------------:|-------:|----------:|------------:|
+|          FHashMap91_AddOrUpdate |     1 |     39.92 ns |   1.095 ns |   3.087 ns |     38.49 ns |  1.00 |    0.00 | 0.0178 |                    82 |              0 |                       0 |      - |     112 B |        1.00 |
+| FHashMap91_Overflow_AddOrUpdate |     1 |     42.63 ns |   1.936 ns |   5.587 ns |     39.47 ns |  1.07 |    0.15 | 0.0204 |                    81 |              0 |                       0 |      - |     128 B |        1.14 |
+|                                 |       |              |            |            |              |       |         |        |                       |                |                         |        |           |             |
+|          FHashMap91_AddOrUpdate |    10 |    259.73 ns |   5.195 ns |  10.958 ns |    256.53 ns |  1.00 |    0.00 | 0.1144 |                   537 |              2 |                       1 |      - |     720 B |        1.00 |
+| FHashMap91_Overflow_AddOrUpdate |    10 |    242.56 ns |   3.397 ns |   3.011 ns |    241.85 ns |  0.93 |    0.04 | 0.1197 |                   520 |              2 |                       1 |      - |     752 B |        1.04 |
+|                                 |       |              |            |            |              |       |         |        |                       |                |                         |        |           |             |
+|          FHashMap91_AddOrUpdate |   100 |  2,440.14 ns |  45.187 ns |  99.187 ns |  2,411.17 ns |  1.00 |    0.00 | 0.8507 |                 4,669 |             19 |                       7 | 0.0076 |    5344 B |        1.00 |
+| FHashMap91_Overflow_AddOrUpdate |   100 |  2,270.09 ns |  44.379 ns |  63.647 ns |  2,254.80 ns |  0.92 |    0.05 | 0.8659 |                 4,386 |             18 |                       7 | 0.0076 |    5456 B |        1.02 |
+|                                 |       |              |            |            |              |       |         |        |                       |                |                         |        |           |             |
+|          FHashMap91_AddOrUpdate |  1000 | 22,157.98 ns | 373.027 ns | 330.679 ns | 22,147.73 ns |  1.00 |    0.00 | 7.8735 |                42,460 |            333 |                     107 | 0.8545 |   49544 B |        1.00 |
+| FHashMap91_Overflow_AddOrUpdate |  1000 | 26,559.43 ns | 391.415 ns | 366.130 ns | 26,493.26 ns |  1.20 |    0.03 | 7.9346 |                49,246 |            280 |                      90 | 1.0986 |   49816 B |        1.01 |
+
+# No/MaxProbes vs DictSlim
+
+|                 Method | Count |      Mean |     Error |    StdDev |    Median | Ratio | RatioSD |   Gen0 | BranchMispredictions/Op | BranchInstructions/Op | CacheMisses/Op |   Gen1 | Allocated | Alloc Ratio |
+|----------------------- |------ |----------:|----------:|----------:|----------:|------:|--------:|-------:|------------------------:|----------------------:|---------------:|-------:|----------:|------------:|
+|        DictSlim_TryAdd |   100 |  2.356 us | 0.0450 us | 0.0553 us |  2.356 us |  1.00 |    0.00 | 1.1902 |                      13 |                 5,819 |             20 | 0.0191 |   7.31 KB |        1.00 |
+| FHashMap91_AddOrUpdate |   100 |  2.239 us | 0.0400 us | 0.0334 us |  2.248 us |  0.96 |    0.02 | 0.8507 |                       7 |                 4,666 |             12 | 0.0076 |   5.22 KB |        0.71 |
+|                        |       |           |           |           |           |       |         |        |                         |                       |                |        |           |             |
+|        DictSlim_TryAdd |  1000 | 23.923 us | 0.4688 us | 0.7702 us | 23.692 us |  1.00 |    0.00 | 9.1553 |                     267 |                51,548 |            352 | 0.8240 |  56.45 KB |        1.00 |
+| FHashMap91_AddOrUpdate |  1000 | 21.266 us | 0.4239 us | 1.0943 us | 20.797 us |  0.89 |    0.05 | 7.8735 |                     107 |                42,431 |            210 | 0.7629 |  48.38 KB |        0.86 |
+
 */
-            [Params(1, 10, 100, 1000)]
-            // [Params(100, 1000)]
+            // [Params(1, 10, 100, 1000)]
+            [Params(100, 1000)]
             // [Params(1000)]
             public int Count;
 
@@ -1107,7 +1133,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return map;
             }
 
-            // [Benchmark(Baseline = true)]
+            [Benchmark(Baseline = true)]
             public DictionarySlim<TypeVal, string> DictSlim_TryAdd()
             {
                 var map = new DictionarySlim<TypeVal, string>();
@@ -1131,8 +1157,8 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return map;
             }
 
-            [Benchmark(Baseline = true)]
-            // [Benchmark]
+            // [Benchmark(Baseline = true)]
+            [Benchmark]
             public FHashMap91TypeString FHashMap91_AddOrUpdate()
             {
                 var map = new FHashMap91TypeString();
@@ -1144,7 +1170,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return map;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public FHashMap91_OverflowTypeString FHashMap91_Overflow_AddOrUpdate()
             {
                 var map = new FHashMap91_OverflowTypeString();

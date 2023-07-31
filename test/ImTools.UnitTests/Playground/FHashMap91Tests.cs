@@ -44,10 +44,7 @@ public class FHashMap91Tests
     {
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(100).ToArray();
 
-        // todo: @perf testing diff equality comparers
-        // var map = new FHashMap91<Type, string, TypeEq>();         // MaxProbes -> 8
-        // var map = new FHashMap91<Type, string, RefEq<Type>>();    // MaxProbes -> 7
-        var map = FHashMap91.New<Type, string, GoldenRefEq<Type>>(); // MaxProbes -> 5
+        var map = FHashMap91.New<Type, string, RefEq<Type>>();
 
         foreach (var key in types)
             map.AddOrUpdate(key, "a");
@@ -117,30 +114,9 @@ public class FHashMap91Tests
     }
 
     [Test]
-    public void Real_world_test_with_TryRemove_from_1000_items_GoldenRefEq()
+    public void Simplified_test_with_equal_hashes_RefEq()
     {
-        var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(1000).ToArray();
-
-        var map = FHashMap91.New<Type, string, GoldenRefEq<Type>>();
-
-        foreach (var key in types)
-            map.AddOrUpdate(key, "a");
-
-        map.AddOrUpdate(typeof(FHashMap91Tests), "!");
-        Assert.AreEqual(1001, map.Count);
-
-        Assert.IsTrue(map.TryRemove(typeof(FHashMap91Tests)));
-        Assert.AreEqual(1000, map.Count);
-
-        Verify(map, types);
-    }
-
-    [Test]
-    public void Simplified_test_with_equal_hashes_GoldenRefEq()
-    {
-        // var map = FHashMap91.New<Type, string, GoldenRefEq<Type>>();
-        // var map = FHashMap91.New<Type, string, RefEq<Type>>();
-        var map = FHashMap91.New<Type, string, GoldenRefEq<Type>>();
+        var map = FHashMap91.New<Type, string, RefEq<Type>>();
 
         var keys = new[] { typeof(Tuple<>), typeof(Tuple<,>), typeof(Tuple<,,>) };
         var i = 1;
@@ -207,31 +183,52 @@ public class FHashMap91Tests
     }
 
     /*
-    ## The example of the output
+    ## Debug output example
 
+    ### IntEq
+
+    [AddOrUpdate] Probes abs max=2, max=2, all=[1: 1, 2: 1]; first 4 probes are 2 out of 2
+    [AddOrUpdate] Probes abs max=3, max=3, all=[1: 1, 2: 1, 3: 1]; first 4 probes are 3 out of 3
     [AllocateEntries] Resize entries: 2 -> 4
-    [ResizeHashes] with overflow buffer 4+2=6 -> 8+3=11
-    [ResizeHashes] Probes abs max = 1, max = 1, all = [1: 3]
-    [ResizeHashes] first 4 probes total is 3 out of 3
+    [ResizeHashes] 4 -> 8
+    [ResizeHashes] Probes abs max=3, max=3, all=[1: 1, 2: 1, 3: 1]; first 4 probes are 3 out of 3
+    [AddOrUpdate] Probes abs max=4, max=4, all=[1: 1, 2: 1, 3: 2, 4: 1]; first 4 probes are 5 out of 5
     [AllocateEntries] Resize entries: 4 -> 8
-    [AddOrUpdate] Probes abs max = 2, max = 2, all = [1: 5, 2: 1]
-    [AddOrUpdate] first 4 probes total is 6 out of 6
-    [ResizeHashes] with overflow buffer 8+3=11 -> 16+4=20
-    [ResizeHashes] Probes abs max = 2, max = 2, all = [1: 6, 2: 1]
-    [ResizeHashes] first 4 probes total is 7 out of 7
+    [AddOrUpdate] Probes abs max=5, max=5, all=[1: 1, 2: 1, 3: 2, 4: 1, 5: 1]; first 4 probes are 5 out of 6
+    [AddOrUpdate-RH] Probes abs max=6, max=6, all=[1: 1, 2: 1, 3: 2, 4: 2, 5: 1, 6: 1]; first 4 probes are 6 out of 8
+    [ResizeHashes] 8 -> 16
+    [ResizeHashes] Probes abs max=6, max=6, all=[1: 1, 2: 1, 3: 1, 4: 2, 5: 1, 6: 1]; first 4 probes are 5 out of 7
     [AllocateEntries] Resize entries: 8 -> 16
+    [AddOrUpdate-RH] Probes abs max=7, max=7, all=[1: 1, 2: 1, 3: 1, 4: 2, 5: 2, 6: 1, 7: 1]; first 4 probes are 5 out of 9
+    [AddOrUpdate-RH] Probes abs max=8, max=8, all=[1: 1, 2: 1, 3: 1, 4: 2, 5: 2, 6: 2, 7: 1, 8: 1]; first 4 probes are 5 out of 11
+    [AddOrUpdate] Probes abs max=9, max=9, all=[1: 1, 2: 1, 3: 1, 4: 2, 5: 2, 6: 2, 7: 1, 8: 2, 9: 1]; first 4 probes are 5 out of 13
+    [AddOrUpdate-RH] Probes abs max=10, max=10, all=[1: 1, 2: 1, 3: 1, 4: 2, 5: 2, 6: 2, 7: 2, 8: 2, 9: 1, 10: 1]; first 4 probes are 5 out of 15
+    [AddOrUpdate-RH] Probes abs max=11, max=11, all=[1: 1, 2: 1, 3: 1, 4: 2, 5: 2, 6: 2, 7: 2, 8: 3, 9: 1, 10: 1, 11: 1]; first 4 probes are 5 out of 17
+
+    ### GoldenIntEq
+
+    [AddOrUpdate] Probes abs max=2, max=2, all=[1: 1, 2: 1]; first 4 probes are 2 out of 2
+    [AllocateEntries] Resize entries: 2 -> 4
+    [ResizeHashes] 4 -> 8
+    [ResizeHashes] Probes abs max=2, max=1, all=[1: 3]; first 4 probes are 3 out of 3
+    [AllocateEntries] Resize entries: 4 -> 8
+    [AddOrUpdate] Probes abs max=2, max=2, all=[1: 5, 2: 1]; first 4 probes are 6 out of 6
+    [ResizeHashes] 8 -> 16
+    [ResizeHashes] Probes abs max=2, max=2, all=[1: 6, 2: 1]; first 4 probes are 7 out of 7
+    [AllocateEntries] Resize entries: 8 -> 16
+
     */
     [Test]
     public void Can_store_and_retrieve_value_from_map_Golden()
     {
-        // var map = FHashMap91.New<int, string, IntEq>(2);
-        var map = FHashMap91.New<int, string, GoldenIntEq>(2);
+        var map = FHashMap91.New<int, string, IntEq>(2);
+        // var map = FHashMap91.New<int, string, GoldenIntEq>(2);
 
         map.AddOrUpdate(42, "1");
         map.AddOrUpdate(42 + 32, "2");
         map.AddOrUpdate(42 + 32 + 32, "3");
 
-        // interrupt the keys with ne key
+        // interrupt the keys with new key
         map.AddOrUpdate(43, "a");
         map.AddOrUpdate(43 + 32, "b");
         map.AddOrUpdate(43 + 32 + 32, "c");
