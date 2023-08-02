@@ -353,8 +353,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 |                  Dict_foreach | 10000 |  46,780.99 ns |   380.189 ns |    355.629 ns |  0.26 |    0.00 |      - |     - |     - |         - |
 |        ConcurrentDict_foreach | 10000 | 194,166.07 ns |   919.960 ns |    860.531 ns |  1.06 |    0.01 |      - |     - |     - |      64 B |
 |         ImmutableDict_foreach | 10000 | 507,513.23 ns | 9,995.314 ns | 12,640.872 ns |  2.80 |    0.07 |      - |     - |     - |       1 B |
-****```
-
+```
 
 ## End-to-end Example
 
