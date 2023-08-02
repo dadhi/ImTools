@@ -40,6 +40,11 @@ public static class FHashMap91
     {
         public K Key;
         public V Value;
+        public Entry(K key, V value)
+        {
+            Key = key;
+            Value = value;
+        }
     }
 
     public struct DebugHashItem<K, V>
@@ -468,7 +473,7 @@ struct FHashMap91Debug
 [DebuggerTypeProxy(typeof(FHashMap91DebugProxy<,,,>))]
 [DebuggerDisplay("Count={Count}")]
 #endif
-public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<KeyValuePair<K, V>>
+public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
     where TEq : struct, IEqualityComparer<K>
     where TEntries : struct, IEntries<K, V>
 {
@@ -757,16 +762,16 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<KeyValuePair
     public Enumerator GetEnumerator() => new Enumerator(this); // prevents the boxing of the enumerator struct
 
     /// <inheritdoc />
-    IEnumerator<KeyValuePair<K, V>> IEnumerable<KeyValuePair<K, V>>.GetEnumerator() => new Enumerator(this);
+    IEnumerator<Entry<K, V>> IEnumerable<Entry<K, V>>.GetEnumerator() => new Enumerator(this);
 
     /// <inheritdoc />
     IEnumerator IEnumerable.GetEnumerator() => new Enumerator(this);
 
     /// <summary>Enumerator of the entries in the order of their addition to the map</summary>
-    public struct Enumerator : IEnumerator<KeyValuePair<K, V>>
+    public struct Enumerator : IEnumerator<Entry<K, V>>
     {
         private int _index;
-        private KeyValuePair<K, V> _current;
+        private Entry<K, V> _current;
         private readonly TEntries _entries;
 
         internal Enumerator(FHashMap91<K, V, TEq, TEntries> map)
@@ -783,14 +788,14 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<KeyValuePair
             if (_index < _entries.GetCount())
             {
                 ref var e = ref _entries.GetSurePresentEntryRef(_index++);
-                _current = new KeyValuePair<K, V>(e.Key, e.Value);
+                _current = new Entry<K, V>(e.Key, e.Value);
                 return true;
             }
             _current = default;
             return false;
         }
 
-        public KeyValuePair<K, V> Current => _current;
+        public Entry<K, V> Current => _current;
 
         object IEnumerator.Current => _current;
 
