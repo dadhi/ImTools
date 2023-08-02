@@ -2958,6 +2958,11 @@ BenchmarkDotNet v0.13.6, Windows 11 (10.0.22621.1992/22H2/2022Update/SunValley2)
 |     Dictionary_Enumerate |   100 | 308.2 ns | 6.17 ns | 6.60 ns |  0.68 |    0.02 |         - |          NA |
 |     FHashMap91_Enumerate |   100 | 110.0 ns | 2.09 ns | 1.96 ns |  0.24 |    0.01 |         - |          NA |
 
+|               Method | Count |     Mean |   Error |   StdDev | Ratio | RatioSD | Allocated | Alloc Ratio |
+|--------------------- |------ |---------:|--------:|---------:|------:|--------:|----------:|------------:|
+| Dictionary_Enumerate |   100 | 306.0 ns | 6.12 ns | 11.80 ns |  1.00 |    0.00 |         - |          NA |
+| FHashMap91_Enumerate |   100 | 137.9 ns | 2.83 ns |  2.91 ns |  0.45 |    0.02 |         - |          NA |
+
 */
 
             // [Params(1, 10, 100, 1_000)]
@@ -3159,7 +3164,7 @@ BenchmarkDotNet v0.13.6, Windows 11 (10.0.22621.1992/22H2/2022Update/SunValley2)
                 return s;
             }
 
-            [Benchmark(Baseline = true)]
+            // [Benchmark(Baseline = true)]
             public object DictionarySlim_Enumerate()
             {
                 var s = "";
@@ -3168,7 +3173,7 @@ BenchmarkDotNet v0.13.6, Windows 11 (10.0.22621.1992/22H2/2022Update/SunValley2)
                 return s;
             }
 
-            [Benchmark]
+            [Benchmark(Baseline = true)]
             public object Dictionary_Enumerate()
             {
                 var s = "";

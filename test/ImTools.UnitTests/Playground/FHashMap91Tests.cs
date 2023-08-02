@@ -116,7 +116,7 @@ public class FHashMap91Tests
     [Test]
     public void Real_world_test_with_Enumerating_the_entries()
     {
-        var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(1000).ToArray();
+        var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(1000).ToList();
 
         var map = FHashMap91.NewChunked<Type, string, TypeEq>();
 
