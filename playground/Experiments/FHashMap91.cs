@@ -770,10 +770,11 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
 
     /// <inheritdoc />
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
-    public Enumerator GetEnumerator() => new Enumerator(this); // prevents the boxing of the enumerator struct
+    public Enumerator GetEnumerator() => new Enumerator(_entries); // prevents the boxing of the enumerator struct
 
     /// <inheritdoc />
     IEnumerator<Entry<K, V>> IEnumerable<Entry<K, V>>.GetEnumerator() => GetEnumerator();
+
     /// <inheritdoc />
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
@@ -783,11 +784,11 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
         private int _index;
         private Entry<K, V> _current;
         private readonly TEntries _entries;
-        internal Enumerator(FHashMap91<K, V, TEq, TEntries> map) // todo: @perf @improve factor out into TEntries
+        internal Enumerator(TEntries entries)
         {
             _index = 0;
             _current = default;
-            _entries = map.Entries;
+            _entries = entries;
         }
 
         /// <summary>Move to next entry in the order of their addition to the map</summary>
