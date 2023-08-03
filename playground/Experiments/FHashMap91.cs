@@ -419,10 +419,10 @@ struct FHashMap91Debug
     }
 
     // will output something like
-    // [AddOrUpdate] Probes abs max = 10, max = 6, all = [1: 180, 2: 103, 3: 59, 4: 23, 5: 3, 6: 1]; first 4 probes are 365 out of 369
+    // [Add] Probes abs max = 10, curr max = 6, all = [1: 180, 2: 103, 3: 59, 4: 23, 5: 3, 6: 1]; first 4 probes are 365 out of 369
     internal void DebugOutputProbes(string label)
     {
-        Debug.Write($"[{label}] Probes abs max={MaxProbes}, max={Probes.Length}, all=[");
+        Debug.Write($"[{label}] Probes abs max={MaxProbes}, curr max={Probes.Length}, all=[");
         var first4probes = 0;
         var allProbes = 0;
         for (var i = 0; i < Probes.Length; i++)
@@ -465,6 +465,18 @@ struct FHashMap91Debug
         }
         Probes = newProbes;
         DebugOutputProbes(label);
+    }
+
+    internal void RemoveProbes(int probes)
+    {
+        ref var p = ref Probes[probes - 1];
+        --p;
+        if (p == 0 && probes == Probes.Length)
+        {
+            Array.Resize(ref Probes, probes - 1);
+            if (MaxProbes == probes)
+                --MaxProbes;
+        }
     }
 }
 
@@ -591,7 +603,7 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
             {
                 ref var e = ref _entries.GetSurePresentEntryRef(h & indexMask);
 #if DEBUG
-                Debug.WriteLine($"[AddOrUpdate] Probes and Hash parts are matching: probes {probes}, new key:`{key}` with matched hash of key:`{e.Key}`");
+                Debug.WriteLine($"[Add] Probes and Hash parts are matching: probes {probes}, new key:`{key}` with matched hash of key:`{e.Key}`");
 #endif
                 if (default(TEq).Equals(e.Key, key))
                     return ref e.Value;
@@ -604,7 +616,7 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
         var hRobinHooded = h;
         h = (probes << ProbeCountShift) | hashMiddle | entryCount;
 #if DEBUG
-        _dbg.DebugCollectAndOutputProbes(probes);
+        _dbg.DebugCollectAndOutputProbes(probes, "Add");
 #endif
         // 4. If the robin hooded hash is empty then we stop
         // 5. Otherwise we steal the slot with the smaller probes
@@ -616,8 +628,8 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
             {
 #if DEBUG
                 if (h != 0)
-                    --_dbg.Probes[(h >>> ProbeCountShift) - 1];
-                _dbg.DebugCollectAndOutputProbes(probes, "AddOrUpdate-RH");
+                    _dbg.RemoveProbes(h >>> ProbeCountShift);
+                _dbg.DebugCollectAndOutputProbes(probes, "Add-RH");
 #endif
                 var tmp = h;
                 h = (probes << ProbeCountShift) | (hRobinHooded & HashAndIndexMask);
@@ -665,7 +677,7 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
                     removed = true;
                     h = 0;
 #if DEBUG
-                    --_dbg.Probes[probes - 1];
+                    _dbg.RemoveProbes(probes);
 #endif
                     break;
                 }
