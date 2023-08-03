@@ -757,13 +757,13 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
     }
 
     /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
     public Enumerator GetEnumerator() => new Enumerator(this); // prevents the boxing of the enumerator struct
 
     /// <inheritdoc />
-    IEnumerator<Entry<K, V>> IEnumerable<Entry<K, V>>.GetEnumerator() => new Enumerator(this);
-
+    IEnumerator<Entry<K, V>> IEnumerable<Entry<K, V>>.GetEnumerator() => GetEnumerator();
     /// <inheritdoc />
-    IEnumerator IEnumerable.GetEnumerator() => new Enumerator(this);
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     /// <summary>Enumerator of the entries in the order of their addition to the map</summary>
     public struct Enumerator : IEnumerator<Entry<K, V>>
@@ -771,8 +771,7 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
         private int _index;
         private Entry<K, V> _current;
         private readonly TEntries _entries;
-
-        internal Enumerator(FHashMap91<K, V, TEq, TEntries> map)
+        internal Enumerator(FHashMap91<K, V, TEq, TEntries> map) // todo: @perf @improve factor out into TEntries
         {
             _index = 0;
             _current = default;
@@ -785,8 +784,7 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
         {
             if (_index < _entries.GetCount())
             {
-                ref var e = ref _entries.GetSurePresentEntryRef(_index++);
-                _current = new Entry<K, V>(e.Key, e.Value);
+                _current = _entries.GetSurePresentEntryRef(_index++);
                 return true;
             }
             _current = default;
@@ -794,7 +792,6 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
         }
 
         public Entry<K, V> Current => _current;
-
         object IEnumerator.Current => _current;
 
         void IEnumerator.Reset()
