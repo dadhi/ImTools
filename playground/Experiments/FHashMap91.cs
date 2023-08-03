@@ -38,8 +38,9 @@ public static class FHashMap91
     [DebuggerDisplay("{Key.ToString()}->{Value}")]
     public struct Entry<K, V>
     {
-        public K Key;
+        public readonly K Key;
         public V Value;
+        public Entry(K key) => Key = key;
         public Entry(K key, V value)
         {
             Key = key;
@@ -174,7 +175,7 @@ public static class FHashMap91
         void Init(byte capacityBitShift);
         int GetCount();
         ref Entry<K, V> GetSurePresentEntryRef(int index);
-        void AppendEntry(in K key, in V value);
+        ref V GetOrAddValueRef(K key);
         void RemoveSurePresentEntry(int index);
     }
 
@@ -202,7 +203,7 @@ public static class FHashMap91
         }
 
         [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
-        public void AppendEntry(in K key, in V value)
+        public ref V GetOrAddValueRef(K key)
         {
             var index = _entryCount;
             if (index == 0)
@@ -219,9 +220,9 @@ public static class FHashMap91
 #else
             ref var e = ref _entries[index];
 #endif
-            e.Key = key;
-            e.Value = value;
             ++_entryCount;
+            e = new Entry<K, V>(key);
+            return ref e.Value;
         }
 
         [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
@@ -263,7 +264,7 @@ public static class FHashMap91
 #endif
         }
 
-        public void AppendEntry(in K key, in V value)
+        public ref V GetOrAddValueRef(K key)
         {
             var index = _entryCount++;
             var bucketIndex = index >>> ChunkCapacityBitShift;
@@ -284,30 +285,27 @@ public static class FHashMap91
 #else
                     ref var e = ref bucket[index];
 #endif
-                    e.Key = key;
-                    e.Value = value;
-                    return;
+                    e = new Entry<K, V>(key);
+                    return ref e.Value;
                 }
                 {
                     var bucket = new Entry<K, V>[MinEntriesCapacity];
+                    _entries = new[] { bucket };
 #if NET7_0_OR_GREATER
                     ref var e = ref MemoryMarshal.GetArrayDataReference(bucket);
 #else
                     ref var e = ref bucket[0];
 #endif
-                    e.Key = key;
-                    e.Value = value;
-                    _entries = new[] { bucket };
-                    return;
+                    e = new Entry<K, V>(key);
+                    return ref e.Value;
                 }
             }
 
             if ((index & ChunkCapacityMask) != 0)
             {
                 ref var e = ref GetSurePresentEntryRef(index);
-                e.Key = key;
-                e.Value = value;
-                return;
+                e = new Entry<K, V>(key);
+                return ref e.Value;
             }
             {
                 if (bucketIndex == _entries.Length)
@@ -323,8 +321,8 @@ public static class FHashMap91
 #else
                 ref var e = ref bucket[0];
 #endif
-                e.Key = key;
-                e.Value = value;
+                e = new Entry<K, V>(key);
+                return ref e.Value;
             }
         }
 
@@ -562,7 +560,7 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
         TryGetValue(key, out var value) ? value : defaultValue;
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
-    public void AddOrUpdate(K key, V value)
+    public ref V GetOrAddValueRef(K key)
     {
         var hash = default(TEq).GetHashCode(key);
 
@@ -596,10 +594,7 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
                 Debug.WriteLine($"[AddOrUpdate] Probes and Hash parts are matching: probes {probes}, new key:`{key}` with matched hash of key:`{e.Key}`");
 #endif
                 if (default(TEq).Equals(e.Key, key))
-                {
-                    e.Value = value;
-                    return;
-                }
+                    return ref e.Value;
             }
             h = ref GetHashRef(ref hashesAndIndexes, ++hashIndex & indexMask);
             ++probes;
@@ -611,8 +606,6 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
 #if DEBUG
         _dbg.DebugCollectAndOutputProbes(probes);
 #endif
-        _entries.AppendEntry(in key, in value);
-
         // 4. If the robin hooded hash is empty then we stop
         // 5. Otherwise we steal the slot with the smaller probes
         probes = hRobinHooded >>> ProbeCountShift;
@@ -632,7 +625,12 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
                 probes = hRobinHooded >>> ProbeCountShift;
             }
         }
+        return ref _entries.GetOrAddValueRef(key);
     }
+
+    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+    public void AddOrUpdate(K key, in V value) =>
+        GetOrAddValueRef(key) = value;
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
     public bool TryRemove(K key)

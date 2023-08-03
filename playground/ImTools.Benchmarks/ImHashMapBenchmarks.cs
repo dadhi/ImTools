@@ -967,9 +967,16 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 |        DictSlim_TryAdd |  1000 | 23.923 us | 0.4688 us | 0.7702 us | 23.692 us |  1.00 |    0.00 | 9.1553 |                     267 |                51,548 |            352 | 0.8240 |  56.45 KB |        1.00 |
 | FHashMap91_AddOrUpdate |  1000 | 21.266 us | 0.4239 us | 1.0943 us | 20.797 us |  0.89 |    0.05 | 7.8735 |                     107 |                42,431 |            210 | 0.7629 |  48.38 KB |        0.86 |
 
+## GetOrAddValueRef instead of AddOrUpdate 
+
+|                      Method | Count |     Mean |     Error |    StdDev |   Median | Ratio | RatioSD |   Gen0 | BranchInstructions/Op | CacheMisses/Op | BranchMispredictions/Op |   Gen1 | Allocated | Alloc Ratio |
+|---------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|-------:|----------------------:|---------------:|------------------------:|-------:|----------:|------------:|
+|             DictSlim_TryAdd |   100 | 3.435 us | 0.1986 us | 0.5729 us | 3.307 us |  1.00 |    0.00 | 1.1902 |                 5,835 |             51 |                      14 | 0.0153 |   7.31 KB |        1.00 |
+| FHashMap91_GetOrAddValueRef |   100 | 2.399 us | 0.1387 us | 0.3630 us | 2.264 us |  0.72 |    0.16 | 0.8469 |                 4,366 |             26 |                       8 | 0.0076 |   5.22 KB |        0.71 |
+
 */
             // [Params(1, 10, 100, 1000)]
-            [Params(100, 1000)]
+            [Params(100)]//, 1000)]
             // [Params(1000)]
             public int Count;
 
@@ -1158,14 +1165,14 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 
             // [Benchmark(Baseline = true)]
             [Benchmark]
-            public FHashMap91TypeString FHashMap91_AddOrUpdate()
+            public FHashMap91TypeString FHashMap91_GetOrAddValueRef()
             {
                 var map = new FHashMap91TypeString();
 
                 foreach (var key in _types)
-                    map.AddOrUpdate(key, "a");
+                    map.GetOrAddValueRef(key) = "a";
 
-                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+                map.GetOrAddValueRef(typeof(ImHashMapBenchmarks)) = "!";
                 return map;
             }
 
@@ -2440,9 +2447,9 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 var map = new FHashMap91TypeString();
 
                 foreach (var key in _keys.Take(Count))
-                    map.AddOrUpdate(key, "a");
+                    map.GetOrAddValueRef(key) = "a";
 
-                map.AddOrUpdate(LookupKey, "!");
+                map.GetOrAddValueRef(LookupKey) = "!";
                 return map;
             }
 
@@ -3081,7 +3088,7 @@ BenchmarkDotNet v0.13.6, Windows 11 (10.0.22621.1992/22H2/2022Update/SunValley2)
                 var map = new FHashMap91TypeString();
 
                 foreach (var key in _keys.Take(Count))
-                    map.AddOrUpdate(key, "a");
+                    map.GetOrAddValueRef(key) = "a";
 
                 return map;
             }
