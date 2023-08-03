@@ -2233,8 +2233,8 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 |     FHashMap91_TryGetValue |  1000 | 6.262 ns | 0.1232 ns | 0.0962 ns | 6.277 ns |  0.86 |    0.04 |                    14 |                       0 |              0 |         - |          NA |
 
 */
-            [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
-            // [Params(100)]
+            // [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
+            [Params(100)]
             // [Params(1000)]
             public int Count;
 

@@ -24,8 +24,6 @@ public static class FHashMap91
     internal const byte ProbeCountShift = 32 - MaxProbeBits;
     internal const int HashAndIndexMask = ~(MaxProbeCount << ProbeCountShift);
 
-    internal static readonly int[] SingleCellHashesAndIndexes = new int[1];
-
     [MethodImpl((MethodImplOptions)256)]
     public static FHashMap91<K, V, TEq, SingleArrayEntries<K, V, TEq>> New<K, V, TEq>(byte capacityBitShift = 0)
         where TEq : struct, IEq<K> =>
@@ -430,16 +428,6 @@ public static class FHashMap91
 }
 
 #if DEBUG
-public class FHashMap91DebugProxy<K, V, TEq, TEntries>
-    where TEq : struct, IEq<K>
-    where TEntries : struct, IEntries<K, V, TEq>
-{
-    private readonly FHashMap91<K, V, TEq, TEntries> _map;
-    public FHashMap91DebugProxy(FHashMap91<K, V, TEq, TEntries> map) => _map = map;
-    public FHashMap91.DebugHashItem<K, V>[] PackedHashes => _map.Explain();
-    public TEntries Entries => _map.Entries;
-}
-
 struct FHashMap91Debug
 {
     internal int MaxProbes;
@@ -512,10 +500,32 @@ struct FHashMap91Debug
         }
     }
 }
+#endif
 
+public class FHashMap91DebugProxy<K, V, TEq, TEntries>
+    where TEq : struct, IEq<K>
+    where TEntries : struct, IEntries<K, V, TEq>
+{
+    private readonly FHashMap91<K, V, TEq, TEntries> _map;
+    public FHashMap91DebugProxy(FHashMap91<K, V, TEq, TEntries> map) => _map = map;
+    public FHashMap91.DebugHashItem<K, V>[] PackedHashes => _map.Explain();
+    public TEntries Entries => _map.Entries;
+}
+
+// todo: @improve ? how/where to add SIMD to improve CPU utilization but not losing perf for smaller sizes
+/// <summary>
+/// Fast and less-allocating hash map without thread safety nets. Please measure it in your own use case before use.
+/// It is configurable in regard of hash calculation/equality via <typeparamref name="TEq"/> and 
+/// in regard of key-value storage via <typeparamref name="TEntries"/>
+/// 
+/// Features:
+/// - Implemented as a struct so that the empty/default map does not allocate on heap
+/// - Hashes and key-values are the separate collections enabling better cash locality and faster performance (data-oriented design)
+/// - No SIMD for now to avoid complexity and costs for the smaller maps, so the map is more fit for the smaller sizes.
+///
+/// </summary>
 [DebuggerTypeProxy(typeof(FHashMap91DebugProxy<,,,>))]
 [DebuggerDisplay("Count={Count}")]
-#endif
 public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
     where TEq : struct, IEq<K>
     where TEntries : struct, IEntries<K, V, TEq>
@@ -525,7 +535,7 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
 #endif
     private byte _capacityBitShift;
 
-    // The _packedHashesAndIndexes elements are of `Int32` with the bits occupied as following: 
+    // The _packedHashesAndIndexes elements are of `Int32` with the bits split as following:
     // 00010|000...110|01101
     // |     |         |- The index into the _entries structure, 0-based. The index bit count (indexMask) is the hashes capacity - 1.
     // |     |         | This part of the erased hash is used to get the ideal index into the hashes array, so later this part of hash may be restored from the hash index and its probes.
@@ -538,14 +548,6 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
     public int[] PackedHashesAndIndexes => _packedHashesAndIndexes;
     public int Count => _entries.GetCount();
     public TEntries Entries => _entries;
-    public FHashMap91()
-    {
-        _capacityBitShift = 0;
-
-        // using single cell array for hashes instead of empty one to allow the Lookup to work without the additional check for the emptiness
-        _packedHashesAndIndexes = FHashMap91.SingleCellHashesAndIndexes; // todo: @improve can we avoid single cell array and enable use of `default` map same as for `_entries`
-        _entries = default;
-    }
 
     /// <summary>Capacity calculates as `1 << capacityBitShift`</summary>
     public FHashMap91(byte capacityBitShift)
@@ -562,6 +564,12 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
     [MethodImpl((MethodImplOptions)256)]
     public bool TryGetValue(K key, out V value)
     {
+        if (_packedHashesAndIndexes == null)
+        {
+            value = default;
+            return false;
+        }
+
         var hash = default(TEq).GetHashCode(key);
 
         var indexMask = (1 << _capacityBitShift) - 1;

@@ -341,6 +341,14 @@ public class FHashMap91Tests
     }
 
     [Test]
+    public void Can_lookup_the_default_map_without_error()
+    {
+        FHashMap91<int, string, IntEq, SingleArrayEntries<int, string, IntEq>> map = default;
+
+        Assert.IsFalse(map.TryGetValue(42, out _));
+    }
+
+    [Test]
     public void Can_store_and_retrieve_value_from_map_with_Expand_in_the_middle()
     {
         var map = FHashMap91.New<int, string, IntEq>(1);
