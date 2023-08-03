@@ -25,15 +25,15 @@ public static class FHashMap91
     internal static readonly int[] SingleCellHashesAndIndexes = new int[1];
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
-    public static FHashMap91<K, V, TEq, SingleArrayEntries<K, V>> New<K, V, TEq>(byte capacityBitShift = 0)
+    public static FHashMap91<K, V, TEq, SingleArrayEntries<K, V>> New<K, V, TEq>(byte capacityBitShift = 0, K removedKeyTombstone = default)
         where TEq : struct, IEqualityComparer<K> =>
-        new FHashMap91<K, V, TEq, SingleArrayEntries<K, V>>(capacityBitShift);
+        new FHashMap91<K, V, TEq, SingleArrayEntries<K, V>>(capacityBitShift, removedKeyTombstone);
 
     // todo: @name better name like NewMemEfficient or NewAddFocused ?
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
-    public static FHashMap91<K, V, TEq, ChunkedArrayEntries<K, V>> NewChunked<K, V, TEq>(byte capacityBitShift = 0)
+    public static FHashMap91<K, V, TEq, ChunkedArrayEntries<K, V>> NewChunked<K, V, TEq>(byte capacityBitShift = 0, K removedKeyTombstone = default)
         where TEq : struct, IEqualityComparer<K> =>
-        new FHashMap91<K, V, TEq, ChunkedArrayEntries<K, V>>(capacityBitShift);
+        new FHashMap91<K, V, TEq, ChunkedArrayEntries<K, V>>(capacityBitShift, removedKeyTombstone);
 
     [DebuggerDisplay("{Key.ToString()}->{Value}")]
     public struct Entry<K, V>
@@ -172,8 +172,9 @@ public static class FHashMap91
     /// <summary>Abstraction to configure your own entries data structure. Check the derivitives for the examples</summary>
     public interface IEntries<K, V>
     {
-        void Init(byte capacityBitShift);
+        void Init(byte capacityBitShift, K removedKeyTombstone);
         int GetCount();
+        K GetRemovedKeyTombstone();
         ref Entry<K, V> GetSurePresentEntryRef(int index);
         ref V GetOrAddValueRef(K key);
         void RemoveSurePresentEntry(int index);
@@ -185,12 +186,18 @@ public static class FHashMap91
     {
         int _entryCount;
         internal Entry<K, V>[] _entries;
-
-        public void Init(byte capacityBitShift) =>
+        K _removedKeyTombstone;
+        public void Init(byte capacityBitShift, K removedKeyTombstone)
+        {
             _entries = new Entry<K, V>[1 << capacityBitShift];
+            _removedKeyTombstone = removedKeyTombstone;
+        }
 
         [MethodImpl((MethodImplOptions)256)]
         public int GetCount() => _entryCount;
+
+        [MethodImpl((MethodImplOptions)256)]
+        public K GetRemovedKeyTombstone() => _removedKeyTombstone;
 
         [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
         public ref Entry<K, V> GetSurePresentEntryRef(int index)
@@ -228,7 +235,7 @@ public static class FHashMap91
         [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
         public void RemoveSurePresentEntry(int index)
         {
-            GetSurePresentEntryRef(index) = default;
+            GetSurePresentEntryRef(index) = new Entry<K, V>(_removedKeyTombstone);
             --_entryCount;
         }
     }
@@ -246,10 +253,15 @@ public static class FHashMap91
     {
         int _entryCount;
         Entry<K, V>[][] _entries;
-
-        public void Init(byte capacityBitShift) =>
+        K _removedKeyTombstone;
+        public void Init(byte capacityBitShift, K removedKeyTombstone)
+        {
             _entries = new[] { new Entry<K, V>[(1 << capacityBitShift) & ChunkCapacityMask] };
+            _removedKeyTombstone = removedKeyTombstone;
+        }
 
+        [MethodImpl((MethodImplOptions)256)]
+        public K GetRemovedKeyTombstone() => _removedKeyTombstone;
         [MethodImpl((MethodImplOptions)256)]
         public int GetCount() => _entryCount;
 
@@ -329,7 +341,7 @@ public static class FHashMap91
         [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
         public void RemoveSurePresentEntry(int index)
         {
-            GetSurePresentEntryRef(index) = default;
+            GetSurePresentEntryRef(index) = new Entry<K, V>(_removedKeyTombstone);
             --_entryCount;
             // todo: @perf we may try to free the chunk if it is empty
         }
@@ -504,6 +516,7 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
     public int CapacityBitShift => _capacityBitShift;
     public int[] PackedHashesAndIndexes => _packedHashesAndIndexes;
     public int Count => _entries.GetCount();
+    public K RemovedKeyTombstone => _entries.GetRemovedKeyTombstone();
     public TEntries Entries => _entries;
     public FHashMap91()
     {
@@ -515,7 +528,7 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
     }
 
     /// <summary>Capacity calculates as `1 << capacityBitShift`</summary>
-    public FHashMap91(byte capacityBitShift)
+    public FHashMap91(byte capacityBitShift, K removedKeyTombstone)
     {
         _capacityBitShift = capacityBitShift;
 
@@ -523,7 +536,7 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
         // it is probably fine to have the check for the overlow of capacity because it will be mispredicted only once at the end of loop (it even rarely for the lookup)
         _packedHashesAndIndexes = new int[1 << capacityBitShift];
         _entries = default;
-        _entries.Init(capacityBitShift);
+        _entries.Init(capacityBitShift, removedKeyTombstone);
     }
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
@@ -784,21 +797,30 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
         private int _index;
         private Entry<K, V> _current;
         private readonly TEntries _entries;
+        private int _countIncludingRemoved;
         internal Enumerator(TEntries entries)
         {
             _index = 0;
             _current = default;
             _entries = entries;
+            _countIncludingRemoved = entries.GetCount();
         }
 
-        /// <summary>Move to next entry in the order of their addition to the map</summary>
+        /// <summary>Move to the next entry in the order of their addition to the map</summary>
         [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
         public bool MoveNext()
         {
-            if (_index < _entries.GetCount())
+            skipRemoved:
+            if (_index < _countIncludingRemoved)
             {
-                _current = _entries.GetSurePresentEntryRef(_index++);
-                return true;
+                ref var e = ref _entries.GetSurePresentEntryRef(_index++);
+                if (!default(TEq).Equals(e.Key, _entries.GetRemovedKeyTombstone()))
+                {
+                    _current = e;
+                    return true;
+                }
+                ++_countIncludingRemoved;
+                goto skipRemoved;
             }
             _current = default;
             return false;
@@ -810,6 +832,7 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
         void IEnumerator.Reset()
         {
             _index = 0;
+            _countIncludingRemoved = _entries.GetCount();
             _current = default;
         }
 

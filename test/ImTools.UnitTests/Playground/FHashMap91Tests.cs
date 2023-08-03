@@ -114,9 +114,11 @@ public class FHashMap91Tests
     }
 
     [Test]
-    public void Real_world_test_with_Enumerating_the_entries()
+    public void Real_world_test_with_Enumerating_and_TryRemove_the_entries()
     {
-        var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(1000).ToArray();
+        var count = 1000;
+        var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(count).ToList();
+        Assert.AreEqual(count, types.Count);
 
         var map = FHashMap91.NewChunked<Type, string, TypeEq>();
 
@@ -126,9 +128,22 @@ public class FHashMap91Tests
         var keys = map.Select(kv => kv.Key).ToList();
         CollectionAssert.AreEqual(types, keys);
 
+        Assert.IsTrue(map.TryRemove(types[0]));
+        Assert.IsTrue(map.TryRemove(types[999]));
+        Assert.IsTrue(map.TryRemove(types[377]));
+        Assert.IsTrue(map.TryRemove(types[733]));
+        Assert.AreEqual(count - 4, map.Count);
+
+        // remove in the reverse order to keep the correct index in regard to map
+        types.RemoveAt(999);
+        types.RemoveAt(733);
+        types.RemoveAt(377);
+        types.RemoveAt(0);
+        Assert.AreEqual(count - 4, types.Count);
+
         // Check the second enumeration is working
         var keys2 = map.Select(kv => kv.Key).ToList();
-        CollectionAssert.AreEqual(keys, keys2);
+        CollectionAssert.AreEqual(types, keys2);
 
         Verify(map, types);
     }
