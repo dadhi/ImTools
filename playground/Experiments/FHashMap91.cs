@@ -24,13 +24,13 @@ public static class FHashMap91
 
     internal static readonly int[] SingleCellHashesAndIndexes = new int[1];
 
-    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+    [MethodImpl((MethodImplOptions)256)]
     public static FHashMap91<K, V, TEq, SingleArrayEntries<K, V, TEq>> New<K, V, TEq>(byte capacityBitShift = 0)
         where TEq : struct, IEq<K> =>
         new FHashMap91<K, V, TEq, SingleArrayEntries<K, V, TEq>>(capacityBitShift);
 
     // todo: @name better name like NewMemEfficient or NewAddFocused ?
-    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+    [MethodImpl((MethodImplOptions)256)]
     public static FHashMap91<K, V, TEq, ChunkedArrayEntries<K, V, TEq>> NewChunked<K, V, TEq>(byte capacityBitShift = 0)
         where TEq : struct, IEq<K> =>
         new FHashMap91<K, V, TEq, ChunkedArrayEntries<K, V, TEq>>(capacityBitShift);
@@ -154,27 +154,31 @@ public static class FHashMap91
             assertContainKey(map.TryGetValue(key, out _), key);
     }
 
-    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+    [MethodImpl((MethodImplOptions)256)]
 #if NET7_0_OR_GREATER
     internal static ref int GetHashRef(ref int start, int distance) => ref Unsafe.Add(ref start, distance);
 #else
     internal static ref int GetHashRef(ref int[] start, int distance) => ref start[distance];
 #endif
 
-    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+    [MethodImpl((MethodImplOptions)256)]
 #if NET7_0_OR_GREATER
     internal static int GetHash(ref int start, int distance) => Unsafe.Add(ref start, distance);
 #else
     internal static int GetHash(ref int[] start, int distance) => start[distance];
 #endif
 
+    /// <summary>Configures removed key tombstone, equality and hash function for the FHashMap</summary>
     public interface IEq<K>
     {
+        /// <summary>Defines the value of the key indicating the removed entry</summary>
         K GetTombstone();
 
+        /// <summary>Equals keys</summary>
         bool Equals(K x, K y);
 
-        int GetHashCode(K obj);
+        /// <summary>Calculates and returns the hash of the key</summary>
+        int GetHashCode(K key);
     }
 
     /// <summary>Default comparer using the `object.GetHashCode` and `object.Equals` oveloads</summary>
@@ -189,12 +193,13 @@ public static class FHashMap91
 
         /// <inheritdoc />
         [MethodImpl((MethodImplOptions)256)]
-        public int GetHashCode(K obj) => obj.GetHashCode();
+        public int GetHashCode(K key) => key.GetHashCode();
     }
 
     /// <summary>Uses the `object.GetHashCode` and `object.ReferenceEquals`</summary>
     public struct RefEq<K> : IEq<K> where K : class
     {
+        /// <inheritdoc />
         [MethodImpl((MethodImplOptions)256)]
         public K GetTombstone() => null;
 
@@ -204,12 +209,13 @@ public static class FHashMap91
 
         /// <inheritdoc />
         [MethodImpl((MethodImplOptions)256)]
-        public int GetHashCode(K obj) => obj.GetHashCode();
+        public int GetHashCode(K key) => key.GetHashCode();
     }
 
     /// <summary>Uses the integer itself as hash code and `==` for equality</summary>
     public struct IntEq : IEq<int>
     {
+        /// <inheritdoc />
         [MethodImpl((MethodImplOptions)256)]
         public int GetTombstone() => int.MinValue;
 
@@ -219,12 +225,13 @@ public static class FHashMap91
 
         /// <inheritdoc />
         [MethodImpl((MethodImplOptions)256)]
-        public int GetHashCode(int obj) => obj;
+        public int GetHashCode(int key) => key;
     }
 
     /// <summary>Uses Fibonacci hashing by multiplying the integer on the factor derived from the GoldenRatio</summary>
     public struct GoldenIntEq : IEq<int>
     {
+        /// <inheritdoc />
         [MethodImpl((MethodImplOptions)256)]
         public int GetTombstone() => int.MinValue;
 
@@ -234,12 +241,13 @@ public static class FHashMap91
 
         /// <inheritdoc />
         [MethodImpl((MethodImplOptions)256)]
-        public int GetHashCode(int obj) => (int)(obj * FHashMap91.GoldenRatio32) >>> FHashMap91.MaxProbeBits;
+        public int GetHashCode(int key) => (int)(key * GoldenRatio32) >>> MaxProbeBits;
     }
 
-    /// <summary>Fast-comparing the types via `==` and gets the hash faster via `RuntimeHelpers.GetHashCode`</summary>
+    /// <summary>Compares the types faster via `==` and gets the hash faster via `RuntimeHelpers.GetHashCode`</summary>
     public struct TypeEq : IEq<Type>
     {
+        /// <inheritdoc />
         [MethodImpl((MethodImplOptions)256)]
         public Type GetTombstone() => null;
 
@@ -249,7 +257,7 @@ public static class FHashMap91
 
         /// <inheritdoc />
         [MethodImpl((MethodImplOptions)256)]
-        public int GetHashCode(Type obj) => RuntimeHelpers.GetHashCode(obj);
+        public int GetHashCode(Type key) => RuntimeHelpers.GetHashCode(key);
     }
 
     // todo: @improve can we move the Entry into the type parameter to configure and possibly save the memory e.g. for the sets? 
@@ -263,7 +271,7 @@ public static class FHashMap91
         void RemoveSurePresentEntry(int index);
     }
 
-    public const int MinEntriesCapacity = 2;
+    const int MinEntriesCapacity = 2;
 
     public struct SingleArrayEntries<K, V, TEq> : IEntries<K, V, TEq>  where TEq : struct, IEq<K>
     {
@@ -275,7 +283,7 @@ public static class FHashMap91
         [MethodImpl((MethodImplOptions)256)]
         public int GetCount() => _entryCount;
 
-        [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+        [MethodImpl((MethodImplOptions)256)]
         public ref Entry<K, V> GetSurePresentEntryRef(int index)
         {
 #if NET7_0_OR_GREATER
@@ -285,7 +293,7 @@ public static class FHashMap91
 #endif
         }
 
-        [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+        [MethodImpl((MethodImplOptions)256)]
         public ref V GetOrAddValueRef(K key)
         {
             var index = _entryCount;
@@ -308,7 +316,7 @@ public static class FHashMap91
             return ref e.Value;
         }
 
-        [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+        [MethodImpl((MethodImplOptions)256)]
         public void RemoveSurePresentEntry(int index)
         {
             GetSurePresentEntryRef(index) = new Entry<K, V>(default(TEq).GetTombstone());
@@ -321,7 +329,7 @@ public static class FHashMap91
     const int ChunkCapacityMask = ChunkCapacity - 1;
 
     // todo: @perf research on the similar growable indexed collection with append-to-end semantics
-    /// <summary>The array of array buckets, where bucket is the fixed size. 
+   /// <summary>The array of array buckets, where bucket is the fixed size. 
     /// It enables adding the new bucket without for the new entries without reallocating the existing data.
     /// It may allow to drop the empty bucket as well, reclaiming the memory after remove.
     /// The structure is similar to Hashed Array Tree (HAT)</summary>
@@ -335,7 +343,7 @@ public static class FHashMap91
         [MethodImpl((MethodImplOptions)256)]
         public int GetCount() => _entryCount;
 
-        [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+        [MethodImpl((MethodImplOptions)256)]
         public ref Entry<K, V> GetSurePresentEntryRef(int index)
         {
 #if NET7_0_OR_GREATER
@@ -408,7 +416,7 @@ public static class FHashMap91
             }
         }
 
-        [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+        [MethodImpl((MethodImplOptions)256)]
         public void RemoveSurePresentEntry(int index)
         {
             GetSurePresentEntryRef(index) = new Entry<K, V>(default(TEq).GetTombstone());
@@ -548,7 +556,7 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
         _entries.Init(capacityBitShift);
     }
 
-    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+    [MethodImpl((MethodImplOptions)256)]
     public bool TryGetValue(K key, out V value)
     {
         var hash = default(TEq).GetHashCode(key);
@@ -589,11 +597,11 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
         return false;
     }
 
-    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+    [MethodImpl((MethodImplOptions)256)]
     public V GetValueOrDefault(K key, V defaultValue = default) =>
         TryGetValue(key, out var value) ? value : defaultValue;
 
-    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+    [MethodImpl((MethodImplOptions)256)]
     public ref V GetOrAddValueRef(K key)
     {
         var hash = default(TEq).GetHashCode(key);
@@ -662,11 +670,11 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
         return ref _entries.GetOrAddValueRef(key);
     }
 
-    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+    [MethodImpl((MethodImplOptions)256)]
     public void AddOrUpdate(K key, in V value) =>
         GetOrAddValueRef(key) = value;
 
-    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+    [MethodImpl((MethodImplOptions)256)]
     public bool TryRemove(K key)
     {
         var hash = default(TEq).GetHashCode(key);
@@ -791,7 +799,7 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
     }
 
     /// <inheritdoc />
-    [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+    [MethodImpl((MethodImplOptions)256)]
     public Enumerator GetEnumerator() => new Enumerator(_entries); // prevents the boxing of the enumerator struct
 
     /// <inheritdoc />
@@ -816,7 +824,7 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
         }
 
         /// <summary>Move to the next entry in the order of their addition to the map</summary>
-        [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
+        [MethodImpl((MethodImplOptions)256)]
         public bool MoveNext()
         {
         skipRemoved:
