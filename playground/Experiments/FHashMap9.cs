@@ -8,6 +8,66 @@ using System.Runtime.InteropServices;
 #endif
 namespace ImTools.Experiments;
 
+/// <summary>Default comparer using the `object.GetHashCode` and `object.Equals` oveloads</summary>
+public struct DefaultEq<K> : IEqualityComparer<K>
+{
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public bool Equals(K x, K y) => x.Equals(y);
+
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public int GetHashCode(K obj) => obj.GetHashCode();
+}
+
+/// <summary>Uses the `object.GetHashCode` and `object.ReferenceEquals`</summary>
+public struct RefEq<K> : IEqualityComparer<K> where K : class
+{
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public bool Equals(K x, K y) => ReferenceEquals(x, y);
+
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public int GetHashCode(K obj) => obj.GetHashCode();
+}
+
+/// <summary>Uses the integer itself as hash code and `==` for equality</summary>
+public struct IntEq : IEqualityComparer<int>
+{
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public bool Equals(int x, int y) => x == y;
+
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public int GetHashCode(int obj) => obj;
+}
+
+/// <summary>Uses Fibonacci hashing by multiplying the integer on the factor derived from the GoldenRatio</summary>
+public struct GoldenIntEq : IEqualityComparer<int>
+{
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public bool Equals(int x, int y) => x == y;
+
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public int GetHashCode(int obj) => (int)(obj * FHashMap91.GoldenRatio32) >>> FHashMap91.MaxProbeBits;
+}
+
+/// <summary>Fast-comparing the types via `==` and gets the hash faster via `RuntimeHelpers.GetHashCode`</summary>
+public struct TypeEq : IEqualityComparer<Type>
+{
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public bool Equals(Type x, Type y) => x == y;
+
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public int GetHashCode(Type obj) => RuntimeHelpers.GetHashCode(obj);
+}
+
 public static class FHashMap9Diagnostics
 {
     /// <summary>Converts the packed hashes and indexes array into the human readable info</summary>

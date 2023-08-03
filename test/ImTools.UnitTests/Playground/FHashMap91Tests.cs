@@ -12,8 +12,8 @@ using static FHashMap91;
 public class FHashMap91Tests
 {
     internal static void Verify<K, V, TEq, TEntries>(FHashMap91<K, V, TEq, TEntries> map, IEnumerable<K> expectedKeys)
-        where TEq : struct, IEqualityComparer<K>
-        where TEntries : struct, IEntries<K, V>
+        where TEq : struct, IEq<K>
+        where TEntries : struct, IEntries<K, V, TEq>
     {
         map.VerifyHashesAndKeysEq(eq => Assert.True(eq));
         map.VerifyProbesAreFitRobinHood(err => Assert.Fail(err));

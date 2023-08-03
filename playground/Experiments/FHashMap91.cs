@@ -25,15 +25,15 @@ public static class FHashMap91
     internal static readonly int[] SingleCellHashesAndIndexes = new int[1];
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
-    public static FHashMap91<K, V, TEq, SingleArrayEntries<K, V>> New<K, V, TEq>(byte capacityBitShift = 0, K removedKeyTombstone = default)
-        where TEq : struct, IEqualityComparer<K> =>
-        new FHashMap91<K, V, TEq, SingleArrayEntries<K, V>>(capacityBitShift, removedKeyTombstone);
+    public static FHashMap91<K, V, TEq, SingleArrayEntries<K, V, TEq>> New<K, V, TEq>(byte capacityBitShift = 0)
+        where TEq : struct, IEq<K> =>
+        new FHashMap91<K, V, TEq, SingleArrayEntries<K, V, TEq>>(capacityBitShift);
 
     // todo: @name better name like NewMemEfficient or NewAddFocused ?
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
-    public static FHashMap91<K, V, TEq, ChunkedArrayEntries<K, V>> NewChunked<K, V, TEq>(byte capacityBitShift = 0, K removedKeyTombstone = default)
-        where TEq : struct, IEqualityComparer<K> =>
-        new FHashMap91<K, V, TEq, ChunkedArrayEntries<K, V>>(capacityBitShift, removedKeyTombstone);
+    public static FHashMap91<K, V, TEq, ChunkedArrayEntries<K, V, TEq>> NewChunked<K, V, TEq>(byte capacityBitShift = 0)
+        where TEq : struct, IEq<K> =>
+        new FHashMap91<K, V, TEq, ChunkedArrayEntries<K, V, TEq>>(capacityBitShift);
 
     [DebuggerDisplay("{Key.ToString()}->{Value}")]
     public struct Entry<K, V>
@@ -62,8 +62,8 @@ public static class FHashMap91
     /// <summary>Converts the packed hashes and entries into the human readable info.
     /// This also used for the debugging view of the <paramref name="map"/> and by the Verify... methods in tests.</summary>
     public static DebugHashItem<K, V>[] Explain<K, V, TEq, TEntries>(this FHashMap91<K, V, TEq, TEntries> map)
-        where TEq : struct, IEqualityComparer<K>
-        where TEntries : struct, IEntries<K, V>
+        where TEq : struct, IEq<K>
+        where TEntries : struct, IEntries<K, V, TEq>
     {
         var hashes = map.PackedHashesAndIndexes;
         var capacity = (1 << map.CapacityBitShift);
@@ -95,8 +95,8 @@ public static class FHashMap91
 
     /// <summary>Verifies that the hashes correspond to the keys stroed in the entries. May be called from the tests.</summary>
     public static void VerifyHashesAndKeysEq<K, V, TEq, TEntries>(this FHashMap91<K, V, TEq, TEntries> map, Action<bool> assertEq)
-        where TEq : struct, IEqualityComparer<K>
-        where TEntries : struct, IEntries<K, V>
+        where TEq : struct, IEq<K>
+        where TEntries : struct, IEntries<K, V, TEq>
     {
         var exp = map.Explain();
         foreach (var it in exp)
@@ -106,8 +106,8 @@ public static class FHashMap91
 
     /// <summary>Verifies that there is no duplicate keys stored in hashes -> entries. May be called from the tests.</summary>
     public static void VerifyNoDuplicateKeys<K, V, TEq, TEntries>(this FHashMap91<K, V, TEq, TEntries> map, Action<K> assertKey)
-        where TEq : struct, IEqualityComparer<K>
-        where TEntries : struct, IEntries<K, V>
+        where TEq : struct, IEq<K>
+        where TEntries : struct, IEntries<K, V, TEq>
     {
         // Verify the indexes do no contains duplicate keys
         var uniq = new Dictionary<K, int>(map.Count);
@@ -128,8 +128,8 @@ public static class FHashMap91
     }
 
     public static void VerifyProbesAreFitRobinHood<K, V, TEq, TEntries>(this FHashMap91<K, V, TEq, TEntries> map, Action<string> reportFail)
-        where TEq : struct, IEqualityComparer<K>
-        where TEntries : struct, IEntries<K, V>
+        where TEq : struct, IEq<K>
+        where TEntries : struct, IEntries<K, V, TEq>
     {
         var hashes = map.PackedHashesAndIndexes;
         var capacity = 1 << map.CapacityBitShift;
@@ -147,8 +147,8 @@ public static class FHashMap91
 
     /// <summary>Verifies that the map contains all passed keys. May be called from the tests.</summary>
     public static void VerifyContainAllKeys<K, V, TEq, TEntries>(this FHashMap91<K, V, TEq, TEntries> map, IEnumerable<K> expectedKeys, Action<bool, K> assertContainKey)
-        where TEq : struct, IEqualityComparer<K>
-        where TEntries : struct, IEntries<K, V>
+        where TEq : struct, IEq<K>
+        where TEntries : struct, IEntries<K, V, TEq>
     {
         foreach (var key in expectedKeys)
             assertContainKey(map.TryGetValue(key, out _), key);
@@ -168,13 +168,96 @@ public static class FHashMap91
     internal static int GetHash(ref int[] start, int distance) => start[distance];
 #endif
 
+    public interface IEq<K>
+    {
+        K GetTombstone();
+
+        bool Equals(K x, K y);
+
+        int GetHashCode(K obj);
+    }
+
+    /// <summary>Default comparer using the `object.GetHashCode` and `object.Equals` oveloads</summary>
+    public struct DefaultEq<K> : IEq<K>
+    {
+        [MethodImpl((MethodImplOptions)256)]
+        public K GetTombstone() => default;
+
+        /// <inheritdoc />
+        [MethodImpl((MethodImplOptions)256)]
+        public bool Equals(K x, K y) => x.Equals(y);
+
+        /// <inheritdoc />
+        [MethodImpl((MethodImplOptions)256)]
+        public int GetHashCode(K obj) => obj.GetHashCode();
+    }
+
+    /// <summary>Uses the `object.GetHashCode` and `object.ReferenceEquals`</summary>
+    public struct RefEq<K> : IEq<K> where K : class
+    {
+        [MethodImpl((MethodImplOptions)256)]
+        public K GetTombstone() => null;
+
+        /// <inheritdoc />
+        [MethodImpl((MethodImplOptions)256)]
+        public bool Equals(K x, K y) => ReferenceEquals(x, y);
+
+        /// <inheritdoc />
+        [MethodImpl((MethodImplOptions)256)]
+        public int GetHashCode(K obj) => obj.GetHashCode();
+    }
+
+    /// <summary>Uses the integer itself as hash code and `==` for equality</summary>
+    public struct IntEq : IEq<int>
+    {
+        [MethodImpl((MethodImplOptions)256)]
+        public int GetTombstone() => int.MinValue;
+
+        /// <inheritdoc />
+        [MethodImpl((MethodImplOptions)256)]
+        public bool Equals(int x, int y) => x == y;
+
+        /// <inheritdoc />
+        [MethodImpl((MethodImplOptions)256)]
+        public int GetHashCode(int obj) => obj;
+    }
+
+    /// <summary>Uses Fibonacci hashing by multiplying the integer on the factor derived from the GoldenRatio</summary>
+    public struct GoldenIntEq : IEq<int>
+    {
+        [MethodImpl((MethodImplOptions)256)]
+        public int GetTombstone() => int.MinValue;
+
+        /// <inheritdoc />
+        [MethodImpl((MethodImplOptions)256)]
+        public bool Equals(int x, int y) => x == y;
+
+        /// <inheritdoc />
+        [MethodImpl((MethodImplOptions)256)]
+        public int GetHashCode(int obj) => (int)(obj * FHashMap91.GoldenRatio32) >>> FHashMap91.MaxProbeBits;
+    }
+
+    /// <summary>Fast-comparing the types via `==` and gets the hash faster via `RuntimeHelpers.GetHashCode`</summary>
+    public struct TypeEq : IEq<Type>
+    {
+        [MethodImpl((MethodImplOptions)256)]
+        public Type GetTombstone() => null;
+
+        /// <inheritdoc />
+        [MethodImpl((MethodImplOptions)256)]
+        public bool Equals(Type x, Type y) => x == y;
+
+        /// <inheritdoc />
+        [MethodImpl((MethodImplOptions)256)]
+        public int GetHashCode(Type obj) => RuntimeHelpers.GetHashCode(obj);
+    }
+
     // todo: @improve can we move the Entry into the type parameter to configure and possibly save the memory e.g. for the sets? 
     /// <summary>Abstraction to configure your own entries data structure. Check the derivitives for the examples</summary>
-    public interface IEntries<K, V>
+    public interface IEntries<K, V, TEq> where TEq : IEq<K>
     {
-        void Init(byte capacityBitShift, K removedKeyTombstone);
+        void Init(byte capacityBitShift);
         int GetCount();
-        K GetRemovedKeyTombstone();
         ref Entry<K, V> GetSurePresentEntryRef(int index);
         ref V GetOrAddValueRef(K key);
         void RemoveSurePresentEntry(int index);
@@ -182,22 +265,15 @@ public static class FHashMap91
 
     public const int MinEntriesCapacity = 2;
 
-    public struct SingleArrayEntries<K, V> : IEntries<K, V>
+    public struct SingleArrayEntries<K, V, TEq> : IEntries<K, V, TEq>  where TEq : struct, IEq<K>
     {
         int _entryCount;
         internal Entry<K, V>[] _entries;
-        K _removedKeyTombstone;
-        public void Init(byte capacityBitShift, K removedKeyTombstone)
-        {
+        public void Init(byte capacityBitShift) =>
             _entries = new Entry<K, V>[1 << capacityBitShift];
-            _removedKeyTombstone = removedKeyTombstone;
-        }
 
         [MethodImpl((MethodImplOptions)256)]
         public int GetCount() => _entryCount;
-
-        [MethodImpl((MethodImplOptions)256)]
-        public K GetRemovedKeyTombstone() => _removedKeyTombstone;
 
         [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
         public ref Entry<K, V> GetSurePresentEntryRef(int index)
@@ -235,7 +311,7 @@ public static class FHashMap91
         [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
         public void RemoveSurePresentEntry(int index)
         {
-            GetSurePresentEntryRef(index) = new Entry<K, V>(_removedKeyTombstone);
+            GetSurePresentEntryRef(index) = new Entry<K, V>(default(TEq).GetTombstone());
             --_entryCount;
         }
     }
@@ -249,19 +325,13 @@ public static class FHashMap91
     /// It enables adding the new bucket without for the new entries without reallocating the existing data.
     /// It may allow to drop the empty bucket as well, reclaiming the memory after remove.
     /// The structure is similar to Hashed Array Tree (HAT)</summary>
-    public struct ChunkedArrayEntries<K, V> : IEntries<K, V>
+    public struct ChunkedArrayEntries<K, V, TEq> : IEntries<K, V, TEq> where TEq : struct, IEq<K>
     {
         int _entryCount;
         Entry<K, V>[][] _entries;
-        K _removedKeyTombstone;
-        public void Init(byte capacityBitShift, K removedKeyTombstone)
-        {
+        public void Init(byte capacityBitShift) =>
             _entries = new[] { new Entry<K, V>[(1 << capacityBitShift) & ChunkCapacityMask] };
-            _removedKeyTombstone = removedKeyTombstone;
-        }
 
-        [MethodImpl((MethodImplOptions)256)]
-        public K GetRemovedKeyTombstone() => _removedKeyTombstone;
         [MethodImpl((MethodImplOptions)256)]
         public int GetCount() => _entryCount;
 
@@ -341,77 +411,17 @@ public static class FHashMap91
         [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
         public void RemoveSurePresentEntry(int index)
         {
-            GetSurePresentEntryRef(index) = new Entry<K, V>(_removedKeyTombstone);
+            GetSurePresentEntryRef(index) = new Entry<K, V>(default(TEq).GetTombstone());
             --_entryCount;
             // todo: @perf we may try to free the chunk if it is empty
         }
     }
 }
 
-/// <summary>Default comparer using the `object.GetHashCode` and `object.Equals` oveloads</summary>
-public struct DefaultEq<K> : IEqualityComparer<K>
-{
-    /// <inheritdoc />
-    [MethodImpl((MethodImplOptions)256)]
-    public bool Equals(K x, K y) => x.Equals(y);
-
-    /// <inheritdoc />
-    [MethodImpl((MethodImplOptions)256)]
-    public int GetHashCode(K obj) => obj.GetHashCode();
-}
-
-/// <summary>Uses the `object.GetHashCode` and `object.ReferenceEquals`</summary>
-public struct RefEq<K> : IEqualityComparer<K> where K : class
-{
-    /// <inheritdoc />
-    [MethodImpl((MethodImplOptions)256)]
-    public bool Equals(K x, K y) => ReferenceEquals(x, y);
-
-    /// <inheritdoc />
-    [MethodImpl((MethodImplOptions)256)]
-    public int GetHashCode(K obj) => obj.GetHashCode();
-}
-
-/// <summary>Uses the integer itself as hash code and `==` for equality</summary>
-public struct IntEq : IEqualityComparer<int>
-{
-    /// <inheritdoc />
-    [MethodImpl((MethodImplOptions)256)]
-    public bool Equals(int x, int y) => x == y;
-
-    /// <inheritdoc />
-    [MethodImpl((MethodImplOptions)256)]
-    public int GetHashCode(int obj) => obj;
-}
-
-/// <summary>Uses Fibonacci hashing by multiplying the integer on the factor derived from the GoldenRatio</summary>
-public struct GoldenIntEq : IEqualityComparer<int>
-{
-    /// <inheritdoc />
-    [MethodImpl((MethodImplOptions)256)]
-    public bool Equals(int x, int y) => x == y;
-
-    /// <inheritdoc />
-    [MethodImpl((MethodImplOptions)256)]
-    public int GetHashCode(int obj) => (int)(obj * FHashMap91.GoldenRatio32) >>> FHashMap91.MaxProbeBits;
-}
-
-/// <summary>Fast-comparing the types via `==` and gets the hash faster via `RuntimeHelpers.GetHashCode`</summary>
-public struct TypeEq : IEqualityComparer<Type>
-{
-    /// <inheritdoc />
-    [MethodImpl((MethodImplOptions)256)]
-    public bool Equals(Type x, Type y) => x == y;
-
-    /// <inheritdoc />
-    [MethodImpl((MethodImplOptions)256)]
-    public int GetHashCode(Type obj) => RuntimeHelpers.GetHashCode(obj);
-}
-
 #if DEBUG
 public class FHashMap91DebugProxy<K, V, TEq, TEntries>
-    where TEq : struct, IEqualityComparer<K>
-    where TEntries : struct, IEntries<K, V>
+    where TEq : struct, IEq<K>
+    where TEntries : struct, IEntries<K, V, TEq>
 {
     private readonly FHashMap91<K, V, TEq, TEntries> _map;
     public FHashMap91DebugProxy(FHashMap91<K, V, TEq, TEntries> map) => _map = map;
@@ -496,8 +506,8 @@ struct FHashMap91Debug
 [DebuggerDisplay("Count={Count}")]
 #endif
 public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
-    where TEq : struct, IEqualityComparer<K>
-    where TEntries : struct, IEntries<K, V>
+    where TEq : struct, IEq<K>
+    where TEntries : struct, IEntries<K, V, TEq>
 {
 #if DEBUG
     FHashMap91Debug _dbg = new();
@@ -516,7 +526,6 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
     public int CapacityBitShift => _capacityBitShift;
     public int[] PackedHashesAndIndexes => _packedHashesAndIndexes;
     public int Count => _entries.GetCount();
-    public K RemovedKeyTombstone => _entries.GetRemovedKeyTombstone();
     public TEntries Entries => _entries;
     public FHashMap91()
     {
@@ -528,7 +537,7 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
     }
 
     /// <summary>Capacity calculates as `1 << capacityBitShift`</summary>
-    public FHashMap91(byte capacityBitShift, K removedKeyTombstone)
+    public FHashMap91(byte capacityBitShift)
     {
         _capacityBitShift = capacityBitShift;
 
@@ -536,7 +545,7 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
         // it is probably fine to have the check for the overlow of capacity because it will be mispredicted only once at the end of loop (it even rarely for the lookup)
         _packedHashesAndIndexes = new int[1 << capacityBitShift];
         _entries = default;
-        _entries.Init(capacityBitShift, removedKeyTombstone);
+        _entries.Init(capacityBitShift);
     }
 
     [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
@@ -810,11 +819,11 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
         [MethodImpl((MethodImplOptions)256)] // MethodImplOptions.AggressiveInlining
         public bool MoveNext()
         {
-            skipRemoved:
+        skipRemoved:
             if (_index < _countIncludingRemoved)
             {
                 ref var e = ref _entries.GetSurePresentEntryRef(_index++);
-                if (!default(TEq).Equals(e.Key, _entries.GetRemovedKeyTombstone()))
+                if (!default(TEq).Equals(e.Key, default(TEq).GetTombstone()))
                 {
                     _current = e;
                     return true;
