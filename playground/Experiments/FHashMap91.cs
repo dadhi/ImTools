@@ -282,16 +282,21 @@ public static class FHashMap91
 
     internal const int MinEntriesCapacity = 2;
 
-    public struct SingleArrayEntries<K, V, TEq> : IEntries<K, V, TEq>  where TEq : struct, IEq<K>
+    /// <summary>Stores the entries in a single dynamically reallocated array</summary>
+    public struct SingleArrayEntries<K, V, TEq> : IEntries<K, V, TEq> where TEq : struct, IEq<K>
     {
         int _entryCount;
         internal Entry<K, V>[] _entries;
+
+        /// <inheritdoc/>
         public void Init(byte capacityBitShift) =>
             _entries = new Entry<K, V>[1 << capacityBitShift];
 
+        /// <inheritdoc/>
         [MethodImpl((MethodImplOptions)256)]
         public int GetCount() => _entryCount;
 
+        /// <inheritdoc/>
         [MethodImpl((MethodImplOptions)256)]
         public ref Entry<K, V> GetSurePresentEntryRef(int index)
         {
@@ -302,6 +307,7 @@ public static class FHashMap91
 #endif
         }
 
+        /// <inheritdoc/>
         [MethodImpl((MethodImplOptions)256)]
         public ref V AddKeyAndGetValueRef(K key)
         {
@@ -325,6 +331,7 @@ public static class FHashMap91
             return ref e.Value;
         }
 
+        /// <summary>Tombstones the entry key</summary>
         [MethodImpl((MethodImplOptions)256)]
         public void TombstoneOrRemoveSurePresentEntry(int index)
         {
@@ -334,12 +341,13 @@ public static class FHashMap91
     }
 
     // todo: @improve make it configurable
-    const byte ChunkCapacityBitShift = 8; // 8 bits == 256
-    const int ChunkCapacity = 1 << ChunkCapacityBitShift;
-    const int ChunkCapacityMask = ChunkCapacity - 1;
+    /// <summary>The capacity of chunk in bits for <see cref="ChunkedArrayEntries{K, V, TEq}"/></summary>
+    public const byte ChunkCapacityBitShift = 8; // 8 bits == 256
+    internal const int ChunkCapacity = 1 << ChunkCapacityBitShift;
+    internal const int ChunkCapacityMask = ChunkCapacity - 1;
 
     // todo: @perf research on the similar growable indexed collection with append-to-end semantics
-   /// <summary>The array of array buckets, where bucket is the fixed size. 
+    /// <summary>The array of array buckets, where bucket is the fixed size. 
     /// It enables adding the new bucket without for the new entries without reallocating the existing data.
     /// It may allow to drop the empty bucket as well, reclaiming the memory after remove.
     /// The structure is similar to Hashed Array Tree (HAT)</summary>
@@ -347,12 +355,15 @@ public static class FHashMap91
     {
         int _entryCount;
         Entry<K, V>[][] _entries;
+        /// <inheritdoc/>
         public void Init(byte capacityBitShift) =>
             _entries = new[] { new Entry<K, V>[(1 << capacityBitShift) & ChunkCapacityMask] };
 
+        /// <inheritdoc/>
         [MethodImpl((MethodImplOptions)256)]
         public int GetCount() => _entryCount;
 
+        /// <inheritdoc/>
         [MethodImpl((MethodImplOptions)256)]
         public ref Entry<K, V> GetSurePresentEntryRef(int index)
         {
@@ -364,6 +375,7 @@ public static class FHashMap91
 #endif
         }
 
+        /// <inheritdoc/>
         public ref V AddKeyAndGetValueRef(K key)
         {
             var index = _entryCount++;
@@ -426,6 +438,7 @@ public static class FHashMap91
             }
         }
 
+        /// <summary>Tombstones the entry key</summary>
         [MethodImpl((MethodImplOptions)256)]
         public void TombstoneOrRemoveSurePresentEntry(int index)
         {
