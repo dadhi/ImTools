@@ -24,17 +24,21 @@ public static class FHashMap91
     internal const byte ProbeCountShift = 32 - MaxProbeBits;
     internal const int HashAndIndexMask = ~(MaxProbeCount << ProbeCountShift);
 
+    /// <summary>Creates the map with the <see cref="SingleArrayEntries{K, V, TEq}"/> storage</summary>
     [MethodImpl((MethodImplOptions)256)]
     public static FHashMap91<K, V, TEq, SingleArrayEntries<K, V, TEq>> New<K, V, TEq>(byte capacityBitShift = 0)
         where TEq : struct, IEq<K> =>
         new FHashMap91<K, V, TEq, SingleArrayEntries<K, V, TEq>>(capacityBitShift);
 
-    // todo: @name better name like NewMemEfficient or NewAddFocused ?
+    // todo: @name a better name like NewMemEfficient or NewAddFocused?
+    /// <summary>Creates the map with the <see cref="ChunkedArrayEntries{K, V, TEq}"/> storage</summary>
     [MethodImpl((MethodImplOptions)256)]
     public static FHashMap91<K, V, TEq, ChunkedArrayEntries<K, V, TEq>> NewChunked<K, V, TEq>(byte capacityBitShift = 0)
         where TEq : struct, IEq<K> =>
         new FHashMap91<K, V, TEq, ChunkedArrayEntries<K, V, TEq>>(capacityBitShift);
 
+    /// <summary>Holds a single entry consisting of key and value. 
+    /// Value may be set or changed but the key is set in stone (by construction).</summary>
     [DebuggerDisplay("{Key.ToString()}->{Value}")]
     public struct Entry<K, V>
     {
