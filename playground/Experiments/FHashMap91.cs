@@ -12,15 +12,17 @@ using static FHashMap91;
 
 public static class FHashMap91
 {
-    public const uint GoldenRatio32 = 2654435769; // 2^32 / phi for the Fibonacci hashing, where phi is the golden ratio ~1.61803
+    /// <summary>2^32 / phi for the Fibonacci hashing, where phi is the golden ratio ~1.61803</summary>
+    public const uint GoldenRatio32 = 2654435769;
 
-    public const byte MinFreeCapacityShift = 3; // e.g. for the capacity 16: 16 >> 3 => 2, 12.5% of the free hash slots (it does not mean the entries free slot)
-    public const byte MinCapacityBits = 3; // 1 << 3 == 8
-    public const byte MaxProbeBits = 5; // 5 bits max, e.g. 31 (11111)
-    public const byte MaxProbeCount = (1 << MaxProbeBits) - 1; // e.g. 31 (11111) for the 5 bits
-    public const byte ProbeCountShift = 32 - MaxProbeBits;
-    public const int ProbesMask = MaxProbeCount << ProbeCountShift;
-    public const int HashAndIndexMask = ~ProbesMask;
+    internal const byte MinFreeCapacityShift = 3; // e.g. for the capacity 16: 16 >> 3 => 2, 12.5% of the free hash slots (it does not mean the entries free slot)
+    internal const byte MinCapacityBits = 3; // 1 << 3 == 8
+
+    /// <summary>Upper hash bits spent on storing the probes, e.g. 5 bits mean 31 probes max.</summary>
+    public const byte MaxProbeBits = 5;
+    internal const byte MaxProbeCount = (1 << MaxProbeBits) - 1;
+    internal const byte ProbeCountShift = 32 - MaxProbeBits;
+    internal const int HashAndIndexMask = ~(MaxProbeCount << ProbeCountShift);
 
     internal static readonly int[] SingleCellHashesAndIndexes = new int[1];
 
@@ -324,6 +326,7 @@ public static class FHashMap91
         }
     }
 
+    // todo: @improve make it configurable
     const byte ChunkCapacityBitShift = 8; // 8 bits == 256
     const int ChunkCapacity = 1 << ChunkCapacityBitShift;
     const int ChunkCapacityMask = ChunkCapacity - 1;
