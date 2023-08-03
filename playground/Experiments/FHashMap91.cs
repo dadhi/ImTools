@@ -264,14 +264,23 @@ public static class FHashMap91
     /// <summary>Abstraction to configure your own entries data structure. Check the derivitives for the examples</summary>
     public interface IEntries<K, V, TEq> where TEq : IEq<K>
     {
+        /// <summary>Initializes the entries storage to the specified capacity via the number of <paramref name="capacityBitShift"/> bits in the capacity</summary>
         void Init(byte capacityBitShift);
+
+        /// <summary>Returns the actual number of the stored entries</summary>
         int GetCount();
+
+        /// <summary>Returns the reference to entry by its index, index should be valid</summary>
         ref Entry<K, V> GetSurePresentEntryRef(int index);
-        ref V GetOrAddValueRef(K key);
-        void RemoveSurePresentEntry(int index);
+
+        /// <summary>Adds the key at the "end" of entriesc- so the order of addition is preserved.</summary>
+        ref V AddKeyAndGetValueRef(K key);
+
+        /// <summary>Marks the entry as removed via <see cref="TEq.GetTombstone"/> or removes it and frees the memory if possible.</summary>
+        void TombstoneOrRemoveSurePresentEntry(int index);
     }
 
-    const int MinEntriesCapacity = 2;
+    internal const int MinEntriesCapacity = 2;
 
     public struct SingleArrayEntries<K, V, TEq> : IEntries<K, V, TEq>  where TEq : struct, IEq<K>
     {
@@ -294,7 +303,7 @@ public static class FHashMap91
         }
 
         [MethodImpl((MethodImplOptions)256)]
-        public ref V GetOrAddValueRef(K key)
+        public ref V AddKeyAndGetValueRef(K key)
         {
             var index = _entryCount;
             if (index == 0)
@@ -317,7 +326,7 @@ public static class FHashMap91
         }
 
         [MethodImpl((MethodImplOptions)256)]
-        public void RemoveSurePresentEntry(int index)
+        public void TombstoneOrRemoveSurePresentEntry(int index)
         {
             GetSurePresentEntryRef(index) = new Entry<K, V>(default(TEq).GetTombstone());
             --_entryCount;
@@ -355,7 +364,7 @@ public static class FHashMap91
 #endif
         }
 
-        public ref V GetOrAddValueRef(K key)
+        public ref V AddKeyAndGetValueRef(K key)
         {
             var index = _entryCount++;
             var bucketIndex = index >>> ChunkCapacityBitShift;
@@ -418,7 +427,7 @@ public static class FHashMap91
         }
 
         [MethodImpl((MethodImplOptions)256)]
-        public void RemoveSurePresentEntry(int index)
+        public void TombstoneOrRemoveSurePresentEntry(int index)
         {
             GetSurePresentEntryRef(index) = new Entry<K, V>(default(TEq).GetTombstone());
             --_entryCount;
@@ -682,7 +691,7 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
                 probes = hRobinHooded >>> ProbeCountShift;
             }
         }
-        return ref _entries.GetOrAddValueRef(key);
+        return ref _entries.AddKeyAndGetValueRef(key);
     }
 
     /// <summary>Same as `GetOrAddValueRef` but provides the value to add or override for the existing key</summary>
@@ -720,7 +729,7 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
                 ref var e = ref _entries.GetSurePresentEntryRef(h & indexMask);
                 if (default(TEq).Equals(e.Key, key))
                 {
-                    _entries.RemoveSurePresentEntry(h & indexMask);
+                    _entries.TombstoneOrRemoveSurePresentEntry(h & indexMask);
                     removed = true;
                     h = 0;
 #if DEBUG
