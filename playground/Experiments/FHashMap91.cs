@@ -522,7 +522,8 @@ public class FHashMap91DebugProxy<K, V, TEq, TEntries>
 /// - Implemented as a struct so that the empty/default map does not allocate on heap
 /// - Hashes and key-values are the separate collections enabling better cash locality and faster performance (data-oriented design)
 /// - No SIMD for now to avoid complexity and costs for the smaller maps, so the map is more fit for the smaller sizes.
-///
+/// - Provides the "stable" enumeration of the entries in the added order
+/// 
 /// </summary>
 [DebuggerTypeProxy(typeof(FHashMap91DebugProxy<,,,>))]
 [DebuggerDisplay("Count={Count}")]
@@ -561,6 +562,7 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
         _entries.Init(capacityBitShift);
     }
 
+    /// <summary>Lookup for the key and get the associated value if the key is found</summary>
     [MethodImpl((MethodImplOptions)256)]
     public bool TryGetValue(K key, out V value)
     {
@@ -608,19 +610,21 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
         return false;
     }
 
+    /// <summary>Lookup for the key and get the associated value or the default value if the key is not found</summary>
     [MethodImpl((MethodImplOptions)256)]
     public V GetValueOrDefault(K key, V defaultValue = default) =>
         TryGetValue(key, out var value) ? value : defaultValue;
 
+    /// <summary>Gets the reference to the existing value of the provided key, or the default value to set for the newly added key.</summary>
     [MethodImpl((MethodImplOptions)256)]
     public ref V GetOrAddValueRef(K key)
     {
         var hash = default(TEq).GetHashCode(key);
 
-        // if the overflow space is filled-in or
-        // if the free space is less than 1/8 of capacity (12.5%) then Resize
         var indexMask = (1 << _capacityBitShift) - 1;
         var entryCount = _entries.GetCount();
+
+        // if the free space is less than 1/8 of capacity (12.5%) then Resize
         if (indexMask - entryCount <= (indexMask >>> MinFreeCapacityShift))
             indexMask = ResizeHashes(indexMask);
 
@@ -681,10 +685,12 @@ public struct FHashMap91<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
         return ref _entries.GetOrAddValueRef(key);
     }
 
+    /// <summary>Same as `GetOrAddValueRef` but provides the value to add or override for the existing key</summary>
     [MethodImpl((MethodImplOptions)256)]
     public void AddOrUpdate(K key, in V value) =>
         GetOrAddValueRef(key) = value;
 
+    /// <summary>Removes the hash and entry of the provided key or returns <see langword="false"/></summary>
     [MethodImpl((MethodImplOptions)256)]
     public bool TryRemove(K key)
     {
