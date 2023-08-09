@@ -6500,8 +6500,7 @@ namespace ImTools
             }
         }
 
-        /// <summary>Converts the packed hashes and entries into the human readable info.
-        /// This also used for the debugging view of the <paramref name="map"/> and by the Verify... methods in tests.</summary>
+        /// <summary>Converts the packed hashes and entries into the human readable info for debugging visualization</summary>
         public static DebugHashItem<K, V>[] Explain<K, V, TEq, TEntries>(this FHashMap<K, V, TEq, TEntries> map)
             where TEq : struct, IEq<K>
             where TEntries : struct, IEntries<K, V, TEq>
@@ -6532,68 +6531,6 @@ namespace ImTools
 
             // binary reprsentation of the `int`
             static string toB(int x) => Convert.ToString(x, 2).PadLeft(32, '0');
-        }
-
-        /// <summary>Verifies that the hashes correspond to the keys stroed in the entries. May be called from the tests.</summary>
-        public static void VerifyHashesAndKeysEq<K, V, TEq, TEntries>(this FHashMap<K, V, TEq, TEntries> map, Action<bool> assertEq)
-            where TEq : struct, IEq<K>
-            where TEntries : struct, IEntries<K, V, TEq>
-        {
-            var exp = map.Explain();
-            foreach (var it in exp)
-                if (!it.IsEmpty)
-                    assertEq(it.HEq);
-        }
-
-        /// <summary>Verifies that there is no duplicate keys stored in hashes -> entries. May be called from the tests.</summary>
-        public static void VerifyNoDuplicateKeys<K, V, TEq, TEntries>(this FHashMap<K, V, TEq, TEntries> map, Action<K> assertKey)
-            where TEq : struct, IEq<K>
-            where TEntries : struct, IEntries<K, V, TEq>
-        {
-            // Verify the indexes do no contains duplicate keys
-            var uniq = new Dictionary<K, int>(map.Count);
-            var hashes = map.PackedHashesAndIndexes;
-            var capacity = 1 << map.CapacityBitShift;
-            var indexMask = capacity - 1;
-            for (var i = 0; i < hashes.Length; i++)
-            {
-                var h = hashes[i];
-                if (h == 0)
-                    continue;
-                var key = map.Entries.GetSurePresentEntryRef(h & indexMask).Key;
-                if (!uniq.TryGetValue(key, out _))
-                    uniq.Add(key, 1);
-                else
-                    assertKey(key);
-            }
-        }
-
-        /// <summary>Verifies that the probes are consistently increasing</summary>
-        public static void VerifyProbesAreFitRobinHood<K, V, TEq, TEntries>(this FHashMap<K, V, TEq, TEntries> map, Action<string> reportFail)
-            where TEq : struct, IEq<K>
-            where TEntries : struct, IEntries<K, V, TEq>
-        {
-            var hashes = map.PackedHashesAndIndexes;
-            var capacity = 1 << map.CapacityBitShift;
-            var indexMask = capacity - 1;
-            var prevProbes = -1;
-            for (var i = 0; i < hashes.Length; i++)
-            {
-                var h = hashes[i];
-                var probes = h >>> ProbeCountShift;
-                if (prevProbes != -1 && probes - prevProbes > 1)
-                    reportFail($"Probes are not consequent: {prevProbes}, {probes} for {i}: p{probes}, {h & indexMask} -> {map.Entries.GetSurePresentEntryRef(h & indexMask).Key.ToString()}");
-                prevProbes = probes;
-            }
-        }
-
-        /// <summary>Verifies that the map contains all passed keys. May be called from the tests.</summary>
-        public static void VerifyContainAllKeys<K, V, TEq, TEntries>(this FHashMap<K, V, TEq, TEntries> map, IEnumerable<K> expectedKeys, Action<bool, K> assertContainKey)
-            where TEq : struct, IEq<K>
-            where TEntries : struct, IEntries<K, V, TEq>
-        {
-            foreach (var key in expectedKeys)
-                assertContainKey(map.TryGetValue(key, out _), key);
         }
 
         [MethodImpl((MethodImplOptions)256)]
@@ -6770,7 +6707,7 @@ namespace ImTools
                 ref var e = ref _entries[index];
 #endif
                 ++_entryCount;
-                e = new Entry<K, V>(key);
+                e = new(key);
                 return ref e.Value;
             }
 
@@ -6778,7 +6715,7 @@ namespace ImTools
             [MethodImpl((MethodImplOptions)256)]
             public void TombstoneOrRemoveSurePresentEntry(int index)
             {
-                GetSurePresentEntryRef(index) = new Entry<K, V>(default(TEq).GetTombstone());
+                GetSurePresentEntryRef(index) = new(default(TEq).GetTombstone());
                 --_entryCount;
             }
         }
@@ -6840,7 +6777,7 @@ namespace ImTools
 #else
                         ref var e = ref bucket[index];
 #endif
-                        e = new Entry<K, V>(key);
+                        e = new(key);
                         return ref e.Value;
                     }
                     {
@@ -6851,7 +6788,7 @@ namespace ImTools
 #else
                         ref var e = ref bucket[0];
 #endif
-                        e = new Entry<K, V>(key);
+                        e = new(key);
                         return ref e.Value;
                     }
                 }
@@ -6859,7 +6796,7 @@ namespace ImTools
                 if ((index & ChunkCapacityMask) != 0)
                 {
                     ref var e = ref GetSurePresentEntryRef(index);
-                    e = new Entry<K, V>(key);
+                    e = new(key);
                     return ref e.Value;
                 }
                 {
@@ -6876,7 +6813,7 @@ namespace ImTools
 #else
                     ref var e = ref bucket[0];
 #endif
-                    e = new Entry<K, V>(key);
+                    e = new(key);
                     return ref e.Value;
                 }
             }
@@ -6885,7 +6822,7 @@ namespace ImTools
             [MethodImpl((MethodImplOptions)256)]
             public void TombstoneOrRemoveSurePresentEntry(int index)
             {
-                GetSurePresentEntryRef(index) = new Entry<K, V>(default(TEq).GetTombstone());
+                GetSurePresentEntryRef(index) = new(default(TEq).GetTombstone());
                 --_entryCount;
                 // todo: @perf we may try to free the chunk if it is empty
             }
@@ -6897,16 +6834,11 @@ namespace ImTools
             internal int MaxProbes;
             internal int[] Probes;
 
-            public ProbesTracker()
-            {
-                MaxProbes = 1;
-                Probes = new int[1];
-            }
-
             // will output something like
             // [Add] Probes abs max = 10, curr max = 6, all = [1: 180, 2: 103, 3: 59, 4: 23, 5: 3, 6: 1]; first 4 probes are 365 out of 369
             internal void DebugOutputProbes(string label)
             {
+                Probes ??= new int[1];
                 Debug.Write($"[{label}] Probes abs max={MaxProbes}, curr max={Probes.Length}, all=[");
                 var first4probes = 0;
                 var allProbes = 0;
@@ -6923,6 +6855,7 @@ namespace ImTools
 
             internal void DebugCollectAndOutputProbes(int probes, [CallerMemberName] string label = "")
             {
+                Probes ??= new int[1];
                 if (probes > Probes.Length)
                 {
                     if (probes > MaxProbes)
@@ -6954,6 +6887,7 @@ namespace ImTools
 
             internal void RemoveProbes(int probes)
             {
+                Probes ??= new int[1];
                 ref var p = ref Probes[probes - 1];
                 --p;
                 if (p == 0 && probes == Probes.Length)
@@ -6992,8 +6926,8 @@ namespace ImTools
     // todo: @improve ? how/where to add SIMD to improve CPU utilization but not losing perf for smaller sizes
     /// <summary>
     /// Fast and less-allocating hash map without thread safety nets. Please measure it in your own use case before use.
-    /// It is configurable in regard of hash calculation/equality via <typeparamref name="TEq"/> and 
-    /// in regard of key-value storage via <typeparamref name="TEntries"/>
+    /// It is configurable in regard of hash calculation/equality via `TEq` type paremeter and 
+    /// in regard of key-value storage via `TEntries` type parameter.
     /// 
     /// Details:
     /// - Implemented as a struct so that the empty/default map does not allocate on heap
@@ -7011,7 +6945,7 @@ namespace ImTools
         where TEntries : struct, IEntries<K, V, TEq>
     {
 #if DEBUG
-        ProbesTracker _dbg = new();
+        ProbesTracker _dbg;
 #endif
         private byte _capacityBitShift;
 
@@ -7022,7 +6956,10 @@ namespace ImTools
         // |     |- The remaining middle bits of the original hash
         // |- 5 (MaxProbeBits) high bits of the Probe count, with the minimal value of b00001 indicating the non-empty slot.
         private int[] _packedHashesAndIndexes;
+
+#pragma warning disable IDE0044 // it tries to make the _entries readonly but they should stay modifyable to prevent its defensive struct copying  
         private TEntries _entries;
+#pragma warning restore IDE0044
 
         /// <summary>Capacity bits</summary>
         public int CapacityBitShift => _capacityBitShift;
@@ -7354,7 +7291,7 @@ namespace ImTools
 
         /// <inheritdoc />
         [MethodImpl((MethodImplOptions)256)]
-        public Enumerator GetEnumerator() => new Enumerator(_entries); // prevents the boxing of the enumerator struct
+        public Enumerator GetEnumerator() => new(_entries); // prevents the boxing of the enumerator struct
 
         /// <inheritdoc />
         IEnumerator<Entry<K, V>> IEnumerable<Entry<K, V>>.GetEnumerator() => GetEnumerator();

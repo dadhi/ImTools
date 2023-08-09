@@ -11,17 +11,6 @@ using static FHashMap;
 [TestFixture]
 public class FHashMapTests
 {
-    internal static void Verify<K, V, TEq, TEntries>(FHashMap<K, V, TEq, TEntries> map, IEnumerable<K> expectedKeys)
-        where TEq : struct, IEq<K>
-        where TEntries : struct, IEntries<K, V, TEq>
-    {
-        map.VerifyHashesAndKeysEq(eq => Assert.True(eq));
-        map.VerifyProbesAreFitRobinHood(err => Assert.Fail(err));
-        map.VerifyNoDuplicateKeys(key => Assert.Fail($"Duplicate key: {key}"));
-        if (expectedKeys != null)
-            map.VerifyContainAllKeys(expectedKeys, (contains, key) => Assert.True(contains, $"Key not found:`{key}`"));
-    }
-
 #if NET7_0_OR_GREATER
     [Test]
     public void Test_stackalloc_for_entries()
@@ -51,7 +40,7 @@ public class FHashMapTests
         Assert.IsTrue(map.Contains(typeof(Console)));
         Assert.AreEqual("!", map.GetValueOrDefault(typeof(Console)));
 
-        Verify(map, types);
+        map.Verify(types);
     }
 
     [Test]
@@ -68,7 +57,7 @@ public class FHashMapTests
 
         Assert.AreEqual(101, map.Count);
 
-        Verify(map, types);
+        map.Verify(types);
     }
 
     [Test]
@@ -87,7 +76,7 @@ public class FHashMapTests
         Assert.IsTrue(map.TryRemove(typeof(FHashMapTests)));
         Assert.AreEqual(1000, map.Count);
 
-        Verify(map, types);
+        map.Verify(types);
     }
 
     [Test]
@@ -106,7 +95,7 @@ public class FHashMapTests
         Assert.IsTrue(map.TryRemove(typeof(FHashMapTests)));
         Assert.AreEqual(1000, map.Count);
 
-        Verify(map, types);
+        map.Verify(types);
     }
 
     [Test]
@@ -141,7 +130,7 @@ public class FHashMapTests
         var keys2 = map.Select(kv => kv.Key).ToList();
         CollectionAssert.AreEqual(types, keys2);
 
-        Verify(map, types);
+        map.Verify(types);
     }
 
     [Test]
@@ -176,7 +165,7 @@ public class FHashMapTests
         var keys2 = map.Select(kv => kv.Key).ToList();
         CollectionAssert.AreEqual(types, keys2);
 
-        Verify(map, types);
+        map.Verify(types);
     }
 
     [Test]
@@ -194,7 +183,7 @@ public class FHashMapTests
         Assert.IsTrue(map.TryRemove(typeof(Tuple<,,>)));
         Assert.AreEqual(2, map.Count);
 
-        Verify(map, new[] { typeof(Tuple<>), typeof(Tuple<,>) });
+        map.Verify(new[] { typeof(Tuple<>), typeof(Tuple<,>) });
     }
 
     [Test]
@@ -245,7 +234,7 @@ public class FHashMapTests
 
         Assert.AreEqual(13, map.Count);
 
-        Verify(map, null);
+        map.Verify(null);
     }
 
     /*
@@ -333,7 +322,7 @@ public class FHashMapTests
 
         Assert.AreEqual(13, map.Count);
 
-        Verify(map, null);
+        map.Verify(null);
     }
 
     [Test]
@@ -379,7 +368,7 @@ public class FHashMapTests
         Assert.AreEqual("x!", map.GetValueOrDefault(47 + 16));
         Assert.AreEqual("y!", map.GetValueOrDefault(53 + 16));
 
-        Verify(map, null);
+        map.Verify(null);
     }
 
     [Test]
@@ -396,7 +385,7 @@ public class FHashMapTests
 
         map.AddOrUpdate(5, "5");
 
-        Verify(map, new[] { 0, 1, 3, 5, 9 });
+        map.Verify(new[] { 0, 1, 3, 5, 9 });
     }
 
     [Test]
@@ -408,7 +397,7 @@ public class FHashMapTests
         map.AddOrUpdate(42 + 32 + 32, "3");
 
         Assert.AreEqual(2, map.Count);
-        Verify(map, new[] { 42, 42 + 32 + 32 });
+        map.Verify(new[] { 42, 42 + 32 + 32 });
     }
 
     [Test]
@@ -421,7 +410,7 @@ public class FHashMapTests
 
         Assert.AreEqual("3", map.GetValueOrDefault(42));
         Assert.AreEqual(1, map.Count);
-        Verify(map, new[] { 42 });
+        map.Verify(new[] { 42 });
     }
 
     [Test]
@@ -432,7 +421,7 @@ public class FHashMapTests
         map.AddOrUpdate(0, "aaa");
         map.AddOrUpdate(0 + 32, "2");
         map.AddOrUpdate(0 + 32 + 32, "3");
-        Verify(map, new[] { 0, 0 + 32, 0 + 32 + 32 });
+        map.Verify(new[] { 0, 0 + 32, 0 + 32 + 32 });
 
         string value;
         Assert.IsTrue(map.TryGetValue(0, out value));
@@ -451,7 +440,7 @@ public class FHashMapTests
         map.AddOrUpdate(45, "b");
         map.AddOrUpdate(46, "c");
         map.AddOrUpdate(42 + 32 + 32, "3");
-        Verify(map, new[] { 42, 43, 42 + 32, 45, 46, 42 + 32 + 32 });
+        map.Verify(new[] { 42, 43, 42 + 32, 45, 46, 42 + 32 + 32 });
 
         string value;
         Assert.IsTrue(map.TryGetValue(42 + 32, out value));
@@ -477,6 +466,84 @@ public class FHashMapTests
         Assert.AreEqual(2, map.Count);
         Assert.AreEqual("1", map.GetValueOrDefault(42));
         Assert.AreEqual("3", map.GetValueOrDefault(42 + 32 + 32));
-        Verify(map, null);
+        map.Verify(null);
     }
 }
+
+public static class FHashMapTestTools
+{
+    internal static void Verify<K, V, TEq, TEntries>(this FHashMap<K, V, TEq, TEntries> map, IEnumerable<K> expectedKeys = null)
+        where TEq : struct, IEq<K>
+        where TEntries : struct, IEntries<K, V, TEq>
+    {
+        map.VerifyHashesAndKeysEq();
+        map.VerifyProbesAreFitRobinHood();
+        map.VerifyNoDuplicateKeys();
+        if (expectedKeys != null)
+            map.VerifyContainAllKeys(expectedKeys);
+    }
+
+    /// <summary>Verifies that the hashes correspond to the keys stroed in the entries. May be called from the tests.</summary>
+    public static void VerifyHashesAndKeysEq<K, V, TEq, TEntries>(this FHashMap<K, V, TEq, TEntries> map)
+        where TEq : struct, IEq<K>
+        where TEntries : struct, IEntries<K, V, TEq>
+    {
+        var exp = map.Explain();
+        foreach (var it in exp)
+            if (!it.IsEmpty)
+                Assert.True(it.HEq);
+    }
+
+    /// <summary>Verifies that there is no duplicate keys stored in hashes -> entries. May be called from the tests.</summary>
+    public static void VerifyNoDuplicateKeys<K, V, TEq, TEntries>(this FHashMap<K, V, TEq, TEntries> map)
+        where TEq : struct, IEq<K>
+        where TEntries : struct, IEntries<K, V, TEq>
+    {
+        // Verify the indexes do no contains duplicate keys
+        var uniq = new Dictionary<K, int>(map.Count);
+        var hashes = map.PackedHashesAndIndexes;
+        var capacity = 1 << map.CapacityBitShift;
+        var indexMask = capacity - 1;
+        for (var i = 0; i < hashes.Length; i++)
+        {
+            var h = hashes[i];
+            if (h == 0)
+                continue;
+            var key = map.Entries.GetSurePresentEntryRef(h & indexMask).Key;
+            if (!uniq.TryGetValue(key, out _))
+                uniq.Add(key, 1);
+            else
+                Assert.Fail($"Duplicate key: {key}");
+        }
+    }
+
+    /// <summary>Verifies that the probes are consistently increasing</summary>
+    public static void VerifyProbesAreFitRobinHood<K, V, TEq, TEntries>(this FHashMap<K, V, TEq, TEntries> map)
+        where TEq : struct, IEq<K>
+        where TEntries : struct, IEntries<K, V, TEq>
+    {
+        var hashes = map.PackedHashesAndIndexes;
+        var capacity = 1 << map.CapacityBitShift;
+        var indexMask = capacity - 1;
+        var prevProbes = -1;
+        const int ProbeCountShift = 32 - MaxProbeBits;
+        for (var i = 0; i < hashes.Length; i++)
+        {
+            var h = hashes[i];
+            var probes = h >>> ProbeCountShift;
+            if (prevProbes != -1 && probes - prevProbes > 1)
+                Assert.Fail($"Probes are not consequent: {prevProbes}, {probes} for {i}: p{probes}, {h & indexMask} -> {map.Entries.GetSurePresentEntryRef(h & indexMask).Key}");
+            prevProbes = probes;
+        }
+    }
+
+    /// <summary>Verifies that the map contains all passed keys. May be called from the tests.</summary>
+    public static void VerifyContainAllKeys<K, V, TEq, TEntries>(this FHashMap<K, V, TEq, TEntries> map, IEnumerable<K> expectedKeys)
+        where TEq : struct, IEq<K>
+        where TEntries : struct, IEntries<K, V, TEq>
+    {
+        foreach (var key in expectedKeys)
+            Assert.True(map.Contains(key), $"Key not found:`{key}`");
+    }
+}
+
