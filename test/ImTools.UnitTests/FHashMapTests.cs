@@ -48,9 +48,8 @@ public class FHashMapTests
 
         map.AddOrUpdate(typeof(Console), "!");
 
-        var found = map.TryGetValue(typeof(Console), out var value);
-        Assert.IsTrue(found);
-        Assert.AreEqual("!", value);
+        Assert.IsTrue(map.Contains(typeof(Console)));
+        Assert.AreEqual("!", map.GetValueOrDefault(typeof(Console)));
 
         Verify(map, types);
     }

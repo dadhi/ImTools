@@ -6561,7 +6561,7 @@ namespace ImTools
                 if (h == 0)
                     continue;
                 var key = map.Entries.GetSurePresentEntryRef(h & indexMask).Key;
-                if (!uniq.TryGetValue(key, out var count))
+                if (!uniq.TryGetValue(key, out _))
                     uniq.Add(key, 1);
                 else
                     assertKey(key);
@@ -6713,7 +6713,7 @@ namespace ImTools
             /// <summary>Returns the actual number of the stored entries</summary>
             int GetCount();
 
-            /// <summary>Returns the reference to entry by its index, index should be valid</summary>
+            /// <summary>Returns the reference to entry by its index, index should map to the present/non-removed entry</summary>
             ref Entry<K, V> GetSurePresentEntryRef(int index);
 
             /// <summary>Adds the key at the "end" of entriesc- so the order of addition is preserved.</summary>
@@ -7052,44 +7052,41 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public bool TryGetValue(K key, out V value)
         {
-            if (_packedHashesAndIndexes == null)
+            if (_packedHashesAndIndexes != null)
             {
-                value = default;
-                return false;
-            }
+                var hash = default(TEq).GetHashCode(key);
 
-            var hash = default(TEq).GetHashCode(key);
-
-            var indexMask = (1 << _capacityBitShift) - 1;
-            var hashMiddleMask = HashAndIndexMask & ~indexMask;
-            var hashMiddle = hash & hashMiddleMask;
-            var hashIndex = hash & indexMask;
+                var indexMask = (1 << _capacityBitShift) - 1;
+                var hashMiddleMask = HashAndIndexMask & ~indexMask;
+                var hashMiddle = hash & hashMiddleMask;
+                var hashIndex = hash & indexMask;
 
 #if NET7_0_OR_GREATER
             ref var hashesAndIndexes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
 #else
-            var hashesAndIndexes = _packedHashesAndIndexes;
+                var hashesAndIndexes = _packedHashesAndIndexes;
 #endif
 
-            var h = GetHash(ref hashesAndIndexes, hashIndex);
+                var h = GetHash(ref hashesAndIndexes, hashIndex);
 
-            // 1. Skip over hashes with the bigger and equal probes. The hashes with bigger probes overlapping from the earlier ideal positions
-            var probes = 1;
-            while ((h >>> ProbeCountShift) >= probes)
-            {
-                // 2. For the equal probes check for equality the hash middle part, and update the entry if the keys are equal too 
-                if (((h >>> ProbeCountShift) == probes) & ((h & hashMiddleMask) == hashMiddle))
+                // 1. Skip over hashes with the bigger and equal probes. The hashes with bigger probes overlapping from the earlier ideal positions
+                var probes = 1;
+                while ((h >>> ProbeCountShift) >= probes)
                 {
-                    ref var e = ref _entries.GetSurePresentEntryRef(h & indexMask);
-                    if (default(TEq).Equals(e.Key, key))
+                    // 2. For the equal probes check for equality the hash middle part, and update the entry if the keys are equal too 
+                    if (((h >>> ProbeCountShift) == probes) & ((h & hashMiddleMask) == hashMiddle))
                     {
-                        value = e.Value;
-                        return true;
+                        ref var e = ref _entries.GetSurePresentEntryRef(h & indexMask);
+                        if (default(TEq).Equals(e.Key, key))
+                        {
+                            value = e.Value;
+                            return true;
+                        }
                     }
-                }
 
-                h = GetHash(ref hashesAndIndexes, ++hashIndex & indexMask);
-                ++probes;
+                    h = GetHash(ref hashesAndIndexes, ++hashIndex & indexMask);
+                    ++probes;
+                }
             }
 
             value = default;
@@ -7100,6 +7097,52 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public V GetValueOrDefault(K key, V defaultValue = default) =>
             TryGetValue(key, out var value) ? value : defaultValue;
+
+        /// <summary>Find and return the index of the `key` in the `TEntries`. If not found return `-1`.
+        /// Then you may use method `TEntries.GetSurePresentEntryRef` to access and modify entry value in-place!
+        /// The approach differs from the `GetOrAddValueRef` because it does not add the new entry if the key is missing.</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public int GetEntryIndex(K key)
+        {
+            if (_packedHashesAndIndexes != null)
+            {
+                var hash = default(TEq).GetHashCode(key);
+
+                var indexMask = (1 << _capacityBitShift) - 1;
+                var hashMiddleMask = HashAndIndexMask & ~indexMask;
+                var hashMiddle = hash & hashMiddleMask;
+                var hashIndex = hash & indexMask;
+
+#if NET7_0_OR_GREATER
+            ref var hashesAndIndexes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
+#else
+                var hashesAndIndexes = _packedHashesAndIndexes;
+#endif
+
+                var h = GetHash(ref hashesAndIndexes, hashIndex);
+
+                // 1. Skip over hashes with the bigger and equal probes. The hashes with bigger probes overlapping from the earlier ideal positions
+                var probes = 1;
+                while ((h >>> ProbeCountShift) >= probes)
+                {
+                    // 2. For the equal probes check for equality the hash middle part, and update the entry if the keys are equal too 
+                    if (((h >>> ProbeCountShift) == probes) & ((h & hashMiddleMask) == hashMiddle))
+                    {
+                        ref var e = ref _entries.GetSurePresentEntryRef(h & indexMask);
+                        if (default(TEq).Equals(e.Key, key))
+                            return h & indexMask;
+                    }
+
+                    h = GetHash(ref hashesAndIndexes, ++hashIndex & indexMask);
+                    ++probes;
+                }
+            }
+            return -1;
+        }
+
+        /// <summary>Returns true if the map contains the `key`</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public bool Contains(K key) => GetEntryIndex(key) != -1;
 
         /// <summary>Gets the reference to the existing value of the provided key, or the default value to set for the newly added key.</summary>
         [MethodImpl((MethodImplOptions)256)]
