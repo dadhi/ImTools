@@ -7144,7 +7144,7 @@ namespace ImTools
         [MethodImpl((MethodImplOptions)256)]
         public ref V GetSurePresentValueRef(int index)
         {
-            ref var e = ref Entries.GetSurePresentEntryRef(index);
+            ref var e = ref _entries.GetSurePresentEntryRef(index);
             return ref e.Value;
         }
 
