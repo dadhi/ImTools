@@ -7099,7 +7099,7 @@ namespace ImTools
             TryGetValue(key, out var value) ? value : defaultValue;
 
         /// <summary>Find and return the index of the `key` in the `TEntries`. If not found return `-1`.
-        /// Then you may use method `TEntries.GetSurePresentEntryRef` to access and modify entry value in-place!
+        /// Then you may use method `GetSurePresentValueRef` to access and modify the value in-place!
         /// The approach differs from the `GetOrAddValueRef` because it does not add the new entry if the key is missing.</summary>
         [MethodImpl((MethodImplOptions)256)]
         public int GetEntryIndex(K key)
@@ -7138,6 +7138,14 @@ namespace ImTools
                 }
             }
             return -1;
+        }
+
+        /// <summary>Allows to access and modify the present value in-place</summary>
+        [MethodImpl((MethodImplOptions)256)]
+        public ref V GetSurePresentValueRef(int index)
+        {
+            ref var e = ref Entries.GetSurePresentEntryRef(index);
+            return ref e.Value;
         }
 
         /// <summary>Returns true if the map contains the `key`</summary>
