@@ -6589,7 +6589,7 @@ namespace ImTools
 
             /// <inheritdoc />
             [MethodImpl((MethodImplOptions)256)]
-            public int GetHashCode(K key) => key.GetHashCode();
+            public int GetHashCode(K key) => RuntimeHelpers.GetHashCode(key);
         }
 
         /// <summary>Uses the integer itself as hash code and `==` for equality</summary>
@@ -6924,6 +6924,9 @@ namespace ImTools
     }
 
     // todo: @improve ? how/where to add SIMD to improve CPU utilization but not losing perf for smaller sizes
+    // todo: @perf We may use Stack-on-stack data structure similar to FastExrpressionCompiler.Stack4 for packed hashes up to 4 or more.
+    // todo: @perf In case of using RefEq it might be faster for the small map to lookup by comparing entry key instead of reaching for hash
+
     /// <summary>
     /// Fast and less-allocating hash map without thread safety nets. Please measure it in your own use case before use.
     /// It is configurable in regard of hash calculation/equality via `TEq` type paremeter and 
