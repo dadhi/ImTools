@@ -1,5 +1,8 @@
 # ImTools
 
+[![about me](https://github-readme-stats.vercel.app/api?username=dadhi&hide_rank=true&custom_title=About%20me&show_icons=true&theme=transparent&disable_animations=true)
+](https://github.com/anuraghazra/github-readme-stats)
+
 [![license](https://img.shields.io/github/license/dadhi/ImTools.svg)](http://opensource.org/licenses/MIT)
 
 - Windows, Linux, MacOS [![CI build](https://ci.appveyor.com/api/projects/status/el9echuqfnl86u53?svg=true)](https://ci.appveyor.com/project/MaksimVolkau/imtools/branch/master)
