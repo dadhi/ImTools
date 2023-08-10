@@ -510,7 +510,7 @@ public static class FHashMapTestTools
             if (h == 0)
                 continue;
             var key = map.Entries.GetSurePresentEntryRef(h & indexMask).Key;
-            if (!uniq.TryGetValue(key, out _))
+            if (!uniq.ContainsKey(key))
                 uniq.Add(key, 1);
             else
                 Assert.Fail($"Duplicate key: {key}");
