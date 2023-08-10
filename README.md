@@ -1,7 +1,8 @@
 # ImTools
 
-[![about me](https://github-readme-stats.vercel.app/api?username=dadhi&hide_rank=true&custom_title=About%20me&show_icons=true&theme=transparent&disable_animations=true)
-](https://github.com/anuraghazra/github-readme-stats)
+Fast and memory-efficient immutable and mutable collections and helper data structures.
+
+Initially split from the [DryIoc](https://github.com/dadhi/dryioc), and now used in the [FastExpressionCompiler](https://github.com/dadhi/dryioc) too.
 
 [![license](https://img.shields.io/github/license/dadhi/ImTools.svg)](http://opensource.org/licenses/MIT)
 
@@ -10,10 +11,8 @@
 - Code package [![NuGet Badge](https://buildstats.info/nuget/ImTools)](https://www.nuget.org/packages/ImTools)
 - Latest release [![latest release](https://img.shields.io/badge/latest%20release-v4.0.0-green)](https://github.com/dadhi/ImTools/releases/tag/v4.0.0) 
 
-Fast and memory-efficient immutable collections and helper data structures.
-
-Split from the [DryIoc](https://github.com/dadhi/dryioc).
-
+[![about me](https://github-readme-stats.vercel.app/api?username=dadhi&hide_rank=true&custom_title=About%20me&show_icons=true&theme=transparent&disable_animations=true)
+](https://github.com/anuraghazra/github-readme-stats)
 
 ## Benchmarks
 
