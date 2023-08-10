@@ -2,7 +2,7 @@
 
 Fast and memory-efficient immutable and mutable collections and helper data structures.
 
-Initially split from the [DryIoc](https://github.com/dadhi/dryioc), and now used in the [FastExpressionCompiler](https://github.com/dadhi/dryioc) too.
+Initially split from the [DryIoc](https://github.com/dadhi/dryioc), and now used in the [FastExpressionCompiler](https://github.com/dadhi/fastexpressioncompiler) too.
 
 [![license](https://img.shields.io/github/license/dadhi/ImTools.svg)](http://opensource.org/licenses/MIT)
 
