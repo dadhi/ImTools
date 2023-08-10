@@ -7079,11 +7079,8 @@ namespace ImTools
 
         /// <summary>Allows to access and modify the present value in-place</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public ref V GetSurePresentValueRef(int index)
-        {
-            ref var e = ref _entries.GetSurePresentEntryRef(index);
-            return ref e.Value;
-        }
+        public ref V GetSurePresentValueRef(int index) =>
+            ref _entries.GetSurePresentEntryRef(index).Value;
 
         /// <summary>Returns true if the map contains the `key`</summary>
         [MethodImpl((MethodImplOptions)256)]
