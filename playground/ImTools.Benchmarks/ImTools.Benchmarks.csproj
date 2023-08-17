@@ -1,7 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>net7.0</TargetFramework>
+
+        <TargetFramework>net8.0</TargetFramework>
+        <Platform>x64</Platform>
+
+        <!-- <TargetFramework>net7.0</TargetFramework> -->
         <Description>Benchmarks and sandbox for experiments.</Description>
         <NoWarn>1701;1702;AD0001;NU1608</NoWarn>
         <TieredCompilation>false</TieredCompilation>
@@ -13,8 +17,8 @@
       <Compile Remove="HashVsImHashMap.cs" />
     </ItemGroup>
     <ItemGroup>
-      <PackageReference Include="BenchmarkDotNet" Version="0.13.6" />
-      <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.13.6" />
+      <PackageReference Include="BenchmarkDotNet" Version="0.13.7" />
+      <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.13.7" />
       <PackageReference Include="Microsoft.Experimental.Collections" Version="1.0.6-e190117-3" />
     </ItemGroup>
 

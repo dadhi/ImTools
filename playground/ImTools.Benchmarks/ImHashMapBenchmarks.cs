@@ -2613,7 +2613,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return (string)result;
             }
 
-            [Benchmark(Baseline = true)]
+            // [Benchmark(Baseline = true)]
             public string DictionarySlim_TryGetValue()
             {
                 _dictSlim.TryGetValue(LookupKey, out var result);
@@ -2621,6 +2621,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             }
 
             // [Benchmark]
+            [Benchmark(Baseline = true)]
             public string Dictionary_TryGetValue()
             {
                 _dict.TryGetValue(LookupKey, out var result);
