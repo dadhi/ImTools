@@ -6592,6 +6592,26 @@ namespace ImTools
             public int GetHashCode(K key) => RuntimeHelpers.GetHashCode(key);
         }
 
+        /// <summary>Compares the types faster via `ReferenceEquals` and gets the hash faster via `RuntimeHelpers.GetHashCode`</summary>
+        public struct RefEq<A, B> : IEq<(A, B)>
+            where A : class
+            where B : class
+        {
+            /// <inheritdoc />
+            [MethodImpl((MethodImplOptions)256)]
+            public (A, B) GetTombstone() => (null, null);
+
+            /// <inheritdoc />
+            [MethodImpl((MethodImplOptions)256)]
+            public bool Equals((A, B) x, (A, B) y) =>
+                ReferenceEquals(x.Item1, y.Item1) && ReferenceEquals(x.Item2, y.Item2);
+
+            /// <inheritdoc />
+            [MethodImpl((MethodImplOptions)256)]
+            public int GetHashCode((A, B) key) =>
+                unchecked((RuntimeHelpers.GetHashCode(key.Item1) * (int)0xA5555529) + RuntimeHelpers.GetHashCode(key.Item2));
+        }
+
         /// <summary>Uses the integer itself as hash code and `==` for equality</summary>
         public struct IntEq : IEq<int>
         {
