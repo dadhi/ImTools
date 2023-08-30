@@ -84,7 +84,7 @@ public class FHashMapTests
     {
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(1000).ToArray();
 
-        var map = FHashMap.NewChunked<Type, string, TypeEq>();
+        var map = FHashMap.NewChunked<Type, string, RefEq<Type>>();
 
         foreach (var key in types)
             map.AddOrUpdate(key, "a");
@@ -105,7 +105,7 @@ public class FHashMapTests
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(count).ToList();
         Assert.AreEqual(count, types.Count);
 
-        var map = FHashMap.New<Type, string, TypeEq>();
+        var map = FHashMap.New<Type, string, RefEq<Type>>();
 
         foreach (var key in types)
             map.AddOrUpdate(key, "a");
@@ -140,7 +140,7 @@ public class FHashMapTests
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(count).ToList();
         Assert.AreEqual(count, types.Count);
 
-        var map = FHashMap.NewChunked<Type, string, TypeEq>();
+        var map = FHashMap.NewChunked<Type, string, RefEq<Type>>();
 
         foreach (var key in types)
             map.AddOrUpdate(key, "a");

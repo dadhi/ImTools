@@ -56,18 +56,6 @@ public struct GoldenIntEq : IEqualityComparer<int>
     public int GetHashCode(int obj) => (int)(obj * FHashMap91.GoldenRatio32) >>> FHashMap91.MaxProbeBits;
 }
 
-/// <summary>Fast-comparing the types via `==` and gets the hash faster via `RuntimeHelpers.GetHashCode`</summary>
-public struct TypeEq : IEqualityComparer<Type>
-{
-    /// <inheritdoc />
-    [MethodImpl((MethodImplOptions)256)]
-    public bool Equals(Type x, Type y) => x == y;
-
-    /// <inheritdoc />
-    [MethodImpl((MethodImplOptions)256)]
-    public int GetHashCode(Type obj) => RuntimeHelpers.GetHashCode(obj);
-}
-
 public static class FHashMap9Diagnostics
 {
     /// <summary>Converts the packed hashes and indexes array into the human readable info</summary>

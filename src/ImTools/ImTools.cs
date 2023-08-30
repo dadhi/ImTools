@@ -6624,22 +6624,6 @@ namespace ImTools
             public int GetHashCode(int key) => (int)(key * GoldenRatio32) >>> MaxProbeBits;
         }
 
-        /// <summary>Compares the types faster via `==` and gets the hash faster via `RuntimeHelpers.GetHashCode`</summary>
-        public struct TypeEq : IEq<Type>
-        {
-            /// <inheritdoc />
-            [MethodImpl((MethodImplOptions)256)]
-            public Type GetTombstone() => null;
-
-            /// <inheritdoc />
-            [MethodImpl((MethodImplOptions)256)]
-            public bool Equals(Type x, Type y) => x == y;
-
-            /// <inheritdoc />
-            [MethodImpl((MethodImplOptions)256)]
-            public int GetHashCode(Type key) => RuntimeHelpers.GetHashCode(key);
-        }
-
         // todo: @improve can we move the Entry into the type parameter to configure and possibly save the memory e.g. for the sets? 
         /// <summary>Abstraction to configure your own entries data structure. Check the derivitives for the examples</summary>
         public interface IEntries<K, V, TEq> where TEq : IEq<K>
