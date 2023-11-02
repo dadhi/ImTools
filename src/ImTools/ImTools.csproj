@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFrameworks>net45;netstandard2.0;net6.0;net7.0</TargetFrameworks>
+        <TargetFrameworks Condition="'$(DevMode)' == 'true'">net8.0;net7.0</TargetFrameworks>
+        <TargetFrameworks Condition="'$(DevMode)' != 'true'">net45;netstandard2.0;net6.0;net7.0</TargetFrameworks>
 
         <Product>ImTools</Product>
         <VersionPrefix>5.0.0</VersionPrefix>

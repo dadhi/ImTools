@@ -1,7 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net7.0;net6.0;net472</TargetFrameworks>
+    <TargetFrameworks Condition="'$(DevMode)' == 'true'">net8.0;net7.0</TargetFrameworks>
+    <TargetFrameworks Condition="'$(DevMode)' != 'true'">net7.0;net6.0;net472</TargetFrameworks>
     <NoWarn>1701;1702;AD0001;NU1608</NoWarn>
   </PropertyGroup>
 

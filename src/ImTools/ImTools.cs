@@ -6474,7 +6474,6 @@ namespace ImTools
             where TEq : struct, IEq<K> =>
             new FHashMap<K, V, TEq, SingleArrayEntries<K, V, TEq>>(capacityBitShift);
 
-        // todo: @name a better name like NewMemEfficient or NewAddFocused?
         /// <summary>Creates the map with the <see cref="ChunkedArrayEntries{K, V, TEq}"/> storage</summary>
         [MethodImpl((MethodImplOptions)256)]
         public static FHashMap<K, V, TEq, ChunkedArrayEntries<K, V, TEq>> NewChunked<K, V, TEq>(byte capacityBitShift = 0)
