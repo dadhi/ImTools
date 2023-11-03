@@ -11,7 +11,7 @@ skip_commits:
   message: /noci .*/
 
 build_script:
-  - dotnet test -f net7.0 -c Release test/ImTools.UnitTests/ImTools.UnitTests.csproj
+  - dotnet test -f net7.0 -c Release -p:DevMode=false test/ImTools.UnitTests/ImTools.UnitTests.csproj
 
 for:
   - matrix:
