@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="CsCheck" Version="2.10.1" />
+    <PackageReference Include="CsCheck" Version="2.14.1" />
   </ItemGroup>
 
 </Project>
