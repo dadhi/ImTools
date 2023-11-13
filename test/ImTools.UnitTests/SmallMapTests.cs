@@ -6,10 +6,10 @@ using NUnit.Framework;
 
 namespace ImTools.Experiments.UnitTests;
 
-using static FHashMap;
+using static SmallMap;
 
 [TestFixture]
-public class FHashMapTests
+public class SmallMapTests
 {
 #if NET7_0_OR_GREATER
     [Test]
@@ -30,7 +30,7 @@ public class FHashMapTests
     {
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(100).ToArray();
 
-        var map = FHashMap.New<Type, string, RefEq<Type>>();
+        var map = SmallMap.New<Type, string, RefEq<Type>>();
 
         foreach (var key in types)
             map.AddOrUpdate(key, "a");
@@ -48,12 +48,12 @@ public class FHashMapTests
     {
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(100).ToArray();
 
-        var map = FHashMap.New<Type, string, RefEq<Type>>(8);
+        var map = SmallMap.New<Type, string, RefEq<Type>>(8);
 
         foreach (var key in types)
             map.AddOrUpdate(key, "a");
 
-        map.AddOrUpdate(typeof(FHashMapTests), "!");
+        map.AddOrUpdate(typeof(SmallMapTests), "!");
 
         Assert.AreEqual(101, map.Count);
 
@@ -65,15 +65,15 @@ public class FHashMapTests
     {
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(1000).ToArray();
 
-        var map = FHashMap.New<Type, string, RefEq<Type>>();
+        var map = SmallMap.New<Type, string, RefEq<Type>>();
 
         foreach (var key in types)
             map.AddOrUpdate(key, "a");
 
-        map.AddOrUpdate(typeof(FHashMapTests), "!");
+        map.AddOrUpdate(typeof(SmallMapTests), "!");
         Assert.AreEqual(1001, map.Count);
 
-        Assert.IsTrue(map.TryRemove(typeof(FHashMapTests)));
+        Assert.IsTrue(map.TryRemove(typeof(SmallMapTests)));
         Assert.AreEqual(1000, map.Count);
 
         map.Verify(types);
@@ -84,15 +84,15 @@ public class FHashMapTests
     {
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(1000).ToArray();
 
-        var map = FHashMap.NewChunked<Type, string, RefEq<Type>>();
+        var map = SmallMap.NewChunked<Type, string, RefEq<Type>>();
 
         foreach (var key in types)
             map.AddOrUpdate(key, "a");
 
-        map.AddOrUpdate(typeof(FHashMapTests), "!");
+        map.AddOrUpdate(typeof(SmallMapTests), "!");
         Assert.AreEqual(1001, map.Count);
 
-        Assert.IsTrue(map.TryRemove(typeof(FHashMapTests)));
+        Assert.IsTrue(map.TryRemove(typeof(SmallMapTests)));
         Assert.AreEqual(1000, map.Count);
 
         map.Verify(types);
@@ -105,7 +105,7 @@ public class FHashMapTests
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(count).ToList();
         Assert.AreEqual(count, types.Count);
 
-        var map = FHashMap.New<Type, string, RefEq<Type>>();
+        var map = SmallMap.New<Type, string, RefEq<Type>>();
 
         foreach (var key in types)
             map.AddOrUpdate(key, "a");
@@ -140,7 +140,7 @@ public class FHashMapTests
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(count).ToList();
         Assert.AreEqual(count, types.Count);
 
-        var map = FHashMap.NewChunked<Type, string, RefEq<Type>>();
+        var map = SmallMap.NewChunked<Type, string, RefEq<Type>>();
 
         foreach (var key in types)
             map.AddOrUpdate(key, "a");
@@ -171,7 +171,7 @@ public class FHashMapTests
     [Test]
     public void Simplified_test_with_equal_hashes_RefEq()
     {
-        var map = FHashMap.New<Type, string, RefEq<Type>>();
+        var map = SmallMap.New<Type, string, RefEq<Type>>();
 
         var keys = new[] { typeof(Tuple<>), typeof(Tuple<,>), typeof(Tuple<,,>) };
         var i = 1;
@@ -189,7 +189,7 @@ public class FHashMapTests
     [Test]
     public void Can_store_and_retrieve_value_from_map()
     {
-        var map = FHashMap.New<int, string, IntEq>(2);
+        var map = SmallMap.New<int, string, IntEq>(2);
 
         map.AddOrUpdate(42, "1");
         map.AddOrUpdate(42 + 32, "2");
@@ -276,8 +276,8 @@ public class FHashMapTests
     [Test]
     public void Can_store_and_retrieve_value_from_map_Golden()
     {
-        var map = FHashMap.New<int, string, IntEq>(2);
-        // var map = FHashMap.New<int, string, GoldenIntEq>(2);
+        var map = SmallMap.New<int, string, IntEq>(2);
+        // var map = SmallMap.New<int, string, GoldenIntEq>(2);
 
         map.AddOrUpdate(42, "1");
         map.AddOrUpdate(42 + 32, "2");
@@ -328,7 +328,7 @@ public class FHashMapTests
     [Test]
     public void Can_lookup_the_default_map_without_error()
     {
-        FHashMap<int, string, IntEq, SingleArrayEntries<int, string, IntEq>> map = default;
+        SmallMap<int, string, IntEq, SingleArrayEntries<int, string, IntEq>> map = default;
 
         Assert.IsFalse(map.TryGetValue(42, out _));
     }
@@ -336,7 +336,7 @@ public class FHashMapTests
     [Test]
     public void Can_store_and_retrieve_value_from_map_with_Expand_in_the_middle()
     {
-        var map = FHashMap.New<int, string, IntEq>(1);
+        var map = SmallMap.New<int, string, IntEq>(1);
 
         Assert.IsFalse(map.TryGetValue(42, out _));
 
@@ -374,7 +374,7 @@ public class FHashMapTests
     [Test]
     public void Can_resize_without_moving()
     {
-        var map = FHashMap.New<int, string, IntEq>(2);
+        var map = SmallMap.New<int, string, IntEq>(2);
 
         map.AddOrUpdate(0, "0");
         map.AddOrUpdate(1, "1");
@@ -391,7 +391,7 @@ public class FHashMapTests
     [Test]
     public void Can_store_and_get_stored_item_count()
     {
-        var map = FHashMap.New<int, string, IntEq>();
+        var map = SmallMap.New<int, string, IntEq>();
 
         map.AddOrUpdate(42, "1");
         map.AddOrUpdate(42 + 32 + 32, "3");
@@ -403,7 +403,7 @@ public class FHashMapTests
     [Test]
     public void Can_update_a_stored_item_with_new_value()
     {
-        var map = FHashMap.New<int, string, IntEq>();
+        var map = SmallMap.New<int, string, IntEq>();
 
         map.AddOrUpdate(42, "1");
         map.AddOrUpdate(42, "3");
@@ -416,7 +416,7 @@ public class FHashMapTests
     [Test]
     public void Can_add_key_with_0_hash_code()
     {
-        var map = FHashMap.New<int, string, IntEq>();
+        var map = SmallMap.New<int, string, IntEq>();
 
         map.AddOrUpdate(0, "aaa");
         map.AddOrUpdate(0 + 32, "2");
@@ -432,7 +432,7 @@ public class FHashMapTests
     [Test]
     public void Can_quickly_find_the_scattered_items_with_the_same_cache()
     {
-        var map = FHashMap.New<int, string, IntEq>();
+        var map = SmallMap.New<int, string, IntEq>();
 
         map.AddOrUpdate(42, "1");
         map.AddOrUpdate(43, "a");
@@ -453,7 +453,7 @@ public class FHashMapTests
     [Test]
     public void Can_remove_the_stored_item()
     {
-        var map = FHashMap.New<int, string, IntEq>(2);
+        var map = SmallMap.New<int, string, IntEq>(2);
 
         map.AddOrUpdate(42, "1");
         map.AddOrUpdate(42 + 32, "2");
@@ -470,9 +470,9 @@ public class FHashMapTests
     }
 }
 
-public static class FHashMapTestTools
+public static class SmallMapTestTools
 {
-    internal static void Verify<K, V, TEq, TEntries>(this FHashMap<K, V, TEq, TEntries> map, IEnumerable<K> expectedKeys = null)
+    internal static void Verify<K, V, TEq, TEntries>(this SmallMap<K, V, TEq, TEntries> map, IEnumerable<K> expectedKeys = null)
         where TEq : struct, IEq<K>
         where TEntries : struct, IEntries<K, V, TEq>
     {
@@ -484,7 +484,7 @@ public static class FHashMapTestTools
     }
 
     /// <summary>Verifies that the hashes correspond to the keys stroed in the entries. May be called from the tests.</summary>
-    public static void VerifyHashesAndKeysEq<K, V, TEq, TEntries>(this FHashMap<K, V, TEq, TEntries> map)
+    public static void VerifyHashesAndKeysEq<K, V, TEq, TEntries>(this SmallMap<K, V, TEq, TEntries> map)
         where TEq : struct, IEq<K>
         where TEntries : struct, IEntries<K, V, TEq>
     {
@@ -495,7 +495,7 @@ public static class FHashMapTestTools
     }
 
     /// <summary>Verifies that there is no duplicate keys stored in hashes -> entries. May be called from the tests.</summary>
-    public static void VerifyNoDuplicateKeys<K, V, TEq, TEntries>(this FHashMap<K, V, TEq, TEntries> map)
+    public static void VerifyNoDuplicateKeys<K, V, TEq, TEntries>(this SmallMap<K, V, TEq, TEntries> map)
         where TEq : struct, IEq<K>
         where TEntries : struct, IEntries<K, V, TEq>
     {
@@ -518,7 +518,7 @@ public static class FHashMapTestTools
     }
 
     /// <summary>Verifies that the probes are consistently increasing</summary>
-    public static void VerifyProbesAreFitRobinHood<K, V, TEq, TEntries>(this FHashMap<K, V, TEq, TEntries> map)
+    public static void VerifyProbesAreFitRobinHood<K, V, TEq, TEntries>(this SmallMap<K, V, TEq, TEntries> map)
         where TEq : struct, IEq<K>
         where TEntries : struct, IEntries<K, V, TEq>
     {
@@ -538,7 +538,7 @@ public static class FHashMapTestTools
     }
 
     /// <summary>Verifies that the map contains all passed keys. May be called from the tests.</summary>
-    public static void VerifyContainAllKeys<K, V, TEq, TEntries>(this FHashMap<K, V, TEq, TEntries> map, IEnumerable<K> expectedKeys)
+    public static void VerifyContainAllKeys<K, V, TEq, TEntries>(this SmallMap<K, V, TEq, TEntries> map, IEnumerable<K> expectedKeys)
         where TEq : struct, IEq<K>
         where TEntries : struct, IEntries<K, V, TEq>
     {

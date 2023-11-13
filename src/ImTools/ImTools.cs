@@ -40,7 +40,7 @@ namespace ImTools
     using System.Runtime.InteropServices;
 #endif
 
-    using static FHashMap;
+    using static SmallMap;
 
     /// <summary>Helpers for functional composition</summary>
     public static class Fun
@@ -6454,7 +6454,7 @@ namespace ImTools
     }
 
     /// <summary>Configiration and the tools for the FHashMap map data structure</summary>
-    public static class FHashMap
+    public static class SmallMap
     {
         /// <summary>2^32 / phi for the Fibonacci hashing, where phi is the golden ratio ~1.61803</summary>
         public const uint GoldenRatio32 = 2654435769;
@@ -6470,15 +6470,15 @@ namespace ImTools
 
         /// <summary>Creates the map with the <see cref="SingleArrayEntries{K, V, TEq}"/> storage</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static FHashMap<K, V, TEq, SingleArrayEntries<K, V, TEq>> New<K, V, TEq>(byte capacityBitShift = 0)
+        public static SmallMap<K, V, TEq, SingleArrayEntries<K, V, TEq>> New<K, V, TEq>(byte capacityBitShift = 0)
             where TEq : struct, IEq<K> =>
-            new FHashMap<K, V, TEq, SingleArrayEntries<K, V, TEq>>(capacityBitShift);
+            new SmallMap<K, V, TEq, SingleArrayEntries<K, V, TEq>>(capacityBitShift);
 
         /// <summary>Creates the map with the <see cref="ChunkedArrayEntries{K, V, TEq}"/> storage</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public static FHashMap<K, V, TEq, ChunkedArrayEntries<K, V, TEq>> NewChunked<K, V, TEq>(byte capacityBitShift = 0)
+        public static SmallMap<K, V, TEq, ChunkedArrayEntries<K, V, TEq>> NewChunked<K, V, TEq>(byte capacityBitShift = 0)
             where TEq : struct, IEq<K> =>
-            new FHashMap<K, V, TEq, ChunkedArrayEntries<K, V, TEq>>(capacityBitShift);
+            new SmallMap<K, V, TEq, ChunkedArrayEntries<K, V, TEq>>(capacityBitShift);
 
         /// <summary>Holds a single entry consisting of key and value. 
         /// Value may be set or changed but the key is set in stone (by construction).</summary>
@@ -6500,7 +6500,7 @@ namespace ImTools
         }
 
         /// <summary>Converts the packed hashes and entries into the human readable info for debugging visualization</summary>
-        public static DebugHashItem<K, V>[] Explain<K, V, TEq, TEntries>(this FHashMap<K, V, TEq, TEntries> map)
+        public static DebugHashItem<K, V>[] Explain<K, V, TEq, TEntries>(this SmallMap<K, V, TEq, TEntries> map)
             where TEq : struct, IEq<K>
             where TEntries : struct, IEntries<K, V, TEq>
         {
@@ -6918,8 +6918,8 @@ namespace ImTools
             where TEq : struct, IEq<K>
             where TEntries : struct, IEntries<K, V, TEq>
         {
-            private readonly FHashMap<K, V, TEq, TEntries> _map;
-            internal DebugProxy(FHashMap<K, V, TEq, TEntries> map) => _map = map;
+            private readonly SmallMap<K, V, TEq, TEntries> _map;
+            internal DebugProxy(SmallMap<K, V, TEq, TEntries> map) => _map = map;
             public DebugHashItem<K, V>[] PackedHashes => _map.Explain();
             public TEntries Entries => _map.Entries;
         }
@@ -6948,7 +6948,7 @@ namespace ImTools
     /// </summary>
     [DebuggerTypeProxy(typeof(DebugProxy<,,,>))]
     [DebuggerDisplay("Count={Count}")]
-    public struct FHashMap<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
+    public struct SmallMap<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
         where TEq : struct, IEq<K>
         where TEntries : struct, IEntries<K, V, TEq>
     {
@@ -6982,7 +6982,7 @@ namespace ImTools
         public TEntries Entries => _entries;
 
         /// <summary>Capacity calculates as `1 leftShift capacityBitShift`</summary>
-        public FHashMap(byte capacityBitShift)
+        public SmallMap(byte capacityBitShift)
         {
             _capacityBitShift = capacityBitShift;
 
