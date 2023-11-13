@@ -1,1 +1,1 @@
-dotnet run -c Release --project playground\ImTools.Benchmarks
+dotnet run -f net8.0 -c Release --project playground\ImTools.Benchmarks
