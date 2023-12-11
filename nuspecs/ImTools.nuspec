@@ -56,6 +56,9 @@ but you may expect that some types and methods were renamed, or new overloads we
         <file src="..\LICENSE.txt" />
         <file src="..\ImTools.snk" />
 
+        <file src="_._" target="lib\net45\" />
+        <file src="_._" target="lib\netstandard2.0\" />
+
         <file src="..\src\ImTools\ImTools.cs" target="content\net45\ImTools" />
         <file src="..\src\ImTools\ImTools.cs" target="contentFiles\cs\net45\ImTools" />
         <file src="..\src\ImTools\ImTools.cs" target="contentFiles\cs\netstandard2.0\ImTools" />
