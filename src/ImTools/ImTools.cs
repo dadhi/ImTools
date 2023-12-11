@@ -7107,7 +7107,7 @@ namespace ImTools
             if (indexMask - entryCount <= (indexMask >>> MinFreeCapacityShift))
                 indexMask = ResizeHashes(indexMask);
 
-            var hashMiddleMask = HashAndIndexMask & ~indexMask;
+            var hashMiddleMask = HashAndIndexMask & ~indexMask; // todo: @perf put in its own field to avoid the redundant calculation
             var hashMiddle = hash & hashMiddleMask;
             var hashIndex = hash & indexMask;
 
