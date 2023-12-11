@@ -6505,7 +6505,7 @@ namespace ImTools
             where TEntries : struct, IEntries<K, V, TEq>
         {
             var hashes = map.PackedHashesAndIndexes;
-            var capacity = (1 << map.CapacityBitShift);
+            var capacity = map.Capacity;
             var indexMask = capacity - 1;
 
             var items = new DebugHashItem<K, V>[hashes.Length];
@@ -6955,7 +6955,7 @@ namespace ImTools
 #if DEBUG
         ProbesTracker _dbg;
 #endif
-        private byte _capacityBitShift;
+        private int _indexMask;
 
         // The _packedHashesAndIndexes elements are of `Int32` with the bits split as following:
         // 00010|000...110|01101
@@ -6969,8 +6969,8 @@ namespace ImTools
         private TEntries _entries;
 #pragma warning restore IDE0044
 
-        /// <summary>Capacity bits</summary>
-        public int CapacityBitShift => _capacityBitShift;
+        /// <summary>The capacity</summary>
+        public int Capacity => _indexMask + 1;
 
         /// <summary>Access to the hashes and indexes</summary>
         public int[] PackedHashesAndIndexes => _packedHashesAndIndexes;
@@ -6984,7 +6984,7 @@ namespace ImTools
         /// <summary>Capacity calculates as `1 leftShift capacityBitShift`</summary>
         public SmallMap(byte capacityBitShift)
         {
-            _capacityBitShift = capacityBitShift;
+            _indexMask = (1 << capacityBitShift) - 1;
 
             // the overflow tail to the hashes is the size of log2N where N==capacityBitShift, 
             // it is probably fine to have the check for the overlow of capacity because it will be mispredicted only once at the end of loop (it even rarely for the lookup)
@@ -7001,13 +7001,13 @@ namespace ImTools
             {
                 var hash = default(TEq).GetHashCode(key);
 
-                var indexMask = (1 << _capacityBitShift) - 1;
+                var indexMask = _indexMask;
                 var hashMiddleMask = HashAndIndexMask & ~indexMask;
                 var hashMiddle = hash & hashMiddleMask;
                 var hashIndex = hash & indexMask;
 
 #if NET7_0_OR_GREATER
-            ref var hashesAndIndexes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
+                ref var hashesAndIndexes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
 #else
                 var hashesAndIndexes = _packedHashesAndIndexes;
 #endif
@@ -7053,7 +7053,7 @@ namespace ImTools
             {
                 var hash = default(TEq).GetHashCode(key);
 
-                var indexMask = (1 << _capacityBitShift) - 1;
+                var indexMask = _indexMask;
                 var hashMiddleMask = HashAndIndexMask & ~indexMask;
                 var hashMiddle = hash & hashMiddleMask;
                 var hashIndex = hash & indexMask;
@@ -7100,7 +7100,7 @@ namespace ImTools
         {
             var hash = default(TEq).GetHashCode(key);
 
-            var indexMask = (1 << _capacityBitShift) - 1;
+            var indexMask = _indexMask;
             var entryCount = _entries.GetCount();
 
             // if the free space is less than 1/8 of capacity (12.5%) then Resize
@@ -7175,7 +7175,7 @@ namespace ImTools
         {
             var hash = default(TEq).GetHashCode(key);
 
-            var indexMask = (1 << _capacityBitShift) - 1;
+            var indexMask = _indexMask;
             var hashMiddleMask = ~indexMask & HashAndIndexMask;
             var hashMiddle = hash & hashMiddleMask;
             var hashIndex = hash & indexMask;
@@ -7234,7 +7234,7 @@ namespace ImTools
         {
             if (indexMask == 0)
             {
-                _capacityBitShift = MinCapacityBits;
+                _indexMask = (1 << MinCapacityBits) - 1;
                 _packedHashesAndIndexes = new int[1 << MinCapacityBits];
 #if DEBUG
                 Debug.WriteLine($"[ResizeHashes] new empty hashes {1} -> {_packedHashesAndIndexes.Length}");
@@ -7289,7 +7289,7 @@ namespace ImTools
             Debug.WriteLine($"[ResizeHashes] {oldCapacity} -> {newHashesAndIndexes.Length}");
             _dbg.DebugReCollectAndOutputProbes(newHashesAndIndexes);
 #endif
-            ++_capacityBitShift;
+            _indexMask = _indexMask << 1 | 1;
             _packedHashesAndIndexes = newHashesAndIndexes;
             return newIndexMask;
         }

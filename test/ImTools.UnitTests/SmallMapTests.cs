@@ -502,7 +502,7 @@ public static class SmallMapTestTools
         // Verify the indexes do no contains duplicate keys
         var uniq = new Dictionary<K, int>(map.Count);
         var hashes = map.PackedHashesAndIndexes;
-        var capacity = 1 << map.CapacityBitShift;
+        var capacity = map.Capacity;
         var indexMask = capacity - 1;
         for (var i = 0; i < hashes.Length; i++)
         {
@@ -523,7 +523,7 @@ public static class SmallMapTestTools
         where TEntries : struct, IEntries<K, V, TEq>
     {
         var hashes = map.PackedHashesAndIndexes;
-        var capacity = 1 << map.CapacityBitShift;
+        var capacity = map.Capacity;
         var indexMask = capacity - 1;
         var prevProbes = -1;
         const int ProbeCountShift = 32 - MaxProbeBits;
