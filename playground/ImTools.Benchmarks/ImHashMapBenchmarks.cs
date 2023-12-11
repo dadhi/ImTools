@@ -13,10 +13,12 @@ using ImTools;
 using ImToolsV3;
 using ImTools.V2;
 using ImTools.V2.Experimental;
+using FastExpressionCompiler.ImTools;
 using System.Runtime.CompilerServices;
 
 using FHashMap91TypeString = ImTools.Experiments.FHashMap91<System.Type, string, ImTools.Experiments.FHashMap91.RefEq<System.Type>, ImTools.Experiments.FHashMap91.SingleArrayEntries<System.Type, string, ImTools.Experiments.FHashMap91.RefEq<System.Type>>>;
 using SmallMapTypeString = ImTools.SmallMap<System.Type, string, ImTools.SmallMap.RefEq<System.Type>, ImTools.SmallMap.SingleArrayEntries<System.Type, string, ImTools.SmallMap.RefEq<System.Type>>>;
+using FHashMapTypeString = FastExpressionCompiler.ImTools.FHashMap<System.Type, string, FastExpressionCompiler.ImTools.FHashMap.RefEq<System.Type>, FastExpressionCompiler.ImTools.FHashMap.SingleArrayEntries<System.Type, string, FastExpressionCompiler.ImTools.FHashMap.RefEq<System.Type>>>;
 
 #nullable disable
 
@@ -2241,17 +2243,32 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             [Host]     : .NET 8.0.0 (8.0.23.47906), X64 RyuJIT AVX2
             DefaultJob : .NET 8.0.0 (8.0.23.47906), X64 RyuJIT AVX2
 
-
             | Method                     | Count | Mean     | Error     | StdDev    | Ratio | RatioSD | BranchInstructions/Op | BranchMispredictions/Op | CacheMisses/Op | Allocated | Alloc Ratio |
             |--------------------------- |------ |---------:|----------:|----------:|------:|--------:|----------------------:|------------------------:|---------------:|----------:|------------:|
             | Dictionary_TryGetValue     | 100   | 6.938 ns | 0.1719 ns | 0.2574 ns |  1.00 |    0.00 |                    21 |                       0 |              0 |         - |          NA |
             | DictionarySlim_TryGetValue | 100   | 5.371 ns | 0.1277 ns | 0.1132 ns |  0.77 |    0.03 |                    15 |                       0 |              0 |         - |          NA |
             | SmallMap_TryGetValue       | 100   | 3.718 ns | 0.1360 ns | 0.2453 ns |  0.54 |    0.04 |                     9 |                       0 |              0 |         - |          NA |
 
+
+            ## SmallMap + FEC_FHashMap + net6.0
+
+            | Method                     | Count | Mean     | Error     | StdDev    | Median   | Ratio | RatioSD | BranchInstructions/Op | CacheMisses/Op | BranchMispredictions/Op | Allocated | Alloc Ratio |
+            |--------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|----------------------:|---------------:|------------------------:|----------:|------------:|
+            | DictionarySlim_TryGetValue | 1     | 5.592 ns | 0.4244 ns | 1.2448 ns | 4.835 ns |  1.00 |    0.00 |                    15 |              0 |                       0 |         - |          NA |
+            | SmallMap_TryGetValue       | 1     | 2.958 ns | 0.1059 ns | 0.0990 ns | 2.970 ns |  0.44 |    0.03 |                     9 |             -0 |                      -0 |         - |          NA |
+            | FHashMap_TryGetValue       | 1     | 1.297 ns | 0.0757 ns | 0.0777 ns | 1.288 ns |  0.19 |    0.01 |                     6 |             -0 |                       0 |         - |          NA |
+            |                            |       |          |           |           |          |       |         |                       |                |                         |           |             |
+            | DictionarySlim_TryGetValue | 10    | 5.208 ns | 0.1485 ns | 0.1240 ns | 5.181 ns |  1.00 |    0.00 |                    15 |              0 |                       0 |         - |          NA |
+            | SmallMap_TryGetValue       | 10    | 3.709 ns | 0.1739 ns | 0.4551 ns | 3.548 ns |  0.69 |    0.07 |                     9 |              0 |                       0 |         - |          NA |
+            | FHashMap_TryGetValue       | 10    | 5.539 ns | 0.4004 ns | 1.1487 ns | 5.612 ns |  0.98 |    0.22 |                    10 |             -0 |                      -0 |         - |          NA |
+            |                            |       |          |           |           |          |       |         |                       |                |                         |           |             |
+            | DictionarySlim_TryGetValue | 100   | 5.296 ns | 0.1654 ns | 0.3898 ns | 5.176 ns |  1.00 |    0.00 |                    15 |              0 |                       0 |         - |          NA |
+            | SmallMap_TryGetValue       | 100   | 3.549 ns | 0.1293 ns | 0.2490 ns | 3.486 ns |  0.66 |    0.07 |                     9 |              0 |                       0 |         - |          NA |
+            | FHashMap_TryGetValue       | 100   | 4.265 ns | 0.1406 ns | 0.1098 ns | 4.268 ns |  0.80 |    0.08 |                    10 |              0 |                      -0 |         - |          NA |
+
             */
             // [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
-            [Params(100)]
-            // [Params(1000)]
+            [Params(1, 10, 100)]
             public int Count;
 
             [GlobalSetup]
@@ -2269,6 +2286,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 _fHashMap9 = FillFHashMap9();
                 _fHashMap91 = FillFHashMap91();
                 _smallMap = FillSmallMap();
+                _fHashMap = FillFHashMap();
                 _concurrentDict = ConcurrentDict();
                 _immutableDict = ImmutableDict();
             }
@@ -2485,6 +2503,19 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 
             private SmallMapTypeString _smallMap;
 
+            public FHashMapTypeString FillFHashMap()
+            {
+                var map = new FHashMapTypeString();
+
+                foreach (var key in _keys.Take(Count))
+                    map.GetOrAddValueRef(key, out _) = "a";
+
+                map.GetOrAddValueRef(LookupKey, out _) = "!";
+                return map;
+            }
+
+            private FHashMapTypeString _fHashMap;
+
             public ConcurrentDictionary<Type, string> ConcurrentDict()
             {
                 var map = new ConcurrentDictionary<Type, string>();
@@ -2644,14 +2675,15 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             }
 
             // [Benchmark]
-            [Benchmark(Baseline = true)]
+            // [Benchmark(Baseline = true)]
             public string Dictionary_TryGetValue()
             {
                 _dict.TryGetValue(LookupKey, out var result);
                 return result;
             }
 
-            [Benchmark]
+            // [Benchmark]
+            [Benchmark(Baseline = true)]
             public string DictionarySlim_TryGetValue()
             {
                 _dictSlim.TryGetValue(LookupKey, out var result);
@@ -2664,6 +2696,10 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 _smallMap.TryGetValue(LookupKey, out var result);
                 return result;
             }
+
+            [Benchmark]
+            public string FHashMap_TryGetValue() => 
+                _fHashMap.TryGetValueRef(LookupKey, out _);
 
             // [Benchmark(Baseline = true)]
             // [Benchmark]
