@@ -1926,6 +1926,9 @@ namespace ImTools
             handler(this, startIndex, state);
             return startIndex + 1;
         }
+
+        internal override ImHashMapEntry<K, V> FindFirstOrDefault<S>(ref S state, ref int i, ConditionWithRefState<K, V, S> condition) =>
+            condition(ref state, this, i++) ? this : null;
     }
 
     /// <summary>Entry containing the Value in addition to the Hash</summary>
@@ -2245,6 +2248,8 @@ namespace ImTools
             }
 
             internal abstract int ForEach<S>(S state, int startIndex, Action<ImHashMapEntry<K, V>, int, S> handler);
+            
+            internal abstract ImHashMapEntry<K, V> FindFirstOrDefault<S>(ref S state, ref int i, ConditionWithRefState<K, V, S> condition);
         }
 
         /// <summary>The composite containing the list of entries with the same conflicting Hash.</summary>
@@ -2461,6 +2466,15 @@ namespace ImTools
                 foreach (var e in Conflicts)
                     handler(e, i++, state);
                 return i;
+            }
+
+            internal override ImHashMapEntry<K, V> FindFirstOrDefault<S>(ref S state, ref int i, ConditionWithRefState<K, V, S> condition)
+            {
+                var cs = Conflicts;
+                foreach (var e in cs)
+                    if (condition(ref state, e, i++))
+                        return e;
+                return null;
             }
         }
 
@@ -4190,6 +4204,9 @@ namespace ImTools
         }
     }
 
+    /// <summary>Condition with ref state</summary>
+    public delegate bool ConditionWithRefState<K, V, S>(ref S state, ImHashMapEntry<K, V> entry, int index);
+
     /// <summary>The map methods</summary>
     public static class ImHashMap
     {
@@ -5253,6 +5270,197 @@ namespace ImTools
             }
 
             return state;
+        }
+
+        /// <summary>Find first entry based on the condition providing the state by reference</summary>
+        public static KVEntry<K, V> FindFirstOrDefault<K, V, S>(this ImHashMap<K, V> map,
+            ref S state, ConditionWithRefState<K, V, S> condition, MapParentStack parents = null)
+        {
+            if (map == ImHashMap<K, V>.Empty)
+                return null;
+            var i = 0;
+            ImHashMapEntry<K, V> result = null;
+            if (map is ImHashMap<K, V>.Entry singleEntry &&
+                null != (result = singleEntry.FindFirstOrDefault(ref state, ref i, condition)))
+                return (KVEntry<K, V>)result;
+
+            ImHashMap<K, V>.Branch2Plus b21LeftWasEnumerated = null;
+            int count = 0;
+            while (true)
+            {
+                if (map is ImHashMap<K, V>.Branch2Base b2)
+                {
+                    if (parents == null)
+                        parents = new MapParentStack();
+                    parents.Put(map, count++);
+                    map = b2.Left;
+                    continue;
+                }
+
+                if (map is ImHashMap<K, V>.Branch3Base b3)
+                {
+                    if (parents == null)
+                        parents = new MapParentStack();
+                    parents.Put(map, count++);
+                    map = b3.Left;
+                    continue;
+                }
+
+                if (b21LeftWasEnumerated != null || map is ImHashMap<K, V>.Branch2Plus)
+                {
+                    ImHashMap<K, V>.Leaf5PlusPlus l511 = null;
+                    ImHashMap<K, V>.Entry pl = null, mid = null;
+                    if (b21LeftWasEnumerated != null)
+                    {
+                        result = b21LeftWasEnumerated.B.MidEntry.FindFirstOrDefault(ref state, ref i, condition);
+                        if (result != null)
+                            return (KVEntry<K, V>)result;
+
+                        l511 = (ImHashMap<K, V>.Leaf5PlusPlus)b21LeftWasEnumerated.B.Right;
+                        pl = b21LeftWasEnumerated.Plus;
+                        b21LeftWasEnumerated = null; // we done with the branch
+                        map = ImHashMap<K, V>.Empty; // forcing to skip leaves below
+                    }
+                    else
+                    {
+                        var b21 = (ImHashMap<K, V>.Branch2Plus)map;
+                        if (b21.B.Right is ImHashMap<K, V>.Leaf5PlusPlus) // so we need to enumerate the left as a normal branch2 with the code below.
+                        {
+                            b21LeftWasEnumerated = b21;
+                            map = b21.B.Left;
+                        }
+                        else // we need to sort out the left side with Plus entry
+                        {
+                            l511 = (ImHashMap<K, V>.Leaf5PlusPlus)b21.B.Left;
+                            mid = b21.B.MidEntry;
+                            pl = b21.Plus;
+                            map = b21.B.Right; // it is a leaf so, no need to continue, just proceed with the leafs below
+                        }
+                    }
+                    if (l511 != null)
+                    {
+                        var l = l511.L.L;
+                        ImHashMap<K, V>.Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, lp = l511.Plus, pp = l511.L.Plus;
+
+                        ImHashMap.InsertInOrder(pp.Hash, ref pp, ref e0, ref e1, ref e2, ref e3, ref e4);
+                        ImHashMap.InsertInOrder(lp.Hash, ref lp, ref e0, ref e1, ref e2, ref e3, ref e4, ref pp);
+                        ImHashMap.InsertInOrder(pl.Hash, ref pl, ref e0, ref e1, ref e2, ref e3, ref e4, ref pp, ref lp);
+
+                        if (null != (result = e0.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                        if (null != (result = e1.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                        if (null != (result = e2.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                        if (null != (result = e3.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                        if (null != (result = e4.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                        if (null != (result = pp.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                        if (null != (result = lp.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                        if (null != (result = pl.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+
+                        if (mid != null &&
+                            null != (result = mid.FindFirstOrDefault(ref state, ref i, condition)))
+                            return (KVEntry<K, V>)result;
+                    }
+                }
+
+                if (map is ImHashMap<K, V>.Leaf2 l2)
+                {
+                    if (null != (result = l2.Entry0.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                    if (null != (result = l2.Entry1.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                }
+                else if (map is ImHashMap<K, V>.Leaf2Plus l21)
+                {
+                    var l = l21.L;
+                    ImHashMap<K, V>.Entry e0 = l.Entry0, e1 = l.Entry1, pp = l21.Plus;
+
+                    ImHashMap.InsertInOrder(pp.Hash, ref pp, ref e0, ref e1);
+
+                    if (null != (result = e0.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                    if (null != (result = e1.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                    if (null != (result = pp.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                }
+                else if (map is ImHashMap<K, V>.Leaf2PlusPlus l211)
+                {
+                    var l = l211.L.L;
+                    ImHashMap<K, V>.Entry e0 = l.Entry0, e1 = l.Entry1, pp = l211.L.Plus, lp = l211.Plus;
+
+                    ImHashMap.InsertInOrder(pp.Hash, ref pp, ref e0, ref e1);
+                    ImHashMap.InsertInOrder(lp.Hash, ref lp, ref e0, ref e1, ref pp);
+
+                    if (null != (result = e0.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                    if (null != (result = e1.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                    if (null != (result = pp.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                    if (null != (result = lp.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                }
+                else if (map is ImHashMap<K, V>.Leaf5 l5)
+                {
+                    if (null != (result = l5.Entry0.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                    if (null != (result = l5.Entry1.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                    if (null != (result = l5.Entry2.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                    if (null != (result = l5.Entry3.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                    if (null != (result = l5.Entry4.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                }
+                else if (map is ImHashMap<K, V>.Leaf5Plus l51)
+                {
+                    var l = l51.L;
+                    ImHashMap<K, V>.Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, pp = l51.Plus;
+
+                    ImHashMap.InsertInOrder(pp.Hash, ref pp, ref e0, ref e1, ref e2, ref e3, ref e4);
+
+                    if (null != (result = e0.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                    if (null != (result = e1.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                    if (null != (result = e2.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                    if (null != (result = e3.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                    if (null != (result = e4.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                    if (null != (result = pp.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                }
+                else if (map is ImHashMap<K, V>.Leaf5PlusPlus l511)
+                {
+                    var l = l511.L.L;
+                    ImHashMap<K, V>.Entry e0 = l.Entry0, e1 = l.Entry1, e2 = l.Entry2, e3 = l.Entry3, e4 = l.Entry4, lp = l511.Plus, pp = l511.L.Plus;
+
+                    ImHashMap.InsertInOrder(pp.Hash, ref pp, ref e0, ref e1, ref e2, ref e3, ref e4);
+                    ImHashMap.InsertInOrder(lp.Hash, ref lp, ref e0, ref e1, ref e2, ref e3, ref e4, ref pp);
+
+                    if (null != (result = e0.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                    if (null != (result = e1.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                    if (null != (result = e2.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                    if (null != (result = e3.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                    if (null != (result = e4.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                    if (null != (result = pp.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                    if (null != (result = lp.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                }
+                else if (map is ImHashMap<K, V>.Entry l1 &&
+                    null != (result = l1.FindFirstOrDefault(ref state, ref i, condition)))
+                    return (KVEntry<K, V>)result;
+
+                if (b21LeftWasEnumerated != null)
+                    continue;
+
+                if (count == 0)
+                    break; // we yield the leaf and there is nothing in stack - we are DONE!
+
+                var b = parents.Get(--count); // otherwise get the parent
+                if (b is ImHashMap<K, V>.Branch2Base pb2)
+                {
+                    if (null != (result = pb2.MidEntry.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                    map = pb2.Right;
+                }
+                else if (b != _enumerationB3Tombstone)
+                {
+                    var pb3 = (ImHashMap<K, V>.Branch3Base)b;
+                    if (null != (result = pb3.Entry0.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                    map = pb3.Middle;
+                    parents.Put(_enumerationB3Tombstone, ++count);
+                    ++count;
+                }
+                else
+                {
+                    var pb3 = (ImHashMap<K, V>.Branch3Base)parents.Get(--count);
+                    if (null != (result = pb3.Entry1.FindFirstOrDefault(ref state, ref i, condition))) return (KVEntry<K, V>)result;
+                    map = pb3.Right;
+                }
+            }
+
+            return null;
         }
 
         /// <summary>Depth-first in-order of hash traversal as described in http://en.wikipedia.org/wiki/Tree_traversal.
@@ -7257,7 +7465,8 @@ namespace ImTools
             var oldHashes = _packedHashesAndIndexes;
             var oldHash = oldHashes[0];
 #endif
-            // Overflow segment is wrapped-around hashes and! the hashes at the beginning robin hooded by the wrapped-around hashes
+            // Overflow segment is wrapped-around hashes
+            // and! the hashes at the beginning robin hooded by the wrapped-around hashes
             var i = 0;
             while ((oldHash >>> ProbeCountShift) > 1)
                 oldHash = GetHash(ref oldHashes, ++i);
@@ -7270,7 +7479,8 @@ namespace ImTools
                     // get the new hash index from the old one with the next bit equal to the `oldCapacity`
                     var indexWithNextBit = (oldHash & oldCapacity) | (((i + 1) - (oldHash >>> ProbeCountShift)) & indexMask);
 
-                    // no need for robinhooding because we already did it for the old hashes and now just sparcing the hashes into the new array which are already in order
+                    // no need for robin-hooding because we already did it for the old hashes and 
+                    // now just sparcing the hashes into the new array which are already in order
                     var probes = 1;
                     ref var newHash = ref GetHashRef(ref newHashes, indexWithNextBit);
                     while (newHash != 0)
@@ -7280,6 +7490,7 @@ namespace ImTools
                     }
                     newHash = (probes << ProbeCountShift) | (oldHash & newHashAndIndexMask);
                 }
+
                 if (++i >= oldCapacityWithOverflowSegment)
                     break;
 
