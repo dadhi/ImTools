@@ -18,8 +18,8 @@
       <Compile Remove="HashVsImHashMap.cs" />
     </ItemGroup>
     <ItemGroup>
-      <PackageReference Include="BenchmarkDotNet" Version="0.13.10" />
-      <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.13.10" />
+      <PackageReference Include="BenchmarkDotNet" Version="0.13.12" />
+      <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.13.12" />
       <PackageReference Include="Microsoft.Experimental.Collections" Version="1.0.6-e190117-3" />
     </ItemGroup>
 
