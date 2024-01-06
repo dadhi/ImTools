@@ -1,4 +1,4 @@
-namespace ImTools.Playground;
+namespace ImTools.Benchmarks;
 
 using System;
 using System.Collections.Generic;
@@ -6,10 +6,24 @@ using System.Linq;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Diagnosers;
 
+/*
+BenchmarkDotNet v0.13.12, Windows 11 (10.0.22631.2861/23H2/2023Update/SunValley3)
+11th Gen Intel Core i7-1185G7 3.00GHz, 1 CPU, 8 logical and 4 physical cores
+.NET SDK 8.0.100
+  [Host]     : .NET 8.0.0 (8.0.23.53103), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  DefaultJob : .NET 8.0.0 (8.0.23.53103), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+
+
+| Method                           | ItemCount | Mean     | Error     | StdDev    | Median   | Ratio | RatioSD | Gen0   | Allocated | Alloc Ratio |
+|--------------------------------- |---------- |---------:|----------:|----------:|---------:|------:|--------:|-------:|----------:|------------:|
+| Enumerate_with_condition_stopper | 100       | 1.209 us | 0.0239 us | 0.0406 us | 1.203 us |  1.00 |    0.00 |      - |         - |          NA |
+| ForEach_with_condition_stopper   | 100       | 1.334 us | 0.0265 us | 0.0669 us | 1.312 us |  1.12 |    0.08 | 0.0267 |     168 B |          NA |
+*/
+
 [MemoryDiagnoser]
 public class ImHashMapEnumerateBM
 {
-    [Params(10)]
+    [Params(100)]
     public int ItemCount;
 
     [GlobalSetup]

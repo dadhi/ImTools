@@ -4146,6 +4146,7 @@ namespace ImTools
         public MapParentStack() => _items = new object[DefaultInitialCapacity];
 
         /// <summary>Pushes the item</summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Put(object item, int index)
         {
             if (index >= _items.Length)
@@ -4368,6 +4369,76 @@ namespace ImTools
 
         private static readonly object _enumerationB3Tombstone = new object();
 
+#if NET8_0_OR_GREATER
+        [System.Runtime.CompilerServices.InlineArray(8)]
+        internal struct Obj8
+        {
+            private object _element;
+        }
+
+        internal struct MapStack<K, V>
+        {
+            private Obj8 _mentries; // ImHashMap<K, V>.Entry 
+            private Obj8 _branches; // ImHashMap<K, V>
+            private MapParentStack<K, V> _deeper;
+            private const byte _deeperStartsAtLevel = 8;
+
+            public void Put(ushort i, ImHashMap<K, V>.Entry e, ImHashMap<K, V> b)
+            {
+                if (i < 8)
+                {
+                    _mentries[i] = e;
+                    _branches[i] = b;
+                }
+                else
+                {
+                    _deeper ??= new MapParentStack<K, V>(8);
+                    _deeper.Put(i - _deeperStartsAtLevel, e, b);
+                }
+            }
+
+            public void Put(ushort i, ImHashMap<K, V>.Entry e, ImHashMap<K, V> b, ImHashMap<K, V>.Entry eNext, ImHashMap<K, V> bNext)
+            {
+                if (i < 7)
+                {
+                    _mentries[i] = e;
+                    _mentries[i + 1] = eNext;
+                    _branches[i] = b;
+                    _branches[i + 1] = bNext;
+                }
+                else if (i == 7)
+                {
+                    _mentries[7] = e;
+                    _branches[7] = e;
+                    _deeper ??= new MapParentStack<K, V>(8);
+                    _deeper.Put(0, eNext, bNext);
+                }
+                else
+                {
+                    _deeper ??= new MapParentStack<K, V>(8);
+                    i -= _deeperStartsAtLevel;
+                    _deeper.Put(i, e, b);
+                    _deeper.Put(i + 1, eNext, bNext);
+                }
+            }
+
+            public void Get(ushort i, ref ImHashMap<K, V>.Entry e, ref ImHashMap<K, V> b)
+            {
+                if (i < 8)
+                {
+                    e = (ImHashMap<K, V>.Entry)_mentries[i];
+                    b = (ImHashMap<K, V>)_branches[i];
+                }
+                else
+                {
+                    Debug.Assert(_deeper != null, "Expecting the `deeper` parent stack created before accessing it here at level " + i);
+                    ref var p = ref _deeper.Items[i - _deeperStartsAtLevel];
+                    e = p.NextEntry;
+                    b = p.NextBranch;
+                }
+            }
+        }
+#else
         internal struct MapStack<K, V>
         {
             ImHashMap<K, V>.Entry e0, e1, e2, e3, e4, e5, e6, e7;//, e8, e9, e10, e11, e12, e13, e14, e15;
@@ -4387,8 +4458,7 @@ namespace ImTools
                     case 6: e6 = e; b6 = b; break;
                     case 7: e7 = e; b7 = b; break;
                     default:
-                        if (_deeper == null)
-                            _deeper = new MapParentStack<K, V>(8);
+                        _deeper ??= new MapParentStack<K, V>(8);
                         _deeper.Put(i - _deeperStartsAtLevel, e, b);
                         break;
                 }
@@ -4407,11 +4477,11 @@ namespace ImTools
                     case 6: e6 = e; b6 = b; e7 = eNext; b7 = bNext; break;
                     case 7:
                         e7 = e; b7 = b;
-                        if (_deeper == null) _deeper = new MapParentStack<K, V>(8);
+                        _deeper ??= new MapParentStack<K, V>(8);
                         _deeper.Put(0, eNext, bNext);
                         break;
                     default:
-                        if (_deeper == null) _deeper = new MapParentStack<K, V>(8);
+                        _deeper ??= new MapParentStack<K, V>(8);
                         i -= _deeperStartsAtLevel;
                         _deeper.Put(i, e, b);
                         _deeper.Put(i + 1, eNext, bNext);
@@ -4439,6 +4509,7 @@ namespace ImTools
                 }
             }
         }
+#endif
 
         /// <summary>Non-allocating enumerator</summary>
         public struct Enumerable<V> : IEnumerable<VEntry<V>>, IEnumerable
@@ -4744,9 +4815,17 @@ namespace ImTools
         {
             internal ImHashMap<K, V> _map;
             private short _state;
-            private short _conflictIndex;
             private ushort _index;
+            private short _conflictIndex;
             private MapStack<K, V> _ps;
+            private ImHashMap<K, V> _nextBranch;
+            private ImHashMap<K, V>.Branch2Plus _b21LeftWasEnumerated;
+            private ImHashMap<K, V>.Entry _a, _b, _c, _d, _e, _f, _g, _h, _hc;
+            internal KVEntry<K, V> _current;
+
+            /// <inheritdoc />
+            public KVEntry<K, V> Current => _current;
+            object IEnumerator.Current => _current;
 
             internal void ReInit(ImHashMap<K, V> map)
             {
@@ -4755,14 +4834,6 @@ namespace ImTools
                 _index = default;
                 _ps = default;
             }
-
-            private ImHashMap<K, V> _nextBranch;
-            private ImHashMap<K, V>.Branch2Plus _b21LeftWasEnumerated;
-            private ImHashMap<K, V>.Entry _a, _b, _c, _d, _e, _f, _g, _h, _hc;
-            internal KVEntry<K, V> _current;
-            /// <inheritdoc />
-            public KVEntry<K, V> Current => _current;
-            object IEnumerator.Current => _current;
 
             [MethodImpl((MethodImplOptions)256)]
             private bool SetCurrentAndState(ImHashMap<K, V>.Entry e, short nextState, short prevState)
@@ -5290,8 +5361,7 @@ namespace ImTools
             {
                 if (map is ImHashMap<K, V>.Branch2Base b2)
                 {
-                    if (parents == null)
-                        parents = new MapParentStack();
+                    parents ??= new MapParentStack();
                     parents.Put(map, count++);
                     map = b2.Left;
                     continue;
