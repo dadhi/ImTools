@@ -11,8 +11,6 @@ Initially split from the [DryIoc](https://github.com/dadhi/dryioc), and now used
 - Code package [![NuGet Badge](https://buildstats.info/nuget/ImTools)](https://www.nuget.org/packages/ImTools)
 - Latest release [![latest release](https://img.shields.io/badge/latest%20release-v4.0.0-green)](https://github.com/dadhi/ImTools/releases/tag/v4.0.0) 
 
-[![about me](https://github-readme-stats.vercel.app/api?username=dadhi&hide_rank=true&custom_title=About%20me&show_icons=true&theme=transparent&disable_animations=true)
-](https://github.com/anuraghazra/github-readme-stats)
 
 ## Benchmarks
 
