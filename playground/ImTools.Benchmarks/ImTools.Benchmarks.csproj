@@ -13,6 +13,8 @@
         <!--skip tiering jitting for the fare benchmarks -->
         <DebugType>pdbonly</DebugType>
         <DebugSymbols>true</DebugSymbols>
+        
+        <ImplicitUsings>enable</ImplicitUsings>
     </PropertyGroup>
     <ItemGroup>
       <Compile Remove="HashVsImHashMap.cs" />
@@ -21,6 +23,8 @@
       <PackageReference Include="BenchmarkDotNet" Version="0.13.12" />
       <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.13.12" />
       <PackageReference Include="Microsoft.Experimental.Collections" Version="1.0.6-e190117-3" />
+      <PackageReference Include="CommunityToolkit.HighPerformance" Version="8.2.2" />
+      <PackageReference Include="DotNext.IO" Version="4.15.0" />
     </ItemGroup>
 
     <ItemGroup>

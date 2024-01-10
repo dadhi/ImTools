@@ -6,7 +6,8 @@ namespace ImTools.Benchmarks
     {
         static void Main()
         {
-            BenchmarkRunner.Run<ImHashMapEnumerateBM>();
+            BenchmarkRunner.Run<MemoryOwnerVsHashMap>();
+            // BenchmarkRunner.Run<ImHashMapEnumerateBM>();
 
             // new SIO.Program().Run();
 
