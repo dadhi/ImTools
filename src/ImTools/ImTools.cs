@@ -6894,7 +6894,7 @@ namespace ImTools
         {
             /// <inheritdoc />
             [MethodImpl((MethodImplOptions)256)]
-            public int GetTombstone() => int.MinValue;
+            public int GetTombstone() => int.MinValue; // todo: @improve separate the tombstone from the hash
 
             /// <inheritdoc />
             [MethodImpl((MethodImplOptions)256)]

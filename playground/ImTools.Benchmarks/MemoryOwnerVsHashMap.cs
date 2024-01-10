@@ -18,8 +18,9 @@ LaunchCount=1  WarmupCount=10
 
 | Method               | Count | Mean       | Error     | StdDev    | Rank | Gen0   | Gen1   | Allocated |
 |--------------------- |------ |-----------:|----------:|----------:|-----:|-------:|-------:|----------:|
-| MemoryOwner_populate | 100   |   623.2 ns |  28.69 ns |  25.43 ns |    1 | 0.5550 | 0.0134 |   3.41 KB |
-| ImTools_populate     | 100   | 5,082.8 ns | 620.87 ns | 580.76 ns |    2 | 2.8915 | 0.1221 |  17.73 KB |
+| MemoryOwner_populate | 100   |   533.5 ns |  32.99 ns |  29.25 ns |    1 | 0.5560 | 0.0143 |   3.41 KB |
+| ImTools_populate     | 100   | 4,473.3 ns | 531.37 ns | 497.05 ns |    3 | 2.8915 | 0.1221 |  17.73 KB |
+| SmallMap_populate    | 100   | 1,249.8 ns |  93.70 ns |  78.24 ns |    2 | 1.2531 | 0.0362 |   7.68 KB |
 */
 
 public class AntiVirusFriendlyConfig : ManualConfig
@@ -32,7 +33,8 @@ public class AntiVirusFriendlyConfig : ManualConfig
 }
 [Config(typeof(AntiVirusFriendlyConfig)),
  MemoryDiagnoser,
- Orderer(BenchmarkDotNet.Order.SummaryOrderPolicy.Declared), RankColumn,]
+ Orderer(BenchmarkDotNet.Order.SummaryOrderPolicy.Declared), 
+ RankColumn]
 public class MemoryOwnerVsHashMap
 {
     [Params(100)]
@@ -40,8 +42,9 @@ public class MemoryOwnerVsHashMap
     public int Count;
 
     MemoryOwner<SampleClass> MemoryOwner;
-
     ImHashMap<int, SampleClass> ImHashMap;
+    
+    SmallMap<int, SampleClass, SmallMap.IntEq, SmallMap.SingleArrayEntries<int, SampleClass, SmallMap.IntEq>> SmallMap;
 
     [GlobalSetup]
     public void Setup()
@@ -74,6 +77,17 @@ public class MemoryOwnerVsHashMap
         for (int i = 0; i < Count; i++)
         {
             imt = imt.AddSureNotPresent(i, new SampleClass(i));
+        }
+        return imt;
+    }
+
+    [Benchmark]
+    public object SmallMap_populate()
+    {
+        var imt = ImTools.SmallMap.New<int, SampleClass, SmallMap.IntEq>();
+        for (int i = 0; i < Count; i++)
+        {
+            imt.AddOrUpdate(i, new SampleClass(i));
         }
         return imt;
     }
