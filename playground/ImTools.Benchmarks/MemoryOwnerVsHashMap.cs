@@ -87,6 +87,7 @@ public class MemoryOwnerVsHashMap
         var imt = ImTools.SmallMap.New<int, SampleClass, SmallMap.IntEq>();
         for (int i = 0; i < Count; i++)
         {
+            // todo: @wip add AddSureNotPresent (use FHashMap for the reference)
             imt.AddOrUpdate(i, new SampleClass(i));
         }
         return imt;
