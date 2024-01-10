@@ -100,8 +100,7 @@ public class MemoryOwnerVsHashMap
         {
             if (MemoryOwner.Span[i] is { } fnd)
             {
-
-                var res = fnd.TargetValue;
+                sum += fnd.TargetValue;
             }
         }
         return sum;
