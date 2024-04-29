@@ -8,7 +8,6 @@
         <Platform>x64</Platform>
 
         <Description>Benchmarks and sandbox for experiments.</Description>
-        <NoWarn>1701;1702;AD0001;NU1608</NoWarn>
         <TieredCompilation>false</TieredCompilation>
         <!--skip tiering jitting for the fare benchmarks -->
         <DebugType>pdbonly</DebugType>
