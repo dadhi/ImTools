@@ -6621,57 +6621,6 @@ public static class PartitionedHashMap
     }
 }
 
-/// <summary>Ever growing list methods</summary>
-public static class SmallList
-{
-    /// <summary>Default initial capacity </summary>
-    public const int DefaultInitialCapacity = 2;
-
-    /// Push the new slot and return the ref to it
-    public static ref T PushSlot<T>(ref T[] items, int count)
-    {
-        if (items == null)
-            items = new T[DefaultInitialCapacity];
-        else if (count >= items.Length)
-            Expand(ref items);
-        return ref items[count];
-    }
-
-    /// Adds the new item possibly extending the item collection
-    public static void Push<T>(ref T[] items, int count, T item)
-    {
-        if (items == null)
-            items = new T[DefaultInitialCapacity];
-        else if (count >= items.Length)
-            Expand(ref items);
-        items[count] = item;
-    }
-
-    /// <summary>Expands the items starting with 2</summary>
-    internal static void Expand<T>(ref T[] items)
-    {
-        var count = items.Length;
-        var newItems = new T[count << 1]; // count x 2
-        if (count < 6)
-            for (var i = 0; i < count; ++i)
-                newItems[i] = items[i];
-        else
-            Array.Copy(items, 0, newItems, 0, count);
-    }
-
-    ///<summary>Creates the final array out of the list, so that you cannot use after that!</summary>
-    public static T[] ResizeToArray<T>(T[] items, int count)
-    {
-        if (count < items.Length)
-            Array.Resize(ref items, count);
-        return items;
-    }
-
-    /// <inheritdoc />
-    public static string ToString<T>(T[] items, int count) =>
-        $"Count {count} of {(count == 0 || items == null || items.Length == 0 ? "empty" : "first (" + items[0] + ") and last (" + items[count - 1] + ")")}";
-}
-
 /// <summary>Ever growing list</summary>
 public struct SmallList<T>
 {
@@ -6729,6 +6678,57 @@ public struct SmallList<T>
     /// <inheritdoc />
     public override string ToString() =>
         $"Count {Count} of {(Count == 0 || Items == null || Items.Length == 0 ? "empty" : "first (" + Items[0] + ") and last (" + Items[Count - 1] + ")")}";
+}
+
+/// <summary>Ever growing list methods</summary>
+public static class SmallList
+{
+    /// <summary>Default initial capacity </summary>
+    public const int DefaultInitialCapacity = 2;
+
+    /// Push the new slot and return the ref to it
+    public static ref T PushSlot<T>(ref T[] items, int count)
+    {
+        if (items == null)
+            items = new T[DefaultInitialCapacity];
+        else if (count >= items.Length)
+            Expand(ref items);
+        return ref items[count];
+    }
+
+    /// Adds the new item possibly extending the item collection
+    public static void Push<T>(ref T[] items, int count, T item)
+    {
+        if (items == null)
+            items = new T[DefaultInitialCapacity];
+        else if (count >= items.Length)
+            Expand(ref items);
+        items[count] = item;
+    }
+
+    /// <summary>Expands the items starting with 2</summary>
+    internal static void Expand<T>(ref T[] items)
+    {
+        var count = items.Length;
+        var newItems = new T[count << 1]; // count x 2
+        if (count < 6)
+            for (var i = 0; i < count; ++i)
+                newItems[i] = items[i];
+        else
+            Array.Copy(items, 0, newItems, 0, count);
+    }
+
+    ///<summary>Creates the final array out of the list, so that you cannot use after that!</summary>
+    public static T[] ResizeToArray<T>(T[] items, int count)
+    {
+        if (count < items.Length)
+            Array.Resize(ref items, count);
+        return items;
+    }
+
+    /// <inheritdoc />
+    public static string ToString<T>(T[] items, int count) =>
+        $"Count {count} of {(count == 0 || items == null || items.Length == 0 ? "empty" : "first (" + items[0] + ") and last (" + items[count - 1] + ")")}";
 }
 
 /// <summary>Configiration and the tools for the FHashMap map data structure</summary>
