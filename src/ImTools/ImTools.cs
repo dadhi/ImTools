@@ -1444,7 +1444,7 @@ public struct Opt<T>
 }
 
 /// <summary>Ever growing list methods</summary>
-public static class GrowingList
+public static class SmallList
 {
     /// <summary>Default initial capacity </summary>
     public const int DefaultInitialCapacity = 2;
@@ -1495,7 +1495,7 @@ public static class GrowingList
 }
 
 /// <summary>Ever growing list</summary>
-public struct GrowingList<T>
+public struct SmallList<T>
 {
     /// <summary>Default initial capacity </summary>
     public const int DefaultInitialCapacity = 2;
@@ -1507,7 +1507,7 @@ public struct GrowingList<T>
     public int Count;
 
     /// <summary>Constructs the thing</summary>
-    public GrowingList(T[] items, int count = 0)
+    public SmallList(T[] items, int count = 0)
     {
         Items = items;
         Count = count;
@@ -1519,7 +1519,7 @@ public struct GrowingList<T>
         if (Items == null)
             Items = new T[DefaultInitialCapacity];
         else if (Count >= Items.Length)
-            GrowingList.Expand(ref Items);
+            SmallList.Expand(ref Items);
         return ref Items[Count++];
     }
 
@@ -1529,7 +1529,7 @@ public struct GrowingList<T>
         if (Items == null)
             Items = new T[DefaultInitialCapacity];
         else if (Count >= Items.Length)
-            GrowingList.Expand(ref Items);
+            SmallList.Expand(ref Items);
         Items[Count++] = item;
     }
 
@@ -7205,7 +7205,6 @@ public static class SmallMap
 }
 
 // todo: @improve ? how/where to add SIMD to improve CPU utilization but not losing perf for smaller sizes
-// todo: @perf We may use Stack-on-stack data structure similar to FastExrpressionCompiler.Stack4 for packed hashes up to 4 or more.
 // todo: @perf In case of using RefEq it might be faster for the small map to lookup by comparing entry key instead of reaching for hash
 // todo: @perf We may additionally implement the Enumerator for the Entries or just expose the array for the SingleArrayEntries to allow fastest iteration without checks for Removed! entries (if you have knowledge the nothing is removed ever).
 // todo: @perf ...related to the Enumerator above, another option is to expose GetIncludingRemovedEntriesEnumerator() on the map itself
