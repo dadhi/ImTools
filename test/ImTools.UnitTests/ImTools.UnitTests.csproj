@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks Condition="'$(DevMode)' == 'true'">net8.0</TargetFrameworks>
     <TargetFrameworks Condition="'$(DevMode)' != 'true'">net8.0;net6.0;net472</TargetFrameworks>
+    <TargetFrameworks Condition="'$(CILinux)' == 'true'">net7.0</TargetFrameworks>
   </PropertyGroup>
 
   <ItemGroup>

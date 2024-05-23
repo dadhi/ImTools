@@ -1,6 +1,6 @@
 image:
   - Visual Studio 2022
-  # - Ubuntu
+  - Ubuntu
   - macOS
 
 version: 5.0.0-preview-01-b{build}
@@ -11,7 +11,7 @@ skip_commits:
   message: /noci .*/
 
 build_script:
-  - dotnet test -p:DevMode=false -f:net6.0 -c:Release test/ImTools.UnitTests/ImTools.UnitTests.csproj
+  - dotnet test -p:CILinux=true -c:Release test/ImTools.UnitTests/ImTools.UnitTests.csproj
 
 for:
   - matrix:
