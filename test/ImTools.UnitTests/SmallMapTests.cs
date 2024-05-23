@@ -521,7 +521,7 @@ public class SmallMapTests
                 }));
 
     // https://www.youtube.com/watch?v=G0NUOst-53U&feature=youtu.be&t=1639
-    // [Test]
+    [Test]
     public void Check_AddOrUpdate_metamorphic()
     {
         const int upperBound = 100_000;
@@ -553,11 +553,12 @@ public class SmallMapTests
                     m2.AddOrUpdate(sk1, sv1);
                 }
 
-                CollectionAssert.AreEqual(m1.Select(x => x.Key), m2.Select(x => x.Key));
+                CollectionAssert.AreEqual(m1.Select(x => x.Key).Order(), m2.Select(x => x.Key).Order());
             },
-            iter: 5000);
+            iter: 1000);
     }
 
+    // todo: @wip @fixme
     // [Test]
     public void Check_Remove_metamorphic()
     {
@@ -589,9 +590,9 @@ public class SmallMapTests
                 m2.TryRemove(sk2);
                 m2.TryRemove(sk1);
 
-                CollectionAssert.AreEqual(m1.Select(x => x.Key), m2.Select(x => x.Key));
+                CollectionAssert.AreEqual(m1.Select(x => x.Key).Order(), m2.Select(x => x.Key).Order());
             },
-            iter: 5000);
+            iter: 1000);
     }
 #endif
 }

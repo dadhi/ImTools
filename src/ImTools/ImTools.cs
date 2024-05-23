@@ -6806,7 +6806,7 @@ public static class SmallMap
         }
         return items;
 
-        // binary reprsentation of the `int`
+        // binary representation of the `int`
         static string toB(int x) => Convert.ToString(x, 2).PadLeft(32, '0');
     }
 
