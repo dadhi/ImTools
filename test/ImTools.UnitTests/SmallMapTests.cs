@@ -553,7 +553,7 @@ public class SmallMapTests
                     m2.AddOrUpdate(sk1, sv1);
                 }
 
-                CollectionAssert.AreEqual(m1.Select(x => x.Key).Order(), m2.Select(x => x.Key).Order());
+                CollectionAssert.AreEqual(m1.Select(x => x.Key).OrderBy(x => x), m2.Select(x => x.Key).OrderBy(x => x));
             },
             iter: 1000);
     }
@@ -590,7 +590,7 @@ public class SmallMapTests
                 m2.TryRemove(sk2);
                 m2.TryRemove(sk1);
 
-                CollectionAssert.AreEqual(m1.Select(x => x.Key).Order(), m2.Select(x => x.Key).Order());
+                CollectionAssert.AreEqual(m1.Select(x => x.Key).OrderBy(x => x), m2.Select(x => x.Key).OrderBy(x => x));
             },
             iter: 1000);
     }
