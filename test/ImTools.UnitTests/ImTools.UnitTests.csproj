@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFrameworks Condition="'$(DevMode)' == 'true'">net8.0</TargetFrameworks>
-    <TargetFrameworks Condition="'$(DevMode)' != 'true'">net6.0;net472</TargetFrameworks>
+    <TargetFrameworks Condition="'$(DevMode)' != 'true'">net8.0;net6.0;net472</TargetFrameworks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,7 +14,7 @@
     <ProjectReference Include="..\..\playground\Experiments\Experiments.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' != 'net472'">
     <PackageReference Include="CsCheck" Version="3.2.2" />
   </ItemGroup>
 

@@ -1,34 +1,33 @@
 <Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <OutputType>Exe</OutputType>
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
 
-        <TargetFrameworks Condition="'$(DevMode)' == 'true'">net8.0</TargetFrameworks>
-        <TargetFrameworks Condition="'$(DevMode)' != 'true'">net6.0</TargetFrameworks>
+    <TargetFramework>net8.0</TargetFramework>
 
-        <Platform>x64</Platform>
+    <Platform>x64</Platform>
 
-        <Description>Benchmarks and sandbox for experiments.</Description>
-        <TieredCompilation>false</TieredCompilation>
-        <!--skip tiering jitting for the fare benchmarks -->
-        <DebugType>pdbonly</DebugType>
-        <DebugSymbols>true</DebugSymbols>
-        
-        <ImplicitUsings>enable</ImplicitUsings>
-    </PropertyGroup>
-    <ItemGroup>
-      <Compile Remove="HashVsImHashMap.cs" />
-    </ItemGroup>
-    <ItemGroup>
-      <PackageReference Include="BenchmarkDotNet" Version="0.13.12" />
-      <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.13.12" />
-      <PackageReference Include="Microsoft.Experimental.Collections" Version="1.0.6-e190117-3" />
-      <PackageReference Include="CommunityToolkit.HighPerformance" Version="8.2.2" />
-      <PackageReference Include="DotNext.IO" Version="5.4.0" />
-    </ItemGroup>
+    <Description>Benchmarks and sandbox for experiments.</Description>
+    <TieredCompilation>false</TieredCompilation>
+    <!--skip tiering jitting for the fare benchmarks -->
+    <DebugType>pdbonly</DebugType>
+    <DebugSymbols>true</DebugSymbols>
 
-    <ItemGroup>
-        <ProjectReference Include="..\..\src\ImTools\ImTools.csproj" />
-        <ProjectReference Include="..\..\playground\Experiments\Experiments.csproj" />
-    </ItemGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="HashVsImHashMap.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.13.12" />
+    <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.13.12" />
+    <PackageReference Include="Microsoft.Experimental.Collections" Version="1.0.6-e190117-3" />
+    <PackageReference Include="CommunityToolkit.HighPerformance" Version="8.2.2" />
+    <PackageReference Include="DotNext.IO" Version="5.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ImTools\ImTools.csproj" />
+    <ProjectReference Include="..\..\playground\Experiments\Experiments.csproj" />
+  </ItemGroup>
 
 </Project>

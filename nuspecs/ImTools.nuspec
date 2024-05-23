@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
     <metadata minClientVersion="3.3.0">
         <id>ImTools</id>
-        <version>4.0.0</version>
+        <version>5.0.0-preview-01</version>
         <authors>Maksim Volkau</authors>
         <copyright>Copyright © 2016-2023 Maksim Volkau</copyright>
         <projectUrl>https://github.com/dadhi/ImTools</projectUrl>
@@ -17,6 +17,13 @@
         <tags>FP Performance Simple Functional Immutable Persistent Map Avl 2-3Tree Self Balanced Tree Dictionary Thread-safe Functional Atomic Ref Algebraic Discriminated Union SumType</tags>
         <releaseNotes>
             <![CDATA[
+
+## v5.0.0 Major release
+
+- Added SmallMap, SmallList and the friends 
+- Removed net7.0 target
+
+
 ## v4.0.0 Major release
 
 ### Breaking changes

@@ -1,8 +1,11 @@
-﻿
+﻿#if NET6_0_OR_GREATER
+#define CS_CHECK
+using CsCheck;
+#endif
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using CsCheck;
 using NUnit.Framework;
 
 namespace ImTools.Experiments.UnitTests;
@@ -470,6 +473,7 @@ public class SmallMapTests
         map.Verify(null);
     }
 
+#if CS_CHECK
     [Test]
     public void Check_AddOrUpdate_random_items_and_verify_all_added()
     {
@@ -589,6 +593,7 @@ public class SmallMapTests
             },
             iter: 5000);
     }
+#endif
 }
 
 public static class SmallMapTestTools
