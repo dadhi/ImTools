@@ -440,10 +440,10 @@ namespace ImTools.UnitTests
                 m = m.AddOrUpdate(i + "", i);
             }
 
-            Assert.AreEqual(1,   m.GetValueOrDefault("1"));
-            Assert.AreEqual(0,   m.GetValueOrDefault("0"));
-            Assert.AreEqual(13,  m.GetValueOrDefault("13"));
-            Assert.AreEqual(66,  m.GetValueOrDefault("66"));
+            Assert.AreEqual(1, m.GetValueOrDefault("1"));
+            Assert.AreEqual(0, m.GetValueOrDefault("0"));
+            Assert.AreEqual(13, m.GetValueOrDefault("13"));
+            Assert.AreEqual(66, m.GetValueOrDefault("66"));
             Assert.AreEqual(555, m.GetValueOrDefault("555"));
             Assert.AreEqual(333, m.GetValueOrDefault("333"));
             Assert.AreEqual(999, m.GetValueOrDefault("999"));
@@ -462,10 +462,10 @@ namespace ImTools.UnitTests
                 m = m.AddOrUpdate(i + "", i);
             }
 
-            Assert.AreEqual(7 + 1,   m.GetValueOrDefault("" + (7 + 1)));
-            Assert.AreEqual(7 + 0,   m.GetValueOrDefault("" + (7 + 0)));
-            Assert.AreEqual(7 + 13,  m.GetValueOrDefault("" + (7 + 13)));
-            Assert.AreEqual(7 + 66,  m.GetValueOrDefault("" + (7 + 66)));
+            Assert.AreEqual(7 + 1, m.GetValueOrDefault("" + (7 + 1)));
+            Assert.AreEqual(7 + 0, m.GetValueOrDefault("" + (7 + 0)));
+            Assert.AreEqual(7 + 13, m.GetValueOrDefault("" + (7 + 13)));
+            Assert.AreEqual(7 + 66, m.GetValueOrDefault("" + (7 + 66)));
             Assert.AreEqual(7 + 555, m.GetValueOrDefault("" + (7 + 555)));
             Assert.AreEqual(7 + 333, m.GetValueOrDefault("" + (7 + 333)));
             Assert.AreEqual(7 + 999, m.GetValueOrDefault("" + (7 + 999)));
@@ -500,7 +500,7 @@ namespace ImTools.UnitTests
         }
 
         [Test]
-        public void AddOrUpdate_random_items_and_randomly_checking_CsCheck_shrinked()
+        public void AddOrUpdate_random_items_and_randomly_checking_CsCheck_shrunk()
         {
             const int upperBound = 100000;
             Gen.Int[0, upperBound].Array.Sample(items =>
@@ -666,7 +666,6 @@ namespace ImTools.UnitTests
                 var m = ImHashMap<string, string>.Empty;
                 foreach (var n in s)
                 {
-
                     m = m.AddOrKeep(n, n);
                     Assert.AreEqual(n, m.GetValueOrDefault(n));
                 }
@@ -711,7 +710,7 @@ namespace ImTools.UnitTests
             Gen.Int[0, upperBound].ArrayUnique.SelectMany(keys =>
                 Gen.Int.Array[keys.Length].Select(values =>
                 {
-                    var keyArray = keys  .Select(x => x.ToString()).ToArray();
+                    var keyArray = keys.Select(x => x.ToString()).ToArray();
                     var valArray = values.Select(x => x.ToString()).ToArray();
 
                     var m = ImHashMap<string, string>.Empty;
@@ -731,7 +730,9 @@ namespace ImTools.UnitTests
                     var ((m, _), k1, v1, k2, v2) = t;
                     var (sk1, sv1, sk2, sv2) = ("" + k1, "" + v1, "" + k2, "" + v2);
 
-                    var m1 = m.AddOrUpdate(sk1, sv1).AddOrUpdate(sk2, sv2);
+                    var m1 = m
+                        .AddOrUpdate(sk1, sv1)
+                        .AddOrUpdate(sk2, sv2);
 
                     var m2 = sk1 == sk2 ? m.AddOrUpdate(sk2, sv2) : m.AddOrUpdate(sk2, sv2).AddOrUpdate(sk1, sv1);
 
@@ -849,15 +850,15 @@ namespace ImTools.UnitTests
                 Gen.Select(Gen.Const(m.Item1), Gen.Int[0, upperBound], Gen.Int, Gen.Const(m.Item2)))
                 .Sample(t =>
                 {
-                    var dic1 = t.V0.ToDictionary();
-                    dic1[t.V1 + ""] = t.V2 + "";
+                    var dic1 = t.Item1.ToDictionary();
+                    dic1[t.Item2 + ""] = t.Item3 + "";
 
-                    var dic2 = t.V0.AddOrUpdate(t.V1 + "", t.V2 + "").ToDictionary();
+                    var dic2 = t.Item1.AddOrUpdate(t.Item2 + "", t.Item3 + "").ToDictionary();
 
                     CollectionAssert.AreEqual(dic1, dic2);
                 }
                 , iter: 1000
-                , print: t => t + "\n" + string.Join("\n", t.V0.Enumerate()));
+                , print: t => t + "\n" + string.Join("\n", t.Item1.Enumerate()));
         }
 
         [Test]
@@ -868,21 +869,21 @@ namespace ImTools.UnitTests
                 Gen.Select(Gen.Const(m.Item1), Gen.Int[0, upperBound], Gen.Int, Gen.Const(m.Item2)))
                 .Sample(t =>
                 {
-                    var dic1 = t.V0.ToDictionary();
-                    if (dic1.ContainsKey(t.V1 + ""))
-                        dic1.Remove(t.V1 + "");
+                    var dic1 = t.Item1.ToDictionary();
+                    if (dic1.ContainsKey(t.Item2 + ""))
+                        dic1.Remove(t.Item2 + "");
 
-                    var map = t.V0.AddOrUpdate(t.V1 + "", t.V2 + "").Remove(t.V1 + "");
-                    // Assert.AreEqual(t.V0.Remove(t.V1).Count(), map.Count());
+                    var map = t.Item1.AddOrUpdate(t.Item2 + "", t.Item3 + "").Remove(t.Item2 + "");
+                    // Assert.AreEqual(t.Item1.Remove(t.Item2).Count(), map.Count());
 
                     var dic2 = map.ToDictionary();
                     CollectionAssert.AreEqual(dic1, dic2);
                 }
                 , iter: 1000
                 , print: t =>
-                    "\noriginal: " + t.V0 +
-                    "\nadded: " + t.V1 +
-                    "\nkeys: {" + string.Join(", ", t.V3) + "}");
+                    "\noriginal: " + t.Item1 +
+                    "\nadded: " + t.Item2 +
+                    "\nkeys: {" + string.Join(", ", t.Item4) + "}");
         }
     }
 }

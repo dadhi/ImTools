@@ -2248,7 +2248,7 @@ public class ImHashMap<K, V>
         }
 
         internal abstract int ForEach<S>(S state, int startIndex, Action<ImHashMapEntry<K, V>, int, S> handler);
-        
+
         internal abstract ImHashMapEntry<K, V> FindFirstOrDefault<S>(ref S state, ref int i, ConditionWithRefState<K, V, S> condition);
     }
 
@@ -6922,7 +6922,7 @@ public static class SmallMap
     }
 
     // todo: @improve can we move the Entry into the type parameter to configure and possibly save the memory e.g. for the sets? 
-    /// <summary>Abstraction to configure your own entries data structure. Check the derivitives for the examples</summary>
+    /// <summary>Abstraction to configure your own entries data structure. Check the derived types for the examples</summary>
     public interface IEntries<K, V, TEq> where TEq : IEq<K>
     {
         /// <summary>Initializes the entries storage to the specified capacity via the number of <paramref name="capacityBitShift"/> bits in the capacity</summary>
@@ -6934,7 +6934,7 @@ public static class SmallMap
         /// <summary>Returns the reference to entry by its index, index should map to the present/non-removed entry</summary>
         ref Entry<K, V> GetSurePresentEntryRef(int index);
 
-        /// <summary>Adds the key at the "end" of entriesc- so the order of addition is preserved.</summary>
+        /// <summary>Adds the key at the "end" of entries so the order of addition is preserved.</summary>
         ref V AddKeyAndGetValueRef(K key);
 
         /// <summary>Marks the entry as removed `TEq.GetTombstone` or removes it and frees the memory if possible.</summary>
@@ -7211,7 +7211,7 @@ public static class SmallMap
 
 /// <summary>
 /// Fast and less-allocating hash map without thread safety nets. Please measure it in your own use case before use.
-/// It is configurable in regard of hash calculation/equality via `TEq` type paremeter and 
+/// It is configurable in regard of hash calculation/equality via `TEq` type parameter and 
 /// in regard of key-value storage via `TEntries` type parameter.
 /// 
 /// Details:
@@ -7336,7 +7336,7 @@ public struct SmallMap<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
             var hashIndex = hash & indexMask;
 
 #if NET7_0_OR_GREATER
-        ref var hashesAndIndexes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
+            ref var hashesAndIndexes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
 #else
             var hashesAndIndexes = _packedHashesAndIndexes;
 #endif

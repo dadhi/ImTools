@@ -9,14 +9,14 @@
         <license type="expression">MIT</license>
         <requireLicenseAcceptance>false</requireLicenseAcceptance>
         <description>
-<![CDATA[
-        Immutable persistent collections, algebraic sum-type aka descriminated union, Ref type and supportive extensions for performant functional programming in C#.
+            <![CDATA[
+        Fast and space efficient immutable collections, hash maps, and utilities for performant programming in C#.
         Split from the DryIoc: https://github.com/dadhi/DryIoc
 ]]>
         </description>
         <tags>FP Performance Simple Functional Immutable Persistent Map Avl 2-3Tree Self Balanced Tree Dictionary Thread-safe Functional Atomic Ref Algebraic Discriminated Union SumType</tags>
         <releaseNotes>
-<![CDATA[
+            <![CDATA[
 ## v4.0.0 Major release
 
 ### Breaking changes

@@ -9,7 +9,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/playground/ImTools.Benchmarks/bin/Debug/net7.0/ImTools.Benchmarks.dll",
+            "program": "${workspaceFolder}/playground/ImTools.Benchmarks/bin/Debug/net8.0/ImTools.Benchmarks.dll",
             "args": [],
             "cwd": "${workspaceFolder}/playground/ImTools.Benchmarks",
             "stopAtEntry": false,

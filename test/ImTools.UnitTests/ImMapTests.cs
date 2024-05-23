@@ -333,15 +333,15 @@ namespace ImTools.UnitTests
                 Gen.Select(Gen.Const(m.Item1), Gen.Int[0, upperBound], Gen.Int, Gen.Const(m.Item2)))
                 .Sample(t =>
                 {
-                    var dic1 = t.V0.ToDictionary();
-                    dic1[t.V1] = t.V2;
+                    var dic1 = t.Item1.ToDictionary();
+                    dic1[t.Item2] = t.Item3;
 
-                    var dic2 = t.V0.AddOrUpdate(t.V1, t.V2).ToDictionary();
+                    var dic2 = t.Item1.AddOrUpdate(t.Item2, t.Item3).ToDictionary();
 
                     CollectionAssert.AreEqual(dic1, dic2);
                 }
                 , iter: 1000
-                , print: t => t + "\nhashes: {" + string.Join(", ", t.V3) + "}");
+                , print: t => t + "\nhashes: {" + string.Join(", ", t.Item4) + "}");
         }
 
         [Test]
@@ -389,18 +389,18 @@ namespace ImTools.UnitTests
                 Gen.Select(Gen.Const(m.Item1), Gen.Int[0, upperBound], Gen.Int, Gen.Const(m.Item2)))
                 .Sample(t =>
                 {
-                    var dic1 = t.V0.ToDictionary();
-                    if (dic1.ContainsKey(t.V1))
-                        dic1.Remove(t.V1);
+                    var dic1 = t.Item1.ToDictionary();
+                    if (dic1.ContainsKey(t.Item2))
+                        dic1.Remove(t.Item2);
 
-                    var map = t.V0.AddOrUpdate(t.V1, t.V2).Remove(t.V1);
-                    Assert.AreEqual(t.V0.Remove(t.V1).Count(), map.Count());
+                    var map = t.Item1.AddOrUpdate(t.Item2, t.Item3).Remove(t.Item2);
+                    Assert.AreEqual(t.Item1.Remove(t.Item2).Count(), map.Count());
 
                     var dic2 = map.ToDictionary();
                     CollectionAssert.AreEqual(dic1, dic2);
                 }
                 , iter: 1000
-                , print: t => t + "\n" + "keys: {" + string.Join(", ", t.V3) + "}");
+                , print: t => t + "\n" + "keys: {" + string.Join(", ", t.Item4) + "}");
         }
 
         [Test]

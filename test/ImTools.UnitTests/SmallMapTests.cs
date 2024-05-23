@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CsCheck;
 using NUnit.Framework;
 
 namespace ImTools.Experiments.UnitTests;
@@ -468,6 +469,126 @@ public class SmallMapTests
         Assert.AreEqual("3", map.GetValueOrDefault(42 + 32 + 32));
         map.Verify(null);
     }
+
+    [Test]
+    public void Check_AddOrUpdate_random_items_and_verify_all_added()
+    {
+        const int upperBound = 100000;
+        Gen.Int[0, upperBound].Array.Sample(items =>
+        {
+            var m = SmallMap.New<string, int, DefaultEq<string>>();
+            foreach (var n in items)
+            {
+                var k = "" + n;
+                m.AddOrUpdate(k, n);
+                Assert.AreEqual(n, m.GetValueOrDefault(k));
+            }
+
+            foreach (var n in items)
+                Assert.AreEqual(n, m.GetValueOrDefault("" + n));
+
+            // non-existing keys 
+            Assert.AreEqual(0, m.GetValueOrDefault("" + (upperBound + 1)));
+            Assert.AreEqual(0, m.GetValueOrDefault("-1"));
+        },
+        iter: 5000);
+    }
+
+    // todo: @wip yes, composition over inheritance.
+    // struct PlainSmallMap<K, V, TEq> where TEq : IEq<K>
+    // {
+    //     public SmallMap<string, string, DefaultEq<string>, SmallMap.SingleArrayEntries<string, string, DefaultEq<string>>> Map;
+    // }
+
+    static Gen<(
+        SmallMap<string, string, DefaultEq<string>, SmallMap.SingleArrayEntries<string, string, DefaultEq<string>>>,
+        string[])>
+        GenImMap(int upperBound) =>
+            Gen.Int[0, upperBound].ArrayUnique.SelectMany(keys =>
+                Gen.Int.Array[keys.Length].Select(values =>
+                {
+                    var keyArray = keys.Select(x => x.ToString()).ToArray();
+                    var valArray = values.Select(x => x.ToString()).ToArray();
+
+                    var m = SmallMap.New<string, string, DefaultEq<string>>();
+                    for (var i = 0; i < keyArray.Length; i++)
+                        m.AddOrUpdate(keyArray[i], valArray[i]);
+                    return (map: m, keys: keyArray);
+                }));
+
+    // https://www.youtube.com/watch?v=G0NUOst-53U&feature=youtu.be&t=1639
+    // [Test]
+    public void Check_AddOrUpdate_metamorphic()
+    {
+        const int upperBound = 100_000;
+        Gen.Select(GenImMap(upperBound), Gen.Int[0, upperBound], Gen.Int, Gen.Int[0, upperBound], Gen.Int)
+            .Sample(t =>
+            {
+                var ((m, _), k1, v1, k2, v2) = t;
+                var (sk1, sv1, sk2, sv2) = ("" + k1, "" + v1, "" + k2, "" + v2);
+
+                // todo: @wip add the Copy method
+                // copy things to the new maps
+                var m1 = SmallMap.New<string, string, DefaultEq<string>>();
+                var m2 = SmallMap.New<string, string, DefaultEq<string>>();
+                foreach (var (k, v) in m.Select(x => (x.Key, x.Value)))
+                {
+                    m1.AddOrUpdate(k, v);
+                    m2.AddOrUpdate(k, v);
+                }
+
+                m1.AddOrUpdate(sk1, sv1);
+                m1.AddOrUpdate(sk2, sv2);
+
+                if (sk1 == sk2)
+                    m2.AddOrUpdate(sk2, sv2);
+                else
+                {
+                    // add in the reverse order between 2 maps
+                    m2.AddOrUpdate(sk2, sv2);
+                    m2.AddOrUpdate(sk1, sv1);
+                }
+
+                CollectionAssert.AreEqual(m1.Select(x => x.Key), m2.Select(x => x.Key));
+            },
+            iter: 5000);
+    }
+
+    // [Test]
+    public void Check_Remove_metamorphic()
+    {
+        const int upperBound = 100_000;
+        Gen.Select(GenImMap(upperBound), Gen.Int[0, upperBound], Gen.Int, Gen.Int[0, upperBound], Gen.Int)
+            .Sample(t =>
+            {
+                var ((m, _), k1, v1, k2, v2) = t;
+                var (sk1, sv1, sk2, sv2) = ("" + k1, "" + v1, "" + k2, "" + v2);
+
+                var m1 = SmallMap.New<string, string, DefaultEq<string>>();
+                var m2 = SmallMap.New<string, string, DefaultEq<string>>();
+                foreach (var (k, v) in m.Select(x => (x.Key, x.Value)))
+                {
+                    m1.AddOrUpdate(k, v);
+                    m2.AddOrUpdate(k, v);
+                }
+
+                m1.AddOrUpdate(sk1, sv1);
+                m1.AddOrUpdate(sk2, sv2);
+
+                m2.AddOrUpdate(sk1, sv1);
+                m2.AddOrUpdate(sk2, sv2);
+
+                m1.TryRemove(sk1);
+                m1.TryRemove(sk2);
+
+                // remove in the reverse order for 2 maps
+                m2.TryRemove(sk2);
+                m2.TryRemove(sk1);
+
+                CollectionAssert.AreEqual(m1.Select(x => x.Key), m2.Select(x => x.Key));
+            },
+            iter: 5000);
+    }
 }
 
 public static class SmallMapTestTools
@@ -483,7 +604,7 @@ public static class SmallMapTestTools
             map.VerifyContainAllKeys(expectedKeys);
     }
 
-    /// <summary>Verifies that the hashes correspond to the keys stroed in the entries. May be called from the tests.</summary>
+    /// <summary>Verifies that the hashes correspond to the keys stored in the entries. May be called from the tests.</summary>
     public static void VerifyHashesAndKeysEq<K, V, TEq, TEntries>(this SmallMap<K, V, TEq, TEntries> map)
         where TEq : struct, IEq<K>
         where TEntries : struct, IEntries<K, V, TEq>
