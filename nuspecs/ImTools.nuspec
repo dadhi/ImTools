@@ -14,7 +14,8 @@
         Split from the DryIoc: https://github.com/dadhi/DryIoc
 ]]>
         </description>
-        <tags>FP Performance Simple Functional Immutable Persistent Map Avl 2-3Tree Self Balanced Tree Dictionary Thread-safe Functional Atomic Ref Algebraic Discriminated Union SumType</tags>
+        <readme>README.md</readme>
+        <tags>FP Performance Simple Functional Immutable Persistent Map Avl 2-3Tree Self Balanced Tree Dictionary Thread-safe Functional Atomic Ref</tags>
         <releaseNotes>
             <![CDATA[
 
@@ -62,7 +63,9 @@ but you may expect that some types and methods were renamed, or new overloads we
     <files>
         <file src="..\LICENSE.txt" />
         <file src="..\ImTools.snk" />
+        <file src="..\README.md" />
 
+        <!--todo: @wip update the net40 to net472 and net8.0 -->
         <file src="_._" target="lib\net45\" />
         <file src="_._" target="lib\netstandard2.0\" />
 

@@ -19,7 +19,7 @@
         Split from the DryIoc: https://github.com/dadhi/DryIoc
 ]]>
         </Description>
-        <PackageTags>FP Performance Simple Functional Immutable Persistent Map Avl 2-3Tree Self Balanced Tree Dictionary Thread-safe Functional Atomic Ref Algebraic Discriminated Union SumType</PackageTags>
+        <PackageTags>FP Performance Simple Functional Immutable Persistent Map Avl 2-3Tree Self Balanced Tree Dictionary Thread-safe Functional Atomic Ref</PackageTags>
         <PackageReleaseNotes>
             <![CDATA[
 ## v5.0.0 Major release

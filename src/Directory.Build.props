@@ -8,35 +8,40 @@
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
         <PackageProjectUrl>https://github.com/dadhi/ImTools</PackageProjectUrl>
-        <!-- <PackageIconUrl>https://github.com/dadhi/ImTools/blob/master/logo/logo128.png</PackageIconUrl> -->
         <RepositoryUrl>https://github.com/dadhi/ImTools.git</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     </PropertyGroup>
 
     <!--Signing all packages, oh boy-->
     <PropertyGroup Condition=" '$(Sign)' != 'false' ">
         <SignAssembly>true</SignAssembly>
         <AssemblyOriginatorKeyFile>..\..\ImTools.snk</AssemblyOriginatorKeyFile>
-    </PropertyGroup>
-
-    <PropertyGroup>
-        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <DelaySign>false</DelaySign>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
-        
+
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <PackageOutputPath>..\..\.dist\packages</PackageOutputPath>
 
-        <DebugType>embedded</DebugType>
-        <!-- <DebugSymbols>true</DebugSymbols> -->
-        <IncludeSymbols>false</IncludeSymbols>
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+        <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <!-- <PackageIcon>LOGO.png</PackageIcon> -->
+
     </PropertyGroup>
 
     <ItemGroup>
-        <None Include="..\..\LICENSE.txt" Pack="true" PackagePath="LICENSE.txt" Visible="false" />
-        <None Include="..\..\ImTools.snk" Pack="true" PackagePath="ImTools.snk" Visible="false" />
+        <None Include="..\..\LICENSE.txt" Pack="true" PackagePath="" Visible="false" />
+        <None Include="..\..\ImTools.snk" Pack="true" PackagePath="" Visible="false" />
+        <None Include="..\..\README.md" Pack="true" PackagePath="" Visible="false" />
+        <!-- <None Include="..\..\LOGO.png" Pack="true" PackagePath="" Visible="false" /> -->
     </ItemGroup>
 
 </Project>
