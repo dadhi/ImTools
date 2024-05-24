@@ -558,8 +558,27 @@ public class SmallMapTests
             iter: 1000);
     }
 
-    // todo: @wip @fixme
-    // [Test]
+    [Test]
+    public void Check_AddOrUpdate_ModelBased()
+    {
+        const int upperBound = 100_000;
+        Gen.SelectMany(GenImMap(upperBound), m =>
+            Gen.Select(Gen.Const(m.Item1), Gen.Int[0, upperBound], Gen.Int, Gen.Const(m.Item2)))
+            .Sample(t =>
+            {
+                var dic1 = t.Item1.ToDictionary(x => x.Key, x => x.Value);
+                dic1[t.Item2 + ""] = t.Item3 + "";
+
+                t.Item1.AddOrUpdate(t.Item2 + "", t.Item3 + "");
+                var dic2 = t.Item1.ToDictionary(x => x.Key, x => x.Value);
+
+                CollectionAssert.AreEqual(dic1, dic2);
+            }
+            , iter: 1000
+            , print: t => t + "\n" + string.Join("\n", t.Item1));
+    }
+
+    [Test]
     public void Check_Remove_metamorphic()
     {
         const int upperBound = 100_000;
@@ -590,10 +609,38 @@ public class SmallMapTests
                 m2.TryRemove(sk2);
                 m2.TryRemove(sk1);
 
-                CollectionAssert.AreEqual(m1.Select(x => x.Key).OrderBy(x => x), m2.Select(x => x.Key).OrderBy(x => x));
+                var dict1 = m1.ToDictionary(x => x.Key, x => x.Value);
+                var dict2 = m2.ToDictionary(x => x.Key, x => x.Value);
+
+                CollectionAssert.AreEqual(dict1, dict2);
             },
             iter: 1000);
     }
+
+    [Test]
+    public void Check_Remove_ModelBased()
+    {
+        const int upperBound = 100000;
+        Gen.SelectMany(GenImMap(upperBound), m =>
+            Gen.Select(Gen.Const(m.Item1), Gen.Int[0, upperBound], Gen.Int, Gen.Const(m.Item2)))
+            .Sample(t =>
+            {
+                var dic1 = t.Item1.ToDictionary(x => x.Key, x => x.Value);
+                dic1.Remove(t.Item2 + "");
+
+                t.Item1.AddOrUpdate(t.Item2 + "", t.Item3 + "");
+                t.Item1.TryRemove(t.Item2 + "");
+
+                var dic2 = t.Item1.ToDictionary(x => x.Key, x => x.Value);
+                CollectionAssert.AreEqual(dic1, dic2);
+            }
+            , iter: 1000
+            , print: t =>
+                "\noriginal: " + t.Item1 +
+                "\nadded: " + t.Item2 +
+                "\nkeys: {" + string.Join(", ", t.Item4) + "}");
+    }
+
 #endif
 }
 

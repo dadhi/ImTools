@@ -3,9 +3,11 @@
         "cref",
         "Hasher",
         "langword",
+        "mentries",
         "prepended",
         "rebalance",
-        "skipci"
+        "skipci",
+        "sparcing"
     ],
     "files.watcherExclude": {
         "**/target": true

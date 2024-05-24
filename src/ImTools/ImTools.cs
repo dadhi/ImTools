@@ -6731,12 +6731,9 @@ public static class PartitionedHashMap
     }
 }
 
-/// <summary>Configiration and the tools for the FHashMap map data structure</summary>
+/// <summary>Configuration and the tools for the FHashMap map data structure</summary>
 public static class SmallMap
 {
-    /// <summary>2^32 / phi for the Fibonacci hashing, where phi is the golden ratio ~1.61803</summary>
-    public const uint GoldenRatio32 = 2654435769;
-
     internal const byte MinFreeCapacityShift = 3; // e.g. for the capacity 16: 16 >> 3 => 2, 12.5% of the free hash slots (it does not mean the entries free slot)
     internal const byte MinCapacityBits = 3; // 1 << 3 == 8
 
@@ -6837,7 +6834,7 @@ public static class SmallMap
         int GetHashCode(K key);
     }
 
-    /// <summary>Default comparer using the `object.GetHashCode` and `object.Equals` oveloads</summary>
+    /// <summary>Default comparer using the `object.GetHashCode` and `object.Equals` overloads</summary>
     public struct DefaultEq<K> : IEq<K>
     {
         /// <inheritdoc />
@@ -6846,7 +6843,7 @@ public static class SmallMap
 
         /// <inheritdoc />
         [MethodImpl((MethodImplOptions)256)]
-        public bool Equals(K x, K y) => x.Equals(y);
+        public bool Equals(K x, K y) => ReferenceEquals(x, y) || x.Equals(y);
 
         /// <inheritdoc />
         [MethodImpl((MethodImplOptions)256)]
@@ -6881,7 +6878,7 @@ public static class SmallMap
         /// <inheritdoc />
         [MethodImpl((MethodImplOptions)256)]
         public bool Equals((A, B) x, (A, B) y) =>
-            ReferenceEquals(x.Item1, y.Item1) && ReferenceEquals(x.Item2, y.Item2);
+            ReferenceEquals(x.Item1, y.Item1) & ReferenceEquals(x.Item2, y.Item2);
 
         /// <inheritdoc />
         [MethodImpl((MethodImplOptions)256)]
@@ -6908,6 +6905,9 @@ public static class SmallMap
     /// <summary>Uses Fibonacci hashing by multiplying the integer on the factor derived from the GoldenRatio</summary>
     public struct GoldenIntEq : IEq<int>
     {
+        /// <summary>2^32 / phi for the Fibonacci hashing, where phi is the golden ratio ~1.61803</summary>
+        public const uint GoldenRatio32 = 2654435769;
+
         /// <inheritdoc />
         [MethodImpl((MethodImplOptions)256)]
         public int GetTombstone() => int.MinValue;
@@ -6934,11 +6934,11 @@ public static class SmallMap
         /// <summary>Returns the reference to entry by its index, index should map to the present/non-removed entry</summary>
         ref Entry<K, V> GetSurePresentEntryRef(int index);
 
-        /// <summary>Adds the key at the "end" of entries so the order of addition is preserved.</summary>
-        ref V AddKeyAndGetValueRef(K key);
+        /// <summary>Adds the entry with the key at the "end" of entries so the order of addition is preserved.</summary>
+        ref V AppendEntryAndGetValueRef(K key);
 
         /// <summary>Marks the entry as removed `TEq.GetTombstone` or removes it and frees the memory if possible.</summary>
-        void TombstoneOrRemoveSurePresentEntry(int index);
+        void SetTombstoneOrRemoveSurePresentEntry(int index);
     }
 
     internal const int MinEntriesCapacity = 2;
@@ -6970,7 +6970,7 @@ public static class SmallMap
 
         /// <inheritdoc/>
         [MethodImpl((MethodImplOptions)256)]
-        public ref V AddKeyAndGetValueRef(K key)
+        public ref V AppendEntryAndGetValueRef(K key)
         {
             var index = _entryCount;
             if (index == 0)
@@ -6994,7 +6994,7 @@ public static class SmallMap
 
         /// <summary>Tombstones the entry key</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public void TombstoneOrRemoveSurePresentEntry(int index)
+        public void SetTombstoneOrRemoveSurePresentEntry(int index)
         {
             GetSurePresentEntryRef(index) = new(default(TEq).GetTombstone());
             --_entryCount;
@@ -7037,7 +7037,7 @@ public static class SmallMap
         }
 
         /// <inheritdoc/>
-        public ref V AddKeyAndGetValueRef(K key)
+        public ref V AppendEntryAndGetValueRef(K key)
         {
             var index = _entryCount++;
             var bucketIndex = index >>> ChunkCapacityBitShift;
@@ -7101,7 +7101,7 @@ public static class SmallMap
 
         /// <summary>Tombstones the entry key</summary>
         [MethodImpl((MethodImplOptions)256)]
-        public void TombstoneOrRemoveSurePresentEntry(int index)
+        public void SetTombstoneOrRemoveSurePresentEntry(int index)
         {
             GetSurePresentEntryRef(index) = new(default(TEq).GetTombstone());
             --_entryCount;
@@ -7242,7 +7242,7 @@ public struct SmallMap<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
     // |- 5 (MaxProbeBits) high bits of the Probe count, with the minimal value of b00001 indicating the non-empty slot.
     private int[] _packedHashesAndIndexes;
 
-#pragma warning disable IDE0044 // it tries to make the _entries readonly but they should stay modifyable to prevent its defensive struct copying  
+#pragma warning disable IDE0044 // it tries to make the _entries readonly but they should stay modifiable to prevent its defensive struct copying  
     private TEntries _entries;
 #pragma warning restore IDE0044
 
@@ -7264,7 +7264,7 @@ public struct SmallMap<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
         _indexMask = (1 << capacityBitShift) - 1;
 
         // the overflow tail to the hashes is the size of log2N where N==capacityBitShift, 
-        // it is probably fine to have the check for the overlow of capacity because it will be mispredicted only once at the end of loop (it even rarely for the lookup)
+        // it is probably fine to have the check for the overflow of capacity because it will be mis-predicted only once at the end of loop (it even rarely for the lookup)
         _packedHashesAndIndexes = new int[1 << capacityBitShift];
         _entries = default;
         _entries.Init(capacityBitShift);
@@ -7438,7 +7438,7 @@ public struct SmallMap<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
                 probes = hRobinHooded >>> ProbeCountShift;
             }
         }
-        return ref _entries.AddKeyAndGetValueRef(key);
+        return ref _entries.AppendEntryAndGetValueRef(key);
     }
 
     /// <summary>Same as `GetOrAddValueRef` but provides the value to add or override for the existing key</summary>
@@ -7476,7 +7476,7 @@ public struct SmallMap<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
                 ref var e = ref _entries.GetSurePresentEntryRef(h & indexMask);
                 if (default(TEq).Equals(e.Key, key))
                 {
-                    _entries.TombstoneOrRemoveSurePresentEntry(h & indexMask);
+                    _entries.SetTombstoneOrRemoveSurePresentEntry(h & indexMask);
                     removed = true;
                     h = 0;
 #if DEBUG
