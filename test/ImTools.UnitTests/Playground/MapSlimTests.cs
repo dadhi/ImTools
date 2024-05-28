@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Linq;
-using System.Collections;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using CsCheck;
 using NUnit.Framework;
 
@@ -12,21 +10,40 @@ namespace ImTools.Experiments.UnitTests;
 public class MapSlimTests
 {
     [Test]
-    public void Can_add_and_get_key_value()
+    public void Can_add_and_get_3_items_with_arbitrary_hash()
     {
         var map = new MapSlim<string, string>();
 
-        map.AddItem("a", "a", "a".GetHashCode());
-        map.AddItem("b", "b", "b".GetHashCode());
-        map.AddItem("c", "c", "c".GetHashCode());
+        map.AddOrUpdate("a", "a");
+        map.AddOrUpdate("b", "b");
+        map.AddOrUpdate("c", "c");
 
-        ref var b = ref map.GetValueOrNullRef("b");
+        map.TryGetValue("b", out var b);
         Assert.AreEqual("b", b);
 
-        ref var c = ref map.GetValueOrNullRef("c");
+        map.TryGetValue("c", out var c);
         Assert.AreEqual("c", c);
 
-        ref var a = ref map.GetValueOrNullRef("a");
+        map.TryGetValue("a", out var a);
+        Assert.AreEqual("a", a);
+    }
+
+    [Test]
+    public void Can_add_and_get_3_items_with_the_same_conflicting_hash()
+    {
+        var map = new MapSlim<string, string>();
+
+        map.AddOrUpdate("a", 1, "a");
+        map.AddOrUpdate("b", 1, "b");
+        map.AddOrUpdate("c", 1, "c");
+
+        map.TryGetValue("b", 1, out var b);
+        Assert.AreEqual("b", b);
+
+        map.TryGetValue("c", 1, out var c);
+        Assert.AreEqual("c", c);
+
+        map.TryGetValue("a", 1, out var a);
         Assert.AreEqual("a", a);
     }
 
@@ -92,9 +109,9 @@ public class MapSlimTests
         Gen.Dictionary(Gen.Int, Gen.Byte)
         .Select(a => (a, new MapSlim<int, byte>(a), new Dictionary<int, byte>(a)))
         .Faster(
-            (items, mapslim, _) =>
+            (items, map, _) =>
             {
-                foreach (var (k, _) in items) mapslim.IndexOf(k);
+                foreach (var (k, _) in items) map.IndexOf(k);
             },
             (items, _, dict) =>
             {
@@ -104,24 +121,24 @@ public class MapSlimTests
     }
 
     // [Test] // todo: @fixme
-    public void MapSlim_Performance_Increment()
-    {
-        Gen.Int[0, 255].Array
-        .Select(a => (a, new MapSlim<int, int>(), new Dictionary<int, int>()))
-        .Faster(
-            (items, mapslim, _) =>
-            {
-                foreach (var b in items)
-                    mapslim.GetValueOrNullRef(b)++;
-            },
-            (items, _, dict) =>
-            {
-                foreach (var b in items)
-                {
-                    dict.TryGetValue(b, out var c);
-                    dict[b] = c + 1;
-                }
-            },
-            repeat: 1000, sigma: 10, writeLine: Console.WriteLine);
-    }
+    // public void MapSlim_Performance_Increment()
+    // {
+    //     Gen.Int[0, 255].Array
+    //     .Select(a => (a, new MapSlim<int, int>(), new Dictionary<int, int>()))
+    //     .Faster(
+    //         (items, map, _) =>
+    //         {
+    //             foreach (var b in items)
+    //                 mapslim.GetValueOrNullRefWithHash(b)++;
+    //         },
+    //         (items, _, dict) =>
+    //         {
+    //             foreach (var b in items)
+    //             {
+    //                 dict.TryGetValue(b, out var c);
+    //                 dict[b] = c + 1;
+    //             }
+    //         },
+    //         repeat: 1000, sigma: 10, writeLine: Console.WriteLine);
+    // }
 }

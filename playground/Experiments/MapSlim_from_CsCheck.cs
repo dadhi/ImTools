@@ -7,12 +7,13 @@ using System.Runtime.CompilerServices;
 
 public class MapSlim<K, V> : IReadOnlyCollection<KeyValuePair<K, V>> where K : IEquatable<K>
 {
-    struct Entry
+    public struct Entry
     {
-        internal int BucketIndexPlusOne;
-        internal int NextBucketIndex;
-        internal K Key;
-        internal V Value;
+        public int PayloadEntryIndexPlusOne;
+        public int PrevPayloadEntryIndex;
+        public int Hash;
+        public K Key;
+        public V Value;
     }
 
     // todo: @wip why do we need an empty single entry, is it to avoid lookup condition for no entries case?
@@ -37,7 +38,7 @@ public class MapSlim<K, V> : IReadOnlyCollection<KeyValuePair<K, V>> where K : I
 
     public int Count => _count;
 
-    static int PowerOf2(int capacity)
+    private static int PowerOf2(int capacity)
     {
         if ((capacity & (capacity - 1)) == 0)
             return capacity;
@@ -48,104 +49,83 @@ public class MapSlim<K, V> : IReadOnlyCollection<KeyValuePair<K, V>> where K : I
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    Entry[] Resize()
+    private static Entry[] ResizeAndCopy(Entry[] entries)
     {
-        var oldEntries = _entries;
-        if (oldEntries.Length == 1)
-            return _entries = new Entry[2];
+        if (entries.Length == 1)
+            return new Entry[2];
 
-        var newEntries = new Entry[oldEntries.Length * 2];
-        for (var i = 0; i < oldEntries.Length;)
+        var newEntries = new Entry[entries.Length * 2];
+        for (var i = 0; i < entries.Length; ++i)
         {
-            var bucketIndex = oldEntries[i].Key.GetHashCode() & (newEntries.Length - 1);
-
-            newEntries[i].NextBucketIndex = newEntries[bucketIndex].BucketIndexPlusOne - 1;
-
-            newEntries[i].Key = oldEntries[i].Key;
-            newEntries[i].Value = oldEntries[i].Value;
-
-            newEntries[bucketIndex].BucketIndexPlusOne = ++i;
+            var e = entries[i];
+            var idealIndex = e.Hash & (newEntries.Length - 1);
+            FillEntry(ref newEntries[idealIndex], ref newEntries[i], i, e.Hash, e.Key, e.Value);
         }
-
-        return _entries = newEntries;
+        return newEntries;
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    public void AddItem(K key, V value, int hashCode)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void FillEntry(ref Entry idealEntry, ref Entry payloadEntry, int payloadEntryIndex, int hash, K key, V value)
     {
-        var newIndex = _count++;
-        var ent = _entries;
-        if (ent.Length == newIndex | ent.Length == 1)
-            ent = Resize();
+        // establish a link
+        payloadEntry.PrevPayloadEntryIndex = idealEntry.PayloadEntryIndexPlusOne - 1;
+        idealEntry.PayloadEntryIndexPlusOne = payloadEntryIndex + 1;
 
-        var bucketIndex = hashCode & (ent.Length - 1);
+        payloadEntry.Hash = hash;
+        payloadEntry.Key = key;
+        payloadEntry.Value = value;
+    }
 
-        ent[newIndex].NextBucketIndex = ent[bucketIndex].BucketIndexPlusOne - 1;
+    public int IndexOf(K key, int hash, out Entry[] entries)
+    {
+        entries = _entries;
+        var i = entries[hash & (entries.Length - 1)].PayloadEntryIndexPlusOne - 1;
+        while (i >= 0)
+        {
+            var entry = entries[i];
+            if (entry.Hash == hash && key.Equals(entry.Key))
+                break;
+            i = entry.PrevPayloadEntryIndex;
+        }
+        return i;
+    }
 
-        // todo: @wip save the hash code
-        ent[newIndex].Key = key;
-        ent[newIndex].Value = value;
+    /// <summary>Can make the map to contain the same key-hash entries</summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public int JustAddDefault(K key, int hash, out Entry[] entries)
+    {
+        entries = _entries;
+        var addIndex = _count++;
 
-        ent[bucketIndex].BucketIndexPlusOne = newIndex + 1;
+        if (entries.Length == addIndex | entries.Length == 1)
+            _entries = entries = ResizeAndCopy(entries);
+
+        var idealIndex = hash & (entries.Length - 1);
+        FillEntry(ref entries[idealIndex], ref entries[addIndex], addIndex, hash, key, default);
+        return addIndex;
+    }
+
+    public ref V GetOrAddValue(K key, int hash)
+    {
+        var i = IndexOf(key, hash, out var entries);
+        if (i == -1)
+            i = JustAddDefault(key, hash, out entries);
+        return ref entries[i].Value;
     }
 
     public V this[K key]
     {
         get
         {
-            var ent = _entries;
-            var hashCode = key.GetHashCode();
-            var i = ent[hashCode & (ent.Length - 1)].BucketIndexPlusOne - 1;
-            while (i >= 0 && !key.Equals(ent[i].Key))
-                i = ent[i].NextBucketIndex;
-            return ent[i].Value;
+            var i = IndexOf(key, key.GetHashCode(), out var entries);
+            if (i == -1)
+                throw new ArgumentOutOfRangeException($"The key `${key}` is not found in map `${this}`");
+            return entries[i].Value;
         }
         set
         {
-            var ent = _entries;
-            var hashCode = key.GetHashCode();
-            var i = ent[hashCode & (ent.Length - 1)].BucketIndexPlusOne - 1;
-            while (i >= 0 && !key.Equals(ent[i].Key))
-                i = ent[i].NextBucketIndex;
-            if (i >= 0)
-                ent[i].Value = value;
-            else
-                AddItem(key, value, hashCode);
+            GetOrAddValue(key, key.GetHashCode()) = value;
         }
-    }
-
-    public ref V GetValueOrNullRef(K key)
-    {
-        var ent = _entries;
-        var hashCode = key.GetHashCode();
-        var n = ent[hashCode & (ent.Length - 1)].BucketIndexPlusOne - 1;
-
-        while (n >= 0 && !key.Equals(ent[n].Key))
-            n = ent[n].NextBucketIndex;
-
-        if (n >= 0)
-            return ref ent[n].Value;
-
-        n = _count;
-        if (ent.Length == n | ent.Length == 1)
-            ent = Resize();
-
-        var bucketIndex = hashCode & (ent.Length - 1);
-        ent[n].NextBucketIndex = ent[bucketIndex].BucketIndexPlusOne - 1;
-        ent[n].Key = key;
-        ent[n].Value = default!;
-        ent[bucketIndex].BucketIndexPlusOne = ++_count;
-        return ref ent[n].Value;
-    }
-
-    public int IndexOf(K key)
-    {
-        var ent = _entries;
-        var hashCode = key.GetHashCode();
-        var i = ent[hashCode & (ent.Length - 1)].BucketIndexPlusOne - 1;
-        while (i >= 0 && !key.Equals(ent[i].Key))
-            i = ent[i].NextBucketIndex;
-        return i;
     }
 
     public K Key(int i) => _entries[i].Key;
@@ -158,4 +138,35 @@ public class MapSlim<K, V> : IReadOnlyCollection<KeyValuePair<K, V>> where K : I
     }
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+}
+
+public static class MapSlim
+{
+    public static int IndexOf<K, V>(this MapSlim<K, V> map, K key, int hash) where K : IEquatable<K>
+        => map.IndexOf(key, hash, out _);
+
+    public static int IndexOf<K, V>(this MapSlim<K, V> map, K key) where K : IEquatable<K>
+        => map.IndexOf(key, key.GetHashCode(), out _);
+
+    public static bool TryGetValue<K, V>(this MapSlim<K, V> map, K key, int hash, out V value) where K : IEquatable<K>
+    {
+        var i = map.IndexOf(key, hash, out var entries);
+        value = i != -1 ? entries[i].Value : default;
+        return i != -1;
+    }
+
+    public static bool TryGetValue<K, V>(this MapSlim<K, V> map, K key, out V value) where K : IEquatable<K>
+        => TryGetValue(map, key, key.GetHashCode(), out value);
+
+    public static void AddOrUpdate<K, V>(this MapSlim<K, V> map, K key, int hash, V value) where K : IEquatable<K> =>
+        map.GetOrAddValue(key, hash) = value;
+
+    public static void AddOrUpdate<K, V>(this MapSlim<K, V> map, K key, V value) where K : IEquatable<K> =>
+        map.GetOrAddValue(key, key.GetHashCode()) = value;
+
+    public static void AddPossibleDuplicate<K, V>(this MapSlim<K, V> map, K key, V value) where K : IEquatable<K>
+    {
+        var i = map.JustAddDefault(key, key.GetHashCode(), out var entries);
+        entries[i].Value = value;
+    }
 }
