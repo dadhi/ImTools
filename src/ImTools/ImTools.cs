@@ -7103,7 +7103,7 @@ public static class SmallMap
         [MethodImpl((MethodImplOptions)256)]
         public void SetTombstoneOrRemoveSurePresentEntry(int index)
         {
-            GetSurePresentEntryRef(index) = new(default(TEq).GetTombstone());
+            GetSurePresentEntryRef(index) = new(default(TEq).GetTombstone()); // this actually resets the value as well
             --_entryCount;
             // todo: @perf we may try to free the chunk if it is empty
         }
