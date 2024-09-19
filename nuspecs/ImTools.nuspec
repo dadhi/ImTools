@@ -14,7 +14,8 @@
         Split from the DryIoc: https://github.com/dadhi/DryIoc
 ]]>
         </description>
-        <readme>README.md</readme>
+        <!-- not supported element in nuspec files, NuGet team suggests to switch to SDK-style project -->
+        <!-- <readme>README.md</readme> -->
         <tags>FP Performance Simple Functional Immutable Persistent Map Avl 2-3Tree Self Balanced Tree Dictionary Thread-safe Functional Atomic Ref</tags>
         <releaseNotes>
             <![CDATA[
