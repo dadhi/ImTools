@@ -1,4 +1,6 @@
-﻿using System;
+﻿#if NET6_0_OR_GREATER
+
+using System;
 using System.Linq;
 using System.Collections.Generic;
 using CsCheck;
@@ -121,24 +123,25 @@ public class MapSlimTests
     }
 
     // [Test] // todo: @fixme
-    // public void MapSlim_Performance_Increment()
-    // {
-    //     Gen.Int[0, 255].Array
-    //     .Select(a => (a, new MapSlim<int, int>(), new Dictionary<int, int>()))
-    //     .Faster(
-    //         (items, map, _) =>
-    //         {
-    //             foreach (var b in items)
-    //                 mapslim.GetValueOrNullRefWithHash(b)++;
-    //         },
-    //         (items, _, dict) =>
-    //         {
-    //             foreach (var b in items)
-    //             {
-    //                 dict.TryGetValue(b, out var c);
-    //                 dict[b] = c + 1;
-    //             }
-    //         },
-    //         repeat: 1000, sigma: 10, writeLine: Console.WriteLine);
-    // }
+    public void MapSlim_Performance_Increment()
+    {
+        Gen.Int[0, 255].Array
+        .Select(a => (a, SmallMap.New<int, int, SmallMap.IntEq>(), new Dictionary<int, int>()))
+        .Faster(
+            (items, map, _) =>
+            {
+                foreach (var b in items)
+                    map.GetOrAddValueRef(b)++;
+            },
+            (items, _, dict) =>
+            {
+                foreach (var b in items)
+                {
+                    dict.TryGetValue(b, out var c);
+                    dict[b] = c + 1;
+                }
+            },
+            repeat: 1000, sigma: 4, writeLine: Console.WriteLine);
+    }
 }
+#endif

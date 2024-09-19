@@ -1,3 +1,4 @@
+#if NET6_0_OR_GREATER
 namespace ImTools.Experiments;
 
 using System;
@@ -170,3 +171,4 @@ public static class MapSlim
         entries[i].Value = value;
     }
 }
+#endif
