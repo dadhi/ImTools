@@ -33,7 +33,7 @@ public class AntiVirusFriendlyConfig : ManualConfig
 }
 [Config(typeof(AntiVirusFriendlyConfig)),
  MemoryDiagnoser,
- Orderer(BenchmarkDotNet.Order.SummaryOrderPolicy.Declared), 
+ Orderer(BenchmarkDotNet.Order.SummaryOrderPolicy.Declared),
  RankColumn]
 public class MemoryOwnerVsHashMap
 {
@@ -43,8 +43,8 @@ public class MemoryOwnerVsHashMap
 
     MemoryOwner<SampleClass> MemoryOwner;
     ImHashMap<int, SampleClass> ImHashMap;
-    
-    SmallMap<int, SampleClass, SmallMap.IntEq, SmallMap.SingleArrayEntries<int, SampleClass, SmallMap.IntEq>> SmallMap;
+
+    SmallMap<int, SampleClass, IntEq, SmallMap.SingleArrayEntries<int, SampleClass, IntEq>> SmallMap;
 
     [GlobalSetup]
     public void Setup()
@@ -84,7 +84,7 @@ public class MemoryOwnerVsHashMap
     [Benchmark]
     public object SmallMap_populate()
     {
-        var imt = ImTools.SmallMap.New<int, SampleClass, SmallMap.IntEq>();
+        var imt = ImTools.SmallMap.New<int, SampleClass, IntEq>();
         for (int i = 0; i < Count; i++)
         {
             // todo: @wip add AddSureNotPresent (use FHashMap for the reference)

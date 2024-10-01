@@ -13,7 +13,7 @@ using FastExpressionCompiler.ImTools;
 using System.Runtime.CompilerServices;
 
 using FHashMap91TypeString = ImTools.Experiments.FHashMap91<System.Type, string, ImTools.Experiments.FHashMap91.RefEq<System.Type>, ImTools.Experiments.FHashMap91.SingleArrayEntries<System.Type, string, ImTools.Experiments.FHashMap91.RefEq<System.Type>>>;
-using SmallMapTypeString = ImTools.SmallMap<System.Type, string, ImTools.SmallMap.RefEq<System.Type>, ImTools.SmallMap.SingleArrayEntries<System.Type, string, ImTools.SmallMap.RefEq<System.Type>>>;
+using SmallMapTypeString = ImTools.SmallMap<System.Type, string, ImTools.RefEq<System.Type>, ImTools.SmallMap.SingleArrayEntries<System.Type, string, ImTools.RefEq<System.Type>>>;
 using FHashMapTypeString = FastExpressionCompiler.ImTools.FHashMap<System.Type, string, FastExpressionCompiler.ImTools.FHashMap.RefEq<System.Type>, FastExpressionCompiler.ImTools.FHashMap.SingleArrayEntries<System.Type, string, FastExpressionCompiler.ImTools.FHashMap.RefEq<System.Type>>>;
 
 #nullable disable
@@ -1151,9 +1151,9 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             }
 
             // [Benchmark]
-            public ImTools.Experiments.FHashMap7<Type, string, ImTools.Experiments.RefEq<Type>> FHashMap7_AddOrUpdate()
+            public ImTools.Experiments.FHashMap7<Type, string, RefEq<Type>> FHashMap7_AddOrUpdate()
             {
-                var map = new ImTools.Experiments.FHashMap7<Type, string, ImTools.Experiments.RefEq<Type>>();
+                var map = new ImTools.Experiments.FHashMap7<Type, string, RefEq<Type>>();
 
                 foreach (var key in _types)
                     map.AddOrUpdate(key, "a");
@@ -1176,9 +1176,9 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             }
 
             // [Benchmark]
-            public ImTools.Experiments.FHashMap8<Type, string, ImTools.Experiments.RefEq<Type>> FHashMap8_AddOrUpdate()
+            public ImTools.Experiments.FHashMap8<Type, string, RefEq<Type>> FHashMap8_AddOrUpdate()
             {
-                var map = new ImTools.Experiments.FHashMap8<Type, string, ImTools.Experiments.RefEq<Type>>();
+                var map = new ImTools.Experiments.FHashMap8<Type, string, RefEq<Type>>();
 
                 foreach (var key in _types)
                     map.AddOrUpdate(key, "a");
@@ -2447,9 +2447,9 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 
             private DictionarySlim<TypeVal, string> _dictSlim;
 
-            public ImTools.Experiments.FHashMap7<Type, string, ImTools.Experiments.RefEq<Type>> FillFHashMap7()
+            public ImTools.Experiments.FHashMap7<Type, string, RefEq<Type>> FillFHashMap7()
             {
-                var map = new ImTools.Experiments.FHashMap7<Type, string, ImTools.Experiments.RefEq<Type>>();
+                var map = new ImTools.Experiments.FHashMap7<Type, string, RefEq<Type>>();
 
                 foreach (var key in _keys.Take(Count))
                     map.AddOrUpdate(key, "a");
@@ -2458,11 +2458,11 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return map;
             }
 
-            private ImTools.Experiments.FHashMap7<Type, string, ImTools.Experiments.RefEq<Type>> _fHashMap7;
+            private ImTools.Experiments.FHashMap7<Type, string, RefEq<Type>> _fHashMap7;
 
-            public ImTools.Experiments.FHashMap9<Type, string, ImTools.Experiments.RefEq<Type>> FillFHashMap9()
+            public ImTools.Experiments.FHashMap9<Type, string, RefEq<Type>> FillFHashMap9()
             {
-                var map = new ImTools.Experiments.FHashMap9<Type, string, ImTools.Experiments.RefEq<Type>>();
+                var map = new ImTools.Experiments.FHashMap9<Type, string, RefEq<Type>>();
 
                 foreach (var key in _keys.Take(Count))
                     map.AddOrUpdate(key, "a");
@@ -2471,7 +2471,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return map;
             }
 
-            private ImTools.Experiments.FHashMap9<Type, string, ImTools.Experiments.RefEq<Type>> _fHashMap9;
+            private ImTools.Experiments.FHashMap9<Type, string, RefEq<Type>> _fHashMap9;
 
             public FHashMap91TypeString FillFHashMap91()
             {
@@ -2694,7 +2694,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             }
 
             [Benchmark]
-            public string FHashMap_TryGetValue() => 
+            public string FHashMap_TryGetValue() =>
                 _fHashMap.TryGetValueRef(LookupKey, out _);
 
             // [Benchmark(Baseline = true)]

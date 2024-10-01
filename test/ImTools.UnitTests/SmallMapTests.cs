@@ -193,7 +193,7 @@ public class SmallMapTests
     [Test]
     public void Can_store_and_retrieve_value_from_map()
     {
-        var map = SmallMap.New<int, string, SmallMap.IntEq>(2);
+        var map = SmallMap.New<int, string, IntEq>(2);
 
         map.AddOrUpdate(42, "1");
         map.AddOrUpdate(42 + 32, "2");

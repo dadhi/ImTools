@@ -1304,6 +1304,102 @@ public static class Hasher
     }
 }
 
+/// <summary>Configures removed key tombstone, equality and hash function for the SmallMap and friends</summary>
+public interface IEq<K> : IEqualityComparer<K>
+{
+    /// <summary>Defines the value of the key indicating the removed entry</summary>
+    K GetTombstone();
+}
+
+/// <summary>Default comparer using the `object.GetHashCode` and `object.Equals` overloads</summary>
+public struct DefaultEq<K> : IEq<K>
+{
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public K GetTombstone() => default;
+
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public bool Equals(K x, K y) => ReferenceEquals(x, y) || x.Equals(y);
+
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public int GetHashCode(K key) => key.GetHashCode();
+}
+
+/// <summary>Uses the integer itself as hash code and `==` for equality</summary>
+public struct IntEq : IEq<int>
+{
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public int GetTombstone() => int.MinValue; // todo: @improve separate the tombstone from the hash
+
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public bool Equals(int x, int y) => x == y;
+
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public int GetHashCode(int key) => key;
+}
+
+/// <summary>Uses the `object.GetHashCode` and `object.ReferenceEquals`</summary>
+public struct RefEq<K> : IEq<K> where K : class
+{
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public K GetTombstone() => null;
+
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public bool Equals(K x, K y) => ReferenceEquals(x, y);
+
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public int GetHashCode(K key) => RuntimeHelpers.GetHashCode(key);
+}
+
+/// <summary>Compares via `ReferenceEquals` and gets the hash faster via `RuntimeHelpers.GetHashCode`</summary>
+public struct RefEq<A, B> : IEq<(A, B)>
+    where A : class
+    where B : class
+{
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public (A, B) GetTombstone() => (null, null);
+
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public bool Equals((A, B) x, (A, B) y) =>
+        ReferenceEquals(x.Item1, y.Item1) && ReferenceEquals(x.Item2, y.Item2);
+
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public int GetHashCode((A, B) key) =>
+        Hasher.Combine(RuntimeHelpers.GetHashCode(key.Item1), RuntimeHelpers.GetHashCode(key.Item2));
+}
+
+/// <summary>Compares via `ReferenceEquals` and gets the hash faster via `RuntimeHelpers.GetHashCode`</summary>
+public struct RefEq<A, B, C> : IEq<(A, B, C)>
+    where A : class
+    where B : class
+    where C : class
+{
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public (A, B, C) GetTombstone() => (null, null, null);
+
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public bool Equals((A, B, C) x, (A, B, C) y) =>
+        ReferenceEquals(x.Item1, y.Item1) && ReferenceEquals(x.Item2, y.Item2) && ReferenceEquals(x.Item3, y.Item3);
+
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public int GetHashCode((A, B, C) key) =>
+        Hasher.Combine(RuntimeHelpers.GetHashCode(key.Item1), Hasher.Combine(RuntimeHelpers.GetHashCode(key.Item2), RuntimeHelpers.GetHashCode(key.Item3)));
+}
+
 ///<summary>Simple unbounded object pool</summary>
 public sealed class StackPool<T> where T : class
 {
@@ -1443,7 +1539,7 @@ public struct Opt<T>
     public T OrDefault(T defaultValue = default) => HasValue ? Value : defaultValue;
 }
 
-/// <summary>Ever growing list methods</summary>
+/// <summary>SmallList module he-he</summary>
 public static class SmallList
 {
     /// <summary>Default initial capacity </summary>
@@ -1494,7 +1590,7 @@ public static class SmallList
         $"Count {count} of {(count == 0 || items == null || items.Length == 0 ? "empty" : "first (" + items[0] + ") and last (" + items[count - 1] + ")")}";
 }
 
-/// <summary>Ever growing list</summary>
+/// <summary>Wrapper for the array of the specific capacity and a separate count less or equal to this capacity </summary>
 public struct SmallList<T>
 {
     /// <summary>Default initial capacity </summary>
@@ -1507,7 +1603,7 @@ public struct SmallList<T>
     public int Count;
 
     /// <summary>Constructs the thing</summary>
-    public SmallList(T[] items, int count = 0)
+    public SmallList(T[] items, int count)
     {
         Items = items;
         Count = count;
@@ -6731,7 +6827,7 @@ public static class PartitionedHashMap
     }
 }
 
-/// <summary>Configuration and the tools for the FHashMap map data structure</summary>
+/// <summary>Configuration and the tools for the SmallMap and friends</summary>
 public static class SmallMap
 {
     internal const byte MinFreeCapacityShift = 3; // e.g. for the capacity 16: 16 >> 3 => 2, 12.5% of the free hash slots (it does not mean the entries free slot)
@@ -6820,87 +6916,6 @@ public static class SmallMap
 #else
     internal static int GetHash(ref int[] start, int distance) => start[distance];
 #endif
-
-    /// <summary>Configures removed key tombstone, equality and hash function for the FHashMap</summary>
-    public interface IEq<K>
-    {
-        /// <summary>Defines the value of the key indicating the removed entry</summary>
-        K GetTombstone();
-
-        /// <summary>Equals keys</summary>
-        bool Equals(K x, K y);
-
-        /// <summary>Calculates and returns the hash of the key</summary>
-        int GetHashCode(K key);
-    }
-
-    /// <summary>Default comparer using the `object.GetHashCode` and `object.Equals` overloads</summary>
-    public struct DefaultEq<K> : IEq<K>
-    {
-        /// <inheritdoc />
-        [MethodImpl((MethodImplOptions)256)]
-        public K GetTombstone() => default;
-
-        /// <inheritdoc />
-        [MethodImpl((MethodImplOptions)256)]
-        public bool Equals(K x, K y) => ReferenceEquals(x, y) || x.Equals(y);
-
-        /// <inheritdoc />
-        [MethodImpl((MethodImplOptions)256)]
-        public int GetHashCode(K key) => key.GetHashCode();
-    }
-
-    /// <summary>Uses the `object.GetHashCode` and `object.ReferenceEquals`</summary>
-    public struct RefEq<K> : IEq<K> where K : class
-    {
-        /// <inheritdoc />
-        [MethodImpl((MethodImplOptions)256)]
-        public K GetTombstone() => null;
-
-        /// <inheritdoc />
-        [MethodImpl((MethodImplOptions)256)]
-        public bool Equals(K x, K y) => ReferenceEquals(x, y);
-
-        /// <inheritdoc />
-        [MethodImpl((MethodImplOptions)256)]
-        public int GetHashCode(K key) => RuntimeHelpers.GetHashCode(key);
-    }
-
-    /// <summary>Compares the types faster via `ReferenceEquals` and gets the hash faster via `RuntimeHelpers.GetHashCode`</summary>
-    public struct RefEq<A, B> : IEq<(A, B)>
-        where A : class
-        where B : class
-    {
-        /// <inheritdoc />
-        [MethodImpl((MethodImplOptions)256)]
-        public (A, B) GetTombstone() => (null, null);
-
-        /// <inheritdoc />
-        [MethodImpl((MethodImplOptions)256)]
-        public bool Equals((A, B) x, (A, B) y) =>
-            ReferenceEquals(x.Item1, y.Item1) & ReferenceEquals(x.Item2, y.Item2);
-
-        /// <inheritdoc />
-        [MethodImpl((MethodImplOptions)256)]
-        public int GetHashCode((A, B) key) =>
-            unchecked((RuntimeHelpers.GetHashCode(key.Item1) * (int)0xA5555529) + RuntimeHelpers.GetHashCode(key.Item2));
-    }
-
-    /// <summary>Uses the integer itself as hash code and `==` for equality</summary>
-    public struct IntEq : IEq<int>
-    {
-        /// <inheritdoc />
-        [MethodImpl((MethodImplOptions)256)]
-        public int GetTombstone() => int.MinValue; // todo: @improve separate the tombstone from the hash
-
-        /// <inheritdoc />
-        [MethodImpl((MethodImplOptions)256)]
-        public bool Equals(int x, int y) => x == y;
-
-        /// <inheritdoc />
-        [MethodImpl((MethodImplOptions)256)]
-        public int GetHashCode(int key) => key;
-    }
 
     /// <summary>Uses Fibonacci hashing by multiplying the integer on the factor derived from the GoldenRatio</summary>
     public struct GoldenIntEq : IEq<int>

@@ -742,7 +742,7 @@ public static class FHashMap
         int GetHashCode(K key);
     }
 
-    /// <summary>Default comparer using the `object.GetHashCode` and `object.Equals` oveloads</summary>
+    /// <summary>Default comparer using the `object.GetHashCode` and `object.Equals` overloads</summary>
     public struct DefaultEq<K> : IEq<K>
     {
         /// <inheritdoc />
