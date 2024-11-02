@@ -42,6 +42,8 @@ using System.Runtime.InteropServices;
 
 using static SmallMap;
 
+#nullable disable
+
 /// <summary>Helpers for functional composition</summary>
 public static class Fun
 {
@@ -7649,3 +7651,5 @@ public struct SmallMap<K, V, TEq, TEntries> : IReadOnlyCollection<Entry<K, V>>
         public void Dispose() { }
     }
 }
+
+#nullable restore
