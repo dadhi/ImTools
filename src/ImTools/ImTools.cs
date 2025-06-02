@@ -4303,7 +4303,7 @@ public sealed class MapParentStack<K, V>
     }
 }
 
-/// <summary>Condition with ref state</summary>
+/// <summary>Condition with the ref state and index</summary>
 public delegate bool ConditionWithRefState<K, V, S>(ref S state, ImHashMapEntry<K, V> entry, int index);
 
 /// <summary>The map methods</summary>
@@ -7022,6 +7022,7 @@ public static class SmallMap
     /// <summary>The capacity of chunk in bits for <see cref="ChunkedArrayEntries{K, V, TEq}"/></summary>
     public const byte ChunkCapacityBitShift = 8; // 8 bits == 256
     internal const int ChunkCapacity = 1 << ChunkCapacityBitShift;
+    // 0b11111111 == 255, so the mask for the capacity is 255
     internal const int ChunkCapacityMask = ChunkCapacity - 1;
 
     // todo: @perf research on the similar growable indexed collection with append-to-end semantics

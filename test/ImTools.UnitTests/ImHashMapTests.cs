@@ -167,7 +167,8 @@ public class ImHashMapTests
     public void Folded_lefty_values_should_be_returned_in_sorted_order()
     {
         var items = Enumerable.Range(0, 100).Select(x => "" + x).ToArray();
-        var tree = items.Reverse().Aggregate(ImHashMap<string, string>.Empty, (m, s) => m.AddOrUpdate(s, s));
+        items.Reverse();
+        var tree = items.Aggregate(ImHashMap<string, string>.Empty, (m, s) => m.AddOrUpdate(s, s));
 
         var list = tree.ForEach(new List<string>(), (e, _, l) => l.Add(e.Value));
 
