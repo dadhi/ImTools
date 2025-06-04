@@ -6,7 +6,7 @@ namespace ImTools.Benchmarks
     {
         static void Main()
         {
-            BenchmarkRunner.Run<MemoryOwnerVsHashMap>();
+            // BenchmarkRunner.Run<MemoryOwnerVsHashMap>();
             // BenchmarkRunner.Run<ImHashMapEnumerateBM>();
 
             // new SIO.Program().Run();
@@ -37,7 +37,7 @@ namespace ImTools.Benchmarks
             //BenchmarkRunner.Run<ObjectPoolComparison_RentPrefilledPool>();
 
             //BenchmarkRunner.Run<ObjectPoolComparison>();
-            
+
             //BenchmarkRunner.Run<DelegateVsInterfaceStruct.MapArray>();
             //BenchmarkRunner.Run<DelegateVsInterfaceStruct.MapEnumerableRange>();
             // BenchmarkRunner.Run<DelegateVsInterfaceStruct.MapEnumerableRangeWithState>();

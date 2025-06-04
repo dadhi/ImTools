@@ -126,7 +126,7 @@ public class MapSlimTests
     public void MapSlim_Performance_Increment()
     {
         Gen.Int[0, 255].Array
-        .Select(a => (a, SmallMap.New<int, int, IntEq>(), new Dictionary<int, int>()))
+        .Select(a => (a, HSmallMap.New<int, int, IntEq>(), new Dictionary<int, int>()))
         .Faster(
             (items, map, _) =>
             {

@@ -44,7 +44,7 @@ public class MemoryOwnerVsHashMap
     MemoryOwner<SampleClass> MemoryOwner;
     ImHashMap<int, SampleClass> ImHashMap;
 
-    SmallMap<int, SampleClass, IntEq, SmallMap.SingleArrayEntries<int, SampleClass, IntEq>> SmallMap;
+    HSmallMap<int, SampleClass, IntEq, HSmallMap.SingleArrayEntries<int, SampleClass, IntEq>> SmallMap;
 
     [GlobalSetup]
     public void Setup()
@@ -84,7 +84,7 @@ public class MemoryOwnerVsHashMap
     [Benchmark]
     public object SmallMap_populate()
     {
-        var imt = ImTools.SmallMap.New<int, SampleClass, IntEq>();
+        var imt = ImTools.HSmallMap.New<int, SampleClass, IntEq>();
         for (int i = 0; i < Count; i++)
         {
             // todo: @wip add AddSureNotPresent (use FHashMap for the reference)

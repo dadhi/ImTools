@@ -13,7 +13,7 @@ using FastExpressionCompiler.ImTools;
 using System.Runtime.CompilerServices;
 
 using FHashMap91TypeString = ImTools.Experiments.FHashMap91<System.Type, string, ImTools.Experiments.FHashMap91.RefEq<System.Type>, ImTools.Experiments.FHashMap91.SingleArrayEntries<System.Type, string, ImTools.Experiments.FHashMap91.RefEq<System.Type>>>;
-using SmallMapTypeString = ImTools.SmallMap<System.Type, string, ImTools.RefEq<System.Type>, ImTools.SmallMap.SingleArrayEntries<System.Type, string, ImTools.RefEq<System.Type>>>;
+using SmallMapTypeString = ImTools.HSmallMap<System.Type, string, ImTools.RefEq<System.Type>, ImTools.HSmallMap.SingleArrayEntries<System.Type, string, ImTools.RefEq<System.Type>>>;
 using FHashMapTypeString = FastExpressionCompiler.ImTools.FHashMap<System.Type, string, FastExpressionCompiler.ImTools.FHashMap.RefEq<System.Type>, FastExpressionCompiler.ImTools.FHashMap.SingleArrayEntries<System.Type, string, FastExpressionCompiler.ImTools.FHashMap.RefEq<System.Type>>>;
 
 #nullable disable
