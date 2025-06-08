@@ -7521,14 +7521,22 @@ public struct HSmallMap<K, V, TEq, TEntries> : IReadOnlyCollection<HSmallMap.Ent
         if (!removed)
             return false;
 
+        var emptiedIndex = hashIndex & indexMask;
         ref var emptied = ref h;
         h = ref HSmallMap.GetItemRef(ref hashesAndIndexes, ++hashIndex & indexMask);
 
         // move the next hash into the emptied slot until the next hash is empty or ideally positioned (hash is 0 or probe is 1)
         while ((h >>> HSmallMap.ProbeCountShift) > 1)
         {
-            emptied = (((h >>> HSmallMap.ProbeCountShift) - 1) << HSmallMap.ProbeCountShift) | (h & HSmallMap.HashAndIndexMask); // decrease the probe count by one cause we moving the hash closer to the ideal index
+            // Decrease the probe count by one cause we moving the hash closer to the ideal index
+            emptied = (((h >>> HSmallMap.ProbeCountShift) - 1) << HSmallMap.ProbeCountShift) | (h & HSmallMap.HashAndIndexMask);
+            if (emptiedIndex < HSmallMap.PaddingHashCount)
+                HSmallMap.GetItemRef(ref hashesAndIndexes, indexMask + 1 + emptiedIndex) = emptied; // Copy the hash to the padding
+
             h = 0;
+            emptiedIndex = hashIndex & indexMask;
+            if (emptiedIndex < HSmallMap.PaddingHashCount)
+                HSmallMap.GetItemRef(ref hashesAndIndexes, indexMask + 1 + emptiedIndex) = 0; // Copy the hash to the padding
 
             emptied = ref h;
             h = ref HSmallMap.GetItemRef(ref hashesAndIndexes, ++hashIndex & indexMask);
