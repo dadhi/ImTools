@@ -6840,6 +6840,8 @@ public static class HSmallMap
     internal const byte MaxProbeCount = (1 << MaxProbeBits) - 1;
     internal const byte ProbeCountShift = 32 - MaxProbeBits;
     internal const int HashAndIndexMask = ~(MaxProbeCount << ProbeCountShift);
+    internal const int HashAndIndexMaskWithIndex = HashAndIndexMask | MaxProbeCount;
+    internal const int PaddingHashCount = 7;
 
     /// <summary>Creates the map with the <see cref="SingleArrayEntries{K, V, TEq}"/> storage</summary>
     [MethodImpl((MethodImplOptions)256)]
@@ -6882,7 +6884,7 @@ public static class HSmallMap
         var indexMask = capacity - 1;
 
         var items = new DebugHashItem<K, V>[hashes.Length];
-        for (var i = 0; i < hashes.Length; i++)
+        for (var i = 0; i < hashes.Length - HSmallMap.PaddingHashCount; i++)
         {
             var h = hashes[i];
             if (h == 0)
@@ -7532,9 +7534,9 @@ public struct HSmallMap<K, V, TEq, TEntries> : IReadOnlyCollection<HSmallMap.Ent
         if (indexMask == 0)
         {
             _indexMask = (1 << HSmallMap.MinCapacityBits) - 1;
-            _packedHashesAndIndexes = new int[1 << HSmallMap.MinCapacityBits];
+            _packedHashesAndIndexes = new int[1 << HSmallMap.MinCapacityBits + HSmallMap.PaddingHashCount];
 #if DEBUG
-            Debug.WriteLine($"[ResizeHashes] new empty hashes {1} -> {_packedHashesAndIndexes.Length}");
+            Debug.WriteLine($"[ResizeHashes] new empty hashes {1} -> {_packedHashesAndIndexes.Length - HSmallMap.PaddingHashCount} + {HSmallMap.PaddingHashCount} padding");
 #endif
             return (1 << HSmallMap.MinCapacityBits) - 1;
         }
@@ -7543,7 +7545,7 @@ public struct HSmallMap<K, V, TEq, TEntries> : IReadOnlyCollection<HSmallMap.Ent
         var newHashAndIndexMask = HSmallMap.HashAndIndexMask & ~oldCapacity;
         var newIndexMask = (indexMask << 1) | 1;
 
-        var newHashesAndIndexes = new int[oldCapacity << 1];
+        var newHashesAndIndexes = new int[oldCapacity << 1 + HSmallMap.PaddingHashCount];
 
 #if NET7_0_OR_GREATER
         ref var newHashes = ref MemoryMarshal.GetArrayDataReference(newHashesAndIndexes);
@@ -7586,9 +7588,12 @@ public struct HSmallMap<K, V, TEq, TEntries> : IReadOnlyCollection<HSmallMap.Ent
             oldHash = HSmallMap.NextHash(ref oldHashes, i & indexMask);
         }
 #if DEBUG
-        Debug.WriteLine($"[ResizeHashes] {oldCapacity} -> {newHashesAndIndexes.Length}");
+        Debug.WriteLine($"[ResizeHashes] {oldCapacity} -> {newHashesAndIndexes.Length - HSmallMap.PaddingHashCount} + {HSmallMap.PaddingHashCount} padding");
         _dbg.DebugReCollectAndOutputProbes(newHashesAndIndexes);
 #endif
+        // Copy the padding hashes to the end of the new hashes array
+        Array.Copy(newHashesAndIndexes, 0, newHashesAndIndexes, newHashesAndIndexes.Length - HSmallMap.PaddingHashCount, HSmallMap.PaddingHashCount);
+
         _indexMask = _indexMask << 1 | 1;
         _packedHashesAndIndexes = newHashesAndIndexes;
         return newIndexMask;

@@ -678,7 +678,7 @@ public static class SmallMapTestTools
         var hashes = map.PackedHashesAndIndexes;
         var capacity = map.Capacity;
         var indexMask = capacity - 1;
-        for (var i = 0; i < hashes.Length; i++)
+        for (var i = 0; i < hashes.Length - 8; i++)
         {
             var h = hashes[i];
             if (h == 0)
@@ -701,7 +701,7 @@ public static class SmallMapTestTools
         var indexMask = capacity - 1;
         var prevProbes = -1;
         const int ProbeCountShift = 32 - MaxProbeBits;
-        for (var i = 0; i < hashes.Length; i++)
+        for (var i = 0; i < hashes.Length - 8; i++)
         {
             var h = hashes[i];
             var probes = h >>> ProbeCountShift;
