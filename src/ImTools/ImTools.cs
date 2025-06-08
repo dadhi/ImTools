@@ -6909,9 +6909,9 @@ public static class HSmallMap
 
     [MethodImpl((MethodImplOptions)256)]
 #if NET7_0_OR_GREATER
-    internal static ref int NextHashRef(ref int start, int distance) => ref Unsafe.Add(ref start, distance);
+    internal static ref int GetItemRef(ref int start, int distance) => ref Unsafe.Add(ref start, distance);
 #else
-    internal static ref int NextHashRef(ref int[] start, int distance) => ref start[distance];
+    internal static ref int GetItemRef(ref int[] start, int distance) => ref start[distance];
 #endif
 
     [MethodImpl((MethodImplOptions)256)]
@@ -7288,7 +7288,7 @@ public struct HSmallMap<K, V, TEq, TEntries> : IReadOnlyCollection<HSmallMap.Ent
 
         // the overflow tail to the hashes is the size of log2N where N==capacityBitShift, 
         // it is probably fine to have the check for the overflow of capacity because it will be mis-predicted only once at the end of loop (it even rarely for the lookup)
-        _packedHashesAndIndexes = new int[1 << capacityBitShift];
+        _packedHashesAndIndexes = new int[(1 << capacityBitShift) + HSmallMap.PaddingHashCount];
         _entries.Init(capacityBitShift);
     }
 
@@ -7415,7 +7415,7 @@ public struct HSmallMap<K, V, TEq, TEntries> : IReadOnlyCollection<HSmallMap.Ent
 #else
         var hashesAndIndexes = _packedHashesAndIndexes;
 #endif
-        ref var h = ref HSmallMap.NextHashRef(ref hashesAndIndexes, hashIndex);
+        ref var h = ref HSmallMap.GetItemRef(ref hashesAndIndexes, hashIndex);
 
         // 1. Skip over hashes with the bigger and equal probes. The hashes with bigger probes overlapping from the earlier ideal positions
         var probes = 1;
@@ -7431,13 +7431,17 @@ public struct HSmallMap<K, V, TEq, TEntries> : IReadOnlyCollection<HSmallMap.Ent
                 if (default(TEq).Equals(e.Key, key))
                     return ref e.Value;
             }
-            h = ref HSmallMap.NextHashRef(ref hashesAndIndexes, ++hashIndex & indexMask);
+            h = ref HSmallMap.GetItemRef(ref hashesAndIndexes, ++hashIndex & indexMask);
             ++probes;
         }
 
         // 3. We did not find the hash and therefore the key, so insert the new entry
         var hRobinHooded = h;
-        h = (probes << HSmallMap.ProbeCountShift) | hashMiddle | entryCount;
+        h = (probes << HSmallMap.ProbeCountShift) | hashMiddle | entryCount; // old entryCount is the new index of the added hash
+
+        if ((hashIndex & indexMask) < HSmallMap.PaddingHashCount)
+            HSmallMap.GetItemRef(ref hashesAndIndexes, indexMask + 1 + (hashIndex & indexMask)) = h; // Copy the hash to the padding
+
 #if DEBUG
         _dbg.DebugCollectAndOutputProbes(probes, "Add");
 #endif
@@ -7446,7 +7450,7 @@ public struct HSmallMap<K, V, TEq, TEntries> : IReadOnlyCollection<HSmallMap.Ent
         probes = hRobinHooded >>> HSmallMap.ProbeCountShift;
         while (hRobinHooded != 0)
         {
-            h = ref HSmallMap.NextHashRef(ref hashesAndIndexes, ++hashIndex & indexMask);
+            h = ref HSmallMap.GetItemRef(ref hashesAndIndexes, ++hashIndex & indexMask);
             if ((h >>> HSmallMap.ProbeCountShift) < ++probes)
             {
 #if DEBUG
@@ -7456,6 +7460,9 @@ public struct HSmallMap<K, V, TEq, TEntries> : IReadOnlyCollection<HSmallMap.Ent
 #endif
                 var tmp = h;
                 h = (probes << HSmallMap.ProbeCountShift) | (hRobinHooded & HSmallMap.HashAndIndexMask);
+                if ((hashIndex & indexMask) < HSmallMap.PaddingHashCount)
+                    HSmallMap.GetItemRef(ref hashesAndIndexes, indexMask + 1 + (hashIndex & indexMask)) = h; // Copy the hash to the padding
+
                 hRobinHooded = tmp;
                 probes = hRobinHooded >>> HSmallMap.ProbeCountShift;
             }
@@ -7484,7 +7491,7 @@ public struct HSmallMap<K, V, TEq, TEntries> : IReadOnlyCollection<HSmallMap.Ent
 #else
         var hashesAndIndexes = _packedHashesAndIndexes;
 #endif
-        ref var h = ref HSmallMap.NextHashRef(ref hashesAndIndexes, hashIndex);
+        ref var h = ref HSmallMap.GetItemRef(ref hashesAndIndexes, hashIndex);
 
         var removed = false;
 
@@ -7507,7 +7514,7 @@ public struct HSmallMap<K, V, TEq, TEntries> : IReadOnlyCollection<HSmallMap.Ent
                     break;
                 }
             }
-            h = ref HSmallMap.NextHashRef(ref hashesAndIndexes, ++hashIndex & indexMask);
+            h = ref HSmallMap.GetItemRef(ref hashesAndIndexes, ++hashIndex & indexMask);
             ++probes;
         }
 
@@ -7515,7 +7522,7 @@ public struct HSmallMap<K, V, TEq, TEntries> : IReadOnlyCollection<HSmallMap.Ent
             return false;
 
         ref var emptied = ref h;
-        h = ref HSmallMap.NextHashRef(ref hashesAndIndexes, ++hashIndex & indexMask);
+        h = ref HSmallMap.GetItemRef(ref hashesAndIndexes, ++hashIndex & indexMask);
 
         // move the next hash into the emptied slot until the next hash is empty or ideally positioned (hash is 0 or probe is 1)
         while ((h >>> HSmallMap.ProbeCountShift) > 1)
@@ -7524,7 +7531,7 @@ public struct HSmallMap<K, V, TEq, TEntries> : IReadOnlyCollection<HSmallMap.Ent
             h = 0;
 
             emptied = ref h;
-            h = ref HSmallMap.NextHashRef(ref hashesAndIndexes, ++hashIndex & indexMask);
+            h = ref HSmallMap.GetItemRef(ref hashesAndIndexes, ++hashIndex & indexMask);
         }
         return true;
     }
@@ -7534,7 +7541,7 @@ public struct HSmallMap<K, V, TEq, TEntries> : IReadOnlyCollection<HSmallMap.Ent
         if (indexMask == 0)
         {
             _indexMask = (1 << HSmallMap.MinCapacityBits) - 1;
-            _packedHashesAndIndexes = new int[1 << HSmallMap.MinCapacityBits + HSmallMap.PaddingHashCount];
+            _packedHashesAndIndexes = new int[(1 << HSmallMap.MinCapacityBits) + HSmallMap.PaddingHashCount];
 #if DEBUG
             Debug.WriteLine($"[ResizeHashes] new empty hashes {1} -> {_packedHashesAndIndexes.Length - HSmallMap.PaddingHashCount} + {HSmallMap.PaddingHashCount} padding");
 #endif
@@ -7545,7 +7552,7 @@ public struct HSmallMap<K, V, TEq, TEntries> : IReadOnlyCollection<HSmallMap.Ent
         var newHashAndIndexMask = HSmallMap.HashAndIndexMask & ~oldCapacity;
         var newIndexMask = (indexMask << 1) | 1;
 
-        var newHashesAndIndexes = new int[oldCapacity << 1 + HSmallMap.PaddingHashCount];
+        var newHashesAndIndexes = new int[(oldCapacity << 1) + HSmallMap.PaddingHashCount];
 
 #if NET7_0_OR_GREATER
         ref var newHashes = ref MemoryMarshal.GetArrayDataReference(newHashesAndIndexes);
@@ -7573,10 +7580,10 @@ public struct HSmallMap<K, V, TEq, TEntries> : IReadOnlyCollection<HSmallMap.Ent
                 // no need for robin-hooding because we already did it for the old hashes and 
                 // now just sparcing the hashes into the new array which are already in order
                 var probes = 1;
-                ref var newHash = ref HSmallMap.NextHashRef(ref newHashes, indexWithNextBit);
+                ref var newHash = ref HSmallMap.GetItemRef(ref newHashes, indexWithNextBit);
                 while (newHash != 0)
                 {
-                    newHash = ref HSmallMap.NextHashRef(ref newHashes, ++indexWithNextBit & newIndexMask);
+                    newHash = ref HSmallMap.GetItemRef(ref newHashes, ++indexWithNextBit & newIndexMask);
                     ++probes;
                 }
                 newHash = (probes << HSmallMap.ProbeCountShift) | (oldHash & newHashAndIndexMask);
