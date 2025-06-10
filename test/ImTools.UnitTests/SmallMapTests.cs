@@ -15,20 +15,6 @@ using static HSmallMap;
 [TestFixture]
 public class SmallMapTests
 {
-#if NET7_0_OR_GREATER
-    [Test]
-    public void Test_stackalloc_for_entries()
-    {
-        Span<int> arr = stackalloc int[8];
-
-        Foo(in arr);
-
-        Assert.AreEqual(42, arr[2]);
-    }
-
-    static void Foo(in Span<int> arr) => arr[2] = 42;
-#endif
-
     [Test]
     public void Real_world_test_AddOrUpdate()
     {

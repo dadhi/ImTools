@@ -16,6 +16,7 @@ using FHashMap91TypeString = ImTools.Experiments.FHashMap91<System.Type, string,
 using SmallMapTypeString = ImTools.HSmallMap<System.Type, string, ImTools.RefEq<System.Type>, ImTools.HSmallMap.SingleArrayEntries<System.Type, string, ImTools.RefEq<System.Type>>>;
 using FHashMapTypeString = FastExpressionCompiler.ImTools.FHashMap<System.Type, string, FastExpressionCompiler.ImTools.FHashMap.RefEq<System.Type>, FastExpressionCompiler.ImTools.FHashMap.SingleArrayEntries<System.Type, string, FastExpressionCompiler.ImTools.FHashMap.RefEq<System.Type>>>;
 using BenchmarkDotNet.Order;
+using ImTools.Experiments;
 
 #nullable disable
 
@@ -1325,7 +1326,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
         }
 
         [MemoryDiagnoser, RankColumn, Orderer(SummaryOrderPolicy.FastestToSlowest)]
-        [HardwareCounters(HardwareCounter.CacheMisses, HardwareCounter.BranchMispredictions, HardwareCounter.BranchInstructions)]
+        // [HardwareCounters(HardwareCounter.CacheMisses, HardwareCounter.BranchMispredictions, HardwareCounter.BranchInstructions)]
         public class Lookup
         {
             /*
@@ -2289,6 +2290,15 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             | DictionarySlim_TryGetValue | 100   | 4.777 ns | 0.1559 ns | 0.4472 ns | 4.576 ns |  1.01 |    0.13 |    1 |         - |          NA |
             | FHashMap_TryGetValue       | 100   | 6.020 ns | 0.1795 ns | 0.2335 ns | 6.017 ns |  1.27 |    0.13 |    2 |         - |          NA |
             | SmallMap_TryGetValue       | 100   | 6.021 ns | 0.1808 ns | 0.4827 ns | 6.293 ns |  1.27 |    0.15 |    2 |         - |          NA |
+
+            ## SmallMap vs FHashMap11
+
+            | Method                     | Count | Mean     | Error     | StdDev    | Median   | Ratio | RatioSD | Rank | Allocated | Alloc Ratio |
+            |--------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|-----:|----------:|------------:|
+            | DictionarySlim_TryGetValue | 1000  | 2.225 us | 0.0445 us | 0.1313 us | 2.162 us |  1.00 |    0.08 |    1 |         - |          NA |
+            | SmallMap_TryGetValue       | 1000  | 2.364 us | 0.0387 us | 0.0302 us | 2.377 us |  1.07 |    0.06 |    1 |         - |          NA |
+            | FHashMap11_TryGetValue     | 1000  | 2.387 us | 0.0477 us | 0.1170 us | 2.434 us |  1.08 |    0.08 |    1 |         - |          NA |
+
             */
             // [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             // [Params(1, 10, 100)]
@@ -2310,6 +2320,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 _fHashMap9 = FillFHashMap9();
                 _fHashMap91 = FillFHashMap91();
                 _smallMap = FillSmallMap();
+                _fHashMap11 = FillFHashMap11();
                 _fHashMap = FillFHashMap();
                 _concurrentDict = ConcurrentDict();
                 _immutableDict = ImmutableDict();
@@ -2527,6 +2538,19 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 
             private SmallMapTypeString _smallMap;
 
+            public FHashMap11<Type, string, RefEq<Type>> FillFHashMap11()
+            {
+                var map = new FHashMap11<Type, string, RefEq<Type>>();
+
+                foreach (var key in _keys.Take(Count))
+                    map.GetOrAddValueRef(key) = "a";
+
+                map.GetOrAddValueRef(LookupKey) = "!";
+                return map;
+            }
+
+            private FHashMap11<Type, string, RefEq<Type>> _fHashMap11;
+
             public FHashMapTypeString FillFHashMap()
             {
                 var map = new FHashMapTypeString();
@@ -2734,12 +2758,12 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             }
 
             [Benchmark]
-            public int SmallMap_TryGetValue_Permute()
+            public int FHashMap11_TryGetValue()
             {
                 var count = 0;
                 foreach (var k in _randomLookupKeys)
                 {
-                    _smallMap.TryGetValue_Permute(k, out var result);
+                    _fHashMap11.TryGetValue(k, out var result);
                     count += result.Length;
                 }
 
