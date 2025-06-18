@@ -217,7 +217,7 @@ public struct FHashMap11<K, V, TEq> : IReadOnlyCollection<KeyValuePair<K, V>>
             var hash = default(TEq).GetHashCode(key);
 
             var indexMask = (1 << _capacityBitShift) - 1;
-            var hashIndex = hash & indexMask;
+            var index = hash & indexMask;
 
 #if NET7_0_OR_GREATER
             ref var probes = ref MemoryMarshal.GetArrayDataReference(Probes);
@@ -225,21 +225,25 @@ public struct FHashMap11<K, V, TEq> : IReadOnlyCollection<KeyValuePair<K, V>>
             ref var keys = ref MemoryMarshal.GetArrayDataReference(Keys);
             ref var valueIndexes = ref MemoryMarshal.GetArrayDataReference(ValueIndexes);
 #else
-            var hashAndKeyEntries = KeyEntries;
+            var probes = Probes;
+            var hashes = Hashes;
+            var keys = Keys;
+            var valueIndexes = ValueIndexes;
 #endif
-            var p = GetItem(ref probes, hashIndex);
+            var p = GetItem(ref probes, index);
 
             var probe = 1;
             while (p >= probe)
             {
-                if ((p == probe) & (GetItem(ref hashes, hashIndex) == hash) &&
-                    default(TEq).Equals(GetItem(ref keys, hashIndex), key))
+                if ((p == probe) & (GetItem(ref hashes, index) == hash) &&
+                    default(TEq).Equals(GetItem(ref keys, index), key))
                 {
-                    value = Values[GetItem(ref valueIndexes, hashIndex)];
+                    value = Values[GetItem(ref valueIndexes, index)];
                     return true;
                 }
 
-                p = GetItem(ref probes, ++hashIndex & indexMask);
+                index = (index + 1) & indexMask;
+                p = GetItem(ref probes, index);
                 ++probe;
             }
         }
@@ -274,7 +278,10 @@ public struct FHashMap11<K, V, TEq> : IReadOnlyCollection<KeyValuePair<K, V>>
         ref var keys = ref MemoryMarshal.GetArrayDataReference(Keys);
         ref var valueIndexes = ref MemoryMarshal.GetArrayDataReference(ValueIndexes);
 #else
-        var hashAndKeyEntries = KeyEntries;
+        var probes = Probes;
+        var hashes = Hashes;
+        var keys = Keys;
+        var valueIndexes = ValueIndexes;
 #endif
         ref var pRef = ref GetItemRef(ref probes, index);
 
@@ -293,6 +300,7 @@ public struct FHashMap11<K, V, TEq> : IReadOnlyCollection<KeyValuePair<K, V>>
         }
 
         // Nothing found, add a new entry and inscrease the count first
+        var valueIndex = currCount;
         _count = currCount + 1;
 
     // 3. There is an empty slot to insert the new entry, so we can just insert it
@@ -305,7 +313,7 @@ public struct FHashMap11<K, V, TEq> : IReadOnlyCollection<KeyValuePair<K, V>>
             pRef = probe;
             GetItemRef(ref hashes, index) = hash;
             GetItemRef(ref keys, index) = key;
-            GetItemRef(ref valueIndexes, index) = currCount;
+            GetItemRef(ref valueIndexes, index) = valueIndex;
         }
         else // p < probe, e.g. 3, 4, 5, (5<6), (6==6), (7==7), (3<8), (0<4)
         {
@@ -324,10 +332,14 @@ public struct FHashMap11<K, V, TEq> : IReadOnlyCollection<KeyValuePair<K, V>>
             pRef = probe;
             GetItemRef(ref hashes, index) = hash;
             GetItemRef(ref keys, index) = key;
-            GetItemRef(ref valueIndexes, index) = currCount;
+            GetItemRef(ref valueIndexes, index) = valueIndex;
 
             // 5. Now treat the robin-hooded entry as a newly inserted entry 
             probe = rhProbe;
+            hash = rhHash;
+            key = rhKey;
+            valueIndex = rhValueIndex;
+
             while (true)
             {
                 index = (index + 1) & indexMask;
@@ -444,9 +456,18 @@ public struct FHashMap11<K, V, TEq> : IReadOnlyCollection<KeyValuePair<K, V>>
         ref var newValueIndexesRef = ref MemoryMarshal.GetArrayDataReference(newValueIndexes);
         ref var oldValueIndexesRef = ref MemoryMarshal.GetArrayDataReference(ValueIndexes);
 #else
-        var newKeys = newKeys;
-        var oldKeys = Keys;
-        var oldKey = oldKeys[0];
+        var newProbesRef = newProbes;
+        var oldProbesRef = Probes;
+        var oldProbe = oldProbesRef[0];
+
+        var newHashesRef = newHashes;
+        var oldHashesRef = Hashes;
+
+        var newKeysRef = newKeys;
+        var oldKeysRef = Keys;
+
+        var newValueIndexesRef = newValueIndexes;
+        var oldValueIndexesRef = ValueIndexes;
 #endif
         // Overflow segment is wrapped-around hashes and! the hashes at the beginning robin-hooded by the wrapped-around hashes
         // so we skip them to start from first ideal or empty entry
@@ -459,7 +480,7 @@ public struct FHashMap11<K, V, TEq> : IReadOnlyCollection<KeyValuePair<K, V>>
         {
             if (oldProbe != 0)
             {
-                var hash = GetItem(ref oldHashesRef, i);
+                var hash = GetItem(ref oldHashesRef, i & indexMask);
                 var newIndex = hash & newIndexMask;
 
                 // no need for robin-hooding because we already did it for the old hashes and
@@ -469,13 +490,13 @@ public struct FHashMap11<K, V, TEq> : IReadOnlyCollection<KeyValuePair<K, V>>
                 while (newProbeRef != 0)
                 {
                     newIndex = (newIndex + 1) & newIndexMask;
-                    newProbeRef = ref GetItemRef(ref newProbeRef, newIndex);
+                    newProbeRef = ref GetItemRef(ref newProbesRef, newIndex);
                     ++newProbe;
                 }
                 newProbeRef = newProbe;
                 GetItemRef(ref newHashesRef, newIndex) = hash;
-                GetItemRef(ref newKeysRef, newIndex) = GetItem(ref oldKeysRef, i);
-                GetItemRef(ref newValueIndexesRef, newIndex) = GetItem(ref oldValueIndexesRef, i);
+                GetItemRef(ref newKeysRef, newIndex) = GetItem(ref oldKeysRef, i & indexMask);
+                GetItemRef(ref newValueIndexesRef, newIndex) = GetItem(ref oldValueIndexesRef, i & indexMask);
             }
             if (++i >= oldCapWithOverflowSegment)
                 break;
