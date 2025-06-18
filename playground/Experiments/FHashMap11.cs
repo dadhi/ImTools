@@ -19,28 +19,13 @@ public static class FHashMap11
     internal const byte MinFreeCapacityShift = 3; // e.g. for the capacity 16: 16 >> 3 => 2, 12.5% of the free hash slots (it does not mean the entries free slot)
     internal const byte MinCapacityBits = 3; // 1 << 3 == 8
 
-    public struct KeyEntry<K>
-    {
-        public int Probe;
-        public int Hash;
-        public int Index;
-        public K Key;
-        public bool IsEmpty => Probe == 0;
-        public override string ToString() => Probe == 0 ? "<empty>" : $"probe:{Probe},index:{Index},hash:0b{Hash:b0},key:{Key}";
-    }
-
-    /// <summary>Converts the packed hashes and entries into the human readable info.
-    /// This also used for the debugging view of the <paramref name="map"/> and by the Verify... methods in tests.</summary>
-    public static KeyEntry<K>[] Explain<K, V, TEq>(this ref FHashMap11<K, V, TEq> map)
-        where TEq : struct, IEq<K> => map.KeyEntries;
-
     /// <summary>Verifies that the hashes correspond to the keys stroed in the entries. May be called from the tests.</summary>
     public static void VerifyHashesAndKeysEq<K, V, TEq>(this FHashMap11<K, V, TEq> map, Action<bool> assertEq)
         where TEq : struct, IEq<K>
     {
-        foreach (var e in map.KeyEntries)
-            if (!e.IsEmpty)
-                assertEq(default(TEq).GetHashCode(e.Key) == e.Hash);
+        for (var i = 0; i < map.Probes.Length; ++i)
+            if (map.Probes[i] != 0)
+                assertEq(default(TEq).GetHashCode(map.Keys[i]) == map.Hashes[i]);
     }
 
     /// <summary>Verifies that there is no duplicate keys stored in hashes -> entries. May be called from the tests.</summary>
@@ -49,14 +34,13 @@ public static class FHashMap11
     {
         // Verify the indexes do no contains duplicate keys
         var uniq = new Dictionary<K, int>(map.Count);
-        var keys = map.KeyEntries;
+        var keys = map.Keys;
         for (var i = 0; i < keys.Length; i++)
         {
-            var k = keys[i];
-            if (k.IsEmpty)
+            if (map.Probes[i] == 0) // skip empty
                 continue;
-            var key = k.Key;
-            if (!uniq.TryGetValue(key, out var count))
+            var key = keys[i];
+            if (!uniq.TryGetValue(key, out _))
                 uniq.Add(key, 1);
             else
                 assertKey(key);
@@ -66,14 +50,13 @@ public static class FHashMap11
     public static void VerifyProbesAreFitRobinHood<K, V, TEq>(this FHashMap11<K, V, TEq> map, Action<string> reportFail)
         where TEq : struct, IEq<K>
     {
-        var hashes = map.KeyEntries;
+        var hashes = map.Hashes;
         var prevProbe = -1;
         for (var i = 0; i < hashes.Length; i++)
         {
-            var h = hashes[i];
-            var probe = h.Probe;
+            var probe = map.Probes[i];
             if (prevProbe != -1 & probe - prevProbe > 1)
-                reportFail($"Probes are not consequent: {prevProbe}, {probe} for {i}: p{probe}, {h.Index} -> {h.Key}");
+                reportFail($"Probes are not consequent: {prevProbe}, {probe} for {i}: p{probe}, {map.ValueIndexes[i]} -> {map.Keys[i]}");
             prevProbe = probe;
         }
     }
@@ -103,11 +86,11 @@ public static class FHashMap11
 #if DEBUG
     internal struct ProbesTracker
     {
-        internal int MaxProbes;
+        internal int MaxProbe;
         internal int[] Probes;
         public ProbesTracker()
         {
-            MaxProbes = 1;
+            MaxProbe = 1;
             Probes = new int[1];
         }
 
@@ -115,7 +98,7 @@ public static class FHashMap11
         // [Add] Probes abs max = 10, curr max = 6, all = [1: 180, 2: 103, 3: 59, 4: 23, 5: 3, 6: 1]; first 4 probes are 365 out of 369
         internal void DebugOutputProbes(string label)
         {
-            Debug.Write($"[{label}] Probes abs max={MaxProbes}, curr max={Probes.Length}, all=[");
+            Debug.Write($"[{label}] Probes abs max={MaxProbe}, curr max={Probes.Length}, all=[");
             var first4probes = 0;
             var allProbes = 0;
             for (var i = 0; i < Probes.Length; i++)
@@ -129,30 +112,30 @@ public static class FHashMap11
             Debug.WriteLine($"]; first 4 probes are {first4probes} out of {allProbes}");
         }
 
-        internal void DebugCollectAndOutputProbes(int probes, [CallerMemberName] string label = "")
+        internal void DebugCollectAndOutputProbes(int probe, [CallerMemberName] string label = "")
         {
             Probes ??= [];
-            if (probes > Probes.Length)
+            if (probe > Probes.Length)
             {
-                if (probes > MaxProbes)
-                    MaxProbes = probes;
-                Array.Resize(ref Probes, probes);
-                Probes[probes - 1] = 1;
+                if (probe > MaxProbe)
+                    MaxProbe = probe;
+                Array.Resize(ref Probes, probe);
+                Probes[probe - 1] = 1;
                 DebugOutputProbes(label);
             }
             else
-                ++Probes[probes - 1];
+                ++Probes[probe - 1];
         }
 
-        internal void DebugReCollectAndOutputProbes<K>(KeyEntry<K>[] hashesAndKeys, [CallerMemberName] string label = "")
+        internal void DebugReCollectAndOutputProbes(byte[] probes, [CallerMemberName] string label = "")
         {
             var newProbes = new int[1];
-            foreach (var h in hashesAndKeys)
+            for (var i = 0; i < probes.Length; ++i)
             {
-                var p = h.Probe;
+                var p = probes[i];
                 if (p == 0) continue;
-                if (p > MaxProbes)
-                    MaxProbes = p;
+                if (p > MaxProbe)
+                    MaxProbe = p;
                 if (p > newProbes.Length)
                     Array.Resize(ref newProbes, p);
                 ++newProbes[p - 1];
@@ -168,21 +151,12 @@ public static class FHashMap11
             if (p == 0 && probe == Probes.Length)
             {
                 Array.Resize(ref Probes, probe - 1);
-                if (MaxProbes == probe)
-                    --MaxProbes;
+                if (MaxProbe == probe)
+                    --MaxProbe;
             }
         }
     }
 #endif
-
-    public class DebugProxy<K, V, TEq>
-        where TEq : struct, IEq<K>
-    {
-        private readonly FHashMap11<K, V, TEq> _map;
-        public DebugProxy(FHashMap11<K, V, TEq> map) => _map = map;
-        public KeyEntry<K>[] KeyEntries => _map.KeyEntries;
-        public V[] Values => _map.Values;
-    }
 }
 
 // todo: @improve ? how/where to add SIMD to improve CPU utilization but not losing perf for smaller sizes
@@ -198,7 +172,6 @@ public static class FHashMap11
 /// - Provides the "stable" enumeration of the entries in the added order
 /// 
 /// </summary>
-[DebuggerTypeProxy(typeof(DebugProxy<,,>))]
 [DebuggerDisplay("Count={Count}")]
 public struct FHashMap11<K, V, TEq> : IReadOnlyCollection<KeyValuePair<K, V>>
     where TEq : struct, IEq<K>
@@ -208,7 +181,10 @@ public struct FHashMap11<K, V, TEq> : IReadOnlyCollection<KeyValuePair<K, V>>
 #endif
     private byte _capacityBitShift;
     internal int _count;
-    public KeyEntry<K>[] KeyEntries;
+    public byte[] Probes;
+    public int[] Hashes;
+    public K[] Keys;
+    public int[] ValueIndexes;
     public V[] Values;
 
     /// <summary>Get the number of the key/hash entries in array. Should be more than <see cref="Count"/></summary>
@@ -224,15 +200,19 @@ public struct FHashMap11<K, V, TEq> : IReadOnlyCollection<KeyValuePair<K, V>>
 
         // the overflow tail to the hashes is the size of log2N where N==capacityBitShift, 
         // it is probably fine to have the check for the overlow of capacity because it will be mispredicted only once at the end of loop (it even rarely for the lookup)
-        KeyEntries = new KeyEntry<K>[1 << capacityBitShift];
-        Values = new V[1 << capacityBitShift];
+        var cap = 1 << capacityBitShift;
+        Probes = new byte[cap];
+        Hashes = new int[cap];
+        Keys = new K[cap];
+        ValueIndexes = new int[cap];
+        Values = new V[cap];
     }
 
     /// <summary>Lookup for the key and get the associated value if the key is found</summary>
     [MethodImpl((MethodImplOptions)256)]
     public bool TryGetValue(K key, out V value)
     {
-        if (KeyEntries != null)
+        if (Keys != null)
         {
             var hash = default(TEq).GetHashCode(key);
 
@@ -240,22 +220,26 @@ public struct FHashMap11<K, V, TEq> : IReadOnlyCollection<KeyValuePair<K, V>>
             var hashIndex = hash & indexMask;
 
 #if NET7_0_OR_GREATER
-            ref var hashAndKeyEntries = ref MemoryMarshal.GetArrayDataReference(KeyEntries);
+            ref var probes = ref MemoryMarshal.GetArrayDataReference(Probes);
+            ref var hashes = ref MemoryMarshal.GetArrayDataReference(Hashes);
+            ref var keys = ref MemoryMarshal.GetArrayDataReference(Keys);
+            ref var valueIndexes = ref MemoryMarshal.GetArrayDataReference(ValueIndexes);
 #else
             var hashAndKeyEntries = KeyEntries;
 #endif
-            var h = GetItem(ref hashAndKeyEntries, hashIndex);
+            var p = GetItem(ref probes, hashIndex);
 
             var probe = 1;
-            while (h.Probe >= probe)
+            while (p >= probe)
             {
-                if ((h.Probe == probe) & (h.Hash == hash) && default(TEq).Equals(h.Key, key))
+                if ((p == probe) & (GetItem(ref hashes, hashIndex) == hash) &&
+                    default(TEq).Equals(GetItem(ref keys, hashIndex), key))
                 {
-                    value = Values[h.Index];
+                    value = Values[GetItem(ref valueIndexes, hashIndex)];
                     return true;
                 }
 
-                h = GetItem(ref hashAndKeyEntries, ++hashIndex & indexMask);
+                p = GetItem(ref probes, ++hashIndex & indexMask);
                 ++probe;
             }
         }
@@ -282,61 +266,74 @@ public struct FHashMap11<K, V, TEq> : IReadOnlyCollection<KeyValuePair<K, V>>
         if (indexMask - currCount <= (indexMask >>> MinFreeCapacityShift))
             indexMask = ResizeHashes(indexMask);
 
-        var hashIndex = hash & indexMask;
+        var index = hash & indexMask;
 
 #if NET7_0_OR_GREATER
-        ref var hashAndKeyEntries = ref MemoryMarshal.GetArrayDataReference(KeyEntries);
+        ref var probes = ref MemoryMarshal.GetArrayDataReference(Probes);
+        ref var hashes = ref MemoryMarshal.GetArrayDataReference(Hashes);
+        ref var keys = ref MemoryMarshal.GetArrayDataReference(Keys);
+        ref var valueIndexes = ref MemoryMarshal.GetArrayDataReference(ValueIndexes);
 #else
         var hashAndKeyEntries = KeyEntries;
 #endif
-        ref var h = ref GetItemRef(ref hashAndKeyEntries, hashIndex);
+        ref var pRef = ref GetItemRef(ref probes, index);
 
         // 1. Skip over hashes with the bigger and equal probes. The hashes with bigger probes overlapping from the earlier ideal positions
-        var probe = 1;
-        while (h.Probe >= probe)
+        var probe = (byte)1;
+        while (pRef >= probe)
         {
             // 2. For the equal probes check for equality the hash middle part, and update the entry if the keys are equal too 
-            if ((h.Probe == probe) & (h.Hash == hash) && default(TEq).Equals(h.Key, key))
-                return ref Values[h.Index];
+            if ((pRef == probe) & GetItem(ref hashes, index) == hash &&
+                default(TEq).Equals(GetItem(ref keys, index), key))
+                return ref Values[GetItem(ref valueIndexes, index)];
 
-            h = ref GetItemRef(ref hashAndKeyEntries, ++hashIndex & indexMask);
+            index = (index + 1) & indexMask;
+            pRef = ref GetItemRef(ref probes, index);
             ++probe;
         }
 
-        // nothing found, add a new entry
+        // Nothing found, add a new entry and inscrease the count first
         _count = currCount + 1;
 
-        // 3. We did not find the hash and therefore the key, so insert the new entry
-        var hRobinHooded = h;
-
-        h.Hash = hash;
-        h.Probe = probe;
-        h.Index = currCount;
-        h.Key = key;
-
-#if DEBUG
-        _dbg.DebugCollectAndOutputProbes(probe, "Add");
-#endif
-        // 4. If the robin hooded hash is empty then we stop
-        // 5. Otherwise we steal the slot with the smaller probes
-        probe = hRobinHooded.Probe;
-        while (probe != 0)
+    // 3. There is an empty slot to insert the new entry, so we can just insert it
+    insert:
+        if (pRef == 0)
         {
-            h = ref GetItemRef(ref hashAndKeyEntries, ++hashIndex & indexMask);
-            if (h.Probe < ++probe)
-            {
 #if DEBUG
-                if (h.Probe != 0)
-                    _dbg.RemoveProbe(h.Probe);
-                _dbg.DebugCollectAndOutputProbes(probe, "Add-RH");
+            _dbg.DebugCollectAndOutputProbes(probe, "Add in the empty slot");
 #endif
-                var tmp = h;
+            pRef = probe;
+            GetItemRef(ref hashes, index) = hash;
+            GetItemRef(ref keys, index) = key;
+            GetItemRef(ref valueIndexes, index) = currCount;
+        }
+        else // p < probe, e.g. 3, 4, 5, (5<6), (6==6), (7==7), (3<8), (0<4)
+        {
+            // 4. If the slot is not empty, then robin-hood the smaller (more valuable) probe
+            // and put the newly added item into the free slot. 
+            // Then proceed with the robin-hooded key as-if it was a newly inserted key.
+            var rhProbe = pRef;
+            var rhHash = GetItem(ref hashes, index);
+            var rhKey = GetItem(ref keys, index);
+            var rhValueIndex = GetItem(ref valueIndexes, index);
 
-                h = hRobinHooded;
-                h.Probe = probe;
+#if DEBUG
+            _dbg.DebugCollectAndOutputProbes(probe, "Add into the occupied slot after RobinHood it");
+#endif
+            // and set the new entry to the current slot
+            pRef = probe;
+            GetItemRef(ref hashes, index) = hash;
+            GetItemRef(ref keys, index) = key;
+            GetItemRef(ref valueIndexes, index) = currCount;
 
-                hRobinHooded = tmp;
-                probe = hRobinHooded.Probe;
+            // 5. Now treat the robin-hooded entry as a newly inserted entry 
+            probe = rhProbe;
+            while (true)
+            {
+                index = (index + 1) & indexMask;
+                pRef = ref GetItemRef(ref probes, index);
+                if (pRef < ++probe)
+                    goto insert;
             }
         }
 
@@ -350,132 +347,156 @@ public struct FHashMap11<K, V, TEq> : IReadOnlyCollection<KeyValuePair<K, V>>
     public void AddOrUpdate(K key, in V value) =>
         GetOrAddValueRef(key) = value;
 
-    /// <summary>Removes the hash and entry of the provided key or returns <see langword="false"/></summary>
-    [MethodImpl((MethodImplOptions)256)]
-    public bool TryRemove(K key)
-    {
-        var hash = default(TEq).GetHashCode(key);
+    //         /// <summary>Removes the hash and entry of the provided key or returns <see langword="false"/></summary>
+    //         [MethodImpl((MethodImplOptions)256)]
+    //         public bool TryRemove(K key)
+    //         {
+    //             var hash = default(TEq).GetHashCode(key);
 
-        var indexMask = (1 << _capacityBitShift) - 1;
-        var hashIndex = hash & indexMask;
+    //             var indexMask = (1 << _capacityBitShift) - 1;
+    //             var hashIndex = hash & indexMask;
 
-#if NET7_0_OR_GREATER
-        ref var keyEntries = ref MemoryMarshal.GetArrayDataReference(KeyEntries);
-#else
-        var keyEntries = KeyEntries;
-#endif
-        ref var h = ref GetItemRef(ref keyEntries, hashIndex);
+    // #if NET7_0_OR_GREATER
+    //             ref var keyEntries = ref MemoryMarshal.GetArrayDataReference(KeyEntries);
+    // #else
+    //         var keyEntries = KeyEntries;
+    // #endif
+    //             ref var h = ref GetItemRef(ref keyEntries, hashIndex);
 
-        var removed = false;
+    //             var removed = false;
 
-        // 1. Skip over hashes with the bigger and equal probes. The hashes with bigger probes overlapping from the earlier ideal positions
-        var probe = 1;
-        while (h.Probe >= probe)
-        {
-            // 2. For the equal probes check for equality the hash middle part, and update the entry if the keys are equal too 
-            if ((h.Probe == probe) & (h.Hash == hash) && default(TEq).Equals(h.Key, key))
-            {
-                removed = true;
+    //             // 1. Skip over hashes with the bigger and equal probes. The hashes with bigger probes overlapping from the earlier ideal positions
+    //             var probe = 1;
+    //             while (h.Probe >= probe)
+    //             {
+    //                 // 2. For the equal probes check for equality the hash middle part, and update the entry if the keys are equal too 
+    //                 if ((h.Probe == probe) & (h.Hash == hash) && default(TEq).Equals(h.Key, key))
+    //                 {
+    //                     removed = true;
 
-                --_count;
-                Values[h.Index] = default; // todo: @perf fragmentation issue, add the slot to the free list?
-                h = default;
-#if DEBUG
-                _dbg.RemoveProbe(probe);
-#endif
-                break;
-            }
-            h = ref GetItemRef(ref keyEntries, ++hashIndex & indexMask);
-            ++probe;
-        }
+    //                     --_count;
+    //                     Values[h.Index] = default; // todo: @perf fragmentation issue, add the slot to the free list?
+    //                     h = default;
+    // #if DEBUG
+    //                     _dbg.RemoveProbe(probe);
+    // #endif
+    //                     break;
+    //                 }
+    //                 h = ref GetItemRef(ref keyEntries, ++hashIndex & indexMask);
+    //                 ++probe;
+    //             }
 
-        if (!removed)
-            return false;
+    //             if (!removed)
+    //                 return false;
 
-        ref var emptied = ref h;
-        h = ref GetItemRef(ref keyEntries, ++hashIndex & indexMask);
+    //             ref var emptied = ref h;
+    //             h = ref GetItemRef(ref keyEntries, ++hashIndex & indexMask);
 
-        // move the next hash into the emptied slot until the next hash is empty or ideally positioned (hash is 0 or probe is 1)
-        while (h.Probe > 1)
-        {
-            emptied = h;
-            emptied.Probe -= 1; // decrease the probe count by one cause we moving the hash closer to the ideal index
-            h = default;
+    //             // move the next hash into the emptied slot until the next hash is empty or ideally positioned (hash is 0 or probe is 1)
+    //             while (h.Probe > 1)
+    //             {
+    //                 emptied = h;
+    //                 emptied.Probe -= 1; // decrease the probe count by one cause we moving the hash closer to the ideal index
+    //                 h = default;
 
-            emptied = ref h;
-            h = ref GetItemRef(ref keyEntries, ++hashIndex & indexMask);
-        }
-        return true;
-    }
+    //                 emptied = ref h;
+    //                 h = ref GetItemRef(ref keyEntries, ++hashIndex & indexMask);
+    //             }
+    //             return true;
+    //         }
 
     internal int ResizeHashes(int indexMask)
     {
         if (indexMask == 0)
         {
             _capacityBitShift = MinCapacityBits;
-            KeyEntries = new KeyEntry<K>[1 << MinCapacityBits];
-            Values = new V[1 << MinCapacityBits];
+            var cap = 1 << MinCapacityBits;
+            Probes = new byte[cap];
+            Hashes = new int[cap];
+            Keys = new K[cap];
+            ValueIndexes = new int[cap];
+            Values = new V[cap];
 #if DEBUG
-            Debug.WriteLine($"[ResizeHashes] new empty hashes {1} -> {KeyEntries.Length}");
+            Debug.WriteLine($"[ResizeHashes] new empty hashes {1} -> {Probes.Length}");
 #endif
-            return (1 << MinCapacityBits) - 1;
+            return cap - 1;
         }
 
-        var oldCapacity = indexMask + 1;
-        var newKeyEntries = new KeyEntry<K>[oldCapacity << 1];
-        var newIndexMask = indexMask << 1 | 1;
+        var oldCap = indexMask + 1;
+        var newCap = oldCap << 1;
+        var newProbes = new byte[newCap];
+        var newHashes = new int[newCap];
+        var newKeys = new K[newCap];
+        var newValueIndexes = new int[newCap];
+        var newIndexMask = newCap - 1;
 
 #if NET7_0_OR_GREATER
-        ref var newKeys = ref MemoryMarshal.GetArrayDataReference(newKeyEntries);
-        ref var oldKeys = ref MemoryMarshal.GetArrayDataReference(KeyEntries);
-        var oldKey = oldKeys;
+        ref var newProbesRef = ref MemoryMarshal.GetArrayDataReference(newProbes);
+        ref var oldProbesRef = ref MemoryMarshal.GetArrayDataReference(Probes);
+        var oldProbe = oldProbesRef;
+
+        ref var newHashesRef = ref MemoryMarshal.GetArrayDataReference(newHashes);
+        ref var oldHashesRef = ref MemoryMarshal.GetArrayDataReference(Hashes);
+
+        ref var newKeysRef = ref MemoryMarshal.GetArrayDataReference(newKeys);
+        ref var oldKeysRef = ref MemoryMarshal.GetArrayDataReference(Keys);
+
+        ref var newValueIndexesRef = ref MemoryMarshal.GetArrayDataReference(newValueIndexes);
+        ref var oldValueIndexesRef = ref MemoryMarshal.GetArrayDataReference(ValueIndexes);
 #else
-        var newKeys = newKeyEntries;
-        var oldKeys = KeyEntries;
+        var newKeys = newKeys;
+        var oldKeys = Keys;
         var oldKey = oldKeys[0];
 #endif
         // Overflow segment is wrapped-around hashes and! the hashes at the beginning robin-hooded by the wrapped-around hashes
         // so we skip them to start from first ideal or empty entry
         var i = 0;
-        while (oldKey.Probe > 1)
-            oldKey = GetItem(ref oldKeys, ++i);
-        var oldCapacityWithOverflowSegment = i + oldCapacity;
+        while (oldProbe > 1)
+            oldProbe = GetItem(ref oldProbesRef, ++i);
+        var oldCapWithOverflowSegment = i + oldCap;
 
         while (true)
         {
-            if (oldKey.Probe != 0)
+            if (oldProbe != 0)
             {
-                var newHashIndex = oldKey.Hash & newIndexMask;
+                var hash = GetItem(ref oldHashesRef, i);
+                var newIndex = hash & newIndexMask;
 
                 // no need for robin-hooding because we already did it for the old hashes and
                 // now just sparsing the hashes which are already in order into the new array
-                var newProbe = 1;
-                ref var newKey = ref GetItemRef(ref newKeys, newHashIndex);
-                while (newKey.Probe != 0)
+                var newProbe = (byte)1;
+                ref var newProbeRef = ref GetItemRef(ref newProbesRef, newIndex);
+                while (newProbeRef != 0)
                 {
-                    newKey = ref GetItemRef(ref newKeys, ++newHashIndex & newIndexMask);
+                    newIndex = (newIndex + 1) & newIndexMask;
+                    newProbeRef = ref GetItemRef(ref newProbeRef, newIndex);
                     ++newProbe;
                 }
-                newKey = oldKey;
-                newKey.Probe = newProbe;
+                newProbeRef = newProbe;
+                GetItemRef(ref newHashesRef, newIndex) = hash;
+                GetItemRef(ref newKeysRef, newIndex) = GetItem(ref oldKeysRef, i);
+                GetItemRef(ref newValueIndexesRef, newIndex) = GetItem(ref oldValueIndexesRef, i);
             }
-            if (++i >= oldCapacityWithOverflowSegment)
+            if (++i >= oldCapWithOverflowSegment)
                 break;
 
-            oldKey = GetItem(ref oldKeys, i & indexMask);
+            oldProbe = GetItem(ref oldProbesRef, i & indexMask);
         }
 #if DEBUG
-        Debug.WriteLine($"[ResizeHashes] {oldCapacity} -> {newKeyEntries.Length}");
-        _dbg.DebugReCollectAndOutputProbes(newKeyEntries);
+        Debug.WriteLine($"[ResizeHashes] {oldCap} -> {newProbes.Length}");
+        _dbg.DebugReCollectAndOutputProbes(newProbes, "ResizeHashes");
 #endif
         ++_capacityBitShift;
-        KeyEntries = newKeyEntries;
+        Probes = newProbes;
+        Hashes = newHashes;
+        Keys = newKeys;
+        ValueIndexes = newValueIndexes;
         return newIndexMask;
     }
 
     /// <inheritdoc />
     [MethodImpl((MethodImplOptions)256)]
-    public Enumerator GetEnumerator() => new Enumerator(KeyEntries, Values, _count);
+    public Enumerator GetEnumerator() => new Enumerator(Probes, ValueIndexes, Keys, Values, _count);
 
     /// <inheritdoc />
     IEnumerator<KeyValuePair<K, V>> IEnumerable<KeyValuePair<K, V>>.GetEnumerator() => GetEnumerator();
@@ -486,17 +507,21 @@ public struct FHashMap11<K, V, TEq> : IReadOnlyCollection<KeyValuePair<K, V>>
     /// <summary>Enumerator of the entries in the order of their addition to the map</summary>
     public struct Enumerator : IEnumerator<KeyValuePair<K, V>>
     {
-        private int _keyIndex;
+        private int _probeIndex;
         private int _index;
         private KeyValuePair<K, V> _current;
-        private readonly KeyEntry<K>[] _keys;
+        private readonly byte[] _probes;
+        private readonly int[] _valueIndexes;
+        private readonly K[] _keys;
         private readonly V[] _values;
         private int _count;
-        internal Enumerator(KeyEntry<K>[] keys, V[] values, int count)
+        internal Enumerator(byte[] probes, int[] valueIndexes, K[] keys, V[] values, int count)
         {
-            _keyIndex = 0;
+            _probeIndex = 0;
             _index = 0;
             _current = default;
+            _probes = probes;
+            _valueIndexes = valueIndexes;
             _keys = keys;
             _values = values;
             _count = count;
@@ -509,14 +534,13 @@ public struct FHashMap11<K, V, TEq> : IReadOnlyCollection<KeyValuePair<K, V>>
             if (_index < _count)
             {
                 // skip empty hashes
-                var i = _keyIndex;
-                while (_keys[i].Probe == 0)
+                var i = _probeIndex;
+                while (_probes[i] == 0)
                     ++i;
-                _keyIndex = i;
-                ref var k = ref _keys[i];
-                _current = new KeyValuePair<K, V>(k.Key, _values[k.Index]);
+                _probeIndex = i;
+                _current = new KeyValuePair<K, V>(_keys[i], _values[_valueIndexes[i]]);
 
-                ++_keyIndex;
+                ++_probeIndex;
                 ++_index;
                 return true;
             }
@@ -530,7 +554,7 @@ public struct FHashMap11<K, V, TEq> : IReadOnlyCollection<KeyValuePair<K, V>>
 
         void IEnumerator.Reset()
         {
-            _keyIndex = 0;
+            _probeIndex = 0;
             _index = 0;
             _current = default;
         }

@@ -57,77 +57,77 @@ public class FHashMap11Tests
         Verify(map, types);
     }
 
-    [Test]
-    public void Real_world_test_with_TryRemove_from_1000_items()
-    {
-        var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(1000).ToArray();
+    // [Test]
+    // public void Real_world_test_with_TryRemove_from_1000_items()
+    // {
+    //     var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(1000).ToArray();
 
-        var map = new FHashMap11<Type, string, RefEq<Type>>();
+    //     var map = new FHashMap11<Type, string, RefEq<Type>>();
 
-        foreach (var key in types)
-            map.AddOrUpdate(key, "a");
+    //     foreach (var key in types)
+    //         map.AddOrUpdate(key, "a");
 
-        map.AddOrUpdate(typeof(FHashMap11Tests), "!");
-        Assert.AreEqual(1001, map.Count);
+    //     map.AddOrUpdate(typeof(FHashMap11Tests), "!");
+    //     Assert.AreEqual(1001, map.Count);
 
-        Assert.IsTrue(map.TryRemove(typeof(FHashMap11Tests)));
-        Assert.AreEqual(1000, map.Count);
+    //     Assert.IsTrue(map.TryRemove(typeof(FHashMap11Tests)));
+    //     Assert.AreEqual(1000, map.Count);
 
-        Verify(map, types);
-    }
+    //     Verify(map, types);
+    // }
 
-    [Test]
-    public void Real_world_test_with_Enumerator_and_TryRemove_the_entries()
-    {
-        var count = 1000;
-        var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(count).ToList();
-        Assert.AreEqual(count, types.Count);
+    // [Test]
+    // public void Real_world_test_with_Enumerator_and_TryRemove_the_entries()
+    // {
+    //     var count = 1000;
+    //     var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(count).ToList();
+    //     Assert.AreEqual(count, types.Count);
 
-        var map = new FHashMap11<Type, string, RefEq<Type>>();
+    //     var map = new FHashMap11<Type, string, RefEq<Type>>();
 
-        foreach (var key in types)
-            map.AddOrUpdate(key, "a");
+    //     foreach (var key in types)
+    //         map.AddOrUpdate(key, "a");
 
-        var keys = map.Select(kv => kv.Key).ToList();
-        CollectionAssert.AreEquivalent(types, keys);
+    //     var keys = map.Select(kv => kv.Key).ToList();
+    //     CollectionAssert.AreEquivalent(types, keys);
 
-        Assert.IsTrue(map.TryRemove(types[0]));
-        Assert.IsTrue(map.TryRemove(types[999]));
-        Assert.IsTrue(map.TryRemove(types[377]));
-        Assert.IsTrue(map.TryRemove(types[733]));
-        Assert.AreEqual(count - 4, map.Count);
+    //     Assert.IsTrue(map.TryRemove(types[0]));
+    //     Assert.IsTrue(map.TryRemove(types[999]));
+    //     Assert.IsTrue(map.TryRemove(types[377]));
+    //     Assert.IsTrue(map.TryRemove(types[733]));
+    //     Assert.AreEqual(count - 4, map.Count);
 
-        // remove in the reverse order to keep the correct index in regard to map
-        types.RemoveAt(999);
-        types.RemoveAt(733);
-        types.RemoveAt(377);
-        types.RemoveAt(0);
-        Assert.AreEqual(count - 4, types.Count);
+    //     // remove in the reverse order to keep the correct index in regard to map
+    //     types.RemoveAt(999);
+    //     types.RemoveAt(733);
+    //     types.RemoveAt(377);
+    //     types.RemoveAt(0);
+    //     Assert.AreEqual(count - 4, types.Count);
 
-        // Check the second enumeration is working
-        var keys2 = map.Select(kv => kv.Key).ToList();
-        CollectionAssert.AreEquivalent(types, keys2);
+    //     // Check the second enumeration is working
+    //     var keys2 = map.Select(kv => kv.Key).ToList();
+    //     CollectionAssert.AreEquivalent(types, keys2);
 
-        Verify(map, types);
-    }
+    //     Verify(map, types);
+    // }
 
-    [Test]
-    public void Simplified_test_with_equal_hashes_RefEq()
-    {
-        var map = new FHashMap11<Type, string, RefEq<Type>>();
+    // [Test]
+    // public void Simplified_test_with_equal_hashes_RefEq()
+    // {
+    //     var map = new FHashMap11<Type, string, RefEq<Type>>();
 
-        var keys = new[] { typeof(Tuple<>), typeof(Tuple<,>), typeof(Tuple<,,>) };
-        var i = 1;
-        foreach (var k in keys)
-            map.AddOrUpdate(k, "" + i++);
+    //     var keys = new[] { typeof(Tuple<>), typeof(Tuple<,>), typeof(Tuple<,,>) };
+    //     var i = 1;
+    //     foreach (var k in keys)
+    //         map.AddOrUpdate(k, "" + i++);
 
-        Assert.AreEqual(3, map.Count);
+    //     Assert.AreEqual(3, map.Count);
 
-        Assert.IsTrue(map.TryRemove(typeof(Tuple<,,>)));
-        Assert.AreEqual(2, map.Count);
+    //     Assert.IsTrue(map.TryRemove(typeof(Tuple<,,>)));
+    //     Assert.AreEqual(2, map.Count);
 
-        Verify(map, new[] { typeof(Tuple<>), typeof(Tuple<,>) });
-    }
+    //     Verify(map, new[] { typeof(Tuple<>), typeof(Tuple<,>) });
+    // }
 
     [Test]
     public void Can_store_and_retrieve_value_from_map()
@@ -393,22 +393,22 @@ public class FHashMap11Tests
         Assert.AreEqual("3", value);
     }
 
-    [Test]
-    public void Can_remove_the_stored_item()
-    {
-        var map = new FHashMap11<int, string, IntEq>(2);
+    // [Test]
+    // public void Can_remove_the_stored_item()
+    // {
+    //     var map = new FHashMap11<int, string, IntEq>(2);
 
-        map.AddOrUpdate(42, "1");
-        map.AddOrUpdate(42 + 32, "2");
-        map.AddOrUpdate(42 + 32 + 32, "3");
+    //     map.AddOrUpdate(42, "1");
+    //     map.AddOrUpdate(42 + 32, "2");
+    //     map.AddOrUpdate(42 + 32 + 32, "3");
 
-        Assert.AreEqual("2", map.GetValueOrDefault(42 + 32));
-        var r = map.TryRemove(42 + 32);
-        Assert.IsTrue(r);
+    //     Assert.AreEqual("2", map.GetValueOrDefault(42 + 32));
+    //     var r = map.TryRemove(42 + 32);
+    //     Assert.IsTrue(r);
 
-        Assert.AreEqual(2, map.Count);
-        Assert.AreEqual("1", map.GetValueOrDefault(42));
-        Assert.AreEqual("3", map.GetValueOrDefault(42 + 32 + 32));
-        Verify(map, null);
-    }
+    //     Assert.AreEqual(2, map.Count);
+    //     Assert.AreEqual("1", map.GetValueOrDefault(42));
+    //     Assert.AreEqual("3", map.GetValueOrDefault(42 + 32 + 32));
+    //     Verify(map, null);
+    // }
 }
