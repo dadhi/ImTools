@@ -7314,10 +7314,6 @@ public struct HSmallMap<K, V, TEq, TEntries> : IReadOnlyCollection<HSmallMap.Ent
 #if NET7_0_OR_GREATER
             if (Vector256.IsHardwareAccelerated)
             {
-                var indexMaskVec = Vector256.Create(indexMask);
-                var hashMiddleMaskVec = Vector256.Create(hashMiddleMask);
-                var hashMiddleVec = Vector256.Create(hashMiddle);
-
                 var hashesAndIndexesVec = MemoryMarshal.Cast<int, Vector256<int>>(_packedHashesAndIndexes.AsSpan());
 
                 var vIndexMask = indexMask >> 3;
@@ -7325,7 +7321,7 @@ public struct HSmallMap<K, V, TEq, TEntries> : IReadOnlyCollection<HSmallMap.Ent
 
                 // Adjust probes if starting index is not aligned to 8
                 // e.g. if hashIndex = 1 -> V(0, 1, 2, 3, 4, 5, 6, 7) to V(-1, 0, 1, 2, 3, 4, 5, 6)
-                var expectedProbesVec = Vector256.Subtract(InitialProbesVec, Vector256.Create(hashIndex & 7));
+                var expectedProbeVec = Vector256.Subtract(InitialProbesVec, Vector256.Create(hashIndex & 7));
 
                 while (true)
                 {
@@ -7333,39 +7329,33 @@ public struct HSmallMap<K, V, TEq, TEntries> : IReadOnlyCollection<HSmallMap.Ent
 
                     // 1. Skip over hashes with the bigger and equal probes. The hashes with bigger probes overlapping from the earlier ideal positions
                     var hProbeVec = Vector256.ShiftRightLogical(hVec, HSmallMap.ProbeCountShift);
+                    var probeDistanceVec = Vector256.Subtract(hProbeVec, expectedProbeVec);
 
-                    // while ((h >>> HSmallMap.ProbeCountShift) >= probes)
-                    if (Vector256.GreaterThanOrEqual(hProbeVec, expectedProbesVec) == Vector256<int>.Zero)
-                        break;
-
-                    var matchedProbesVec = Vector256.Equals(hProbeVec, expectedProbesVec);
-                    var matchedHashMiddleVec = Vector256.Equals(Vector256.BitwiseAnd(hVec, hashMiddleMaskVec), hashMiddleVec);
-                    var matchVec = Vector256.BitwiseAnd(matchedProbesVec, matchedHashMiddleVec);
-                    var matchMask = matchVec.ExtractMostSignificantBits();
-
-                    // if (((h >>> HSmallMap.ProbeCountShift) == probes) & ((h & hashMiddleMask) == hashMiddle))
-                    while (matchMask != 0)
+                    for (var i = 0; i < Vector256<int>.Count; i++)
                     {
-                        // 2. For the equal probes check for equality the hash middle part, and update the entry if the keys are equal too 
-                        var matchIndex = BitOperations.TrailingZeroCount(matchMask);
-                        var entryIndex = hVec.GetElement(matchIndex) & indexMask;
-
-                        ref var e = ref _entries.GetSurePresentEntryRef(entryIndex);
-                        if (default(TEq).Equals(e.Key, key))
+                        var dist = probeDistanceVec.GetElement(i);
+                        if (dist == 0)
                         {
-                            value = e.Value;
-                            return true;
+                            if ((hVec.GetElement(i) & hashMiddleMask) == hashMiddle)
+                            {
+                                ref var e = ref _entries.GetSurePresentEntryRef(hVec.GetElement(i) & indexMask);
+                                if (default(TEq).Equals(e.Key, key))
+                                {
+                                    value = e.Value;
+                                    return true;
+                                }
+                            }
                         }
-
-                        matchMask &= matchMask - 1; // clear the matched bit
+                        else if (dist < 0)
+                        {
+                            value = default;
+                            return false;
+                        }
                     }
 
                     // e.g. V(-1, 0, 1, 2, 3, 4, 5, 6) + 8 -> V(7, 8, 9, 10, 11, 12, 13, 14)
-                    expectedProbesVec = Vector256.Add(expectedProbesVec, VectorSizeVec);
+                    expectedProbeVec = Vector256.Add(expectedProbeVec, VectorSizeVec);
                 }
-
-                value = default;
-                return false;
             }
 #endif
 #if NET7_0_OR_GREATER
@@ -7377,22 +7367,27 @@ public struct HSmallMap<K, V, TEq, TEntries> : IReadOnlyCollection<HSmallMap.Ent
             var h = HSmallMap.GetItem(ref hashesAndIndexes, hashIndex);
 
             // 1. Skip over hashes with the bigger and equal probes. The hashes with bigger probes overlapping from the earlier ideal positions
-            var probes = 1;
-            while ((h >>> HSmallMap.ProbeCountShift) >= probes)
+            var probe = 1;
+            while (true)
             {
-                // 2. For the equal probes check for equality the hash middle part, and update the entry if the keys are equal too 
-                if (((h >>> HSmallMap.ProbeCountShift) == probes) & ((h & hashMiddleMask) == hashMiddle))
+                var probeDistance = (h >>> HSmallMap.ProbeCountShift) - probe;
+                if (probeDistance == 0)
                 {
-                    ref var e = ref _entries.GetSurePresentEntryRef(h & indexMask);
-                    if (default(TEq).Equals(e.Key, key))
+                    if ((h & hashMiddleMask) == hashMiddle)
                     {
-                        value = e.Value;
-                        return true;
+                        ref var e = ref _entries.GetSurePresentEntryRef(h & indexMask);
+                        if (default(TEq).Equals(e.Key, key))
+                        {
+                            value = e.Value;
+                            return true;
+                        }
                     }
                 }
+                else if (probeDistance < 0)
+                    break;
 
                 h = HSmallMap.GetItem(ref hashesAndIndexes, ++hashIndex & indexMask);
-                ++probes;
+                ++probe;
             }
         }
 
@@ -7422,22 +7417,27 @@ public struct HSmallMap<K, V, TEq, TEntries> : IReadOnlyCollection<HSmallMap.Ent
             var h = HSmallMap.GetItem(ref hashesAndIndexes, hashIndex);
 
             // 1. Skip over hashes with the bigger and equal probes. The hashes with bigger probes overlapping from the earlier ideal positions
-            var probes = 1;
-            while ((h >>> HSmallMap.ProbeCountShift) >= probes)
+            var probe = 1;
+            while (true)
             {
-                // 2. For the equal probes check for equality the hash middle part, and update the entry if the keys are equal too 
-                if (((h >>> HSmallMap.ProbeCountShift) == probes) & ((h & hashMiddleMask) == hashMiddle))
+                var probeDistance = (h >>> HSmallMap.ProbeCountShift) - probe;
+                if (probeDistance == 0)
                 {
-                    ref var e = ref _entries.GetSurePresentEntryRef(h & indexMask);
-                    if (default(TEq).Equals(e.Key, key))
+                    if ((h & hashMiddleMask) == hashMiddle)
                     {
-                        value = e.Value;
-                        return true;
+                        ref var e = ref _entries.GetSurePresentEntryRef(h & indexMask);
+                        if (default(TEq).Equals(e.Key, key))
+                        {
+                            value = e.Value;
+                            return true;
+                        }
                     }
                 }
+                else if (probeDistance < 0)
+                    break;
 
                 h = HSmallMap.GetItem(ref hashesAndIndexes, ++hashIndex & indexMask);
-                ++probes;
+                ++probe;
             }
         }
 

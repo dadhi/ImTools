@@ -26,11 +26,12 @@ namespace Playground
 {
     public class ImHashMapBenchmarks
     {
-        private static readonly Type[] _keys = typeof(Dictionary<,>).Assembly.GetTypes().Take(1000).ToArray();
+        private static readonly Type[] _allKeys = typeof(List<>).Assembly.GetTypes().Take(2000).ToArray();
+        private static readonly Type[] _keys = _allKeys.Take(1000).ToArray();
+        private static readonly Type[] _missingKeys = _allKeys.TakeLast(1000).ToArray();
 
         // get half of the random _keys for the lookup, by selecting half of the random indexes from keys
         private static readonly Random _seed = new Random(42);
-        private static readonly Type[] _randomLookupKeys = _keys.OrderBy(_ => _seed.Next()).Take(_keys.Length / 2).ToArray();
 
         public struct TypeVal : IEquatable<TypeVal>
         {
@@ -2299,15 +2300,40 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             | SmallMap_TryGetValue       | 1000  | 2.364 us | 0.0387 us | 0.0302 us | 2.377 us |  1.07 |    0.06 |    1 |         - |          NA |
             | FHashMap11_TryGetValue     | 1000  | 2.387 us | 0.0477 us | 0.1170 us | 2.434 us |  1.08 |    0.08 |    1 |         - |          NA |
 
+            ## APL FHashMap11
+
+            | Method                     | Count | Mean     | Error     | StdDev    | Ratio | RatioSD | Rank | Allocated | Alloc Ratio |
+            |--------------------------- |------ |---------:|----------:|----------:|------:|--------:|-----:|----------:|------------:|
+            | DictionarySlim_TryGetValue | 1000  | 2.195 us | 0.0437 us | 0.1217 us |  1.00 |    0.08 |    1 |         - |          NA |
+            | FHashMap11_TryGetValue     | 1000  | 2.333 us | 0.0465 us | 0.0929 us |  1.07 |    0.07 |    2 |         - |          NA |
+            | SmallMap_TryGetValue       | 1000  | 2.514 us | 0.0489 us | 0.0789 us |  1.15 |    0.07 |    3 |         - |          NA |
+
+            ## Reshuffle the lookup comparison
+
+            | Method                     | Count | Mean        | Error     | StdDev     | Ratio | RatioSD | Rank | Allocated | Alloc Ratio |
+            |--------------------------- |------ |------------:|----------:|-----------:|------:|--------:|-----:|----------:|------------:|
+            | SmallMap_TryGetValue       | 10    |    44.90 ns |  0.536 ns |   0.419 ns |  0.99 |    0.04 |    1 |         - |          NA |
+            | DictionarySlim_TryGetValue | 10    |    45.43 ns |  0.941 ns |   1.857 ns |  1.00 |    0.06 |    1 |         - |          NA |
+            |                            |       |             |           |            |       |         |      |           |             |
+            | DictionarySlim_TryGetValue | 100   |   385.36 ns |  4.621 ns |   4.097 ns |  1.00 |    0.01 |    1 |         - |          NA |
+            | SmallMap_TryGetValue       | 100   |   513.52 ns |  5.702 ns |   5.054 ns |  1.33 |    0.02 |    2 |         - |          NA |
+            |                            |       |             |           |            |       |         |      |           |             |
+            | SmallMap_TryGetValue       | 1000  | 4,255.63 ns | 82.286 ns | 130.514 ns |  0.89 |    0.04 |    1 |         - |          NA |
+            | DictionarySlim_TryGetValue | 1000  | 4,794.12 ns | 95.912 ns | 189.322 ns |  1.00 |    0.06 |    2 |         - |          NA |
+
             */
             // [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             // [Params(1, 10, 100)]
-            [Params(1000)]
+            [Params(10, 100, 1000)]
             public int Count;
+
+            private Type[] _randomPresentKeys;
 
             [GlobalSetup]
             public void Populate()
             {
+                _randomPresentKeys = _keys.Take(Count).OrderBy(_ => _seed.Next()).ToArray();
+
                 _mapV4 = V4_ImHashMap_AddOrUpdate();
                 _mapV3 = V3_ImHashMap_AddOrUpdate();
                 _mapV2 = V2_AddOrUpdate();
@@ -2735,12 +2761,14 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             public int DictionarySlim_TryGetValue()
             {
                 var count = 0;
-                foreach (var k in _randomLookupKeys)
+                var iters = Count / 2;
+                for (var i = 0; i < iters; ++i)
                 {
-                    _dictSlim.TryGetValue(k, out var result);
-                    count += result.Length;
+                    if (_dictSlim.TryGetValue(_randomPresentKeys[i], out var result))
+                        count += result.Length;
+                    if (!_dictSlim.TryGetValue(_missingKeys[i], out var _))
+                        --count;
                 }
-
                 return count;
             }
 
@@ -2748,20 +2776,22 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             public int SmallMap_TryGetValue()
             {
                 var count = 0;
-                foreach (var k in _randomLookupKeys)
+                var iters = Count / 2;
+                for (var i = 0; i < iters; ++i)
                 {
-                    _smallMap.TryGetValue(k, out var result);
-                    count += result.Length;
+                    if (_smallMap.TryGetValue(_randomPresentKeys[i], out var result))
+                        count += result.Length;
+                    if (!_smallMap.TryGetValue(_missingKeys[i], out var _))
+                        --count;
                 }
-
                 return count;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public int FHashMap11_TryGetValue()
             {
                 var count = 0;
-                foreach (var k in _randomLookupKeys)
+                foreach (var k in _randomPresentKeys)
                 {
                     _fHashMap11.TryGetValue(k, out var result);
                     count += result.Length;
@@ -2774,7 +2804,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             public int FHashMap_TryGetValue()
             {
                 var count = 0;
-                foreach (var k in _randomLookupKeys)
+                foreach (var k in _randomPresentKeys)
                 {
                     var result = _fHashMap.TryGetValueRef(k, out _);
                     count += result.Length;
