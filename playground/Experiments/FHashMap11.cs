@@ -19,7 +19,7 @@ public static class FHashMap11
     internal const byte MinFreeCapacityShift = 3; // e.g. for the capacity 16: 16 >> 3 => 2, 12.5% of the free hash slots (it does not mean the entries free slot)
     internal const byte MinCapacityBits = 3; // 1 << 3 == 8
 
-    /// <summary>Verifies that the hashes correspond to the keys stroed in the entries. May be called from the tests.</summary>
+    /// <summary>Verifies that the hashes correspond to the keys stored in the entries. May be called from the tests.</summary>
     public static void VerifyHashesAndKeysEq<K, V, TEq>(this FHashMap11<K, V, TEq> map, Action<bool> assertEq)
         where TEq : struct, IEq<K>
     {
@@ -199,7 +199,7 @@ public struct FHashMap11<K, V, TEq> : IReadOnlyCollection<KeyValuePair<K, V>>
         _capacityBitShift = capacityBitShift;
 
         // the overflow tail to the hashes is the size of log2N where N==capacityBitShift, 
-        // it is probably fine to have the check for the overlow of capacity because it will be mispredicted only once at the end of loop (it even rarely for the lookup)
+        // it is probably fine to have the check for the overflow of capacity because it will be mis-predicted only once at the end of loop (it even rarely for the lookup)
         var cap = 1 << capacityBitShift;
         Probes = new byte[cap];
         Hashes = new int[cap];
@@ -299,7 +299,7 @@ public struct FHashMap11<K, V, TEq> : IReadOnlyCollection<KeyValuePair<K, V>>
             ++probe;
         }
 
-        // Nothing found, add a new entry and inscrease the count first
+        // Nothing found, add a new entry and increase the count first
         var valueIndex = currCount;
         _count = currCount + 1;
 
@@ -484,7 +484,7 @@ public struct FHashMap11<K, V, TEq> : IReadOnlyCollection<KeyValuePair<K, V>>
                 var newIndex = hash & newIndexMask;
 
                 // no need for robin-hooding because we already did it for the old hashes and
-                // now just sparsing the hashes which are already in order into the new array
+                // now just sparse the hashes which are already in order into the new array
                 var newProbe = (byte)1;
                 ref var newProbeRef = ref GetItemRef(ref newProbesRef, newIndex);
                 while (newProbeRef != 0)

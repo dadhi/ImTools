@@ -2004,7 +2004,7 @@ public delegate V Update<K, V>(K key, V oldValue, V newValue);
 /// <summary>Entry containing the Value in addition to the Hash</summary>
 public abstract class ImHashMapEntry<K, V> : ImHashMap<K, V>.Entry
 {
-    /// <summary>The value. Maybe modified if you need the Ref{Value} semantics. 
+    /// <summary>The value. Maybe modified if you need the Ref{Value} semantics.
     /// You may add the entry with the default Value to the map, and calculate and set it later (e.g. using the CAS).</summary>
     public V Value;
 
@@ -7298,6 +7298,7 @@ public struct HSmallMap<K, V, TEq, TEntries> : IReadOnlyCollection<HSmallMap.Ent
     internal static readonly Vector256<int> VectorSizeVec = Vector256.Create(8);
 #endif
 
+    // todo: @wip @remove
     /// <summary>Lookup for the key and get the associated value if the key is found</summary>
     [MethodImpl((MethodImplOptions)256)]
     public bool TryGetValue_SIMD(K key, out V value)

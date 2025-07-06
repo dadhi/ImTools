@@ -14,7 +14,7 @@ using System.Runtime.CompilerServices;
 
 using FHashMap91TypeString = ImTools.Experiments.FHashMap91<System.Type, string, ImTools.Experiments.FHashMap91.RefEq<System.Type>, ImTools.Experiments.FHashMap91.SingleArrayEntries<System.Type, string, ImTools.Experiments.FHashMap91.RefEq<System.Type>>>;
 using SmallMapTypeString = ImTools.HSmallMap<System.Type, string, ImTools.RefEq<System.Type>, ImTools.HSmallMap.SingleArrayEntries<System.Type, string, ImTools.RefEq<System.Type>>>;
-using FHashMapTypeString = FastExpressionCompiler.ImTools.FHashMap<System.Type, string, FastExpressionCompiler.ImTools.FHashMap.RefEq<System.Type>, FastExpressionCompiler.ImTools.FHashMap.SingleArrayEntries<System.Type, string, FastExpressionCompiler.ImTools.FHashMap.RefEq<System.Type>>>;
+using FecSmallMapTypeString = FastExpressionCompiler.ImTools.SmallMap16<System.Type, string, FastExpressionCompiler.ImTools.RefEq<System.Type>>;
 using BenchmarkDotNet.Order;
 using ImTools.Experiments;
 
@@ -982,7 +982,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 
 */
             // [Params(1, 10, 100, 1000)]
-            [Params(100)]//, 1000)]
+            [Params(10)]//, 1000)]
             // [Params(1000)]
             public int Count;
 
@@ -1158,9 +1158,9 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             }
 
             // [Benchmark]
-            public ImTools.Experiments.FHashMap7<Type, string, RefEq<Type>> FHashMap7_AddOrUpdate()
+            public ImTools.Experiments.FHashMap7<Type, string, ImTools.RefEq<Type>> FHashMap7_AddOrUpdate()
             {
-                var map = new ImTools.Experiments.FHashMap7<Type, string, RefEq<Type>>();
+                var map = new ImTools.Experiments.FHashMap7<Type, string, ImTools.RefEq<Type>>();
 
                 foreach (var key in _types)
                     map.AddOrUpdate(key, "a");
@@ -1183,9 +1183,9 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             }
 
             // [Benchmark]
-            public ImTools.Experiments.FHashMap8<Type, string, RefEq<Type>> FHashMap8_AddOrUpdate()
+            public ImTools.Experiments.FHashMap8<Type, string, ImTools.RefEq<Type>> FHashMap8_AddOrUpdate()
             {
-                var map = new ImTools.Experiments.FHashMap8<Type, string, RefEq<Type>>();
+                var map = new ImTools.Experiments.FHashMap8<Type, string, ImTools.RefEq<Type>>();
 
                 foreach (var key in _types)
                     map.AddOrUpdate(key, "a");
@@ -2323,8 +2323,8 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 
             */
             // [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
-            // [Params(1, 10, 100)]
-            [Params(10, 100, 1000)]
+            // [Params(10, 100, 1000)]
+            [Params(100)]
             public int Count;
 
             private Type[] _randomPresentKeys;
@@ -2334,22 +2334,25 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             {
                 _randomPresentKeys = _keys.Take(Count).OrderBy(_ => _seed.Next()).ToArray();
 
-                _mapV4 = V4_ImHashMap_AddOrUpdate();
-                _mapV3 = V3_ImHashMap_AddOrUpdate();
-                _mapV2 = V2_AddOrUpdate();
-                _partMapV4 = V4_PartitionedHashMap_AddOrUpdate();
-                _partMapV3 = V3_PartitionedHashMap_AddOrUpdate();
-                _typeDict = TypeDictionary_Add();
-                _dict = Dict();
-                _dictSlim = DictSlim();
-                _fHashMap7 = FillFHashMap7();
-                _fHashMap9 = FillFHashMap9();
-                _fHashMap91 = FillFHashMap91();
-                _smallMap = FillSmallMap();
-                _fHashMap11 = FillFHashMap11();
-                _fHashMap = FillFHashMap();
-                _concurrentDict = ConcurrentDict();
-                _immutableDict = ImmutableDict();
+                // _mapV4 = V4_ImHashMap_AddOrUpdate();
+                // _mapV3 = V3_ImHashMap_AddOrUpdate();
+                // _mapV2 = V2_AddOrUpdate();
+                // _partMapV4 = V4_PartitionedHashMap_AddOrUpdate();
+                // _partMapV3 = V3_PartitionedHashMap_AddOrUpdate();
+                // _typeDict = TypeDictionary_Add();
+                // _dict = Dict();
+                // _dictSlim = DictSlim();
+                // _fHashMap7 = FillFHashMap7();
+                // _fHashMap9 = FillFHashMap9();
+                // _fHashMap91 = FillFHashMap91();
+                // _smallMap = FillSmallMap();
+                // _fHashMap11 = FillFHashMap11();
+
+                // _fecSmallMap = new FecSmallMapTypeString();
+                // FillFecHashMap(ref _fecSmallMap);
+
+                // _concurrentDict = ConcurrentDict();
+                // _immutableDict = ImmutableDict();
             }
 
             #region Population
@@ -2512,9 +2515,9 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 
             private DictionarySlim<TypeVal, string> _dictSlim;
 
-            public ImTools.Experiments.FHashMap7<Type, string, RefEq<Type>> FillFHashMap7()
+            public ImTools.Experiments.FHashMap7<Type, string, ImTools.RefEq<Type>> FillFHashMap7()
             {
-                var map = new ImTools.Experiments.FHashMap7<Type, string, RefEq<Type>>();
+                var map = new ImTools.Experiments.FHashMap7<Type, string, ImTools.RefEq<Type>>();
 
                 foreach (var key in _keys.Take(Count))
                     map.AddOrUpdate(key, "a");
@@ -2523,11 +2526,11 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return map;
             }
 
-            private ImTools.Experiments.FHashMap7<Type, string, RefEq<Type>> _fHashMap7;
+            private ImTools.Experiments.FHashMap7<Type, string, ImTools.RefEq<Type>> _fHashMap7;
 
-            public ImTools.Experiments.FHashMap9<Type, string, RefEq<Type>> FillFHashMap9()
+            public ImTools.Experiments.FHashMap9<Type, string, ImTools.RefEq<Type>> FillFHashMap9()
             {
-                var map = new ImTools.Experiments.FHashMap9<Type, string, RefEq<Type>>();
+                var map = new ImTools.Experiments.FHashMap9<Type, string, ImTools.RefEq<Type>>();
 
                 foreach (var key in _keys.Take(Count))
                     map.AddOrUpdate(key, "a");
@@ -2536,7 +2539,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return map;
             }
 
-            private ImTools.Experiments.FHashMap9<Type, string, RefEq<Type>> _fHashMap9;
+            private ImTools.Experiments.FHashMap9<Type, string, ImTools.RefEq<Type>> _fHashMap9;
 
             public FHashMap91TypeString FillFHashMap91()
             {
@@ -2564,9 +2567,9 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 
             private SmallMapTypeString _smallMap;
 
-            public FHashMap11<Type, string, RefEq<Type>> FillFHashMap11()
+            public FHashMap11<Type, string, ImTools.RefEq<Type>> FillFHashMap11()
             {
-                var map = new FHashMap11<Type, string, RefEq<Type>>();
+                var map = new FHashMap11<Type, string, ImTools.RefEq<Type>>();
 
                 foreach (var key in _keys.Take(Count))
                     map.GetOrAddValueRef(key) = "a";
@@ -2575,20 +2578,17 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return map;
             }
 
-            private FHashMap11<Type, string, RefEq<Type>> _fHashMap11;
+            private FHashMap11<Type, string, ImTools.RefEq<Type>> _fHashMap11;
 
-            public FHashMapTypeString FillFHashMap()
+            public void FillFecHashMap(ref FecSmallMapTypeString map)
             {
-                var map = new FHashMapTypeString();
-
                 foreach (var key in _keys.Take(Count))
-                    map.GetOrAddValueRef(key, out _) = "a";
+                    map.Map.AddOrGetValueRef(key, out _) = "a";
 
-                map.GetOrAddValueRef(LookupKey, out _) = "!";
-                return map;
+                map.Map.AddOrGetValueRef(LookupKey, out _) = "!";
             }
 
-            private FHashMapTypeString _fHashMap;
+            private FecSmallMapTypeString _fecSmallMap;
 
             public ConcurrentDictionary<Type, string> ConcurrentDict()
             {
@@ -2758,30 +2758,68 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 
             // [Benchmark]
             [Benchmark(Baseline = true)]
-            public int DictionarySlim_TryGetValue()
+            public int DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent()
             {
+                var dict = new DictionarySlim<TypeVal, string>();
+
+                foreach (var key in _keys.Take(Count))
+                    dict.GetOrAddValueRef(key) = "a";
+
+                dict.GetOrAddValueRef(LookupKey) = "!";
+
                 var count = 0;
                 var iters = Count / 2;
                 for (var i = 0; i < iters; ++i)
                 {
-                    if (_dictSlim.TryGetValue(_randomPresentKeys[i], out var result))
+                    if (dict.TryGetValue(_randomPresentKeys[i], out var result))
                         count += result.Length;
-                    if (!_dictSlim.TryGetValue(_missingKeys[i], out var _))
+                    if (!dict.TryGetValue(_missingKeys[i], out var _))
                         --count;
                 }
                 return count;
             }
 
             [Benchmark]
-            public int SmallMap_TryGetValue()
+            public int SmallMap_PopulateThenLookup_HalfMissed_HalfPresent()
             {
+                var map = new SmallMapTypeString();
+
+                foreach (var key in _keys.Take(Count))
+                    map.GetOrAddValueRef(key) = "a";
+
+                map.GetOrAddValueRef(LookupKey) = "!";
+
                 var count = 0;
                 var iters = Count / 2;
                 for (var i = 0; i < iters; ++i)
                 {
-                    if (_smallMap.TryGetValue(_randomPresentKeys[i], out var result))
+                    if (map.TryGetValue(_randomPresentKeys[i], out var result))
                         count += result.Length;
-                    if (!_smallMap.TryGetValue(_missingKeys[i], out var _))
+                    if (!map.TryGetValue(_missingKeys[i], out var _))
+                        --count;
+                }
+                return count;
+            }
+
+            // [Benchmark]
+            public int FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent()
+            {
+                var map = new FecSmallMapTypeString();
+
+                foreach (var key in _keys.Take(Count))
+                    map.Map.AddOrGetValueRef(key, out _) = "a";
+
+                map.Map.AddOrGetValueRef(LookupKey, out _) = "!";
+
+                var count = 0;
+                var iters = Count / 2;
+                for (var i = 0; i < iters; ++i)
+                {
+                    var result = map.Map.TryGetValueRef(_randomPresentKeys[i], out var found);
+                    if (found)
+                        count += result.Length;
+                    var _ = map.Map.TryGetValueRef(_missingKeys[i], out found);
+                    if (found)
                         --count;
                 }
                 return count;
@@ -2794,19 +2832,6 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 foreach (var k in _randomPresentKeys)
                 {
                     _fHashMap11.TryGetValue(k, out var result);
-                    count += result.Length;
-                }
-
-                return count;
-            }
-
-            // [Benchmark]
-            public int FHashMap_TryGetValue()
-            {
-                var count = 0;
-                foreach (var k in _randomPresentKeys)
-                {
-                    var result = _fHashMap.TryGetValueRef(k, out _);
                     count += result.Length;
                 }
 
