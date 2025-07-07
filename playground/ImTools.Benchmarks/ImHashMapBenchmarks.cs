@@ -2323,16 +2323,18 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 
             */
             // [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
-            // [Params(10, 100, 1000)]
-            [Params(100)]
+            [Params(10, 100, 1000)]
+            // [Params(100)]
             public int Count;
 
+            private Type[] _presentKeys;
             private Type[] _randomPresentKeys;
 
             [GlobalSetup]
             public void Populate()
             {
-                _randomPresentKeys = _keys.Take(Count).OrderBy(_ => _seed.Next()).ToArray();
+                _presentKeys = _keys.Take(Count).ToArray();
+                _randomPresentKeys = _presentKeys.OrderBy(_ => _seed.Next()).ToArray();
 
                 // _mapV4 = V4_ImHashMap_AddOrUpdate();
                 // _mapV3 = V3_ImHashMap_AddOrUpdate();
@@ -2762,10 +2764,8 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             {
                 var dict = new DictionarySlim<TypeVal, string>();
 
-                foreach (var key in _keys.Take(Count))
+                foreach (var key in _presentKeys)
                     dict.GetOrAddValueRef(key) = "a";
-
-                dict.GetOrAddValueRef(LookupKey) = "!";
 
                 var count = 0;
                 var iters = Count / 2;
@@ -2784,10 +2784,8 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             {
                 var map = new SmallMapTypeString();
 
-                foreach (var key in _keys.Take(Count))
+                foreach (var key in _presentKeys)
                     map.GetOrAddValueRef(key) = "a";
-
-                map.GetOrAddValueRef(LookupKey) = "!";
 
                 var count = 0;
                 var iters = Count / 2;
@@ -2801,25 +2799,24 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return count;
             }
 
-            // [Benchmark]
+            [Benchmark]
             public int FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent()
             {
-                var map = new FecSmallMapTypeString();
+                var m = new FecSmallMapTypeString();
+                ref var map = ref m.Map;
 
-                foreach (var key in _keys.Take(Count))
-                    map.Map.AddOrGetValueRef(key, out _) = "a";
-
-                map.Map.AddOrGetValueRef(LookupKey, out _) = "!";
+                foreach (var key in _presentKeys)
+                    map.AddOrGetValueRef(key, out _) = "a";
 
                 var count = 0;
                 var iters = Count / 2;
                 for (var i = 0; i < iters; ++i)
                 {
-                    var result = map.Map.TryGetValueRef(_randomPresentKeys[i], out var found);
+                    var result = map.TryGetValueRef(_randomPresentKeys[i], out var found);
                     if (found)
                         count += result.Length;
-                    var _ = map.Map.TryGetValueRef(_missingKeys[i], out found);
-                    if (found)
+                    _ = map.TryGetValueRef(_missingKeys[i], out found);
+                    if (!found)
                         --count;
                 }
                 return count;
@@ -3179,7 +3176,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
     */
 
             // [Params(1, 10, 100, 1_000)]
-            [Params(100)]
+            [Params(10, 100, 1000)]
             public int Count;
 
             [GlobalSetup]

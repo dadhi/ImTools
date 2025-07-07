@@ -40,6 +40,41 @@ public class FecSmallMapTests
         // Verify(map, types);
     }
 
+    [Test]
+    public void Benchmark_test_with_Add_and_Lookup()
+    {
+        const int Count = 10;
+        var LookupKey = typeof(Console);
+
+        var m = new SmallMap16<Type, string, RefEq<Type>>();
+        ref var map = ref m.Map;
+
+        var allKeys = typeof(List<>).Assembly.GetTypes().Take(2000).ToArray();
+        var keys = allKeys.Take(1000).ToArray();
+        var seed = new Random(42);
+        var missingKeys = allKeys.Skip(1000).Take(Count).ToArray();
+        var randomPresentKeys = keys.Take(Count).OrderBy(_ => seed.Next()).ToArray();
+
+        foreach (var key in keys.Take(Count))
+            map.AddOrGetValueRef(key, out _) = "a";
+
+        map.AddOrGetValueRef(LookupKey, out _) = "!";
+
+        var count = 0;
+        var iters = Count / 2;
+        for (var i = 0; i < iters; ++i)
+        {
+            var result = map.TryGetValueRef(randomPresentKeys[i], out var found);
+            if (found)
+                count += result.Length;
+            _ = map.TryGetValueRef(missingKeys[i], out found);
+            if (!found)
+                --count;
+        }
+
+        Assert.AreEqual(0, count);
+    }
+
     // [Test]
     // public void Real_world_test_AddOrUpdate_NO_Resize()
     // {
@@ -129,56 +164,55 @@ public class FecSmallMapTests
     //     Verify(map, new[] { typeof(Tuple<>), typeof(Tuple<,>) });
     // }
 
-    // [Test]
-    // public void Can_store_and_retrieve_value_from_map()
-    // {
-    //     var map = new SmallMap16<int, string, IntEq>(2);
+    [Test]
+    public void Can_store_and_retrieve_value_from_map()
+    {
+        var m = new SmallMap16<int, string, IntEq>();
+        ref var map = ref m.Map;
 
-    //     map.AddOrUpdate(42, "1");
-    //     map.AddOrUpdate(42 + 32, "2");
-    //     map.AddOrUpdate(42 + 32 + 32, "3");
+        map.AddOrUpdate(42, "1");
+        map.AddOrUpdate(42 + 32, "2");
+        map.AddOrUpdate(42 + 32 + 32, "3");
 
-    //     // interrupt the keys with ne key
-    //     map.AddOrUpdate(43, "a");
-    //     map.AddOrUpdate(43 + 32, "b");
-    //     map.AddOrUpdate(43 + 32 + 32, "c");
+        // interrupt the keys with ne key
+        map.AddOrUpdate(43, "a");
+        map.AddOrUpdate(43 + 32, "b");
+        map.AddOrUpdate(43 + 32 + 32, "c");
 
-    //     map.AddOrUpdate(42 + 32 + 32 + 32, "4");
+        map.AddOrUpdate(42 + 32 + 32 + 32, "4");
 
-    //     // insert 3rd variety of the keys
-    //     map.AddOrUpdate(44, "*");
+        // insert 3rd variety of the keys
+        map.AddOrUpdate(44, "*");
 
-    //     map.AddOrUpdate(42 + 32 + 32 + 32 + 32, "5");
-    //     map.AddOrUpdate(42 + 32 + 32 + 32 + 32 + 32, "6");
-    //     map.AddOrUpdate(43 + 32 + 32 + 32, "d");
+        map.AddOrUpdate(42 + 32 + 32 + 32 + 32, "5");
+        map.AddOrUpdate(42 + 32 + 32 + 32 + 32 + 32, "6");
+        map.AddOrUpdate(43 + 32 + 32 + 32, "d");
 
-    //     map.AddOrUpdate(42 + 32 + 32 + 32 + 32 + 32 + 32, "7");
-    //     map.AddOrUpdate(42 + 32 + 32 + 32 + 32 + 32 + 32 + 32, "8");
+        map.AddOrUpdate(42 + 32 + 32 + 32 + 32 + 32 + 32, "7");
+        map.AddOrUpdate(42 + 32 + 32 + 32 + 32 + 32 + 32 + 32, "8");
 
-    //     // check for the missing key
-    //     Assert.AreEqual(null, map.GetValueOrDefault(43 + 32 + 32 + 32 + 32));
+        // check for the missing key
+        Assert.AreEqual(null, map.GetValueOrDefault(43 + 32 + 32 + 32 + 32));
 
-    //     // check for the strange key
-    //     Assert.AreEqual("*", map.GetValueOrDefault(44));
+        // check for the strange key
+        Assert.AreEqual("*", map.GetValueOrDefault(44));
 
-    //     Assert.AreEqual("1", map.GetValueOrDefault(42));
-    //     Assert.AreEqual("2", map.GetValueOrDefault(42 + 32));
-    //     Assert.AreEqual("3", map.GetValueOrDefault(42 + 32 + 32));
-    //     Assert.AreEqual("4", map.GetValueOrDefault(42 + 32 + 32 + 32));
-    //     Assert.AreEqual("5", map.GetValueOrDefault(42 + 32 + 32 + 32 + 32));
-    //     Assert.AreEqual("6", map.GetValueOrDefault(42 + 32 + 32 + 32 + 32 + 32));
-    //     Assert.AreEqual("7", map.GetValueOrDefault(42 + 32 + 32 + 32 + 32 + 32 + 32));
-    //     Assert.AreEqual("8", map.GetValueOrDefault(42 + 32 + 32 + 32 + 32 + 32 + 32 + 32));
+        Assert.AreEqual("1", map.GetValueOrDefault(42));
+        Assert.AreEqual("2", map.GetValueOrDefault(42 + 32));
+        Assert.AreEqual("3", map.GetValueOrDefault(42 + 32 + 32));
+        Assert.AreEqual("4", map.GetValueOrDefault(42 + 32 + 32 + 32));
+        Assert.AreEqual("5", map.GetValueOrDefault(42 + 32 + 32 + 32 + 32));
+        Assert.AreEqual("6", map.GetValueOrDefault(42 + 32 + 32 + 32 + 32 + 32));
+        Assert.AreEqual("7", map.GetValueOrDefault(42 + 32 + 32 + 32 + 32 + 32 + 32));
+        Assert.AreEqual("8", map.GetValueOrDefault(42 + 32 + 32 + 32 + 32 + 32 + 32 + 32));
 
-    //     Assert.AreEqual("a", map.GetValueOrDefault(43));
-    //     Assert.AreEqual("b", map.GetValueOrDefault(43 + 32));
-    //     Assert.AreEqual("c", map.GetValueOrDefault(43 + 32 + 32));
-    //     Assert.AreEqual("d", map.GetValueOrDefault(43 + 32 + 32 + 32));
+        Assert.AreEqual("a", map.GetValueOrDefault(43));
+        Assert.AreEqual("b", map.GetValueOrDefault(43 + 32));
+        Assert.AreEqual("c", map.GetValueOrDefault(43 + 32 + 32));
+        Assert.AreEqual("d", map.GetValueOrDefault(43 + 32 + 32 + 32));
 
-    //     Assert.AreEqual(13, map.Count);
-
-    //     Verify(map, null);
-    // }
+        Assert.AreEqual(13, map.Count);
+    }
 
     /*
     ## Debug output example
