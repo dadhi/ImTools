@@ -1,7 +1,7 @@
 image:
   - Visual Studio 2022
-  - Ubuntu
-  - macOS
+  # - Ubuntu
+  # - macOS
 
 version: 5.0.0-preview-01-b{build}
 

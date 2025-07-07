@@ -2321,10 +2321,18 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             | SmallMap_TryGetValue       | 1000  | 4,255.63 ns | 82.286 ns | 130.514 ns |  0.89 |    0.04 |    1 |         - |          NA |
             | DictionarySlim_TryGetValue | 1000  | 4,794.12 ns | 95.912 ns | 189.322 ns |  1.00 |    0.06 |    2 |         - |          NA |
 
+            ## Stack hybrid from the FEC is tested
+
+            | Method                                                   | Count | Mean     | Error   | StdDev   | Ratio | RatioSD | Rank | Gen0   | Allocated | Alloc Ratio |
+            |--------------------------------------------------------- |------ |---------:|--------:|---------:|------:|--------:|-----:|-------:|----------:|------------:|
+            | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 10    | 203.5 ns | 3.88 ns |  3.63 ns |  0.70 |    0.03 |    1 | 0.1147 |     720 B |        0.67 |
+            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 10    | 277.6 ns | 3.61 ns |  5.52 ns |  0.95 |    0.04 |    2 |      - |         - |        0.00 |
+            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 10    | 292.1 ns | 5.84 ns | 12.19 ns |  1.00 |    0.06 |    2 | 0.1707 |    1072 B |        1.00 |
+
             */
             // [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
-            [Params(10, 100, 1000)]
-            // [Params(100)]
+            // [Params(10, 100, 1000)]
+            [Params(10)]
             public int Count;
 
             private Type[] _presentKeys;
