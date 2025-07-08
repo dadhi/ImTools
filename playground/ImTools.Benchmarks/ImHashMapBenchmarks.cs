@@ -2787,7 +2787,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return count;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public int SmallMap_PopulateThenLookup_HalfMissed_HalfPresent()
             {
                 var map = new SmallMapTypeString();

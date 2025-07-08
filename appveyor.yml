@@ -5,7 +5,7 @@ image:
 
 version: 5.0.0-preview-01-b{build}
 
-test: off
+test: false
 
 skip_commits:
   message: /noci .*/

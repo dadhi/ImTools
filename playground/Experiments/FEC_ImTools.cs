@@ -957,7 +957,7 @@ public static class SmallMap
     /// <summary>Lookup for the K in the TStackEntries, first by calculating it hash with TEq and searching the hash in the TStackHashes</summary>
     [MethodImpl((MethodImplOptions)256)]
     public static ref TEntry TryGetEntryRef<K, TEntry, TEq, TCap, TStackHashes, TStackEntries>(
-        this ref TStackEntries entries, ref TStackHashes hashes, int count, K key, out bool found,
+        this ref TStackEntries entries, ref TStackHashes hashes, int count, K key, int hash, out bool found,
         TEq eq = default, TCap cap = default, Use<TEntry> _ = default)
         where TEntry : struct, IEntry<K>
         where TEq : struct, IEq<K>
@@ -966,11 +966,14 @@ public static class SmallMap
         where TCap : struct, ISize2Plus
     {
         Debug.Assert(count <= cap.Size, $"SmallMap.TryGetEntryRef: count {count} should be <= stack capacity {cap.Size}");
-
-        var hash = eq.GetHashCode(key);
+        if (count == 0)
+        {
+            found = false;
+            return ref RefTools<TEntry>.GetNullRef();
+        }
 
 #if NET8_0_OR_GREATER
-        if (count >= 8 & cap.Size >= 8 & Vector256.IsHardwareAccelerated)
+        if (cap.Size >= 8 & Vector256.IsHardwareAccelerated)
         {
             var vHash = Vector256.Create(hash);
             var vHashes = MemoryMarshal.Cast<int, Vector256<int>>(hashes.AsSpan());
@@ -1170,7 +1173,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     }
 
     [UnscopedRef]
-    private ref TEntry AddOrGetRefInEntries(K key, out bool found)
+    private ref TEntry AddOrGetRefInEntries(K key, int hash, out bool found)
     {
         // if the free space is less than 1/8 of capacity (12.5%) then Resize
         var indexMask = (1 << _capacityBitShift) - 1;
@@ -1179,7 +1182,6 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         if (indexMask - _count <= (indexMask >>> MinFreeCapacityShift))
             indexMask = ResizeHashes(indexMask);
 
-        var hash = default(TEq).GetHashCode(key);
         var hashMiddleMask = HashAndIndexMask & ~indexMask;
         var hashMiddle = hash & hashMiddleMask;
         var hashIndex = hash & indexMask;
@@ -1270,27 +1272,36 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     /// <summary>Gets the ref to the existing entry by the provided key (found == true),
     /// or adds a new entry (found == false) and returns it by ref</summary>
     [UnscopedRef]
+    [MethodImpl((MethodImplOptions)256)]
     public ref TEntry AddOrGetEntryRef(K key, out bool found)
     {
-        if (_count > _stackEntries.Capacity)
-            return ref AddOrGetRefInEntries(key, out found);
+        var hash = default(TEq).GetHashCode(key) | 1;
 
-        ref var e = ref _stackEntries.TryGetEntryRef(ref _stackHashes, _count, key, out found,
+        if (_count > _stackEntries.Capacity)
+            return ref AddOrGetRefInEntries(key, hash, out found);
+
+        ref var e = ref _stackEntries.TryGetEntryRef(ref _stackHashes, _count, key, hash, out found,
             default(TEq), default(TStackCap), default(Use<TEntry>));
         if (found)
             return ref e;
 
         // Add the new entry to the stack if there is still space in stack
+        found = false;
         if (_count < _stackEntries.Capacity)
         {
             var newIndex = _count;
             ++_count;
-            _stackHashes.GetSurePresentItemRef(newIndex) = default(TEq).GetHashCode(key);
+            _stackHashes.GetSurePresentItemRef(newIndex) = hash;
             ref var newStackEntry = ref _stackEntries.GetSurePresentItemRef(newIndex);
             newStackEntry.Key = key;
             return ref newStackEntry;
         }
 
+        return ref MigrateToHeapAndAddAEntry(key, hash);
+    }
+
+    private ref TEntry MigrateToHeapAndAddAEntry(K key, int hash)
+    {
         // Now all capacity of the stack is used.
         // To avoid double work always going linearly through the Stack with the comparison,
         // let's calculate the hash of the keys stored on stack and put them 
@@ -1315,7 +1326,6 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         }
 
         // todo: @perf calculates the hash code twice, first time in the TryGetEntryRef and then here
-        var hash = default(TEq).GetHashCode(key);
         AddJustHashAndEntryIndexWithoutResizing(indexMask, hash & indexMask, (hash & hashMiddleMask) | stackCap);
 
         ++_count;
@@ -1360,14 +1370,13 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     Probe:  2C                       1A   2B   3D
     */
     [UnscopedRef]
-    private ref TEntry AddSureAbsentDefaultAndGetRefInEntries(K key)
+    private ref TEntry AddSureAbsentDefaultAndGetRefInEntries(K key, int hash)
     {
         // if the free space is less than 1/8 of capacity (12.5%) then Resize
         var indexMask = (1 << _capacityBitShift) - 1;
         if (indexMask - _count <= (indexMask >>> MinFreeCapacityShift))
             indexMask = ResizeHashes(indexMask);
 
-        var hash = default(TEq).GetHashCode(key);
         var hashIndex = hash & indexMask;
 
 #if NET7_0_OR_GREATER
@@ -1411,58 +1420,39 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     /// Provides the performance in scenarios where you look for the present key, and using it, and if ABSENT then add the new one.
     /// So this method optimized NOT to look for the present item for the second time</summary>
     [UnscopedRef]
+    [MethodImpl((MethodImplOptions)256)]
     public ref TEntry AddSureAbsentDefaultEntryAndGetRef(K key)
     {
+        var hash = default(TEq).GetHashCode(key) | 1;
+
         if (_count > _stackEntries.Capacity)
-            return ref AddSureAbsentDefaultAndGetRefInEntries(key);
+            return ref AddSureAbsentDefaultAndGetRefInEntries(key, hash);
 
         // Add the new entry to the stack if there is still space in stack
         if (_count < _stackEntries.Capacity)
         {
             var newIndex = _count++;
-            _stackHashes.GetSurePresentItemRef(newIndex) = default(TEq).GetHashCode(key);
+            _stackHashes.GetSurePresentItemRef(newIndex) = hash;
             ref var newStackEntry = ref _stackEntries.GetSurePresentItemRef(newIndex);
             newStackEntry.Key = key;
             return ref newStackEntry;
         }
 
-        var newCapBitShift = _stackEntries.CapacityBitShift + 1;
-        _capacityBitShift = (byte)newCapBitShift;
-        _packedHashesAndIndexes = new int[1 << newCapBitShift];
-
-        var indexMask = (1 << newCapBitShift) - 1;
-        var hashMiddleMask = HashAndIndexMask & ~indexMask;
-
-        var stackCap = _stackHashes.Capacity;
-        for (var i = 0; i < stackCap; ++i)
-        {
-            var h = _stackHashes.GetSurePresentItemRef(i);
-            AddJustHashAndEntryIndexWithoutResizing(indexMask, h & indexMask, (h & hashMiddleMask) | i);
-        }
-
-        var hash = default(TEq).GetHashCode(key);
-        AddJustHashAndEntryIndexWithoutResizing(indexMask, hash & indexMask, (hash & hashMiddleMask) | stackCap);
-
-        ++_count;
-        _entries.Init(stackCap); // Give the heap entries the same initial capacity as Stack, effectively doubling the capacity
-
-        // Set the key for the first entry, which is the 0 index in the entries
-        ref var newEntry = ref _entries.GetSurePresentEntryRef(0);
-        newEntry.Key = key;
-        return ref newEntry;
+        return ref MigrateToHeapAndAddAEntry(key, hash);
     }
 
     /// <summary>Lookups for the stored key. If found true, otherwise false</summary>
     public bool ContainsKey(K key)
     {
+        var hash = default(TEq).GetHashCode(key) | 1;
         if (_count > _stackEntries.Capacity)
         {
-            _ = TryGetRefInEntries(key, out var found);
+            _ = TryGetRefInEntries(key, hash, out var found);
             return found;
         }
         else
         {
-            _ = ref _stackEntries.TryGetEntryRef(ref _stackHashes, _count, key, out var found,
+            _ = ref _stackEntries.TryGetEntryRef(ref _stackHashes, _count, key, hash, out var found,
                 default(TEq), default(TStackCap), default(Use<TEntry>));
             return found;
         }
@@ -1470,10 +1460,8 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 
     [UnscopedRef]
     [MethodImpl((MethodImplOptions)256)]
-    internal ref TEntry TryGetRefInEntries(K key, out bool found)
+    internal ref TEntry TryGetRefInEntries(K key, int hash, out bool found)
     {
-        var hash = default(TEq).GetHashCode(key);
-
         var indexMask = (1 << _capacityBitShift) - 1;
         var hashMiddleMask = HashAndIndexMask & ~indexMask;
         var hashMiddle = hash & hashMiddleMask;
@@ -1509,11 +1497,13 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 
     /// <summary>Lookup for the stored entry by key. Returns the ref to the found entry or the null ref</summary>
     [UnscopedRef]
+    [MethodImpl((MethodImplOptions)256)]
     public ref TEntry TryGetEntryRef(K key, out bool found)
     {
+        var hash = default(TEq).GetHashCode(key) | 1;
         if (_count > _stackEntries.Capacity)
-            return ref TryGetRefInEntries(key, out found);
-        return ref _stackEntries.TryGetEntryRef(ref _stackHashes, _count, key, out found,
+            return ref TryGetRefInEntries(key, hash, out found);
+        return ref _stackEntries.TryGetEntryRef(ref _stackHashes, _count, key, hash, out found,
             default(TEq), default(TStackCap), default(Use<TEntry>));
     }
 

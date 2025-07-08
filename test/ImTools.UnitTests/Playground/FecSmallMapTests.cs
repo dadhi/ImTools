@@ -1,6 +1,7 @@
 ﻿
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using NUnit.Framework;
 
@@ -20,11 +21,26 @@ public class FecSmallMapTests
     //     if (expectedKeys != null)
     //         map.VerifyContainAllKeys(expectedKeys, (contains, key) => Assert.True(contains, $"Key not found:`{key}`"));
     // }
+    private static readonly Type[] _allKeys = typeof(List<>).Assembly.GetTypes().Take(2000).ToArray();
+
+    [Test]
+    public void Zero_0_hash_test()
+    {
+        var map = new SmallMap16<int, int, IntEq>();
+        // Make map >> 0
+        map.Map.AddOrUpdate(1, 1);
+        Assert.AreEqual(1, map.Map.Count);
+
+        Assert.False(map.Map.ContainsKey(0));
+        map.Map.AddOrUpdate(0, 0);
+        Assert.AreEqual(2, map.Map.Count);
+        Assert.True(map.Map.ContainsKey(0));
+    }
 
     [Test]
     public void Real_world_test_AddOrUpdate()
     {
-        var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(100).ToArray();
+        var types = _allKeys.Take(100).ToArray();
 
         var map = new SmallMap16<Type, string, RefEq<Type>>();
 
@@ -40,25 +56,24 @@ public class FecSmallMapTests
         // Verify(map, types);
     }
 
+
     [Test]
     public void Benchmark_test_with_Add_and_Lookup()
     {
         const int Count = 10;
-        var LookupKey = typeof(Console);
+        Debug.Assert(Count <= 1000, "Count should be less than or equal to 1000 for this test to work correctly.");
 
         var m = new SmallMap16<Type, string, RefEq<Type>>();
         ref var map = ref m.Map;
 
-        var allKeys = typeof(List<>).Assembly.GetTypes().Take(2000).ToArray();
-        var keys = allKeys.Take(1000).ToArray();
+        var presentKeys = _allKeys.Take(Count).ToArray();
+        var missingKeys = _allKeys.Skip(1000).Take(Count).ToArray();
+
         var seed = new Random(42);
-        var missingKeys = allKeys.Skip(1000).Take(Count).ToArray();
-        var randomPresentKeys = keys.Take(Count).OrderBy(_ => seed.Next()).ToArray();
+        var randomPresentKeys = presentKeys.OrderBy(_ => seed.Next()).ToArray();
 
-        foreach (var key in keys.Take(Count))
+        foreach (var key in presentKeys)
             map.AddOrGetValueRef(key, out _) = "a";
-
-        map.AddOrGetValueRef(LookupKey, out _) = "!";
 
         var count = 0;
         var iters = Count / 2;
