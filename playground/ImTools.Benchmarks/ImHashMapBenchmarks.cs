@@ -2331,16 +2331,20 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 
             ## After inlining in the FecHashMap
 
-            | Method                                                   | Count | Mean     | Error   | StdDev   | Median   | Ratio | RatioSD | Rank | Gen0   | Allocated | Alloc Ratio |
-            |--------------------------------------------------------- |------ |---------:|--------:|---------:|---------:|------:|--------:|-----:|-------:|----------:|------------:|
-            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 10    | 111.1 ns | 2.25 ns |  5.90 ns | 108.8 ns |  0.38 |    0.03 |    1 |      - |         - |        0.00 |
-            | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 10    | 192.4 ns | 1.46 ns |  1.22 ns | 192.5 ns |  0.67 |    0.03 |    2 | 0.1147 |     720 B |        0.67 |
-            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 10    | 289.3 ns | 5.78 ns | 11.28 ns | 290.9 ns |  1.00 |    0.05 |    3 | 0.1707 |    1072 B |        1.00 |
+            | Method                                                   | Count | Mean       | Error    | StdDev   | Median     | Ratio | RatioSD | Rank | Gen0   | Gen1   | Allocated | Alloc Ratio |
+            |--------------------------------------------------------- |------ |-----------:|---------:|---------:|-----------:|------:|--------:|-----:|-------:|-------:|----------:|------------:|
+            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 10    |   110.8 ns |  2.26 ns |  4.90 ns |   110.1 ns |  0.38 |    0.02 |    1 |      - |      - |         - |        0.00 |
+            | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 10    |   194.1 ns |  1.80 ns |  1.50 ns |   194.2 ns |  0.67 |    0.03 |    2 | 0.1147 |      - |     720 B |        0.67 |
+            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 10    |   288.7 ns |  5.82 ns | 14.04 ns |   280.1 ns |  1.00 |    0.07 |    3 | 0.1707 |      - |    1072 B |        1.00 |
+            |                                                          |       |            |          |          |            |       |         |      |        |        |           |             |
+            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 100   | 2,003.8 ns | 30.26 ns | 31.08 ns | 1,995.1 ns |  1.00 |    0.02 |    1 | 1.1902 | 0.0229 |    7488 B |        1.00 |
+            | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 100   | 2,306.8 ns | 18.67 ns | 15.59 ns | 2,307.0 ns |  1.15 |    0.02 |    2 | 0.8507 |      - |    5344 B |        0.71 |
+            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 100   | 3,473.7 ns | 15.97 ns | 13.34 ns | 3,470.3 ns |  1.73 |    0.03 |    3 | 0.7782 |      - |    4904 B |        0.65 |
 
             */
             // [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             // [Params(10, 100, 1000)]
-            [Params(10)]
+            [Params(10, 100)]
             public int Count;
 
             private Type[] _presentKeys;
@@ -2795,7 +2799,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return count;
             }
 
-            // [Benchmark]
+            [Benchmark]
             public int SmallMap_PopulateThenLookup_HalfMissed_HalfPresent()
             {
                 var map = new SmallMapTypeString();
