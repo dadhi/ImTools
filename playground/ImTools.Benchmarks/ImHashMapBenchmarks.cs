@@ -430,7 +430,7 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 |         ImmutableDict_Builder_Add |  1000 | 445,419.2 ns |  4,140.17 ns |  3,872.72 ns | 445,259.3 ns |  1.55 |    0.03 |   9.7656 |  1.9531 |     - |   64208 B |
 |                 ImmutableDict_Add |  1000 | 815,930.7 ns | 15,795.06 ns | 17,556.16 ns | 810,772.7 ns |  2.83 |    0.06 | 105.4688 | 24.4141 |     - |  662168 B |
 
-## Against static TypeDictionary by @rogeralsing (need to substract the cost of enumerating the array when adding items to ImHashMap and PartitionedHashMap)
+## Against static TypeDictionary by @rogeralsing (need to subtract the cost of enumerating the array when adding items to ImHashMap and PartitionedHashMap)
 
 BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
 Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
@@ -860,7 +860,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 |        DictSlim_TryAdd |  1000 | 28.42 us | 0.585 us | 1.661 us |  1.00 |    0.00 |                51,595 |                     266 |            338 | 9.1553 | 0.7935 |  56.45 KB |        1.00 |
 | FHashMap91_AddOrUpdate |  1000 | 32.17 us | 0.621 us | 1.151 us |  1.11 |    0.07 |                56,017 |                     165 |            255 | 5.9814 | 0.5493 |   36.7 KB |        0.65 |
 
-## Removing sparce and against the fibonacci hashing
+## Removing sparse and against the fibonacci hashing
 
 |                        Method | Count |         Mean |      Error |     StdDev |       Median | Ratio | RatioSD | BranchInstructions/Op | CacheMisses/Op | BranchMispredictions/Op |   Gen0 |   Gen1 | Allocated | Alloc Ratio |
 |------------------------------ |------ |-------------:|-----------:|-----------:|-------------:|------:|--------:|----------------------:|---------------:|------------------------:|-------:|-------:|----------:|------------:|
@@ -1896,7 +1896,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             |             ImmutableDict_TryGet |  1000 | 29.555 ns | 0.5926 ns | 0.5543 ns |  1.95 |    0.04 |     - |     - |     - |         - |
 
 
-            ## Against static TypeDictionary by @rogeralsing (need to substract the cost of enumerating the array when adding items to ImHashMap and PartitionedHashMap)
+            ## Against static TypeDictionary by @rogeralsing (need to subtract the cost of enumerating the array when adding items to ImHashMap and PartitionedHashMap)
 
             BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
             Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
@@ -2328,6 +2328,14 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 10    | 203.5 ns | 3.88 ns |  3.63 ns |  0.70 |    0.03 |    1 | 0.1147 |     720 B |        0.67 |
             | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 10    | 277.6 ns | 3.61 ns |  5.52 ns |  0.95 |    0.04 |    2 |      - |         - |        0.00 |
             | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 10    | 292.1 ns | 5.84 ns | 12.19 ns |  1.00 |    0.06 |    2 | 0.1707 |    1072 B |        1.00 |
+
+            ## After inlining in the FecHashMap
+
+            | Method                                                   | Count | Mean     | Error   | StdDev   | Median   | Ratio | RatioSD | Rank | Gen0   | Allocated | Alloc Ratio |
+            |--------------------------------------------------------- |------ |---------:|--------:|---------:|---------:|------:|--------:|-----:|-------:|----------:|------------:|
+            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 10    | 111.1 ns | 2.25 ns |  5.90 ns | 108.8 ns |  0.38 |    0.03 |    1 |      - |         - |        0.00 |
+            | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 10    | 192.4 ns | 1.46 ns |  1.22 ns | 192.5 ns |  0.67 |    0.03 |    2 | 0.1147 |     720 B |        0.67 |
+            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 10    | 289.3 ns | 5.78 ns | 11.28 ns | 290.9 ns |  1.00 |    0.05 |    3 | 0.1707 |    1072 B |        1.00 |
 
             */
             // [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
