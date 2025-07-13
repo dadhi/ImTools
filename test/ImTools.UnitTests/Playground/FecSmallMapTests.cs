@@ -12,15 +12,92 @@ using static SmallMap;
 [TestFixture]
 public class FecSmallMapTests
 {
-    // internal static void Verify<K, V, TEq>(SmallMap16<K, V, TEq> map, IEnumerable<K> expectedKeys)
+    internal static void Verify<K, V, TEq>(SmallMap16<K, V, TEq> map, IEnumerable<K> expectedKeys)
+        where TEq : struct, IEq<K>
+    {
+        VerifyHashesAndKeysEq(map);
+
+        // map.VerifyProbesAreFitRobinHood(Assert.Fail);
+        // map.VerifyNoDuplicateKeys(key => Assert.Fail($"Duplicate key: {key}"));
+
+        if (expectedKeys != null)
+            VerifyContainAllKeys(map, expectedKeys);
+    }
+
+    /// <summary>Verifies that the hashes correspond to the keys stored in the entries. May be called from the tests.</summary>
+    internal static void VerifyHashesAndKeysEq<K, V, TEq>(SmallMap16<K, V, TEq> map)
+        where TEq : struct, IEq<K>
+    {
+        var probes = map.Map.Probes;
+        var hashes = map.Map.PackedHashesAndIndexes;
+        var indexMask = map.Map.IndexMask;
+        for (var i = 0; i < probes.Length; i++)
+        {
+            if (probes[i] != 0)
+            {
+                var h = hashes[i];
+                var hashPart = h & ~indexMask;
+                var index = h & indexMask;
+                var key = map.Map.GetSurePresentEntryRef(index).Key;
+                var hashFromKey = default(TEq).GetHashCode(key);
+                var hashPartFromKey = hashFromKey & ~indexMask;
+                Assert.AreEqual(hashPart, hashPartFromKey,
+                    $"At index {i}: hashPart:{hashPart} != key-hashPart:{hashPartFromKey} for key={key}");
+            }
+        }
+    }
+
+    // /// <summary>Verifies that there is no duplicate keys stored in hashes -> entries. May be called from the tests.</summary>
+    // public static void VerifyNoDuplicateKeys<K, V, TEq, TEntries>(this HSmallMap<K, V, TEq, TEntries> map)
     //     where TEq : struct, IEq<K>
+    //     where TEntries : struct, IEntries<K, V, TEq>
     // {
-    //     map.VerifyHashesAndKeysEq(Assert.True);
-    //     map.VerifyProbesAreFitRobinHood(Assert.Fail);
-    //     map.VerifyNoDuplicateKeys(key => Assert.Fail($"Duplicate key: {key}"));
-    //     if (expectedKeys != null)
-    //         map.VerifyContainAllKeys(expectedKeys, (contains, key) => Assert.True(contains, $"Key not found:`{key}`"));
+    //     // Verify the indexes do no contains duplicate keys
+    //     var uniq = new Dictionary<K, int>(map.Count);
+    //     var hashes = map.PackedHashesAndIndexes;
+    //     var capacity = map.Capacity;
+    //     var indexMask = capacity - 1;
+    //     for (var i = 0; i < hashes.Length - 8; i++)
+    //     {
+    //         var h = hashes[i];
+    //         if (h == 0)
+    //             continue;
+    //         var key = map.Entries.GetSurePresentEntryRef(h & indexMask).Key;
+    //         if (!uniq.ContainsKey(key))
+    //             uniq.Add(key, 1);
+    //         else
+    //             Assert.Fail($"Duplicate key: {key}");
+    //     }
     // }
+
+    // /// <summary>Verifies that the probes are consistently increasing</summary>
+    // public static void VerifyProbesAreFitRobinHood<K, V, TEq, TEntries>(this HSmallMap<K, V, TEq, TEntries> map)
+    //     where TEq : struct, IEq<K>
+    //     where TEntries : struct, IEntries<K, V, TEq>
+    // {
+    //     var hashes = map.PackedHashesAndIndexes;
+    //     var capacity = map.Capacity;
+    //     var indexMask = capacity - 1;
+    //     var prevProbes = -1;
+    //     const int ProbeCountShift = 32 - MaxProbeBits;
+    //     for (var i = 0; i < hashes.Length - 8; i++)
+    //     {
+    //         var h = hashes[i];
+    //         var probes = h >>> ProbeCountShift;
+    //         if (prevProbes != -1 && probes - prevProbes > 1)
+    //             Assert.Fail($"Probes are not consequent: {prevProbes}, {probes} for {i}: p{probes}, {h & indexMask} -> {map.Entries.GetSurePresentEntryRef(h & indexMask).Key}");
+    //         prevProbes = probes;
+    //     }
+    // }
+
+    /// <summary>Verifies that the map contains all passed keys. May be called from the tests.</summary>
+    internal static void VerifyContainAllKeys<K, V, TEq>(SmallMap16<K, V, TEq> map, IEnumerable<K> expectedKeys)
+        where TEq : struct, IEq<K>
+    {
+        foreach (var key in expectedKeys)
+            Assert.True(map.Map.ContainsKey(key), $"Key not found:`{key}`");
+    }
+
     private static readonly Type[] _allKeys = typeof(List<>).Assembly.GetTypes().Take(2000).ToArray();
 
     [Test]
@@ -38,27 +115,7 @@ public class FecSmallMapTests
     }
 
     [Test]
-    public void Real_world_test_AddOrUpdate()
-    {
-        var types = _allKeys.Take(100).ToArray();
-
-        var map = new SmallMap16<Type, string, RefEq<Type>>();
-
-        foreach (var key in types)
-            map.Map.AddOrGetValueRef(key, out _) = "a";
-
-        map.Map.AddOrGetValueRef(typeof(Console), out _) = "!";
-
-        var value = map.Map.TryGetValueRef(typeof(Console), out var found);
-        Assert.IsTrue(found);
-        Assert.AreEqual("!", value);
-
-        // Verify(map, types);
-    }
-
-
-    [Test]
-    public void Benchmark_test_with_Add_and_Lookup()
+    public void Benchmark_test_with_Add_and_Lookup_10_items()
     {
         const int Count = 10;
         Debug.Assert(Count <= 1000, "Count should be less than or equal to 1000 for this test to work correctly.");
@@ -74,6 +131,43 @@ public class FecSmallMapTests
 
         foreach (var key in presentKeys)
             map.AddOrGetValueRef(key, out _) = "a";
+
+        var count = 0;
+        var iters = Count / 2;
+        for (var i = 0; i < iters; ++i)
+        {
+            var result = map.TryGetValueRef(randomPresentKeys[i], out var found);
+            if (found)
+                count += result.Length;
+            _ = map.TryGetValueRef(missingKeys[i], out found);
+            if (!found)
+                --count;
+        }
+
+        Assert.AreEqual(0, count);
+    }
+
+    [Test]
+    public void Benchmark_test_with_Add_and_Lookup_100_items()
+    {
+        const int Count = 100;
+        Debug.Assert(Count <= 1000, "Count should be less than or equal to 1000 for this test to work correctly.");
+
+        var m = new SmallMap16<Type, string, RefEq<Type>>();
+        ref var map = ref m.Map;
+
+        var presentKeys = _allKeys.Take(Count).ToArray();
+        var missingKeys = _allKeys.Skip(1000).Take(Count).ToArray();
+
+        var seed = new Random(42);
+        var randomPresentKeys = presentKeys.OrderBy(_ => seed.Next()).ToArray();
+
+        foreach (var key in presentKeys)
+            map.AddOrGetValueRef(key, out _) = "a";
+
+        VerifyHashesAndKeysEq(m);
+        foreach (var key in presentKeys)
+            Assert.True(map.ContainsKey(key), $"Key not found:`{key}`");
 
         var count = 0;
         var iters = Count / 2;

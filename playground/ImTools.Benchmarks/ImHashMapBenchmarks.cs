@@ -2344,7 +2344,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             */
             // [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             // [Params(10, 100, 1000)]
-            [Params(10, 100)]
+            [Params(100)]
             public int Count;
 
             private Type[] _presentKeys;
