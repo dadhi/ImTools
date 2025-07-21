@@ -181,6 +181,11 @@ public class FecSmallMapTests
                 --count;
         }
 
+#if DEBUG
+        Assert.Greater(m.Map.ProbeCheckCountInWrite, 100); // 396 no GoldenRatio, 284 with GoldenRatio
+        Assert.Greater(m.Map.ProbeCheckCountInRead, 100);  // 429 no GoldenRatio, 335 with GoldenRatio
+#endif
+
         Assert.AreEqual(0, count);
     }
 

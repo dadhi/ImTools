@@ -2341,6 +2341,21 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 100   | 2,306.8 ns | 18.67 ns | 15.59 ns | 2,307.0 ns |  1.15 |    0.02 |    2 | 0.8507 |      - |    5344 B |        0.71 |
             | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 100   | 3,473.7 ns | 15.97 ns | 13.34 ns | 3,470.3 ns |  1.73 |    0.03 |    3 | 0.7782 |      - |    4904 B |        0.65 |
 
+            ## Probes are separate from the packed hashes and indexes into their own array
+
+            | Method                                                   | Count | Mean     | Error     | StdDev    | Ratio | RatioSD | Rank | Gen0   | Gen1   | Allocated | Alloc Ratio |
+            |--------------------------------------------------------- |------ |---------:|----------:|----------:|------:|--------:|-----:|-------:|-------:|----------:|------------:|
+            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 100   | 2.118 us | 0.0421 us | 0.0679 us |  1.00 |    0.04 |    1 | 1.1902 | 0.0229 |   7.31 KB |        1.00 |
+            | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 100   | 2.346 us | 0.0404 us | 0.0378 us |  1.11 |    0.04 |    2 | 0.8507 |      - |   5.22 KB |        0.71 |
+            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 100   | 3.294 us | 0.0648 us | 0.0970 us |  1.56 |    0.07 |    3 | 0.8278 |      - |   5.08 KB |        0.69 |
+
+            ## GoldenRatio Hash adjustment
+
+            | Method                                                   | Count | Mean     | Error     | StdDev    | Median   | Ratio | RatioSD | Rank | Gen0   | Gen1   | Allocated | Alloc Ratio |
+            |--------------------------------------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|-----:|-------:|-------:|----------:|------------:|        
+            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 100   | 2.150 us | 0.0428 us | 0.0783 us | 2.115 us |  1.00 |    0.05 |    1 | 1.1902 | 0.0229 |   7.31 KB |        1.00 |        
+            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 100   | 3.092 us | 0.0608 us | 0.0871 us | 3.068 us |  1.44 |    0.06 |    2 | 0.8278 |      - |   5.08 KB |        0.69 |
+
             */
             // [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             // [Params(10, 100, 1000)]
@@ -2799,7 +2814,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return count;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public int SmallMap_PopulateThenLookup_HalfMissed_HalfPresent()
             {
                 var map = new SmallMapTypeString();

@@ -781,6 +781,13 @@ public struct IntEq : IEq<int>
     public int GetHashCode(int key) => key;
 }
 
+/// <summary>General tools for IEq and its implementations</summary>
+public static class Eq
+{
+    /// <summary>Factor to multiple by, to achieve the Fibonacci hashing (2^32 / phi, where phi is the golden ratio ~1.61803).</summary>
+    public const uint GoldenRatioFactor32 = 2654435769;
+}
+
 /// <summary>Instances of the RefEq for the often used K</summary>
 public static class RefEq
 {
@@ -788,7 +795,7 @@ public static class RefEq
     public static readonly RefEq<object> OfObject = default;
 }
 
-/// <summary>Uses the `object.GetHashCode` and `object.ReferenceEquals`</summary>
+/// <summary>Uses the `RuntimeHelpers.GetHashCode` and `object.ReferenceEquals`</summary>
 public struct RefEq<K> : IEq<K> where K : class
 {
     /// <inheritdoc />
@@ -802,6 +809,22 @@ public struct RefEq<K> : IEq<K> where K : class
     /// <inheritdoc />
     [MethodImpl((MethodImplOptions)256)]
     public int GetHashCode(K key) => RuntimeHelpers.GetHashCode(key);
+}
+
+/// <summary>Uses the `RuntimeHelpers.GetHashCode` and hashes the result with Fibonacci hashing via * GoldenRatio</summary>
+public struct GoldenRatioRefEq<K> : IEq<K> where K : class
+{
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public K GetTombstone() => null;
+
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public bool Equals(K x, K y) => ReferenceEquals(x, y);
+
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public int GetHashCode(K key) => (int)(RuntimeHelpers.GetHashCode(key) * Eq.GoldenRatioFactor32);
 }
 
 /// <summary>Compares via `ReferenceEquals` and gets the hash faster via `RuntimeHelpers.GetHashCode`</summary>
@@ -853,8 +876,12 @@ public interface Use<T> { }
 public static class SmallMap
 {
     internal const byte MinFreeCapacityShift = 3; // e.g. for the capacity 16: 16 >> 3 => 2, 12.5% of the free hash slots (it does not mean the entries free slot)
-    internal const byte MinHashesCapacityBitShift = 3; // 1 << 3 == 8
-    /// <summary>Upper hash bits spent on storing the probes, e.g. 5 bits mean 31 probes max.</summary>
+    internal const byte MinHashesCapacityBitShift = 4; // 1 << 3 == 8
+
+    // todo: @wip @remove if not required
+    // #if NET7_0_OR_GREATER
+    //     internal static Vector128<byte> ByteVec16OfOne = Vector128.Create((byte)1);
+    // #endif
 
     /// <summary>Represent a keyed entry stored in the SmallMap.
     /// Its implementation struct may include the additional Value for the Map or just the Key for the Set.
@@ -1109,6 +1136,11 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     where TStackEntries : struct, IStack<TEntry, TStackCap, TStackEntries>
     where TEntries : struct, IEntries<K, TEntry, TEq>
 {
+#if DEBUG
+    public int ProbeCheckCountInRead = 0;
+    public int ProbeCheckCountInWrite = 0;
+#endif
+
     internal byte _capacityBitShift;
     internal int _count;
 
@@ -1123,9 +1155,9 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 
 #pragma warning disable IDE0044 // it tries to make entries readonly but they should stay modify-able to prevent its defensive struct copying
 #pragma warning disable CS0649 // field is never assigned to, and will always have its default value
-    internal TEntries _entries;
     internal TStackHashes _stackHashes;
     internal TStackEntries _stackEntries;
+    internal TEntries _entries;
 #pragma warning restore CS0649
 #pragma warning restore IDE0044
 
@@ -1177,7 +1209,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         var indexMask = (1 << _capacityBitShift) - 1;
 
         // If the free space is less than 1/8 of capacity (12.5%) then Resize
-        // Note: this check done here even before lookup and not before insert, because later we rely on the Lookup hashIndex to do a first insert
+        // Note: this check done here even before lookup (but not in insert), because later we rely on the Lookup hashIndex to do a first insert
         if (indexMask - _count <= (indexMask >>> MinFreeCapacityShift))
             indexMask = ResizeHashes(indexMask);
 
@@ -1211,6 +1243,9 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
             hashIndex = (hashIndex + 1) & indexMask; // warp around the end of the array
             p = ref probes.GetSurePresentItemRef(hashIndex);
             ++probe;
+#if DEBUG
+            ++ProbeCheckCountInWrite;
+#endif
         }
 
         found = false;
@@ -1238,6 +1273,9 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
                 var hValue = hashesAndIndexes.GetSurePresentItemRef(hashIndex);
                 hashesAndIndexes.GetSurePresentItemRef(hashIndex) = hRobinHooded;
                 hRobinHooded = hValue;
+#if DEBUG
+                ++ProbeCheckCountInWrite;
+#endif
             }
         }
 
@@ -1266,6 +1304,9 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
             hashIndex = (hashIndex + 1) & indexMask;
             p = ref probes.GetSurePresentItemRef(hashIndex);
             ++probe;
+#if DEBUG
+            ++ProbeCheckCountInWrite;
+#endif
         }
 
         // We did not find the hash and therefore the key, so insert the new hash
@@ -1291,6 +1332,9 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
                 var hValue = hashesAndIndexes.GetSurePresentItemRef(hashIndex);
                 hashesAndIndexes.GetSurePresentItemRef(hashIndex) = hRobinHooded;
                 hRobinHooded = hValue;
+#if DEBUG
+                ++ProbeCheckCountInWrite;
+#endif
             }
         }
     }
@@ -1367,30 +1411,25 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     Insertion step by step:
 
     1. Initially the map is empty. Its capacity mask is 7:
-
     Index:  0    1    2    3    4    5    6    7
     Hash:  [0]  [0]  [0]  [0]  [0]  [0]  [0]  [0]
 
     2. Insert the key A with the hash 13, which is 0b0011_0101. 13 & 7 Mask = 5, so the index is 5.
-
     Index:  0    1    2    3    4    5    6    7
     Hash:  [0]  [0]  [0]  [0]  [0]  [13] [0]  [0]
     Probe:                           1A
 
     3. Insert the key B with the hash 5, which is 0b0000_1011. 5 & 7 Mask = 5, so the index is again 5.
-
     Index:  0    1    2    3    4    5    6    7
     Hash:  [0]  [0]  [0]  [0]  [0]  [13] [5]  [0]
     Probe                            1A   2B
 
     4. Insert the key C with the hash 7, which is 0b0010_0101. 7 & 7 Mask = 7, so the index is 7.
-
     Index:  0    1    2    3    4    5    6    7
     Hash:  [0]  [0]  [0]  [0]  [0]  [13] [5]  [7]
     Probe:                           1A   2B   1C
 
     5. Insert the key D with the hash 21, which is 0b0101_0101. 21 & 7 Mask = 5, so the index is again again 5.
-
     Index:  0    1    2    3    4    5    6    7
     Hash:  [7]  [0]  [0]  [0]  [0]  [13] [5]  [21]
     Probe:  2C                       1A   2B   3D
@@ -1469,11 +1508,9 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 
         var p = probes.GetSurePresentItem(hashIndex);
 
-        // 1. Skip over hashes with the bigger and equal probes. The hashes with bigger probes overlapping from the earlier ideal positions
         var probe = 1;
         while (p >= probe)
         {
-            // 2. For the equal probes check for equality the hash middle part, and update the entry if the keys are equal too 
             if (probe == p)
             {
                 var h = hashesAndIndexes.GetSurePresentItem(hashIndex);
@@ -1488,6 +1525,9 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
             hashIndex = (hashIndex + 1) & indexMask;
             p = probes.GetSurePresentItem(hashIndex);
             ++probe;
+#if DEBUG
+            ++ProbeCheckCountInRead;
+#endif
         }
 
         found = false;
@@ -1509,7 +1549,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     internal int ResizeHashes(int indexMask)
     {
         var oldCapacity = indexMask + 1;
-        var eraseNextOldHashBit = (int)~(uint)oldCapacity; // converting to uint forst otherwise ~(2 compiment) for signed will do -(n+1), e.g. ~32==-33 
+        var eraseNextOldHashBit = ~oldCapacity;
 
         var newCapacity = oldCapacity << 1;
         var newIndexMask = (indexMask << 1) | 1;
@@ -1528,7 +1568,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         var newProbes = newProbesArr;
         var newHashes = newHashesAndIndexes;
         var oldProbes = _probes;
-        var oldProbe = oldProbes;
+        var oldProbe = oldProbes[0];
         var oldHashes = _packedHashesAndIndexes;
 #endif
         // Skip overflow segment of wrapped-around probes greater than 1 to keep the Robin Hood invariant.
@@ -1538,8 +1578,36 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         //             i: [0, 1, 2, 3            ] 
         // skip stops on 3, so the oldCapWithOverflowSegment is 3 + 8 == 11, this corresponds to the all old probes to scan with wrap-around
         var i = 0;
-        while (oldProbe > 1) // todo: @perf a good candidate for SIMD, SWAR, because a zero or one may take multple conflicts to scan until found
+
+        // #if NET7_0_OR_GREATER
+        //         if (Vector128.IsHardwareAccelerated)
+        //         {
+        //             Debug.Assert((oldCapacity & 15) == 0, "Capacity should be multiple of 16 for SIMD Vector128<byte>");
+        //             while (i < oldCapacity)
+        //             {
+        //                 var probes = Vector128.LoadUnsafe(ref Unsafe.Add(ref oldProbes, i));
+        //                 var lessOrEqThenOne = Vector128.LessThanOrEqual(probes, ByteVec16OfOne);
+        //                 var matchMask = lessOrEqThenOne.ExtractMostSignificantBits();
+        //                 if (matchMask != 0)
+        //                 {
+        //                     i += System.Numerics.BitOperations.TrailingZeroCount(matchMask);
+        //                     break;
+        //                 }
+        //                 i += 16;
+        //             }
+        //         }
+        //         else
+        //             while (oldProbe > 1)
+        //                 oldProbe = oldProbes.GetSurePresentItem(++i);
+        // #else
+        while (oldProbe > 1)
+        {
             oldProbe = oldProbes.GetSurePresentItem(++i);
+#if DEBUG
+            ++ProbeCheckCountInWrite;
+#endif
+        }
+        // #endif
 
         var oldCapacityWithOverflowSegment = i + oldCapacity;
         while (true)
@@ -1567,6 +1635,9 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
                     hashIndexWithNextBit = (hashIndexWithNextBit + 1) & newIndexMask;
                     p = ref newProbes.GetSurePresentItemRef(hashIndexWithNextBit);
                     ++probe;
+#if DEBUG
+                    ++ProbeCheckCountInWrite;
+#endif
                 }
                 p = probe;
                 newHashes.GetSurePresentItemRef(hashIndexWithNextBit) = oldHash & eraseNextOldHashBit;
