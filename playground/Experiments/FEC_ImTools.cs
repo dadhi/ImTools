@@ -53,6 +53,7 @@ using System.Diagnostics.CodeAnalysis;
 
 #if NET8_0_OR_GREATER
 using System.Runtime.Intrinsics;
+using System.Numerics;
 #endif
 
 using static SmallMap;
@@ -1011,13 +1012,13 @@ public static class SmallMap
         where TStackEntries : struct, IStack<TEntry, TCap, TStackEntries>
         where TCap : struct, ISize2Plus
     {
-        var cap = it.Bval;
-        Debug.Assert(count <= cap.Size, $"SmallMap.TryGetEntryRef: count {count} should be <= stack capacity {cap.Size}");
+        var cap = default(TCap).Size;
+        Debug.Assert(count <= cap, $"SmallMap.TryGetEntryRef: count {count} should be <= stack capacity {cap}");
         if (count == 0)
             return -1;
 
 #if NET8_0_OR_GREATER
-        if (cap.Size >= 8 & Vector256.IsHardwareAccelerated)
+        if (cap >= 8 & Vector256.IsHardwareAccelerated)
         {
             var vHash = Vector256.Create(hash);
             var vHashes = MemoryMarshal.Cast<int, Vector256<int>>(hashes.AsSpan());
@@ -1026,21 +1027,21 @@ public static class SmallMap
             {
                 var vMatches = Vector256.Equals(vCurr, vHash);
                 var matches = Vector256.ExtractMostSignificantBits(vMatches);
-                while (matches != 0 & i < count)
+                while (matches != 0)
                 {
-                    var matchIndex = System.Numerics.BitOperations.TrailingZeroCount(matches);
+                    var matchIndex = BitOperations.TrailingZeroCount(matches) + i;
+                    if (matchIndex >= count) // todo: @perf can I remove this branch?
+                        return -1;
 
-                    ref var entry = ref entries.GetSurePresentItemRef(i + matchIndex);
-                    if (default(TEq).Equals(entry.Key, key))
-                        return i + matchIndex;
+                    if (default(TEq).Equals(entries.GetSurePresentItemRef(matchIndex).Key, key))
+                        return matchIndex;
 
                     // Clear lower bits up to and including the first set bit, afaik it can be hw accelerated 
                     // 0b0001_1000 & (0b0001_1000 - 1) -> & 0b0001_1000 & 0b0001_0111 -> 0b0001_0000 
                     matches &= matches - 1;
-                    ++i;
                 }
-                if (i >= count)
-                    break;
+                if ((i += Vector256<int>.Count) >= count)
+                    return -1;
             }
             return -1;
         }
@@ -1048,12 +1049,9 @@ public static class SmallMap
         for (var i = 0; i < count; ++i)
         {
             var h = hashes.GetSurePresentItemRef(i);
-            if (h == hash)
-            {
-                ref var entry = ref entries.GetSurePresentItemRef(i);
-                if (default(TEq).Equals(entry.Key, key))
-                    return i;
-            }
+            if (hashes.GetSurePresentItemRef(i) == hash &&
+                default(TEq).Equals(entries.GetSurePresentItemRef(i).Key, key))
+                return i;
         }
         return -1;
     }
