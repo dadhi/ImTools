@@ -7028,7 +7028,12 @@ public static class HSmallMap
     // 0b11111111 == 255, so the mask for the capacity is 255
     internal const int ChunkCapacityMask = ChunkCapacity - 1;
 
-    // todo: @perf research on the similar growable indexed collection with append-to-end semantics
+    // todo: @perf recently (07-2025) a similar data structure was presented on BestSoftwareConference and 
+    // has name Xar (extendible growable array with the stable references). 
+    // I can implement O(1) random access by precalculating starting offsets of each chunk then using SIMD to compare the input index against offsets,
+    // e.g. `var offsets = Vector256.Create<ushort>(16, 16+32, 16+32+64, 16+32+64+128,...); 
+    // var matches = Vector256.ExtractMostSignificantBits(Vector256.Greater(Vector256.Create(Index), offsets));
+    // var chunkIndex = BitOperations.TrailingZeroCount(matches);`
     /// <summary>The array of array buckets, where bucket is the fixed size. 
     /// It enables adding the new bucket without for the new entries without reallocating the existing data.
     /// It may allow to drop the empty bucket as well, reclaiming the memory after remove.

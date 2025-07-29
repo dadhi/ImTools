@@ -2356,6 +2356,13 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 100   | 2.150 us | 0.0428 us | 0.0783 us | 2.115 us |  1.00 |    0.05 |    1 | 1.1902 | 0.0229 |   7.31 KB |        1.00 |        
             | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 100   | 3.092 us | 0.0608 us | 0.0871 us | 3.068 us |  1.44 |    0.06 |    2 | 0.8278 |      - |   5.08 KB |        0.69 |
 
+            ## After probes go to their own array + padding + wrapping
+
+            | Method                                                   | Count | Mean     | Error     | StdDev    | Median   | Ratio | RatioSD | Rank | Gen0   | Gen1   | Allocated | Alloc Ratio |
+            |--------------------------------------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|-----:|-------:|-------:|----------:|------------:|
+            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 100   | 2.289 us | 0.0457 us | 0.0994 us | 2.260 us |  1.00 |    0.06 |    1 | 1.1902 | 0.0229 |   7.31 KB |        1.00 |
+            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 100   | 2.311 us | 0.0459 us | 0.1056 us | 2.356 us |  1.01 |    0.06 |    1 | 0.8659 | 0.0038 |   5.31 KB |        0.73 |
+
             */
             // [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             // [Params(10, 100, 1000)]
