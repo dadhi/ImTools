@@ -1091,7 +1091,7 @@ public static class SmallMapDiagnostics
 
         map.VerifyKeyHasMetaInfo(assertCond, pass);
 
-        // map.VerifyNoDuplicateKeys(key => Assert.Fail($"Duplicate key: {key}"));
+        map.VerifyNoDuplicateKeys(assertCond, pass);
 
         if (expectedKeys != null)
             map.VerifyContainAllKeys(expectedKeys, assertCond, pass);
