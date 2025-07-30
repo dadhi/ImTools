@@ -2358,15 +2358,21 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 
             ## After probes go to their own array + padding + wrapping
 
-            | Method                                                   | Count | Mean     | Error     | StdDev    | Median   | Ratio | RatioSD | Rank | Gen0   | Gen1   | Allocated | Alloc Ratio |
-            |--------------------------------------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|-----:|-------:|-------:|----------:|------------:|
-            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 100   | 2.289 us | 0.0457 us | 0.0994 us | 2.260 us |  1.00 |    0.06 |    1 | 1.1902 | 0.0229 |   7.31 KB |        1.00 |
-            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 100   | 2.311 us | 0.0459 us | 0.1056 us | 2.356 us |  1.01 |    0.06 |    1 | 0.8659 | 0.0038 |   5.31 KB |        0.73 |
+            | Method                                                   | Count | Mean        | Error     | StdDev    | Ratio | RatioSD | Rank | Gen0   | Gen1   | Allocated | Alloc Ratio |
+            |--------------------------------------------------------- |------ |------------:|----------:|----------:|------:|--------:|-----:|-------:|-------:|----------:|------------:|
+            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 10    |    108.2 ns |   1.04 ns |   0.87 ns |  0.36 |    0.01 |    1 |      - |      - |         - |        0.00 |
+            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 10    |    297.9 ns |   5.89 ns |   7.45 ns |  1.00 |    0.03 |    2 | 0.1707 |      - |    1072 B |        1.00 |
+            |                                                          |       |             |           |           |       |         |      |        |        |           |             |
+            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 100   |  2,146.4 ns |  42.80 ns |  66.64 ns |  1.00 |    0.04 |    1 | 1.1902 | 0.0229 |    7488 B |        1.00 |
+            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 100   |  2,220.2 ns |  43.51 ns |  60.99 ns |  1.04 |    0.04 |    1 | 0.8659 | 0.0038 |    5440 B |        0.73 |
+            |                                                          |       |             |           |           |       |         |      |        |        |           |             |
+            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 1000  | 23,454.6 ns | 455.76 ns | 695.99 ns |  1.00 |    0.04 |    1 | 9.1553 | 1.2817 |   57808 B |        1.00 |
+            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 1000  | 47,784.8 ns | 580.37 ns | 453.11 ns |  2.04 |    0.06 |    2 | 8.9111 | 0.0610 |   55976 B |        0.97 |
 
             */
             // [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             // [Params(10, 100, 1000)]
-            [Params(100)]
+            [Params(10, 100, 1000)]
             public int Count;
 
             private Type[] _presentKeys;
@@ -2627,9 +2633,9 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             public void FillFecHashMap(ref FecSmallMapTypeString map)
             {
                 foreach (var key in _keys.Take(Count))
-                    map.Map.AddOrGetValueRef(key, out _) = "a";
+                    map.Map.AddOrUpdate(key, "a");
 
-                map.Map.AddOrGetValueRef(LookupKey, out _) = "!";
+                map.Map.AddOrUpdate(LookupKey, "!");
             }
 
             private FecSmallMapTypeString _fecSmallMap;
@@ -2848,16 +2854,16 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 ref var map = ref m.Map;
 
                 foreach (var key in _presentKeys)
-                    map.AddOrGetValueRef(key, out _) = "a";
+                    map.AddOrUpdate(key, "a");
 
                 var count = 0;
                 var iters = Count / 2;
                 for (var i = 0; i < iters; ++i)
                 {
-                    var result = map.TryGetValueRef(_randomPresentKeys[i], out var found);
+                    var result = map.TryGetEntryRef(_randomPresentKeys[i], out var found);
                     if (found)
-                        count += result.Length;
-                    _ = map.TryGetValueRef(_missingKeys[i], out found);
+                        count += result.Value.Length;
+                    _ = map.TryGetEntryRef(_missingKeys[i], out found);
                     if (!found)
                         --count;
                 }

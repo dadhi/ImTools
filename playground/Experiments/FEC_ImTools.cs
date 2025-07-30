@@ -1003,7 +1003,7 @@ public static class SmallMap
 
     /// <summary>Lookup for the K in the TStackEntries, first by calculating it hash with TEq and searching the hash in the TStackHashes</summary>
     [MethodImpl((MethodImplOptions)256)]
-    public static int TryGetEntryIndex<K, TEntry, TEq, TCap, TStackHashes, TStackEntries>(
+    public static int TryGetStackEntryIndex<K, TEntry, TEq, TCap, TStackHashes, TStackEntries>(
         this ref TStackEntries entries, ref TStackHashes hashes, int count, K key, int hash,
         Pass<TEq, TCap, TEntry> it = default)
         where TEntry : struct, IEntry<K>
@@ -1013,7 +1013,7 @@ public static class SmallMap
         where TCap : struct, ISize2Plus
     {
         var cap = default(TCap).Size;
-        Debug.Assert(count <= cap, $"SmallMap.TryGetEntryIndex: count {count} should be <= stack capacity {cap}");
+        Debug.Assert(count <= cap, $"SmallMap.TryGetStackEntryIndex: count {count} should be <= stack capacity {cap}");
         if (count == 0)
             return -1;
 
@@ -1202,8 +1202,7 @@ public interface IMap<K, TEntry> : IMap<K>
     [UnscopedRef]
     ref TEntry AddOrGetEntryRef(K key, out bool found);
 
-    /// <summary>Adds an entry for sure absent key. 
-    /// Provides the performance in scenarios where you know the key is not yet in the map</summary>
+    /// <summary>Adds an entry for sure absent key. Provides the performance in scenarios where you know the key is not yet in the map</summary>
     [UnscopedRef]
     ref TEntry AddSureAbsentDefaultEntryAndGetRef(K key);
 }
@@ -1214,11 +1213,10 @@ public interface IMapImpl<K>
     int Capacity { get; }
     byte[] Probes { get; }
     int[] PackedHashesAndIndexes { get; }
-    /// <summary>Returns the hash code for the provided key</summary>
+    /// <summary>Returns the hash code for the provided key using the IEq implementation used by this map</summary>
     int GetHashCode(K key);
 }
 
-// todo: @improve ? how/where to add SIMD to improve CPU utilization but not losing perf for smaller sizes
 /// <summary>
 /// Fast and less-allocating hash map without thread safety nets. Please measure it in your own use case before use.
 /// It is configurable in regard of hash calculation/equality via `TEq` type parameter and 
@@ -1233,7 +1231,7 @@ public interface IMapImpl<K>
 /// For instance, for the `RefEq` the tombstone is <see langword="null"/>. You may redefine it in the `IEq{K}.GetTombstone()` implementation.
 /// 
 /// </summary>
-[DebuggerDisplay("{Count} entries total")]
+[DebuggerDisplay("Contains {Count} entries")]
 public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, TEntries> : IMap<K, TEntry>, IMapImpl<K>
     where TEntry : struct, IEntry<K>
     where TEq : struct, IEq<K>
@@ -1244,7 +1242,6 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 {
 #if DEBUG
     // Diagnostic counters to measure the performance of the map operations
-
     public int TotalProbeCheckCountInRead = 0;
     public int PutHashAndIndexWithoutResizing_Count = 0;
     public int PutHashAndIndexWithoutResizing_InitialProbeCheckCount = 0;
@@ -1567,7 +1564,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         if (_count > _stackEntries.Capacity)
             return ref AddOrGetRefInEntries(key, hash, out found);
 
-        var i = _stackEntries.TryGetEntryIndex(ref _stackHashes, _count, key, hash, Pass<TEq, TStackCap, TEntry>.It);
+        var i = _stackEntries.TryGetStackEntryIndex(ref _stackHashes, _count, key, hash, Pass<TEq, TStackCap, TEntry>.It);
         if (found = i != -1)
             return ref _stackEntries.GetSurePresentItemRef(i);
 
@@ -1696,7 +1693,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         var hash = default(TEq).GetHashCode(key);
         return _count > _stackEntries.Capacity
             ? TryGetIndexInEntries(key, hash)
-            : _stackEntries.TryGetEntryIndex(ref _stackHashes, _count, key, hash, Pass<TEq, TStackCap, TEntry>.It);
+            : _stackEntries.TryGetStackEntryIndex(ref _stackHashes, _count, key, hash, Pass<TEq, TStackCap, TEntry>.It);
     }
 
     /// <inheritdoc />
@@ -1736,7 +1733,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         }
         else
         {
-            var i = _stackEntries.TryGetEntryIndex(ref _stackHashes, _count, key, hash, Pass<TEq, TStackCap, TEntry>.It);
+            var i = _stackEntries.TryGetStackEntryIndex(ref _stackHashes, _count, key, hash, Pass<TEq, TStackCap, TEntry>.It);
             if (found = i != -1)
                 return ref _stackEntries.GetSurePresentItemRef(i);
         }
