@@ -876,24 +876,24 @@ public struct RefEq<A, B, C> : IEq<(A, B, C)>
 
 /// <summary>Add the Use parameter to `Method{T}(..., Use{T} _)` to enable type inference for T,
 /// by calling it as `var t = Method(..., Use{T}.It)`</summary>
-public readonly struct Use<A>
+public readonly struct Pass<A>
 {
-    public static readonly Use<A> It = new();
+    public static readonly Pass<A> It = new();
     public readonly A Aval;
 }
 
-/// <summary>Add the Use parameter in type inference for A, B</summary>
-public readonly struct Use<A, B>
+/// <summary>Add the Pass parameter in type inference for A, B</summary>
+public readonly struct Pass<A, B>
 {
-    public static readonly Use<A, B> It = new();
+    public static readonly Pass<A, B> It = new();
     public readonly A Aval;
     public readonly B Bval;
 }
 
-/// <summary>Add the Use parameter in type inference for A, B, C</summary>
-public readonly struct Use<A, B, C>
+/// <summary>Add the Pass parameter in type inference for A, B, C</summary>
+public readonly struct Pass<A, B, C>
 {
-    public static readonly Use<A, B, C> It = new();
+    public static readonly Pass<A, B, C> It = new();
     public readonly A Aval;
     public readonly B Bval;
     public readonly C Cval;
@@ -1005,7 +1005,7 @@ public static class SmallMap
     [MethodImpl((MethodImplOptions)256)]
     public static int TryGetEntryIndex<K, TEntry, TEq, TCap, TStackHashes, TStackEntries>(
         this ref TStackEntries entries, ref TStackHashes hashes, int count, K key, int hash,
-        Use<TEq, TCap, TEntry> it = default)
+        Pass<TEq, TCap, TEntry> it = default)
         where TEntry : struct, IEntry<K>
         where TEq : struct, IEq<K>
         where TStackHashes : struct, IStack<int, TCap, TStackHashes>
@@ -1013,7 +1013,7 @@ public static class SmallMap
         where TCap : struct, ISize2Plus
     {
         var cap = default(TCap).Size;
-        Debug.Assert(count <= cap, $"SmallMap.TryGetEntryRef: count {count} should be <= stack capacity {cap}");
+        Debug.Assert(count <= cap, $"SmallMap.TryGetEntryIndex: count {count} should be <= stack capacity {cap}");
         if (count == 0)
             return -1;
 
@@ -1056,71 +1056,20 @@ public static class SmallMap
         return -1;
     }
 
-    /// <summary>Gets the ref to the existing entry.Value by the provided key (found == true),
-    /// or adds a new entry (found == false) and returns it.Value by ref. 
-    /// So the method always return a non-null ref to the value, either existing or added</summary>
-    [MethodImpl((MethodImplOptions)256)]
-    public static ref V AddOrGetValueRef<K, V, TEq, TStackCap, TStackHashes, TStackEntries, TEntries>(
-        this ref SmallMap<K, Entry<K, V>, TEq, TStackCap, TStackHashes, TStackEntries, TEntries> map, K key, out bool found)
-        where TEq : struct, IEq<K>
-        where TStackCap : struct, ISize2Plus
-        where TStackHashes : struct, IStack<int, TStackCap, TStackHashes>
-        where TStackEntries : struct, IStack<Entry<K, V>, TStackCap, TStackEntries>
-        where TEntries : struct, IEntries<K, Entry<K, V>, TEq> =>
-        ref map.AddOrGetEntryRef(key, out found).Value;
-
     /// <summary>Adds or updates the entry with the provided value.
     /// Returns `true` if it is updated the existing value.</summary>
     [MethodImpl((MethodImplOptions)256)]
-    public static bool AddOrUpdate<K, V, TEq, TStackCap, TStackHashes, TStackEntries, TEntries>(
-        this ref SmallMap<K, Entry<K, V>, TEq, TStackCap, TStackHashes, TStackEntries, TEntries> map, K key, in V value)
-        where TEq : struct, IEq<K>
-        where TStackCap : struct, ISize2Plus
-        where TStackHashes : struct, IStack<int, TStackCap, TStackHashes>
-        where TStackEntries : struct, IStack<Entry<K, V>, TStackCap, TStackEntries>
-        where TEntries : struct, IEntries<K, Entry<K, V>, TEq>
+    public static bool AddOrUpdate<TMap, K, V>(this ref TMap map, K key, in V value)
+        where TMap : struct, IMap<K, Entry<K, V>>
     {
         map.AddOrGetEntryRef(key, out var found).Value = value;
         return found;
     }
 
-    /// <summary>Adds an entry for sure absent key.
-    /// Provides the performance in scenarios where you look for the present key, and using it, and if ABSENT then add the new one.
-    /// So this method optimized NOT to look for the present item for the second time</summary>
-    [MethodImpl((MethodImplOptions)256)]
-    public static ref V AddSureAbsentDefaultAndGetRef<K, V, TEq, TStackCap, TStackHashes, TStackEntries, TEntries>(
-        this ref SmallMap<K, Entry<K, V>, TEq, TStackCap, TStackHashes, TStackEntries, TEntries> map, K key)
-        where TEq : struct, IEq<K>
-        where TStackCap : struct, ISize2Plus
-        where TStackHashes : struct, IStack<int, TStackCap, TStackHashes>
-        where TStackEntries : struct, IStack<Entry<K, V>, TStackCap, TStackEntries>
-        where TEntries : struct, IEntries<K, Entry<K, V>, TEq>
-        => ref map.AddSureAbsentDefaultEntryAndGetRef(key).Value;
-
-    /// <summary>Lookups for the stored entry by key. Returns the ref to the found entry.Value or the null ref</summary>
-    [MethodImpl((MethodImplOptions)256)]
-    public static ref V TryGetValueRef<K, V, TEq, TStackCap, TStackHashes, TStackEntries, TEntries>(
-        this ref SmallMap<K, Entry<K, V>, TEq, TStackCap, TStackHashes, TStackEntries, TEntries> map, K key, out bool found)
-        where TEq : struct, IEq<K>
-        where TStackCap : struct, ISize2Plus
-        where TStackHashes : struct, IStack<int, TStackCap, TStackHashes>
-        where TStackEntries : struct, IStack<Entry<K, V>, TStackCap, TStackEntries>
-        where TEntries : struct, IEntries<K, Entry<K, V>, TEq>
-    {
-        ref var e = ref map.TryGetEntryRef(key, out found);
-        if (found) return ref e.Value;
-        return ref RefTools<V>.GetNullRef();
-    }
-
     /// <summary>Lookups for the stored entry by key. Returns the found value or provided default</summary>
     [MethodImpl((MethodImplOptions)256)]
-    public static V GetValueOrDefault<K, V, TEq, TStackCap, TStackHashes, TStackEntries, TEntries>(
-        this ref SmallMap<K, Entry<K, V>, TEq, TStackCap, TStackHashes, TStackEntries, TEntries> map, K key, V defaultValue = default)
-        where TEq : struct, IEq<K>
-        where TStackCap : struct, ISize2Plus
-        where TStackHashes : struct, IStack<int, TStackCap, TStackHashes>
-        where TStackEntries : struct, IStack<Entry<K, V>, TStackCap, TStackEntries>
-        where TEntries : struct, IEntries<K, Entry<K, V>, TEq>
+    public static V GetValueOrDefault<TMap, K, V>(this ref TMap map, K key, V defaultValue = default)
+        where TMap : struct, IMap<K, Entry<K, V>>
     {
         ref var e = ref map.TryGetEntryRef(key, out var found);
         if (found) return e.Value;
@@ -1132,28 +1081,25 @@ public static class SmallMap
 public static class SmallMapDiagnostics
 {
     /// <summary>Verifies the integrity and invariants of the SmallMap</summary>
-    public static void Verify<TMap, K, TEq>(ref this TMap map,
-        Action<bool, string> assertCond, IEnumerable<K> expectedKeys = null, Use<K, TEq> _ = default)
-        where TMap : struct, IMap<K, TEq>, IMapStruct
-        where TEq : struct, IEq<K>
+    public static void Verify<TMap, K>(ref this TMap map,
+        Action<bool, string> assertCond, IEnumerable<K> expectedKeys = null, Pass<K> pass = default)
+        where TMap : struct, IMap<K>, IMapImpl<K>
     {
-        map.VerifyHashesAndKeysEq(assertCond, _);
+        map.VerifyHashesAndKeysEq(assertCond, pass);
 
-        map.VerifyProbesRobinHoodInvariants(assertCond);
+        map.VerifyProbesRobinHoodInvariants(assertCond, pass);
 
-        map.VerifyKeyHasMetaInfo(assertCond, _);
+        map.VerifyKeyHasMetaInfo(assertCond, pass);
 
         // map.VerifyNoDuplicateKeys(key => Assert.Fail($"Duplicate key: {key}"));
 
         if (expectedKeys != null)
-            map.VerifyContainAllKeys(expectedKeys, assertCond, _);
+            map.VerifyContainAllKeys(expectedKeys, assertCond, pass);
     }
 
-    /// <summary>Verifies that the hashes correspond to the keys stored in the entries. May be called from the tests.</summary>
-    public static void VerifyHashesAndKeysEq<TMap, K, TEq>(ref this TMap map, Action<bool, string> assertCond,
-        Use<K, TEq> _ = default)
-        where TMap : struct, IMap<K, TEq>, IMapStruct
-        where TEq : struct, IEq<K>
+    /// <summary>Verifies that the hashes correspond to the keys stored in the entries. May be called tests.</summary>
+    public static void VerifyHashesAndKeysEq<TMap, K>(ref this TMap map, Action<bool, string> assertCond, Pass<K> _ = default)
+        where TMap : struct, IMap<K>, IMapImpl<K>
     {
         var probes = map.Probes;
         var hashes = map.PackedHashesAndIndexes;
@@ -1166,39 +1112,37 @@ public static class SmallMapDiagnostics
                 var hashPart = h & ~indexMask;
                 var index = h & indexMask;
                 var key = map.GetSurePresentKey(index);
-                var hashFromKey = default(TEq).GetHashCode(key);
+                var hashFromKey = map.GetHashCode(key);
                 var hashPartFromKey = hashFromKey & ~indexMask;
                 assertCond(hashPart == hashPartFromKey, $"Hash mismatch for key:{key}, expected:{hashPartFromKey}, actual:{hashPart}");
             }
         }
     }
 
-    // /// <summary>Verifies that there is no duplicate keys stored in hashes -> entries. May be called from the tests.</summary>
-    // public static void VerifyNoDuplicateKeys<K, V, TEq, TEntries>(this HSmallMap<K, V, TEq, TEntries> map)
-    //     where TEq : struct, IEq<K>
-    //     where TEntries : struct, IEntries<K, V, TEq>
-    // {
-    //     // Verify the indexes do no contains duplicate keys
-    //     var uniq = new Dictionary<K, int>(map.Count);
-    //     var hashes = map.PackedHashesAndIndexes;
-    //     var capacity = map.Capacity;
-    //     var indexMask = capacity - 1;
-    //     for (var i = 0; i < hashes.Length - 8; i++)
-    //     {
-    //         var h = hashes[i];
-    //         if (h == 0)
-    //             continue;
-    //         var key = map.Entries.GetSurePresentEntryRef(h & indexMask).Key;
-    //         if (!uniq.ContainsKey(key))
-    //             uniq.Add(key, 1);
-    //         else
-    //             Assert.Fail($"Duplicate key: {key}");
-    //     }
-    // }
+    /// <summary>Verifies that there is no duplicate keys stored in hashes -> entries. May be called from the tests.</summary>
+    public static void VerifyNoDuplicateKeys<TMap, K>(this TMap map, Action<bool, string> assertCond, Pass<K> _ = default)
+        where TMap : struct, IMap<K>, IMapImpl<K>
+    {
+        var uniq = new Dictionary<K, int>(map.Count);
+        var probes = map.Probes;
+        var hashes = map.PackedHashesAndIndexes;
+        var indexMask = map.Capacity - 1;
+        for (var i = 0; i < probes.Length; i++)
+        {
+            var p = probes[i];
+            if (p == 0)
+                continue;
+            var key = map.GetSurePresentKey(hashes[i] & indexMask);
+            if (!uniq.ContainsKey(key))
+                uniq.Add(key, 1);
+            else
+                assertCond(false, $"Duplicate key: {key}");
+        }
+    }
 
     /// <summary>Verifies that the probes are consistently increasing</summary>
-    public static void VerifyProbesRobinHoodInvariants<TMap>(this TMap map, Action<bool, string> assertCond)
-        where TMap : struct, IMapStruct
+    public static void VerifyProbesRobinHoodInvariants<TMap, K>(this TMap map, Action<bool, string> assertCond, Pass<K> _ = default)
+        where TMap : struct, IMapImpl<K>
     {
         var prevProbe = 0;
         var probes = map.Probes;
@@ -1212,10 +1156,9 @@ public static class SmallMapDiagnostics
     }
 
     /// <summary>Verifies that each key has a corresponding hash entry which is correctly references this key</summary>
-    public static void VerifyKeyHasMetaInfo<TMap, K, TEq>(ref this TMap map,
-        Action<bool, string> assertCond, Use<K, TEq> _ = default)
-        where TMap : struct, IMap<K, TEq>
-        where TEq : struct, IEq<K>
+    public static void VerifyKeyHasMetaInfo<TMap, K>(ref this TMap map,
+        Action<bool, string> assertCond, Pass<K> _ = default)
+        where TMap : struct, IMap<K>
     {
         for (var i = 0; i < map.Count; ++i)
         {
@@ -1227,29 +1170,52 @@ public static class SmallMapDiagnostics
     }
 
     /// <summary>Verifies that the map contains all passed keys. May be called from the tests.</summary>
-    public static void VerifyContainAllKeys<TMap, K, TEq>(ref this TMap map,
-        IEnumerable<K> expectedKeys, Action<bool, string> assertContains, Use<K, TEq> _ = default)
-        where TMap : struct, IMap<K, TEq>
-        where TEq : struct, IEq<K>
+    public static void VerifyContainAllKeys<TMap, K>(ref this TMap map,
+        IEnumerable<K> expectedKeys, Action<bool, string> assertContains, Pass<K> _ = default)
+        where TMap : struct, IMap<K>
     {
         foreach (var key in expectedKeys)
             assertContains(map.ContainsKey(key), $"Key not found: {key}");
     }
 }
 
-public interface IMap<K, TEq> where TEq : struct, IEq<K>
+public interface IMap<K>
 {
+    /// <summary>Number of entries in the map</summary>
     int Count { get; }
+    /// <summary>Lookups for the stored key. Returns its index in the entries or -1</summary>
     int TryGetIndex(K key);
+    /// <summary>Lookups for the stored key. If found true, otherwise false</summary>
     bool ContainsKey(K key);
+    /// <summary>Lookups for the stored key by the index in the entries data structure</summary>
     K GetSurePresentKey(int index);
 }
 
-public interface IMapStruct
+public interface IMap<K, TEntry> : IMap<K>
+    where TEntry : struct, IEntry<K>
+{
+    /// <summary>Returns the ref to the found entry or the null ref</summary>
+    [UnscopedRef]
+    ref TEntry TryGetEntryRef(K key, out bool found);
+
+    /// <summary>Returns the ref to the found entry or Adds the entry if not found</summary>
+    [UnscopedRef]
+    ref TEntry AddOrGetEntryRef(K key, out bool found);
+
+    /// <summary>Adds an entry for sure absent key. 
+    /// Provides the performance in scenarios where you know the key is not yet in the map</summary>
+    [UnscopedRef]
+    ref TEntry AddSureAbsentDefaultEntryAndGetRef(K key);
+}
+
+/// <summary>Implementation details</summary>
+public interface IMapImpl<K>
 {
     int Capacity { get; }
     byte[] Probes { get; }
     int[] PackedHashesAndIndexes { get; }
+    /// <summary>Returns the hash code for the provided key</summary>
+    int GetHashCode(K key);
 }
 
 // todo: @improve ? how/where to add SIMD to improve CPU utilization but not losing perf for smaller sizes
@@ -1268,7 +1234,7 @@ public interface IMapStruct
 /// 
 /// </summary>
 [DebuggerDisplay("{Count} entries total")]
-public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, TEntries> : IMap<K, TEq>, IMapStruct
+public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, TEntries> : IMap<K, TEntry>, IMapImpl<K>
     where TEntry : struct, IEntry<K>
     where TEq : struct, IEq<K>
     where TStackCap : struct, ISize2Plus
@@ -1345,7 +1311,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     /// <summary>Access to the hashes and indexes</summary>
     public int[] PackedHashesAndIndexes => _packedHashesAndIndexes;
 
-    /// <summary>Number of entries in the map</summary>
+    /// <inheritdoc />
     public int Count => _count;
 
     /// <summary>Access to the key-value entries</summary>
@@ -1370,7 +1336,11 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         _entries.Init(capacity);
     }
 
+    /// <inheritdoc />
+    public int GetHashCode(K key) => default(TEq).GetHashCode(key);
+
     // todo: @perf try using StableGrowingEntries (or Xar) with O(1) random access. And make an default storage for the entries.
+    /// <inheritdoc />
     [MethodImpl((MethodImplOptions)256)]
     public K GetSurePresentKey(int index)
     {
@@ -1587,19 +1557,17 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         _isCapacityPaddingFilled = hashIndex + 1 == _probes.Length;
     }
 
-    /// <summary>Gets the ref to the existing entry by the provided key (found == true),
-    /// or adds a new entry (found == false) and returns it by ref</summary>
+    /// <inheritdoc />
     [UnscopedRef]
     [MethodImpl((MethodImplOptions)256)]
     public ref TEntry AddOrGetEntryRef(K key, out bool found)
     {
-
         var hash = default(TEq).GetHashCode(key);
 
         if (_count > _stackEntries.Capacity)
             return ref AddOrGetRefInEntries(key, hash, out found);
 
-        var i = _stackEntries.TryGetEntryIndex(ref _stackHashes, _count, key, hash, Use<TEq, TStackCap, TEntry>.It);
+        var i = _stackEntries.TryGetEntryIndex(ref _stackHashes, _count, key, hash, Pass<TEq, TStackCap, TEntry>.It);
         if (found = i != -1)
             return ref _stackEntries.GetSurePresentItemRef(i);
 
@@ -1698,9 +1666,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         return ref _entries.AddKeyAndGetEntryRef(key, (_count++) - _stackEntries.Capacity);
     }
 
-    /// <summary>Adds an entry for sure absent key.
-    /// Provides the performance in scenarios where you look for the present key, and using it, and if ABSENT then add the new one.
-    /// So this method optimized NOT to look for the present item for the second time</summary>
+    /// <inheritdoc />
     [UnscopedRef]
     [MethodImpl((MethodImplOptions)256)]
     public ref TEntry AddSureAbsentDefaultEntryAndGetRef(K key)
@@ -1723,17 +1689,17 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         return ref MigrateToHeapAndAddEntry(key, hash);
     }
 
-    /// <summary>Lookups for the stored key. Returns its index in the entries or -1</summary>
+    /// <inheritdoc />
     [MethodImpl((MethodImplOptions)256)]
     public int TryGetIndex(K key)
     {
         var hash = default(TEq).GetHashCode(key);
         return _count > _stackEntries.Capacity
             ? TryGetIndexInEntries(key, hash)
-            : _stackEntries.TryGetEntryIndex(ref _stackHashes, _count, key, hash, Use<TEq, TStackCap, TEntry>.It);
+            : _stackEntries.TryGetEntryIndex(ref _stackHashes, _count, key, hash, Pass<TEq, TStackCap, TEntry>.It);
     }
 
-    /// <summary>Lookups for the stored key. If found true, otherwise false</summary>
+    /// <inheritdoc />
     public bool ContainsKey(K key) => TryGetIndex(key) != -1;
 
 
@@ -1756,7 +1722,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         return TryGetEntryAndHashIndex(key, hash, indexMask, ref hashIndex, ref probe, ref probes, ref hashesAndIndexes);
     }
 
-    /// <summary>Lookup for the stored entry by key. Returns the ref to the found entry or the null ref</summary>
+    /// <inheritdoc />
     [UnscopedRef]
     [MethodImpl((MethodImplOptions)256)]
     public ref TEntry TryGetEntryRef(K key, out bool found)
@@ -1770,7 +1736,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         }
         else
         {
-            var i = _stackEntries.TryGetEntryIndex(ref _stackHashes, _count, key, hash, Use<TEq, TStackCap, TEntry>.It);
+            var i = _stackEntries.TryGetEntryIndex(ref _stackHashes, _count, key, hash, Pass<TEq, TStackCap, TEntry>.It);
             if (found = i != -1)
                 return ref _stackEntries.GetSurePresentItemRef(i);
         }
