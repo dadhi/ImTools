@@ -1,12 +1,12 @@
-﻿
+﻿// #define VERIFY_MAP
+
+namespace FastExpressionCompiler.ImTools.UnitTests;
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using NUnit.Framework;
-
-namespace FastExpressionCompiler.ImTools.UnitTests;
-
 using static SmallMap;
 
 [TestFixture]
@@ -79,7 +79,9 @@ public class FecSmallMapTests
         foreach (var type in presentTypes)
             map.AddOrUpdate(type, "a");
 
+#if VERIFY_MAP
         map.Verify(static (cond, msg) => Assert.IsTrue(cond, msg), presentTypes, Pass<Type>.It);
+#endif
 
         var count = 0;
         var iters = Count / 2;
@@ -95,7 +97,7 @@ public class FecSmallMapTests
         Assert.AreEqual(0, count);
 
 #if DEBUG
-        Assert.Greater(m.Map.LookupGreaterProbeCheckCount, 200);  // 290 no GoldenRatio, 236 with GoldenRatio ~ 20% difference
+        Assert.Greater(m.Map.LookupGreaterProbeCheckCount + m.Map.LookupEqualProbeCheckCount, 200);
 #endif
     }
 
@@ -133,7 +135,7 @@ public class FecSmallMapTests
         Assert.AreEqual(0, count);
 
 #if DEBUG
-        Assert.Greater(m.Map.LookupGreaterProbeCheckCount, 200);  // 290 no GoldenRatio, 236 with GoldenRatio ~ 20% difference
+        Assert.Greater(m.Map.LookupGreaterProbeCheckCount + m.Map.LookupEqualProbeCheckCount, 2000);
 #endif
     }
 

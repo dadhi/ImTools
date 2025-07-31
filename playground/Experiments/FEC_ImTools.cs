@@ -1303,7 +1303,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     public int Count => _count;
 
     /// <summary>Access to the key-value entries</summary>
-    public THeapEntries Entries => _heapEntries;
+    public THeapEntries HeapEntries => _heapEntries;
 
     /// <summary>Capacity calculates as `1 leftShift capacityBitShift`</summary>
     public SmallMap(byte capacityBitShift)
@@ -1739,11 +1739,9 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         var oldProbes = _probes;
         var oldHashes = _packedHashesAndIndexes;
 #endif
-        var i = 0;
-        var oldProbe = 0;
-        while (i < oldCapacity)
+        for (var i = 0; i < _probes.Length; ++i)
         {
-            oldProbe = oldProbes.GetSurePresentItem(i);
+            var oldProbe = oldProbes.GetSurePresentItem(i);
             if (oldProbe != 0) // for the non-empty probe and therefore hash
             {
                 var oldHashAndIndex = oldHashesAndIndexes.GetSurePresentItem(i);
@@ -1766,32 +1764,8 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
                 pRef = probe;
                 newHashes.GetSurePresentItemRef(newHashIndex) = oldHashAndIndex & ~oldCapacity;
             }
-            ++i;
-        }
-
-        // Starting from the last oldProbe, if it is 0 then we done and the padding is empty
-        while (true)
-        {
-            oldProbe = oldProbes.GetSurePresentItem(i);
-            if (oldProbe == 0)
-                break;
-
-            var oldHashAndIndex = oldHashesAndIndexes.GetSurePresentItem(i);
-
-            var oldHashIndex = i - (oldProbe - 1);
-            var newHashIndex = (oldHashAndIndex & oldCapacity) | oldHashIndex;
-
-            byte probe = 1;
-            ref var pRef = ref newProbes.GetSurePresentItemRef(newHashIndex);
-            while (pRef != 0)
-            {
-                ++probe;
-                pRef = ref newProbes.GetSurePresentItemRef(++newHashIndex);
-            }
-
-            pRef = probe;
-            newHashes.GetSurePresentItemRef(newHashIndex) = oldHashAndIndex & ~oldCapacity;
-            ++i;
+            else if (i >= oldCapacity)
+                break; // No need to continue scanning the padding, because it is empty and we are done with the old hashes and probes
         }
 
         ++_capacityBitShift;
