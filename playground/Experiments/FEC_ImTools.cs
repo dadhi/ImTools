@@ -25,7 +25,6 @@ THE SOFTWARE.
 
 // ReSharper disable once InconsistentNaming
 #nullable disable
-#define MAP_LOOKUP_SPLIT_LOOP // todo: @wip @perf
 
 // #if DEBUG
 // #define VERIFY_MAP
@@ -57,6 +56,7 @@ using System.Numerics;
 #endif
 
 using static SmallMap;
+using System.Linq;
 
 /// <summary>Helpers and polyfills for the missing things in the old .NET versions</summary>
 public static class RefTools<T>
@@ -1232,42 +1232,33 @@ public interface IMapImpl<K>
 /// 
 /// </summary>
 [DebuggerDisplay("Contains {Count} entries")]
-public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, TEntries> : IMap<K, TEntry>, IMapImpl<K>
+public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, THeapEntries> : IMap<K, TEntry>, IMapImpl<K>
     where TEntry : struct, IEntry<K>
     where TEq : struct, IEq<K>
     where TStackCap : struct, ISize2Plus
     where TStackHashes : struct, IStack<int, TStackCap, TStackHashes>
     where TStackEntries : struct, IStack<TEntry, TStackCap, TStackEntries>
-    where TEntries : struct, IEntries<K, TEntry, TEq>
+    where THeapEntries : struct, IEntries<K, TEntry, TEq>
 {
 #if DEBUG
     // Diagnostic counters to measure the performance of the map operations
-    public int TotalProbeCheckCountInRead = 0;
     public int PutHashAndIndexWithoutResizing_Count = 0;
-    public int PutHashAndIndexWithoutResizing_InitialProbeCheckCount = 0;
-    public int PutHashAndIndexWithoutResizing_AverageProbeCheckCount =>
-        PutHashAndIndexWithoutResizing_Count == 0 ? 0 : PutHashAndIndexWithoutResizing_InitialProbeCheckCount / PutHashAndIndexWithoutResizing_Count;
+    public int PutHashAndIndexWithoutResizing_ProbeGreaterOrEqualCheckCount = 0;
+    public int PutHashAndIndexWithoutResizing_ProbeGreaterOrEqualCheckCountAverage =>
+        PutHashAndIndexWithoutResizing_Count == 0 ? 0 : PutHashAndIndexWithoutResizing_ProbeGreaterOrEqualCheckCount / PutHashAndIndexWithoutResizing_Count;
     public int PutHashAndIndexWithoutResizing_RobinHoodCount = 0;
     public int PutHashAndIndexWithoutResizing_RobinHoodProbeCheckCount = 0;
 
-    public int TryGetRefInEntries_Count = 0;
-    public int TryGetRefInEntries_InitialProbeCheckCount = 0;
-    public int TryGetRefInEntries_AverageProbeCheckCount =>
-        TryGetRefInEntries_Count == 0 ? 0 : TryGetRefInEntries_InitialProbeCheckCount / TryGetRefInEntries_Count;
-    public int TryGetRefInEntries_EqualProbeCheckCount = 0;
-
+    public int LookupCount = 0;
+    public int LookupGreaterProbeCheckCount = 0;
+    public int LookupGreaterProbeCheckCountAverage => LookupCount == 0 ? 0 : LookupGreaterProbeCheckCount / LookupCount;
+    public int LookupEqualProbeCheckCount = 0;
+    public int LookupEqualProbeCheckCountAverage => LookupCount == 0 ? 0 : LookupEqualProbeCheckCount / LookupCount;
     public int AddOrGetRefInEntries_Count = 0;
-    public int AddOrGetRefInEntries_InitialProbeCheckCount = 0;
-    public int AddOrGetRefInEntries_InitialProbeCheckCountAverage =>
-        AddOrGetRefInEntries_Count == 0 ? 0 : AddOrGetRefInEntries_InitialProbeCheckCount / AddOrGetRefInEntries_Count;
-    public int FindEqualProbeAndHashCheckCount = 0;
     public int AddOrGetRefInEntries_RobinHoodCount = 0;
     public int AddOrGetRefInEntries_RobinHoodProbeCheckCount = 0;
 
     public int ResizeProbesAndHashes_Count = 0;
-    public int ResizeProbesAndHashes_AverageProbeCheckCount = 0;
-    public int ResizeProbesAndHashes_AverageEmptyProbeCount = 0;
-    public int ResizeProbesAndHashes_LastWrapAroundEmptyProbesSpanCount = 0;
 #endif
 
     internal byte _capacityBitShift;
@@ -1289,7 +1280,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 #pragma warning disable CS0649 // field is never assigned to, and will always have its default value
     internal TStackHashes _stackHashes;
     internal TStackEntries _stackEntries;
-    internal TEntries _entries;
+    internal THeapEntries _heapEntries;
 #pragma warning restore CS0649
 #pragma warning restore IDE0044
 
@@ -1312,7 +1303,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     public int Count => _count;
 
     /// <summary>Access to the key-value entries</summary>
-    public TEntries Entries => _entries;
+    public THeapEntries Entries => _heapEntries;
 
     /// <summary>Capacity calculates as `1 leftShift capacityBitShift`</summary>
     public SmallMap(byte capacityBitShift)
@@ -1330,7 +1321,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         _probes = new byte[capacityWithPadding];
         _packedHashesAndIndexes = new int[capacityWithPadding];
 
-        _entries.Init(capacity);
+        _heapEntries.Init(capacity);
     }
 
     /// <inheritdoc />
@@ -1344,7 +1335,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         Debug.Assert(index >= 0);
         Debug.Assert(index < _count);
         return index >= _stackEntries.Capacity
-            ? _entries.GetSurePresentEntryRef(index - _stackEntries.Capacity).Key
+            ? _heapEntries.GetSurePresentEntryRef(index - _stackEntries.Capacity).Key
             : _stackEntries.GetSurePresentItemRef(index).Key;
     }
 
@@ -1358,7 +1349,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         Debug.Assert(index >= 0);
         Debug.Assert(index < _count);
         if (index >= _stackEntries.Capacity)
-            return ref _entries.GetSurePresentEntryRef(index - _stackEntries.Capacity);
+            return ref _heapEntries.GetSurePresentEntryRef(index - _stackEntries.Capacity);
         return ref _stackEntries.GetSurePresentItemRef(index);
     }
 
@@ -1373,15 +1364,17 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 #endif
     )
     {
+#if DEBUG
+        ++LookupCount;
+#endif
         // Skip over the bigger and equal probes. The hashes with bigger probes overlapping from the earlier ideal positions
-#if MAP_LOOKUP_SPLIT_LOOP
         ref var pRef = ref probes.GetSurePresentItemRef(hashIndex);
         while (pRef > probe)
         {
             pRef = ref probes.GetSurePresentItemRef(++hashIndex);
             ++probe;
 #if DEBUG
-            ++FindEqualProbeAndHashCheckCount;
+            ++LookupGreaterProbeCheckCount;
 #endif
         }
 
@@ -1395,29 +1388,10 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
             pRef = ref probes.GetSurePresentItemRef(++hashIndex);
             ++probe;
 #if DEBUG
-            ++FindEqualProbeAndHashCheckCount;
+            ++LookupEqualProbeCheckCount;
 #endif
         }
-#else
-        ref var pRef = ref probes.GetSurePresentItemRef(hashIndex);
-        while (pRef >= probe)
-        {
-            // Compare the hash middle part, then the indexed key
-            if (pRef == probe)
-            {
-                var h = hashesAndIndexes.GetSurePresentItemRef(hashIndex);
-                if ((h & ~indexMask) == (hash & ~indexMask))
-                    if (default(TEq).Equals(GetSurePresentKey(h & indexMask), key))
-                        return h & indexMask;
-            }
-            pRef = ref probes.GetSurePresentItemRef(++hashIndex);
-            ++probe;
-#if DEBUG
-            ++FindEqualProbeAndHashCheckCount;
-#endif
-        }
-#endif
-        return -1; // not found
+        return -1;
     }
 
     [UnscopedRef]
@@ -1430,7 +1404,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         var indexMask = (1 << _capacityBitShift) - 1;
 
         // If the free space is less than ~1/8 of capacity (~12.5%) then Resize probes and hashes (but not the entries).
-        // Note: this check done here even before lookup (but not in insert), because later we rely on the Lookup hashIndex to do a first insert
+        // Note: this check done here even before lookup and not later at insert, because later we rely on the Lookup hashIndex to do a first insert.
         if (_isCapacityPaddingFilled || indexMask - _count <= (indexMask >>> MinFreeCapacityShift))
             indexMask = ResizeProbesAndHashes(indexMask);
 
@@ -1483,9 +1457,10 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 #endif
         }
 
-        _isCapacityPaddingFilled = hashIndex + 1 == _probes.Length;
+        // @pre - keep the last slot empty so the ResizeProbesAndHashes can rely on it to Stop when scanning the padding span beyond oldCapacity
+        _isCapacityPaddingFilled = hashIndex + 2 == _probes.Length;
 
-        return ref _entries.AddKeyAndGetEntryRef(key, _count++ - _stackEntries.Capacity);
+        return ref _heapEntries.AddKeyAndGetEntryRef(key, _count++ - _stackEntries.Capacity);
     }
 
     [MethodImpl((MethodImplOptions)256)]
@@ -1506,14 +1481,14 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 #endif
 
         // Skip over hashes with the bigger and equal probes. The hashes with bigger probes overlapping from the earlier ideal positions
-        ref var pRef = ref probes.GetSurePresentItemRef(hashIndex);
         byte probe = 1;
+        ref var pRef = ref probes.GetSurePresentItemRef(hashIndex);
         while (pRef >= probe)
         {
-            pRef = ref probes.GetSurePresentItemRef(++hashIndex); // no need to wrap around because the probes have the extra capacity
             ++probe;
+            pRef = ref probes.GetSurePresentItemRef(++hashIndex); // no need to wrap around because the probes have the extra capacity
 #if DEBUG
-            ++PutHashAndIndexWithoutResizing_InitialProbeCheckCount;
+            ++PutHashAndIndexWithoutResizing_ProbeGreaterOrEqualCheckCount;
 #endif
         }
 
@@ -1551,7 +1526,8 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 #endif
         }
 
-        _isCapacityPaddingFilled = hashIndex + 1 == _probes.Length;
+        // @pre - keep the last slot empty so the ResizeProbesAndHashes can rely on it to Stop when scanning the padding span beyond oldCapacity
+        _isCapacityPaddingFilled = hashIndex + 2 == _probes.Length;
     }
 
     /// <inheritdoc />
@@ -1614,10 +1590,10 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         PutHashAndIndexWithoutResizing(indexMask, hash, stackCap);
 
         ++_count;
-        _entries.Init(stackCap); // Give the heap entries the same initial capacity as Stack, effectively doubling the capacity
+        _heapEntries.Init(stackCap); // Give the heap entries the same initial capacity as Stack, effectively doubling the capacity
 
         // Set the key for the first entry, which is the 0 index in the entries
-        ref var newEntry = ref _entries.GetSurePresentEntryRef(0);
+        ref var newEntry = ref _heapEntries.GetSurePresentEntryRef(0);
         newEntry.Key = key;
         return ref newEntry;
     }
@@ -1660,7 +1636,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 
         PutHashAndIndexWithoutResizing(indexMask, hash, _count);
 
-        return ref _entries.AddKeyAndGetEntryRef(key, (_count++) - _stackEntries.Capacity);
+        return ref _heapEntries.AddKeyAndGetEntryRef(key, (_count++) - _stackEntries.Capacity);
     }
 
     /// <inheritdoc />
@@ -1699,13 +1675,9 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     /// <inheritdoc />
     public bool ContainsKey(K key) => TryGetIndex(key) != -1;
 
-
     [MethodImpl((MethodImplOptions)256)]
     internal int TryGetIndexInEntries(K key, int hash)
     {
-#if DEBUG
-        ++TryGetRefInEntries_Count;
-#endif
 #if NET7_0_OR_GREATER
         ref var probes = ref MemoryMarshal.GetArrayDataReference(_probes);
         ref var hashesAndIndexes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
@@ -1767,36 +1739,11 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         var oldProbes = _probes;
         var oldHashes = _packedHashesAndIndexes;
 #endif
-#if DEBUG
-        var newProbeCheckCount = 0;
-        var inSkipEmptyProbesSpan = false;
-        var skipEmptyProbesSpanCount = 0;
-        var totalSkipEmptyProbesCount = 0;
-#endif
-        //todo: @wip remember that the padding cap is for wrap around items, 
-        // and the invariant for them is the there no 0 probes in the wrap-around, so the loop may be stopped at the first 0 probe
-        // Considering that the most zero probes would be in a padding (as its is half of the capacity) we may consider
-        // to split the loop into two: for capacity and for padding.
-        for (var i = 0; i < _probes.Length; ++i)
+        var i = 0;
+        var oldProbe = 0;
+        while (i < oldCapacity)
         {
-            var oldProbe = oldProbes.GetSurePresentItem(i);
-#if DEBUG
-            if (oldProbe == 0)
-            {
-                if (!inSkipEmptyProbesSpan)
-                {
-                    inSkipEmptyProbesSpan = true;
-                    ++skipEmptyProbesSpanCount;
-                }
-                ++totalSkipEmptyProbesCount;
-                if (i >= oldCapacity)
-                    ++ResizeProbesAndHashes_LastWrapAroundEmptyProbesSpanCount;
-            }
-            else
-            {
-                inSkipEmptyProbesSpan = false;
-            }
-#endif
+            oldProbe = oldProbes.GetSurePresentItem(i);
             if (oldProbe != 0) // for the non-empty probe and therefore hash
             {
                 var oldHashAndIndex = oldHashesAndIndexes.GetSurePresentItem(i);
@@ -1804,8 +1751,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
                 // First, calculate the ideal hash index for the current probe, it should be in the range of the old capacity/index mask
                 var oldHashIndex = i - (oldProbe - 1);
                 Debug.Assert(oldHashIndex < oldCapacity, "Old hash index should be less than old capacity");
-                var nextHashBitInIndex = oldHashAndIndex & oldCapacity;
-                var newHashIndex = nextHashBitInIndex | oldHashIndex;
+                var newHashIndex = (oldHashAndIndex & oldCapacity) | oldHashIndex;
                 Debug.Assert(newHashIndex == oldHashIndex || newHashIndex == oldHashIndex + oldCapacity, "New hash index should be either the same as old or with the next bit set to the old capacity");
 
                 // No need for robin-hooding because we already did it for the old hashes and now just filling the hashes into the new array which are already in order
@@ -1813,24 +1759,45 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
                 ref var pRef = ref newProbes.GetSurePresentItemRef(newHashIndex);
                 while (pRef != 0)
                 {
-                    pRef = ref newProbes.GetSurePresentItemRef(++newHashIndex);
                     ++probe;
-#if DEBUG
-                    ++newProbeCheckCount;
-#endif
+                    pRef = ref newProbes.GetSurePresentItemRef(++newHashIndex);
                 }
+
                 pRef = probe;
                 newHashes.GetSurePresentItemRef(newHashIndex) = oldHashAndIndex & ~oldCapacity;
             }
+            ++i;
         }
+
+        // Starting from the last oldProbe, if it is 0 then we done and the padding is empty
+        while (true)
+        {
+            oldProbe = oldProbes.GetSurePresentItem(i);
+            if (oldProbe == 0)
+                break;
+
+            var oldHashAndIndex = oldHashesAndIndexes.GetSurePresentItem(i);
+
+            var oldHashIndex = i - (oldProbe - 1);
+            var newHashIndex = (oldHashAndIndex & oldCapacity) | oldHashIndex;
+
+            byte probe = 1;
+            ref var pRef = ref newProbes.GetSurePresentItemRef(newHashIndex);
+            while (pRef != 0)
+            {
+                ++probe;
+                pRef = ref newProbes.GetSurePresentItemRef(++newHashIndex);
+            }
+
+            pRef = probe;
+            newHashes.GetSurePresentItemRef(newHashIndex) = oldHashAndIndex & ~oldCapacity;
+            ++i;
+        }
+
         ++_capacityBitShift;
         _probes = newProbesArr;
         _packedHashesAndIndexes = newHashesAndIndexes;
 
-#if DEBUG
-        ResizeProbesAndHashes_AverageProbeCheckCount = newProbeCheckCount / _count;
-        ResizeProbesAndHashes_AverageEmptyProbeCount = totalSkipEmptyProbesCount / skipEmptyProbesSpanCount;
-#endif
 #if VERIFY_MAP
         this.VerifyKeyHasMetaInfo(static (x, msg) => Debug.Assert(x, msg), Use<K, TEq>.It);
 #endif

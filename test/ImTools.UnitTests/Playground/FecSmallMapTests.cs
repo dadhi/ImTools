@@ -67,11 +67,7 @@ public class FecSmallMapTests
         const int Count = 100;
         Debug.Assert(Count <= 1000, "Count should be less than or equal to 1000 for this test to work correctly.");
 
-#if !FIB
-        var m = new SmallMap16<Type, string, GoldenRatioRefEq<Type>>();
-#else
         var m = new SmallMap16<Type, string, RefEq<Type>>();
-#endif
         ref var map = ref m.Map;
 
         var presentTypes = _allKeys.Take(Count).ToArray();
@@ -83,7 +79,7 @@ public class FecSmallMapTests
         foreach (var type in presentTypes)
             map.AddOrUpdate(type, "a");
 
-        // map.Verify(static (cond, msg) => Assert.IsTrue(cond, msg), presentTypes, Use<Type, RefEq<Type>>.It);
+        map.Verify(static (cond, msg) => Assert.IsTrue(cond, msg), presentTypes, Pass<Type>.It);
 
         var count = 0;
         var iters = Count / 2;
@@ -99,7 +95,45 @@ public class FecSmallMapTests
         Assert.AreEqual(0, count);
 
 #if DEBUG
-        Assert.Greater(m.Map.FindEqualProbeAndHashCheckCount, 200);  // 290 no GoldenRatio, 236 with GoldenRatio ~ 20% difference
+        Assert.Greater(m.Map.LookupGreaterProbeCheckCount, 200);  // 290 no GoldenRatio, 236 with GoldenRatio ~ 20% difference
+#endif
+    }
+
+    [Test]
+    public void Benchmark_test_with_Add_and_Lookup_1000_items()
+    {
+        const int Count = 1000;
+        Debug.Assert(Count <= 1000, "Count should be less than or equal to 1000 for this test to work correctly.");
+
+        var m = new SmallMap16<Type, string, RefEq<Type>>();
+        ref var map = ref m.Map;
+
+        var presentTypes = _allKeys.Take(Count).ToArray();
+        var missingKeys = _allKeys.Skip(1000).Take(Count).ToArray();
+
+        var seed = new Random(42);
+        var randomPresentKeys = presentTypes.OrderBy(_ => seed.Next()).ToArray();
+
+        foreach (var type in presentTypes)
+            map.AddOrUpdate(type, "a");
+
+        map.Verify(static (cond, msg) => Assert.IsTrue(cond, msg), presentTypes, Pass<Type>.It);
+
+        var count = 0;
+        var iters = Count / 2;
+        for (var i = 0; i < iters; ++i)
+        {
+            var result = map.TryGetEntryRef(randomPresentKeys[i], out var found);
+            if (found)
+                count += result.Value.Length;
+            _ = map.TryGetEntryRef(missingKeys[i], out found);
+            if (!found)
+                --count;
+        }
+        Assert.AreEqual(0, count);
+
+#if DEBUG
+        Assert.Greater(m.Map.LookupGreaterProbeCheckCount, 200);  // 290 no GoldenRatio, 236 with GoldenRatio ~ 20% difference
 #endif
     }
 
