@@ -948,18 +948,17 @@ public static class SmallMap
     public static string ToB(int x) => System.Convert.ToString(x, 2).PadLeft(32, '0');
 
     /// <summary>Abstraction to configure your own entries data structure. Check the derived types for the examples</summary>
-    public interface IEntries<K, TEntry, TEq>
+    public interface IEntries<K, TEntry>
         where TEntry : struct, IEntry<K>
-        where TEq : IEq<K>
     {
         /// <summary>Initializes the entries storage to the specified capacity</summary>
         void Init(int capacityPowerOfTwoPlease);
 
         /// <summary>Returns the reference to entry by its index, index should map to the present/non-removed entry</summary>
-        ref TEntry GetSurePresentEntryRef(int index);
+        ref TEntry GetSurePresentRef(int index);
 
         /// <summary>Adds the key at the "end" of entries - so the order of addition is preserved.</summary>
-        ref TEntry AddKeyAndGetEntryRef(K key, int index);
+        ref TEntry AddDefaultAndGetRef(int index);
     }
 
     internal const int MinEntriesCapacity = 2;
@@ -968,9 +967,8 @@ public static class SmallMap
     public readonly struct NoValue { }
 
     /// <summary>Stores the entries in a single dynamically reallocated growing array</summary>
-    public struct SingleArrayEntries<K, TEntry, TEq> : IEntries<K, TEntry, TEq>
+    public struct SingleArrayEntries<K, TEntry> : IEntries<K, TEntry>
         where TEntry : struct, IEntry<K>
-        where TEq : struct, IEq<K>
     {
         internal TEntry[] _entries;
 
@@ -980,121 +978,116 @@ public static class SmallMap
 
         /// <inheritdoc/>
         [MethodImpl((MethodImplOptions)256)]
-        public ref TEntry GetSurePresentEntryRef(int index) =>
+        public ref TEntry GetSurePresentRef(int index) =>
             ref _entries.GetSurePresentItemRef(index);
 
         /// <inheritdoc/>
         [MethodImpl((MethodImplOptions)256)]
-        public ref TEntry AddKeyAndGetEntryRef(K key, int index)
+        public ref TEntry AddDefaultAndGetRef(int index)
         {
             if (index == _entries.Length)
                 Array.Resize(ref _entries, index << 1);
-
-            ref var e = ref _entries.GetSurePresentItemRef(index);
-            e.Key = key;
-            return ref e;
+            return ref _entries.GetSurePresentItemRef(index);
         }
     }
 
     /// <summary>Stores the entries in a single dynamically reallocated growing array</summary>
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct StableArrayEntries<K, TEntry, TEq> : IEntries<K, TEntry, TEq>
+    public struct StableArrayEntries<K, TEntry> : IEntries<K, TEntry>
         where TEntry : struct, IEntry<K>
-        where TEq : struct, IEq<K>
     {
         const int RegularBucketBits = 12;
         const int RegularBucketSize = 1 << RegularBucketBits; // 4096
         const int RegularBucketMask = RegularBucketSize - 1;
-        const int UpToBucket32 = 32;
-        const int UpToBucket64 = UpToBucket32 + 64;
-        const int UpToBucket128 = UpToBucket64 + 128;
-        const int UpToBucket256 = UpToBucket128 + 256;
-        const int UpToBucket512 = UpToBucket256 + 512;
-        const int UpToBucket1024 = UpToBucket512 + 1024;
+        const int UpToBucket0032 = 32;
+        const int UpToBucket0064 = UpToBucket0032 + 64;
+        const int UpToBucket0128 = UpToBucket0064 + 128;
+        const int UpToBucket0256 = UpToBucket0128 + 256;
+        const int UpToBucket0512 = UpToBucket0256 + 512;
+        const int UpToBucket1024 = UpToBucket0512 + 1024;
         const int UpToBucket2048 = UpToBucket1024 + 2048;
 
 #if NET8_0_OR_GREATER
-        public static readonly Vector256<int> vUpToBucket = Vector256.Create(
-            UpToBucket32, UpToBucket64, UpToBucket128, UpToBucket256,
-            UpToBucket512, UpToBucket1024, UpToBucket2048,
-            // the last 2 things are the same for the arithmetic to work in FindBucket
-            UpToBucket2048);
+        static readonly Vector256<int> VUpToBucket = Vector256.Create(
+            0, UpToBucket0032, UpToBucket0064, UpToBucket0128,
+            UpToBucket0256, UpToBucket0512, UpToBucket1024, UpToBucket2048);
 #endif
-        internal TEntry[] _bucket32;
-        internal TEntry[] _bucket64;
-        internal TEntry[] _bucket128;
-        internal TEntry[] _bucket256;
-        internal TEntry[] _bucket512;
+        internal TEntry[] _bucket0032;
+        internal TEntry[] _bucket0064;
+        internal TEntry[] _bucket0128;
+        internal TEntry[] _bucket0256;
+        internal TEntry[] _bucket0512;
         internal TEntry[] _bucket1024;
         internal TEntry[] _bucket2048;
         internal TEntry[][] _regularBuckets;
 
         /// <inheritdoc/>
+        [UnscopedRef]
         [MethodImpl((MethodImplOptions)256)]
-        private TEntry[] GetBucket(int bucketIndex)
+        private ref TEntry[] GetBucketRef(int bucketIndex)
         {
-            Debug.Assert(bucketIndex >= 0 && bucketIndex <= 6, "Bucket index should be in the range 0..6");
+            Debug.Assert(bucketIndex >= 0 && bucketIndex < 7, "Bucket index should be in the range 0..6");
 #if SUPPORTS_UNSAFE
-            return Unsafe.Add(ref _bucket32, bucketIndex);
+            return ref Unsafe.Add(ref _bucket0032, bucketIndex);
 #else
-            return bucketIndex switch
+            switch (bucketIndex)
             {
-                0 => _bucket32,
-                1 => _bucket64,
-                2 => _bucket128,
-                3 => _bucket256,
-                4 => _bucket512,
-                5 => _bucket1024,
-                _ => _bucket2048,
-            };
+                case 0: return ref _bucket0032;
+                case 1: return ref _bucket0064;
+                case 2: return ref _bucket0128;
+                case 3: return ref _bucket0256;
+                case 4: return ref _bucket0512;
+                case 5: return ref _bucket1024;
+                default: return ref _bucket2048;
+            }
 #endif
         }
 
         /// <inheritdoc/>
         public void Init(int capacity = 0)
         {
-            _bucket32 = new TEntry[UpToBucket32]; // always allocate
+            _bucket0032 = new TEntry[UpToBucket0032]; // always allocate
             switch (capacity)
             {
-                case <= UpToBucket32: break;
-                case <= UpToBucket64:
-                    _bucket64 = new TEntry[UpToBucket64];
+                case <= UpToBucket0032: break;
+                case <= UpToBucket0064:
+                    _bucket0064 = new TEntry[UpToBucket0064];
                     break;
-                case <= UpToBucket128:
-                    _bucket64 = new TEntry[UpToBucket64];
-                    _bucket128 = new TEntry[UpToBucket128];
+                case <= UpToBucket0128:
+                    _bucket0064 = new TEntry[UpToBucket0064];
+                    _bucket0128 = new TEntry[UpToBucket0128];
                     break;
-                case <= UpToBucket256:
-                    _bucket64 = new TEntry[UpToBucket64];
-                    _bucket128 = new TEntry[UpToBucket128];
-                    _bucket256 = new TEntry[UpToBucket256];
+                case <= UpToBucket0256:
+                    _bucket0064 = new TEntry[UpToBucket0064];
+                    _bucket0128 = new TEntry[UpToBucket0128];
+                    _bucket0256 = new TEntry[UpToBucket0256];
                     break;
-                case <= UpToBucket512:
-                    _bucket64 = new TEntry[UpToBucket64];
-                    _bucket128 = new TEntry[UpToBucket128];
-                    _bucket256 = new TEntry[UpToBucket256];
-                    _bucket512 = new TEntry[UpToBucket512];
+                case <= UpToBucket0512:
+                    _bucket0064 = new TEntry[UpToBucket0064];
+                    _bucket0128 = new TEntry[UpToBucket0128];
+                    _bucket0256 = new TEntry[UpToBucket0256];
+                    _bucket0512 = new TEntry[UpToBucket0512];
                     break;
                 case <= UpToBucket1024:
-                    _bucket64 = new TEntry[UpToBucket64];
-                    _bucket128 = new TEntry[UpToBucket128];
-                    _bucket256 = new TEntry[UpToBucket256];
-                    _bucket512 = new TEntry[UpToBucket512];
+                    _bucket0064 = new TEntry[UpToBucket0064];
+                    _bucket0128 = new TEntry[UpToBucket0128];
+                    _bucket0256 = new TEntry[UpToBucket0256];
+                    _bucket0512 = new TEntry[UpToBucket0512];
                     _bucket1024 = new TEntry[UpToBucket1024];
                     break;
                 case <= UpToBucket2048:
-                    _bucket64 = new TEntry[UpToBucket64];
-                    _bucket128 = new TEntry[UpToBucket128];
-                    _bucket256 = new TEntry[UpToBucket256];
-                    _bucket512 = new TEntry[UpToBucket512];
+                    _bucket0064 = new TEntry[UpToBucket0064];
+                    _bucket0128 = new TEntry[UpToBucket0128];
+                    _bucket0256 = new TEntry[UpToBucket0256];
+                    _bucket0512 = new TEntry[UpToBucket0512];
                     _bucket1024 = new TEntry[UpToBucket1024];
                     _bucket2048 = new TEntry[UpToBucket2048];
                     break;
                 default:
-                    _bucket64 = new TEntry[UpToBucket64];
-                    _bucket128 = new TEntry[UpToBucket128];
-                    _bucket256 = new TEntry[UpToBucket256];
-                    _bucket512 = new TEntry[UpToBucket512];
+                    _bucket0064 = new TEntry[UpToBucket0064];
+                    _bucket0128 = new TEntry[UpToBucket0128];
+                    _bucket0256 = new TEntry[UpToBucket0256];
+                    _bucket0512 = new TEntry[UpToBucket0512];
                     _bucket1024 = new TEntry[UpToBucket1024];
                     _bucket2048 = new TEntry[UpToBucket2048];
 
@@ -1109,16 +1102,17 @@ public static class SmallMap
 
         /// <inheritdoc/>
         [MethodImpl((MethodImplOptions)256)]
-        public ref TEntry GetSurePresentEntryRef(int index)
+        public ref TEntry GetSurePresentRef(int index)
         {
 #if NET7_0_OR_GREATER
             var vIndex = Vector256.Create(index);
-            var vIndexThanBucket = Vector256.LessThan(vIndex, vUpToBucket);
-            if (vIndexThanBucket != Vector256<int>.Zero)
+            var vIndexLessThanBucket = Vector256.LessThan(vIndex, VUpToBucket);
+            if (vIndexLessThanBucket != Vector256<int>.Zero)
             {
-                var bucketIndex = BitOperations.TrailingZeroCount(Vector256.ExtractMostSignificantBits(vIndexThanBucket));
-                var entryIndex = index - vUpToBucket.GetElement(bucketIndex);
-                var bucket = GetBucket(bucketIndex);
+                var bucketIndex = BitOperations.TrailingZeroCount(Vector256.ExtractMostSignificantBits(vIndexLessThanBucket));
+                --bucketIndex; // to skip a 0 bucket at the start of vector
+                var entryIndex = index - VUpToBucket.GetElement(bucketIndex);
+                ref var bucket = ref GetBucketRef(bucketIndex);
                 return ref bucket.GetSurePresentItemRef(entryIndex);
             }
             index -= UpToBucket2048;
@@ -1129,20 +1123,20 @@ public static class SmallMap
 #else
             switch (index)
             {
-                case < UpToBucket32: 
-                    return ref _bucket32.GetSurePresentItemRef(index - UpToBucket32);
-                case < UpToBucket64: 
-                    return ref _bucket64.GetSurePresentItemRef(index - UpToBucket64);
-                case < UpToBucket128: 
-                    return ref _bucket128.GetSurePresentItemRef(index - UpToBucket128);
-                case < UpToBucket256: 
-                    return ref _bucket256.GetSurePresentItemRef(index - UpToBucket256);
-                case < UpToBucket512: 
-                    return ref _bucket512.GetSurePresentItemRef(index - UpToBucket512);
-                case < UpToBucket1024: 
-                    return ref _bucket1024.GetSurePresentItemRef(index - UpToBucket1024);
-                case < UpToBucket2048: 
-                    return ref _bucket2048.GetSurePresentItemRef(index - UpToBucket2048);
+                case < UpToBucket0032:
+                    return ref _bucket0032.GetSurePresentItemRef(index);
+                case < UpToBucket0064:
+                    return ref _bucket0064.GetSurePresentItemRef(index - UpToBucket0032);
+                case < UpToBucket0128:
+                    return ref _bucket0128.GetSurePresentItemRef(index - UpToBucket0064);
+                case < UpToBucket0256:
+                    return ref _bucket0256.GetSurePresentItemRef(index - UpToBucket0128);
+                case < UpToBucket0512:
+                    return ref _bucket0512.GetSurePresentItemRef(index - UpToBucket0256);
+                case < UpToBucket1024:
+                    return ref _bucket1024.GetSurePresentItemRef(index - UpToBucket0512);
+                case < UpToBucket2048:
+                    return ref _bucket2048.GetSurePresentItemRef(index - UpToBucket1024);
                 default:
                     index -= UpToBucket2048;
                     var regularBucketIndex = index >>> RegularBucketBits;
@@ -1156,16 +1150,18 @@ public static class SmallMap
 
         /// <inheritdoc/>
         [MethodImpl((MethodImplOptions)256)]
-        public ref TEntry AddKeyAndGetEntryRef(K key, int index)
+        public ref TEntry AddDefaultAndGetRef(int index)
         {
 #if NET7_0_OR_GREATER
             var vIndex = Vector256.Create(index);
-            var vIndexThanBucket = Vector256.LessThan(vIndex, vUpToBucket);
+            var vIndexThanBucket = Vector256.LessThan(vIndex, VUpToBucket);
             if (vIndexThanBucket != Vector256<int>.Zero)
             {
                 var bucketIndex = BitOperations.TrailingZeroCount(Vector256.ExtractMostSignificantBits(vIndexThanBucket));
-                var entryIndex = index - vUpToBucket.GetElement(bucketIndex);
-                var bucket = GetBucket(bucketIndex) ?? new TEntry[UpToBucket32 << bucketIndex];
+                --bucketIndex; // to skip a 0 bucket at the start of vector
+                var entryIndex = index - VUpToBucket.GetElement(bucketIndex);
+                ref var bucket = ref GetBucketRef(bucketIndex);
+                bucket ??= new TEntry[UpToBucket0032 << bucketIndex];
                 return ref bucket.GetSurePresentItemRef(entryIndex);
             }
             index -= UpToBucket2048;
@@ -1182,27 +1178,27 @@ public static class SmallMap
 #else
             switch (index)
             {
-                case < UpToBucket32:
-                    _bucket32 ??= new TEntry[UpToBucket32];
-                    return ref _bucket32.GetSurePresentItemRef(index - UpToBucket32);
-                case < UpToBucket64:
-                    _bucket64 ??= new TEntry[UpToBucket64];
-                    return ref _bucket64.GetSurePresentItemRef(index - UpToBucket64);
-                case < UpToBucket128:
-                    _bucket128 ??= new TEntry[UpToBucket128];
-                    return ref _bucket128.GetSurePresentItemRef(index - UpToBucket128);
-                case < UpToBucket256:
-                    _bucket256 ??= new TEntry[UpToBucket256];
-                    return ref _bucket256.GetSurePresentItemRef(index - UpToBucket256);
-                case < UpToBucket512:
-                    _bucket512 ??= new TEntry[UpToBucket512];
-                    return ref _bucket512.GetSurePresentItemRef(index - UpToBucket512);
+                case < UpToBucket0032:
+                    _bucket0032 ??= new TEntry[UpToBucket0032];
+                    return ref _bucket0032.GetSurePresentItemRef(index);
+                case < UpToBucket0064:
+                    _bucket0064 ??= new TEntry[UpToBucket0064];
+                    return ref _bucket0064.GetSurePresentItemRef(index - UpToBucket0032);
+                case < UpToBucket0128:
+                    _bucket0128 ??= new TEntry[UpToBucket0128];
+                    return ref _bucket0128.GetSurePresentItemRef(index - UpToBucket0064);
+                case < UpToBucket0256:
+                    _bucket0256 ??= new TEntry[UpToBucket0256];
+                    return ref _bucket0256.GetSurePresentItemRef(index - UpToBucket0128);
+                case < UpToBucket0512:
+                    _bucket0512 ??= new TEntry[UpToBucket0512];
+                    return ref _bucket0512.GetSurePresentItemRef(index - UpToBucket0256);
                 case < UpToBucket1024:
                     _bucket1024 ??= new TEntry[UpToBucket1024];
-                    return ref _bucket1024.GetSurePresentItemRef(index - UpToBucket1024);
+                    return ref _bucket1024.GetSurePresentItemRef(index - UpToBucket0512);
                 case < UpToBucket2048:
                     _bucket2048 ??= new TEntry[UpToBucket2048];
-                    return ref _bucket2048.GetSurePresentItemRef(index - UpToBucket2048);
+                    return ref _bucket2048.GetSurePresentItemRef(index - UpToBucket1024);
                 default:
                     index -= UpToBucket2048;
                     var regularBucketIndex = index >>> RegularBucketBits;
@@ -1233,12 +1229,13 @@ public static class SmallMap
     {
         var cap = default(TCap).Size;
         Debug.Assert(count <= cap, $"SmallMap.TryGetStackEntryIndex: count {count} should be <= stack capacity {cap}");
-        if (count == 0)
-            return -1;
 
 #if NET8_0_OR_GREATER
         if (cap >= 8 & Vector256.IsHardwareAccelerated)
         {
+            if (count == 0)
+                return -1;
+
             var vHash = Vector256.Create(hash);
             var vHashes = MemoryMarshal.Cast<int, Vector256<int>>(hashes.AsSpan());
             var i = 0;
@@ -1333,7 +1330,7 @@ public static class SmallMapDiagnostics
                 var key = map.GetSurePresentKey(index);
                 var hashFromKey = map.GetHashCode(key);
                 var hashPartFromKey = hashFromKey & ~indexMask;
-                assertCond(hashPart == hashPartFromKey, $"Hash mismatch for key:{key}, expected:{hashPartFromKey}, actual:{hashPart}");
+                assertCond(hashPart == hashPartFromKey, $"Hash mismatch for i:{i}, index:{index}, key:{key}, expected:{hashPartFromKey}, actual:{hashPart}");
             }
         }
     }
@@ -1459,7 +1456,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     where TStackCap : struct, ISize2Plus
     where TStackHashes : struct, IStack<int, TStackCap, TStackHashes>
     where TStackEntries : struct, IStack<TEntry, TStackCap, TStackEntries>
-    where THeapEntries : struct, IEntries<K, TEntry, TEq>
+    where THeapEntries : struct, IEntries<K, TEntry>
 {
 #if DEBUG
     // Diagnostic counters to measure the performance of the map operations
@@ -1551,7 +1548,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         Debug.Assert(index >= 0);
         Debug.Assert(index < _count);
         return index >= _stackEntries.Capacity
-            ? _heapEntries.GetSurePresentEntryRef(index - _stackEntries.Capacity).Key
+            ? _heapEntries.GetSurePresentRef(index - _stackEntries.Capacity).Key
             : _stackEntries.GetSurePresentItemRef(index).Key;
     }
 
@@ -1565,7 +1562,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         Debug.Assert(index >= 0);
         Debug.Assert(index < _count);
         if (index >= _stackEntries.Capacity)
-            return ref _heapEntries.GetSurePresentEntryRef(index - _stackEntries.Capacity);
+            return ref _heapEntries.GetSurePresentRef(index - _stackEntries.Capacity);
         return ref _stackEntries.GetSurePresentItemRef(index);
     }
 
@@ -1670,10 +1667,12 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         this.VerifyProbesRobinHoodInvariants(static (cond, msg) => Debug.Assert(cond, msg), Pass<K>.It, startIndex, hashIndex + 1);
 #endif
 
-        // @pre - keep the last slot empty so the ResizeProbesAndHashes can rely on it to Stop when scanning the padding span beyond oldCapacity
+        // todo: @wip @perf - keep the last slot empty so the ResizeProbesAndHashes can rely on it to Stop when scanning the padding span beyond oldCapacity
         _isCapacityPaddingFilled = hashIndex + 2 == _probes.Length;
 
-        return ref _heapEntries.AddKeyAndGetEntryRef(key, _count++ - _stackEntries.Capacity);
+        ref var entry = ref _heapEntries.AddDefaultAndGetRef(_count++ - _stackEntries.Capacity);
+        entry.Key = key;
+        return ref entry;
     }
 
     [MethodImpl((MethodImplOptions)256)]
@@ -1806,7 +1805,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         _heapEntries.Init(stackCap); // Give the heap entries the same initial capacity as Stack, effectively doubling the capacity
 
         // Set the key for the first entry, which is the 0 index in the entries
-        ref var newEntry = ref _heapEntries.GetSurePresentEntryRef(0);
+        ref var newEntry = ref _heapEntries.GetSurePresentRef(0);
         newEntry.Key = key;
         return ref newEntry;
     }
@@ -1849,7 +1848,9 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 
         PutHashAndIndexWithoutResizing(indexMask, hash, _count);
 
-        return ref _heapEntries.AddKeyAndGetEntryRef(key, (_count++) - _stackEntries.Capacity);
+        ref var entry = ref _heapEntries.AddDefaultAndGetRef((_count++) - _stackEntries.Capacity);
+        entry.Key = key;
+        return ref entry;
     }
 
     /// <inheritdoc />
@@ -1996,7 +1997,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 public struct SmallMap4<K, V, TEq>() where TEq : struct, IEq<K>
 {
     /// <summary>Map with 4 elements on stack and entries baked by the single array</summary> 
-    public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size4, Stack4<int>, Stack4<SmallMap.Entry<K, V>>, SmallMap.SingleArrayEntries<K, SmallMap.Entry<K, V>, TEq>> Map;
+    public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size4, Stack4<int>, Stack4<SmallMap.Entry<K, V>>, SmallMap.SingleArrayEntries<K, SmallMap.Entry<K, V>>> Map;
     public SmallMap4(byte capacityBitShift) : this() => Map = new(capacityBitShift);
 }
 
@@ -2004,7 +2005,7 @@ public struct SmallMap4<K, V, TEq>() where TEq : struct, IEq<K>
 public struct SmallMap8<K, V, TEq>() where TEq : struct, IEq<K>
 {
     /// <summary>Map with 8 elements on stack and entries baked by the single array</summary> 
-    public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size8, Stack8<int>, Stack8<SmallMap.Entry<K, V>>, SmallMap.SingleArrayEntries<K, SmallMap.Entry<K, V>, TEq>> Map;
+    public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size8, Stack8<int>, Stack8<SmallMap.Entry<K, V>>, SmallMap.SingleArrayEntries<K, SmallMap.Entry<K, V>>> Map;
     public SmallMap8(byte capacityBitShift) : this() => Map = new(capacityBitShift);
 }
 
@@ -2012,7 +2013,8 @@ public struct SmallMap8<K, V, TEq>() where TEq : struct, IEq<K>
 public struct SmallMap16<K, V, TEq>() where TEq : struct, IEq<K>
 {
     /// <summary>Map with 16 elements on stack and entries baked by the single array</summary> 
-    public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size16, Stack16<int>, Stack16<SmallMap.Entry<K, V>>, SmallMap.SingleArrayEntries<K, SmallMap.Entry<K, V>, TEq>> Map;
+    public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size16, Stack16<int>, Stack16<SmallMap.Entry<K, V>>,
+        SmallMap.StableArrayEntries<K, SmallMap.Entry<K, V>>> Map;
 
     public SmallMap16(byte capacityBitShift) : this() => Map = new(capacityBitShift);
 }
@@ -2021,21 +2023,21 @@ public struct SmallMap16<K, V, TEq>() where TEq : struct, IEq<K>
 public struct SmallSet4<K, TEq>() where TEq : struct, IEq<K>
 {
     /// <summary>Set with 4 keys on stack and entries baked by the single array</summary> 
-    public SmallMap<K, SmallMap.Entry<K>, TEq, Size4, Stack4<int>, Stack4<SmallMap.Entry<K>>, SmallMap.SingleArrayEntries<K, SmallMap.Entry<K>, TEq>> Set;
+    public SmallMap<K, SmallMap.Entry<K>, TEq, Size4, Stack4<int>, Stack4<SmallMap.Entry<K>>, SmallMap.SingleArrayEntries<K, SmallMap.Entry<K>>> Set;
 }
 
 /// <summary>Holds the Set with 8 items on stack. Minimizes the number of type arguments required to be specified</summary>
 public struct SmallSet8<K, TEq>() where TEq : struct, IEq<K>
 {
     /// <summary>Set with 8 keys on stack and entries baked by the single array</summary> 
-    public SmallMap<K, SmallMap.Entry<K>, TEq, Size8, Stack8<int>, Stack8<SmallMap.Entry<K>>, SmallMap.SingleArrayEntries<K, SmallMap.Entry<K>, TEq>> Set;
+    public SmallMap<K, SmallMap.Entry<K>, TEq, Size8, Stack8<int>, Stack8<SmallMap.Entry<K>>, SmallMap.SingleArrayEntries<K, SmallMap.Entry<K>>> Set;
 }
 
 /// <summary>Holds the Set with 16 items on stack. Minimizes the number of type arguments required to be specified</summary>
 public struct SmallSet16<K, TEq>() where TEq : struct, IEq<K>
 {
     /// <summary>Set with 16 keys on stack and entries baked by the single array</summary> 
-    public SmallMap<K, SmallMap.Entry<K>, TEq, Size16, Stack16<int>, Stack16<SmallMap.Entry<K>>, SmallMap.SingleArrayEntries<K, SmallMap.Entry<K>, TEq>> Set;
+    public SmallMap<K, SmallMap.Entry<K>, TEq, Size16, Stack16<int>, Stack16<SmallMap.Entry<K>>, SmallMap.SingleArrayEntries<K, SmallMap.Entry<K>>> Set;
 }
 
 #nullable restore

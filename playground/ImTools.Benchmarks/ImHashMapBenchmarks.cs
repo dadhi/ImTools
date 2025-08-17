@@ -2373,6 +2373,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 1000  | 49,441.1 ns | 987.34 ns | 1,780.38 ns | 49,657.1 ns |  2.09 |    0.08 |    3 | 8.9111 | 0.0610 |   55976 B |        0.97 |
 
             ## Initial SIMD for Lookup - Regression in @perf
+            
             | Method                                                   | Count | Mean        | Error     | StdDev      | Median      | Ratio | RatioSD | Rank | Gen0   | Gen1   | Allocated | Alloc Ratio |
             |--------------------------------------------------------- |------ |------------:|----------:|------------:|------------:|------:|--------:|-----:|-------:|-------:|----------:|------------:|
             | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 10    |    111.3 ns |   1.88 ns |     1.67 ns |    110.6 ns |  0.38 |    0.01 |    1 |      - |      - |         - |        0.00 |
@@ -2387,7 +2388,21 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 1000  | 45,630.3 ns | 912.10 ns | 1,735.36 ns | 44,696.8 ns |  1.97 |    0.08 |    2 | 7.8735 | 0.3052 |   49544 B |        0.86 |
             | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 1000  | 49,295.9 ns | 327.44 ns |   273.43 ns | 49,364.4 ns |  2.13 |    0.02 |    3 | 8.9111 | 0.0610 |   55976 B |        0.97 |
 
+            ## Using StableArrayEntries 
 
+            | Method                                                   | Count | Mean        | Error       | StdDev      | Median      | Ratio | RatioSD | Rank | Gen0   | Gen1   | Allocated | Alloc Ratio |
+            |--------------------------------------------------------- |------ |------------:|------------:|------------:|------------:|------:|--------:|-----:|-------:|-------:|----------:|------------:|
+            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 10    |    113.3 ns |     2.32 ns |     5.42 ns |    110.1 ns |  0.37 |    0.02 |    1 |      - |      - |         - |        0.00 |
+            | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 10    |    204.5 ns |     2.73 ns |     2.42 ns |    204.0 ns |  0.67 |    0.03 |    2 | 0.1147 |      - |     720 B |        0.67 |
+            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 10    |    305.6 ns |     6.11 ns |    14.40 ns |    299.0 ns |  1.00 |    0.06 |    3 | 0.1707 |      - |    1072 B |        1.00 |
+            |                                                          |       |             |             |             |             |       |         |      |        |        |           |             |
+            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 100   |  2,172.7 ns |    43.50 ns |   102.53 ns |  2,138.9 ns |  1.00 |    0.07 |    1 | 1.1902 | 0.0229 |    7488 B |        1.00 |
+            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 100   |  2,317.2 ns |    46.33 ns |   100.71 ns |  2,255.9 ns |  1.07 |    0.07 |    1 | 0.4921 |      - |    3088 B |        0.41 |
+            | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 100   |  2,452.2 ns |    49.04 ns |   109.69 ns |  2,512.7 ns |  1.13 |    0.07 |    2 | 0.8507 |      - |    5344 B |        0.71 |
+            |                                                          |       |             |             |             |             |       |         |      |        |        |           |             |
+            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 1000  | 29,665.4 ns |   588.68 ns | 1,581.45 ns | 29,786.1 ns |  1.00 |    0.08 |    1 | 9.1553 | 1.2817 |   57808 B |        1.00 |
+            | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 1000  | 55,723.9 ns | 1,098.60 ns | 1,078.97 ns | 55,599.6 ns |  1.88 |    0.12 |    2 | 7.8735 | 0.3052 |   49544 B |        0.86 |
+            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 1000  | 63,373.1 ns | 1,260.87 ns | 2,106.62 ns | 63,624.5 ns |  2.14 |    0.14 |    3 | 6.2256 | 0.2441 |   39288 B |        0.68 |
             */
             // [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             [Params(10, 100, 1000)]
