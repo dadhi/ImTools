@@ -1569,10 +1569,6 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         return ref _stackEntries.GetSurePresentItemRef(index);
     }
 
-#if NET8_0_OR_GREATER
-    static readonly Vector128<byte> vProbeStep = Vector128.Create((byte)16);
-#endif
-
     /// <summary>The actual Lookup implementation in a single place</summary>
     [MethodImpl((MethodImplOptions)256)]
     private int TryGetEntryAndHashIndex(K key, int hash, int indexMask,
@@ -1585,68 +1581,6 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     )
     {
         Debug.Assert(probe == 1);
-#if NET7_0_OR_GREATER
-        // Skip over the bigger and equal probes. The hashes with bigger probes overlapping from the earlier ideal positions
-        if (Vector128.IsHardwareAccelerated)
-        {
-            var vExpectedProbe = Vector128.Create(
-                (byte)1, (byte)2, (byte)3, (byte)4, (byte)5, (byte)6, (byte)7, (byte)8,
-                (byte)9, (byte)10, (byte)11, (byte)12, (byte)13, (byte)14, (byte)15, (byte)16);
-
-        start:
-            // Load 16 probe bytes - safe due to padding
-            var vProbe = Vector128.LoadUnsafe(ref probes.GetSurePresentItemRef(hashIndex));
-
-            var vGreaterMask = Vector128.GreaterThan(vProbe, vExpectedProbe);
-            var vEqualsMask = Vector128.Equals(vProbe, vExpectedProbe);
-            var greaterMask = vGreaterMask.ExtractMostSignificantBits();
-            var equalsMask = vEqualsMask.ExtractMostSignificantBits();
-
-            if (greaterMask == 0xFFFF)
-            {
-                probe += 16;
-                hashIndex += 16;
-                vExpectedProbe = Vector128.Add(vExpectedProbe, vProbeStep);
-                goto start;
-            }
-
-            var firstEqualIndex = BitOperations.TrailingZeroCount(equalsMask);
-            var firstNonGreaterIndex = BitOperations.TrailingZeroCount(~greaterMask);
-
-            // Setting the hashIndex and probe before return because they are passed by-ref
-            // and need to be set to the right values for the not-found case
-            probe += (byte)firstNonGreaterIndex;
-            hashIndex += firstNonGreaterIndex;
-
-            if (firstNonGreaterIndex != firstEqualIndex)
-                return -1;
-
-            compareHashes:
-            var equalCount = BitOperations.PopCount(equalsMask);
-            var hashIndexEnd = hashIndex + equalCount;
-            while (hashIndex < hashIndexEnd)
-            {
-                var h = hashesAndIndexes.GetSurePresentItemRef(hashIndex);
-                if ((h & ~indexMask) == (hash & ~indexMask))
-                    if (default(TEq).Equals(GetSurePresentKey(h & indexMask), key))
-                        return h & indexMask;
-                ++probe;
-                ++hashIndex;
-            }
-
-            if (firstEqualIndex + equalCount == 16)
-            {
-                firstEqualIndex = 0;
-                vProbe = Vector128.LoadUnsafe(ref probes.GetSurePresentItemRef(hashIndex));
-                vExpectedProbe = Vector128.Add(vExpectedProbe, vProbeStep);
-                equalsMask = vEqualsMask.ExtractMostSignificantBits();
-                if (equalsMask != 0)
-                    goto compareHashes;
-            }
-
-            return -1;
-        }
-#endif
         ref var pRef = ref probes.GetSurePresentItemRef(hashIndex);
         while (pRef > probe)
         {
