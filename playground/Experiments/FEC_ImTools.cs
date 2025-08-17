@@ -26,9 +26,9 @@ THE SOFTWARE.
 // ReSharper disable once InconsistentNaming
 #nullable disable
 
-// #if DEBUG
+#if DEBUG
 // #define VERIFY_MAP
-// #endif
+#endif
 
 #if !NETSTANDARD2_0_OR_GREATER && !NET472
 #define SUPPORTS_UNSAFE
@@ -1001,6 +1001,230 @@ public static class SmallMap
         }
     }
 
+    /// <summary>Stores the entries in a single dynamically reallocated growing array</summary>
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public struct StableArrayEntries<K, TEntry, TEq> : IEntries<K, TEntry, TEq>
+        where TEntry : struct, IEntry<K>
+        where TEq : struct, IEq<K>
+    {
+        const int RegularBucketBits = 12;
+        const int RegularBucketSize = 1 << RegularBucketBits; // 4096
+        const int RegularBucketMask = RegularBucketSize - 1;
+        const int UpToBucket32 = 32;
+        const int UpToBucket64 = UpToBucket32 + 64;
+        const int UpToBucket128 = UpToBucket64 + 128;
+        const int UpToBucket256 = UpToBucket128 + 256;
+        const int UpToBucket512 = UpToBucket256 + 512;
+        const int UpToBucket1024 = UpToBucket512 + 1024;
+        const int UpToBucket2048 = UpToBucket1024 + 2048;
+
+#if NET7_0_OR_GREATER
+        public static readonly Vector256<int> vUpToBucket = Vector256.Create(
+            UpToBucket32, UpToBucket64, UpToBucket128, UpToBucket256,
+            UpToBucket512, UpToBucket1024, UpToBucket2048,
+            // the last 2 things are the same for the arithmetic to work in FindBucket
+            UpToBucket2048);
+#endif
+        internal TEntry[] _bucket32;
+        internal TEntry[] _bucket64;
+        internal TEntry[] _bucket128;
+        internal TEntry[] _bucket256;
+        internal TEntry[] _bucket512;
+        internal TEntry[] _bucket1024;
+        internal TEntry[] _bucket2048;
+        internal TEntry[][] _regularBuckets;
+
+        /// <inheritdoc/>
+        [MethodImpl((MethodImplOptions)256)]
+        private TEntry[] GetBucket(int bucketIndex)
+        {
+            Debug.Assert(bucketIndex >= 0 && bucketIndex <= 6, "Bucket index should be in the range 0..6");
+#if SUPPORTS_UNSAFE
+            return Unsafe.Add(ref _bucket32, bucketIndex);
+#else
+            return bucketIndex switch
+            {
+                0 => _bucket32,
+                1 => _bucket64,
+                2 => _bucket128,
+                3 => _bucket256,
+                4 => _bucket512,
+                5 => _bucket1024,
+                _ => _bucket2048,
+            };
+#endif
+        }
+
+        /// <inheritdoc/>
+        public void Init(int capacity = 0)
+        {
+            _bucket32 = new TEntry[UpToBucket32]; // always allocate
+            switch (capacity)
+            {
+                case <= UpToBucket32: break;
+                case <= UpToBucket64:
+                    _bucket64 = new TEntry[UpToBucket64];
+                    break;
+                case <= UpToBucket128:
+                    _bucket64 = new TEntry[UpToBucket64];
+                    _bucket128 = new TEntry[UpToBucket128];
+                    break;
+                case <= UpToBucket256:
+                    _bucket64 = new TEntry[UpToBucket64];
+                    _bucket128 = new TEntry[UpToBucket128];
+                    _bucket256 = new TEntry[UpToBucket256];
+                    break;
+                case <= UpToBucket512:
+                    _bucket64 = new TEntry[UpToBucket64];
+                    _bucket128 = new TEntry[UpToBucket128];
+                    _bucket256 = new TEntry[UpToBucket256];
+                    _bucket512 = new TEntry[UpToBucket512];
+                    break;
+                case <= UpToBucket1024:
+                    _bucket64 = new TEntry[UpToBucket64];
+                    _bucket128 = new TEntry[UpToBucket128];
+                    _bucket256 = new TEntry[UpToBucket256];
+                    _bucket512 = new TEntry[UpToBucket512];
+                    _bucket1024 = new TEntry[UpToBucket1024];
+                    break;
+                case <= UpToBucket2048:
+                    _bucket64 = new TEntry[UpToBucket64];
+                    _bucket128 = new TEntry[UpToBucket128];
+                    _bucket256 = new TEntry[UpToBucket256];
+                    _bucket512 = new TEntry[UpToBucket512];
+                    _bucket1024 = new TEntry[UpToBucket1024];
+                    _bucket2048 = new TEntry[UpToBucket2048];
+                    break;
+                default:
+                    _bucket64 = new TEntry[UpToBucket64];
+                    _bucket128 = new TEntry[UpToBucket128];
+                    _bucket256 = new TEntry[UpToBucket256];
+                    _bucket512 = new TEntry[UpToBucket512];
+                    _bucket1024 = new TEntry[UpToBucket1024];
+                    _bucket2048 = new TEntry[UpToBucket2048];
+
+                    var remainingCapacity = capacity - UpToBucket2048;
+                    var bucketCount = (remainingCapacity >>> RegularBucketBits) + 1;
+                    _regularBuckets = new TEntry[bucketCount][];
+                    for (var i = 0; i < bucketCount; ++i)
+                        _regularBuckets[i] = new TEntry[RegularBucketSize];
+                    break;
+            }
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl((MethodImplOptions)256)]
+        public ref TEntry GetSurePresentEntryRef(int index)
+        {
+#if NET7_0_OR_GREATER
+            var vIndex = Vector256.Create(index);
+            var vIndexThanBucket = Vector256.LessThan(vIndex, vUpToBucket);
+            if (vIndexThanBucket != Vector256<int>.Zero)
+            {
+                var bucketIndex = BitOperations.TrailingZeroCount(Vector256.ExtractMostSignificantBits(vIndexThanBucket));
+                var entryIndex = index - vUpToBucket.GetElement(bucketIndex);
+                var bucket = GetBucket(bucketIndex);
+                return ref bucket.GetSurePresentItemRef(entryIndex);
+            }
+            index -= UpToBucket2048;
+            var regularBucketIndex = index >>> RegularBucketBits;
+            var regularEntryIndex = index & RegularBucketMask;
+            var regularBucket = _regularBuckets.GetSurePresentItemRef(regularBucketIndex);
+            return ref regularBucket.GetSurePresentItemRef(regularEntryIndex);
+#else
+            switch (index)
+            {
+                case < UpToBucket32: 
+                    return ref _bucket32.GetSurePresentItemRef(index - UpToBucket32);
+                case < UpToBucket64: 
+                    return ref _bucket64.GetSurePresentItemRef(index - UpToBucket64);
+                case < UpToBucket128: 
+                    return ref _bucket128.GetSurePresentItemRef(index - UpToBucket128);
+                case < UpToBucket256: 
+                    return ref _bucket256.GetSurePresentItemRef(index - UpToBucket256);
+                case < UpToBucket512: 
+                    return ref _bucket512.GetSurePresentItemRef(index - UpToBucket512);
+                case < UpToBucket1024: 
+                    return ref _bucket1024.GetSurePresentItemRef(index - UpToBucket1024);
+                case < UpToBucket2048: 
+                    return ref _bucket2048.GetSurePresentItemRef(index - UpToBucket2048);
+                default:
+                    index -= UpToBucket2048;
+                    var regularBucketIndex = index >>> RegularBucketBits;
+                    var regularEntryIndex = index & RegularBucketMask;
+                    return ref _regularBuckets
+                        .GetSurePresentItemRef(regularBucketIndex)
+                        .GetSurePresentItemRef(regularEntryIndex);
+            };
+#endif
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl((MethodImplOptions)256)]
+        public ref TEntry AddKeyAndGetEntryRef(K key, int index)
+        {
+#if NET7_0_OR_GREATER
+            var vIndex = Vector256.Create(index);
+            var vIndexThanBucket = Vector256.LessThan(vIndex, vUpToBucket);
+            if (vIndexThanBucket != Vector256<int>.Zero)
+            {
+                var bucketIndex = BitOperations.TrailingZeroCount(Vector256.ExtractMostSignificantBits(vIndexThanBucket));
+                var entryIndex = index - vUpToBucket.GetElement(bucketIndex);
+                var bucket = GetBucket(bucketIndex) ?? new TEntry[UpToBucket32 << bucketIndex];
+                return ref bucket.GetSurePresentItemRef(entryIndex);
+            }
+            index -= UpToBucket2048;
+            var regularBucketIndex = index >>> RegularBucketBits;
+            var regularEntryIndex = index & RegularBucketMask;
+            if (_regularBuckets == null)
+                _regularBuckets = new TEntry[regularBucketIndex + 1][];
+            else if (_regularBuckets.Length <= regularBucketIndex)
+                Array.Resize(ref _regularBuckets, regularBucketIndex + 1);
+            ref var regularBucket = ref _regularBuckets.GetSurePresentItemRef(regularBucketIndex);
+            if (regularBucket == null)
+                regularBucket = new TEntry[RegularBucketSize];
+            return ref regularBucket.GetSurePresentItemRef(regularEntryIndex);
+#else
+            switch (index)
+            {
+                case < UpToBucket32:
+                    _bucket32 ??= new TEntry[UpToBucket32];
+                    return ref _bucket32.GetSurePresentItemRef(index - UpToBucket32);
+                case < UpToBucket64:
+                    _bucket64 ??= new TEntry[UpToBucket64];
+                    return ref _bucket64.GetSurePresentItemRef(index - UpToBucket64);
+                case < UpToBucket128:
+                    _bucket128 ??= new TEntry[UpToBucket128];
+                    return ref _bucket128.GetSurePresentItemRef(index - UpToBucket128);
+                case < UpToBucket256:
+                    _bucket256 ??= new TEntry[UpToBucket256];
+                    return ref _bucket256.GetSurePresentItemRef(index - UpToBucket256);
+                case < UpToBucket512:
+                    _bucket512 ??= new TEntry[UpToBucket512];
+                    return ref _bucket512.GetSurePresentItemRef(index - UpToBucket512);
+                case < UpToBucket1024:
+                    _bucket1024 ??= new TEntry[UpToBucket1024];
+                    return ref _bucket1024.GetSurePresentItemRef(index - UpToBucket1024);
+                case < UpToBucket2048:
+                    _bucket2048 ??= new TEntry[UpToBucket2048];
+                    return ref _bucket2048.GetSurePresentItemRef(index - UpToBucket2048);
+                default:
+                    index -= UpToBucket2048;
+                    var regularBucketIndex = index >>> RegularBucketBits;
+                    var regularEntryIndex = index & RegularBucketMask;
+                    if (_regularBuckets == null)
+                        _regularBuckets = new TEntry[regularBucketIndex + 1][];
+                    else if (_regularBuckets.Length <= regularBucketIndex)
+                        Array.Resize(ref _regularBuckets, regularBucketIndex + 1);
+                    ref var regularBucket = ref _regularBuckets.GetSurePresentItemRef(regularBucketIndex);
+                    if (regularBucket == null)
+                        regularBucket = new TEntry[RegularBucketSize];
+                    return ref regularBucket.GetSurePresentItemRef(regularEntryIndex);
+            };
+#endif
+        }
+    }
+
     /// <summary>Lookup for the K in the TStackEntries, first by calculating it hash with TEq and searching the hash in the TStackHashes</summary>
     [MethodImpl((MethodImplOptions)256)]
     public static int TryGetStackEntryIndex<K, TEntry, TEq, TCap, TStackHashes, TStackEntries>(
@@ -1141,16 +1365,18 @@ public static class SmallMapDiagnostics
     }
 
     /// <summary>Verifies that the probes are consistently increasing</summary>
-    public static void VerifyProbesRobinHoodInvariants<TMap, K>(this TMap map, Action<bool, string> assertCond, Pass<K> _ = default)
+    public static void VerifyProbesRobinHoodInvariants<TMap, K>(this TMap map, Action<bool, string> assertCond, Pass<K> _ = default,
+        int startIndex = 0, int endIndex = -1)
         where TMap : struct, IMapImpl<K>
     {
-        var prevProbe = 0;
         var probes = map.Probes;
-        for (var i = 0; i < probes.Length; i++)
+        var prevProbe = startIndex > 0 ? probes[startIndex - 1] : 0;
+        endIndex = endIndex == -1 ? probes.Length : endIndex;
+        for (var i = startIndex; i < endIndex; i++)
         {
             var probe = probes[i];
             var invariant = prevProbe >= probe || prevProbe + 1 == probe;
-            assertCond(invariant, $"Probe invariant failed: prevProbe:{prevProbe}, probe:{probe}");
+            assertCond(invariant, $"Probe invariant failed for probe index {i}, probe:{probe}, prevProbe:{prevProbe}");
             prevProbe = probe;
         }
     }
@@ -1249,11 +1475,6 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     public int PutHashAndIndexWithoutResizing_RobinHoodCount = 0;
     public int PutHashAndIndexWithoutResizing_RobinHoodProbeCheckCount = 0;
 
-    public int LookupCount = 0;
-    public int LookupGreaterProbeCheckCount = 0;
-    public int LookupGreaterProbeCheckCountAverage => LookupCount == 0 ? 0 : LookupGreaterProbeCheckCount / LookupCount;
-    public int LookupEqualProbeCheckCount = 0;
-    public int LookupEqualProbeCheckCountAverage => LookupCount == 0 ? 0 : LookupEqualProbeCheckCount / LookupCount;
     public int AddOrGetRefInEntries_Count = 0;
     public int AddOrGetRefInEntries_RobinHoodCount = 0;
     public int AddOrGetRefInEntries_RobinHoodProbeCheckCount = 0;
@@ -1353,6 +1574,10 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         return ref _stackEntries.GetSurePresentItemRef(index);
     }
 
+#if NET7_0_OR_GREATER
+    static readonly Vector128<byte> vProbeStep = Vector128.Create((byte)16);
+#endif
+
     /// <summary>The actual Lookup implementation in a single place</summary>
     [MethodImpl((MethodImplOptions)256)]
     private int TryGetEntryAndHashIndex(K key, int hash, int indexMask,
@@ -1364,20 +1589,75 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 #endif
     )
     {
-#if DEBUG
-        ++LookupCount;
-#endif
+        Debug.Assert(probe == 1);
+#if NET7_0_OR_GREATER
         // Skip over the bigger and equal probes. The hashes with bigger probes overlapping from the earlier ideal positions
+        if (Vector128.IsHardwareAccelerated)
+        {
+            var vExpectedProbe = Vector128.Create(
+                (byte)1, (byte)2, (byte)3, (byte)4, (byte)5, (byte)6, (byte)7, (byte)8,
+                (byte)9, (byte)10, (byte)11, (byte)12, (byte)13, (byte)14, (byte)15, (byte)16);
+
+        start:
+            // Load 16 probe bytes - safe due to padding
+            var vProbe = Vector128.LoadUnsafe(ref probes.GetSurePresentItemRef(hashIndex));
+
+            var vGreaterMask = Vector128.GreaterThan(vProbe, vExpectedProbe);
+            var vEqualsMask = Vector128.Equals(vProbe, vExpectedProbe);
+            var greaterMask = vGreaterMask.ExtractMostSignificantBits();
+            var equalsMask = vEqualsMask.ExtractMostSignificantBits();
+
+            if (greaterMask == 0xFFFF)
+            {
+                probe += 16;
+                hashIndex += 16;
+                vExpectedProbe = Vector128.Add(vExpectedProbe, vProbeStep);
+                goto start;
+            }
+
+            var firstEqualIndex = BitOperations.TrailingZeroCount(equalsMask);
+            var firstNonGreaterIndex = BitOperations.TrailingZeroCount(~greaterMask);
+
+            // Setting the hashIndex and probe before return because they are passed by-ref
+            // and need to be set to the right values for the not-found case
+            probe += (byte)firstNonGreaterIndex;
+            hashIndex += firstNonGreaterIndex;
+
+            if (firstNonGreaterIndex != firstEqualIndex)
+                return -1;
+
+            compareHashes:
+            var equalCount = BitOperations.PopCount(equalsMask);
+            var hashIndexEnd = hashIndex + equalCount;
+            while (hashIndex < hashIndexEnd)
+            {
+                var h = hashesAndIndexes.GetSurePresentItemRef(hashIndex);
+                if ((h & ~indexMask) == (hash & ~indexMask))
+                    if (default(TEq).Equals(GetSurePresentKey(h & indexMask), key))
+                        return h & indexMask;
+                ++probe;
+                ++hashIndex;
+            }
+
+            if (firstEqualIndex + equalCount == 16)
+            {
+                firstEqualIndex = 0;
+                vProbe = Vector128.LoadUnsafe(ref probes.GetSurePresentItemRef(hashIndex));
+                vExpectedProbe = Vector128.Add(vExpectedProbe, vProbeStep);
+                equalsMask = vEqualsMask.ExtractMostSignificantBits();
+                if (equalsMask != 0)
+                    goto compareHashes;
+            }
+
+            return -1;
+        }
+#endif
         ref var pRef = ref probes.GetSurePresentItemRef(hashIndex);
         while (pRef > probe)
         {
             pRef = ref probes.GetSurePresentItemRef(++hashIndex);
             ++probe;
-#if DEBUG
-            ++LookupGreaterProbeCheckCount;
-#endif
         }
-
         while (pRef == probe)
         {
             // Compare the hash middle part, then the indexed key
@@ -1387,9 +1667,6 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
                     return h & indexMask;
             pRef = ref probes.GetSurePresentItemRef(++hashIndex);
             ++probe;
-#if DEBUG
-            ++LookupEqualProbeCheckCount;
-#endif
         }
         return -1;
     }
@@ -1433,6 +1710,10 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 
         // If the robin hooded probe is empty then we stop
         probe = pRobinHooded;
+#if VERIFY_MAP
+        var startIndex = hashIndex;
+        var isRobinHooded = probe != 0;
+#endif
         while (probe != 0)
         {
             pRef = ref probes.GetSurePresentItemRef(++hashIndex);
@@ -1456,6 +1737,9 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
             ++AddOrGetRefInEntries_RobinHoodProbeCheckCount;
 #endif
         }
+#if VERIFY_MAP
+        this.VerifyProbesRobinHoodInvariants(static (cond, msg) => Debug.Assert(cond, msg), Pass<K>.It, startIndex, hashIndex + 1);
+#endif
 
         // @pre - keep the last slot empty so the ResizeProbesAndHashes can rely on it to Stop when scanning the padding span beyond oldCapacity
         _isCapacityPaddingFilled = hashIndex + 2 == _probes.Length;
@@ -1732,7 +2016,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         ref var newProbes = ref MemoryMarshal.GetArrayDataReference(newProbesArr);
         ref var newHashes = ref MemoryMarshal.GetArrayDataReference(newHashesAndIndexes);
         ref var oldProbes = ref MemoryMarshal.GetArrayDataReference(_probes);
-        ref var oldHashesAndIndexes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
+        ref var oldHashes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndIndexes);
 #else
         var newProbes = newProbesArr;
         var newHashes = newHashesAndIndexes;
@@ -1744,7 +2028,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
             var oldProbe = oldProbes.GetSurePresentItem(i);
             if (oldProbe != 0) // for the non-empty probe and therefore hash
             {
-                var oldHashAndIndex = oldHashesAndIndexes.GetSurePresentItem(i);
+                var oldHashAndIndex = oldHashes.GetSurePresentItem(i);
 
                 // First, calculate the ideal hash index for the current probe, it should be in the range of the old capacity/index mask
                 var oldHashIndex = i - (oldProbe - 1);
@@ -1773,7 +2057,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         _packedHashesAndIndexes = newHashesAndIndexes;
 
 #if VERIFY_MAP
-        this.VerifyKeyHasMetaInfo(static (x, msg) => Debug.Assert(x, msg), Use<K, TEq>.It);
+        this.VerifyKeyHasMetaInfo(static (x, msg) => Debug.Assert(x, msg), Pass<K>.It);
 #endif
         return newIndexMask;
     }

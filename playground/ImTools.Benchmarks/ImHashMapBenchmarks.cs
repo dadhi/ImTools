@@ -2358,21 +2358,40 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 
             ## After probes go to their own array + padding + wrapping
 
-            | Method                                                   | Count | Mean        | Error     | StdDev    | Ratio | RatioSD | Rank | Gen0   | Gen1   | Allocated | Alloc Ratio |
-            |--------------------------------------------------------- |------ |------------:|----------:|----------:|------:|--------:|-----:|-------:|-------:|----------:|------------:|
-            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 10    |    108.2 ns |   1.04 ns |   0.87 ns |  0.36 |    0.01 |    1 |      - |      - |         - |        0.00 |
-            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 10    |    297.9 ns |   5.89 ns |   7.45 ns |  1.00 |    0.03 |    2 | 0.1707 |      - |    1072 B |        1.00 |
-            |                                                          |       |             |           |           |       |         |      |        |        |           |             |
-            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 100   |  2,146.4 ns |  42.80 ns |  66.64 ns |  1.00 |    0.04 |    1 | 1.1902 | 0.0229 |    7488 B |        1.00 |
-            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 100   |  2,220.2 ns |  43.51 ns |  60.99 ns |  1.04 |    0.04 |    1 | 0.8659 | 0.0038 |    5440 B |        0.73 |
-            |                                                          |       |             |           |           |       |         |      |        |        |           |             |
-            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 1000  | 23,454.6 ns | 455.76 ns | 695.99 ns |  1.00 |    0.04 |    1 | 9.1553 | 1.2817 |   57808 B |        1.00 |
-            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 1000  | 47,784.8 ns | 580.37 ns | 453.11 ns |  2.04 |    0.06 |    2 | 8.9111 | 0.0610 |   55976 B |        0.97 |
+            | Method                                                   | Count | Mean        | Error     | StdDev      | Median      | Ratio | RatioSD | Rank | Gen0   | Gen1   | Allocated | Alloc Ratio |
+            |--------------------------------------------------------- |------ |------------:|----------:|------------:|------------:|------:|--------:|-----:|-------:|-------:|----------:|------------:|
+            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 10    |    111.6 ns |   1.16 ns |     0.97 ns |    111.8 ns |  0.38 |    0.01 |    1 |      - |      - |         - |        0.00 |
+            | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 10    |    205.1 ns |   3.46 ns |     3.24 ns |    204.4 ns |  0.70 |    0.02 |    2 | 0.1147 |      - |     720 B |        0.67 |
+            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 10    |    292.2 ns |   5.53 ns |     5.68 ns |    291.4 ns |  1.00 |    0.03 |    3 | 0.1707 |      - |    1072 B |        1.00 |
+            |                                                          |       |             |           |             |             |       |         |      |        |        |           |             |
+            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 100   |  2,121.8 ns |  42.34 ns |    91.14 ns |  2,070.2 ns |  1.00 |    0.06 |    1 | 1.1902 | 0.0229 |    7488 B |        1.00 |
+            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 100   |  2,181.5 ns |  43.38 ns |    91.50 ns |  2,127.6 ns |  1.03 |    0.06 |    1 | 0.8659 | 0.0038 |    5440 B |        0.73 |
+            | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 100   |  2,347.8 ns |  14.31 ns |    12.69 ns |  2,343.7 ns |  1.11 |    0.05 |    2 | 0.8507 |      - |    5344 B |        0.71 |
+            |                                                          |       |             |           |             |             |       |         |      |        |        |           |             |
+            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 1000  | 23,640.4 ns | 280.02 ns |   248.23 ns | 23,620.0 ns |  1.00 |    0.01 |    1 | 9.1553 | 1.2817 |   57808 B |        1.00 |
+            | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 1000  | 45,226.9 ns | 293.55 ns |   245.13 ns | 45,221.9 ns |  1.91 |    0.02 |    2 | 7.8735 | 0.3052 |   49544 B |        0.86 |
+            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 1000  | 49,441.1 ns | 987.34 ns | 1,780.38 ns | 49,657.1 ns |  2.09 |    0.08 |    3 | 8.9111 | 0.0610 |   55976 B |        0.97 |
+
+            ## Initial SIMD for Lookup - Regression in @perf
+            | Method                                                   | Count | Mean        | Error     | StdDev      | Median      | Ratio | RatioSD | Rank | Gen0   | Gen1   | Allocated | Alloc Ratio |
+            |--------------------------------------------------------- |------ |------------:|----------:|------------:|------------:|------:|--------:|-----:|-------:|-------:|----------:|------------:|
+            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 10    |    111.3 ns |   1.88 ns |     1.67 ns |    110.6 ns |  0.38 |    0.01 |    1 |      - |      - |         - |        0.00 |
+            | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 10    |    211.8 ns |   4.21 ns |     7.91 ns |    210.4 ns |  0.72 |    0.03 |    2 | 0.1147 |      - |     720 B |        0.67 |
+            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 10    |    293.1 ns |   5.18 ns |     4.33 ns |    293.5 ns |  1.00 |    0.02 |    3 | 0.1707 |      - |    1072 B |        1.00 |
+            |                                                          |       |             |           |             |             |       |         |      |        |        |           |             |
+            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 100   |  2,112.8 ns |  19.17 ns |    16.00 ns |  2,108.5 ns |  1.00 |    0.01 |    1 | 1.1902 | 0.0229 |    7488 B |        1.00 |
+            | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 100   |  2,433.3 ns |  47.99 ns |    95.84 ns |  2,383.6 ns |  1.15 |    0.05 |    2 | 0.8507 |      - |    5344 B |        0.71 |
+            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 100   |  2,548.7 ns |  50.70 ns |   106.95 ns |  2,491.5 ns |  1.21 |    0.05 |    2 | 0.8659 | 0.0038 |    5440 B |        0.73 |
+            |                                                          |       |             |           |             |             |       |         |      |        |        |           |             |
+            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 1000  | 23,127.6 ns | 233.36 ns |   182.20 ns | 23,143.0 ns |  1.00 |    0.01 |    1 | 9.1553 | 1.2817 |   57808 B |        1.00 |
+            | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 1000  | 45,630.3 ns | 912.10 ns | 1,735.36 ns | 44,696.8 ns |  1.97 |    0.08 |    2 | 7.8735 | 0.3052 |   49544 B |        0.86 |
+            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 1000  | 49,295.9 ns | 327.44 ns |   273.43 ns | 49,364.4 ns |  2.13 |    0.02 |    3 | 8.9111 | 0.0610 |   55976 B |        0.97 |
+
 
             */
             // [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
-            // [Params(10, 100, 1000)]
-            [Params(1000)]
+            [Params(10, 100, 1000)]
+            // [Params(1000)]
             public int Count;
 
             private Type[] _presentKeys;
@@ -2827,7 +2846,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return count;
             }
 
-            // [Benchmark]
+            [Benchmark]
             public int SmallMap_PopulateThenLookup_HalfMissed_HalfPresent()
             {
                 var map = new SmallMapTypeString();
@@ -2860,10 +2879,10 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 var iters = Count / 2;
                 for (var i = 0; i < iters; ++i)
                 {
-                    var result = map.TryGetEntryRef(_randomPresentKeys[i], out var found);
+                    ref var result = ref map.TryGetEntryRef(_randomPresentKeys[i], out var found);
                     if (found)
                         count += result.Value.Length;
-                    _ = map.TryGetEntryRef(_missingKeys[i], out found);
+                    _ = ref map.TryGetEntryRef(_missingKeys[i], out found);
                     if (!found)
                         --count;
                 }

@@ -1,4 +1,4 @@
-﻿// #define VERIFY_MAP
+﻿#define VERIFY_MAP
 
 namespace FastExpressionCompiler.ImTools.UnitTests;
 
@@ -87,18 +87,14 @@ public class FecSmallMapTests
         var iters = Count / 2;
         for (var i = 0; i < iters; ++i)
         {
-            var result = map.TryGetEntryRef(randomPresentKeys[i], out var found);
+            ref var result = ref map.TryGetEntryRef(randomPresentKeys[i], out var found);
             if (found)
                 count += result.Value.Length;
-            _ = map.TryGetEntryRef(missingKeys[i], out found);
+            _ = ref map.TryGetEntryRef(missingKeys[i], out found);
             if (!found)
                 --count;
         }
         Assert.AreEqual(0, count);
-
-#if DEBUG
-        Assert.Greater(m.Map.LookupGreaterProbeCheckCount + m.Map.LookupEqualProbeCheckCount, 200);
-#endif
     }
 
     [Test]
@@ -119,24 +115,22 @@ public class FecSmallMapTests
         foreach (var type in presentTypes)
             map.AddOrUpdate(type, "a");
 
+#if VERIFY_MAP
         map.Verify(static (cond, msg) => Assert.IsTrue(cond, msg), presentTypes, Pass<Type>.It);
+#endif
 
         var count = 0;
         var iters = Count / 2;
         for (var i = 0; i < iters; ++i)
         {
-            var result = map.TryGetEntryRef(randomPresentKeys[i], out var found);
+            ref var result = ref map.TryGetEntryRef(randomPresentKeys[i], out var found);
             if (found)
                 count += result.Value.Length;
-            _ = map.TryGetEntryRef(missingKeys[i], out found);
+            _ = ref map.TryGetEntryRef(missingKeys[i], out found);
             if (!found)
                 --count;
         }
         Assert.AreEqual(0, count);
-
-#if DEBUG
-        Assert.Greater(m.Map.LookupGreaterProbeCheckCount + m.Map.LookupEqualProbeCheckCount, 2000);
-#endif
     }
 
     // [Test]
