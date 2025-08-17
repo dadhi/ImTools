@@ -905,11 +905,6 @@ public static class SmallMap
     internal const byte MinFreeCapacityShift = 3; // e.g. for the capacity 16: 16 >> 3 => 2, 12.5% of the free hash slots (it does not mean the entries free slot)
     internal const byte MinHashesCapacityBitShift = 4; // 1 << 4 == 16
 
-    // todo: @wip @remove if not required
-    // #if NET7_0_OR_GREATER
-    //     internal static Vector128<byte> ByteVec16OfOne = Vector128.Create((byte)1);
-    // #endif
-
     /// <summary>Represent a keyed entry stored in the SmallMap.
     /// Its implementation struct may include the additional Value for the Map or just the Key for the Set.
     /// The implementation may also decide to make Value readonly or writable for the in-place update</summary>
@@ -1018,7 +1013,7 @@ public static class SmallMap
         const int UpToBucket1024 = UpToBucket512 + 1024;
         const int UpToBucket2048 = UpToBucket1024 + 2048;
 
-#if NET7_0_OR_GREATER
+#if NET8_0_OR_GREATER
         public static readonly Vector256<int> vUpToBucket = Vector256.Create(
             UpToBucket32, UpToBucket64, UpToBucket128, UpToBucket256,
             UpToBucket512, UpToBucket1024, UpToBucket2048,
@@ -1574,7 +1569,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         return ref _stackEntries.GetSurePresentItemRef(index);
     }
 
-#if NET7_0_OR_GREATER
+#if NET8_0_OR_GREATER
     static readonly Vector128<byte> vProbeStep = Vector128.Create((byte)16);
 #endif
 
