@@ -946,7 +946,7 @@ public static class SmallMap
     [MethodImpl((MethodImplOptions)256)]
     public static uint GetNextPowerOfTwoFast(uint capacity)
     {
-#if NET7_0_OR_GREATER
+#if NET8_0_OR_GREATER
         return BitOperations.RoundUpToPowerOf2(capacity);
 #else
         --capacity;
