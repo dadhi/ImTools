@@ -963,6 +963,9 @@ public static class SmallMap
     public interface IEntries<K, TEntry>
         where TEntry : struct, IEntry<K>
     {
+        /// <summary>Tracks the number of store elements, enables method AddDefaultAndGetRef to work</summary>
+        public int Count { get; }
+
         /// <summary>Initializes the entries storage to the specified capacity</summary>
         void Init(int capacityPowerOfTwoPlease);
 
@@ -970,7 +973,7 @@ public static class SmallMap
         ref TEntry GetSurePresentRef(int index);
 
         /// <summary>Adds the key at the "end" of entries - so the order of addition is preserved.</summary>
-        ref TEntry AddDefaultAndGetRef(int index); // todo: @wip why do we need `index` to just prepend, because we do not track the count?
+        ref TEntry AddDefaultAndGetRef();
     }
 
     /// <summary>Stores the entries in a single dynamically reallocated growing array</summary>
@@ -978,6 +981,10 @@ public static class SmallMap
         where TEntry : struct, IEntry<K>
     {
         internal TEntry[] _entries;
+        internal int _count;
+
+        /// <inheritdoc/>
+        public int Count => _count;
 
         /// <inheritdoc/>
         public void Init(int capacityPowerOfTwoPlease) =>
@@ -985,16 +992,19 @@ public static class SmallMap
 
         /// <inheritdoc/>
         [MethodImpl((MethodImplOptions)256)]
-        public ref TEntry GetSurePresentRef(int index) =>
-            ref _entries.GetSurePresentItemRef(index);
+        public ref TEntry GetSurePresentRef(int index)
+        {
+            Debug.Assert(index >= 0 && index < _count, $"Index {index} should be in the range 0..{_count}-1");
+            return ref _entries.GetSurePresentItemRef(index);
+        }
 
         /// <inheritdoc/>
         [MethodImpl((MethodImplOptions)256)]
-        public ref TEntry AddDefaultAndGetRef(int index)
+        public ref TEntry AddDefaultAndGetRef()
         {
-            if (index == _entries.Length)
-                Array.Resize(ref _entries, index << 1);
-            return ref _entries.GetSurePresentItemRef(index);
+            if (_count == _entries.Length)
+                Array.Resize(ref _entries, _count << 1);
+            return ref _entries.GetSurePresentItemRef(_count++);
         }
     }
 
@@ -1027,6 +1037,11 @@ public static class SmallMap
         internal TEntry[] _bucket1024;
         internal TEntry[] _bucket2048;
         internal TEntry[][] _regularBuckets;
+
+        internal int _count;
+
+        /// <inheritdoc/>
+        public int Count => _count;
 
         /// <inheritdoc/>
         [UnscopedRef]
@@ -1111,6 +1126,7 @@ public static class SmallMap
         [MethodImpl((MethodImplOptions)256)]
         public ref TEntry GetSurePresentRef(int index)
         {
+            Debug.Assert(index >= 0 && index < _count, $"Index {index} should be in the range 0..{_count}-1");
 #if NET8_0_OR_GREATER
             var vIndex = Vector256.Create(index);
             var vIndexLessThanBucket = Vector256.LessThan(vIndex, VUpToBucket);
@@ -1157,8 +1173,9 @@ public static class SmallMap
 
         /// <inheritdoc/>
         [MethodImpl((MethodImplOptions)256)]
-        public ref TEntry AddDefaultAndGetRef(int index)
+        public ref TEntry AddDefaultAndGetRef()
         {
+            var index = _count++;
 #if NET8_0_OR_GREATER
             var vIndex = Vector256.Create(index);
             var vIndexThanBucket = Vector256.LessThan(vIndex, VUpToBucket);
@@ -1552,8 +1569,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     [MethodImpl((MethodImplOptions)256)]
     public K GetSurePresentKey(int index)
     {
-        Debug.Assert(index >= 0);
-        Debug.Assert(index < _count);
+        Debug.Assert(index >= 0 && index < _count, $"Index {index} should be in the range 0..{_count}-1");
         return index >= _stackEntries.Capacity
             ? _heapEntries.GetSurePresentRef(index - _stackEntries.Capacity).Key
             : _stackEntries.GetSurePresentItemRef(index).Key;
@@ -1566,8 +1582,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     [MethodImpl((MethodImplOptions)256)]
     public ref TEntry GetSurePresentEntryRef(int index)
     {
-        Debug.Assert(index >= 0);
-        Debug.Assert(index < _count);
+        Debug.Assert(index >= 0 && index < _count, $"Index {index} should be in the range 0..{_count}-1");
         if (index >= _stackEntries.Capacity)
             return ref _heapEntries.GetSurePresentRef(index - _stackEntries.Capacity);
         return ref _stackEntries.GetSurePresentItemRef(index);
@@ -1677,7 +1692,8 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         // todo: @wip @perf - keep the last slot empty so the ResizeProbesAndHashes can rely on it to Stop when scanning the padding span beyond oldCapacity
         _isCapacityPaddingFilled = hashIndex + 2 == _probes.Length;
 
-        ref var entry = ref _heapEntries.AddDefaultAndGetRef(_count++ - _stackEntries.Capacity);
+        ++_count;
+        ref var entry = ref _heapEntries.AddDefaultAndGetRef();
         entry.Key = key;
         return ref entry;
     }
@@ -1812,7 +1828,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         _heapEntries.Init(stackCap); // Give the heap entries the same initial capacity as Stack, effectively doubling the capacity
 
         // Set the key for the first entry, which is the 0 index in the entries
-        ref var newEntry = ref _heapEntries.GetSurePresentRef(0);
+        ref var newEntry = ref _heapEntries.AddDefaultAndGetRef();
         newEntry.Key = key;
         return ref newEntry;
     }
@@ -1855,7 +1871,8 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 
         PutHashAndIndexWithoutResizing(indexMask, hash, _count);
 
-        ref var entry = ref _heapEntries.AddDefaultAndGetRef((_count++) - _stackEntries.Capacity);
+        ++_count;
+        ref var entry = ref _heapEntries.AddDefaultAndGetRef();
         entry.Key = key;
         return ref entry;
     }
