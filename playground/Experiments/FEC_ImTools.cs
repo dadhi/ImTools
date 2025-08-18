@@ -911,12 +911,22 @@ public static class SmallMap
     public interface IEntry<K>
     {
         /// <summary>Returns the key of the payload</summary>
-        K Key { get; internal set; }
+        K Key { get; set; }
     }
 
-    /// <summary>Holds a single entry consisting of key and value. 
-    /// Value may be set or changed but the key is set in stone (by construction).</summary>
-    [DebuggerDisplay("{Key?.ToString()}->{Value}")]
+    /// <summary>The entry with just a key.
+    /// When used in the SmallMap it may represent a Set without wasting the space for the absent value</summary>
+    [DebuggerDisplay("{Key?.ToString()}")]
+    public struct Entry<K> : IEntry<K>
+    {
+        /// <summary>The readonly key</summary>
+        public K Key { get; set; }
+        /// <summary>Construct with the key and default value</summary>
+        public Entry(K key) => Key = key;
+    }
+
+    /// <summary>Holds an entry consisting of key and value.</summary>
+    [DebuggerDisplay("{Key?.ToString()}:{Value}")]
     public struct Entry<K, V> : IEntry<K>
     {
         /// <summary>The readonly key</summary>
@@ -933,19 +943,21 @@ public static class SmallMap
         }
     }
 
-    /// <summary>The entry with just a key.
-    /// When used with the SmallMap it may represent a Set without wasting the space for the absent value</summary>
-    [DebuggerDisplay("{Key?.ToString()}")]
-    public struct Entry<K> : IEntry<K>
+    [MethodImpl((MethodImplOptions)256)]
+    public static uint GetNextPowerOfTwoFast(uint capacity)
     {
-        /// <summary>The readonly key</summary>
-        public K Key { get; set; }
-        /// <summary>Construct with the key and default value</summary>
-        public Entry(K key) => Key = key;
+#if NET7_0_OR_GREATER
+        return BitOperations.RoundUpToPowerOf2(capacity);
+#else
+        --capacity;
+        capacity |= capacity >> 1;
+        capacity |= capacity >> 2;
+        capacity |= capacity >> 4;
+        capacity |= capacity >> 8;
+        capacity |= capacity >> 16;
+        return capacity + 1;
+#endif
     }
-
-    /// <summary>Binary representation of the `int`</summary>
-    public static string ToB(int x) => System.Convert.ToString(x, 2).PadLeft(32, '0');
 
     /// <summary>Abstraction to configure your own entries data structure. Check the derived types for the examples</summary>
     public interface IEntries<K, TEntry>
@@ -958,13 +970,8 @@ public static class SmallMap
         ref TEntry GetSurePresentRef(int index);
 
         /// <summary>Adds the key at the "end" of entries - so the order of addition is preserved.</summary>
-        ref TEntry AddDefaultAndGetRef(int index);
+        ref TEntry AddDefaultAndGetRef(int index); // todo: @wip why do we need `index` to just prepend, because we do not track the count?
     }
-
-    internal const int MinEntriesCapacity = 2;
-
-    /// <summary>For now to use in the Set as a value</summary>
-    public readonly struct NoValue { }
 
     /// <summary>Stores the entries in a single dynamically reallocated growing array</summary>
     public struct SingleArrayEntries<K, TEntry> : IEntries<K, TEntry>
@@ -1578,6 +1585,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     )
     {
         Debug.Assert(probe == 1);
+
         ref var pRef = ref probes.GetSurePresentItemRef(hashIndex);
         while (pRef > probe)
         {
@@ -1586,7 +1594,6 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         }
         while (pRef == probe)
         {
-            // Compare the hash middle part, then the indexed key
             var h = hashesAndIndexes.GetSurePresentItemRef(hashIndex);
             if ((h & ~indexMask) == (hash & ~indexMask))
                 if (default(TEq).Equals(GetSurePresentKey(h & indexMask), key))
