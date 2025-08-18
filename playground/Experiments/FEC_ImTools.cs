@@ -1104,7 +1104,7 @@ public static class SmallMap
         [MethodImpl((MethodImplOptions)256)]
         public ref TEntry GetSurePresentRef(int index)
         {
-#if NET7_0_OR_GREATER
+#if NET8_0_OR_GREATER
             var vIndex = Vector256.Create(index);
             var vIndexLessThanBucket = Vector256.LessThan(vIndex, VUpToBucket);
             if (vIndexLessThanBucket != Vector256<int>.Zero)
@@ -1152,7 +1152,7 @@ public static class SmallMap
         [MethodImpl((MethodImplOptions)256)]
         public ref TEntry AddDefaultAndGetRef(int index)
         {
-#if NET7_0_OR_GREATER
+#if NET8_0_OR_GREATER
             var vIndex = Vector256.Create(index);
             var vIndexThanBucket = Vector256.LessThan(vIndex, VUpToBucket);
             if (vIndexThanBucket != Vector256<int>.Zero)
