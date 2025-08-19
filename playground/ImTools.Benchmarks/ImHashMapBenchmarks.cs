@@ -2405,8 +2405,8 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 1000  | 63,373.1 ns | 1,260.87 ns | 2,106.62 ns | 63,624.5 ns |  2.14 |    0.14 |    3 | 6.2256 | 0.2441 |   39288 B |        0.68 |
             */
             // [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
-            [Params(10, 100, 1000)]
-            // [Params(1000)]
+            // [Params(10, 100, 1000)]
+            [Params(1000)]
             public int Count;
 
             private Type[] _presentKeys;
@@ -2861,7 +2861,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return count;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public int SmallMap_PopulateThenLookup_HalfMissed_HalfPresent()
             {
                 var map = new SmallMapTypeString();

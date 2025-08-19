@@ -248,11 +248,8 @@ public interface IStack<T, TSize, TStack> : IStack<T, TStack>
 public interface IStack<T, TStack>
     where TStack : struct, IStack<T, TStack>
 {
-    /// <summary>Maximum count of items hold on stack</summary>
+    /// <summary>Maximum count of items hold on stack. Should be Power of Two</summary>
     int Capacity { get; }
-
-    /// <summary>Capacity == 1 << CapacityBitShift</summary>
-    byte CapacityBitShift { get; }
 
     /// <summary>Returns the item by ref to read and write the item value,
     /// but does not check the index bounds comparing to the `this[index]`</summary>
@@ -322,8 +319,6 @@ public struct Stack2<T> : IStack<T, Size2, Stack2<T>>
 {
     /// <inheritdoc/>
     public int Capacity => 2;
-    /// <inheritdoc/>
-    public byte CapacityBitShift => 1;
 
     internal T _it0, _it1;
 
@@ -369,8 +364,6 @@ public struct Stack4<T> : IStack<T, Size4, Stack4<T>>
 {
     /// <inheritdoc/>
     public int Capacity => 4;
-    /// <inheritdoc/>
-    public byte CapacityBitShift => 2;
 
     internal T _it0, _it1, _it2, _it3;
 
@@ -418,8 +411,6 @@ public struct Stack8<T> : IStack<T, Size8, Stack8<T>>
 {
     /// <inheritdoc/>
     public int Capacity => 8;
-    /// <inheritdoc/>
-    public byte CapacityBitShift => 3;
 
     internal T _it0, _it1, _it2, _it3, _it4, _it5, _it6, _it7;
 
@@ -471,8 +462,6 @@ public struct Stack16<T> : IStack<T, Size16, Stack16<T>>
 {
     /// <inheritdoc/>
     public int Capacity => 16;
-    /// <inheritdoc/>
-    public byte CapacityBitShift => 4;
 
     internal T _it0, _it1, _it2, _it3, _it4, _it5, _it6, _it7;
     internal T _it8, _it9, _it10, _it11, _it12, _it13, _it14, _it15;
@@ -902,8 +891,8 @@ public readonly struct Pass<A, B, C>
 /// <summary>Configuration and the tools for the SmallMap and friends</summary>
 public static class SmallMap
 {
+    internal const uint MinCapacity = 16;
     internal const byte MinFreeCapacityShift = 3; // e.g. for the capacity 16: 16 >> 3 => 2, 12.5% of the free hash slots (it does not mean the entries free slot)
-    internal const byte MinHashesCapacityBitShift = 4; // 1 << 4 == 16
 
     /// <summary>Represent a keyed entry stored in the SmallMap.
     /// Its implementation struct may include the additional Value for the Map or just the Key for the Set.
@@ -967,7 +956,7 @@ public static class SmallMap
         public int Count { get; }
 
         /// <summary>Initializes the entries storage to the specified capacity</summary>
-        void Init(int capacityPowerOfTwoPlease);
+        void Init(uint capacity);
 
         /// <summary>Returns the reference to entry by its index, index should map to the present/non-removed entry</summary>
         ref TEntry GetSurePresentRef(int index);
@@ -987,8 +976,8 @@ public static class SmallMap
         public int Count => _count;
 
         /// <inheritdoc/>
-        public void Init(int capacityPowerOfTwoPlease) =>
-            _entries = new TEntry[capacityPowerOfTwoPlease];
+        public void Init(uint capacity) =>
+            _entries = new TEntry[(int)capacity];
 
         /// <inheritdoc/>
         [MethodImpl((MethodImplOptions)256)]
@@ -1002,6 +991,7 @@ public static class SmallMap
         [MethodImpl((MethodImplOptions)256)]
         public ref TEntry AddDefaultAndGetRef()
         {
+            Debug.Assert(_count <= _entries.Length, "Entries should be initialized before adding the item");
             if (_count == _entries.Length)
                 Array.Resize(ref _entries, _count << 1);
             return ref _entries.GetSurePresentItemRef(_count++);
@@ -1066,7 +1056,7 @@ public static class SmallMap
         }
 
         /// <inheritdoc/>
-        public void Init(int capacity = 0)
+        public void Init(uint capacity = 0)
         {
             _bucket0032 = new TEntry[UpToBucket0032]; // always allocate
             switch (capacity)
@@ -1280,7 +1270,7 @@ public static class SmallMap
                     // 0b0001_1000 & (0b0001_1000 - 1) -> & 0b0001_1000 & 0b0001_0111 -> 0b0001_0000 
                     matches &= matches - 1;
                 }
-                if ((i += Vector256<int>.Count) >= count)
+                if ((i += Vector256<int>.Count) >= count) // todo: @perf can I remove this branch, what if the hash would be not null?
                     return -1;
             }
             return -1;
@@ -1498,7 +1488,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     public int ResizeProbesAndHashes_Count = 0;
 #endif
 
-    internal byte _capacityBitShift;
+    internal int _capacityPowerOfTwo;
     // true if the last item in probes and hashes being occupied
     internal bool _isCapacityPaddingFilled;
     internal int _count;
@@ -1521,14 +1511,8 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 #pragma warning restore CS0649
 #pragma warning restore IDE0044
 
-    /// <summary>Capacity bits</summary>
-    public int CapacityBitShift => _capacityBitShift;
-
     /// <summary>Capacity</summary>
-    public int Capacity => 1 << _capacityBitShift;
-
-    /// <summary>Mask for the index part of the packedHashAndIndexes entry</summary>
-    public int IndexMask => (1 << _capacityBitShift) - 1;
+    public int Capacity => _capacityPowerOfTwo;
 
     /// <summary>Access to the probes</summary>
     public byte[] Probes => _probes;
@@ -1543,28 +1527,30 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     public THeapEntries HeapEntries => _heapEntries;
 
     /// <summary>Capacity calculates as `1 leftShift capacityBitShift`</summary>
-    public SmallMap(byte capacityBitShift)
+    public SmallMap(uint capacityPowerOfTwoPlease)
     {
-        // Keep the capacity at least 8 for SIMD Vector256, if you need less space use Stack for that
-        _capacityBitShift = capacityBitShift < MinHashesCapacityBitShift ? MinHashesCapacityBitShift : capacityBitShift;
-        var capacity = 1 << _capacityBitShift;
+        var capacityPowerOfTwo = capacityPowerOfTwoPlease < MinCapacity
+            ? MinCapacity
+            : GetNextPowerOfTwoFast(capacityPowerOfTwoPlease);
+
+        _capacityPowerOfTwo = (int)capacityPowerOfTwo;
 
         // Extra padding is required to avoid index wrap around for probes and hashes,
         // and ensure that SIMD can read at most 16 bytes starting from the last index.
         // Using either 16 or 1/8 of the capacity, whichever is bigger.
-        var tailPadding = 1 << (_capacityBitShift - 3);
-        var capacityWithPadding = capacity + (tailPadding > 16 ? tailPadding : 16);
+        var tailPadding = capacityPowerOfTwo >>> 3; // 1/8 of the capacity
+        var capacityWithPadding = capacityPowerOfTwo + (tailPadding > 16 ? tailPadding : 16);
 
         _probes = new byte[capacityWithPadding];
         _packedHashesAndIndexes = new int[capacityWithPadding];
 
-        _heapEntries.Init(capacity);
+        _heapEntries.Init(capacityPowerOfTwo);
     }
 
     /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
     public int GetHashCode(K key) => default(TEq).GetHashCode(key);
 
-    // todo: @perf try using StableGrowingEntries (or Xar) with O(1) random access. And make an default storage for the entries.
     /// <inheritdoc />
     [MethodImpl((MethodImplOptions)256)]
     public K GetSurePresentKey(int index)
@@ -1590,8 +1576,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 
     /// <summary>The actual Lookup implementation in a single place</summary>
     [MethodImpl((MethodImplOptions)256)]
-    private int TryGetEntryAndHashIndex(K key, int hash, int indexMask,
-        ref int hashIndex, ref byte probe,
+    private int TryGetEntryAndHashIndex(K key, int hash, ref int hashIndex, ref byte probe,
 #if NET7_0_OR_GREATER
         ref byte probes, ref int hashesAndIndexes
 #else
@@ -1607,6 +1592,8 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
             pRef = ref probes.GetSurePresentItemRef(++hashIndex);
             ++probe;
         }
+
+        var indexMask = _capacityPowerOfTwo - 1;
         while (pRef == probe)
         {
             var h = hashesAndIndexes.GetSurePresentItemRef(hashIndex);
@@ -1626,12 +1613,11 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 #if DEBUG
         ++AddOrGetRefInEntries_Count;
 #endif
-        var indexMask = (1 << _capacityBitShift) - 1;
-
         // If the free space is less than ~1/8 of capacity (~12.5%) then Resize probes and hashes (but not the entries).
-        // Note: this check done here even before lookup and not later at insert, because later we rely on the Lookup hashIndex to do a first insert.
-        if (_isCapacityPaddingFilled || indexMask - _count <= (indexMask >>> MinFreeCapacityShift))
-            indexMask = ResizeProbesAndHashes(indexMask);
+        // note: this check done here even before lookup and not later at insert, because later we rely on the Lookup hashIndex to do a first insert.
+        if (_isCapacityPaddingFilled ||
+            _capacityPowerOfTwo - _count <= (_capacityPowerOfTwo >>> MinFreeCapacityShift))
+            ResizeMetadata();
 
 #if NET7_0_OR_GREATER
         ref var probes = ref MemoryMarshal.GetArrayDataReference(_probes);
@@ -1641,9 +1627,10 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         ref var hashesAndIndexes = ref _packedHashesAndIndexes;
 #endif
 
+        var indexMask = _capacityPowerOfTwo - 1;
         var hashIndex = hash & indexMask;
         byte probe = 1;
-        var entryIndex = TryGetEntryAndHashIndex(key, hash, indexMask, ref hashIndex, ref probe, ref probes, ref hashesAndIndexes);
+        var entryIndex = TryGetEntryAndHashIndex(key, hash, ref hashIndex, ref probe, ref probes, ref hashesAndIndexes);
         if (found = entryIndex != -1)
             return ref GetSurePresentEntryRef(entryIndex);
 
@@ -1689,7 +1676,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         this.VerifyProbesRobinHoodInvariants(static (cond, msg) => Debug.Assert(cond, msg), Pass<K>.It, startIndex, hashIndex + 1);
 #endif
 
-        // todo: @wip @perf - keep the last slot empty so the ResizeProbesAndHashes can rely on it to Stop when scanning the padding span beyond oldCapacity
+        // todo: @wip @perf - keep the last slot empty so the ResizeMetadata can rely on it to Stop when scanning the padding span beyond oldCapacity
         _isCapacityPaddingFilled = hashIndex + 2 == _probes.Length;
 
         ++_count;
@@ -1761,7 +1748,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 #endif
         }
 
-        // @pre - keep the last slot empty so the ResizeProbesAndHashes can rely on it to Stop when scanning the padding span beyond oldCapacity
+        // @pre - keep the last slot empty so the ResizeMetadata can rely on it to Stop when scanning the padding span beyond oldCapacity
         _isCapacityPaddingFilled = hashIndex + 2 == _probes.Length;
     }
 
@@ -1804,17 +1791,15 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         // because they are not copied when the Entries need to Resize (depending on the TEntries implementation). 
         // To ensure stable entries on Entries you need to use 
 
-        var newCapBitShift = Math.Max(_stackEntries.CapacityBitShift + 1, _capacityBitShift);
-        _capacityBitShift = (byte)newCapBitShift;
-
-        var newCapacity = 1 << newCapBitShift;
-        var newTailPadding = 1 << (newCapBitShift - 3);
+        var newCapacity = Math.Max(_capacityPowerOfTwo, _stackEntries.Capacity << 1);
+        _capacityPowerOfTwo = newCapacity;
+        var newTailPadding = newCapacity >> 3;
         var newCapacityWithPadding = newCapacity + (newTailPadding > 16 ? newTailPadding : 16);
-        var indexMask = newCapacity - 1;
 
         _packedHashesAndIndexes = new int[newCapacityWithPadding];
         _probes = new byte[newCapacityWithPadding];
 
+        var indexMask = newCapacity - 1;
         var stackCap = _stackEntries.Capacity;
         for (var i = 0; i < stackCap; ++i)
         {
@@ -1825,7 +1810,9 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         PutHashAndIndexWithoutResizing(indexMask, hash, stackCap);
 
         ++_count;
-        _heapEntries.Init(stackCap); // Give the heap entries the same initial capacity as Stack, effectively doubling the capacity
+
+        // Give the heap entries the same initial capacity as Stack, effectively doubling the capacity
+        _heapEntries.Init((uint)stackCap);
 
         // Set the key for the first entry, which is the 0 index in the entries
         ref var newEntry = ref _heapEntries.AddDefaultAndGetRef();
@@ -1865,11 +1852,11 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     private ref TEntry AddSureAbsentDefaultAndGetRefInEntries(K key, int hash)
     {
         // if the free space is less than 1/8 of capacity (12.5%) then Resize
-        var indexMask = (1 << _capacityBitShift) - 1;
-        if (_isCapacityPaddingFilled || indexMask - _count <= (indexMask >>> MinFreeCapacityShift))
-            indexMask = ResizeProbesAndHashes(indexMask);
+        if (_isCapacityPaddingFilled ||
+            _capacityPowerOfTwo - _count <= (_capacityPowerOfTwo >>> MinFreeCapacityShift))
+            ResizeMetadata();
 
-        PutHashAndIndexWithoutResizing(indexMask, hash, _count);
+        PutHashAndIndexWithoutResizing(_capacityPowerOfTwo - 1, hash, _count);
 
         ++_count;
         ref var entry = ref _heapEntries.AddDefaultAndGetRef();
@@ -1923,10 +1910,9 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         var probes = _probes;
         var hashesAndIndexes = _packedHashesAndIndexes;
 #endif
-        var indexMask = (1 << _capacityBitShift) - 1;
-        var hashIndex = hash & indexMask;
+        var hashIndex = hash & (_capacityPowerOfTwo - 1);
         byte probe = 1;
-        return TryGetEntryAndHashIndex(key, hash, indexMask, ref hashIndex, ref probe, ref probes, ref hashesAndIndexes);
+        return TryGetEntryAndHashIndex(key, hash, ref hashIndex, ref probe, ref probes, ref hashesAndIndexes);
     }
 
     /// <inheritdoc />
@@ -1950,17 +1936,15 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         return ref RefTools<TEntry>.GetNullRef();
     }
 
-    internal int ResizeProbesAndHashes(int indexMask)
+    internal void ResizeMetadata()
     {
 #if DEBUG
         ++ResizeProbesAndHashes_Count;
 #endif
-        var oldCapacity = indexMask + 1;
+        var oldCapacity = _capacityPowerOfTwo;
+        var newCapacity = _capacityPowerOfTwo << 1;
 
-        var newCapacity = oldCapacity << 1;
-        var newIndexMask = (indexMask << 1) | 1;
-
-        var maybeTailPadding = oldCapacity >> 2; // 1/8 of the new capacity
+        var maybeTailPadding = newCapacity >> 3; // 1/8 of the new capacity
         var newCapacityWithPadding = newCapacity + (maybeTailPadding > 16 ? maybeTailPadding : 16);
 
         var newProbesArr = new byte[newCapacityWithPadding];
@@ -2006,14 +1990,13 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
                 break; // No need to continue scanning the padding, because it is empty and we are done with the old hashes and probes
         }
 
-        ++_capacityBitShift;
+        _capacityPowerOfTwo = newCapacity;
         _probes = newProbesArr;
         _packedHashesAndIndexes = newHashesAndIndexes;
 
 #if VERIFY_MAP
         this.VerifyKeyHasMetaInfo(static (x, msg) => Debug.Assert(x, msg), Pass<K>.It);
 #endif
-        return newIndexMask;
     }
 }
 
