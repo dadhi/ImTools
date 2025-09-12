@@ -893,6 +893,8 @@ public static class SmallMap
 {
     internal const uint MinCapacity = 16;
     internal const byte MinFreeCapacityShift = 3; // e.g. for the capacity 16: 16 >> 3 => 2, 12.5% of the free hash slots (it does not mean the entries free slot)
+    internal const int EntryIndexStartAtBit = 32; // higher bits for the entry index
+    internal const long HashAndProbeMask = (1L << EntryIndexStartAtBit) - 1; // lower 32 bits
 
     /// <summary>Represent a keyed entry stored in the SmallMap.
     /// Its implementation struct may include the additional Value for the Map or just the Key for the Set.
@@ -1328,20 +1330,20 @@ public static class SmallMapDiagnostics
     public static void VerifyHashesAndKeysEq<TMap, K>(ref this TMap map, Action<bool, string> assertCond, Pass<K> _ = default)
         where TMap : struct, IMap<K>, IMapImpl<K>
     {
-        var probes = map.Probes;
-        var hashes = map.PackedHashesAndIndexes;
-        var indexMask = map.Capacity - 1;
-        for (var i = 0; i < probes.Length; i++)
+        var metas = map.PackedEntryIndexesHashesProbes;
+        var probeMask = map.Capacity - 1;
+        for (var i = 0; i < metas.Length; i++)
         {
-            if (probes[i] != 0)
+            var m = metas[i];
+            if (m != 0)
             {
-                var h = hashes[i];
-                var hashPart = h & ~indexMask;
-                var index = h & indexMask;
-                var key = map.GetSurePresentKey(index);
-                var hashFromKey = map.GetHashCode(key);
-                var hashPartFromKey = hashFromKey & ~indexMask;
-                assertCond(hashPart == hashPartFromKey, $"Hash mismatch for i:{i}, index:{index}, key:{key}, expected:{hashPartFromKey}, actual:{hashPart}");
+                var metaHashPart = (int)(m & ~probeMask);
+                var entryIndex = (int)(m >>> EntryIndexStartAtBit);
+
+                var key = map.GetSurePresentKey(entryIndex);
+                var keyHash = map.GetHashCode(key);
+                var keyHashPart = keyHash & ~probeMask;
+                assertCond(metaHashPart == keyHashPart, $"Hash mismatch for i:{i}, entryIndex:{entryIndex}, key:{key}, expected:{keyHashPart}, actual:{metaHashPart}");
             }
         }
     }
@@ -1351,15 +1353,18 @@ public static class SmallMapDiagnostics
         where TMap : struct, IMap<K>, IMapImpl<K>
     {
         var uniq = new Dictionary<K, int>(map.Count);
-        var probes = map.Probes;
-        var hashes = map.PackedHashesAndIndexes;
-        var indexMask = map.Capacity - 1;
-        for (var i = 0; i < probes.Length; i++)
+
+        var metas = map.PackedEntryIndexesHashesProbes;
+        var probeMask = map.Capacity - 1;
+        for (var i = 0; i < metas.Length; i++)
         {
-            var p = probes[i];
-            if (p == 0)
+            var m = metas[i];
+            if (m == 0)
                 continue;
-            var key = map.GetSurePresentKey(hashes[i] & indexMask);
+
+            var entryIndex = (int)(m >>> EntryIndexStartAtBit);
+            var key = map.GetSurePresentKey(entryIndex);
+
             if (!uniq.ContainsKey(key))
                 uniq.Add(key, 1);
             else
@@ -1372,12 +1377,14 @@ public static class SmallMapDiagnostics
         int startIndex = 0, int endIndex = -1)
         where TMap : struct, IMapImpl<K>
     {
-        var probes = map.Probes;
-        var prevProbe = startIndex > 0 ? probes[startIndex - 1] : 0;
-        endIndex = endIndex == -1 ? probes.Length : endIndex;
+        var metas = map.PackedEntryIndexesHashesProbes;
+        var probeMask = map.Capacity - 1;
+        var prevProbe = startIndex > 0 ? (metas[startIndex - 1] & probeMask) : 0;
+
+        endIndex = endIndex == -1 ? metas.Length : endIndex;
         for (var i = startIndex; i < endIndex; i++)
         {
-            var probe = probes[i];
+            var probe = metas[i] & probeMask;
             var invariant = prevProbe >= probe || prevProbe + 1 == probe;
             assertCond(invariant, $"Probe invariant failed for probe index {i}, probe:{probe}, prevProbe:{prevProbe}");
             prevProbe = probe;
@@ -1417,7 +1424,7 @@ public interface IMap<K>
     /// <summary>Lookups for the stored key. If found true, otherwise false</summary>
     bool ContainsKey(K key);
     /// <summary>Lookups for the stored key by the index in the entries data structure</summary>
-    K GetSurePresentKey(int index);
+    K GetSurePresentKey(int entryIndex);
 }
 
 public interface IMap<K, TEntry> : IMap<K>
@@ -1439,9 +1446,10 @@ public interface IMap<K, TEntry> : IMap<K>
 /// <summary>Implementation details</summary>
 public interface IMapImpl<K>
 {
+    /// <summary>The Capacity</summary>
     int Capacity { get; }
-    byte[] Probes { get; }
-    int[] PackedHashesAndIndexes { get; }
+    /// <summary>The metadata</summary>
+    long[] PackedEntryIndexesHashesProbes { get; }
     /// <summary>Returns the hash code for the provided key using the IEq implementation used by this map</summary>
     int GetHashCode(K key);
 }
@@ -1482,12 +1490,13 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 
     // Packing hash and probe together enables single load to examine probe and hash 
     // and enables the fast check even without the unpacking both values.
-    // todo: @improve @feature Packing both values together enables an atomic update of the both values for the future concurrent version
-    // 00010000...110|00010
-    //    |             |- The probe, occupies indexMask of bits always starting with 1, so the occupied item should have non 0 value
-    //    |- The remaining part of the hash without the indexMask bits used for the item index.
-    internal int[] _packedHashesAndProbes;
-    internal int[] _entryIndexes;
+    // Packing entry index in the high bits saves on the array load and possible cache eviction plus simplifies the resize, because the index part can be copied as-is
+    // If the whole long is 0 then the slot is free.
+    // 0..01|00010000...110|00010
+    //     |    |             |- The probe, occupies indexMask of bits always starting with 1, so the occupied item should have non 0 value
+    //     |    |- The remaining part of the hash without the indexMask bits used for the item index.
+    //     |- The entry index stored in the high bits
+    internal long[] _packedEntryIndexesHashesProbes;
 
 #pragma warning disable IDE0044 // it tries to make entries readonly but they should stay modify-able to prevent its defensive struct copying
 #pragma warning disable CS0649 // field is never assigned to, and will always have its default value
@@ -1500,11 +1509,8 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     /// <summary>Capacity</summary>
     public int Capacity => _capacityPowerOfTwo;
 
-    /// <summary>Access to the hashes and corresponding probes</summary>
-    public int[] PackedHashesAndProbes => _packedHashesAndProbes;
-
-    /// <summary>Access to the entry indexes</summary>
-    public int[] EntryIndexes => _entryIndexes;
+    /// <summary>Access to the entry indexes, hashes and corresponding probes</summary>
+    public long[] PackedEntryIndexesHashesProbes => _packedEntryIndexesHashesProbes;
 
     /// <inheritdoc />
     public int Count => _count;
@@ -1520,10 +1526,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
             : GetNextPowerOfTwoFast(capacityPowerOfTwoPlease);
 
         _capacityPowerOfTwo = (int)capacityPowerOfTwo;
-
-        _packedHashesAndProbes = new int[capacityPowerOfTwo];
-        _entryIndexes = new int[capacityPowerOfTwo];
-
+        _packedEntryIndexesHashesProbes = new long[capacityPowerOfTwo];
         _heapEntries.Init(capacityPowerOfTwo);
     }
 
@@ -1536,12 +1539,14 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     public K GetSurePresentKey(int index)
     {
         Debug.Assert(index >= 0 && index < _count, $"Index {index} should be in the range 0..{_count}-1");
-        return index >= _stackEntries.Capacity
-            ? _heapEntries.GetSurePresentRef(index - _stackEntries.Capacity).Key
-            : _stackEntries.GetSurePresentItemRef(index).Key;
+        return (index >= _stackEntries.Capacity
+            ? _heapEntries.GetSurePresentRef(index - _stackEntries.Capacity)
+            : _stackEntries.GetSurePresentItemRef(index))
+            .Key;
     }
 
     // todo: @perf try using StableGrowingEntries (or Xar) with O(1) random access. And make an default storage for the entries.
+    // todo: @perf make it an interface method to store the actual entry in place of the 32 bit index, e.g. store and actual int key for the int Set
     ///<summary>Get the value ref by the entry index. Also the index corresponds to entry adding order.
     /// Important: it does not check the index bounds, so you need to check that the index is from 0 to map.Count-1</summary>
     [UnscopedRef]
@@ -1554,37 +1559,6 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         return ref _stackEntries.GetSurePresentItemRef(index);
     }
 
-    /// <summary>The actual Lookup implementation in a single place</summary>
-    [MethodImpl((MethodImplOptions)256)]
-    private int TryGetEntryAndHashIndex(int indexMask, K key, ref int hashAndProbe, ref int hashIndex,
-#if NET7_0_OR_GREATER
-        ref int hashesAndProbes, ref int entryIndexes
-#else
-        ref int[] hashesAndProbes, ref int[] entryIndexes
-#endif
-    )
-    {
-        Debug.Assert((hashAndProbe & indexMask) == 1,
-            $"Should start from the probe 1 but found probe {hashAndProbe & indexMask} at indexMask {indexMask}");
-
-        while (true)
-        {
-            ref var hpRef = ref hashesAndProbes.GetSurePresentItemRef(hashIndex);
-            if ((hpRef & indexMask) < (hashAndProbe & indexMask))
-                return -1;
-
-            if (hpRef == hashAndProbe)
-            {
-                var entryIndex = _entryIndexes.GetSurePresentItemRef(hashIndex);
-                if (default(TEq).Equals(GetSurePresentKey(entryIndex), key))
-                    return entryIndex;
-            }
-
-            ++hashAndProbe;
-            hashIndex = (hashIndex + 1) & indexMask;
-        }
-    }
-
     [UnscopedRef]
     [MethodImpl((MethodImplOptions)256)]
     private ref TEntry AddOrGetRefInEntries(K key, int hash, out bool found)
@@ -1592,215 +1566,81 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 #if DEBUG
         ++AddOrGetRefInEntries_Count;
 #endif
-        // todo: @perf @consistency isn't it weird when the read operartion (found == true) is changing the internal structures?
-        // If the free space is less than ~1/8 of capacity (~12.5%) then Resize probes and hashes (but not the entries).
-        // note: this check done here even before lookup and not later at insert, because later we rely on the Lookup hashIndex to do a first insert.
-        if (_capacityPowerOfTwo - _count <= (_capacityPowerOfTwo >>> MinFreeCapacityShift))
-            ResizeMetadata();
-
 #if NET7_0_OR_GREATER
-        ref var hashesAndProbes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndProbes);
-        ref var entryIndexes = ref MemoryMarshal.GetArrayDataReference(_entryIndexes);
+        ref var metas = ref MemoryMarshal.GetArrayDataReference(_packedEntryIndexesHashesProbes);
 #else
-        ref var hashesAndProbes = ref _packedHashesAndProbes;
-        ref var entryIndexes = ref _entryIndexes;
+        ref var metas = ref _packedEntryIndexesHashesProbes;
 #endif
         found = true;
-        var entryIndex = _count;
-        var indexMask = _capacityPowerOfTwo - 1;
-        var hashAndProbe = (hash & ~indexMask) | 1;
-        var hashIndex = hash & indexMask;
+        var probeMask = _capacityPowerOfTwo - 1;
+        var metaIndex = hash & probeMask;
+        var meta = (long)_count << EntryIndexStartAtBit | (long)(hash & ~probeMask) | 1L;
         while (true)
         {
-            ref var hpRef = ref hashesAndProbes.GetSurePresentItemRef(hashIndex);
-            if ((hpRef & indexMask) < (hashAndProbe & indexMask))
+            ref var mRef = ref metas.GetSurePresentItemRef(metaIndex & probeMask);
+            if ((mRef & probeMask) < (meta & probeMask))
             {
-                var hpRobinHooded = hpRef;
-                hpRef = hashAndProbe;
-
-                ref var iRef = ref entryIndexes.GetSurePresentItemRef(hashIndex);
-                var iRobinHooded = iRef;
-                iRef = entryIndex;
-
-                // Finish on the empty slot
-                if (hpRobinHooded == 0)
+                var mRobinHooded = mRef;
+                mRef = meta;
+                if (mRobinHooded == 0) // finish on the empty slot
                     break;
-
-                hashAndProbe = hpRobinHooded;
-                entryIndex = iRobinHooded;
+                meta = mRobinHooded;
             }
 
-            if (hpRef == hashAndProbe)
+            if ((mRef & HashAndProbeMask) == (meta & HashAndProbeMask))
             {
-                var index = _entryIndexes.GetSurePresentItemRef(hashIndex);
-                ref var eRef = ref GetSurePresentEntryRef(index);
+                var entryIndex = (int)(mRef >>> EntryIndexStartAtBit);
+                ref var eRef = ref GetSurePresentEntryRef(entryIndex);
                 if (default(TEq).Equals(eRef.Key, key))
                     return ref eRef;
             }
 
-            ++hashAndProbe;
-            hashIndex = (hashIndex + 1) & indexMask;
+            ++meta;
+            ++metaIndex;
         }
 
         found = false;
         ++_count;
+
+        // The new metadata slot is added - this is a good place to resize the metadata.
+        // If the free space is less than ~1/8 of capacity (~12.5%).
+        if (_capacityPowerOfTwo - _count <= (_capacityPowerOfTwo >>> MinFreeCapacityShift))
+            ResizeMetadata();
+
         ref var newEntry = ref _heapEntries.AddDefaultAndGetRef();
         newEntry.Key = key;
         return ref newEntry;
     }
 
-    [UnscopedRef]
     [MethodImpl((MethodImplOptions)256)]
-    private ref TEntry AddOrGetRefInEntries_OLD(K key, int hash, out bool found)
-    {
-#if DEBUG
-        ++AddOrGetRefInEntries_Count;
-#endif
-        // If the free space is less than ~1/8 of capacity (~12.5%) then Resize probes and hashes (but not the entries).
-        // note: this check done here even before lookup and not later at insert, because later we rely on the Lookup hashIndex to do a first insert.
-        if (_capacityPowerOfTwo - _count <= (_capacityPowerOfTwo >>> MinFreeCapacityShift))
-            ResizeMetadata();
-
-#if NET7_0_OR_GREATER
-        ref var hashesAndProbes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndProbes);
-        ref var entryIndexes = ref MemoryMarshal.GetArrayDataReference(_entryIndexes);
-#else
-        ref var hashesAndProbes = ref _packedHashesAndProbes;
-        ref var entryIndexes = ref _entryIndexes;
-#endif
-
-        var indexMask = _capacityPowerOfTwo - 1;
-        var hashAndProbe = (hash & ~indexMask) | 1;
-        var hashIndex = hash & indexMask;
-        var entryIndex = TryGetEntryAndHashIndex(indexMask, key,
-            ref hashAndProbe, ref hashIndex, ref hashesAndProbes, ref entryIndexes);
-
-        if (found = entryIndex != -1)
-            return ref GetSurePresentEntryRef(entryIndex);
-
-        Debug.Assert((hashIndex & ~indexMask) == 0,
-            $"TryGetEntryAndHashIndex should return wrapped hashIndex {hashIndex} with indexMask {indexMask}");
-
-        // We did not find the probe and hash and therefore the key, so insert the new hash and probe
-        ref var hpRef = ref hashesAndProbes.GetSurePresentItemRef(hashIndex);
-        var hpRobinHooded = hpRef;
-        hpRef = hashAndProbe;
-
-        ref var entryIndexRef = ref entryIndexes.GetSurePresentItemRef(hashIndex);
-        var eiRobinHooded = entryIndexRef;
-        entryIndexRef = _count;
-
-        hashAndProbe = hpRobinHooded;
-#if VERIFY_MAP
-        var startIndex = hashIndex;
-        var isRobinHooded = hashAndProbe != 0;
-#endif
-        // If the robin hooded meta item is empty then stop
-        while (hashAndProbe != 0)
-        {
-            hpRef = ref hashesAndProbes.GetSurePresentItemRef(++hashIndex & indexMask);
-
-            // Otherwise we steal the slot with the smaller probes
-            if ((hpRef & indexMask) < (++hashAndProbe & indexMask))
-            {
-                var hpTemp = hpRef;
-                hpRef = hashAndProbe;
-                hashAndProbe = hpTemp;
-
-                entryIndexRef = ref entryIndexes.GetSurePresentItemRef(hashIndex);
-                var eiTemp = entryIndexRef;
-                entryIndexRef = eiRobinHooded;
-                eiRobinHooded = eiTemp;
-            }
-        }
-#if VERIFY_MAP
-        this.VerifyProbesRobinHoodInvariants(static (cond, msg) => Debug.Assert(cond, msg), Pass<K>.It, startIndex, hashIndex + 1);
-#endif
-        ++_count;
-        ref var entry = ref _heapEntries.AddDefaultAndGetRef();
-        entry.Key = key;
-        return ref entry;
-    }
-
-    [MethodImpl((MethodImplOptions)256)]
-    private void PutMetadataWithoutResizing(int indexMask, int hash, int index)
+    private void PutMetadataWithoutResizing(int probeMask, int hash, int index)
     {
 #if DEBUG
         ++PutMetadataWithoutResizing_Count;
 #endif
 #if NET7_0_OR_GREATER
-        ref var hashesAndProbes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndProbes);
-        ref var entryIndexes = ref MemoryMarshal.GetArrayDataReference(_entryIndexes);
+        ref var metas = ref MemoryMarshal.GetArrayDataReference(_packedEntryIndexesHashesProbes);
 #else
-        var hashesAndProbes = _packedHashesAndProbes;
-        var entryIndexes = _entryIndexes;
+        var metas = _packedHashesAndProbes;
 #endif
 
-        var entryIndex = _count;
-        var hashAndProbe = (hash & ~indexMask) | 1;
-        var hashIndex = hash & indexMask;
+        var metaIndex = hash & probeMask;
+        var meta = (long)_count << EntryIndexStartAtBit | (long)(hash & ~probeMask) | 1L;
         while (true)
         {
-            ref var hpRef = ref hashesAndProbes.GetSurePresentItemRef(hashIndex);
-            if ((hpRef & indexMask) < (hashAndProbe & indexMask))
+            ref var mRef = ref metas.GetSurePresentItemRef(metaIndex & probeMask);
+            if ((mRef & probeMask) < (meta & probeMask))
             {
-                var hpRobinHooded = hpRef;
-                hpRef = hashAndProbe;
-
-                ref var iRef = ref entryIndexes.GetSurePresentItemRef(hashIndex);
-                var iRobinHooded = iRef;
-                iRef = entryIndex;
-
-                // Finish on the empty slot
-                if (hpRobinHooded == 0)
+                var mRobinHooded = mRef;
+                mRef = meta;
+                if (mRobinHooded == 0) // finish on the empty slot
                     return;
-
-                hashAndProbe = hpRobinHooded;
-                entryIndex = iRobinHooded;
+                meta = mRobinHooded;
             }
 
-            hashIndex = (hashIndex + 1) & indexMask;
-            ++hashAndProbe;
+            ++metaIndex;
+            ++meta;
         }
-
-        //         // Skip over hashes with the bigger and equal probes. The hashes with bigger probes overlapping from the earlier ideal positions
-        //         while ((hpRef & indexMask) >= (hashAndProbe & indexMask))
-        //         {
-        //             ++hashAndProbe;
-        //             hpRef = ref hashesAndProbes.GetSurePresentItemRef(++hashIndex & indexMask);
-        // #if DEBUG
-        //             ++PutHashAndIndexWithoutResizing_ProbeGreaterOrEqualCheckCount;
-        // #endif
-        //         }
-
-        //         // We did not find the probe and hash and therefore the key, so insert the new hash and probe
-        //         var hpRobinHooded = hpRef;
-        //         hpRef = hashAndProbe;
-
-        //         ref var entryIndexRef = ref entryIndexes.GetSurePresentItemRef(hashIndex);
-        //         var eiRobinHooded = entryIndexRef;
-        //         entryIndexRef = _count;
-
-        //         hashAndProbe = hpRobinHooded;
-
-        //         // If the robin hooded meta item is empty then stop
-        //         while (hashAndProbe != 0)
-        //         {
-        //             hpRef = ref hashesAndProbes.GetSurePresentItemRef(++hashIndex & indexMask);
-
-        //             // Otherwise we steal the slot with the smaller probes
-        //             if ((hpRef & indexMask) < (++hashAndProbe & indexMask))
-        //             {
-        //                 var hpTemp = hpRef;
-        //                 hpRef = hashAndProbe;
-        //                 hashAndProbe = hpTemp;
-
-        //                 entryIndexRef = ref entryIndexes.GetSurePresentItemRef(hashIndex);
-        //                 var eiTemp = entryIndexRef;
-        //                 entryIndexRef = eiRobinHooded;
-        //                 eiRobinHooded = eiTemp;
-        //             }
-        //         }
     }
 
     /// <inheritdoc />
@@ -1845,18 +1685,16 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         var stackCapacity = _stackEntries.Capacity;
         var newCapacity = Math.Max(_capacityPowerOfTwo, stackCapacity << 1);
         _capacityPowerOfTwo = newCapacity;
+        _packedEntryIndexesHashesProbes = new long[newCapacity];
 
-        _packedHashesAndProbes = new int[newCapacity];
-        _entryIndexes = new int[newCapacity];
-
-        var indexMask = newCapacity - 1;
+        var probeMask = newCapacity - 1;
         for (var i = 0; i < stackCapacity; ++i)
         {
             var h = _stackHashes.GetSurePresentItemRef(i);
-            PutMetadataWithoutResizing(indexMask, h, i);
+            PutMetadataWithoutResizing(probeMask, h, i);
         }
 
-        PutMetadataWithoutResizing(indexMask, hash, stackCapacity);
+        PutMetadataWithoutResizing(probeMask, hash, stackCapacity);
 
         ++_count;
 
@@ -1900,7 +1738,6 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     [MethodImpl((MethodImplOptions)256)]
     private ref TEntry AddSureAbsentDefaultAndGetRefInEntries(K key, int hash)
     {
-        // if the free space is less than 1/8 of capacity (12.5%) then Resize
         if (_capacityPowerOfTwo - _count <= (_capacityPowerOfTwo >>> MinFreeCapacityShift))
             ResizeMetadata();
 
@@ -1952,30 +1789,28 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     internal int TryGetIndexInEntries(K key, int hash)
     {
 #if NET7_0_OR_GREATER
-        ref var hashesAndProbes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndProbes);
-        ref var entryIndexes = ref MemoryMarshal.GetArrayDataReference(_entryIndexes);
+        ref var metas = ref MemoryMarshal.GetArrayDataReference(_packedEntryIndexesHashesProbes);
 #else
-        var hashesAndProbes = _packedHashesAndProbes;
-        var entryIndexes = _entryIndexes;
+        var metas = _packedHashesAndProbes;
 #endif
-        var indexMask = _capacityPowerOfTwo - 1;
-        var hashAndProbe = (hash & ~indexMask) | 1; // start with the probe 1
-        var hashIndex = hash & indexMask;
+        var probeMask = _capacityPowerOfTwo - 1;
+        var metaIndex = hash & probeMask;
+        var meta = (long)(hash & ~probeMask) | 1L;
         while (true)
         {
-            ref var hpRef = ref hashesAndProbes.GetSurePresentItemRef(hashIndex);
-            if ((hpRef & indexMask) < (hashAndProbe & indexMask))
+            ref var mRef = ref metas.GetSurePresentItemRef(metaIndex & probeMask);
+            if ((mRef & probeMask) < (meta & probeMask))
                 return -1;
 
-            if (hpRef == hashAndProbe)
+            if ((mRef & HashAndProbeMask) == meta)
             {
-                var entryIndex = _entryIndexes.GetSurePresentItemRef(hashIndex);
+                var entryIndex = (int)(mRef >>> EntryIndexStartAtBit);
                 if (default(TEq).Equals(GetSurePresentKey(entryIndex), key))
                     return entryIndex;
             }
 
-            ++hashAndProbe;
-            hashIndex = (hashIndex + 1) & indexMask;
+            ++meta;
+            ++metaIndex;
         }
     }
 
@@ -2008,52 +1843,72 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         var oldCapacity = _capacityPowerOfTwo;
         var newCapacity = _capacityPowerOfTwo << 1;
 
-        var newHashesAndProbes = new int[newCapacity];
-        var newEntryIndexes = new byte[newCapacity];
+        var newMetasArr = new long[newCapacity];
 
 #if NET7_0_OR_GREATER
-        ref var newHashes = ref MemoryMarshal.GetArrayDataReference(newHashesAndProbes);
-        ref var newIndexes = ref MemoryMarshal.GetArrayDataReference(newEntryIndexes);
-        ref var oldHashes = ref MemoryMarshal.GetArrayDataReference(_packedHashesAndProbes);
-        ref var oldIndexes = ref MemoryMarshal.GetArrayDataReference(_entryIndexes);
+        ref var newMetas = ref MemoryMarshal.GetArrayDataReference(newMetasArr);
+        ref var metas = ref MemoryMarshal.GetArrayDataReference(_packedEntryIndexesHashesProbes);
 #else
-        var newHashes = newHashesAndProbes;
-        var newIndexes = newEntryIndexes;
-        var oldHashes = _packedHashesAndProbes;
-        var oldIndexes = _entryIndexes;
+        var newMetas = newMetasArr;
+        var metas = _packedEntryIndexesHashesProbes;
 #endif
-        for (var i = 0; i < oldCapacity; ++i)
+        var probeMask = oldCapacity - 1;
+        var newProbeMask = newCapacity - 1;
+
+        // Skip the wrapped-around hashes, as they may be perfectly fit into new capacity without wrapping.
+        // They will be handled as the last bunch as it should be logically.
+        // Say it is probes 0:..3, 1:..2, 2:..0. Means the probe 3 is wrapped around from the end,
+        // and the next probe is 2 because its ideal position was occupied by 3.
+        // This algo will skip 3 and completes on 2 as it is the first non-wrapped probe.
+        var metaIndex = 0;
+        var probe = 1;
+        while (true)
         {
-            var oldProbe = oldProbes.GetSurePresentItem(i);
-            if (oldProbe != 0) // for the non-empty probe and therefore hash
+            var hp = metas.GetSurePresentItem(metaIndex);
+            if ((hp & probeMask) <= probe)
+                break;
+            ++probe;
+            ++metaIndex;
+        }
+
+        var endBefore = metaIndex + oldCapacity;
+        while (true)
+        {
+            var m = metas.GetSurePresentItem(metaIndex & probeMask);
+            if (m != 0)
             {
-                var oldHashAndIndex = oldHashes.GetSurePresentItem(i);
+                // Сalculate the ideal hash index for the current probe
+                var p = (int)(m & probeMask);
+                var idealIndex = metaIndex - p + 1; // index - (probe - 1) because probe starts with 1
+                Debug.Assert(idealIndex >= 0, $"Ideal index should be non-negative, but found {idealIndex}");
 
-                // First, calculate the ideal hash index for the current probe, it should be in the range of the old capacity/index mask
-                var oldHashIndex = i - (oldProbe - 1);
-                Debug.Assert(oldHashIndex < oldCapacity, "Old hash index should be less than old capacity");
-                var newHashIndex = (oldHashAndIndex & oldCapacity) | oldHashIndex;
-                Debug.Assert(newHashIndex == oldHashIndex || newHashIndex == oldHashIndex + oldCapacity, "New hash index should be either the same as old or with the next bit set to the old capacity");
+                // Calculate the new ideal index based on the next bit after the index mask (an oldCapacity bit).
+                // If the bit is 0 then the new index is the same otherwise it is oldCapacity + idealIndex, or in other words...
+                var newMetaIndex = (int)(m & oldCapacity) | idealIndex;
+                var newMeta = (m & ~newProbeMask) | 1L; // starting probe is always 1
 
-                // No need for robin-hooding because we already did it for the old hashes and now just filling the hashes into the new array which are already in order
-                byte probe = 1;
-                ref var pRef = ref newProbes.GetSurePresentItemRef(newHashIndex);
-                while (pRef != 0)
+                // Copy the hash with the probe starting from the new ideal index
+                // No need for robin-hooding because the robin-hood invariant holds when elements are inserted in the same order
+                while (true)
                 {
-                    ++probe;
-                    pRef = ref newProbes.GetSurePresentItemRef(++newHashIndex);
+                    ref var newMetaRef = ref newMetas.GetSurePresentItemRef(newMetaIndex & newProbeMask);
+                    if (newMetaRef == 0)
+                    {
+                        newMetaRef = newMeta;
+                        break;
+                    }
+                    ++newMeta;
+                    ++newMetaIndex;
                 }
-
-                pRef = probe;
-                newHashes.GetSurePresentItemRef(newHashIndex) = oldHashAndIndex & ~oldCapacity;
             }
-            else if (i >= oldCapacity)
-                break; // No need to continue scanning the padding, because it is empty and we are done with the old hashes and probes
+
+            // Move to the next hash or finish when all old hashes are processed
+            if (++metaIndex >= endBefore)
+                break;
         }
 
         _capacityPowerOfTwo = newCapacity;
-        _probes = newEntryIndexes;
-        _packedHashesAndIndexes = newHashesAndProbes;
+        _packedEntryIndexesHashesProbes = newMetasArr;
 
 #if VERIFY_MAP
         this.VerifyKeyHasMetaInfo(static (x, msg) => Debug.Assert(x, msg), Pass<K>.It);
