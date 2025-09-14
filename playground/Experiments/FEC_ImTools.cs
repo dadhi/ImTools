@@ -934,6 +934,7 @@ public static class SmallMap
         }
     }
 
+    /// <summary>Gets the next power of two greater than or equal to the specified capacity.</summary>
     [MethodImpl((MethodImplOptions)256)]
     public static uint GetNextPowerOfTwoFast(uint capacity)
     {
@@ -954,6 +955,8 @@ public static class SmallMap
     public interface IEntries<K, TEntry>
         where TEntry : struct, IEntry<K>
     {
+        public int Capacity { get; }
+
         /// <summary>Tracks the number of store elements, enables method AddDefaultAndGetRef to work</summary>
         public int Count { get; }
 
@@ -972,14 +975,20 @@ public static class SmallMap
         where TEntry : struct, IEntry<K>
     {
         internal TEntry[] _entries;
+        internal int _capacityPowerOfTwo;
         internal int _count;
 
+        /// <inheritdoc/>
+        public int Capacity => _capacityPowerOfTwo;
         /// <inheritdoc/>
         public int Count => _count;
 
         /// <inheritdoc/>
-        public void Init(uint capacity) =>
-            _entries = new TEntry[(int)capacity];
+        public void Init(uint capacity)
+        {
+            _capacityPowerOfTwo = (int)GetNextPowerOfTwoFast(capacity);
+            _entries = new TEntry[_capacityPowerOfTwo];
+        }
 
         /// <inheritdoc/>
         [MethodImpl((MethodImplOptions)256)]
@@ -995,125 +1004,105 @@ public static class SmallMap
         {
             Debug.Assert(_count <= _entries.Length, "Entries should be initialized before adding the item");
             if (_count == _entries.Length)
-                Array.Resize(ref _entries, _count << 1);
+            {
+                Debug.Assert(_capacityPowerOfTwo == _entries.Length, "Capacity should be equal to the entries length");
+                _capacityPowerOfTwo <<= 1;
+                Array.Resize(ref _entries, _capacityPowerOfTwo);
+            }
             return ref _entries.GetSurePresentItemRef(_count++);
         }
     }
 
-    // todo: @perf use power of 2 total capacity and bucket grows by keeping 2 first buckets the same size, e.g. [32, 32, 64, 128, 256, 512, 1024, ...]
-    // store the rest in the ever increasing buckets of power of 2 instead of the same fixed sizes???
-    /// <summary>Stores the entries in a single dynamically reallocated growing array</summary>
+    /// <summary>Stores the data in the growing list of bucket arrays.
+    /// Allocating the new bucket doubles the size preserving the previous buckets intact ensuring that the item references remain stable,
+    /// e.g. the bucket sizes are [32, 32, 64, 128, 256, 512, 1024, ...]</summary>
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct StableArrayEntries<K, TEntry> : IEntries<K, TEntry>
         where TEntry : struct, IEntry<K>
     {
-        const int RegularBucketBits = 12;
-        const int RegularBucketSize = 1 << RegularBucketBits; // 4096
-        const int RegularBucketMask = RegularBucketSize - 1;
-        const int UpToBucket0032 = 32;
-        const int UpToBucket0064 = UpToBucket0032 + 64;
-        const int UpToBucket0128 = UpToBucket0064 + 128;
-        const int UpToBucket0256 = UpToBucket0128 + 256;
-        const int UpToBucket0512 = UpToBucket0256 + 512;
-        const int UpToBucket1024 = UpToBucket0512 + 1024;
-        const int UpToBucket2048 = UpToBucket1024 + 2048;
+        internal TEntry[] _bucket00Of32;
+        internal TEntry[] _bucket01Of32;
+        internal TEntry[] _bucket02Of64;
+        internal TEntry[] _bucket03Of128;
+        internal TEntry[] _bucket04Of256;
+        internal TEntry[] _bucket05Of512;
+        internal TEntry[] _bucket06Of1024;
+        internal TEntry[] _bucket07Of2048;
+        internal TEntry[][] _bucketsOf4096AndMore;
 
-#if NET8_0_OR_GREATER
-        static readonly Vector256<int> UpToBucketVec = Vector256.Create(
-            0, UpToBucket0032, UpToBucket0064, UpToBucket0128,
-            UpToBucket0256, UpToBucket0512, UpToBucket1024, UpToBucket2048);
-#endif
-        internal TEntry[] _bucket0032;
-        internal TEntry[] _bucket0064;
-        internal TEntry[] _bucket0128;
-        internal TEntry[] _bucket0256;
-        internal TEntry[] _bucket0512;
-        internal TEntry[] _bucket1024;
-        internal TEntry[] _bucket2048;
-        internal TEntry[][] _regularBuckets;
-
+        internal int _capacityPowerOfTwo;
         internal int _count;
 
         /// <inheritdoc/>
+        public int Capacity => _capacityPowerOfTwo;
+        /// <inheritdoc/>
         public int Count => _count;
+
+        // todo: @wip works only for index >= 32
+        // Starting from the 0 bucket of 32 items: 0b00000000_00000000_00000000_00011111 = 31
+        // 32 - leading zeros = 5, and -5 = 0 => bucket 0, e.g. 27 - leading zeros
+#if NET6_0_OR_GREATER
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int GetBucketIndexFromGlobalIndex(uint index) =>
+            index < 32 ? 0 : 27 - BitOperations.LeadingZeroCount(index);
+#else
+        private static int GetBucketIndexFromGlobalIndex(uint index)
+        {
+            if (index == 0) return 0;
+
+            var count = 0;
+            if (index <= 0x0000FFFF) { count += 16; index <<= 16; }
+            if (index <= 0x00FFFFFF) { count += 8;  index <<= 8; }
+            if (index <= 0x0FFFFFFF) { count += 4;  index <<= 4; }
+            if (index <= 0x3FFFFFFF) { count += 2;  index <<= 2; }
+            if (index <= 0x7FFFFFFF) { count += 1; }
+
+            return 27 - count;
+        }
+#endif
 
         /// <inheritdoc/>
         [UnscopedRef]
         [MethodImpl((MethodImplOptions)256)]
-        private ref TEntry[] GetBucketRef(int bucketIndex)
+        private ref TEntry[] GetStackBucketRef(int bucketIndex)
         {
-            Debug.Assert(bucketIndex >= 0 && bucketIndex < 7, "Bucket index should be in the range 0..6");
+            Debug.Assert(bucketIndex >= 0 && bucketIndex < 8, "Bucket index should be in the range 0..7");
 #if SUPPORTS_UNSAFE
-            return ref Unsafe.Add(ref _bucket0032, bucketIndex);
+            return ref Unsafe.Add(ref _bucket00Of32, bucketIndex);
 #else
             switch (bucketIndex)
             {
-                case 0: return ref _bucket0032;
-                case 1: return ref _bucket0064;
-                case 2: return ref _bucket0128;
-                case 3: return ref _bucket0256;
-                case 4: return ref _bucket0512;
-                case 5: return ref _bucket1024;
-                default: return ref _bucket2048;
+                case 0: return ref _bucket00Of32;
+                case 1: return ref _bucket01Of32;
+                case 2: return ref _bucket02Of64;
+                case 3: return ref _bucket03Of128;
+                case 4: return ref _bucket04Of256;
+                case 5: return ref _bucket05Of512;
+                case 6: return ref _bucket06Of1024;
+                default: return ref _bucket07Of2048;
             }
 #endif
         }
 
-        /// <inheritdoc/>
+        /// <summary>Initializes enough buckets to hold the specified capacity.
+        /// Always creates at least the first bucket of 32 items.</summary>
         public void Init(uint capacity = 0)
         {
-            _bucket0032 = new TEntry[UpToBucket0032]; // always allocate
-            switch (capacity)
-            {
-                case <= UpToBucket0032: break;
-                case <= UpToBucket0064:
-                    _bucket0064 = new TEntry[UpToBucket0064];
-                    break;
-                case <= UpToBucket0128:
-                    _bucket0064 = new TEntry[UpToBucket0064];
-                    _bucket0128 = new TEntry[UpToBucket0128];
-                    break;
-                case <= UpToBucket0256:
-                    _bucket0064 = new TEntry[UpToBucket0064];
-                    _bucket0128 = new TEntry[UpToBucket0128];
-                    _bucket0256 = new TEntry[UpToBucket0256];
-                    break;
-                case <= UpToBucket0512:
-                    _bucket0064 = new TEntry[UpToBucket0064];
-                    _bucket0128 = new TEntry[UpToBucket0128];
-                    _bucket0256 = new TEntry[UpToBucket0256];
-                    _bucket0512 = new TEntry[UpToBucket0512];
-                    break;
-                case <= UpToBucket1024:
-                    _bucket0064 = new TEntry[UpToBucket0064];
-                    _bucket0128 = new TEntry[UpToBucket0128];
-                    _bucket0256 = new TEntry[UpToBucket0256];
-                    _bucket0512 = new TEntry[UpToBucket0512];
-                    _bucket1024 = new TEntry[UpToBucket1024];
-                    break;
-                case <= UpToBucket2048:
-                    _bucket0064 = new TEntry[UpToBucket0064];
-                    _bucket0128 = new TEntry[UpToBucket0128];
-                    _bucket0256 = new TEntry[UpToBucket0256];
-                    _bucket0512 = new TEntry[UpToBucket0512];
-                    _bucket1024 = new TEntry[UpToBucket1024];
-                    _bucket2048 = new TEntry[UpToBucket2048];
-                    break;
-                default:
-                    _bucket0064 = new TEntry[UpToBucket0064];
-                    _bucket0128 = new TEntry[UpToBucket0128];
-                    _bucket0256 = new TEntry[UpToBucket0256];
-                    _bucket0512 = new TEntry[UpToBucket0512];
-                    _bucket1024 = new TEntry[UpToBucket1024];
-                    _bucket2048 = new TEntry[UpToBucket2048];
+            _bucket00Of32 = new TEntry[32];
+            _capacityPowerOfTwo = 32;
+            if (capacity <= 32)
+                return;
 
-                    var remainingCapacity = capacity - UpToBucket2048;
-                    var bucketCount = (remainingCapacity >>> RegularBucketBits) + 1;
-                    _regularBuckets = new TEntry[bucketCount][];
-                    for (var i = 0; i < bucketCount; ++i)
-                        _regularBuckets[i] = new TEntry[RegularBucketSize];
-                    break;
-            }
+            var lastBucketIndex = GetBucketIndexFromGlobalIndex(capacity - 1);
+            for (var i = 1; i <= lastBucketIndex; i++)
+                GetStackBucketRef(i) = new TEntry[32 << (i - 1)];
+            _capacityPowerOfTwo = 32 << lastBucketIndex;
+            if (lastBucketIndex < 8)
+                return;
+
+            _bucketsOf4096AndMore = new TEntry[lastBucketIndex - 7][];
+            for (var i = 0; i < _bucketsOf4096AndMore.Length; i++)
+                _bucketsOf4096AndMore[i] = new TEntry[4096 << i];
         }
 
         /// <inheritdoc/>
@@ -1121,111 +1110,52 @@ public static class SmallMap
         public ref TEntry GetSurePresentRef(int index)
         {
             Debug.Assert(index >= 0 && index < _count, $"Index {index} should be in the range 0..{_count}-1");
-#if NET8_0_OR_GREATER
-            var vIndex = Vector256.Create(index);
-            var vIndexLessThanBucket = Vector256.LessThan(vIndex, UpToBucketVec);
-            if (vIndexLessThanBucket != Vector256<int>.Zero)
-            {
-                // -1 to skip a 0 bucket at the start of vector
-                var bucketIndex = BitOperations.TrailingZeroCount(Vector256.ExtractMostSignificantBits(vIndexLessThanBucket)) - 1;
-                var entryIndex = index - UpToBucketVec.GetElement(bucketIndex);
-                var bucket = GetBucketRef(bucketIndex);
-                return ref bucket.GetSurePresentItemRef(entryIndex);
-            }
-            index -= UpToBucket2048;
-            var regularBucket = _regularBuckets.GetSurePresentItemRef(index >>> RegularBucketBits);
-            return ref regularBucket.GetSurePresentItemRef(index & RegularBucketMask);
-#else
-            switch (index)
-            {
-                case < UpToBucket0032:
-                    return ref _bucket0032.GetSurePresentItemRef(index);
-                case < UpToBucket0064:
-                    return ref _bucket0064.GetSurePresentItemRef(index - UpToBucket0032);
-                case < UpToBucket0128:
-                    return ref _bucket0128.GetSurePresentItemRef(index - UpToBucket0064);
-                case < UpToBucket0256:
-                    return ref _bucket0256.GetSurePresentItemRef(index - UpToBucket0128);
-                case < UpToBucket0512:
-                    return ref _bucket0512.GetSurePresentItemRef(index - UpToBucket0256);
-                case < UpToBucket1024:
-                    return ref _bucket1024.GetSurePresentItemRef(index - UpToBucket0512);
-                case < UpToBucket2048:
-                    return ref _bucket2048.GetSurePresentItemRef(index - UpToBucket1024);
-                default:
-                    index -= UpToBucket2048;
-                    var regularBucket = _regularBuckets.GetSurePresentItemRef(index >>> RegularBucketBits);
-                    return ref regularBucket.GetSurePresentItemRef(index & RegularBucketMask);
-            };
-#endif
+            if (index < 32) // todo: @perf generalize GetBucketIndexFromGlobalIndex to remove this branch
+                return ref _bucket00Of32.GetSurePresentItemRef(index);
+
+            var bucketIndex = GetBucketIndexFromGlobalIndex((uint)index);
+            var insideIndex = index - (1 << (bucketIndex + 5)); // index - (32 << bucketIndex)
+            var bucket = bucketIndex < 8 ? GetStackBucketRef(bucketIndex) : _bucketsOf4096AndMore[bucketIndex - 8];
+            return ref bucket.GetSurePresentItemRef(insideIndex);
         }
 
         /// <inheritdoc/>
         [MethodImpl((MethodImplOptions)256)]
         public ref TEntry AddDefaultAndGetRef()
         {
-            var index = _count++;
-#if NET8_0_OR_GREATER
-            var vIndex = Vector256.Create(index);
-            var vIndexThanBucket = Vector256.LessThan(vIndex, UpToBucketVec);
-            if (vIndexThanBucket != Vector256<int>.Zero)
+            var lastIndex = _count++;
+            if (lastIndex < 32) // todo: @perf generalize GetBucketIndexFromGlobalIndex to remove this branch
             {
-                var bucketIndex = BitOperations.TrailingZeroCount(Vector256.ExtractMostSignificantBits(vIndexThanBucket));
-                --bucketIndex; // to skip a 0 bucket at the start of vector
-                var entryIndex = index - UpToBucketVec.GetElement(bucketIndex);
-                ref var bucket = ref GetBucketRef(bucketIndex);
-                bucket ??= new TEntry[UpToBucket0032 << bucketIndex];
-                return ref bucket.GetSurePresentItemRef(entryIndex);
+                if (_bucket00Of32 == null)
+                    _bucket00Of32 = new TEntry[32];
+                return ref _bucket00Of32.GetSurePresentItemRef(lastIndex);
             }
-            index -= UpToBucket2048;
-            var regularBucketIndex = index >>> RegularBucketBits;
-            var regularEntryIndex = index & RegularBucketMask;
-            if (_regularBuckets == null)
-                _regularBuckets = new TEntry[regularBucketIndex + 1][];
-            else if (_regularBuckets.Length <= regularBucketIndex)
-                Array.Resize(ref _regularBuckets, regularBucketIndex + 1);
-            ref var regularBucket = ref _regularBuckets.GetSurePresentItemRef(regularBucketIndex);
-            if (regularBucket == null)
-                regularBucket = new TEntry[RegularBucketSize];
-            return ref regularBucket.GetSurePresentItemRef(regularEntryIndex);
-#else
-            switch (index)
+
+            var bucketIndex = GetBucketIndexFromGlobalIndex((uint)lastIndex);
+            var insideIndex = lastIndex - (1 << (bucketIndex + 5)); // index - (32 << bucketIndex)
+
+            _capacityPowerOfTwo = 32 << bucketIndex;
+
+            if (bucketIndex < 8)
             {
-                case < UpToBucket0032:
-                    _bucket0032 ??= new TEntry[UpToBucket0032];
-                    return ref _bucket0032.GetSurePresentItemRef(index);
-                case < UpToBucket0064:
-                    _bucket0064 ??= new TEntry[UpToBucket0064];
-                    return ref _bucket0064.GetSurePresentItemRef(index - UpToBucket0032);
-                case < UpToBucket0128:
-                    _bucket0128 ??= new TEntry[UpToBucket0128];
-                    return ref _bucket0128.GetSurePresentItemRef(index - UpToBucket0064);
-                case < UpToBucket0256:
-                    _bucket0256 ??= new TEntry[UpToBucket0256];
-                    return ref _bucket0256.GetSurePresentItemRef(index - UpToBucket0128);
-                case < UpToBucket0512:
-                    _bucket0512 ??= new TEntry[UpToBucket0512];
-                    return ref _bucket0512.GetSurePresentItemRef(index - UpToBucket0256);
-                case < UpToBucket1024:
-                    _bucket1024 ??= new TEntry[UpToBucket1024];
-                    return ref _bucket1024.GetSurePresentItemRef(index - UpToBucket0512);
-                case < UpToBucket2048:
-                    _bucket2048 ??= new TEntry[UpToBucket2048];
-                    return ref _bucket2048.GetSurePresentItemRef(index - UpToBucket1024);
-                default:
-                    index -= UpToBucket2048;
-                    var regularBucketIndex = index >>> RegularBucketBits;
-                    var regularEntryIndex = index & RegularBucketMask;
-                    if (_regularBuckets == null)
-                        _regularBuckets = new TEntry[regularBucketIndex + 1][];
-                    else if (_regularBuckets.Length <= regularBucketIndex)
-                        Array.Resize(ref _regularBuckets, regularBucketIndex + 1);
-                    ref var regularBucket = ref _regularBuckets.GetSurePresentItemRef(regularBucketIndex);
-                    if (regularBucket == null)
-                        regularBucket = new TEntry[RegularBucketSize];
-                    return ref regularBucket.GetSurePresentItemRef(regularEntryIndex);
-            };
-#endif
+                ref var bucket = ref GetStackBucketRef(bucketIndex);
+                if (bucket == null)
+                    bucket = new TEntry[32 << (bucketIndex - 1)];
+                return ref bucket.GetSurePresentItemRef(insideIndex);
+            }
+            else
+            {
+                var heapBucketCount = bucketIndex - 7;
+                if (_bucketsOf4096AndMore == null)
+                    _bucketsOf4096AndMore = new TEntry[heapBucketCount][];
+                else if (_bucketsOf4096AndMore.Length < heapBucketCount)
+                    Array.Resize(ref _bucketsOf4096AndMore, heapBucketCount);
+
+                ref var bucket = ref _bucketsOf4096AndMore[heapBucketCount - 1];
+                if (bucket == null)
+                    bucket = new TEntry[4096 << (heapBucketCount - 1)];
+                return ref bucket.GetSurePresentItemRef(insideIndex);
+            }
         }
     }
 
@@ -1545,7 +1475,6 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
             .Key;
     }
 
-    // todo: @perf try using StableGrowingEntries (or Xar) with O(1) random access. And make an default storage for the entries.
     // todo: @perf make it an interface method to store the actual entry in place of the 32 bit index, e.g. store and actual int key for the int Set
     ///<summary>Get the value ref by the entry index. Also the index corresponds to entry adding order.
     /// Important: it does not check the index bounds, so you need to check that the index is from 0 to map.Count-1</summary>
@@ -1920,7 +1849,8 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 public struct SmallMap4<K, V, TEq>() where TEq : struct, IEq<K>
 {
     /// <summary>Map with 4 elements on stack and entries baked by the single array</summary> 
-    public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size4, Stack4<int>, Stack4<SmallMap.Entry<K, V>>, SmallMap.SingleArrayEntries<K, SmallMap.Entry<K, V>>> Map;
+    public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size4, Stack4<int>, Stack4<SmallMap.Entry<K, V>>,
+        SmallMap.StableArrayEntries<K, SmallMap.Entry<K, V>>> Map;
     public SmallMap4(byte capacityBitShift) : this() => Map = new(capacityBitShift);
 }
 
@@ -1928,10 +1858,12 @@ public struct SmallMap4<K, V, TEq>() where TEq : struct, IEq<K>
 public struct SmallMap8<K, V, TEq>() where TEq : struct, IEq<K>
 {
     /// <summary>Map with 8 elements on stack and entries baked by the single array</summary> 
-    public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size8, Stack8<int>, Stack8<SmallMap.Entry<K, V>>, SmallMap.SingleArrayEntries<K, SmallMap.Entry<K, V>>> Map;
+    public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size8, Stack8<int>, Stack8<SmallMap.Entry<K, V>>,
+        SmallMap.StableArrayEntries<K, SmallMap.Entry<K, V>>> Map;
     public SmallMap8(byte capacityBitShift) : this() => Map = new(capacityBitShift);
 }
 
+// todo: @wip check that it uses stable array entries
 /// <summary>Holds the Map with 16 items on stack. Minimizes the number of type arguments required to be specified</summary>
 public struct SmallMap16<K, V, TEq>() where TEq : struct, IEq<K>
 {
