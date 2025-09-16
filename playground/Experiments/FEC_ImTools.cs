@@ -1119,7 +1119,7 @@ public static class SmallMap
             if (index < 32)
                 return ref _bucket00Of32.GetSurePresentItemRef(index);
 
-            var bucketIndex = GetBucketIndexFromGlobalIndex((uint)index);
+            var bucketIndex = GetBucketIndexFromGlobalIndex((uint)index); Debug.Assert(bucketIndex > 0, $"Bucket index should be more than 0 here but found {bucketIndex}");
             var insideIndex = index - (32 << (bucketIndex - 1));
             var bucket = bucketIndex < 8 ? GetStackBucketRef(bucketIndex) : _bucketsOf4096AndMore[bucketIndex - 8];
             return ref bucket.GetSurePresentItemRef(insideIndex);
@@ -1314,7 +1314,7 @@ public static class SmallMapDiagnostics
     {
         var metas = map.PackedEntryIndexesHashesProbes;
         var probeMask = map.Capacity - 1;
-        var prevProbe = startIndex > 0 ? (metas[startIndex - 1] & probeMask) : 0;
+        var prevProbe = (startIndex == 0 ? metas[metas.Length - 1] : metas[startIndex - 1]) & probeMask;
 
         endIndex = endIndex == -1 ? metas.Length : endIndex;
         for (var i = startIndex; i < endIndex; i++)
@@ -1850,56 +1850,40 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         var probeMask = oldCapacity - 1;
         var newProbeMask = newCapacity - 1;
 
-        // Skip the wrapped-around hashes, as they may be perfectly fit into new capacity without wrapping.
-        // They will be handled as the last bunch as it should be logically.
-        // Say it is probes 0:..3, 1:..2, 2:..0. Means the probe 3 is wrapped around from the end,
-        // and the next probe is 2 because its ideal position was occupied by 3.
-        // This algo will skip 3 and completes on 2 as it is the first non-wrapped probe.
-        var metaIndex = 0;
-        var probe = 1;
-        while (true)
+        for (var metaIndex = 0; metaIndex < oldCapacity; ++metaIndex)
         {
             var m = metas.GetSurePresentItem(metaIndex);
-            if ((m & probeMask) <= probe)
-                break;
-            ++probe;
-            ++metaIndex;
-        }
-
-        var endBefore = metaIndex + oldCapacity;
-        while (true)
-        {
-            var m = metas.GetSurePresentItem(metaIndex & probeMask);
             if (m != 0)
             {
                 // Сalculate the ideal hash index for the current probe
                 var p = (int)(m & probeMask);
-                var idealIndex = metaIndex - p + 1; // probe starts with 1, so index - (1 - 1) == index 
+                // Add oldCapacity then clamp with probeMask to avoid negative values for the wrapped-around indexes
+                var idealIndex = (oldCapacity + metaIndex - p + 1) & probeMask;
                 Debug.Assert(idealIndex >= 0, $"Ideal index should be non-negative, but found {idealIndex}");
 
                 // Calculate the new ideal index based on the next bit after the index mask (an oldCapacity bit).
                 // If the bit is 0 then the new index is the same otherwise it is oldCapacity + idealIndex, or in other words...
-                var newMetaIndex = (int)(m & oldCapacity) | idealIndex;
                 var newMeta = (m & ~newProbeMask) | 1L; // starting probe is always 1
+                var newMetaIndex = (int)(m & oldCapacity) | idealIndex;
 
-                // Copy the hash with the probe starting from the new ideal index
-                // No need for robin-hooding because the robin-hood invariant holds when elements are inserted in the same order
+                // Using robin-hood resordering, even if it is required only for the wrapped-around cases.
+                // But this is fine because after resize it will be less frequent and comparing to just insertion it is just one check more.
                 while (true)
                 {
                     ref var newMetaRef = ref newMetas.GetSurePresentItemRef(newMetaIndex & newProbeMask);
-                    if (newMetaRef == 0)
+                    if ((newMetaRef & newProbeMask) < (newMeta & newProbeMask))
                     {
+                        var mRobinHooded = newMetaRef;
                         newMetaRef = newMeta;
-                        break;
+                        if (mRobinHooded == 0) // finish on the empty slot
+                            break;
+                        newMeta = mRobinHooded;
                     }
-                    ++newMeta;
+
+                    ++newMeta; // actually incrementing the probe, it is save because probe has the space of the whole capacity constrained by the probeMask
                     ++newMetaIndex;
                 }
             }
-
-            // Move to the next hash or finish when all old hashes are processed
-            if (++metaIndex >= endBefore)
-                break;
         }
 
         _capacityPowerOfTwo = newCapacity;
