@@ -1920,7 +1920,6 @@ public struct SmallMap16<K, V, TEq>() where TEq : struct, IEq<K>
     /// <summary>Map with 16 elements on stack and entries baked by the single array</summary> 
     public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size16, Stack16<int>, Stack16<SmallMap.Entry<K, V>>,
         SmallMap.StableArrayEntries<K, SmallMap.Entry<K, V>>> Map;
-
     public SmallMap16(byte capacityBitShift) : this() => Map = new(capacityBitShift);
 }
 
@@ -1928,21 +1927,24 @@ public struct SmallMap16<K, V, TEq>() where TEq : struct, IEq<K>
 public struct SmallSet4<K, TEq>() where TEq : struct, IEq<K>
 {
     /// <summary>Set with 4 keys on stack and entries baked by the single array</summary> 
-    public SmallMap<K, SmallMap.Entry<K>, TEq, Size4, Stack4<int>, Stack4<SmallMap.Entry<K>>, SmallMap.SingleArrayEntries<K, SmallMap.Entry<K>>> Set;
+    public SmallMap<K, SmallMap.Entry<K>, TEq, Size4, Stack4<int>, Stack4<SmallMap.Entry<K>>,
+        SmallMap.StableArrayEntries<K, SmallMap.Entry<K>>> Set;
 }
 
 /// <summary>Holds the Set with 8 items on stack. Minimizes the number of type arguments required to be specified</summary>
 public struct SmallSet8<K, TEq>() where TEq : struct, IEq<K>
 {
     /// <summary>Set with 8 keys on stack and entries baked by the single array</summary> 
-    public SmallMap<K, SmallMap.Entry<K>, TEq, Size8, Stack8<int>, Stack8<SmallMap.Entry<K>>, SmallMap.SingleArrayEntries<K, SmallMap.Entry<K>>> Set;
+    public SmallMap<K, SmallMap.Entry<K>, TEq, Size8, Stack8<int>, Stack8<SmallMap.Entry<K>>,
+        SmallMap.StableArrayEntries<K, SmallMap.Entry<K>>> Set;
 }
 
 /// <summary>Holds the Set with 16 items on stack. Minimizes the number of type arguments required to be specified</summary>
 public struct SmallSet16<K, TEq>() where TEq : struct, IEq<K>
 {
     /// <summary>Set with 16 keys on stack and entries baked by the single array</summary> 
-    public SmallMap<K, SmallMap.Entry<K>, TEq, Size16, Stack16<int>, Stack16<SmallMap.Entry<K>>, SmallMap.SingleArrayEntries<K, SmallMap.Entry<K>>> Set;
+    public SmallMap<K, SmallMap.Entry<K>, TEq, Size16, Stack16<int>, Stack16<SmallMap.Entry<K>>,
+        SmallMap.StableArrayEntries<K, SmallMap.Entry<K>>> Set;
 }
 
 #nullable restore
