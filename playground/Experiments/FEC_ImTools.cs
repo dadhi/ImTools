@@ -27,7 +27,7 @@ THE SOFTWARE.
 #nullable disable
 
 #if DEBUG
-// #define VERIFY_MAP
+#define VERIFY_MAP
 #endif
 
 #if !NETSTANDARD2_0_OR_GREATER && !NET472
@@ -181,8 +181,8 @@ public static class SmallList
     public static ref T Add<T>(this ref SmallList<T> source, int initialCapacity = DefaultInitialCapacity) =>
         ref AddDefaultAndGetRef(ref source.Items, source.Count++, initialCapacity);
 
-    /// <summary>Appends the new item to the list</summary>
     // todo: @perf add the not null variant
+    /// <summary>Appends the new item to the list</summary>
     [MethodImpl((MethodImplOptions)256)]
     public static void Add<T>(this ref SmallList<T> source, in T item, int initialCapacity = DefaultInitialCapacity) =>
         AddDefaultAndGetRef(ref source.Items, source.Count++, initialCapacity) = item;
@@ -994,7 +994,7 @@ public static class SmallMap
         [MethodImpl((MethodImplOptions)256)]
         public ref TEntry GetSurePresentRef(int index)
         {
-            Debug.Assert(index >= 0 && index < _count, $"Index {index} should be in the range 0..{_count}-1");
+            Debug.Assert(index >= 0 && index < _count, $"Index {index} should be in the range 0..{_count - 1}");
             return ref _entries.GetSurePresentItemRef(index);
         }
 
@@ -1038,17 +1038,23 @@ public static class SmallMap
         /// <inheritdoc/>
         public int Count => _count;
 
-        // todo: @wip works only for index >= 32
-        // Starting from the 0 bucket of 32 items: 0b00000000_00000000_00000000_00011111 = 31
-        // 32 - leading zeros = 5, and -5 = 0 => bucket 0, e.g. 27 - leading zeros
 #if NET6_0_OR_GREATER
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int GetBucketIndexFromGlobalIndex(uint index) =>
-            index < 32 ? 0 : 27 - BitOperations.LeadingZeroCount(index);
+        // Starting from the 0 bucket of 32 items: 0b00000000_00000000_00000000_00011111 = 31
+        private static int GetBucketIndexFromGlobalIndex(uint index)
+        {
+            var bucketIndex = 27 - BitOperations.LeadingZeroCount(index);
+            // For index < 32: LeadingZeroCount gives 27-32, so 27-lzc gives -5 to 0
+            // We want to set (clamp) negative values to 0, [-5..-1] => 0
+            // Arithmetic right shift (bucketIndex >> 31) will convert any negative to -1 (0xFFFFFFFF), and 0 or positive to 0
+            // Then inverting ~(-1) will give 0 mask to erase any negative bucketIndex to 0. 
+            // Inverting ~(0) will give -1 mask to keep any positive bucketIndex as is.
+            return bucketIndex & ~(bucketIndex >> 31);
+        }
 #else
         private static int GetBucketIndexFromGlobalIndex(uint index)
         {
-            if (index == 0) return 0;
+            if (index < 32) return 0;
 
             var count = 0;
             if (index <= 0x0000FFFF) { count += 16; index <<= 16; }
@@ -1086,7 +1092,7 @@ public static class SmallMap
 
         /// <summary>Initializes enough buckets to hold the specified capacity.
         /// Always creates at least the first bucket of 32 items.</summary>
-        public void Init(uint capacity = 0)
+        public void Init(uint capacity = 1)
         {
             _bucket00Of32 = new TEntry[32];
             _capacityPowerOfTwo = 32;
@@ -1109,12 +1115,12 @@ public static class SmallMap
         [MethodImpl((MethodImplOptions)256)]
         public ref TEntry GetSurePresentRef(int index)
         {
-            Debug.Assert(index >= 0 && index < _count, $"Index {index} should be in the range 0..{_count}-1");
-            if (index < 32) // todo: @perf generalize GetBucketIndexFromGlobalIndex to remove this branch
+            Debug.Assert(index >= 0 && index < _count, $"Index {index} should be in the range 0..{_count - 1}");
+            if (index < 32)
                 return ref _bucket00Of32.GetSurePresentItemRef(index);
 
             var bucketIndex = GetBucketIndexFromGlobalIndex((uint)index);
-            var insideIndex = index - (1 << (bucketIndex + 5)); // index - (32 << bucketIndex)
+            var insideIndex = index - (32 << (bucketIndex - 1));
             var bucket = bucketIndex < 8 ? GetStackBucketRef(bucketIndex) : _bucketsOf4096AndMore[bucketIndex - 8];
             return ref bucket.GetSurePresentItemRef(insideIndex);
         }
@@ -1124,24 +1130,23 @@ public static class SmallMap
         public ref TEntry AddDefaultAndGetRef()
         {
             var lastIndex = _count++;
-            if (lastIndex < 32) // todo: @perf generalize GetBucketIndexFromGlobalIndex to remove this branch
+            if (lastIndex < 32)
             {
+                _capacityPowerOfTwo = 32;
                 if (_bucket00Of32 == null)
                     _bucket00Of32 = new TEntry[32];
                 return ref _bucket00Of32.GetSurePresentItemRef(lastIndex);
             }
 
             var bucketIndex = GetBucketIndexFromGlobalIndex((uint)lastIndex);
-            var insideIndex = lastIndex - (1 << (bucketIndex + 5)); // index - (32 << bucketIndex)
-
-            _capacityPowerOfTwo = 32 << bucketIndex;
-
+            var fullBacketsCapacity = 32 << (bucketIndex - 1);
+            _capacityPowerOfTwo = fullBacketsCapacity << 1;
             if (bucketIndex < 8)
             {
                 ref var bucket = ref GetStackBucketRef(bucketIndex);
                 if (bucket == null)
-                    bucket = new TEntry[32 << (bucketIndex - 1)];
-                return ref bucket.GetSurePresentItemRef(insideIndex);
+                    bucket = new TEntry[fullBacketsCapacity];
+                return ref bucket.GetSurePresentItemRef(lastIndex - fullBacketsCapacity);
             }
             else
             {
@@ -1153,8 +1158,8 @@ public static class SmallMap
 
                 ref var bucket = ref _bucketsOf4096AndMore[heapBucketCount - 1];
                 if (bucket == null)
-                    bucket = new TEntry[4096 << (heapBucketCount - 1)];
-                return ref bucket.GetSurePresentItemRef(insideIndex);
+                    bucket = new TEntry[fullBacketsCapacity];
+                return ref bucket.GetSurePresentItemRef(lastIndex - fullBacketsCapacity);
             }
         }
     }
@@ -1330,7 +1335,7 @@ public static class SmallMapDiagnostics
         {
             var key = map.GetSurePresentKey(i);
             var foundIndex = map.TryGetIndex(key);
-            assertCond(foundIndex != -1, $"Not found foundIndex:-1 for i:{i}, key:{key}");
+            assertCond(foundIndex != -1, $"Not found (foundIndex:-1) for entryIndex:{i}, key:{key}");
             assertCond(foundIndex == i, $"Does not correspond foundIndex:{foundIndex}, i:{i}, key:{key}");
         }
     }
@@ -1384,6 +1389,23 @@ public interface IMapImpl<K>
     int GetHashCode(K key);
 }
 
+#if DEBUG
+/// <summary>Represents unpacked metadata for debugging - matches long layout</summary>
+[DebuggerDisplay("{ToString(),nq}")]
+[StructLayout(LayoutKind.Explicit, Size = 8)]
+public readonly struct DebugMetaUnpacked
+{
+    [FieldOffset(0)]
+    public readonly uint HashAndProbe;
+
+    [FieldOffset(4)]
+    public readonly uint EntryIndex;
+
+    public override string ToString() =>
+        HashAndProbe == 0 ? "empty" : $"ei:{EntryIndex}, hp:0b{Convert.ToString(HashAndProbe, 2).PadLeft(32, '0')}";
+}
+#endif
+
 /// <summary>
 /// Fast and less-allocating hash map without thread safety nets. Please measure it in your own use case before use.
 /// It is configurable in regard of hash calculation/equality via `TEq` type parameter and 
@@ -1398,7 +1420,7 @@ public interface IMapImpl<K>
 /// For instance, for the `RefEq` the tombstone is <see langword="null"/>. You may redefine it in the `IEq{K}.GetTombstone()` implementation.
 /// 
 /// </summary>
-[DebuggerDisplay("Contains {Count} entries")]
+[DebuggerDisplay("Count = {Count}, Capacity = {Capacity}")]
 public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, THeapEntries> : IMap<K, TEntry>, IMapImpl<K>
     where TEntry : struct, IEntry<K>
     where TEq : struct, IEq<K>
@@ -1427,6 +1449,19 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     //     |    |- The remaining part of the hash without the indexMask bits used for the item index.
     //     |- The entry index stored in the high bits
     internal long[] _packedEntryIndexesHashesProbes;
+
+#if DEBUG && SUPPORTS_UNSAFE
+    public Span<DebugMetaUnpacked> DebugMetaUnpacked
+    {
+        get
+        {
+            var packed = _packedEntryIndexesHashesProbes;
+            if (packed == null || packed.Length == 0)
+                return Span<DebugMetaUnpacked>.Empty;
+            return MemoryMarshal.Cast<long, DebugMetaUnpacked>(packed.AsSpan());
+        }
+    }
+#endif
 
 #pragma warning disable IDE0044 // it tries to make entries readonly but they should stay modify-able to prevent its defensive struct copying
 #pragma warning disable CS0649 // field is never assigned to, and will always have its default value
@@ -1466,12 +1501,12 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 
     /// <inheritdoc />
     [MethodImpl((MethodImplOptions)256)]
-    public K GetSurePresentKey(int index)
+    public K GetSurePresentKey(int entryIndex)
     {
-        Debug.Assert(index >= 0 && index < _count, $"Index {index} should be in the range 0..{_count}-1");
-        return (index >= _stackEntries.Capacity
-            ? _heapEntries.GetSurePresentRef(index - _stackEntries.Capacity)
-            : _stackEntries.GetSurePresentItemRef(index))
+        Debug.Assert(entryIndex >= 0 & entryIndex < _count, $"Entry index {entryIndex} should be in the range 0..{_count - 1}");
+        return (entryIndex >= _stackEntries.Capacity
+            ? _heapEntries.GetSurePresentRef(entryIndex - _stackEntries.Capacity)
+            : _stackEntries.GetSurePresentItemRef(entryIndex))
             .Key;
     }
 
@@ -1480,12 +1515,12 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     /// Important: it does not check the index bounds, so you need to check that the index is from 0 to map.Count-1</summary>
     [UnscopedRef]
     [MethodImpl((MethodImplOptions)256)]
-    public ref TEntry GetSurePresentEntryRef(int index)
+    public ref TEntry GetSurePresentEntryRef(int entryIndex)
     {
-        Debug.Assert(index >= 0 && index < _count, $"Index {index} should be in the range 0..{_count}-1");
-        if (index >= _stackEntries.Capacity)
-            return ref _heapEntries.GetSurePresentRef(index - _stackEntries.Capacity);
-        return ref _stackEntries.GetSurePresentItemRef(index);
+        Debug.Assert(entryIndex >= 0 && entryIndex < _count, $"Index {entryIndex} should be in the range 0..{_count - 1}");
+        if (entryIndex >= _stackEntries.Capacity)
+            return ref _heapEntries.GetSurePresentRef(entryIndex - _stackEntries.Capacity);
+        return ref _stackEntries.GetSurePresentItemRef(entryIndex);
     }
 
     [UnscopedRef]
@@ -1502,8 +1537,8 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 #endif
         found = true;
         var probeMask = _capacityPowerOfTwo - 1;
-        var metaIndex = hash & probeMask;
         var meta = (long)_count << EntryIndexStartAtBit | (long)(hash & ~probeMask) | 1L;
+        var metaIndex = hash & probeMask;
         while (true)
         {
             ref var mRef = ref metas.GetSurePresentItemRef(metaIndex & probeMask);
@@ -1529,6 +1564,8 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         }
 
         found = false;
+        ref var newEntry = ref _heapEntries.AddDefaultAndGetRef();
+        newEntry.Key = key;
         ++_count;
 
         // The new metadata slot is added - this is a good place to resize the metadata.
@@ -1536,13 +1573,11 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         if (_capacityPowerOfTwo - _count <= (_capacityPowerOfTwo >>> MinFreeCapacityShift))
             ResizeMetadata();
 
-        ref var newEntry = ref _heapEntries.AddDefaultAndGetRef();
-        newEntry.Key = key;
         return ref newEntry;
     }
 
     [MethodImpl((MethodImplOptions)256)]
-    private void PutMetadataWithoutResizing(int probeMask, int hash, int index)
+    private void PutMetadataWithoutResizing(int probeMask, int hash, int entryIndex)
     {
 #if DEBUG
         ++PutMetadataWithoutResizing_Count;
@@ -1553,8 +1588,8 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         var metas = _packedHashesAndProbes;
 #endif
 
+        var meta = (long)entryIndex << EntryIndexStartAtBit | (long)(hash & ~probeMask) | 1L;
         var metaIndex = hash & probeMask;
-        var meta = (long)_count << EntryIndexStartAtBit | (long)(hash & ~probeMask) | 1L;
         while (true)
         {
             ref var mRef = ref metas.GetSurePresentItemRef(metaIndex & probeMask);
@@ -1627,7 +1662,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 
         ++_count;
 
-        // Give the heap entries the same initial capacity as Stack, effectively doubling the capacity
+        // Creating the heap entries in addition to the stack entries, so the stack entries remain stable and never migrate
         _heapEntries.Init((uint)stackCapacity);
 
         // Set the key for the first entry, which is the 0 index in the entries
@@ -1723,8 +1758,8 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         var metas = _packedHashesAndProbes;
 #endif
         var probeMask = _capacityPowerOfTwo - 1;
-        var metaIndex = hash & probeMask;
         var meta = (long)(hash & ~probeMask) | 1L;
+        var metaIndex = hash & probeMask;
         while (true)
         {
             ref var mRef = ref metas.GetSurePresentItemRef(metaIndex & probeMask);
@@ -1734,8 +1769,44 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
             if ((mRef & HashAndProbeMask) == meta)
             {
                 var entryIndex = (int)(mRef >>> EntryIndexStartAtBit);
-                if (default(TEq).Equals(GetSurePresentKey(entryIndex), key))
+                ref var entry = ref GetSurePresentEntryRef(entryIndex);
+                if (default(TEq).Equals(entry.Key, key))
                     return entryIndex;
+            }
+
+            ++meta;
+            ++metaIndex;
+        }
+    }
+
+    [UnscopedRef]
+    [MethodImpl((MethodImplOptions)256)]
+    internal ref TEntry TryGetEntryRef(K key, int hash, out bool found)
+    {
+        found = false;
+#if NET7_0_OR_GREATER
+        ref var metas = ref MemoryMarshal.GetArrayDataReference(_packedEntryIndexesHashesProbes);
+#else
+        var metas = _packedHashesAndProbes;
+#endif
+        var probeMask = _capacityPowerOfTwo - 1;
+        var meta = (long)(hash & ~probeMask) | 1L;
+        var metaIndex = hash & probeMask;
+        while (true)
+        {
+            ref var mRef = ref metas.GetSurePresentItemRef(metaIndex & probeMask);
+            if ((mRef & probeMask) < (meta & probeMask))
+                return ref RefTools<TEntry>.GetNullRef();
+
+            if ((mRef & HashAndProbeMask) == meta)
+            {
+                var entryIndex = (int)(mRef >>> EntryIndexStartAtBit);
+                ref var entry = ref GetSurePresentEntryRef(entryIndex);
+                if (default(TEq).Equals(entry.Key, key))
+                {
+                    found = true;
+                    return ref entry;
+                }
             }
 
             ++meta;
@@ -1750,17 +1821,12 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     {
         var hash = default(TEq).GetHashCode(key);
         if (_count > _stackEntries.Capacity)
-        {
-            var i = TryGetIndexInEntries(key, hash);
-            if (found = i != -1)
-                return ref GetSurePresentEntryRef(i); // the index may refer to the stack or heap entries
-        }
-        else
-        {
-            var i = _stackEntries.TryGetStackEntryIndex(ref _stackHashes, _count, key, hash, Pass<TEq, TStackCap, TEntry>.It);
-            if (found = i != -1)
-                return ref _stackEntries.GetSurePresentItemRef(i);
-        }
+            return ref TryGetEntryRef(key, hash, out found);
+
+        var i = _stackEntries.TryGetStackEntryIndex(ref _stackHashes, _count, key, hash, Pass<TEq, TStackCap, TEntry>.It);
+        if (found = i != -1)
+            return ref _stackEntries.GetSurePresentItemRef(i);
+
         return ref RefTools<TEntry>.GetNullRef();
     }
 
@@ -1793,8 +1859,8 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         var probe = 1;
         while (true)
         {
-            var hp = metas.GetSurePresentItem(metaIndex);
-            if ((hp & probeMask) <= probe)
+            var m = metas.GetSurePresentItem(metaIndex);
+            if ((m & probeMask) <= probe)
                 break;
             ++probe;
             ++metaIndex;
@@ -1808,7 +1874,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
             {
                 // Сalculate the ideal hash index for the current probe
                 var p = (int)(m & probeMask);
-                var idealIndex = metaIndex - p + 1; // index - (probe - 1) because probe starts with 1
+                var idealIndex = metaIndex - p + 1; // probe starts with 1, so index - (1 - 1) == index 
                 Debug.Assert(idealIndex >= 0, $"Ideal index should be non-negative, but found {idealIndex}");
 
                 // Calculate the new ideal index based on the next bit after the index mask (an oldCapacity bit).
