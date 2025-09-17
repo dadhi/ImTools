@@ -15,6 +15,7 @@ using System.Runtime.CompilerServices;
 using FHashMap91TypeString = ImTools.Experiments.FHashMap91<System.Type, string, ImTools.Experiments.FHashMap91.RefEq<System.Type>, ImTools.Experiments.FHashMap91.SingleArrayEntries<System.Type, string, ImTools.Experiments.FHashMap91.RefEq<System.Type>>>;
 using SmallMapTypeString = ImTools.HSmallMap<System.Type, string, ImTools.RefEq<System.Type>, ImTools.HSmallMap.SingleArrayEntries<System.Type, string, ImTools.RefEq<System.Type>>>;
 using FecSmallMapTypeString = FastExpressionCompiler.ImTools.SmallMap16<System.Type, string, FastExpressionCompiler.ImTools.RefEq<System.Type>>;
+using FecSmallMapTypeString_SingleArrEntries = FastExpressionCompiler.ImTools.SmallMap16_SingleArrEntries<System.Type, string, FastExpressionCompiler.ImTools.RefEq<System.Type>>;
 using BenchmarkDotNet.Order;
 using ImTools.Experiments;
 
@@ -2403,6 +2404,21 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 1000  | 29,665.4 ns |   588.68 ns | 1,581.45 ns | 29,786.1 ns |  1.00 |    0.08 |    1 | 9.1553 | 1.2817 |   57808 B |        1.00 |
             | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 1000  | 55,723.9 ns | 1,098.60 ns | 1,078.97 ns | 55,599.6 ns |  1.88 |    0.12 |    2 | 7.8735 | 0.3052 |   49544 B |        0.86 |
             | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 1000  | 63,373.1 ns | 1,260.87 ns | 2,106.62 ns | 63,624.5 ns |  2.14 |    0.14 |    3 | 6.2256 | 0.2441 |   39288 B |        0.68 |
+
+            ## Packing indexes, hashes and probes together
+
+            | Method                                                   | Count | Mean     | Error    | StdDev   | Median   | Ratio | RatioSD | Rank | Gen0   | Gen1   | Allocated | Alloc Ratio |
+            |--------------------------------------------------------- |------ |---------:|---------:|---------:|---------:|------:|--------:|-----:|-------:|-------:|----------:|------------:|
+            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 1000  | 24.17 us | 0.483 us | 1.176 us | 23.48 us |  1.00 |    0.07 |    1 | 9.1553 | 1.2817 |  56.45 KB |        1.00 |
+            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 1000  | 52.85 us | 1.053 us | 1.871 us | 52.14 us |  2.19 |    0.13 |    2 | 7.8125 | 0.2441 |  48.05 KB |        0.85 |
+
+            ## Packing indexes, hashes and probes together with Resize vs no Resize
+
+            | Method                                                        | Count | Mean     | Error    | StdDev   | Median   | Ratio | RatioSD | Rank | Gen0   | Gen1   | Allocated | Alloc Ratio |
+            |-------------------------------------------------------------- |------ |---------:|---------:|---------:|---------:|------:|--------:|-----:|-------:|-------:|----------:|------------:|
+            | FecHashMap_Init1000_PopulateThenLookup_HalfMissed_HalfPresent | 1000  | 36.08 us | 0.329 us | 0.275 us | 36.08 us |  0.66 |    0.03 |    1 | 7.9346 | 0.4883 |  48.73 KB |        1.01 |
+            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent          | 1000  | 55.17 us | 0.985 us | 2.453 us | 54.41 us |  1.00 |    0.06 |    2 | 7.8125 | 0.2441 |  48.05 KB |        1.00 |
+
             */
             // [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
             // [Params(10, 100, 1000)]
@@ -2841,7 +2857,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             }
 
             // [Benchmark]
-            [Benchmark(Baseline = true)]
+            // [Benchmark(Baseline = true)]
             public int DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent()
             {
                 var dict = new DictionarySlim<TypeVal, string>();
@@ -2881,10 +2897,56 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return count;
             }
 
-            [Benchmark]
+            [Benchmark(Baseline = true)]
             public int FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent()
             {
                 var m = new FecSmallMapTypeString();
+                ref var map = ref m.Map;
+
+                foreach (var key in _presentKeys)
+                    map.AddOrUpdate(key, "a");
+
+                var count = 0;
+                var iters = Count / 2;
+                for (var i = 0; i < iters; ++i)
+                {
+                    ref var result = ref map.TryGetEntryRef(_randomPresentKeys[i], out var found);
+                    if (found)
+                        count += result.Value.Length;
+                    _ = ref map.TryGetEntryRef(_missingKeys[i], out found);
+                    if (!found)
+                        --count;
+                }
+                return count;
+            }
+
+            [Benchmark]
+            public int FecHashMap_Init1000_PopulateThenLookup_HalfMissed_HalfPresent()
+            {
+                var m = new FecSmallMapTypeString(1024);
+                ref var map = ref m.Map;
+
+                foreach (var key in _presentKeys)
+                    map.AddOrUpdate(key, "a");
+
+                var count = 0;
+                var iters = Count / 2;
+                for (var i = 0; i < iters; ++i)
+                {
+                    ref var result = ref map.TryGetEntryRef(_randomPresentKeys[i], out var found);
+                    if (found)
+                        count += result.Value.Length;
+                    _ = ref map.TryGetEntryRef(_missingKeys[i], out found);
+                    if (!found)
+                        --count;
+                }
+                return count;
+            }
+
+            // [Benchmark]
+            public int FecHashMap_SingleArrEntries_PopulateThenLookup_HalfMissed_HalfPresent()
+            {
+                var m = new FecSmallMapTypeString_SingleArrEntries();
                 ref var map = ref m.Map;
 
                 foreach (var key in _presentKeys)
