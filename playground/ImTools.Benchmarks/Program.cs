@@ -23,13 +23,13 @@ namespace ImTools.Benchmarks
             // BenchmarkRunner.Run<ImMapBenchmarks.Enumerate>();
 
             // BenchmarkRunner.Run<ImHashMapBenchmarks.Populate>();
-            // BenchmarkRunner.Run<Playground.ImHashMapBenchmarks.Lookup>();
 
-            var bm = new Playground.ImHashMapBenchmarks.Lookup();
-            bm.Count = 1000;
-            bm.Populate();
-            var count = bm.FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent();
-            Console.WriteLine(count);
+            BenchmarkRunner.Run<Playground.ImHashMapBenchmarks.Lookup>();
+            // var bm = new Playground.ImHashMapBenchmarks.Lookup();
+            // bm.Count = 1000;
+            // bm.Populate();
+            // var count = bm.FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent();
+            // Console.WriteLine(count);
 
             // BenchmarkRunner.Run<ImHashMapBenchmarks.Enumerate>();
             // BenchmarkRunner.Run<ImHashMapBenchmarks.ToArray>();

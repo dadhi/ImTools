@@ -2857,7 +2857,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
             }
 
             // [Benchmark]
-            // [Benchmark(Baseline = true)]
+            [Benchmark(Baseline = true)]
             public int DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent()
             {
                 var dict = new DictionarySlim<TypeVal, string>();
@@ -2897,7 +2897,8 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return count;
             }
 
-            [Benchmark(Baseline = true)]
+            // [Benchmark(Baseline = true)]
+            [Benchmark]
             public int FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent()
             {
                 var m = new FecSmallMapTypeString();
@@ -2920,7 +2921,7 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
                 return count;
             }
 
-            [Benchmark]
+            // [Benchmark]
             public int FecHashMap_Init1000_PopulateThenLookup_HalfMissed_HalfPresent()
             {
                 var m = new FecSmallMapTypeString(1024);

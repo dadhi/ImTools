@@ -952,8 +952,7 @@ public static class SmallMap
     }
 
     /// <summary>Abstraction to configure your own entries data structure. Check the derived types for the examples</summary>
-    public interface IEntries<K, TEntry>
-        where TEntry : struct, IEntry<K>
+    public interface IGrowingArray<T>
     {
         public int Capacity { get; }
 
@@ -964,17 +963,16 @@ public static class SmallMap
         void Init(uint capacity, uint initializeCountTo = 0);
 
         /// <summary>Returns the reference to entry by its index, index should map to the present/non-removed entry</summary>
-        ref TEntry GetSurePresentRef(int index);
+        ref T GetSurePresentRef(int index);
 
         /// <summary>Adds the key at the "end" of entries - so the order of addition is preserved.</summary>
-        ref TEntry AddDefaultAndGetRef();
+        ref T AddDefaultAndGetRef();
     }
 
     /// <summary>Stores the entries in a single dynamically reallocated growing array</summary>
-    public struct SingleArrayEntries<K, TEntry> : IEntries<K, TEntry>
-        where TEntry : struct, IEntry<K>
+    public struct SingleArrayEntries<T> : IGrowingArray<T>
     {
-        internal TEntry[] _entries;
+        internal T[] _entries;
         internal int _capacityPowerOfTwo;
         internal int _count;
 
@@ -988,13 +986,13 @@ public static class SmallMap
         {
             _capacityPowerOfTwo = (int)GetNextPowerOfTwoFast(capacity);
             Debug.Assert(_capacityPowerOfTwo >= initializeCountTo, $"Capacity {_capacityPowerOfTwo} should be enough to hold the initialized count {initializeCountTo}");
-            _entries = new TEntry[_capacityPowerOfTwo];
+            _entries = new T[_capacityPowerOfTwo];
             _count = (int)initializeCountTo;
         }
 
         /// <inheritdoc/>
         [MethodImpl((MethodImplOptions)256)]
-        public ref TEntry GetSurePresentRef(int index)
+        public ref T GetSurePresentRef(int index)
         {
             Debug.Assert(index >= 0 && index < _count, $"Index {index} should be in the range 0..{_count - 1}");
             return ref _entries.GetSurePresentItemRef(index);
@@ -1002,7 +1000,7 @@ public static class SmallMap
 
         /// <inheritdoc/>
         [MethodImpl((MethodImplOptions)256)]
-        public ref TEntry AddDefaultAndGetRef()
+        public ref T AddDefaultAndGetRef()
         {
             Debug.Assert(_count <= _entries.Length, "Entries should be initialized before adding the item");
             if (_count == _entries.Length)
@@ -1019,18 +1017,17 @@ public static class SmallMap
     /// Allocating the new bucket doubles the size preserving the previous buckets intact ensuring that the item references remain stable,
     /// e.g. the bucket sizes are [32, 32, 64, 128, 256, 512, 1024, ...]</summary>
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct StableArrayEntries<K, TEntry> : IEntries<K, TEntry>
-        where TEntry : struct, IEntry<K>
+    public struct StableArrayEntries<T> : IGrowingArray<T>
     {
-        internal TEntry[] _bucket00Of32;
-        internal TEntry[] _bucket01Of32;
-        internal TEntry[] _bucket02Of64;
-        internal TEntry[] _bucket03Of128;
-        internal TEntry[] _bucket04Of256;
-        internal TEntry[] _bucket05Of512;
-        internal TEntry[] _bucket06Of1024;
-        internal TEntry[] _bucket07Of2048;
-        internal TEntry[][] _bucketsOf4096AndMore;
+        internal T[] _bucket00Of32;
+        internal T[] _bucket01Of32;
+        internal T[] _bucket02Of64;
+        internal T[] _bucket03Of128;
+        internal T[] _bucket04Of256;
+        internal T[] _bucket05Of512;
+        internal T[] _bucket06Of1024;
+        internal T[] _bucket07Of2048;
+        internal T[][] _bucketsOf4096AndMore;
 
         internal int _capacityPowerOfTwo;
         internal int _count;
@@ -1075,7 +1072,7 @@ public static class SmallMap
         /// <inheritdoc/>
         [UnscopedRef]
         [MethodImpl((MethodImplOptions)256)]
-        private ref TEntry[] GetStackBucketRef(int bucketIndex)
+        private ref T[] GetStackBucketRef(int bucketIndex)
         {
             Debug.Assert(bucketIndex >= 0 && bucketIndex < 8, "Bucket index should be in the range 0..7");
 #if SUPPORTS_UNSAFE
@@ -1100,7 +1097,7 @@ public static class SmallMap
         [MethodImpl((MethodImplOptions)256)]
         public void Init(uint capacity, uint initializeCountTo = 0)
         {
-            _bucket00Of32 = new TEntry[32];
+            _bucket00Of32 = new T[32];
             _capacityPowerOfTwo = 32;
 
             Debug.Assert(initializeCountTo <= _capacityPowerOfTwo, $"Passed count {initializeCountTo} should be less than or equal to capacity {capacity}");
@@ -1114,18 +1111,18 @@ public static class SmallMap
             _capacityPowerOfTwo = 32 << lastBucketIndex;
 
             for (var i = 1; i <= lastBucketIndex; i++)
-                GetStackBucketRef(i) = new TEntry[32 << (i - 1)];
+                GetStackBucketRef(i) = new T[32 << (i - 1)];
             if (lastBucketIndex < 8)
                 return;
 
-            var buckets = _bucketsOf4096AndMore = new TEntry[lastBucketIndex - 7][];
+            var buckets = _bucketsOf4096AndMore = new T[lastBucketIndex - 7][];
             for (var i = 0; i < buckets.Length; i++)
-                buckets[i] = new TEntry[4096 << i];
+                buckets[i] = new T[4096 << i];
         }
 
         /// <inheritdoc/>
         [MethodImpl((MethodImplOptions)256)]
-        public ref TEntry GetSurePresentRef(int index)
+        public ref T GetSurePresentRef(int index)
         {
             Debug.Assert(index >= 0 && index < _count, $"Index {index} should be in the range 0..{_count - 1}");
             if (index < 32)
@@ -1141,13 +1138,13 @@ public static class SmallMap
 
         /// <inheritdoc/>
         [MethodImpl((MethodImplOptions)256)]
-        public ref TEntry AddDefaultAndGetRef()
+        public ref T AddDefaultAndGetRef()
         {
             var lastIndex = _count++;
             if (lastIndex < 32)
             {
                 _capacityPowerOfTwo = 32;
-                _bucket00Of32 ??= new TEntry[32];
+                _bucket00Of32 ??= new T[32];
                 return ref _bucket00Of32.GetSurePresentItemRef(lastIndex);
             }
 
@@ -1158,20 +1155,20 @@ public static class SmallMap
             {
                 ref var bucket = ref GetStackBucketRef(bucketIndex);
                 if (bucket == null)
-                    bucket = new TEntry[fullBacketsCapacity];
+                    bucket = new T[fullBacketsCapacity];
                 return ref bucket.GetSurePresentItemRef(lastIndex - fullBacketsCapacity);
             }
             else
             {
                 var heapBucketCount = bucketIndex - 7;
                 if (_bucketsOf4096AndMore == null)
-                    _bucketsOf4096AndMore = new TEntry[heapBucketCount][];
+                    _bucketsOf4096AndMore = new T[heapBucketCount][];
                 else if (_bucketsOf4096AndMore.Length < heapBucketCount)
                     Array.Resize(ref _bucketsOf4096AndMore, heapBucketCount);
 
                 ref var bucket = ref _bucketsOf4096AndMore[heapBucketCount - 1];
                 if (bucket == null)
-                    bucket = new TEntry[fullBacketsCapacity];
+                    bucket = new T[fullBacketsCapacity];
                 return ref bucket.GetSurePresentItemRef(lastIndex - fullBacketsCapacity);
             }
         }
@@ -1440,7 +1437,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     where TStackCap : struct, ISize2Plus
     where TStackHashes : struct, IStack<int, TStackCap, TStackHashes>
     where TStackEntries : struct, IStack<TEntry, TStackCap, TStackEntries>
-    where THeapEntries : struct, IEntries<K, TEntry>
+    where THeapEntries : struct, IGrowingArray<TEntry>
 {
 #if DEBUG
     // Diagnostic counters to measure the performance of the map operations
@@ -1662,7 +1659,9 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         var stackCapacity = _stackEntries.Capacity;
         var newCapacity = Math.Max(_capacityPowerOfTwo, stackCapacity << 1);
         _capacityPowerOfTwo = newCapacity;
-        _packedEntryIndexesHashesProbes = new long[newCapacity];
+        // todo: @wip the check is here because the it may be already initialized in the constructor, find way to avoid this check
+        if (_packedEntryIndexesHashesProbes == null || _packedEntryIndexesHashesProbes.Length != newCapacity)
+            _packedEntryIndexesHashesProbes = new long[newCapacity];
 
         var probeMask = newCapacity - 1;
         for (var i = 0; i < stackCapacity; ++i)
@@ -1675,7 +1674,10 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         ++_count;
 
         // Creating the heap entries in addition to the stack entries, so the stack entries remain stable and never migrate
-        _heapEntries.Init((uint)stackCapacity, initializeCountTo: 1);
+
+        // todo: @wip the check is here because the it may be already initialized in the constructor, find way to avoid this check
+        if (_heapEntries.Capacity < stackCapacity)
+            _heapEntries.Init((uint)stackCapacity, initializeCountTo: 1);
 
         // Set the key for the first entry, which is the 0 index in the entries
         ref var newEntry = ref _heapEntries.GetSurePresentRef(0);
@@ -1912,7 +1914,7 @@ public struct SmallMap4<K, V, TEq>() where TEq : struct, IEq<K>
 {
     /// <summary>Map with 4 elements on stack and entries baked by the single array</summary> 
     public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size4, Stack4<int>, Stack4<SmallMap.Entry<K, V>>,
-        SmallMap.StableArrayEntries<K, SmallMap.Entry<K, V>>> Map;
+        SmallMap.StableArrayEntries<SmallMap.Entry<K, V>>> Map;
     public SmallMap4(uint capacityPowerOfTwo) : this() => Map = new(capacityPowerOfTwo);
 }
 
@@ -1921,7 +1923,7 @@ public struct SmallMap8<K, V, TEq>() where TEq : struct, IEq<K>
 {
     /// <summary>Map with 8 elements on stack and entries baked by the single array</summary> 
     public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size8, Stack8<int>, Stack8<SmallMap.Entry<K, V>>,
-        SmallMap.StableArrayEntries<K, SmallMap.Entry<K, V>>> Map;
+        SmallMap.StableArrayEntries<SmallMap.Entry<K, V>>> Map;
     public SmallMap8(uint capacityPowerOfTwo) : this() => Map = new(capacityPowerOfTwo);
 }
 
@@ -1931,7 +1933,7 @@ public struct SmallMap16<K, V, TEq>() where TEq : struct, IEq<K>
 {
     /// <summary>Map with 16 elements on stack and entries baked by the single array</summary> 
     public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size16, Stack16<int>, Stack16<SmallMap.Entry<K, V>>,
-        SmallMap.StableArrayEntries<K, SmallMap.Entry<K, V>>> Map;
+        SmallMap.StableArrayEntries<SmallMap.Entry<K, V>>> Map;
     public SmallMap16(uint capacityPowerOfTwo) : this() => Map = new(capacityPowerOfTwo);
 }
 
@@ -1939,7 +1941,7 @@ public struct SmallMap16_SingleArrEntries<K, V, TEq>() where TEq : struct, IEq<K
 {
     /// <summary>Map with 16 elements on stack and entries baked by the single array</summary> 
     public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size16, Stack16<int>, Stack16<SmallMap.Entry<K, V>>,
-        SmallMap.SingleArrayEntries<K, SmallMap.Entry<K, V>>> Map;
+        SmallMap.SingleArrayEntries<SmallMap.Entry<K, V>>> Map;
     public SmallMap16_SingleArrEntries(uint capacityPowerOfTwo) : this() => Map = new(capacityPowerOfTwo);
 }
 
@@ -1948,7 +1950,7 @@ public struct SmallSet4<K, TEq>() where TEq : struct, IEq<K>
 {
     /// <summary>Set with 4 keys on stack and entries baked by the single array</summary> 
     public SmallMap<K, SmallMap.Entry<K>, TEq, Size4, Stack4<int>, Stack4<SmallMap.Entry<K>>,
-        SmallMap.StableArrayEntries<K, SmallMap.Entry<K>>> Set;
+        SmallMap.StableArrayEntries<SmallMap.Entry<K>>> Set;
 }
 
 /// <summary>Holds the Set with 8 items on stack. Minimizes the number of type arguments required to be specified</summary>
@@ -1956,7 +1958,7 @@ public struct SmallSet8<K, TEq>() where TEq : struct, IEq<K>
 {
     /// <summary>Set with 8 keys on stack and entries baked by the single array</summary> 
     public SmallMap<K, SmallMap.Entry<K>, TEq, Size8, Stack8<int>, Stack8<SmallMap.Entry<K>>,
-        SmallMap.StableArrayEntries<K, SmallMap.Entry<K>>> Set;
+        SmallMap.StableArrayEntries<SmallMap.Entry<K>>> Set;
 }
 
 /// <summary>Holds the Set with 16 items on stack. Minimizes the number of type arguments required to be specified</summary>
@@ -1964,7 +1966,7 @@ public struct SmallSet16<K, TEq>() where TEq : struct, IEq<K>
 {
     /// <summary>Set with 16 keys on stack and entries baked by the single array</summary> 
     public SmallMap<K, SmallMap.Entry<K>, TEq, Size16, Stack16<int>, Stack16<SmallMap.Entry<K>>,
-        SmallMap.StableArrayEntries<K, SmallMap.Entry<K>>> Set;
+        SmallMap.StableArrayEntries<SmallMap.Entry<K>>> Set;
 }
 
 #nullable restore
