@@ -704,6 +704,249 @@ public struct SmallListEnumerator<T, TStack> : IEnumerator<T>, IEnumerator
     public void Dispose() { }
 }
 
+internal static class BitOps
+{
+    /// <summary>Gets the next power of two greater than or equal to the specified capacity.</summary>
+    [MethodImpl((MethodImplOptions)256)]
+    public static uint GetNextPowerOfTwoFast(uint capacity)
+    {
+#if NET8_0_OR_GREATER
+        return BitOperations.RoundUpToPowerOf2(capacity);
+#else
+        --capacity;
+        capacity |= capacity >> 1;
+        capacity |= capacity >> 2;
+        capacity |= capacity >> 4;
+        capacity |= capacity >> 8;
+        capacity |= capacity >> 16;
+        return capacity + 1;
+#endif
+    }
+}
+
+/// <summary>Abstraction to configure your own entries data structure. Check the derived types for the examples</summary>
+public interface IGrowingArray<T>
+{
+    public int Capacity { get; }
+
+    /// <summary>Tracks the number of store elements, enables method AddDefaultAndGetRef to work</summary>
+    public int Count { get; }
+
+    /// <summary>Initializes the entries storage to the specified capacity</summary>
+    void Init(uint capacity, uint initializeCountTo = 0);
+
+    /// <summary>Returns the reference to entry by its index, index should map to the present/non-removed entry</summary>
+    ref T GetSurePresentRef(int index);
+
+    /// <summary>Adds the key at the "end" of entries - so the order of addition is preserved.</summary>
+    ref T AddDefaultAndGetRef();
+}
+
+/// <summary>Stores the entries in a single dynamically reallocated growing array</summary>
+public struct SingleBackingArray<T> : IGrowingArray<T>
+{
+    internal T[] _entries;
+    internal int _capacityPowerOfTwo;
+    internal int _count;
+
+    /// <inheritdoc/>
+    public int Capacity => _capacityPowerOfTwo;
+    /// <inheritdoc/>
+    public int Count => _count;
+
+    /// <inheritdoc/>
+    public void Init(uint capacity, uint initializeCountTo = 0)
+    {
+        _capacityPowerOfTwo = (int)BitOps.GetNextPowerOfTwoFast(capacity);
+        Debug.Assert(_capacityPowerOfTwo >= initializeCountTo, $"Capacity {_capacityPowerOfTwo} should be enough to hold the initialized count {initializeCountTo}");
+        _entries = new T[_capacityPowerOfTwo];
+        _count = (int)initializeCountTo;
+    }
+
+    /// <inheritdoc/>
+    [MethodImpl((MethodImplOptions)256)]
+    public ref T GetSurePresentRef(int index)
+    {
+        Debug.Assert(index >= 0 && index < _count, $"Index {index} should be in the range 0..{_count - 1}");
+        return ref _entries.GetSurePresentItemRef(index);
+    }
+
+    /// <inheritdoc/>
+    [MethodImpl((MethodImplOptions)256)]
+    public ref T AddDefaultAndGetRef()
+    {
+        Debug.Assert(_count <= _entries.Length, "Entries should be initialized before adding the item");
+        if (_count == _entries.Length)
+        {
+            Debug.Assert(_capacityPowerOfTwo == _entries.Length, "Capacity should be equal to the entries length");
+            _capacityPowerOfTwo <<= 1;
+            Array.Resize(ref _entries, _capacityPowerOfTwo);
+        }
+        return ref _entries.GetSurePresentItemRef(_count++);
+    }
+}
+
+/// <summary>Stores the data in the growing "list" of segment arrays.
+/// Allocating the new segment array doubles the size preserving the previous segments intact ensuring that the item references remain stable,
+/// e.g. the segment sizes are [32, 32, 64, 128, 256, 512, 1024, ...]</summary>
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
+public struct StableSegmentedArray<T> : IGrowingArray<T>
+{
+    internal T[] _segment00Of32;
+    internal T[] _segment01Of32;
+    internal T[] _segment02Of64;
+    internal T[] _segment03Of128;
+    internal T[] _segment04Of256;
+    internal T[] _segment05Of512;
+    internal T[] _segment06Of1024;
+    internal T[] _segment07Of2048;
+
+    internal T[][] _segmentsOf4096AndMore;
+    internal int _capacityPowerOfTwo;
+    internal int _count;
+
+    /// <inheritdoc/>
+    public int Capacity => _capacityPowerOfTwo;
+    /// <inheritdoc/>
+    public int Count => _count;
+
+    // Starting from the 0 bucket of 32 items: 0b00000000_00000000_00000000_00011111 = 31
+#if NET8_0_OR_GREATER
+    [MethodImpl((MethodImplOptions)256)]
+    private static int GetSegmentIndexFromGlobalIndex(uint index)
+    {
+        Debug.Assert(index >= 32, $"Index {index} should be 32 or more"); // todo: @wip
+        var segmentIndex = 27 - BitOperations.LeadingZeroCount(index);
+        // For index < 32: LeadingZeroCount gives 27-32, so 27-lzc gives -5 to 0
+        // We want to set (clamp) negative values to 0, [-5..-1] => 0
+        // Arithmetic right shift (segmentIndex >> 31) will convert any negative to -1 (0xFFFFFFFF), and 0 or positive to 0
+        // Then inverting ~(-1) will give 0 mask to erase any negative segmentIndex to 0. 
+        // Inverting ~(0) will give -1 mask to keep any positive segmentIndex as is.
+        // todo: @wip
+        return segmentIndex; // segmentIndex & ~(segmentIndex >> 31);
+    }
+#else
+    private static int GetSegmentIndexFromGlobalIndex(uint index)
+    {
+        Debug.Assert(index >= 32, $"Index {index} should be 32 or more"); // todo: @wip
+        if (index < 32) return 0;
+
+        var count = 0;
+        if (index <= 0x0000FFFF) { count += 16; index <<= 16; }
+        if (index <= 0x00FFFFFF) { count += 8;  index <<= 8; }
+        if (index <= 0x0FFFFFFF) { count += 4;  index <<= 4; }
+        if (index <= 0x3FFFFFFF) { count += 2;  index <<= 2; }
+        if (index <= 0x7FFFFFFF) { count += 1; }
+
+        return 27 - count;
+    }
+#endif
+
+    /// <inheritdoc/>
+    [UnscopedRef]
+    [MethodImpl((MethodImplOptions)256)]
+    private ref T[] GetStackSegmentRef(int segmentIndex)
+    {
+        Debug.Assert(segmentIndex >= 0 && segmentIndex < 8, "Segment index should be in the range 0..7");
+#if SUPPORTS_UNSAFE
+        return ref Unsafe.Add(ref _segment00Of32, segmentIndex);
+#else
+        switch (segmentIndex)
+        {
+            case 0: return ref _segment00Of32;
+            case 1: return ref _segment01Of32;
+            case 2: return ref _segment02Of64;
+            case 3: return ref _segment03Of128;
+            case 4: return ref _segment04Of256;
+            case 5: return ref _segment05Of512;
+            case 6: return ref _segment06Of1024;
+            default: return ref _segment07Of2048;
+        }
+#endif
+    }
+
+    /// <summary>Initializes enough segments to hold the specified capacity.
+    /// Always creates at least the first segment of 32 items.</summary>
+    [MethodImpl((MethodImplOptions)256)]
+    public void Init(uint capacity, uint initializeCountTo = 0)
+    {
+        _segment00Of32 = new T[32];
+        _capacityPowerOfTwo = 32;
+
+        Debug.Assert(initializeCountTo <= _capacityPowerOfTwo, $"Passed count {initializeCountTo} should be less than or equal to capacity {capacity}");
+        _count = (int)initializeCountTo;
+
+        if (capacity <= 32) // Even if user said to use capacity 0, we still allocate the first segment of 32 items
+            return;
+
+        var lastSegmentIndex = GetSegmentIndexFromGlobalIndex(capacity - 1);
+        Debug.Assert(lastSegmentIndex >= 0, $"GetSegmentIndexFromGlobalIndex should return {lastSegmentIndex} >= 1 for capacity-1:{capacity - 1} > 32");
+        _capacityPowerOfTwo = 32 << lastSegmentIndex;
+
+        for (var i = 1; i <= lastSegmentIndex; i++)
+            GetStackSegmentRef(i) = new T[32 << (i - 1)];
+        if (lastSegmentIndex < 8)
+            return;
+
+        var segments = _segmentsOf4096AndMore = new T[lastSegmentIndex - 7][];
+        for (var i = 0; i < segments.Length; i++)
+            segments[i] = new T[4096 << i];
+    }
+
+    /// <inheritdoc/>
+    [MethodImpl((MethodImplOptions)256)]
+    public ref T GetSurePresentRef(int index)
+    {
+        Debug.Assert(index >= 0 && index < _count, $"Index {index} should be in the range 0..{_count - 1}");
+        if (index < 32)
+            return ref _segment00Of32.GetSurePresentItemRef(index);
+
+        var segmentIndex = GetSegmentIndexFromGlobalIndex((uint)index);
+        Debug.Assert(segmentIndex > 0, $"Segment index should be more than 0 here but found {segmentIndex}");
+
+        var insideIndex = index - (32 << (segmentIndex - 1));
+        var segment = segmentIndex < 8 ? GetStackSegmentRef(segmentIndex) : _segmentsOf4096AndMore[segmentIndex - 8];
+        return ref segment.GetSurePresentItemRef(insideIndex);
+    }
+
+    /// <inheritdoc/>
+    [MethodImpl((MethodImplOptions)256)]
+    public ref T AddDefaultAndGetRef()
+    {
+        var lastIndex = _count++;
+        if (lastIndex < 32)
+        {
+            _capacityPowerOfTwo = 32;
+            _segment00Of32 ??= new T[32];
+            return ref _segment00Of32.GetSurePresentItemRef(lastIndex);
+        }
+
+        var segmentIndex = GetSegmentIndexFromGlobalIndex((uint)lastIndex);
+        var fullSegmentsCapacity = 32 << (segmentIndex - 1);
+        _capacityPowerOfTwo = fullSegmentsCapacity << 1;
+        if (segmentIndex < 8)
+        {
+            ref var segment = ref GetStackSegmentRef(segmentIndex);
+            if (segment == null)
+                segment = new T[fullSegmentsCapacity];
+            return ref segment.GetSurePresentItemRef(lastIndex - fullSegmentsCapacity);
+        }
+        else
+        {
+            var heapSegmentCount = segmentIndex - 7;
+            if (_segmentsOf4096AndMore == null)
+                _segmentsOf4096AndMore = new T[heapSegmentCount][];
+            else if (_segmentsOf4096AndMore.Length < heapSegmentCount)
+                Array.Resize(ref _segmentsOf4096AndMore, heapSegmentCount);
+
+            ref var segment = ref _segmentsOf4096AndMore[heapSegmentCount - 1];
+            if (segment == null)
+                segment = new T[fullSegmentsCapacity];
+            return ref segment.GetSurePresentItemRef(lastIndex - fullSegmentsCapacity);
+        }
+    }
+}
+
 /// <summary>Printable thing via provided printer </summary>
 public interface IPrintable
 {
@@ -931,246 +1174,6 @@ public static class SmallMap
         {
             Key = key;
             Value = value;
-        }
-    }
-
-    /// <summary>Gets the next power of two greater than or equal to the specified capacity.</summary>
-    [MethodImpl((MethodImplOptions)256)]
-    public static uint GetNextPowerOfTwoFast(uint capacity)
-    {
-#if NET8_0_OR_GREATER
-        return BitOperations.RoundUpToPowerOf2(capacity);
-#else
-        --capacity;
-        capacity |= capacity >> 1;
-        capacity |= capacity >> 2;
-        capacity |= capacity >> 4;
-        capacity |= capacity >> 8;
-        capacity |= capacity >> 16;
-        return capacity + 1;
-#endif
-    }
-
-    /// <summary>Abstraction to configure your own entries data structure. Check the derived types for the examples</summary>
-    public interface IGrowingArray<T>
-    {
-        public int Capacity { get; }
-
-        /// <summary>Tracks the number of store elements, enables method AddDefaultAndGetRef to work</summary>
-        public int Count { get; }
-
-        /// <summary>Initializes the entries storage to the specified capacity</summary>
-        void Init(uint capacity, uint initializeCountTo = 0);
-
-        /// <summary>Returns the reference to entry by its index, index should map to the present/non-removed entry</summary>
-        ref T GetSurePresentRef(int index);
-
-        /// <summary>Adds the key at the "end" of entries - so the order of addition is preserved.</summary>
-        ref T AddDefaultAndGetRef();
-    }
-
-    /// <summary>Stores the entries in a single dynamically reallocated growing array</summary>
-    public struct SingleBackingArray<T> : IGrowingArray<T>
-    {
-        internal T[] _entries;
-        internal int _capacityPowerOfTwo;
-        internal int _count;
-
-        /// <inheritdoc/>
-        public int Capacity => _capacityPowerOfTwo;
-        /// <inheritdoc/>
-        public int Count => _count;
-
-        /// <inheritdoc/>
-        public void Init(uint capacity, uint initializeCountTo = 0)
-        {
-            _capacityPowerOfTwo = (int)GetNextPowerOfTwoFast(capacity);
-            Debug.Assert(_capacityPowerOfTwo >= initializeCountTo, $"Capacity {_capacityPowerOfTwo} should be enough to hold the initialized count {initializeCountTo}");
-            _entries = new T[_capacityPowerOfTwo];
-            _count = (int)initializeCountTo;
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl((MethodImplOptions)256)]
-        public ref T GetSurePresentRef(int index)
-        {
-            Debug.Assert(index >= 0 && index < _count, $"Index {index} should be in the range 0..{_count - 1}");
-            return ref _entries.GetSurePresentItemRef(index);
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl((MethodImplOptions)256)]
-        public ref T AddDefaultAndGetRef()
-        {
-            Debug.Assert(_count <= _entries.Length, "Entries should be initialized before adding the item");
-            if (_count == _entries.Length)
-            {
-                Debug.Assert(_capacityPowerOfTwo == _entries.Length, "Capacity should be equal to the entries length");
-                _capacityPowerOfTwo <<= 1;
-                Array.Resize(ref _entries, _capacityPowerOfTwo);
-            }
-            return ref _entries.GetSurePresentItemRef(_count++);
-        }
-    }
-
-    /// <summary>Stores the data in the growing "list" of segment arrays.
-    /// Allocating the new segment array doubles the size preserving the previous segments intact ensuring that the item references remain stable,
-    /// e.g. the segment sizes are [32, 32, 64, 128, 256, 512, 1024, ...]</summary>
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct StableSegmentedArray<T> : IGrowingArray<T>
-    {
-        internal T[] _segment00Of32;
-        internal T[] _segment01Of32;
-        internal T[] _segment02Of64;
-        internal T[] _segment03Of128;
-        internal T[] _segment04Of256;
-        internal T[] _segment05Of512;
-        internal T[] _segment06Of1024;
-        internal T[] _segment07Of2048;
-        internal T[][] _segmentsOf4096AndMore;
-
-        internal int _capacityPowerOfTwo;
-        internal int _count;
-
-        /// <inheritdoc/>
-        public int Capacity => _capacityPowerOfTwo;
-        /// <inheritdoc/>
-        public int Count => _count;
-
-        // Starting from the 0 bucket of 32 items: 0b00000000_00000000_00000000_00011111 = 31
-#if NET8_0_OR_GREATER
-        [MethodImpl((MethodImplOptions)256)]
-        private static int GetSegmentIndexFromGlobalIndex(uint index)
-        {
-            Debug.Assert(index >= 32, $"Index {index} should be 32 or more"); // todo: @wip
-            var segmentIndex = 27 - BitOperations.LeadingZeroCount(index);
-            // For index < 32: LeadingZeroCount gives 27-32, so 27-lzc gives -5 to 0
-            // We want to set (clamp) negative values to 0, [-5..-1] => 0
-            // Arithmetic right shift (segmentIndex >> 31) will convert any negative to -1 (0xFFFFFFFF), and 0 or positive to 0
-            // Then inverting ~(-1) will give 0 mask to erase any negative segmentIndex to 0. 
-            // Inverting ~(0) will give -1 mask to keep any positive segmentIndex as is.
-            // todo: @wip
-            return segmentIndex; // segmentIndex & ~(segmentIndex >> 31);
-        }
-#else
-        private static int GetSegmentIndexFromGlobalIndex(uint index)
-        {
-            Debug.Assert(index >= 32, $"Index {index} should be 32 or more"); // todo: @wip
-            if (index < 32) return 0;
-
-            var count = 0;
-            if (index <= 0x0000FFFF) { count += 16; index <<= 16; }
-            if (index <= 0x00FFFFFF) { count += 8;  index <<= 8; }
-            if (index <= 0x0FFFFFFF) { count += 4;  index <<= 4; }
-            if (index <= 0x3FFFFFFF) { count += 2;  index <<= 2; }
-            if (index <= 0x7FFFFFFF) { count += 1; }
-
-            return 27 - count;
-        }
-#endif
-
-        /// <inheritdoc/>
-        [UnscopedRef]
-        [MethodImpl((MethodImplOptions)256)]
-        private ref T[] GetStackSegmentRef(int segmentIndex)
-        {
-            Debug.Assert(segmentIndex >= 0 && segmentIndex < 8, "Segment index should be in the range 0..7");
-#if SUPPORTS_UNSAFE
-            return ref Unsafe.Add(ref _segment00Of32, segmentIndex);
-#else
-            switch (segmentIndex)
-            {
-                case 0: return ref _segment00Of32;
-                case 1: return ref _segment01Of32;
-                case 2: return ref _segment02Of64;
-                case 3: return ref _segment03Of128;
-                case 4: return ref _segment04Of256;
-                case 5: return ref _segment05Of512;
-                case 6: return ref _segment06Of1024;
-                default: return ref _segment07Of2048;
-            }
-#endif
-        }
-
-        /// <summary>Initializes enough segments to hold the specified capacity.
-        /// Always creates at least the first segment of 32 items.</summary>
-        [MethodImpl((MethodImplOptions)256)]
-        public void Init(uint capacity, uint initializeCountTo = 0)
-        {
-            _segment00Of32 = new T[32];
-            _capacityPowerOfTwo = 32;
-
-            Debug.Assert(initializeCountTo <= _capacityPowerOfTwo, $"Passed count {initializeCountTo} should be less than or equal to capacity {capacity}");
-            _count = (int)initializeCountTo;
-
-            if (capacity <= 32) // Even if user said to use capacity 0, we still allocate the first segment of 32 items
-                return;
-
-            var lastSegmentIndex = GetSegmentIndexFromGlobalIndex(capacity - 1);
-            Debug.Assert(lastSegmentIndex >= 0, $"GetSegmentIndexFromGlobalIndex should return {lastSegmentIndex} >= 1 for capacity-1:{capacity - 1} > 32");
-            _capacityPowerOfTwo = 32 << lastSegmentIndex;
-
-            for (var i = 1; i <= lastSegmentIndex; i++)
-                GetStackSegmentRef(i) = new T[32 << (i - 1)];
-            if (lastSegmentIndex < 8)
-                return;
-
-            var segments = _segmentsOf4096AndMore = new T[lastSegmentIndex - 7][];
-            for (var i = 0; i < segments.Length; i++)
-                segments[i] = new T[4096 << i];
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl((MethodImplOptions)256)]
-        public ref T GetSurePresentRef(int index)
-        {
-            Debug.Assert(index >= 0 && index < _count, $"Index {index} should be in the range 0..{_count - 1}");
-            if (index < 32)
-                return ref _segment00Of32.GetSurePresentItemRef(index);
-
-            var segmentIndex = GetSegmentIndexFromGlobalIndex((uint)index);
-            Debug.Assert(segmentIndex > 0, $"Segment index should be more than 0 here but found {segmentIndex}");
-
-            var insideIndex = index - (32 << (segmentIndex - 1));
-            var segment = segmentIndex < 8 ? GetStackSegmentRef(segmentIndex) : _segmentsOf4096AndMore[segmentIndex - 8];
-            return ref segment.GetSurePresentItemRef(insideIndex);
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl((MethodImplOptions)256)]
-        public ref T AddDefaultAndGetRef()
-        {
-            var lastIndex = _count++;
-            if (lastIndex < 32)
-            {
-                _capacityPowerOfTwo = 32;
-                _segment00Of32 ??= new T[32];
-                return ref _segment00Of32.GetSurePresentItemRef(lastIndex);
-            }
-
-            var segmentIndex = GetSegmentIndexFromGlobalIndex((uint)lastIndex);
-            var fullSegmentsCapacity = 32 << (segmentIndex - 1);
-            _capacityPowerOfTwo = fullSegmentsCapacity << 1;
-            if (segmentIndex < 8)
-            {
-                ref var segment = ref GetStackSegmentRef(segmentIndex);
-                if (segment == null)
-                    segment = new T[fullSegmentsCapacity];
-                return ref segment.GetSurePresentItemRef(lastIndex - fullSegmentsCapacity);
-            }
-            else
-            {
-                var heapSegmentCount = segmentIndex - 7;
-                if (_segmentsOf4096AndMore == null)
-                    _segmentsOf4096AndMore = new T[heapSegmentCount][];
-                else if (_segmentsOf4096AndMore.Length < heapSegmentCount)
-                    Array.Resize(ref _segmentsOf4096AndMore, heapSegmentCount);
-
-                ref var segment = ref _segmentsOf4096AndMore[heapSegmentCount - 1];
-                if (segment == null)
-                    segment = new T[fullSegmentsCapacity];
-                return ref segment.GetSurePresentItemRef(lastIndex - fullSegmentsCapacity);
-            }
         }
     }
 
@@ -1498,7 +1501,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     {
         var capacityPowerOfTwo = capacityPowerOfTwoPlease < MinCapacity
             ? MinCapacity
-            : GetNextPowerOfTwoFast(capacityPowerOfTwoPlease);
+            : BitOps.GetNextPowerOfTwoFast(capacityPowerOfTwoPlease);
 
         _capacityPowerOfTwo = (int)capacityPowerOfTwo;
         _packedEntryIndexesHashesProbes = new long[capacityPowerOfTwo];
@@ -1913,8 +1916,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 public struct SmallMap4<K, V, TEq>() where TEq : struct, IEq<K>
 {
     /// <summary>Map with 4 elements on stack and entries baked by the single array</summary> 
-    public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size4, Stack4<int>, Stack4<SmallMap.Entry<K, V>>,
-        SmallMap.StableSegmentedArray<SmallMap.Entry<K, V>>> Map;
+    public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size4, Stack4<int>, Stack4<SmallMap.Entry<K, V>>, StableSegmentedArray<SmallMap.Entry<K, V>>> Map;
     public SmallMap4(uint capacityPowerOfTwo) : this() => Map = new(capacityPowerOfTwo);
 }
 
@@ -1922,8 +1924,7 @@ public struct SmallMap4<K, V, TEq>() where TEq : struct, IEq<K>
 public struct SmallMap8<K, V, TEq>() where TEq : struct, IEq<K>
 {
     /// <summary>Map with 8 elements on stack and entries baked by the single array</summary> 
-    public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size8, Stack8<int>, Stack8<SmallMap.Entry<K, V>>,
-        SmallMap.StableSegmentedArray<SmallMap.Entry<K, V>>> Map;
+    public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size8, Stack8<int>, Stack8<SmallMap.Entry<K, V>>, StableSegmentedArray<SmallMap.Entry<K, V>>> Map;
     public SmallMap8(uint capacityPowerOfTwo) : this() => Map = new(capacityPowerOfTwo);
 }
 
@@ -1932,16 +1933,14 @@ public struct SmallMap8<K, V, TEq>() where TEq : struct, IEq<K>
 public struct SmallMap16<K, V, TEq>() where TEq : struct, IEq<K>
 {
     /// <summary>Map with 16 elements on stack and entries baked by the single array</summary> 
-    public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size16, Stack16<int>, Stack16<SmallMap.Entry<K, V>>,
-        SmallMap.StableSegmentedArray<SmallMap.Entry<K, V>>> Map;
+    public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size16, Stack16<int>, Stack16<SmallMap.Entry<K, V>>, StableSegmentedArray<SmallMap.Entry<K, V>>> Map;
     public SmallMap16(uint capacityPowerOfTwo) : this() => Map = new(capacityPowerOfTwo);
 }
 
 public struct SmallMap16_SingleArrEntries<K, V, TEq>() where TEq : struct, IEq<K>
 {
     /// <summary>Map with 16 elements on stack and entries baked by the single array</summary> 
-    public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size16, Stack16<int>, Stack16<SmallMap.Entry<K, V>>,
-        SmallMap.SingleBackingArray<SmallMap.Entry<K, V>>> Map;
+    public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size16, Stack16<int>, Stack16<SmallMap.Entry<K, V>>, SingleBackingArray<SmallMap.Entry<K, V>>> Map;
     public SmallMap16_SingleArrEntries(uint capacityPowerOfTwo) : this() => Map = new(capacityPowerOfTwo);
 }
 
@@ -1949,24 +1948,21 @@ public struct SmallMap16_SingleArrEntries<K, V, TEq>() where TEq : struct, IEq<K
 public struct SmallSet4<K, TEq>() where TEq : struct, IEq<K>
 {
     /// <summary>Set with 4 keys on stack and entries baked by the single array</summary> 
-    public SmallMap<K, SmallMap.Entry<K>, TEq, Size4, Stack4<int>, Stack4<SmallMap.Entry<K>>,
-        SmallMap.StableSegmentedArray<SmallMap.Entry<K>>> Set;
+    public SmallMap<K, SmallMap.Entry<K>, TEq, Size4, Stack4<int>, Stack4<SmallMap.Entry<K>>, StableSegmentedArray<SmallMap.Entry<K>>> Set;
 }
 
 /// <summary>Holds the Set with 8 items on stack. Minimizes the number of type arguments required to be specified</summary>
 public struct SmallSet8<K, TEq>() where TEq : struct, IEq<K>
 {
     /// <summary>Set with 8 keys on stack and entries baked by the single array</summary> 
-    public SmallMap<K, SmallMap.Entry<K>, TEq, Size8, Stack8<int>, Stack8<SmallMap.Entry<K>>,
-        SmallMap.StableSegmentedArray<SmallMap.Entry<K>>> Set;
+    public SmallMap<K, SmallMap.Entry<K>, TEq, Size8, Stack8<int>, Stack8<SmallMap.Entry<K>>, StableSegmentedArray<SmallMap.Entry<K>>> Set;
 }
 
 /// <summary>Holds the Set with 16 items on stack. Minimizes the number of type arguments required to be specified</summary>
 public struct SmallSet16<K, TEq>() where TEq : struct, IEq<K>
 {
     /// <summary>Set with 16 keys on stack and entries baked by the single array</summary> 
-    public SmallMap<K, SmallMap.Entry<K>, TEq, Size16, Stack16<int>, Stack16<SmallMap.Entry<K>>,
-        SmallMap.StableSegmentedArray<SmallMap.Entry<K>>> Set;
+    public SmallMap<K, SmallMap.Entry<K>, TEq, Size16, Stack16<int>, Stack16<SmallMap.Entry<K>>, StableSegmentedArray<SmallMap.Entry<K>>> Set;
 }
 
 #nullable restore
