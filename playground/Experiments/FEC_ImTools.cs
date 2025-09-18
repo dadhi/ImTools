@@ -27,7 +27,7 @@ THE SOFTWARE.
 #nullable disable
 
 #if DEBUG
-#define VERIFY_MAP
+// #define VERIFY_MAP
 #endif
 
 #if !NETSTANDARD2_0_OR_GREATER && !NET472
@@ -1040,12 +1040,12 @@ public static class SmallMap
         /// <inheritdoc/>
         public int Count => _count;
 
-#if NET8_0_OR_GREATER
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         // Starting from the 0 bucket of 32 items: 0b00000000_00000000_00000000_00011111 = 31
+#if NET8_0_OR_GREATER
+        [MethodImpl((MethodImplOptions)256)]
         private static int GetBucketIndexFromGlobalIndex(uint index)
         {
-            Debug.Assert(index >= 32, "Index should be 32 or more"); // todo: @wip
+            Debug.Assert(index >= 32, $"Index {index} should be 32 or more"); // todo: @wip
             var bucketIndex = 27 - BitOperations.LeadingZeroCount(index);
             // For index < 32: LeadingZeroCount gives 27-32, so 27-lzc gives -5 to 0
             // We want to set (clamp) negative values to 0, [-5..-1] => 0
@@ -1058,6 +1058,7 @@ public static class SmallMap
 #else
         private static int GetBucketIndexFromGlobalIndex(uint index)
         {
+            Debug.Assert(index >= 32, $"Index {index} should be 32 or more"); // todo: @wip
             if (index < 32) return 0;
 
             var count = 0;
@@ -1096,6 +1097,7 @@ public static class SmallMap
 
         /// <summary>Initializes enough buckets to hold the specified capacity.
         /// Always creates at least the first bucket of 32 items.</summary>
+        [MethodImpl((MethodImplOptions)256)]
         public void Init(uint capacity, uint initializeCountTo = 0)
         {
             _bucket00Of32 = new TEntry[32];
@@ -1109,16 +1111,16 @@ public static class SmallMap
 
             var lastBucketIndex = GetBucketIndexFromGlobalIndex(capacity - 1);
             Debug.Assert(lastBucketIndex >= 0, $"GetBucketIndexFromGlobalIndex should return {lastBucketIndex} >= 1 for capacity-1:{capacity - 1} > 32");
+            _capacityPowerOfTwo = 32 << lastBucketIndex;
 
             for (var i = 1; i <= lastBucketIndex; i++)
                 GetStackBucketRef(i) = new TEntry[32 << (i - 1)];
-            _capacityPowerOfTwo = 32 << lastBucketIndex;
             if (lastBucketIndex < 8)
                 return;
 
-            _bucketsOf4096AndMore = new TEntry[lastBucketIndex - 7][];
-            for (var i = 0; i < _bucketsOf4096AndMore.Length; i++)
-                _bucketsOf4096AndMore[i] = new TEntry[4096 << i];
+            var buckets = _bucketsOf4096AndMore = new TEntry[lastBucketIndex - 7][];
+            for (var i = 0; i < buckets.Length; i++)
+                buckets[i] = new TEntry[4096 << i];
         }
 
         /// <inheritdoc/>
@@ -1129,7 +1131,9 @@ public static class SmallMap
             if (index < 32)
                 return ref _bucket00Of32.GetSurePresentItemRef(index);
 
-            var bucketIndex = GetBucketIndexFromGlobalIndex((uint)index); Debug.Assert(bucketIndex > 0, $"Bucket index should be more than 0 here but found {bucketIndex}");
+            var bucketIndex = GetBucketIndexFromGlobalIndex((uint)index);
+            Debug.Assert(bucketIndex > 0, $"Bucket index should be more than 0 here but found {bucketIndex}");
+
             var insideIndex = index - (32 << (bucketIndex - 1));
             var bucket = bucketIndex < 8 ? GetStackBucketRef(bucketIndex) : _bucketsOf4096AndMore[bucketIndex - 8];
             return ref bucket.GetSurePresentItemRef(insideIndex);
@@ -1143,8 +1147,7 @@ public static class SmallMap
             if (lastIndex < 32)
             {
                 _capacityPowerOfTwo = 32;
-                if (_bucket00Of32 == null)
-                    _bucket00Of32 = new TEntry[32];
+                _bucket00Of32 ??= new TEntry[32];
                 return ref _bucket00Of32.GetSurePresentItemRef(lastIndex);
             }
 
