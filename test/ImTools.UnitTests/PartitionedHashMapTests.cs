@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using NUnit.Framework;
 
 namespace ImTools.UnitTests
@@ -144,6 +145,49 @@ namespace ImTools.UnitTests
             }
 
             Assert.AreEqual("test", result);
+        }
+
+        [Test]
+        public void Custom_partition_count_smaller_than_16_breaks_default_operations()
+        {
+            var parts = PartitionedHashMap.CreateEmpty<int>(8);
+
+            Assert.Throws<IndexOutOfRangeException>(() => parts.AddOrUpdate(9, 42));
+        }
+
+        [Test]
+        public void Custom_partition_count_larger_than_16_still_uses_only_first_16_partitions_by_default()
+        {
+            var parts = PartitionedHashMap.CreateEmpty<int>(32);
+
+            parts.AddOrUpdate(31, 123);
+
+            Assert.AreSame(ImHashMap<int, int>.Empty, parts[31]);
+            Assert.AreEqual(123, parts[15].GetValueOrDefault(31));
+        }
+
+        [Test]
+        public void Concurrent_AddOrKeep_may_overwrite_existing_value_after_compare_exchange_retry()
+        {
+            var observedOverwrite = false;
+
+            for (var attempt = 0; attempt < 2000 && !observedOverwrite; ++attempt)
+            {
+                var parts = PartitionedHashMap.CreateEmpty<string>();
+                var left = new Task(() => parts.AddOrKeep(1, "left"));
+                var right = new Task(() => parts.AddOrKeep(1, "right"));
+
+                left.Start();
+                right.Start();
+                Task.WaitAll(left, right);
+
+                var value = parts.GetValueOrDefault(1);
+                if (value == "right")
+                    observedOverwrite = true;
+            }
+
+            Assert.That(observedOverwrite, Is.True,
+                "At least one run should observe the fallback path overwriting an existing value.");
         }
     }
 }
