@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using NUnit.Framework;
 
 namespace ImTools.UnitTests;
@@ -14,6 +15,46 @@ namespace ImTools.UnitTests;
 [TestFixture]
 public class ImHashMapTests
 {
+    private sealed class SameHashKey
+    {
+        private readonly string _id;
+        public SameHashKey(string id) => _id = id;
+        public override int GetHashCode() => 7;
+        public override bool Equals(object obj) => obj is SameHashKey other && other._id == _id;
+        public override string ToString() => _id;
+    }
+
+    private sealed class DisposableEnumerable : IEnumerable<ImHashMap.HKV<int, int>>
+    {
+        private readonly ImHashMap.HKV<int, int>[] _items;
+        public int DisposeCount;
+
+        public DisposableEnumerable(params ImHashMap.HKV<int, int>[] items) => _items = items;
+
+        public IEnumerator<ImHashMap.HKV<int, int>> GetEnumerator() => new Enumerator(this, _items);
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+
+        private sealed class Enumerator : IEnumerator<ImHashMap.HKV<int, int>>
+        {
+            private readonly DisposableEnumerable _owner;
+            private readonly ImHashMap.HKV<int, int>[] _items;
+            private int _index = -1;
+
+            public Enumerator(DisposableEnumerable owner, ImHashMap.HKV<int, int>[] items)
+            {
+                _owner = owner;
+                _items = items;
+            }
+
+            public ImHashMap.HKV<int, int> Current => _items[_index];
+            object System.Collections.IEnumerator.Current => Current;
+
+            public bool MoveNext() => ++_index < _items.Length;
+            public void Reset() => _index = -1;
+            public void Dispose() => Interlocked.Increment(ref _owner.DisposeCount);
+        }
+    }
+
     [Test]
     public void Test_that_all_added_values_are_accessible()
     {
@@ -404,6 +445,42 @@ public class ImHashMapTests
     }
 
     public static XKey<K> Xk<K>(K key) => new XKey<K>(key);
+
+    [Test]
+    public void BuildFromDifferent_rejects_distinct_keys_with_the_same_hash_even_though_the_api_mentions_only_key_uniqueness()
+    {
+        var key1 = new SameHashKey("a");
+        var key2 = new SameHashKey("b");
+
+        Assert.Catch(() => ImHashMap.BuildFromDifferent(
+            ImHashMap.Entry(key1.GetHashCode(), key1, "va"),
+            ImHashMap.Entry(key2.GetHashCode(), key2, "vb")));
+    }
+
+    [Test]
+    public void BuildUnchecked_does_not_dispose_source_enumerator()
+    {
+        var source = new DisposableEnumerable(
+            new ImHashMap.HKV<int, int>(1, 1, 10),
+            new ImHashMap.HKV<int, int>(2, 2, 20));
+
+        _ = ImHashMap.BuildUnchecked<int, int, DisposableEnumerable>(source);
+
+        Assert.AreEqual(0, source.DisposeCount);
+    }
+
+    [Test]
+    public void BuildUnchecked_with_int_keys_creates_entries_incompatible_with_int_specialized_accessors()
+    {
+        var map = ImHashMap.BuildUnchecked<int, int, ImHashMap.HKV<int, int>[]>(
+            new[]
+            {
+                new ImHashMap.HKV<int, int>(1, 1, 10),
+                new ImHashMap.HKV<int, int>(2, 2, 20),
+            });
+
+        Assert.Throws<InvalidCastException>(() => map.GetValueOrDefault(1));
+    }
 
     [Test]
     public void Adding_the_conflicting_keys_should_be_fun()
