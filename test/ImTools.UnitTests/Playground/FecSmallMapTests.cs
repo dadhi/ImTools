@@ -1,31 +1,49 @@
-﻿#define VERIFY_MAP
+#define VERIFY_MAP
+#if NET6_0_OR_GREATER
+#define CS_CHECK
+#endif
 
 namespace FastExpressionCompiler.ImTools.UnitTests;
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using NUnit.Framework;
 using static SmallMap;
+#if CS_CHECK
+using CsCheck;
+#endif
 
+/// <summary>
+/// Baseline tests for the hybrid SmallMap (stack entries + Grr/SingleArray heap + Grr metadata).
+/// Removal/TryRemove is intentionally not covered yet - not implemented in this baseline.
+/// </summary>
 [TestFixture]
 public class FecSmallMapTests
 {
-    private static readonly Type[] _allKeys = typeof(List<>).Assembly.GetTypes().Take(2000).ToArray();
+    private static readonly Type[] _allKeys = typeof(Dictionary<,>).Assembly.GetTypes().Take(2000).ToArray();
+
+    private static void AssertVerifyKeys<TMap, K>(ref TMap map, IEnumerable<K> expectedKeys = null)
+        where TMap : struct, IMap<K>, IMapImpl<K>
+    {
+#if VERIFY_MAP
+        map.Verify(static (cond, msg) => Assert.IsTrue(cond, msg), expectedKeys, Pass<K>.It);
+#endif
+    }
 
     [Test]
     public void Zero_0_hash_test()
     {
-        var map = new SmallMap16<int, int, IntEq>();
-        // Make non-empty map
-        map.Map.AddOrUpdate(1, 1);
-        Assert.AreEqual(1, map.Map.Count);
+        var m = new SmallMap16<int, int, IntEq>();
+        ref var map = ref m.Map;
+        map.AddOrUpdate(1, 1);
+        Assert.AreEqual(1, map.Count);
 
-        Assert.False(map.Map.ContainsKey(0));
-        map.Map.AddOrUpdate(0, 0);
-        Assert.AreEqual(2, map.Map.Count);
-        Assert.True(map.Map.ContainsKey(0));
+        Assert.False(map.ContainsKey(0));
+        map.AddOrUpdate(0, 0);
+        Assert.AreEqual(2, map.Count);
+        Assert.True(map.ContainsKey(0));
+        Assert.AreEqual(0, map.GetValueOrDefault(0, 0));
     }
 
     [Test]
@@ -38,14 +56,11 @@ public class FecSmallMapTests
         map.AddOrUpdate(42 + 32, "2");
         map.AddOrUpdate(42 + 32 + 32, "3");
 
-        // interrupt the keys with ne key
         map.AddOrUpdate(43, "a");
         map.AddOrUpdate(43 + 32, "b");
         map.AddOrUpdate(43 + 32 + 32, "c");
 
         map.AddOrUpdate(42 + 32 + 32 + 32, "4");
-
-        // insert 3rd variety of the keys
         map.AddOrUpdate(44, "*");
 
         map.AddOrUpdate(42 + 32 + 32 + 32 + 32, "5");
@@ -55,10 +70,9 @@ public class FecSmallMapTests
         map.AddOrUpdate(42 + 32 + 32 + 32 + 32 + 32 + 32, "7");
         map.AddOrUpdate(42 + 32 + 32 + 32 + 32 + 32 + 32 + 32, "8");
 
-        // check for the missing key
-        Assert.AreEqual(null, map.GetValueOrDefault(43 + 32 + 32 + 32 + 32, default(string)));
+        AssertVerifyKeys(ref map, (IEnumerable<int>)null);
 
-        // check for the strange key
+        Assert.AreEqual(null, map.GetValueOrDefault(43 + 32 + 32 + 32 + 32, default(string)));
         Assert.AreEqual("*", map.GetValueOrDefault(44, default(string)));
 
         Assert.AreEqual("1", map.GetValueOrDefault(42, default(string)));
@@ -79,17 +93,161 @@ public class FecSmallMapTests
     }
 
     [Test]
+    public void Update_existing_key_keeps_count()
+    {
+        var m = new SmallMap8<int, string, IntEq>();
+        ref var map = ref m.Map;
+
+        Assert.IsFalse(map.AddOrUpdate(7, "a"));
+        Assert.IsTrue(map.AddOrUpdate(7, "b"));
+        Assert.AreEqual(1, map.Count);
+        Assert.AreEqual("b", map.GetValueOrDefault(7, default(string)));
+        AssertVerifyKeys(ref map, new[] { 7 });
+    }
+
+    [Test]
+    public void Default_map_lookups_are_safe()
+    {
+        // Truly default (uninitialized) map: Count/Capacity 0, no heap metadata yet.
+        var m = default(SmallMap16<int, string, IntEq>);
+        ref var map = ref m.Map;
+        Assert.AreEqual(0, map.Count);
+        Assert.IsFalse(map.ContainsKey(42));
+        Assert.AreEqual(null, map.GetValueOrDefault(42, default(string)));
+        map.TryGetEntryRef(42, out var found);
+        Assert.IsFalse(found);
+        // Do not dereference the returned ref when found is false (null ref).
+    }
+
+    [Test]
+    public void Stack_to_heap_migration_and_entry_order()
+    {
+        var m = new SmallMap4<int, int, IntEq>();
+        ref var map = ref m.Map;
+
+        const int n = 40;
+        for (var i = 0; i < n; i++)
+            map.AddOrUpdate(i, i * 10);
+
+        Assert.AreEqual(n, map.Count);
+        Assert.Greater(map.Capacity, 0);
+        Assert.Greater(map.HeapEntries.Capacity, 0);
+
+        for (var i = 0; i < n; i++)
+        {
+            Assert.AreEqual(i, map.GetSurePresentKey(i));
+            Assert.AreEqual(i * 10, map.GetSurePresentEntryRef(i).Value);
+            Assert.AreEqual(i * 10, map.GetValueOrDefault(i, 0));
+        }
+
+        AssertVerifyKeys(ref map, Enumerable.Range(0, n));
+    }
+
+    [Test]
+    public void Heap_entry_refs_remain_stable_with_Grr_backing()
+    {
+        var m = new SmallMap4<int, int, IntEq>();
+        ref var map = ref m.Map;
+
+        for (var i = 0; i < 8; i++)
+            map.AddOrUpdate(i, i);
+
+        ref var heapEntry = ref map.GetSurePresentEntryRef(4);
+        Assert.AreEqual(4, heapEntry.Key);
+        Assert.AreEqual(4, heapEntry.Value);
+
+        for (var i = 8; i < 200; i++)
+            map.AddOrUpdate(i, i);
+
+        Assert.AreEqual(4, heapEntry.Key);
+        Assert.AreEqual(4, heapEntry.Value);
+        heapEntry.Value = -1;
+        Assert.AreEqual(-1, map.GetSurePresentEntryRef(4).Value);
+        Assert.AreEqual(-1, map.GetValueOrDefault(4, 0));
+
+        AssertVerifyKeys(ref map, (IEnumerable<int>)null);
+    }
+
+    [Test]
+    public void SingleBackingArray_map_behaves_the_same_for_lookup()
+    {
+        var m = new SmallMap16_SingleArrEntries<int, string, IntEq>();
+        ref var map = ref m.Map;
+
+        for (var i = 0; i < 100; i++)
+            map.AddOrUpdate(i, "v" + i);
+
+        for (var i = 0; i < 100; i++)
+            Assert.AreEqual("v" + i, map.GetValueOrDefault(i, default(string)));
+
+        Assert.IsFalse(map.ContainsKey(1000));
+        AssertVerifyKeys(ref map, Enumerable.Range(0, 100));
+    }
+
+    [Test]
+    public void AddSureAbsent_and_AddOrGet_paths()
+    {
+        var m = new SmallMap8<int, int, IntEq>();
+        ref var map = ref m.Map;
+
+        map.AddSureAbsentDefaultEntryAndGetRef(1).Value = 10;
+        map.AddSureAbsentDefaultEntryAndGetRef(2).Value = 20;
+        Assert.AreEqual(2, map.Count);
+
+        ref var existing = ref map.AddOrGetEntryRef(1, out var found);
+        Assert.IsTrue(found);
+        Assert.AreEqual(10, existing.Value);
+        existing.Value = 11;
+
+        ref var added = ref map.AddOrGetEntryRef(3, out found);
+        Assert.IsFalse(found);
+        added.Value = 30;
+
+        Assert.AreEqual(3, map.Count);
+        Assert.AreEqual(11, map.GetValueOrDefault(1, 0));
+        Assert.AreEqual(30, map.GetValueOrDefault(3, 0));
+        AssertVerifyKeys(ref map, new[] { 1, 2, 3 });
+    }
+
+    [Test]
+    public void Constructor_capacity_is_honored_as_power_of_two_floor()
+    {
+        var m = new SmallMap16<int, int, IntEq>(100);
+        ref var map = ref m.Map;
+        Assert.GreaterOrEqual(map.Capacity, 16);
+        Assert.AreEqual(0, map.Capacity & (map.Capacity - 1));
+
+        for (var i = 0; i < 50; i++)
+            map.AddOrUpdate(i, i);
+
+        Assert.AreEqual(50, map.Count);
+        AssertVerifyKeys(ref map, Enumerable.Range(0, 50));
+    }
+
+    [Test]
+    public void Set_stores_keys_only()
+    {
+        var s = new SmallSet8<int, IntEq>();
+        ref var set = ref s.Set;
+
+        set.AddOrGetEntryRef(5, out var found);
+        Assert.IsFalse(found);
+        set.AddOrGetEntryRef(5, out found);
+        Assert.IsTrue(found);
+        Assert.IsTrue(set.ContainsKey(5));
+        Assert.IsFalse(set.ContainsKey(6));
+        Assert.AreEqual(1, set.Count);
+    }
+
+    [Test]
     public void Benchmark_test_with_Add_and_Lookup_10_items()
     {
         const int Count = 10;
-        Debug.Assert(Count <= 1000, "Count should be less than or equal to 1000 for this test to work correctly.");
-
         var m = new SmallMap16<Type, string, RefEq<Type>>();
         ref var map = ref m.Map;
 
         var presentKeys = _allKeys.Take(Count).ToArray();
         var missingKeys = _allKeys.Skip(1000).Take(Count).ToArray();
-
         var seed = new Random(42);
         var randomPresentKeys = presentKeys.OrderBy(_ => seed.Next()).ToArray();
 
@@ -100,7 +258,7 @@ public class FecSmallMapTests
         var iters = Count / 2;
         for (var i = 0; i < iters; ++i)
         {
-            var entry = map.TryGetEntryRef(randomPresentKeys[i], out var found);
+            ref var entry = ref map.TryGetEntryRef(randomPresentKeys[i], out var found);
             if (found)
                 count += entry.Value.Length;
             _ = map.TryGetEntryRef(missingKeys[i], out found);
@@ -109,29 +267,25 @@ public class FecSmallMapTests
         }
 
         Assert.AreEqual(0, count);
+        AssertVerifyKeys(ref map, presentKeys);
     }
 
     [Test]
     public void Benchmark_test_with_Add_and_Lookup_100_items()
     {
         const int Count = 100;
-        Debug.Assert(Count <= 1000, "Count should be less than or equal to 1000 for this test to work correctly.");
-
         var m = new SmallMap16<Type, string, RefEq<Type>>();
         ref var map = ref m.Map;
 
         var presentTypes = _allKeys.Take(Count).ToArray();
         var missingKeys = _allKeys.Skip(1000).Take(Count).ToArray();
-
         var seed = new Random(42);
         var randomPresentKeys = presentTypes.OrderBy(_ => seed.Next()).ToArray();
 
         foreach (var type in presentTypes)
             map.AddOrUpdate(type, "a");
 
-#if VERIFY_MAP
-        map.Verify(static (cond, msg) => Assert.IsTrue(cond, msg), presentTypes, Pass<Type>.It);
-#endif
+        AssertVerifyKeys(ref map, presentTypes);
 
         var count = 0;
         var iters = Count / 2;
@@ -151,23 +305,18 @@ public class FecSmallMapTests
     public void Benchmark_test_with_Add_and_Lookup_1000_items()
     {
         const int Count = 1000;
-        Debug.Assert(Count <= 1000, "Count should be less than or equal to 1000 for this test to work correctly.");
-
         var m = new SmallMap16<Type, string, RefEq<Type>>();
         ref var map = ref m.Map;
 
         var presentTypes = _allKeys.Take(Count).ToArray();
         var missingKeys = _allKeys.Skip(1000).Take(Count).ToArray();
-
         var seed = new Random(42);
         var randomPresentKeys = presentTypes.OrderBy(_ => seed.Next()).ToArray();
 
         foreach (var type in presentTypes)
             map.AddOrUpdate(type, "a");
 
-#if VERIFY_MAP
-        map.Verify(static (cond, msg) => Assert.IsTrue(cond, msg), presentTypes, Pass<Type>.It);
-#endif
+        AssertVerifyKeys(ref map, presentTypes);
 
         var count = 0;
         var iters = Count / 2;
@@ -183,325 +332,110 @@ public class FecSmallMapTests
         Assert.AreEqual(0, count);
     }
 
-    // [Test]
-    // public void Real_world_test_AddOrUpdate_NO_Resize()
-    // {
-    //     var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(100).ToArray();
-
-    //     var map = new SmallMap16<Type, string, RefEq<Type>>(8);
-
-    //     foreach (var key in types)
-    //         map.AddOrUpdate(key, "a");
-
-    //     map.AddOrUpdate(typeof(FHashMap11Tests), "!");
-
-    //     Assert.AreEqual(101, map.Count);
-
-    //     Verify(map, types);
-    // }
-
-    // [Test]
-    // public void Real_world_test_with_TryRemove_from_1000_items()
-    // {
-    //     var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(1000).ToArray();
-
-    //     var map = new SmallMap16<Type, string, RefEq<Type>>();
-
-    //     foreach (var key in types)
-    //         map.AddOrUpdate(key, "a");
-
-    //     map.AddOrUpdate(typeof(FHashMap11Tests), "!");
-    //     Assert.AreEqual(1001, map.Count);
-
-    //     Assert.IsTrue(map.TryRemove(typeof(FHashMap11Tests)));
-    //     Assert.AreEqual(1000, map.Count);
-
-    //     Verify(map, types);
-    // }
-
-    // [Test]
-    // public void Real_world_test_with_Enumerator_and_TryRemove_the_entries()
-    // {
-    //     var count = 1000;
-    //     var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(count).ToList();
-    //     Assert.AreEqual(count, types.Count);
-
-    //     var map = new SmallMap16<Type, string, RefEq<Type>>();
-
-    //     foreach (var key in types)
-    //         map.AddOrUpdate(key, "a");
-
-    //     var keys = map.Select(kv => kv.Key).ToList();
-    //     CollectionAssert.AreEquivalent(types, keys);
-
-    //     Assert.IsTrue(map.TryRemove(types[0]));
-    //     Assert.IsTrue(map.TryRemove(types[999]));
-    //     Assert.IsTrue(map.TryRemove(types[377]));
-    //     Assert.IsTrue(map.TryRemove(types[733]));
-    //     Assert.AreEqual(count - 4, map.Count);
-
-    //     // remove in the reverse order to keep the correct index in regard to map
-    //     types.RemoveAt(999);
-    //     types.RemoveAt(733);
-    //     types.RemoveAt(377);
-    //     types.RemoveAt(0);
-    //     Assert.AreEqual(count - 4, types.Count);
-
-    //     // Check the second enumeration is working
-    //     var keys2 = map.Select(kv => kv.Key).ToList();
-    //     CollectionAssert.AreEquivalent(types, keys2);
-
-    //     Verify(map, types);
-    // }
-
-    // [Test]
-    // public void Simplified_test_with_equal_hashes_RefEq()
-    // {
-    //     var map = new SmallMap16<Type, string, RefEq<Type>>();
-
-    //     var keys = new[] { typeof(Tuple<>), typeof(Tuple<,>), typeof(Tuple<,,>) };
-    //     var i = 1;
-    //     foreach (var k in keys)
-    //         map.AddOrUpdate(k, "" + i++);
-
-    //     Assert.AreEqual(3, map.Count);
-
-    //     Assert.IsTrue(map.TryRemove(typeof(Tuple<,,>)));
-    //     Assert.AreEqual(2, map.Count);
-
-    //     Verify(map, new[] { typeof(Tuple<>), typeof(Tuple<,>) });
-    // }
-
-    /*
-    ## Debug output example
-
-    ### IntEq
-
-    [AddOrUpdate] Probes abs max=2, max=2, all=[1: 1, 2: 1]; first 4 probes are 2 out of 2
-    [AddOrUpdate] Probes abs max=3, max=3, all=[1: 1, 2: 1, 3: 1]; first 4 probes are 3 out of 3
-    [AllocateEntries] Resize entries: 2 -> 4
-    [ResizeHashes] 4 -> 8
-    [ResizeHashes] Probes abs max=3, max=3, all=[1: 1, 2: 1, 3: 1]; first 4 probes are 3 out of 3
-    [AddOrUpdate] Probes abs max=4, max=4, all=[1: 1, 2: 1, 3: 2, 4: 1]; first 4 probes are 5 out of 5
-    [AllocateEntries] Resize entries: 4 -> 8
-    [AddOrUpdate] Probes abs max=5, max=5, all=[1: 1, 2: 1, 3: 2, 4: 1, 5: 1]; first 4 probes are 5 out of 6
-    [AddOrUpdate-RH] Probes abs max=6, max=6, all=[1: 1, 2: 1, 3: 2, 4: 2, 5: 1, 6: 1]; first 4 probes are 6 out of 8
-    [ResizeHashes] 8 -> 16
-    [ResizeHashes] Probes abs max=6, max=6, all=[1: 1, 2: 1, 3: 1, 4: 2, 5: 1, 6: 1]; first 4 probes are 5 out of 7
-    [AllocateEntries] Resize entries: 8 -> 16
-    [AddOrUpdate-RH] Probes abs max=7, max=7, all=[1: 1, 2: 1, 3: 1, 4: 2, 5: 2, 6: 1, 7: 1]; first 4 probes are 5 out of 9
-    [AddOrUpdate-RH] Probes abs max=8, max=8, all=[1: 1, 2: 1, 3: 1, 4: 2, 5: 2, 6: 2, 7: 1, 8: 1]; first 4 probes are 5 out of 11
-    [AddOrUpdate] Probes abs max=9, max=9, all=[1: 1, 2: 1, 3: 1, 4: 2, 5: 2, 6: 2, 7: 1, 8: 2, 9: 1]; first 4 probes are 5 out of 13
-    [AddOrUpdate-RH] Probes abs max=10, max=10, all=[1: 1, 2: 1, 3: 1, 4: 2, 5: 2, 6: 2, 7: 2, 8: 2, 9: 1, 10: 1]; first 4 probes are 5 out of 15
-    [AddOrUpdate-RH] Probes abs max=11, max=11, all=[1: 1, 2: 1, 3: 1, 4: 2, 5: 2, 6: 2, 7: 2, 8: 3, 9: 1, 10: 1, 11: 1]; first 4 probes are 5 out of 17
-
-    ### GoldenIntEq
-
-    [AddOrUpdate] Probes abs max=2, max=2, all=[1: 1, 2: 1]; first 4 probes are 2 out of 2
-    [AllocateEntries] Resize entries: 2 -> 4
-    [ResizeHashes] 4 -> 8
-    [ResizeHashes] Probes abs max=2, max=1, all=[1: 3]; first 4 probes are 3 out of 3
-    [AllocateEntries] Resize entries: 4 -> 8
-    [AddOrUpdate] Probes abs max=2, max=2, all=[1: 5, 2: 1]; first 4 probes are 6 out of 6
-    [ResizeHashes] 8 -> 16
-    [ResizeHashes] Probes abs max=2, max=2, all=[1: 6, 2: 1]; first 4 probes are 7 out of 7
-    [AllocateEntries] Resize entries: 8 -> 16
-
-    */
-
-    // [Test]
-    // public void Can_store_and_retrieve_value_from_map_Golden()
-    // {
-    //     var map = new SmallMap16<int, string, IntEq>(2);
-    //     // var map = new SmallMap16<int, string, GoldenIntEq>(2);
-
-    //     map.AddOrUpdate(42, "1");
-    //     map.AddOrUpdate(42 + 32, "2");
-    //     map.AddOrUpdate(42 + 32 + 32, "3");
-
-    //     // interrupt the keys with new key
-    //     map.AddOrUpdate(43, "a");
-    //     map.AddOrUpdate(43 + 32, "b");
-    //     map.AddOrUpdate(43 + 32 + 32, "c");
-
-    //     map.AddOrUpdate(42 + 32 + 32 + 32, "4");
-
-    //     // insert 3rd variety of the keys
-    //     map.AddOrUpdate(44, "*");
-
-    //     map.AddOrUpdate(42 + 32 + 32 + 32 + 32, "5");
-    //     map.AddOrUpdate(42 + 32 + 32 + 32 + 32 + 32, "6");
-    //     map.AddOrUpdate(43 + 32 + 32 + 32, "d");
-
-    //     map.AddOrUpdate(42 + 32 + 32 + 32 + 32 + 32 + 32, "7");
-    //     map.AddOrUpdate(42 + 32 + 32 + 32 + 32 + 32 + 32 + 32, "8");
-
-    //     // check for the missing key
-    //     Assert.AreEqual(null, map.GetValueOrDefault(43 + 32 + 32 + 32 + 32));
-
-    //     // check for the strange key
-    //     Assert.AreEqual("*", map.GetValueOrDefault(44));
-
-    //     Assert.AreEqual("1", map.GetValueOrDefault(42));
-    //     Assert.AreEqual("2", map.GetValueOrDefault(42 + 32));
-    //     Assert.AreEqual("3", map.GetValueOrDefault(42 + 32 + 32));
-    //     Assert.AreEqual("4", map.GetValueOrDefault(42 + 32 + 32 + 32));
-    //     Assert.AreEqual("5", map.GetValueOrDefault(42 + 32 + 32 + 32 + 32));
-    //     Assert.AreEqual("6", map.GetValueOrDefault(42 + 32 + 32 + 32 + 32 + 32));
-    //     Assert.AreEqual("7", map.GetValueOrDefault(42 + 32 + 32 + 32 + 32 + 32 + 32));
-    //     Assert.AreEqual("8", map.GetValueOrDefault(42 + 32 + 32 + 32 + 32 + 32 + 32 + 32));
-
-    //     Assert.AreEqual("a", map.GetValueOrDefault(43));
-    //     Assert.AreEqual("b", map.GetValueOrDefault(43 + 32));
-    //     Assert.AreEqual("c", map.GetValueOrDefault(43 + 32 + 32));
-    //     Assert.AreEqual("d", map.GetValueOrDefault(43 + 32 + 32 + 32));
-
-    //     Assert.AreEqual(13, map.Count);
-
-    //     Verify(map, null);
-    // }
-
-    // [Test]
-    // public void Can_lookup_the_default_map_without_error()
-    // {
-    //     SmallMap16<int, string, IntEq> map = default;
-
-    //     Assert.IsFalse(map.TryGetValue(42, out _));
-    // }
-
-    // [Test]
-    // public void Can_store_and_retrieve_value_from_map_with_Expand_in_the_middle()
-    // {
-    //     var map = new SmallMap16<int, string, IntEq>(1);
-
-    //     Assert.IsFalse(map.TryGetValue(42, out _));
-
-    //     map.AddOrUpdate(42, "1");
-    //     map.AddOrUpdate(42 + 32, "2");
-
-    //     // interrupt the keys with new key
-    //     map.AddOrUpdate(43, "a");
-    //     map.AddOrUpdate(43 + 32, "b");
-
-    //     map.AddOrUpdate(42 + 32 + 32, "3");
-
-    //     Assert.AreEqual("1", map.GetValueOrDefault(42));
-    //     Assert.AreEqual("2", map.GetValueOrDefault(42 + 32));
-    //     Assert.AreEqual("3", map.GetValueOrDefault(42 + 32 + 32));
-    //     Assert.AreEqual(null, map.GetValueOrDefault(42 + 32 + 32 + 32));
-    //     Assert.AreEqual("a", map.GetValueOrDefault(43));
-
-    //     map.AddOrUpdate(43, "a!");
-    //     Assert.AreEqual("a!", map.GetValueOrDefault(43));
-
-    //     map.AddOrUpdate(47, "x");
-    //     map.AddOrUpdate(53, "y");
-    //     Assert.AreEqual("x", map.GetValueOrDefault(47));
-    //     Assert.AreEqual("y", map.GetValueOrDefault(53));
-
-    //     map.AddOrUpdate(47 + 16, "x!");
-    //     map.AddOrUpdate(53 + 16, "y!");
-    //     Assert.AreEqual("x!", map.GetValueOrDefault(47 + 16));
-    //     Assert.AreEqual("y!", map.GetValueOrDefault(53 + 16));
-
-    //     Verify(map, null);
-    // }
-
-    // [Test]
-    // public void Can_resize_without_moving()
-    // {
-    //     var map = new SmallMap16<int, string, IntEq>(2);
-
-    //     map.AddOrUpdate(0, "0");
-    //     map.AddOrUpdate(1, "1");
-    //     map.AddOrUpdate(9, "9");
-
-    //     // resize goes here
-    //     map.AddOrUpdate(3, "3");
-
-    //     map.AddOrUpdate(5, "5");
-
-    //     Verify(map, new[] { 0, 1, 3, 5, 9 });
-    // }
-
-    // [Test]
-    // public void Can_store_and_get_stored_item_count()
-    // {
-    //     var map = new SmallMap16<int, string, IntEq>();
-
-    //     map.AddOrUpdate(42, "1");
-    //     map.AddOrUpdate(42 + 32 + 32, "3");
-
-    //     Assert.AreEqual(2, map.Count);
-    //     Verify(map, new[] { 42, 42 + 32 + 32 });
-    // }
-
-    // [Test]
-    // public void Can_update_a_stored_item_with_new_value()
-    // {
-    //     var map = new SmallMap16<int, string, IntEq>();
-
-    //     map.AddOrUpdate(42, "1");
-    //     map.AddOrUpdate(42, "3");
-
-    //     Assert.AreEqual("3", map.GetValueOrDefault(42));
-    //     Assert.AreEqual(1, map.Count);
-    //     Verify(map, new[] { 42 });
-    // }
-
-    // [Test]
-    // public void Can_add_key_with_0_hash_code()
-    // {
-    //     var map = new SmallMap16<int, string, IntEq>();
-
-    //     map.AddOrUpdate(0, "aaa");
-    //     map.AddOrUpdate(0 + 32, "2");
-    //     map.AddOrUpdate(0 + 32 + 32, "3");
-    //     Verify(map, new[] { 0, 0 + 32, 0 + 32 + 32 });
-
-    //     string value;
-    //     Assert.IsTrue(map.TryGetValue(0, out value));
-
-    //     Assert.AreEqual("aaa", value);
-    // }
-
-    // [Test]
-    // public void Can_quickly_find_the_scattered_items_with_the_same_cache()
-    // {
-    //     var map = new SmallMap16<int, string, IntEq>();
-
-    //     map.AddOrUpdate(42, "1");
-    //     map.AddOrUpdate(43, "a");
-    //     map.AddOrUpdate(42 + 32, "2");
-    //     map.AddOrUpdate(45, "b");
-    //     map.AddOrUpdate(46, "c");
-    //     map.AddOrUpdate(42 + 32 + 32, "3");
-    //     Verify(map, new[] { 42, 43, 42 + 32, 45, 46, 42 + 32 + 32 });
-
-    //     string value;
-    //     Assert.IsTrue(map.TryGetValue(42 + 32, out value));
-    //     Assert.AreEqual("2", value);
-
-    //     Assert.IsTrue(map.TryGetValue(42 + 32 + 32, out value));
-    //     Assert.AreEqual("3", value);
-    // }
-
-    // [Test]
-    // public void Can_remove_the_stored_item()
-    // {
-    //     var map = new SmallMap16<int, string, IntEq>(2);
-
-    //     map.AddOrUpdate(42, "1");
-    //     map.AddOrUpdate(42 + 32, "2");
-    //     map.AddOrUpdate(42 + 32 + 32, "3");
-
-    //     Assert.AreEqual("2", map.GetValueOrDefault(42 + 32));
-    //     var r = map.TryRemove(42 + 32);
-    //     Assert.IsTrue(r);
-
-    //     Assert.AreEqual(2, map.Count);
-    //     Assert.AreEqual("1", map.GetValueOrDefault(42));
-    //     Assert.AreEqual("3", map.GetValueOrDefault(42 + 32 + 32));
-    //     Verify(map, null);
-    // }
+    [Test]
+    public void Colliding_hashes_still_roundtrip()
+    {
+        var m = new SmallMap8<int, string, IntEq>();
+        ref var map = ref m.Map;
+
+        var keys = new[] { 1, 1 + 16, 1 + 32, 1 + 48, 1 + 64, 1 + 80, 1 + 96, 1 + 112, 1 + 128, 1 + 144 };
+        for (var i = 0; i < keys.Length; i++)
+            map.AddOrUpdate(keys[i], "v" + i);
+
+        for (var i = 0; i < keys.Length; i++)
+            Assert.AreEqual("v" + i, map.GetValueOrDefault(keys[i], default(string)));
+
+        Assert.AreEqual(keys.Length, map.Count);
+        AssertVerifyKeys(ref map, keys);
+    }
+
+    [Test]
+    public void Multiple_resizes_keep_all_keys_findable()
+    {
+        // Force several metadata resizes (threshold ~7/8 full) past stack migration.
+        var m = new SmallMap4<int, int, IntEq>();
+        ref var map = ref m.Map;
+        const int n = 5000;
+        for (var i = 0; i < n; i++)
+            map.AddOrUpdate(i, i);
+
+        Assert.AreEqual(n, map.Count);
+        Assert.Greater(map.Capacity, 16);
+        for (var i = 0; i < n; i++)
+            Assert.AreEqual(i, map.GetValueOrDefault(i, -1));
+        Assert.AreEqual(-1, map.GetValueOrDefault(n, -1));
+        AssertVerifyKeys(ref map, Enumerable.Range(0, n));
+    }
+
+#if CS_CHECK
+    [Test]
+    public void Check_AddOrUpdate_random_items_and_verify_all_added()
+    {
+        const int upperBound = 100_000;
+        Gen.Int[0, upperBound].Array.Sample(items =>
+        {
+            var m = new SmallMap16<int, int, IntEq>();
+            ref var map = ref m.Map;
+            foreach (var n in items)
+            {
+                map.AddOrUpdate(n, n);
+                Assert.AreEqual(n, map.GetValueOrDefault(n, -1));
+            }
+
+            foreach (var n in items)
+                Assert.AreEqual(n, map.GetValueOrDefault(n, -1));
+
+            Assert.AreEqual(-1, map.GetValueOrDefault(upperBound + 1, -1));
+            Assert.AreEqual(-1, map.GetValueOrDefault(-1, -1));
+            AssertVerifyKeys(ref map, items.Distinct());
+        },
+        iter: 2000);
+    }
+
+    [Test]
+    public void Check_AddOrUpdate_unique_keys_count_and_lookup()
+    {
+        Gen.Int[0, 50_000].ArrayUnique.Sample(keys =>
+        {
+            var m = new SmallMap8<int, int, IntEq>();
+            ref var map = ref m.Map;
+            for (var i = 0; i < keys.Length; i++)
+                map.AddOrUpdate(keys[i], i);
+
+            Assert.AreEqual(keys.Length, map.Count);
+            for (var i = 0; i < keys.Length; i++)
+                Assert.AreEqual(i, map.GetValueOrDefault(keys[i], -1));
+
+            AssertVerifyKeys(ref map, keys);
+        },
+        iter: 1500);
+    }
+
+    [Test]
+    public void Check_colliding_int_keys_across_resizes()
+    {
+        // Same low bits (ideal index) force long RH chains and wrap cases before/after resize.
+        Gen.Int[1, 64].SelectMany(baseKey =>
+            Gen.Int[8, 400].Select(n => (baseKey, n)))
+            .Sample(t =>
+            {
+                var (baseKey, n) = t;
+                var m = new SmallMap4<int, int, IntEq>();
+                ref var map = ref m.Map;
+                var keys = new int[n];
+                for (var i = 0; i < n; i++)
+                {
+                    // Step by growing powers of two so ideals collide under successive masks.
+                    keys[i] = baseKey + i * 16;
+                    map.AddOrUpdate(keys[i], i);
+                }
+
+                Assert.AreEqual(n, map.Count);
+                for (var i = 0; i < n; i++)
+                    Assert.AreEqual(i, map.GetValueOrDefault(keys[i], -1));
+                AssertVerifyKeys(ref map, keys);
+            },
+            iter: 1000);
+    }
+#endif
 }

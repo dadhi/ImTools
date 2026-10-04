@@ -27,7 +27,7 @@ THE SOFTWARE.
 #nullable disable
 
 #if DEBUG
-// #define VERIFY_MAP
+#define VERIFY_MAP
 #endif
 
 #if !NETSTANDARD2_0_OR_GREATER && !NET472
@@ -153,7 +153,7 @@ public static class SmallList
 
     /// <summary>Returns surely present item ref by its index without boundary checks</summary>
     [MethodImpl((MethodImplOptions)256)]
-    public static ref T GetSurePresentItemRef<T>(this T[] source, int index) =>
+    public static ref T GetSurePresentRef<T>(this T[] source, int index) =>
 #if SUPPORTS_UNSAFE
         ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(source), index);
 #else
@@ -243,6 +243,7 @@ public interface IStack<T, TSize, TStack> : IStack<T, TStack>
 {
 }
 
+// todo: @wip possibly separate intoduce IStackCap interface for the StackCap, because nothing in this interface requires the stack. 
 /// <summary>Abstracts over collection of the items on stack of the fixed Capacity,
 /// to be used as a part of the hybrid data structures which grow from stack to heap</summary>
 public interface IStack<T, TStack>
@@ -254,7 +255,7 @@ public interface IStack<T, TStack>
     /// <summary>Returns the item by ref to read and write the item value,
     /// but does not check the index bounds comparing to the `this[index]`</summary>
     [UnscopedRef]
-    ref T GetSurePresentItemRef(int index);
+    ref T GetSurePresentRef(int index);
 
     /// <summary>Indexer returning the item by ref to read and write the item value</summary>
     [UnscopedRef]
@@ -325,7 +326,7 @@ public struct Stack2<T> : IStack<T, Size2, Stack2<T>>
     /// <inheritdoc/>
     [UnscopedRef]
     [MethodImpl((MethodImplOptions)256)]
-    public ref T GetSurePresentItemRef(int index)
+    public ref T GetSurePresentRef(int index)
     {
 #if SUPPORTS_UNSAFE
         return ref Unsafe.Add(ref _it0, index);
@@ -346,7 +347,7 @@ public struct Stack2<T> : IStack<T, Size2, Stack2<T>>
         get
         {
             if (index >= 0 & index < Capacity)
-                return ref GetSurePresentItemRef(index);
+                return ref GetSurePresentRef(index);
             return ref Stack.ThrowIndexOutOfBounds<T>(index, Capacity);
         }
     }
@@ -370,7 +371,7 @@ public struct Stack4<T> : IStack<T, Size4, Stack4<T>>
     /// <inheritdoc/>
     [UnscopedRef]
     [MethodImpl((MethodImplOptions)256)]
-    public ref T GetSurePresentItemRef(int index)
+    public ref T GetSurePresentRef(int index)
     {
 #if SUPPORTS_UNSAFE
         return ref Unsafe.Add(ref _it0, index);
@@ -393,7 +394,7 @@ public struct Stack4<T> : IStack<T, Size4, Stack4<T>>
         get
         {
             if (index >= 0 & index < Capacity)
-                return ref GetSurePresentItemRef(index);
+                return ref GetSurePresentRef(index);
             return ref Stack.ThrowIndexOutOfBounds<T>(index, Capacity);
         }
     }
@@ -417,7 +418,7 @@ public struct Stack8<T> : IStack<T, Size8, Stack8<T>>
     /// <inheritdoc/>
     [UnscopedRef]
     [MethodImpl((MethodImplOptions)256)]
-    public ref T GetSurePresentItemRef(int index)
+    public ref T GetSurePresentRef(int index)
     {
 #if SUPPORTS_UNSAFE
         return ref Unsafe.Add(ref _it0, index);
@@ -444,7 +445,7 @@ public struct Stack8<T> : IStack<T, Size8, Stack8<T>>
         get
         {
             if (index >= 0 & index < Capacity)
-                return ref GetSurePresentItemRef(index);
+                return ref GetSurePresentRef(index);
             return ref Stack.ThrowIndexOutOfBounds<T>(index, Capacity);
         }
     }
@@ -469,7 +470,7 @@ public struct Stack16<T> : IStack<T, Size16, Stack16<T>>
     /// <inheritdoc/>
     [UnscopedRef]
     [MethodImpl((MethodImplOptions)256)]
-    public ref T GetSurePresentItemRef(int index)
+    public ref T GetSurePresentRef(int index)
     {
 #if SUPPORTS_UNSAFE
         return ref Unsafe.Add(ref _it0, index);
@@ -504,7 +505,7 @@ public struct Stack16<T> : IStack<T, Size16, Stack16<T>>
         get
         {
             if (index >= 0 & index < Capacity)
-                return ref GetSurePresentItemRef(index);
+                return ref GetSurePresentRef(index);
             return ref Stack.ThrowIndexOutOfBounds<T>(index, Capacity);
         }
     }
@@ -557,24 +558,24 @@ public struct SmallList<T, TStack> : IEnumerable<T>
 
             var stackCap = Stack.Capacity;
             if (index < stackCap)
-                return ref Stack.GetSurePresentItemRef(index);
+                return ref Stack.GetSurePresentRef(index);
 
             Debug.Assert(Rest != null, "Expecting deeper items are already existing on heap");
-            return ref Rest.GetSurePresentItemRef(index - stackCap);
+            return ref Rest.GetSurePresentRef(index - stackCap);
         }
     }
 
     /// <summary>Returns a surely present item ref by its index</summary>
     [UnscopedRef]
     [MethodImpl((MethodImplOptions)256)]
-    public ref T GetSurePresentItemRef(int index)
+    public ref T GetSurePresentRef(int index)
     {
         Debug.Assert(Count != 0, "SmallList.GetSurePresentItemRef: list should not be empty");
         Debug.Assert(index >= 0 & index < Count, $"SmallList.GetSurePresentItemRef: index {index} should be less than Count {Count}");
 
         var stackCap = Stack.Capacity;
         if (index < stackCap)
-            return ref Stack.GetSurePresentItemRef(index);
+            return ref Stack.GetSurePresentRef(index);
 
         Debug.Assert(Rest != null);
         return ref Rest[index - stackCap];
@@ -588,7 +589,7 @@ public struct SmallList<T, TStack> : IEnumerable<T>
         var index = Count++;
         var stackCap = Stack.Capacity;
         if (index < stackCap)
-            return ref Stack.GetSurePresentItemRef(index);
+            return ref Stack.GetSurePresentRef(index);
         return ref SmallList.AddDefaultAndGetRef(ref Rest, index - stackCap);
     }
 
@@ -599,7 +600,7 @@ public struct SmallList<T, TStack> : IEnumerable<T>
         var index = Count++;
         var stackCap = Stack.Capacity;
         if (index < stackCap)
-            Stack.GetSurePresentItemRef(index) = item;
+            Stack.GetSurePresentRef(index) = item;
         else
             SmallList.AddDefaultAndGetRef(ref Rest, index - stackCap) = item;
         return index;
@@ -650,7 +651,7 @@ public struct SmallList<T, TStack> : IEnumerable<T>
     public ref T GetLastSurePresentItem()
     {
         Debug.Assert(Count != 0, "Expecting that the list is not empty");
-        return ref GetSurePresentItemRef(Count - 1);
+        return ref GetSurePresentRef(Count - 1);
     }
 
     /// <summary>Removes the last item from the list aka the Stack Pop. Assumes that the list is not empty!</summary>
@@ -658,7 +659,7 @@ public struct SmallList<T, TStack> : IEnumerable<T>
     public void RemoveLastSurePresentItem()
     {
         Debug.Assert(Count != 0, "SmallList.RemoveLastSurePresentItem: Expecting that the list is not empty");
-        GetSurePresentItemRef(Count - 1) = default;
+        GetSurePresentRef(Count - 1) = default;
         --Count;
     }
 
@@ -692,7 +693,7 @@ public struct SmallListEnumerator<T, TStack> : IEnumerator<T>, IEnumerator
         if (index < _list.Count)
         {
             _current = index < _list.Stack.Capacity
-                ? _list.Stack.GetSurePresentItemRef(index)
+                ? _list.Stack.GetSurePresentRef(index)
                 : _list.Rest[index - _list.Stack.Capacity];
             return true;
         }
@@ -708,243 +709,472 @@ internal static class BitOps
 {
     /// <summary>Gets the next power of two greater than or equal to the specified capacity.</summary>
     [MethodImpl((MethodImplOptions)256)]
-    public static uint GetNextPowerOfTwoFast(uint capacity)
+    public static uint NextPowerOfTwo(uint value)
     {
 #if NET8_0_OR_GREATER
-        return BitOperations.RoundUpToPowerOf2(capacity);
+        return BitOperations.RoundUpToPowerOf2(value);
 #else
-        --capacity;
-        capacity |= capacity >> 1;
-        capacity |= capacity >> 2;
-        capacity |= capacity >> 4;
-        capacity |= capacity >> 8;
-        capacity |= capacity >> 16;
-        return capacity + 1;
+        --value;
+        value |= value >> 1;
+        value |= value >> 2;
+        value |= value >> 4;
+        value |= value >> 8;
+        value |= value >> 16;
+        return value + 1;
+#endif
+    }
+
+    /// <summary>Counts the number of leading zero bits in the specified value. 
+    /// Useful to get Log2(value) and the number of bits needed to represent the value.</summary>
+    [MethodImpl((MethodImplOptions)256)]
+    public static int LeadingZeroCount(uint value)
+    {
+#if NET8_0_OR_GREATER
+        return BitOperations.LeadingZeroCount(value);
+#else
+        if (value == 0) return 32;
+        var count = 0;
+        if (value <= 0x0000FFFF) { count += 16; value <<= 16; }
+        if (value <= 0x00FFFFFF) { count += 8;  value <<= 8; }
+        if (value <= 0x0FFFFFFF) { count += 4;  value <<= 4; }
+        if (value <= 0x3FFFFFFF) { count += 2;  value <<= 2; }
+        if (value <= 0x7FFFFFFF) { count += 1; }
+        return count;
 #endif
     }
 }
 
-/// <summary>Abstraction to configure your own entries data structure. Check the derived types for the examples</summary>
-public interface IGrowingArray<T>
+public interface ICapIndex<T>
 {
+    /// <summary>The capacity</summary>
     public int Capacity { get; }
 
-    /// <summary>Tracks the number of store elements, enables method AddDefaultAndGetRef to work</summary>
-    public int Count { get; }
-
-    /// <summary>Initializes the entries storage to the specified capacity</summary>
-    void Init(uint capacity, uint initializeCountTo = 0);
-
-    /// <summary>Returns the reference to entry by its index, index should map to the present/non-removed entry</summary>
+    /// <summary>Returns the item by ref to read and write the item value,
+    /// but does not check the index bounds comparing to the `this[index]`</summary>
+    [UnscopedRef]
     ref T GetSurePresentRef(int index);
+}
 
-    /// <summary>Adds the key at the "end" of entries - so the order of addition is preserved.</summary>
-    ref T AddDefaultAndGetRef();
+/// <summary>Abstraction to configure your own entries data structure. Check the derived types for the examples</summary>
+public interface IGrowingArray<T> : ICapIndex<T>
+{
+    /// <summary>Initializes the entries storage to the specified capacity</summary>
+    void Init(uint capacity);
+
+    /// <summary>Doubles the current capacity of the array preserving the existing elements and count.</summary>
+    void DoubleCapacity();
+
+    /// <summary>Doubles the capacity until the specified value is inside</summary>
+    void GrowCapacity(uint capacity);
 }
 
 /// <summary>Stores the entries in a single dynamically reallocated growing array</summary>
 public struct SingleBackingArray<T> : IGrowingArray<T>
 {
-    internal T[] _entries;
     internal int _capacityPowerOfTwo;
-    internal int _count;
+    internal T[] _entries;
 
     /// <inheritdoc/>
     public int Capacity => _capacityPowerOfTwo;
-    /// <inheritdoc/>
-    public int Count => _count;
 
     /// <inheritdoc/>
-    public void Init(uint capacity, uint initializeCountTo = 0)
+    [MethodImpl((MethodImplOptions)256)]
+    public void Init(uint capacity)
     {
-        _capacityPowerOfTwo = (int)BitOps.GetNextPowerOfTwoFast(capacity);
-        Debug.Assert(_capacityPowerOfTwo >= initializeCountTo, $"Capacity {_capacityPowerOfTwo} should be enough to hold the initialized count {initializeCountTo}");
+        _capacityPowerOfTwo = capacity == 0 ? 1 : (int)BitOps.NextPowerOfTwo(capacity);
         _entries = new T[_capacityPowerOfTwo];
-        _count = (int)initializeCountTo;
+    }
+
+    /// <inheritdoc/>
+    [MethodImpl((MethodImplOptions)256)]
+    public void DoubleCapacity()
+    {
+        Debug.Assert(_entries != null, "Entries should be initialized before doubling the capacity");
+        Debug.Assert(_capacityPowerOfTwo != 0, "Capacity should be not 0");
+        Array.Resize(ref _entries, _capacityPowerOfTwo <<= 1);
+    }
+
+    /// <inheritdoc/>
+    public void GrowCapacity(uint capacity)
+    {
+        if (_capacityPowerOfTwo == 0)
+        {
+            Init(capacity);
+            return;
+        }
+        while (_capacityPowerOfTwo < capacity)
+            DoubleCapacity();
     }
 
     /// <inheritdoc/>
     [MethodImpl((MethodImplOptions)256)]
     public ref T GetSurePresentRef(int index)
     {
-        Debug.Assert(index >= 0 && index < _count, $"Index {index} should be in the range 0..{_count - 1}");
-        return ref _entries.GetSurePresentItemRef(index);
-    }
-
-    /// <inheritdoc/>
-    [MethodImpl((MethodImplOptions)256)]
-    public ref T AddDefaultAndGetRef()
-    {
-        Debug.Assert(_count <= _entries.Length, "Entries should be initialized before adding the item");
-        if (_count == _entries.Length)
-        {
-            Debug.Assert(_capacityPowerOfTwo == _entries.Length, "Capacity should be equal to the entries length");
-            _capacityPowerOfTwo <<= 1;
-            Array.Resize(ref _entries, _capacityPowerOfTwo);
-        }
-        return ref _entries.GetSurePresentItemRef(_count++);
+        Debug.Assert(index >= 0 && index < _capacityPowerOfTwo, $"Index {index} should be in the range of 0 to capacity:{_capacityPowerOfTwo}");
+        return ref _entries.GetSurePresentRef(index);
     }
 }
 
-/// <summary>Stores the data in the growing "list" of segment arrays.
-/// Allocating the new segment array doubles the size preserving the previous segments intact ensuring that the item references remain stable,
-/// e.g. the segment sizes are [32, 32, 64, 128, 256, 512, 1024, ...]</summary>
-[StructLayout(LayoutKind.Sequential, Pack = 1)]
-public struct StableSegmentedArray<T> : IGrowingArray<T>
+/// <summary>A growing array that grows by appending a new segment doubling the total capacity.
+/// Existing segments are never resized/copied, so item references stay valid (stable).
+/// Random access is still O(1) via power-of-two segment sizes.
+/// Segment sizes starting from first segment F: F, F, 2F, 4F, 8F, ... (first two equal so total doubles each add).
+/// </summary>
+public struct Grr<T, TStack> : IGrowingArray<T>, IEnumerable<T>
+    where TStack : struct, IStack<T[], TStack>
 {
-    internal T[] _segment00Of32;
-    internal T[] _segment01Of32;
-    internal T[] _segment02Of64;
-    internal T[] _segment03Of128;
-    internal T[] _segment04Of256;
-    internal T[] _segment05Of512;
-    internal T[] _segment06Of1024;
-    internal T[] _segment07Of2048;
+    public const int MinCapacityAndFirstSegmentSize = 16;
 
-    internal T[][] _segmentsOf4096AndMore;
-    internal int _capacityPowerOfTwo;
-    internal int _count;
+    internal int _totalCapacityPowerOfTwo;
+    /// <summary>Cached first segment length (power of two). Avoids recomputing 1 &lt;&lt; bitIndex on the hot path.</summary>
+    internal int _firstSegmentCapacity;
+    /// <summary>log2(_firstSegmentCapacity). Used for segment index math after the first segment.</summary>
+    internal byte _firstSegmentCapacityBitIndex;
+    internal SmallList<T[], TStack> _segments;
+
+    /// <summary>The number of segments.</summary>
+    public int SegmentCount => _segments.Count;
 
     /// <inheritdoc/>
-    public int Capacity => _capacityPowerOfTwo;
-    /// <inheritdoc/>
-    public int Count => _count;
+    public int Capacity => _totalCapacityPowerOfTwo;
 
-    // Starting from the 0 bucket of 32 items: 0b00000000_00000000_00000000_00011111 = 31
-#if NET8_0_OR_GREATER
+    /// <summary>Maps a global index that is already known to be past the first segment into a segment index.
+    /// Layout: [0 .. F) seg0, [F .. 2F) seg1, [2F .. 4F) seg2, ... so segment = log2(index) - log2(F) + 1 for index &gt;= F.
+    /// Equivalently: segmentIndex = (32 - firstBit) - LZC(index).</summary>
     [MethodImpl((MethodImplOptions)256)]
-    private static int GetSegmentIndexFromGlobalIndex(uint index)
+    private int GetSegmentIndexPastFirst(uint index)
     {
-        Debug.Assert(index >= 32, $"Index {index} should be 32 or more"); // todo: @wip
-        var segmentIndex = 27 - BitOperations.LeadingZeroCount(index);
-        // For index < 32: LeadingZeroCount gives 27-32, so 27-lzc gives -5 to 0
-        // We want to set (clamp) negative values to 0, [-5..-1] => 0
-        // Arithmetic right shift (segmentIndex >> 31) will convert any negative to -1 (0xFFFFFFFF), and 0 or positive to 0
-        // Then inverting ~(-1) will give 0 mask to erase any negative segmentIndex to 0. 
-        // Inverting ~(0) will give -1 mask to keep any positive segmentIndex as is.
-        // todo: @wip
-        return segmentIndex; // segmentIndex & ~(segmentIndex >> 31);
+        Debug.Assert(index >= (uint)_firstSegmentCapacity,
+            $"Index {index} should be >= firstSegmentCapacity:{_firstSegmentCapacity}");
+        // index >= F = 2^firstBit => LZC(index) <= 31 - firstBit => segmentIndex >= 1
+        return 32 - _firstSegmentCapacityBitIndex - BitOps.LeadingZeroCount(index);
     }
-#else
-    private static int GetSegmentIndexFromGlobalIndex(uint index)
+
+    /// <summary>Creates the first segment with capacity rounded up to the next power-of-two (min 16).
+    /// Safe to call again to re-initialize (discards previous segments).</summary>
+    [MethodImpl((MethodImplOptions)256)]
+    public void Init(uint capacity)
     {
-        Debug.Assert(index >= 32, $"Index {index} should be 32 or more"); // todo: @wip
-        if (index < 32) return 0;
-
-        var count = 0;
-        if (index <= 0x0000FFFF) { count += 16; index <<= 16; }
-        if (index <= 0x00FFFFFF) { count += 8;  index <<= 8; }
-        if (index <= 0x0FFFFFFF) { count += 4;  index <<= 4; }
-        if (index <= 0x3FFFFFFF) { count += 2;  index <<= 2; }
-        if (index <= 0x7FFFFFFF) { count += 1; }
-
-        return 27 - count;
+        var firstSegmentCap = capacity <= MinCapacityAndFirstSegmentSize
+            ? MinCapacityAndFirstSegmentSize
+            : (int)BitOps.NextPowerOfTwo(capacity);
+        _totalCapacityPowerOfTwo = firstSegmentCap;
+        _firstSegmentCapacity = firstSegmentCap;
+        _firstSegmentCapacityBitIndex = (byte)(31 - BitOps.LeadingZeroCount((uint)firstSegmentCap));
+        // Reset so re-Init works (SmallList.InitCount asserts Count == 0)
+        _segments = default;
+        _segments.InitCount(1);
+        _segments.GetSurePresentRef(0) = new T[firstSegmentCap];
     }
-#endif
+
+    /// <inheritdoc/>
+    [MethodImpl((MethodImplOptions)256)]
+    public void DoubleCapacity()
+    {
+        Debug.Assert(_segments.Count != 0,
+            $"Segments should be initialized before doubling the capacity but found {_segments.Count} segments");
+        Debug.Assert(_totalCapacityPowerOfTwo != 0, "Capacity should be non-zero before doubling");
+        // New segment size == current total capacity, so total doubles and old segments stay untouched.
+        _segments.AddDefaultAndGetRef() = new T[_totalCapacityPowerOfTwo];
+        _totalCapacityPowerOfTwo <<= 1;
+    }
+
+    /// <inheritdoc/>
+    [MethodImpl((MethodImplOptions)256)]
+    public void GrowCapacity(uint capacity)
+    {
+        if (_totalCapacityPowerOfTwo == 0)
+        {
+            Init(capacity);
+            return;
+        }
+        while ((uint)_totalCapacityPowerOfTwo < capacity)
+            DoubleCapacity();
+    }
 
     /// <inheritdoc/>
     [UnscopedRef]
     [MethodImpl((MethodImplOptions)256)]
-    private ref T[] GetStackSegmentRef(int segmentIndex)
+    public ref T GetSurePresentRef(int index)
     {
-        Debug.Assert(segmentIndex >= 0 && segmentIndex < 8, "Segment index should be in the range 0..7");
-#if SUPPORTS_UNSAFE
-        return ref Unsafe.Add(ref _segment00Of32, segmentIndex);
-#else
-        switch (segmentIndex)
-        {
-            case 0: return ref _segment00Of32;
-            case 1: return ref _segment01Of32;
-            case 2: return ref _segment02Of64;
-            case 3: return ref _segment03Of128;
-            case 4: return ref _segment04Of256;
-            case 5: return ref _segment05Of512;
-            case 6: return ref _segment06Of1024;
-            default: return ref _segment07Of2048;
-        }
-#endif
+        Debug.Assert(_totalCapacityPowerOfTwo != 0, "Grr should be initialized before accessing items");
+        Debug.Assert(index >= 0 && index < _totalCapacityPowerOfTwo,
+            $"Index {index} should be in the range of 0 to capacity:{_totalCapacityPowerOfTwo}");
+
+        var firstCap = _firstSegmentCapacity;
+        // Hot path: first segment (often the only one for small maps)
+        if (index < firstCap)
+            return ref _segments.GetSurePresentRef(0).GetSurePresentRef(index);
+
+        var segmentIndex = GetSegmentIndexPastFirst((uint)index);
+        Debug.Assert(segmentIndex >= 1 && segmentIndex < _segments.Count,
+            $"segmentIndex {segmentIndex} out of range for index:{index}, segmentCount:{_segments.Count}");
+
+        // Prefix capacity before segment S (S >= 1) is firstCap << (S - 1) == total capacity of segments 0..S-1
+        var insideIndex = index - (firstCap << (segmentIndex - 1));
+        return ref _segments.GetSurePresentRef(segmentIndex).GetSurePresentRef(insideIndex);
     }
 
-    /// <summary>Initializes enough segments to hold the specified capacity.
-    /// Always creates at least the first segment of 32 items.</summary>
+    /// <summary>Returns an enumerator over all allocated slots (Capacity items, not a separate Count).</summary>
     [MethodImpl((MethodImplOptions)256)]
-    public void Init(uint capacity, uint initializeCountTo = 0)
+    public GrrEnumerator<T, TStack> GetEnumerator() => new GrrEnumerator<T, TStack>(_segments);
+    IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+}
+
+/// <summary>Enumerator over Grr segment slots (full segment arrays, including unused capacity tails).</summary>
+public struct GrrEnumerator<T, TStack> : IEnumerator<T>, IEnumerator
+    where TStack : struct, IStack<T[], TStack>
+{
+    private T _current;
+    private T[] _currentSegment;
+    private int _segmentIndex;
+    private int _insideIndex;
+    private SmallList<T[], TStack> _segments;
+
+    internal GrrEnumerator(SmallList<T[], TStack> segments)
     {
-        _segment00Of32 = new T[32];
-        _capacityPowerOfTwo = 32;
-
-        Debug.Assert(initializeCountTo <= _capacityPowerOfTwo, $"Passed count {initializeCountTo} should be less than or equal to capacity {capacity}");
-        _count = (int)initializeCountTo;
-
-        if (capacity <= 32) // Even if user said to use capacity 0, we still allocate the first segment of 32 items
-            return;
-
-        var lastSegmentIndex = GetSegmentIndexFromGlobalIndex(capacity - 1);
-        Debug.Assert(lastSegmentIndex >= 0, $"GetSegmentIndexFromGlobalIndex should return {lastSegmentIndex} >= 1 for capacity-1:{capacity - 1} > 32");
-        _capacityPowerOfTwo = 32 << lastSegmentIndex;
-
-        for (var i = 1; i <= lastSegmentIndex; i++)
-            GetStackSegmentRef(i) = new T[32 << (i - 1)];
-        if (lastSegmentIndex < 8)
-            return;
-
-        var segments = _segmentsOf4096AndMore = new T[lastSegmentIndex - 7][];
-        for (var i = 0; i < segments.Length; i++)
-            segments[i] = new T[4096 << i];
+        _current = default;
+        _segmentIndex = 0;
+        _insideIndex = -1;
+        _segments = segments;
+        _currentSegment = segments.Count == 0 ? null : segments.GetSurePresentRef(0);
     }
 
-    /// <inheritdoc/>
+    /// <inheritdoc />
+    public T Current => _current;
+    object IEnumerator.Current => _current;
+
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public bool MoveNext()
+    {
+        if (_currentSegment == null)
+            return false;
+
+        if (++_insideIndex >= _currentSegment.Length)
+        {
+            if (++_segmentIndex >= _segments.Count)
+            {
+                _currentSegment = null;
+                return false;
+            }
+            _currentSegment = _segments.GetSurePresentRef(_segmentIndex);
+            Debug.Assert(_currentSegment != null,
+                $"New current segment should not be null for segmentIndex:{_segmentIndex} < _segments.Count:{_segments.Count}");
+            _insideIndex = 0;
+        }
+
+        _current = _currentSegment.GetSurePresentRef(_insideIndex);
+        return true;
+    }
+
+    /// <inheritdoc />
+    public void Reset()
+    {
+        _current = default;
+        _segmentIndex = 0;
+        _insideIndex = -1;
+        // Keep _segments so Reset+MoveNext can restart over the same data
+        _currentSegment = _segments.Count == 0 ? null : _segments.GetSurePresentRef(0);
+    }
+
+    /// <inheritdoc />
+    public void Dispose() { }
+}
+
+/// <summary>
+/// Hybrid growable list: first items live on a fixed <typeparamref name="TStack"/>,
+/// overflow lives in a stable segmented <see cref="Grr{T,TSegStack}"/> (no resize/copy of old heap items).
+/// API mirrors <see cref="SmallList{T,TStack}"/> but heap growth keeps references into already-added heap items stable.
+/// </summary>
+public struct SmallGrr<T, TStack, TSegStack> : IEnumerable<T>
+    where TStack : struct, IStack<T, TStack>
+    where TSegStack : struct, IStack<T[], TSegStack>
+{
+    /// <summary>Number of used items. May decrement to pop if you clear the slot yourself when needed.</summary>
+    public int Count;
+
+#pragma warning disable CS0649
+    /// <summary>Inline/stack portion of the list.</summary>
+    public TStack Stack;
+#pragma warning restore CS0649
+
+    /// <summary>Heap overflow stored as stable segments. Valid indexes are <c>0 .. Count - Stack.Capacity - 1</c>.</summary>
+    public Grr<T, TSegStack> Rest;
+
+    /// <summary>Indexer with bounds checks.</summary>
+    [UnscopedRef]
+    public ref T this[int index]
+    {
+        [MethodImpl((MethodImplOptions)256)]
+        get
+        {
+            if (index < 0 | index >= Count)
+                return ref SmallList.ThrowIndexOutOfBounds<T>(index, Count);
+            return ref GetSurePresentRef(index);
+        }
+    }
+
+    /// <summary>Returns a surely present item by index (no bounds check beyond asserts).</summary>
+    [UnscopedRef]
     [MethodImpl((MethodImplOptions)256)]
     public ref T GetSurePresentRef(int index)
     {
-        Debug.Assert(index >= 0 && index < _count, $"Index {index} should be in the range 0..{_count - 1}");
-        if (index < 32)
-            return ref _segment00Of32.GetSurePresentItemRef(index);
-
-        var segmentIndex = GetSegmentIndexFromGlobalIndex((uint)index);
-        Debug.Assert(segmentIndex > 0, $"Segment index should be more than 0 here but found {segmentIndex}");
-
-        var insideIndex = index - (32 << (segmentIndex - 1));
-        var segment = segmentIndex < 8 ? GetStackSegmentRef(segmentIndex) : _segmentsOf4096AndMore[segmentIndex - 8];
-        return ref segment.GetSurePresentItemRef(insideIndex);
+        Debug.Assert(index >= 0 & index < Count, $"SmallGrr index {index} should be in [0, {Count})");
+        var stackCap = Stack.Capacity;
+        if (index < stackCap)
+            return ref Stack.GetSurePresentRef(index);
+        return ref Rest.GetSurePresentRef(index - stackCap);
     }
 
-    /// <inheritdoc/>
+    /// <summary>Appends a default item and returns a ref to it.</summary>
+    [UnscopedRef]
     [MethodImpl((MethodImplOptions)256)]
     public ref T AddDefaultAndGetRef()
     {
-        var lastIndex = _count++;
-        if (lastIndex < 32)
-        {
-            _capacityPowerOfTwo = 32;
-            _segment00Of32 ??= new T[32];
-            return ref _segment00Of32.GetSurePresentItemRef(lastIndex);
-        }
+        var index = Count++;
+        var stackCap = Stack.Capacity;
+        if (index < stackCap)
+            return ref Stack.GetSurePresentRef(index);
 
-        var segmentIndex = GetSegmentIndexFromGlobalIndex((uint)lastIndex);
-        var fullSegmentsCapacity = 32 << (segmentIndex - 1);
-        _capacityPowerOfTwo = fullSegmentsCapacity << 1;
-        if (segmentIndex < 8)
-        {
-            ref var segment = ref GetStackSegmentRef(segmentIndex);
-            if (segment == null)
-                segment = new T[fullSegmentsCapacity];
-            return ref segment.GetSurePresentItemRef(lastIndex - fullSegmentsCapacity);
-        }
-        else
-        {
-            var heapSegmentCount = segmentIndex - 7;
-            if (_segmentsOf4096AndMore == null)
-                _segmentsOf4096AndMore = new T[heapSegmentCount][];
-            else if (_segmentsOf4096AndMore.Length < heapSegmentCount)
-                Array.Resize(ref _segmentsOf4096AndMore, heapSegmentCount);
-
-            ref var segment = ref _segmentsOf4096AndMore[heapSegmentCount - 1];
-            if (segment == null)
-                segment = new T[fullSegmentsCapacity];
-            return ref segment.GetSurePresentItemRef(lastIndex - fullSegmentsCapacity);
-        }
+        var restIndex = index - stackCap;
+        if (restIndex >= Rest.Capacity)
+            Rest.GrowCapacity((uint)restIndex + 1);
+        return ref Rest.GetSurePresentRef(restIndex);
     }
+
+    /// <summary>Appends an item. Returns the index of the added item.</summary>
+    [MethodImpl((MethodImplOptions)256)]
+    public int Add(in T item)
+    {
+        AddDefaultAndGetRef() = item;
+        return Count - 1;
+    }
+
+    /// <summary>Ensures capacity for at least <paramref name="count"/> items (stack + rest).</summary>
+    [MethodImpl((MethodImplOptions)256)]
+    public void EnsureCapacity(int count)
+    {
+        Debug.Assert(count >= 0);
+        var stackCap = Stack.Capacity;
+        if (count <= stackCap)
+            return;
+        Rest.GrowCapacity((uint)(count - stackCap));
+    }
+
+    /// <summary>Pre-sizes Count and backing storage (like <see cref="SmallList{T,TStack}.InitCount"/>).</summary>
+    [MethodImpl((MethodImplOptions)256)]
+    public void InitCount(int count)
+    {
+        Debug.Assert(count > 0, "Count should be more than 0");
+        Debug.Assert(Count == 0, "Initial the count should be 0");
+        EnsureCapacity(count);
+        Count = count;
+    }
+
+    /// <summary>Looks for the item and returns its index, or -1.</summary>
+    [MethodImpl((MethodImplOptions)256)]
+    public int TryGetIndex<TEq>(in T item, TEq eq = default) where TEq : struct, IEq<T>
+    {
+        for (var i = 0; i < Count; ++i)
+        {
+            if (eq.Equals(item, GetSurePresentRef(i)))
+                return i;
+        }
+        return -1;
+    }
+
+    /// <summary>Returns index of existing item or appends and returns the new index.</summary>
+    [MethodImpl((MethodImplOptions)256)]
+    public int GetIndexOrAdd<TEq>(in T item, TEq eq = default) where TEq : struct, IEq<T>
+    {
+        var i = TryGetIndex(in item, eq);
+        return i != -1 ? i : Add(in item);
+    }
+
+    /// <summary>Clears count; does not free heap segments (they can be reused).</summary>
+    [MethodImpl((MethodImplOptions)256)]
+    public void Clear()
+    {
+        var stackCap = Stack.Capacity;
+        var n = Count < stackCap ? Count : stackCap;
+        for (var i = 0; i < n; ++i)
+            Stack.GetSurePresentRef(i) = default;
+        // Leave Rest segments allocated for reuse; clear used rest slots
+        var restCount = Count - stackCap;
+        if (restCount > 0)
+        {
+            for (var i = 0; i < restCount; ++i)
+                Rest.GetSurePresentRef(i) = default;
+        }
+        Count = 0;
+    }
+
+    /// <summary>Last item ref; list must be non-empty.</summary>
+    [UnscopedRef]
+    [MethodImpl((MethodImplOptions)256)]
+    public ref T GetLastSurePresentItem()
+    {
+        Debug.Assert(Count != 0, "Expecting that the list is not empty");
+        return ref GetSurePresentRef(Count - 1);
+    }
+
+    /// <summary>Removes the last item. List must be non-empty.</summary>
+    [MethodImpl((MethodImplOptions)256)]
+    public void RemoveLastSurePresentItem()
+    {
+        Debug.Assert(Count != 0, "SmallGrr.RemoveLastSurePresentItem: list should not be empty");
+        GetSurePresentRef(Count - 1) = default;
+        --Count;
+    }
+
+    /// <summary>Struct enumerator over used items only (Count).</summary>
+    [MethodImpl((MethodImplOptions)256)]
+    public SmallGrrEnumerator<T, TStack, TSegStack> GetEnumerator() =>
+        new SmallGrrEnumerator<T, TStack, TSegStack>(this);
+    IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+}
+
+/// <summary>Enumerator for <see cref="SmallGrr{T,TStack,TSegStack}"/> over used items.</summary>
+public struct SmallGrrEnumerator<T, TStack, TSegStack> : IEnumerator<T>, IEnumerator
+    where TStack : struct, IStack<T, TStack>
+    where TSegStack : struct, IStack<T[], TSegStack>
+{
+    private SmallGrr<T, TStack, TSegStack> _list;
+    private int _index;
+    private T _current;
+
+    internal SmallGrrEnumerator(SmallGrr<T, TStack, TSegStack> list)
+    {
+        _list = list;
+        _index = -1;
+        _current = default;
+    }
+
+    /// <inheritdoc />
+    public T Current => _current;
+    object IEnumerator.Current => _current;
+
+    /// <inheritdoc />
+    [MethodImpl((MethodImplOptions)256)]
+    public bool MoveNext()
+    {
+        var index = ++_index;
+        if (index < _list.Count)
+        {
+            _current = _list.GetSurePresentRef(index);
+            return true;
+        }
+        return false;
+    }
+
+    /// <inheritdoc />
+    public void Reset() => _index = -1;
+
+    /// <inheritdoc />
+    public void Dispose() { }
 }
 
 /// <summary>Printable thing via provided printer </summary>
@@ -1210,7 +1440,7 @@ public static class SmallMap
                     if (matchIndex >= count) // todo: @perf can I remove this branch?
                         return -1;
 
-                    if (default(TEq).Equals(entries.GetSurePresentItemRef(matchIndex).Key, key))
+                    if (default(TEq).Equals(entries.GetSurePresentRef(matchIndex).Key, key))
                         return matchIndex;
 
                     // Clear lower bits up to and including the first set bit, afaik it can be hw accelerated 
@@ -1225,9 +1455,9 @@ public static class SmallMap
 #endif
         for (var i = 0; i < count; ++i)
         {
-            var h = hashes.GetSurePresentItemRef(i);
-            if (hashes.GetSurePresentItemRef(i) == hash &&
-                default(TEq).Equals(entries.GetSurePresentItemRef(i).Key, key))
+            var h = hashes.GetSurePresentRef(i);
+            if (hashes.GetSurePresentRef(i) == hash &&
+                default(TEq).Equals(entries.GetSurePresentRef(i).Key, key))
                 return i;
         }
         return -1;
@@ -1278,11 +1508,12 @@ public static class SmallMapDiagnostics
     public static void VerifyHashesAndKeysEq<TMap, K>(ref this TMap map, Action<bool, string> assertCond, Pass<K> _ = default)
         where TMap : struct, IMap<K>, IMapImpl<K>
     {
+        if (map.Capacity <= 0) return;
         var metas = map.PackedEntryIndexesHashesProbes;
         var probeMask = map.Capacity - 1;
-        for (var i = 0; i < metas.Length; i++)
+        for (var i = 0; i < metas.Capacity; i++)
         {
-            var m = metas[i];
+            var m = metas.GetSurePresentRef(i);
             if (m != 0)
             {
                 var metaHashPart = (int)(m & ~probeMask);
@@ -1300,13 +1531,14 @@ public static class SmallMapDiagnostics
     public static void VerifyNoDuplicateKeys<TMap, K>(this TMap map, Action<bool, string> assertCond, Pass<K> _ = default)
         where TMap : struct, IMap<K>, IMapImpl<K>
     {
+        if (map.Capacity <= 0) return;
         var uniq = new Dictionary<K, int>(map.Count);
 
         var metas = map.PackedEntryIndexesHashesProbes;
         var probeMask = map.Capacity - 1;
-        for (var i = 0; i < metas.Length; i++)
+        for (var i = 0; i < metas.Capacity; i++)
         {
-            var m = metas[i];
+            var m = metas.GetSurePresentRef(i);
             if (m == 0)
                 continue;
 
@@ -1322,19 +1554,23 @@ public static class SmallMapDiagnostics
 
     /// <summary>Verifies that the probes are consistently increasing</summary>
     public static void VerifyProbesRobinHoodInvariants<TMap, K>(this TMap map, Action<bool, string> assertCond, Pass<K> _ = default,
-        int startIndex = 0, int endIndex = -1)
+        int startIndex = 0, int endBefore = -1)
         where TMap : struct, IMapImpl<K>
     {
+        if (map.Capacity <= 0)
+            return; // default or stack-only map: no metadata table yet
         var metas = map.PackedEntryIndexesHashesProbes;
         var probeMask = map.Capacity - 1;
-        var prevProbe = (startIndex == 0 ? metas[metas.Length - 1] : metas[startIndex - 1]) & probeMask;
+        var prevIndex = startIndex == 0 ? probeMask : startIndex - 1;
+        var prevProbe = metas.GetSurePresentRef(prevIndex) & probeMask;
 
-        endIndex = endIndex == -1 ? metas.Length : endIndex;
-        for (var i = startIndex; i < endIndex; i++)
+        endBefore = endBefore == -1 ? map.Capacity : endBefore;
+        for (var i = startIndex; i < endBefore; i++)
         {
-            var probe = metas[i] & probeMask;
+            var probe = metas.GetSurePresentRef(i) & probeMask;
             var invariant = prevProbe >= probe || prevProbe + 1 == probe;
-            assertCond(invariant, $"Probe invariant failed for probe index {i}, probe:{probe}, prevProbe:{prevProbe}");
+            assertCond(invariant, $"Probe invariant failed for probe:{probe} at {i}, prevProbe:{prevProbe} at {prevIndex}");
+            prevIndex = i;
             prevProbe = probe;
         }
     }
@@ -1397,7 +1633,7 @@ public interface IMapImpl<K>
     /// <summary>The Capacity</summary>
     int Capacity { get; }
     /// <summary>The metadata</summary>
-    long[] PackedEntryIndexesHashesProbes { get; }
+    IGrowingArray<long> PackedEntryIndexesHashesProbes { get; }
     /// <summary>Returns the hash code for the provided key using the IEq implementation used by this map</summary>
     int GetHashCode(K key);
 }
@@ -1421,17 +1657,18 @@ public readonly struct DebugMetaUnpacked
 
 /// <summary>
 /// Fast and less-allocating hash map without thread safety nets. Please measure it in your own use case before use.
-/// It is configurable in regard of hash calculation/equality via `TEq` type parameter and 
-/// in regard of key-value storage via `TEntries` type parameter.
-/// 
+/// Configurable via <typeparamref name="TEq"/> (hash/equality) and <typeparamref name="THeapEntries"/> (entry storage).
+///
 /// Details:
-/// - Implemented as a struct so that the empty/default map does not allocate on heap
-/// - Hashes and key-values are the separate collections enabling better cash locality and faster performance (data-oriented design)
-/// - No SIMD for now to avoid complexity and costs for the smaller maps, so the map is more fit for the smaller sizes.
-/// - Provides the "stable" enumeration of the entries in the added order
-/// - The TryRemove method removes the hash but replaces the key-value entry with the tombstone key and the default value.
-/// For instance, for the `RefEq` the tombstone is <see langword="null"/>. You may redefine it in the `IEq{K}.GetTombstone()` implementation.
-/// 
+/// - Struct so the empty/default map allocates nothing on the heap
+/// - First N entries live on stack (<typeparamref name="TStackEntries"/>); overflow goes to <typeparamref name="THeapEntries"/>
+/// - Metadata (packed entry-index | hash | probe) is stored in a stable <see cref="Grr{T,TStack}"/> and grows independently
+/// - Robin-Hood open addressing on the metadata table
+/// - Entry indexes preserve insertion order (stable enumeration by index 0..Count-1)
+/// - Prefer <see cref="Grr{T,TStack}"/> for heap entries when you need stable refs across growth;
+///   use <see cref="SingleBackingArray{T}"/> when raw random-access speed matters more than ref stability
+///
+/// Not implemented yet: removal / tombstones (<see cref="IEq{K}.GetTombstone"/> is reserved for that).
 /// </summary>
 [DebuggerDisplay("Count = {Count}, Capacity = {Capacity}")]
 public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, THeapEntries> : IMap<K, TEntry>, IMapImpl<K>
@@ -1453,7 +1690,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     internal int _capacityPowerOfTwo;
     internal int _count;
 
-    // Packing hash and probe together enables single load to examine probe and hash 
+    // Packing hash and probe together enables single load to examine probe and hash =
     // and enables the fast check even without the unpacking both values.
     // Packing entry index in the high bits saves on the array load and possible cache eviction plus simplifies the resize, because the index part can be copied as-is
     // If the whole long is 0 then the slot is free.
@@ -1461,17 +1698,18 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     //     |    |             |- The probe, occupies indexMask of bits always starting with 1, so the occupied item should have non 0 value
     //     |    |- The remaining part of the hash without the indexMask bits used for the item index.
     //     |- The entry index stored in the high bits
-    internal long[] _packedEntryIndexesHashesProbes;
+    internal Grr<long, Stack8<long[]>> _packedEntryIndexesHashesProbes;
 
 #if DEBUG && SUPPORTS_UNSAFE
+    /// <summary>Debug view of the first metadata segment only (not full multi-segment capacity).</summary>
     public Span<DebugMetaUnpacked> DebugMetaUnpacked
     {
         get
         {
             var packed = _packedEntryIndexesHashesProbes;
-            if (packed == null || packed.Length == 0)
+            if (packed.SegmentCount == 0)
                 return Span<DebugMetaUnpacked>.Empty;
-            return MemoryMarshal.Cast<long, DebugMetaUnpacked>(packed.AsSpan());
+            return MemoryMarshal.Cast<long, DebugMetaUnpacked>(packed._segments.GetSurePresentRef(0).AsSpan());
         }
     }
 #endif
@@ -1487,8 +1725,9 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     /// <summary>Capacity</summary>
     public int Capacity => _capacityPowerOfTwo;
 
-    /// <summary>Access to the entry indexes, hashes and corresponding probes</summary>
-    public long[] PackedEntryIndexesHashesProbes => _packedEntryIndexesHashesProbes;
+    /// <summary>Access to the entry indexes, hashes and corresponding probes. 
+    /// Note: the result value may be boxed</summary>
+    public IGrowingArray<long> PackedEntryIndexesHashesProbes => _packedEntryIndexesHashesProbes;
 
     /// <inheritdoc />
     public int Count => _count;
@@ -1501,10 +1740,10 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     {
         var capacityPowerOfTwo = capacityPowerOfTwoPlease < MinCapacity
             ? MinCapacity
-            : BitOps.GetNextPowerOfTwoFast(capacityPowerOfTwoPlease);
+            : BitOps.NextPowerOfTwo(capacityPowerOfTwoPlease);
 
         _capacityPowerOfTwo = (int)capacityPowerOfTwo;
-        _packedEntryIndexesHashesProbes = new long[capacityPowerOfTwo];
+        _packedEntryIndexesHashesProbes.Init(capacityPowerOfTwo);
         _heapEntries.Init(capacityPowerOfTwo);
     }
 
@@ -1519,11 +1758,10 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         Debug.Assert(entryIndex >= 0 & entryIndex < _count, $"Entry index {entryIndex} should be in the range 0..{_count - 1}");
         return (entryIndex >= _stackEntries.Capacity
             ? _heapEntries.GetSurePresentRef(entryIndex - _stackEntries.Capacity)
-            : _stackEntries.GetSurePresentItemRef(entryIndex))
+            : _stackEntries.GetSurePresentRef(entryIndex))
             .Key;
     }
 
-    // todo: @perf make it an interface method to store the actual entry in place of the 32 bit index, e.g. store and actual int key for the int Set
     ///<summary>Get the value ref by the entry index. Also the index corresponds to entry adding order.
     /// Important: it does not check the index bounds, so you need to check that the index is from 0 to map.Count-1</summary>
     [UnscopedRef]
@@ -1533,7 +1771,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         Debug.Assert(entryIndex >= 0 && entryIndex < _count, $"Index {entryIndex} should be in the range 0..{_count - 1}");
         if (entryIndex >= _stackEntries.Capacity)
             return ref _heapEntries.GetSurePresentRef(entryIndex - _stackEntries.Capacity);
-        return ref _stackEntries.GetSurePresentItemRef(entryIndex);
+        return ref _stackEntries.GetSurePresentRef(entryIndex);
     }
 
     [UnscopedRef]
@@ -1543,18 +1781,13 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 #if DEBUG
         ++AddOrGetRefInEntries_Count;
 #endif
-#if NET7_0_OR_GREATER
-        ref var metas = ref MemoryMarshal.GetArrayDataReference(_packedEntryIndexesHashesProbes);
-#else
-        ref var metas = ref _packedEntryIndexesHashesProbes;
-#endif
         found = true;
         var probeMask = _capacityPowerOfTwo - 1;
         var meta = (long)_count << EntryIndexStartAtBit | (long)(hash & ~probeMask) | 1L;
         var metaIndex = hash & probeMask;
         while (true)
         {
-            ref var mRef = ref metas.GetSurePresentItemRef(metaIndex & probeMask);
+            ref var mRef = ref _packedEntryIndexesHashesProbes.GetSurePresentRef(metaIndex & probeMask);
             if ((mRef & probeMask) < (meta & probeMask))
             {
                 var mRobinHooded = mRef;
@@ -1577,12 +1810,15 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         }
 
         found = false;
-        ref var newEntry = ref _heapEntries.AddDefaultAndGetRef();
+        var newEntryIndex = _count - _stackEntries.Capacity;
+        if (newEntryIndex >= _heapEntries.Capacity)
+            _heapEntries.DoubleCapacity();
+
+        ref var newEntry = ref _heapEntries.GetSurePresentRef(newEntryIndex);
         newEntry.Key = key;
         ++_count;
 
-        // The new metadata slot is added - this is a good place to resize the metadata.
-        // If the free space is less than ~1/8 of capacity (~12.5%).
+        // If free metadata slots are less than ~1/8 of capacity (~12.5%), grow the table.
         if (_capacityPowerOfTwo - _count <= (_capacityPowerOfTwo >>> MinFreeCapacityShift))
             ResizeMetadata();
 
@@ -1595,17 +1831,11 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 #if DEBUG
         ++PutMetadataWithoutResizing_Count;
 #endif
-#if NET7_0_OR_GREATER
-        ref var metas = ref MemoryMarshal.GetArrayDataReference(_packedEntryIndexesHashesProbes);
-#else
-        var metas = _packedEntryIndexesHashesProbes;
-#endif
-
         var meta = (long)entryIndex << EntryIndexStartAtBit | (long)(hash & ~probeMask) | 1L;
         var metaIndex = hash & probeMask;
         while (true)
         {
-            ref var mRef = ref metas.GetSurePresentItemRef(metaIndex & probeMask);
+            ref var mRef = ref _packedEntryIndexesHashesProbes.GetSurePresentRef(metaIndex & probeMask);
             if ((mRef & probeMask) < (meta & probeMask))
             {
                 var mRobinHooded = mRef;
@@ -1632,14 +1862,14 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 
         var i = _stackEntries.TryGetStackEntryIndex(ref _stackHashes, _count, key, hash, Pass<TEq, TStackCap, TEntry>.It);
         if (found = i != -1)
-            return ref _stackEntries.GetSurePresentItemRef(i);
+            return ref _stackEntries.GetSurePresentRef(i);
 
         // Add the new entry to the stack if there is still space in the stack
         if (_count < _stackEntries.Capacity)
         {
             var addedIndex = _count++;
-            _stackHashes.GetSurePresentItemRef(addedIndex) = hash;
-            ref var newStackEntry = ref _stackEntries.GetSurePresentItemRef(addedIndex);
+            _stackHashes.GetSurePresentRef(addedIndex) = hash;
+            ref var newStackEntry = ref _stackEntries.GetSurePresentRef(addedIndex);
             newStackEntry.Key = key;
             return ref newStackEntry;
         }
@@ -1647,73 +1877,54 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         return ref MigrateToHeapAndAddEntry(key, hash);
     }
 
+    [UnscopedRef]
     private ref TEntry MigrateToHeapAndAddEntry(K key, int hash)
     {
-        // Now all capacity of the stack is used.
-        // To avoid double work always going linearly through the Stack with the comparison,
-        // let's calculate the hash of the keys stored on stack and put them 
-        // to the usual HashMap packed hashes and indexes array for the promised O(1) lookup.
-        // But the key-value entries will remain on the Stack, and for the found index of the entry we use the GetSurePresentItemRef(index)
-        // to get the entry reference either from the Stack or the TEntries.
-        // So the entries on stack are guarantied to be stable from the beginning of the map creation, 
-        // because they are not copied when the Entries need to Resize (depending on the TEntries implementation). 
-        // To ensure stable entries on Entries you need to use 
-
+        // Stack is full. Switch lookups from linear stack scan to the Robin-Hood metadata table.
+        // Stack entries themselves stay put (never copied). Heap overflow uses THeapEntries;
+        // with Grr those heap entry refs also stay stable across later growth.
         var stackCapacity = _stackEntries.Capacity;
         var newCapacity = Math.Max(_capacityPowerOfTwo, stackCapacity << 1);
-        _capacityPowerOfTwo = newCapacity;
-        // todo: @wip the check is here because the it may be already initialized in the constructor, find way to avoid this check
-        if (_packedEntryIndexesHashesProbes == null || _packedEntryIndexesHashesProbes.Length != newCapacity)
-            _packedEntryIndexesHashesProbes = new long[newCapacity];
 
+        // Keep the larger of constructor-provided capacity vs. stack-driven capacity.
+        if (_packedEntryIndexesHashesProbes.Capacity != newCapacity)
+            _packedEntryIndexesHashesProbes.GrowCapacity((uint)newCapacity);
+
+        _capacityPowerOfTwo = newCapacity = _packedEntryIndexesHashesProbes.Capacity;
         var probeMask = newCapacity - 1;
         for (var i = 0; i < stackCapacity; ++i)
         {
-            var h = _stackHashes.GetSurePresentItemRef(i);
+            var h = _stackHashes.GetSurePresentRef(i);
             PutMetadataWithoutResizing(probeMask, h, i);
         }
 
         PutMetadataWithoutResizing(probeMask, hash, stackCapacity);
-        ++_count;
 
-        // Creating the heap entries in addition to the stack entries, so the stack entries remain stable and never migrate
-
-        // todo: @wip the check is here because the it may be already initialized in the constructor, find way to avoid this check
-        if (_heapEntries.Capacity < stackCapacity)
-            _heapEntries.Init((uint)stackCapacity, initializeCountTo: 1);
-
-        // Set the key for the first entry, which is the 0 index in the entries
+        // First heap entry slot is index 0 in THeapEntries (global entry index == stackCapacity).
+        _heapEntries.GrowCapacity((uint)stackCapacity);
         ref var newEntry = ref _heapEntries.GetSurePresentRef(0);
         newEntry.Key = key;
+        ++_count;
+
+#if VERIFY_MAP
+        this.VerifyProbesRobinHoodInvariants(static (x, msg) => Debug.Assert(x, msg), Pass<K>.It);
+        this.VerifyKeyHasMetaInfo(static (x, msg) => Debug.Assert(x, msg), Pass<K>.It);
+#endif
+
         return ref newEntry;
     }
 
     /*
-    Insertion step by step:
+    Robin Hood open addressing example (capacity mask 7):
 
-    1. Initially the map is empty. Its capacity mask is 7:
+    1. Empty map
     Index:  0    1    2    3    4    5    6    7
     Hash:  [0]  [0]  [0]  [0]  [0]  [0]  [0]  [0]
 
-    2. Insert the key A with the hash 13, which is 0b0011_0101. 13 & 7 Mask = 5, so the index is 5.
-    Index:  0    1    2    3    4    5    6    7
-    Hash:  [0]  [0]  [0]  [0]  [0]  [13] [0]  [0]
-    Probe:                           1A
-
-    3. Insert the key B with the hash 5, which is 0b0000_1011. 5 & 7 Mask = 5, so the index is again 5.
-    Index:  0    1    2    3    4    5    6    7
-    Hash:  [0]  [0]  [0]  [0]  [0]  [13] [5]  [0]
-    Probe                            1A   2B
-
-    4. Insert the key C with the hash 7, which is 0b0010_0101. 7 & 7 Mask = 7, so the index is 7.
-    Index:  0    1    2    3    4    5    6    7
-    Hash:  [0]  [0]  [0]  [0]  [0]  [13] [5]  [7]
-    Probe:                           1A   2B   1C
-
-    5. Insert the key D with the hash 21, which is 0b0101_0101. 21 & 7 Mask = 5, so the index is again again 5.
-    Index:  0    1    2    3    4    5    6    7
-    Hash:  [7]  [0]  [0]  [0]  [0]  [13] [5]  [21]
-    Probe:  2C                       1A   2B   3D
+    2. Insert A hash 13 -> index 5, probe 1
+    3. Insert B hash 5  -> index 6, probe 2 (displaced from 5)
+    4. Insert C hash 7  -> index 7, probe 1
+    5. Insert D hash 21 -> index 7 probe 3, C wraps to index 0 probe 2
     */
     [UnscopedRef]
     [MethodImpl((MethodImplOptions)256)]
@@ -1724,9 +1935,15 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 
         PutMetadataWithoutResizing(_capacityPowerOfTwo - 1, hash, _count);
 
-        ++_count;
-        ref var entry = ref _heapEntries.AddDefaultAndGetRef();
+        var newEntryIndex = _count - _stackEntries.Capacity;
+        if (newEntryIndex >= _heapEntries.Capacity)
+            _heapEntries.DoubleCapacity();
+
+        ref var entry = ref _heapEntries.GetSurePresentRef(newEntryIndex);
         entry.Key = key;
+
+        ++_count;
+
         return ref entry;
     }
 
@@ -1744,8 +1961,8 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         if (_count < _stackEntries.Capacity)
         {
             var newIndex = _count++;
-            _stackHashes.GetSurePresentItemRef(newIndex) = hash;
-            ref var newStackEntry = ref _stackEntries.GetSurePresentItemRef(newIndex);
+            _stackHashes.GetSurePresentRef(newIndex) = hash;
+            ref var newStackEntry = ref _stackEntries.GetSurePresentRef(newIndex);
             newStackEntry.Key = key;
             return ref newStackEntry;
         }
@@ -1769,17 +1986,12 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     [MethodImpl((MethodImplOptions)256)]
     internal int TryGetIndexInEntries(K key, int hash)
     {
-#if NET7_0_OR_GREATER
-        ref var metas = ref MemoryMarshal.GetArrayDataReference(_packedEntryIndexesHashesProbes);
-#else
-        var metas = _packedEntryIndexesHashesProbes;
-#endif
         var probeMask = _capacityPowerOfTwo - 1;
         var meta = (long)(hash & ~probeMask) | 1L;
         var metaIndex = hash & probeMask;
         while (true)
         {
-            ref var mRef = ref metas.GetSurePresentItemRef(metaIndex & probeMask);
+            ref var mRef = ref _packedEntryIndexesHashesProbes.GetSurePresentRef(metaIndex & probeMask);
             if ((mRef & probeMask) < (meta & probeMask))
                 return -1;
 
@@ -1801,17 +2013,12 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     internal ref TEntry TryGetEntryRef(K key, int hash, out bool found)
     {
         found = false;
-#if NET7_0_OR_GREATER
-        ref var metas = ref MemoryMarshal.GetArrayDataReference(_packedEntryIndexesHashesProbes);
-#else
-        var metas = _packedEntryIndexesHashesProbes;
-#endif
         var probeMask = _capacityPowerOfTwo - 1;
         var meta = (long)(hash & ~probeMask) | 1L;
         var metaIndex = hash & probeMask;
         while (true)
         {
-            ref var mRef = ref metas.GetSurePresentItemRef(metaIndex & probeMask);
+            ref var mRef = ref _packedEntryIndexesHashesProbes.GetSurePresentRef(metaIndex & probeMask);
             if ((mRef & probeMask) < (meta & probeMask))
                 return ref RefTools<TEntry>.GetNullRef();
 
@@ -1842,9 +2049,53 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
 
         var i = _stackEntries.TryGetStackEntryIndex(ref _stackHashes, _count, key, hash, Pass<TEq, TStackCap, TEntry>.It);
         if (found = i != -1)
-            return ref _stackEntries.GetSurePresentItemRef(i);
+            return ref _stackEntries.GetSurePresentRef(i);
 
         return ref RefTools<TEntry>.GetNullRef();
+    }
+
+    internal void ResizeMetadataWithoutWrapArounds(int startAt, int oldCapacity, int probeMask)
+    {
+        var newCapacity = _capacityPowerOfTwo << 1;
+        var newProbeMask = newCapacity - 1;
+
+        _capacityPowerOfTwo = newCapacity;
+        _packedEntryIndexesHashesProbes.DoubleCapacity();
+
+        // From the current index i reinsert the metas into the grown metadata array.
+        // The meta either stays if it is already in ideal position (probe == 1)
+        // or depending on the next recovered hash bit either tries to go closer to its ideal position or move to the initially empty second half of the doubled meta list.
+        Debug.Assert(startAt >= 0 && startAt < oldCapacity, $"Start index should be within the bounds of the old capacity.");
+        for (var i = startAt; i < oldCapacity; ++i)
+        {
+            ref var metaRef = ref _packedEntryIndexesHashesProbes.GetSurePresentRef(i);
+            if (metaRef == 0) // empty slot, nothing to reinsert
+                continue;
+
+            var probe = (int)(metaRef & probeMask);
+            var nextHashBit = metaRef & oldCapacity; // recover the next hash bit
+            if (probe == 1 & nextHashBit == 0) // already in ideal position, skip
+                continue;
+
+            var newMeta = metaRef & ~newProbeMask;
+            var newProbe = 1;
+
+            metaRef = 0; // erase the current meta slot, so we starting from ideal position we may find better/closer to ideal position slot or return to the previous erased slot.
+
+            var idealIndex = i - (probe - 1) + (int)nextHashBit;
+            Debug.Assert(idealIndex >= 0, $"After skipping all wrapped-around metas, the new ideal index should be non-negative.");
+            while (idealIndex < newCapacity) // defensive check, should be prevented by wrapping with newProbeMask
+            {
+                ref var newMetaRef = ref _packedEntryIndexesHashesProbes.GetSurePresentRef(idealIndex);
+                if (newMetaRef == 0) // empty -> place the new meta here
+                {
+                    newMetaRef = newMeta | (long)newProbe;
+                    break;
+                }
+                ++newProbe;
+                idealIndex = (idealIndex + 1) & newProbeMask; // defensive wrap on the new doubled capacity boundary
+            }
+        }
     }
 
     internal void ResizeMetadata()
@@ -1853,116 +2104,135 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         ++ResizeProbesAndHashes_Count;
 #endif
         var oldCapacity = _capacityPowerOfTwo;
-        var newCapacity = _capacityPowerOfTwo << 1;
-
-        var newMetasArr = new long[newCapacity];
-
-#if NET7_0_OR_GREATER
-        ref var newMetas = ref MemoryMarshal.GetArrayDataReference(newMetasArr);
-        ref var metas = ref MemoryMarshal.GetArrayDataReference(_packedEntryIndexesHashesProbes);
-#else
-        var newMetas = newMetasArr;
-        var metas = _packedEntryIndexesHashesProbes;
-#endif
         var probeMask = oldCapacity - 1;
+
+        // If no wrapped-around entries exist, we can resize without worrying about them.
+        ref var metaRef = ref _packedEntryIndexesHashesProbes.GetSurePresentRef(0);
+        var probe = (int)(metaRef & probeMask);
+        if (probe <= 1)
+        {
+            ResizeMetadataWithoutWrapArounds(0, oldCapacity, probeMask);
+            return;
+        }
+
+        var newCapacity = _capacityPowerOfTwo << 1;
         var newProbeMask = newCapacity - 1;
 
-        for (var metaIndex = 0; metaIndex < oldCapacity; ++metaIndex)
+        // Move the wrapped-around metadata to the aside small-list hoping that the small amount of the items will keep them on stack.
+        // We need this to avoid wrapped-around items to be in a ways of simplistic linear probing re-insertions of the rest of the metadata.
+        SmallList<long, Stack16<long>> asideWrappedAroundMetas = default;
+        var i = 0;
+        while (i < oldCapacity) // defensive check - in reality metas should not contain only wrapped-around entries, there is no such thing without normal entries.
         {
-            var m = metas.GetSurePresentItem(metaIndex);
-            if (m != 0)
+            metaRef = ref _packedEntryIndexesHashesProbes.GetSurePresentRef(i);
+            probe = (int)(metaRef & probeMask);
+            if (probe - 1 <= i) // default probe is 1, when at the index i:0 the probe is 2 and more means the item ideal index was before the 0 - so it goes from the end
+                break;
+            asideWrappedAroundMetas.Add(in metaRef);
+            metaRef = 0; // don't forget to clear the original slot
+            ++i;
+        }
+        Debug.Assert(i < oldCapacity, $"All entries are wrapped-around, which should not happen.");
+
+        // Go reinsert the non-wrapped-around entries into the resized metadata list.
+        ResizeMetadataWithoutWrapArounds(i, oldCapacity, probeMask);
+
+        // Reinsert the wrapped around entries from the set aside list to the grown metas via normal robin-hood insertion.
+        var wrappedCount = asideWrappedAroundMetas.Count;
+        for (var wrappedIndex = 0; wrappedIndex < wrappedCount; ++wrappedIndex)
+        {
+            var wrappedMeta = asideWrappedAroundMetas.GetSurePresentRef(wrappedIndex);
+            probe = (int)(wrappedMeta & probeMask); // oldCapacity + wrappedIndex - (probe - 1) gives the original position before wrap around, which in turn is the hash part we used
+            var nextHashBit = wrappedMeta & oldCapacity;
+            var newMetaIndex = (oldCapacity + wrappedIndex - (probe - 1) + (int)nextHashBit) & newProbeMask; // wrappedIndex in the aside list is the same as the original in metas which is funny/useful invariant
+            var newMeta = wrappedMeta & ~newProbeMask;
+            var newProbe = 1;
+
+            // Reinsert using Robin Hood swaps, advancing the probe in each occupied slot and when the smaller probe found, switch to this new RH candidate and advance it instead.
+            while (true)
             {
-                // Сalculate the ideal hash index for the current probe
-                var p = (int)(m & probeMask);
-                // Add oldCapacity then clamp with probeMask to avoid negative values for the wrapped-around indexes
-                var idealIndex = (oldCapacity + metaIndex - p + 1) & probeMask;
-                Debug.Assert(idealIndex >= 0, $"Ideal index should be non-negative, but found {idealIndex}");
-
-                // Calculate the new ideal index based on the next bit after the index mask (an oldCapacity bit).
-                // If the bit is 0 then the new index is the same otherwise it is oldCapacity + idealIndex, or in other words...
-                var newMeta = (m & ~newProbeMask) | 1L; // starting probe is always 1
-                var newMetaIndex = (int)(m & oldCapacity) | idealIndex;
-
-                // Using robin-hood resordering, even if it is required only for the wrapped-around cases.
-                // But this is fine because after resize it will be less frequent and comparing to just insertion it is just one check more.
-                while (true)
+                ref var newMetaRef = ref _packedEntryIndexesHashesProbes.GetSurePresentRef(newMetaIndex); // here we operate on the new metas already spread into the new position
+                if ((newMetaRef & newProbeMask) < newProbe) // iterate until we found empty slot (probe 0) or RH candidate with smaller probe
                 {
-                    ref var newMetaRef = ref newMetas.GetSurePresentItemRef(newMetaIndex & newProbeMask);
-                    if ((newMetaRef & newProbeMask) < (newMeta & newProbeMask))
-                    {
-                        var mRobinHooded = newMetaRef;
-                        newMetaRef = newMeta;
-                        if (mRobinHooded == 0) // finish on the empty slot
-                            break;
-                        newMeta = mRobinHooded;
-                    }
-
-                    ++newMeta; // actually incrementing the probe, it is save because probe has the space of the whole capacity constrained by the probeMask
-                    ++newMetaIndex;
+                    var candidate = newMetaRef;
+                    newMetaRef = newMeta | (long)newProbe;
+                    if (candidate == 0) // if candidate slot was empty we are done with this insertion
+                        break;
+                    newMeta = candidate & ~newProbeMask;
+                    newProbe = (int)(candidate & newProbeMask);
                 }
+
+                ++newProbe;
+                newMetaIndex = (newMetaIndex + 1) & newProbeMask;
             }
         }
 
-        _capacityPowerOfTwo = newCapacity;
-        _packedEntryIndexesHashesProbes = newMetasArr;
-
 #if VERIFY_MAP
+        this.VerifyProbesRobinHoodInvariants(static (x, msg) => Debug.Assert(x, msg), Pass<K>.It);
         this.VerifyKeyHasMetaInfo(static (x, msg) => Debug.Assert(x, msg), Pass<K>.It);
 #endif
     }
 }
 
-/// <summary>Holds the Map with 4 items on stack. Minimizes the number of type arguments required to be specified</summary>
-public struct SmallMap4<K, V, TEq>() where TEq : struct, IEq<K>
+/// <summary>Map with 4 stack entries; heap overflow in stable <see cref="Grr{T,TStack}"/>.</summary>
+public struct SmallMap4<K, V, TEq> where TEq : struct, IEq<K>
 {
-    /// <summary>Map with 4 elements on stack and entries baked by the single array</summary> 
-    public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size4, Stack4<int>, Stack4<SmallMap.Entry<K, V>>, StableSegmentedArray<SmallMap.Entry<K, V>>> Map;
-    public SmallMap4(uint capacityPowerOfTwo) : this() => Map = new(capacityPowerOfTwo);
+    public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size4, Stack4<int>, Stack4<SmallMap.Entry<K, V>>,
+        Grr<SmallMap.Entry<K, V>, Stack8<SmallMap.Entry<K, V>[]>>> Map;
+    public SmallMap4() => Map = new(MinCapacity);
+    public SmallMap4(uint capacityPowerOfTwo) => Map = new(capacityPowerOfTwo);
 }
 
-/// <summary>Holds the Map with 8 items on stack. Minimizes the number of type arguments required to be specified</summary>
-public struct SmallMap8<K, V, TEq>() where TEq : struct, IEq<K>
+/// <summary>Map with 8 stack entries; heap overflow in stable <see cref="Grr{T,TStack}"/>.</summary>
+public struct SmallMap8<K, V, TEq> where TEq : struct, IEq<K>
 {
-    /// <summary>Map with 8 elements on stack and entries baked by the single array</summary> 
-    public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size8, Stack8<int>, Stack8<SmallMap.Entry<K, V>>, StableSegmentedArray<SmallMap.Entry<K, V>>> Map;
-    public SmallMap8(uint capacityPowerOfTwo) : this() => Map = new(capacityPowerOfTwo);
+    public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size8, Stack8<int>, Stack8<SmallMap.Entry<K, V>>,
+        Grr<SmallMap.Entry<K, V>, Stack8<SmallMap.Entry<K, V>[]>>> Map;
+    public SmallMap8() => Map = new(MinCapacity);
+    public SmallMap8(uint capacityPowerOfTwo) => Map = new(capacityPowerOfTwo);
 }
 
-// todo: @wip check that it uses stable array entries
-/// <summary>Holds the Map with 16 items on stack. Minimizes the number of type arguments required to be specified</summary>
-public struct SmallMap16<K, V, TEq>() where TEq : struct, IEq<K>
+/// <summary>Map with 16 stack entries; heap overflow in stable <see cref="Grr{T,TStack}"/> (refs stay valid across growth).</summary>
+public struct SmallMap16<K, V, TEq> where TEq : struct, IEq<K>
 {
-    /// <summary>Map with 16 elements on stack and entries baked by the single array</summary> 
-    public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size16, Stack16<int>, Stack16<SmallMap.Entry<K, V>>, StableSegmentedArray<SmallMap.Entry<K, V>>> Map;
-    public SmallMap16(uint capacityPowerOfTwo) : this() => Map = new(capacityPowerOfTwo);
+    public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size16, Stack16<int>, Stack16<SmallMap.Entry<K, V>>,
+        Grr<SmallMap.Entry<K, V>, Stack8<SmallMap.Entry<K, V>[]>>> Map;
+    public SmallMap16() => Map = new(MinCapacity);
+    public SmallMap16(uint capacityPowerOfTwo) => Map = new(capacityPowerOfTwo);
 }
 
-public struct SmallMap16_SingleArrEntries<K, V, TEq>() where TEq : struct, IEq<K>
+/// <summary>Map with 16 stack entries; heap overflow in a single growing array (faster access, refs invalidate on resize).</summary>
+public struct SmallMap16_SingleArrEntries<K, V, TEq> where TEq : struct, IEq<K>
 {
-    /// <summary>Map with 16 elements on stack and entries baked by the single array</summary> 
-    public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size16, Stack16<int>, Stack16<SmallMap.Entry<K, V>>, SingleBackingArray<SmallMap.Entry<K, V>>> Map;
-    public SmallMap16_SingleArrEntries(uint capacityPowerOfTwo) : this() => Map = new(capacityPowerOfTwo);
+    public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size16, Stack16<int>, Stack16<SmallMap.Entry<K, V>>,
+        SingleBackingArray<SmallMap.Entry<K, V>>> Map;
+    public SmallMap16_SingleArrEntries() => Map = new(MinCapacity);
+    public SmallMap16_SingleArrEntries(uint capacityPowerOfTwo) => Map = new(capacityPowerOfTwo);
 }
 
-/// <summary>Holds the Set with 4 items on stack. Minimizes the number of type arguments required to be specified</summary>
-public struct SmallSet4<K, TEq>() where TEq : struct, IEq<K>
+/// <summary>Set with 4 stack keys; heap overflow in stable <see cref="Grr{T,TStack}"/>.</summary>
+public struct SmallSet4<K, TEq> where TEq : struct, IEq<K>
 {
-    /// <summary>Set with 4 keys on stack and entries baked by the single array</summary> 
-    public SmallMap<K, SmallMap.Entry<K>, TEq, Size4, Stack4<int>, Stack4<SmallMap.Entry<K>>, StableSegmentedArray<SmallMap.Entry<K>>> Set;
+    public SmallMap<K, SmallMap.Entry<K>, TEq, Size4, Stack4<int>, Stack4<SmallMap.Entry<K>>,
+        Grr<SmallMap.Entry<K>, Stack8<SmallMap.Entry<K>[]>>> Set;
+    public SmallSet4() => Set = new(MinCapacity);
+    public SmallSet4(uint capacityPowerOfTwo) => Set = new(capacityPowerOfTwo);
 }
 
-/// <summary>Holds the Set with 8 items on stack. Minimizes the number of type arguments required to be specified</summary>
-public struct SmallSet8<K, TEq>() where TEq : struct, IEq<K>
+/// <summary>Set with 8 stack keys; heap overflow in stable <see cref="Grr{T,TStack}"/>.</summary>
+public struct SmallSet8<K, TEq> where TEq : struct, IEq<K>
 {
-    /// <summary>Set with 8 keys on stack and entries baked by the single array</summary> 
-    public SmallMap<K, SmallMap.Entry<K>, TEq, Size8, Stack8<int>, Stack8<SmallMap.Entry<K>>, StableSegmentedArray<SmallMap.Entry<K>>> Set;
+    public SmallMap<K, SmallMap.Entry<K>, TEq, Size8, Stack8<int>, Stack8<SmallMap.Entry<K>>,
+        Grr<SmallMap.Entry<K>, Stack8<SmallMap.Entry<K>[]>>> Set;
+    public SmallSet8() => Set = new(MinCapacity);
+    public SmallSet8(uint capacityPowerOfTwo) => Set = new(capacityPowerOfTwo);
 }
 
-/// <summary>Holds the Set with 16 items on stack. Minimizes the number of type arguments required to be specified</summary>
-public struct SmallSet16<K, TEq>() where TEq : struct, IEq<K>
+/// <summary>Set with 16 stack keys; heap overflow in stable <see cref="Grr{T,TStack}"/>.</summary>
+public struct SmallSet16<K, TEq> where TEq : struct, IEq<K>
 {
-    /// <summary>Set with 16 keys on stack and entries baked by the single array</summary> 
-    public SmallMap<K, SmallMap.Entry<K>, TEq, Size16, Stack16<int>, Stack16<SmallMap.Entry<K>>, StableSegmentedArray<SmallMap.Entry<K>>> Set;
+    public SmallMap<K, SmallMap.Entry<K>, TEq, Size16, Stack16<int>, Stack16<SmallMap.Entry<K>>,
+        Grr<SmallMap.Entry<K>, Stack8<SmallMap.Entry<K>[]>>> Set;
+    public SmallSet16() => Set = new(MinCapacity);
+    public SmallSet16(uint capacityPowerOfTwo) => Set = new(capacityPowerOfTwo);
 }
-
-#nullable restore
