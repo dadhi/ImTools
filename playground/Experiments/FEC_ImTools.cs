@@ -1662,7 +1662,7 @@ public readonly struct DebugMetaUnpacked
 /// Details:
 /// - Struct so the empty/default map allocates nothing on the heap
 /// - First N entries live on stack (<typeparamref name="TStackEntries"/>); overflow goes to <typeparamref name="THeapEntries"/>
-/// - Metadata (packed entry-index | hash | probe) is stored in a stable <see cref="Grr{T,TStack}"/> and grows independently
+/// - Metadata (packed entry-index | hash | probe) is stored in a single array (nothing references it, so no need for stable segments) and grows independently
 /// - Robin-Hood open addressing on the metadata table
 /// - Entry indexes preserve insertion order (stable enumeration by index 0..Count-1)
 /// - Prefer <see cref="Grr{T,TStack}"/> for heap entries when you need stable refs across growth;
@@ -1698,7 +1698,7 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     //     |    |             |- The probe, occupies indexMask of bits always starting with 1, so the occupied item should have non 0 value
     //     |    |- The remaining part of the hash without the indexMask bits used for the item index.
     //     |- The entry index stored in the high bits
-    internal Grr<long, Stack8<long[]>> _packedEntryIndexesHashesProbes;
+    internal SingleBackingArray<long> _packedEntryIndexesHashesProbes;
 
 #if DEBUG && SUPPORTS_UNSAFE
     /// <summary>Debug view of the first metadata segment only (not full multi-segment capacity).</summary>
@@ -1707,9 +1707,9 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
         get
         {
             var packed = _packedEntryIndexesHashesProbes;
-            if (packed.SegmentCount == 0)
+            if (packed._entries == null)
                 return Span<DebugMetaUnpacked>.Empty;
-            return MemoryMarshal.Cast<long, DebugMetaUnpacked>(packed._segments.GetSurePresentRef(0).AsSpan());
+            return MemoryMarshal.Cast<long, DebugMetaUnpacked>(packed._entries.AsSpan());
         }
     }
 #endif
