@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+            11.0.x
+          dotnet-quality: preview
+      - name: Build
+        run: dotnet build ImTools.slnx -c Release -p:DevMode=false
+      - name: Test
+        run: dotnet test --no-build -c Release -p:DevMode=false test/ImTools.UnitTests/ImTools.UnitTests.csproj
+      - name: Pack
+        run: BuildScripts\NugetPack.bat
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: .dist/packages/*.nupkg

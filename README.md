@@ -6,7 +6,7 @@ Initially split from the [DryIoc](https://github.com/dadhi/dryioc), and now used
 
 [![license](https://img.shields.io/github/license/dadhi/ImTools.svg)](http://opensource.org/licenses/MIT)
 
-- Windows, Linux, MacOS [![CI build](https://ci.appveyor.com/api/projects/status/el9echuqfnl86u53?svg=true)](https://ci.appveyor.com/project/MaksimVolkau/imtools/branch/master)
+- Windows, Linux, MacOS [![CI build](https://github.com/dadhi/ImTools/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/dadhi/ImTools/actions/workflows/ci.yml)
 - Lib package [![NuGet Version](https://img.shields.io/nuget/v/ImTools.dll)](https://www.nuget.org/packages/ImTools.dll)![NuGet Downloads](https://img.shields.io/nuget/dt/ImTools.dll)
 - Code package [![NuGet Version](https://img.shields.io/nuget/v/ImTools)](https://www.nuget.org/packages/ImTools)![NuGet Downloads](https://img.shields.io/nuget/dt/ImTools)
 - Latest release [![latest release](https://img.shields.io/badge/latest%20release-v4.0.0-green)](https://github.com/dadhi/ImTools/releases/tag/v4.0.0) 

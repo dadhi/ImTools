@@ -11,5 +11,6 @@
     ],
     "files.watcherExclude": {
         "**/target": true
-    }
+    },
+    "dotnet.defaultSolution": "ImTools.slnx"
 }
