@@ -23,256 +23,256 @@ using ImTools.Experiments;
 
 #pragma warning disable CS0649, CS0169
 
-namespace Playground
+namespace Playground;
+
+public class ImHashMapBenchmarks
 {
-    public class ImHashMapBenchmarks
+    private static readonly Type[] _allKeys = typeof(List<>).Assembly.GetTypes().Take(2000).ToArray();
+    private static readonly Type[] _keys = _allKeys.Take(1000).ToArray();
+    private static readonly Type[] _missingKeys = _allKeys.TakeLast(1000).ToArray();
+
+    // get half of the random _keys for the lookup, by selecting half of the random indexes from keys
+    private static readonly Random _seed = new Random(42);
+
+    public struct TypeVal : IEquatable<TypeVal>
     {
-        private static readonly Type[] _allKeys = typeof(List<>).Assembly.GetTypes().Take(2000).ToArray();
-        private static readonly Type[] _keys = _allKeys.Take(1000).ToArray();
-        private static readonly Type[] _missingKeys = _allKeys.TakeLast(1000).ToArray();
+        public static implicit operator TypeVal(Type t) => new TypeVal(t);
 
-        // get half of the random _keys for the lookup, by selecting half of the random indexes from keys
-        private static readonly Random _seed = new Random(42);
+        public readonly Type Type;
+        public TypeVal(Type type) => Type = type;
+        public bool Equals(TypeVal other) => Type == other.Type;
+        public override bool Equals(object obj) => !ReferenceEquals(null, obj) && obj is TypeVal other && Equals(other);
+        public override int GetHashCode() => Type.GetHashCode();
+    }
 
-        public struct TypeVal : IEquatable<TypeVal>
-        {
-            public static implicit operator TypeVal(Type t) => new TypeVal(t);
+    [HardwareCounters(HardwareCounter.CacheMisses, HardwareCounter.BranchMispredictions, HardwareCounter.BranchInstructions)]
+    [MemoryDiagnoser]
+    public class Populate
+    {
+        /*
+        ## 15.01.2019:
 
-            public readonly Type Type;
-            public TypeVal(Type type) => Type = type;
-            public bool Equals(TypeVal other) => Type == other.Type;
-            public override bool Equals(object obj) => !ReferenceEquals(null, obj) && obj is TypeVal other && Equals(other);
-            public override int GetHashCode() => Type.GetHashCode();
-        }
+                 Method |     Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+        --------------- |---------:|----------:|----------:|------:|--------:|------------:|------------:|------------:|--------------------:|
+            AddOrUpdate | 15.84 us | 0.1065 us | 0.0944 us |  1.00 |    0.00 |      7.3242 |           - |           - |            33.87 KB |
+         AddOrUpdate_v1 | 27.00 us | 0.1792 us | 0.1588 us |  1.71 |    0.02 |      7.7515 |           - |           - |            35.77 KB |
 
-        [HardwareCounters(HardwareCounter.CacheMisses, HardwareCounter.BranchMispredictions, HardwareCounter.BranchInstructions)]
-        [MemoryDiagnoser]
-        public class Populate
-        {
-            /*
-            ## 15.01.2019:
-
-                     Method |     Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
-            --------------- |---------:|----------:|----------:|------:|--------:|------------:|------------:|------------:|--------------------:|
-                AddOrUpdate | 15.84 us | 0.1065 us | 0.0944 us |  1.00 |    0.00 |      7.3242 |           - |           - |            33.87 KB |
-             AddOrUpdate_v1 | 27.00 us | 0.1792 us | 0.1588 us |  1.71 |    0.02 |      7.7515 |           - |           - |            35.77 KB |
-
-            
-            ## 16.01.2019: Total test against ImHashMap V1, System ImmutableDictionary and ConcurrentDictionary
+        
+        ## 16.01.2019: Total test against ImHashMap V1, System ImmutableDictionary and ConcurrentDictionary
 
 BenchmarkDotNet=v0.11.3, OS=Windows 10.0.17134.523 (1803/April2018Update/Redstone4)
 Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
 Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
 .NET Core SDK=2.2.100
-  [Host]     : .NET Core 2.1.6 (CoreCLR 4.6.27019.06, CoreFX 4.6.27019.05), 64bit RyuJIT
-  DefaultJob : .NET Core 2.1.6 (CoreCLR 4.6.27019.06, CoreFX 4.6.27019.05), 64bit RyuJIT
+[Host]     : .NET Core 2.1.6 (CoreCLR 4.6.27019.06, CoreFX 4.6.27019.05), 64bit RyuJIT
+DefaultJob : .NET Core 2.1.6 (CoreCLR 4.6.27019.06, CoreFX 4.6.27019.05), 64bit RyuJIT
 
 
-         Method | Count |           Mean |         Error |        StdDev |         Median | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+     Method | Count |           Mean |         Error |        StdDev |         Median | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
 --------------- |------ |---------------:|--------------:|--------------:|---------------:|------:|--------:|------------:|------------:|------------:|--------------------:|
- AddOrUpdate_v1 |    10 |       987.6 ns |      36.53 ns |      99.99 ns |       934.3 ns |  0.94 |    0.17 |      0.5589 |           - |           - |             2.58 KB |
-    AddOrUpdate |    10 |     1,067.5 ns |      50.43 ns |     136.33 ns |     1,073.5 ns |  1.00 |    0.00 |      0.4044 |           - |           - |             1.87 KB |
- ConcurrentDict |    10 |     1,943.9 ns |      92.31 ns |      81.83 ns |     1,921.3 ns |  1.85 |    0.25 |      0.6371 |           - |           - |             2.95 KB |
- AddOrUpdate_v2 |    10 |     2,688.3 ns |     229.79 ns |     677.55 ns |     2,342.9 ns |  2.50 |    0.77 |      0.4349 |           - |           - |             2.02 KB |
-  ImmutableDict |    10 |     5,903.1 ns |     749.28 ns |     801.72 ns |     5,607.8 ns |  5.66 |    1.06 |      0.5875 |           - |           - |             2.73 KB |
-                |       |                |               |               |                |       |         |             |             |             |                     |
- ConcurrentDict |   100 |    14,476.1 ns |   1,184.05 ns |   1,215.93 ns |    14,193.3 ns |  0.48 |    0.21 |      3.6011 |      0.0305 |           - |            16.66 KB |
- AddOrUpdate_v1 |   100 |    16,999.4 ns |   1,522.75 ns |   4,441.93 ns |    14,281.8 ns |  0.59 |    0.25 |      8.4686 |           - |           - |            39.05 KB |
- AddOrUpdate_v2 |   100 |    28,695.4 ns |      41.78 ns |      32.62 ns |    28,697.6 ns |  0.94 |    0.33 |      7.7515 |           - |           - |            35.81 KB |
-    AddOrUpdate |   100 |    31,854.4 ns |   2,882.03 ns |   8,497.72 ns |    36,547.9 ns |  1.00 |    0.00 |      7.3242 |           - |           - |            33.91 KB |
-  ImmutableDict |   100 |    89,602.2 ns |   1,873.19 ns |   2,229.89 ns |    88,767.5 ns |  2.98 |    1.05 |      9.3994 |           - |           - |            43.68 KB |
-                |       |                |               |               |                |       |         |             |             |             |                     |
- ConcurrentDict |  1000 |   219,064.7 ns |     559.14 ns |     466.91 ns |   218,894.7 ns |  0.69 |    0.01 |     49.3164 |     17.8223 |           - |           254.29 KB |
- AddOrUpdate_v1 |  1000 |   297,651.6 ns |   1,073.37 ns |     838.02 ns |   297,421.1 ns |  0.93 |    0.01 |    120.6055 |      3.4180 |           - |           556.41 KB |
-    AddOrUpdate |  1000 |   319,478.3 ns |   2,768.11 ns |   2,161.16 ns |   319,079.8 ns |  1.00 |    0.00 |    113.2813 |      0.9766 |           - |           526.48 KB |
- AddOrUpdate_v2 |  1000 |   615,321.8 ns |  72,410.43 ns | 213,503.80 ns |   467,207.0 ns |  1.97 |    0.66 |    118.6523 |      0.4883 |           - |            547.3 KB |
-  ImmutableDict |  1000 | 1,516,613.7 ns | 107,376.35 ns | 290,298.20 ns | 1,387,325.2 ns |  4.95 |    1.19 |    140.6250 |      1.9531 |           - |           648.02 KB |
+AddOrUpdate_v1 |    10 |       987.6 ns |      36.53 ns |      99.99 ns |       934.3 ns |  0.94 |    0.17 |      0.5589 |           - |           - |             2.58 KB |
+AddOrUpdate |    10 |     1,067.5 ns |      50.43 ns |     136.33 ns |     1,073.5 ns |  1.00 |    0.00 |      0.4044 |           - |           - |             1.87 KB |
+ConcurrentDict |    10 |     1,943.9 ns |      92.31 ns |      81.83 ns |     1,921.3 ns |  1.85 |    0.25 |      0.6371 |           - |           - |             2.95 KB |
+AddOrUpdate_v2 |    10 |     2,688.3 ns |     229.79 ns |     677.55 ns |     2,342.9 ns |  2.50 |    0.77 |      0.4349 |           - |           - |             2.02 KB |
+ImmutableDict |    10 |     5,903.1 ns |     749.28 ns |     801.72 ns |     5,607.8 ns |  5.66 |    1.06 |      0.5875 |           - |           - |             2.73 KB |
+            |       |                |               |               |                |       |         |             |             |             |                     |
+ConcurrentDict |   100 |    14,476.1 ns |   1,184.05 ns |   1,215.93 ns |    14,193.3 ns |  0.48 |    0.21 |      3.6011 |      0.0305 |           - |            16.66 KB |
+AddOrUpdate_v1 |   100 |    16,999.4 ns |   1,522.75 ns |   4,441.93 ns |    14,281.8 ns |  0.59 |    0.25 |      8.4686 |           - |           - |            39.05 KB |
+AddOrUpdate_v2 |   100 |    28,695.4 ns |      41.78 ns |      32.62 ns |    28,697.6 ns |  0.94 |    0.33 |      7.7515 |           - |           - |            35.81 KB |
+AddOrUpdate |   100 |    31,854.4 ns |   2,882.03 ns |   8,497.72 ns |    36,547.9 ns |  1.00 |    0.00 |      7.3242 |           - |           - |            33.91 KB |
+ImmutableDict |   100 |    89,602.2 ns |   1,873.19 ns |   2,229.89 ns |    88,767.5 ns |  2.98 |    1.05 |      9.3994 |           - |           - |            43.68 KB |
+            |       |                |               |               |                |       |         |             |             |             |                     |
+ConcurrentDict |  1000 |   219,064.7 ns |     559.14 ns |     466.91 ns |   218,894.7 ns |  0.69 |    0.01 |     49.3164 |     17.8223 |           - |           254.29 KB |
+AddOrUpdate_v1 |  1000 |   297,651.6 ns |   1,073.37 ns |     838.02 ns |   297,421.1 ns |  0.93 |    0.01 |    120.6055 |      3.4180 |           - |           556.41 KB |
+AddOrUpdate |  1000 |   319,478.3 ns |   2,768.11 ns |   2,161.16 ns |   319,079.8 ns |  1.00 |    0.00 |    113.2813 |      0.9766 |           - |           526.48 KB |
+AddOrUpdate_v2 |  1000 |   615,321.8 ns |  72,410.43 ns | 213,503.80 ns |   467,207.0 ns |  1.97 |    0.66 |    118.6523 |      0.4883 |           - |            547.3 KB |
+ImmutableDict |  1000 | 1,516,613.7 ns | 107,376.35 ns | 290,298.20 ns | 1,387,325.2 ns |  4.95 |    1.19 |    140.6250 |      1.9531 |           - |           648.02 KB |
 
 ## 21.01.2019 - all versions compared
 
-         Method | Count |       Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+     Method | Count |       Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
 --------------- |------ |-----------:|----------:|----------:|------:|--------:|------------:|------------:|------------:|--------------------:|
- AddOrUpdate_v1 |    30 |   3.326 us | 0.0098 us | 0.0092 us |  0.84 |    0.01 |      2.0409 |           - |           - |             9.42 KB |
- AddOrUpdate_v2 |    30 |   3.515 us | 0.0700 us | 0.0688 us |  0.89 |    0.02 |      1.9302 |           - |           - |             8.91 KB |
-    AddOrUpdate |    30 |   3.945 us | 0.0261 us | 0.0231 us |  1.00 |    0.00 |      2.1591 |           - |           - |             9.98 KB |
- AddOrUpdate_v3 |    30 |   4.607 us | 0.0875 us | 0.0819 us |  1.17 |    0.02 |      1.7624 |           - |           - |             8.13 KB |
-                |       |            |           |           |       |         |             |             |             |                     |
- AddOrUpdate_v1 |   150 |  24.883 us | 0.4840 us | 0.4527 us |  0.86 |    0.02 |     13.5193 |           - |           - |            62.39 KB |
- AddOrUpdate_v2 |   150 |  26.862 us | 0.5042 us | 0.4717 us |  0.92 |    0.02 |     13.7024 |           - |           - |             63.2 KB |
-    AddOrUpdate |   150 |  29.054 us | 0.1205 us | 0.1127 us |  1.00 |    0.00 |     15.1978 |           - |           - |            70.17 KB |
- AddOrUpdate_v3 |   150 |  35.585 us | 0.3740 us | 0.3498 us |  1.22 |    0.01 |     12.5732 |           - |           - |            58.05 KB |
-                |       |            |           |           |       |         |             |             |             |                     |
- AddOrUpdate_v1 |   500 | 124.728 us | 0.7225 us | 0.6759 us |  0.91 |    0.01 |     54.4434 |           - |           - |           251.95 KB |
- AddOrUpdate_v2 |   500 | 128.650 us | 1.4938 us | 1.3973 us |  0.94 |    0.01 |     58.1055 |      0.2441 |           - |           267.97 KB |
-    AddOrUpdate |   500 | 137.325 us | 1.9010 us | 1.7782 us |  1.00 |    0.00 |     63.2324 |      0.2441 |           - |           291.42 KB |
- AddOrUpdate_v3 |   500 | 166.994 us | 1.7109 us | 1.6004 us |  1.22 |    0.02 |     52.7344 |           - |           - |           243.81 KB |
+AddOrUpdate_v1 |    30 |   3.326 us | 0.0098 us | 0.0092 us |  0.84 |    0.01 |      2.0409 |           - |           - |             9.42 KB |
+AddOrUpdate_v2 |    30 |   3.515 us | 0.0700 us | 0.0688 us |  0.89 |    0.02 |      1.9302 |           - |           - |             8.91 KB |
+AddOrUpdate |    30 |   3.945 us | 0.0261 us | 0.0231 us |  1.00 |    0.00 |      2.1591 |           - |           - |             9.98 KB |
+AddOrUpdate_v3 |    30 |   4.607 us | 0.0875 us | 0.0819 us |  1.17 |    0.02 |      1.7624 |           - |           - |             8.13 KB |
+            |       |            |           |           |       |         |             |             |             |                     |
+AddOrUpdate_v1 |   150 |  24.883 us | 0.4840 us | 0.4527 us |  0.86 |    0.02 |     13.5193 |           - |           - |            62.39 KB |
+AddOrUpdate_v2 |   150 |  26.862 us | 0.5042 us | 0.4717 us |  0.92 |    0.02 |     13.7024 |           - |           - |             63.2 KB |
+AddOrUpdate |   150 |  29.054 us | 0.1205 us | 0.1127 us |  1.00 |    0.00 |     15.1978 |           - |           - |            70.17 KB |
+AddOrUpdate_v3 |   150 |  35.585 us | 0.3740 us | 0.3498 us |  1.22 |    0.01 |     12.5732 |           - |           - |            58.05 KB |
+            |       |            |           |           |       |         |             |             |             |                     |
+AddOrUpdate_v1 |   500 | 124.728 us | 0.7225 us | 0.6759 us |  0.91 |    0.01 |     54.4434 |           - |           - |           251.95 KB |
+AddOrUpdate_v2 |   500 | 128.650 us | 1.4938 us | 1.3973 us |  0.94 |    0.01 |     58.1055 |      0.2441 |           - |           267.97 KB |
+AddOrUpdate |   500 | 137.325 us | 1.9010 us | 1.7782 us |  1.00 |    0.00 |     63.2324 |      0.2441 |           - |           291.42 KB |
+AddOrUpdate_v3 |   500 | 166.994 us | 1.7109 us | 1.6004 us |  1.22 |    0.02 |     52.7344 |           - |           - |           243.81 KB |
 
 ## Inlining With and removing not necessary call to Balance in case of Update. 
- 
-         Method | Count |       Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+
+     Method | Count |       Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
 --------------- |------ |-----------:|----------:|----------:|------:|--------:|------------:|------------:|------------:|--------------------:|
- AddOrUpdate_v1 |    30 |   3.323 us | 0.0121 us | 0.0107 us |  0.91 |    0.00 |      2.0409 |           - |           - |             9.42 KB |
-    AddOrUpdate |    30 |   3.647 us | 0.0111 us | 0.0093 us |  1.00 |    0.00 |      2.0409 |           - |           - |             9.42 KB |
-                |       |            |           |           |       |         |             |             |             |                     |
- AddOrUpdate_v1 |   150 |  24.605 us | 0.2023 us | 0.1690 us |  0.92 |    0.02 |     13.5193 |           - |           - |            62.39 KB |
-    AddOrUpdate |   150 |  26.832 us | 0.5300 us | 0.5443 us |  1.00 |    0.00 |     13.5193 |           - |           - |            62.39 KB |
-                |       |            |           |           |       |         |             |             |             |                     |
- AddOrUpdate_v1 |   500 | 121.799 us | 0.9309 us | 0.8252 us |  0.92 |    0.01 |     54.4434 |           - |           - |           251.95 KB |
-    AddOrUpdate |   500 | 132.886 us | 2.3470 us | 2.0805 us |  1.00 |    0.00 |     54.4434 |           - |           - |           251.95 KB |
+AddOrUpdate_v1 |    30 |   3.323 us | 0.0121 us | 0.0107 us |  0.91 |    0.00 |      2.0409 |           - |           - |             9.42 KB |
+AddOrUpdate |    30 |   3.647 us | 0.0111 us | 0.0093 us |  1.00 |    0.00 |      2.0409 |           - |           - |             9.42 KB |
+            |       |            |           |           |       |         |             |             |             |                     |
+AddOrUpdate_v1 |   150 |  24.605 us | 0.2023 us | 0.1690 us |  0.92 |    0.02 |     13.5193 |           - |           - |            62.39 KB |
+AddOrUpdate |   150 |  26.832 us | 0.5300 us | 0.5443 us |  1.00 |    0.00 |     13.5193 |           - |           - |            62.39 KB |
+            |       |            |           |           |       |         |             |             |             |                     |
+AddOrUpdate_v1 |   500 | 121.799 us | 0.9309 us | 0.8252 us |  0.92 |    0.01 |     54.4434 |           - |           - |           251.95 KB |
+AddOrUpdate |   500 | 132.886 us | 2.3470 us | 2.0805 us |  1.00 |    0.00 |     54.4434 |           - |           - |           251.95 KB |
 
 
 ## Special fast logic for adding to empty branch.
 
-         Method | Count |       Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+     Method | Count |       Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
 --------------- |------ |-----------:|----------:|----------:|------:|--------:|------------:|------------:|------------:|--------------------:|
- AddOrUpdate_v1 |    30 |   3.369 us | 0.0102 us | 0.0090 us |  0.94 |    0.01 |      2.0409 |           - |           - |             9.42 KB |
-    AddOrUpdate |    30 |   3.587 us | 0.0244 us | 0.0228 us |  1.00 |    0.00 |      2.0409 |           - |           - |             9.42 KB |
-                |       |            |           |           |       |         |             |             |             |                     |
- AddOrUpdate_v1 |   150 |  25.025 us | 0.4927 us | 0.4609 us |  0.95 |    0.02 |     13.5193 |           - |           - |            62.39 KB |
-    AddOrUpdate |   150 |  26.235 us | 0.1058 us | 0.0989 us |  1.00 |    0.00 |     13.5193 |           - |           - |            62.39 KB |
-                |       |            |           |           |       |         |             |             |             |                     |
- AddOrUpdate_v1 |   500 | 126.106 us | 1.0204 us | 0.9545 us |  1.00 |    0.01 |     54.4434 |           - |           - |           251.95 KB |
-    AddOrUpdate |   500 | 126.844 us | 0.8788 us | 0.7339 us |  1.00 |    0.00 |     54.4434 |           - |           - |           251.95 KB |
+AddOrUpdate_v1 |    30 |   3.369 us | 0.0102 us | 0.0090 us |  0.94 |    0.01 |      2.0409 |           - |           - |             9.42 KB |
+AddOrUpdate |    30 |   3.587 us | 0.0244 us | 0.0228 us |  1.00 |    0.00 |      2.0409 |           - |           - |             9.42 KB |
+            |       |            |           |           |       |         |             |             |             |                     |
+AddOrUpdate_v1 |   150 |  25.025 us | 0.4927 us | 0.4609 us |  0.95 |    0.02 |     13.5193 |           - |           - |            62.39 KB |
+AddOrUpdate |   150 |  26.235 us | 0.1058 us | 0.0989 us |  1.00 |    0.00 |     13.5193 |           - |           - |            62.39 KB |
+            |       |            |           |           |       |         |             |             |             |                     |
+AddOrUpdate_v1 |   500 | 126.106 us | 1.0204 us | 0.9545 us |  1.00 |    0.01 |     54.4434 |           - |           - |           251.95 KB |
+AddOrUpdate |   500 | 126.844 us | 0.8788 us | 0.7339 us |  1.00 |    0.00 |     54.4434 |           - |           - |           251.95 KB |
 
 ## Removing not necessary imbalanced tree creation before balance - first memory win.
 
-         Method | Count |       Mean |     Error |    StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+     Method | Count |       Mean |     Error |    StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
 --------------- |------ |-----------:|----------:|----------:|------:|------------:|------------:|------------:|--------------------:|
-    AddOrUpdate |    30 |   3.357 us | 0.0163 us | 0.0145 us |  1.00 |      1.9417 |           - |           - |             8.95 KB |
- AddOrUpdate_v1 |    30 |   3.359 us | 0.0124 us | 0.0116 us |  1.00 |      2.0409 |           - |           - |             9.42 KB |
-                |       |            |           |           |       |             |             |             |                     |
- AddOrUpdate_v1 |   150 |  24.513 us | 0.0420 us | 0.0393 us |  0.98 |     13.5193 |           - |           - |            62.39 KB |
-    AddOrUpdate |   150 |  25.074 us | 0.1160 us | 0.1085 us |  1.00 |     12.9395 |      0.0305 |           - |            59.72 KB |
-                |       |            |           |           |       |             |             |             |                     |
-    AddOrUpdate |   500 | 122.624 us | 0.6553 us | 0.6130 us |  1.00 |     52.4902 |      0.2441 |           - |           242.06 KB |
- AddOrUpdate_v1 |   500 | 122.656 us | 0.8018 us | 0.7500 us |  1.00 |     54.4434 |           - |           - |           251.95 KB |
+AddOrUpdate |    30 |   3.357 us | 0.0163 us | 0.0145 us |  1.00 |      1.9417 |           - |           - |             8.95 KB |
+AddOrUpdate_v1 |    30 |   3.359 us | 0.0124 us | 0.0116 us |  1.00 |      2.0409 |           - |           - |             9.42 KB |
+            |       |            |           |           |       |             |             |             |                     |
+AddOrUpdate_v1 |   150 |  24.513 us | 0.0420 us | 0.0393 us |  0.98 |     13.5193 |           - |           - |            62.39 KB |
+AddOrUpdate |   150 |  25.074 us | 0.1160 us | 0.1085 us |  1.00 |     12.9395 |      0.0305 |           - |            59.72 KB |
+            |       |            |           |           |       |             |             |             |                     |
+AddOrUpdate |   500 | 122.624 us | 0.6553 us | 0.6130 us |  1.00 |     52.4902 |      0.2441 |           - |           242.06 KB |
+AddOrUpdate_v1 |   500 | 122.656 us | 0.8018 us | 0.7500 us |  1.00 |     54.4434 |           - |           - |           251.95 KB |
 
 ## More variety to benchmark input
 
-         Method | Count |         Mean |        Error |       StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+     Method | Count |         Mean |        Error |       StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
 --------------- |------ |-------------:|-------------:|-------------:|------:|------------:|------------:|------------:|--------------------:|
-    AddOrUpdate |     5 |     472.4 ns |     2.139 ns |     1.786 ns |  1.00 |      0.2537 |           - |           - |             1.17 KB |
- AddOrUpdate_v1 |     5 |     488.1 ns |     2.258 ns |     2.112 ns |  1.03 |      0.2737 |           - |           - |             1.27 KB |
-                |       |              |              |              |       |             |             |             |                     |
- AddOrUpdate_v1 |    40 |   4,855.4 ns |    19.395 ns |    17.194 ns |  0.98 |      2.9678 |           - |           - |            13.69 KB |
-    AddOrUpdate |    40 |   4,974.1 ns |    17.098 ns |    15.157 ns |  1.00 |      2.8000 |           - |           - |            12.94 KB |
-                |       |              |              |              |       |             |             |             |                     |
- AddOrUpdate_v1 |   200 |  35,267.4 ns |   100.767 ns |    84.145 ns |  0.98 |     18.7378 |      0.0610 |           - |            86.53 KB |
-    AddOrUpdate |   200 |  35,874.3 ns |   173.786 ns |   162.560 ns |  1.00 |     18.0054 |           - |           - |            83.02 KB |
-                |       |              |              |              |       |             |             |             |                     |
-    AddOrUpdate |  1000 | 302,900.4 ns | 1,116.252 ns | 1,044.143 ns |  1.00 |    115.7227 |      2.4414 |           - |           535.08 KB |
- AddOrUpdate_v1 |  1000 | 303,552.8 ns |   906.769 ns |   803.827 ns |  1.00 |    120.6055 |      3.4180 |           - |           556.41 KB |
+AddOrUpdate |     5 |     472.4 ns |     2.139 ns |     1.786 ns |  1.00 |      0.2537 |           - |           - |             1.17 KB |
+AddOrUpdate_v1 |     5 |     488.1 ns |     2.258 ns |     2.112 ns |  1.03 |      0.2737 |           - |           - |             1.27 KB |
+            |       |              |              |              |       |             |             |             |                     |
+AddOrUpdate_v1 |    40 |   4,855.4 ns |    19.395 ns |    17.194 ns |  0.98 |      2.9678 |           - |           - |            13.69 KB |
+AddOrUpdate |    40 |   4,974.1 ns |    17.098 ns |    15.157 ns |  1.00 |      2.8000 |           - |           - |            12.94 KB |
+            |       |              |              |              |       |             |             |             |                     |
+AddOrUpdate_v1 |   200 |  35,267.4 ns |   100.767 ns |    84.145 ns |  0.98 |     18.7378 |      0.0610 |           - |            86.53 KB |
+AddOrUpdate |   200 |  35,874.3 ns |   173.786 ns |   162.560 ns |  1.00 |     18.0054 |           - |           - |            83.02 KB |
+            |       |              |              |              |       |             |             |             |                     |
+AddOrUpdate |  1000 | 302,900.4 ns | 1,116.252 ns | 1,044.143 ns |  1.00 |    115.7227 |      2.4414 |           - |           535.08 KB |
+AddOrUpdate_v1 |  1000 | 303,552.8 ns |   906.769 ns |   803.827 ns |  1.00 |    120.6055 |      3.4180 |           - |           556.41 KB |
 
 ## Remove unnecessary temporary left leaf(y) branch creation before balancing - memory win
 
-         Method | Count |         Mean |        Error |       StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+     Method | Count |         Mean |        Error |       StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
 --------------- |------ |-------------:|-------------:|-------------:|------:|------------:|------------:|------------:|--------------------:|
- AddOrUpdate_v1 |     5 |     491.4 ns |     2.121 ns |     1.984 ns |  1.00 |      0.2737 |           - |           - |             1.27 KB |
-    AddOrUpdate |     5 |     493.4 ns |     2.199 ns |     2.057 ns |  1.00 |      0.2537 |           - |           - |             1.17 KB |
-                |       |              |              |              |       |             |             |             |                     |
- AddOrUpdate_v1 |    40 |   4,871.0 ns |    26.907 ns |    23.852 ns |  0.98 |      2.9678 |           - |           - |            13.69 KB |
-    AddOrUpdate |    40 |   4,949.1 ns |    10.957 ns |     9.713 ns |  1.00 |      2.7542 |           - |           - |             12.7 KB |
-                |       |              |              |              |       |             |             |             |                     |
- AddOrUpdate_v1 |   200 |  35,540.5 ns |   271.146 ns |   240.364 ns |  0.95 |     18.7378 |      0.0610 |           - |            86.53 KB |
-    AddOrUpdate |   200 |  37,344.9 ns |   127.081 ns |   118.871 ns |  1.00 |     17.6392 |           - |           - |            81.38 KB |
-                |       |              |              |              |       |             |             |             |                     |
- AddOrUpdate_v1 |  1000 | 308,033.2 ns | 1,643.015 ns | 1,536.877 ns |  0.98 |    120.6055 |      3.4180 |           - |           556.41 KB |
-    AddOrUpdate |  1000 | 314,370.2 ns | 1,781.632 ns | 1,666.540 ns |  1.00 |    113.7695 |      0.4883 |           - |           525.09 KB |
+AddOrUpdate_v1 |     5 |     491.4 ns |     2.121 ns |     1.984 ns |  1.00 |      0.2737 |           - |           - |             1.27 KB |
+AddOrUpdate |     5 |     493.4 ns |     2.199 ns |     2.057 ns |  1.00 |      0.2537 |           - |           - |             1.17 KB |
+            |       |              |              |              |       |             |             |             |                     |
+AddOrUpdate_v1 |    40 |   4,871.0 ns |    26.907 ns |    23.852 ns |  0.98 |      2.9678 |           - |           - |            13.69 KB |
+AddOrUpdate |    40 |   4,949.1 ns |    10.957 ns |     9.713 ns |  1.00 |      2.7542 |           - |           - |             12.7 KB |
+            |       |              |              |              |       |             |             |             |                     |
+AddOrUpdate_v1 |   200 |  35,540.5 ns |   271.146 ns |   240.364 ns |  0.95 |     18.7378 |      0.0610 |           - |            86.53 KB |
+AddOrUpdate |   200 |  37,344.9 ns |   127.081 ns |   118.871 ns |  1.00 |     17.6392 |           - |           - |            81.38 KB |
+            |       |              |              |              |       |             |             |             |                     |
+AddOrUpdate_v1 |  1000 | 308,033.2 ns | 1,643.015 ns | 1,536.877 ns |  0.98 |    120.6055 |      3.4180 |           - |           556.41 KB |
+AddOrUpdate |  1000 | 314,370.2 ns | 1,781.632 ns | 1,666.540 ns |  1.00 |    113.7695 |      0.4883 |           - |           525.09 KB |
 
 
 ## Remove unnecessary temporary right leaf(y) branch creation before balancing - memory win
 
-         Method | Count |         Mean |        Error |       StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+     Method | Count |         Mean |        Error |       StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
 --------------- |------ |-------------:|-------------:|-------------:|------:|--------:|------------:|------------:|------------:|--------------------:|
- AddOrUpdate_v1 |     5 |     489.0 ns |     2.395 ns |     2.241 ns |  0.99 |    0.01 |      0.2737 |           - |           - |             1.27 KB |
-    AddOrUpdate |     5 |     496.0 ns |     3.869 ns |     3.619 ns |  1.00 |    0.00 |      0.2432 |           - |           - |             1.13 KB |
-                |       |              |              |              |       |         |             |             |             |                     |
- AddOrUpdate_v1 |    40 |   4,873.1 ns |    35.313 ns |    33.032 ns |  0.91 |    0.01 |      2.9678 |           - |           - |            13.69 KB |
-    AddOrUpdate |    40 |   5,346.9 ns |    18.590 ns |    16.480 ns |  1.00 |    0.00 |      2.6779 |           - |           - |            12.38 KB |
-                |       |              |              |              |       |         |             |             |             |                     |
- AddOrUpdate_v1 |   200 |  36,484.4 ns |   309.583 ns |   274.437 ns |  0.90 |    0.01 |     18.7378 |      0.0610 |           - |            86.53 KB |
-    AddOrUpdate |   200 |  40,641.9 ns |   628.973 ns |   588.342 ns |  1.00 |    0.00 |     17.1509 |      0.0610 |           - |            79.08 KB |
-                |       |              |              |              |       |         |             |             |             |                     |
- AddOrUpdate_v1 |  1000 | 316,678.8 ns | 5,722.780 ns | 5,353.092 ns |  0.98 |    0.02 |    120.6055 |      3.4180 |           - |           556.41 KB |
-    AddOrUpdate |  1000 | 323,403.6 ns | 1,483.940 ns | 1,315.474 ns |  1.00 |    0.00 |    111.8164 |     32.7148 |           - |           515.39 KB |
+AddOrUpdate_v1 |     5 |     489.0 ns |     2.395 ns |     2.241 ns |  0.99 |    0.01 |      0.2737 |           - |           - |             1.27 KB |
+AddOrUpdate |     5 |     496.0 ns |     3.869 ns |     3.619 ns |  1.00 |    0.00 |      0.2432 |           - |           - |             1.13 KB |
+            |       |              |              |              |       |         |             |             |             |                     |
+AddOrUpdate_v1 |    40 |   4,873.1 ns |    35.313 ns |    33.032 ns |  0.91 |    0.01 |      2.9678 |           - |           - |            13.69 KB |
+AddOrUpdate |    40 |   5,346.9 ns |    18.590 ns |    16.480 ns |  1.00 |    0.00 |      2.6779 |           - |           - |            12.38 KB |
+            |       |              |              |              |       |         |             |             |             |                     |
+AddOrUpdate_v1 |   200 |  36,484.4 ns |   309.583 ns |   274.437 ns |  0.90 |    0.01 |     18.7378 |      0.0610 |           - |            86.53 KB |
+AddOrUpdate |   200 |  40,641.9 ns |   628.973 ns |   588.342 ns |  1.00 |    0.00 |     17.1509 |      0.0610 |           - |            79.08 KB |
+            |       |              |              |              |       |         |             |             |             |                     |
+AddOrUpdate_v1 |  1000 | 316,678.8 ns | 5,722.780 ns | 5,353.092 ns |  0.98 |    0.02 |    120.6055 |      3.4180 |           - |           556.41 KB |
+AddOrUpdate |  1000 | 323,403.6 ns | 1,483.940 ns | 1,315.474 ns |  1.00 |    0.00 |    111.8164 |     32.7148 |           - |           515.39 KB |
 
 
 ## Parity with v1 via handling one more special case - where `Height == 1`
 
-         Method | Count |         Mean |        Error |       StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+     Method | Count |         Mean |        Error |       StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
 --------------- |------ |-------------:|-------------:|-------------:|------:|------------:|------------:|------------:|--------------------:|
-    AddOrUpdate |     5 |     480.3 ns |     3.645 ns |     3.410 ns |  1.00 |      0.2432 |           - |           - |             1.13 KB |
- AddOrUpdate_v1 |     5 |     487.1 ns |     2.547 ns |     2.382 ns |  1.01 |      0.2737 |           - |           - |             1.27 KB |
-                |       |              |              |              |       |             |             |             |                     |
- AddOrUpdate_v1 |    40 |   4,844.9 ns |    23.494 ns |    21.976 ns |  0.99 |      2.9678 |           - |           - |            13.69 KB |
-    AddOrUpdate |    40 |   4,908.8 ns |    29.374 ns |    27.477 ns |  1.00 |      2.6779 |           - |           - |            12.38 KB |
-                |       |              |              |              |       |             |             |             |                     |
- AddOrUpdate_v1 |   200 |  35,727.8 ns |    84.717 ns |    75.099 ns |  0.99 |     18.7378 |      0.0610 |           - |            86.53 KB |
-    AddOrUpdate |   200 |  36,231.4 ns |   136.671 ns |   121.156 ns |  1.00 |     17.1509 |      0.0610 |           - |            79.08 KB |
-                |       |              |              |              |       |             |             |             |                     |
-    AddOrUpdate |  1000 | 304,238.0 ns | 1,636.331 ns | 1,366.410 ns |  1.00 |    111.8164 |     32.7148 |           - |           515.39 KB |
- AddOrUpdate_v1 |  1000 | 307,233.3 ns | 1,487.373 ns | 1,391.290 ns |  1.01 |    120.6055 |      3.4180 |           - |           556.41 KB |
+AddOrUpdate |     5 |     480.3 ns |     3.645 ns |     3.410 ns |  1.00 |      0.2432 |           - |           - |             1.13 KB |
+AddOrUpdate_v1 |     5 |     487.1 ns |     2.547 ns |     2.382 ns |  1.01 |      0.2737 |           - |           - |             1.27 KB |
+            |       |              |              |              |       |             |             |             |                     |
+AddOrUpdate_v1 |    40 |   4,844.9 ns |    23.494 ns |    21.976 ns |  0.99 |      2.9678 |           - |           - |            13.69 KB |
+AddOrUpdate |    40 |   4,908.8 ns |    29.374 ns |    27.477 ns |  1.00 |      2.6779 |           - |           - |            12.38 KB |
+            |       |              |              |              |       |             |             |             |                     |
+AddOrUpdate_v1 |   200 |  35,727.8 ns |    84.717 ns |    75.099 ns |  0.99 |     18.7378 |      0.0610 |           - |            86.53 KB |
+AddOrUpdate |   200 |  36,231.4 ns |   136.671 ns |   121.156 ns |  1.00 |     17.1509 |      0.0610 |           - |            79.08 KB |
+            |       |              |              |              |       |             |             |             |                     |
+AddOrUpdate |  1000 | 304,238.0 ns | 1,636.331 ns | 1,366.410 ns |  1.00 |    111.8164 |     32.7148 |           - |           515.39 KB |
+AddOrUpdate_v1 |  1000 | 307,233.3 ns | 1,487.373 ns | 1,391.290 ns |  1.01 |    120.6055 |      3.4180 |           - |           556.41 KB |
 
 
 ## Some fixes for updating things
 
-         Method | Count |         Mean |        Error |       StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+     Method | Count |         Mean |        Error |       StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
 --------------- |------ |-------------:|-------------:|-------------:|------:|------------:|------------:|------------:|--------------------:|
-    AddOrUpdate |     5 |     469.8 ns |     4.613 ns |     3.602 ns |  1.00 |      0.2432 |           - |           - |             1.13 KB |
- AddOrUpdate_v1 |     5 |     480.6 ns |     2.648 ns |     2.477 ns |  1.02 |      0.2737 |           - |           - |             1.27 KB |
-                |       |              |              |              |       |             |             |             |                     |
- AddOrUpdate_v1 |    40 |   4,731.4 ns |    22.512 ns |    21.058 ns |  0.96 |      2.9678 |           - |           - |            13.69 KB |
-    AddOrUpdate |    40 |   4,945.0 ns |    12.489 ns |    10.429 ns |  1.00 |      2.6779 |           - |           - |            12.38 KB |
-                |       |              |              |              |       |             |             |             |                     |
- AddOrUpdate_v1 |   200 |  35,094.6 ns |    70.945 ns |    66.362 ns |  0.98 |     18.7378 |      0.0610 |           - |            86.53 KB |
-    AddOrUpdate |   200 |  35,821.9 ns |   129.417 ns |   121.057 ns |  1.00 |     17.1509 |      0.0610 |           - |            79.08 KB |
-                |       |              |              |              |       |             |             |             |                     |
-    AddOrUpdate |  1000 | 303,448.5 ns | 2,017.835 ns | 1,887.484 ns |  1.00 |    111.8164 |     32.7148 |           - |           515.39 KB |
- AddOrUpdate_v1 |  1000 | 304,471.0 ns | 1,549.817 ns | 1,449.700 ns |  1.00 |    120.6055 |      3.4180 |           - |           556.41 KB |
+AddOrUpdate |     5 |     469.8 ns |     4.613 ns |     3.602 ns |  1.00 |      0.2432 |           - |           - |             1.13 KB |
+AddOrUpdate_v1 |     5 |     480.6 ns |     2.648 ns |     2.477 ns |  1.02 |      0.2737 |           - |           - |             1.27 KB |
+            |       |              |              |              |       |             |             |             |                     |
+AddOrUpdate_v1 |    40 |   4,731.4 ns |    22.512 ns |    21.058 ns |  0.96 |      2.9678 |           - |           - |            13.69 KB |
+AddOrUpdate |    40 |   4,945.0 ns |    12.489 ns |    10.429 ns |  1.00 |      2.6779 |           - |           - |            12.38 KB |
+            |       |              |              |              |       |             |             |             |                     |
+AddOrUpdate_v1 |   200 |  35,094.6 ns |    70.945 ns |    66.362 ns |  0.98 |     18.7378 |      0.0610 |           - |            86.53 KB |
+AddOrUpdate |   200 |  35,821.9 ns |   129.417 ns |   121.057 ns |  1.00 |     17.1509 |      0.0610 |           - |            79.08 KB |
+            |       |              |              |              |       |             |             |             |                     |
+AddOrUpdate |  1000 | 303,448.5 ns | 2,017.835 ns | 1,887.484 ns |  1.00 |    111.8164 |     32.7148 |           - |           515.39 KB |
+AddOrUpdate_v1 |  1000 | 304,471.0 ns | 1,549.817 ns | 1,449.700 ns |  1.00 |    120.6055 |      3.4180 |           - |           556.41 KB |
 
 
 ## Inlining the Balance and removing its not used if-branches
 
-         Method | Count |         Mean |        Error |       StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+     Method | Count |         Mean |        Error |       StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
 --------------- |------ |-------------:|-------------:|-------------:|------:|------------:|------------:|------------:|--------------------:|
- AddOrUpdate_v2 |     5 |     418.2 ns |     2.540 ns |     2.376 ns |  0.90 |      0.2170 |           - |           - |              1024 B |
-    AddOrUpdate |     5 |     464.6 ns |     2.301 ns |     2.039 ns |  1.00 |      0.2437 |           - |           - |              1152 B |
- AddOrUpdate_v1 |     5 |     487.7 ns |     1.769 ns |     1.655 ns |  1.05 |      0.2737 |           - |           - |              1296 B |
- AddOrUpdate_v3 |     5 |     516.5 ns |     2.289 ns |     2.141 ns |  1.11 |      0.1993 |           - |           - |               944 B |
-                |       |              |              |              |       |             |             |             |                     |
-    AddOrUpdate |    40 |   4,621.6 ns |    19.899 ns |    18.614 ns |  1.00 |      2.6779 |           - |           - |             12672 B |
- AddOrUpdate_v1 |    40 |   4,910.9 ns |    19.805 ns |    18.525 ns |  1.06 |      2.9678 |           - |           - |             14016 B |
- AddOrUpdate_v2 |    40 |   5,115.0 ns |    26.410 ns |    23.411 ns |  1.11 |      2.8458 |           - |           - |             13456 B |
- AddOrUpdate_v3 |    40 |   6,953.3 ns |    24.391 ns |    22.815 ns |  1.50 |      2.6016 |           - |           - |             12304 B |
-                |       |              |              |              |       |             |             |             |                     |
-    AddOrUpdate |   200 |  34,250.7 ns |    87.221 ns |    81.586 ns |  1.00 |     17.1509 |      0.0610 |           - |             80976 B |
- AddOrUpdate_v1 |   200 |  35,425.8 ns |   137.918 ns |   129.008 ns |  1.03 |     18.7378 |      0.0610 |           - |             88608 B |
- AddOrUpdate_v2 |   200 |  37,942.8 ns |   188.112 ns |   175.960 ns |  1.11 |     19.2261 |           - |           - |             91008 B |
- AddOrUpdate_v3 |   200 |  50,640.8 ns |    66.485 ns |    55.518 ns |  1.48 |     17.6392 |      0.0610 |           - |             83352 B |
-                |       |              |              |              |       |             |             |             |                     |
-    AddOrUpdate |  1000 | 290,830.8 ns |   915.770 ns |   811.806 ns |  1.00 |    111.8164 |     32.7148 |           - |            527760 B |
- AddOrUpdate_v2 |  1000 | 308,260.3 ns | 2,278.822 ns | 2,020.116 ns |  1.06 |    130.8594 |      0.9766 |           - |            619056 B |
- AddOrUpdate_v1 |  1000 | 308,355.6 ns | 2,046.461 ns | 1,914.261 ns |  1.06 |    120.6055 |      3.4180 |           - |            569760 B |
- AddOrUpdate_v3 |  1000 | 375,880.3 ns | 1,710.716 ns | 1,600.205 ns |  1.29 |    118.6523 |      0.4883 |           - |            560440 B |
+AddOrUpdate_v2 |     5 |     418.2 ns |     2.540 ns |     2.376 ns |  0.90 |      0.2170 |           - |           - |              1024 B |
+AddOrUpdate |     5 |     464.6 ns |     2.301 ns |     2.039 ns |  1.00 |      0.2437 |           - |           - |              1152 B |
+AddOrUpdate_v1 |     5 |     487.7 ns |     1.769 ns |     1.655 ns |  1.05 |      0.2737 |           - |           - |              1296 B |
+AddOrUpdate_v3 |     5 |     516.5 ns |     2.289 ns |     2.141 ns |  1.11 |      0.1993 |           - |           - |               944 B |
+            |       |              |              |              |       |             |             |             |                     |
+AddOrUpdate |    40 |   4,621.6 ns |    19.899 ns |    18.614 ns |  1.00 |      2.6779 |           - |           - |             12672 B |
+AddOrUpdate_v1 |    40 |   4,910.9 ns |    19.805 ns |    18.525 ns |  1.06 |      2.9678 |           - |           - |             14016 B |
+AddOrUpdate_v2 |    40 |   5,115.0 ns |    26.410 ns |    23.411 ns |  1.11 |      2.8458 |           - |           - |             13456 B |
+AddOrUpdate_v3 |    40 |   6,953.3 ns |    24.391 ns |    22.815 ns |  1.50 |      2.6016 |           - |           - |             12304 B |
+            |       |              |              |              |       |             |             |             |                     |
+AddOrUpdate |   200 |  34,250.7 ns |    87.221 ns |    81.586 ns |  1.00 |     17.1509 |      0.0610 |           - |             80976 B |
+AddOrUpdate_v1 |   200 |  35,425.8 ns |   137.918 ns |   129.008 ns |  1.03 |     18.7378 |      0.0610 |           - |             88608 B |
+AddOrUpdate_v2 |   200 |  37,942.8 ns |   188.112 ns |   175.960 ns |  1.11 |     19.2261 |           - |           - |             91008 B |
+AddOrUpdate_v3 |   200 |  50,640.8 ns |    66.485 ns |    55.518 ns |  1.48 |     17.6392 |      0.0610 |           - |             83352 B |
+            |       |              |              |              |       |             |             |             |                     |
+AddOrUpdate |  1000 | 290,830.8 ns |   915.770 ns |   811.806 ns |  1.00 |    111.8164 |     32.7148 |           - |            527760 B |
+AddOrUpdate_v2 |  1000 | 308,260.3 ns | 2,278.822 ns | 2,020.116 ns |  1.06 |    130.8594 |      0.9766 |           - |            619056 B |
+AddOrUpdate_v1 |  1000 | 308,355.6 ns | 2,046.461 ns | 1,914.261 ns |  1.06 |    120.6055 |      3.4180 |           - |            569760 B |
+AddOrUpdate_v3 |  1000 | 375,880.3 ns | 1,710.716 ns | 1,600.205 ns |  1.29 |    118.6523 |      0.4883 |           - |            560440 B |
 
 
-         Method | Count |         Mean |        Error |        StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+     Method | Count |         Mean |        Error |        StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
 --------------- |------ |-------------:|-------------:|--------------:|------:|--------:|------------:|------------:|------------:|--------------------:|
- AddOrUpdate_v2 |     5 |     404.8 ns |     2.504 ns |     2.0907 ns |  0.91 |    0.01 |      0.2170 |           - |           - |                1 KB |
-    AddOrUpdate |     5 |     447.1 ns |     4.673 ns |     4.1429 ns |  1.00 |    0.00 |      0.2437 |           - |           - |             1.13 KB |
- AddOrUpdate_v1 |     5 |     481.5 ns |     1.112 ns |     0.9854 ns |  1.08 |    0.01 |      0.2737 |           - |           - |             1.27 KB |
-                |       |              |              |               |       |         |             |             |             |                     |
-    AddOrUpdate |    40 |   4,563.0 ns |    91.302 ns |    89.6712 ns |  1.00 |    0.00 |      2.6779 |           - |           - |            12.38 KB |
- AddOrUpdate_v1 |    40 |   4,712.5 ns |    27.017 ns |    25.2716 ns |  1.03 |    0.02 |      2.9678 |           - |           - |            13.69 KB |
- AddOrUpdate_v2 |    40 |   4,943.3 ns |    22.715 ns |    21.2474 ns |  1.08 |    0.02 |      2.8458 |           - |           - |            13.14 KB |
-                |       |              |              |               |       |         |             |             |             |                     |
-    AddOrUpdate |   200 |  33,629.4 ns |   647.198 ns |   635.6353 ns |  1.00 |    0.00 |     17.1509 |      0.0610 |           - |            79.08 KB |
- AddOrUpdate_v1 |   200 |  34,643.5 ns |   155.549 ns |   145.5005 ns |  1.03 |    0.02 |     18.7378 |      0.0610 |           - |            86.53 KB |
- AddOrUpdate_v2 |   200 |  36,726.4 ns |   419.812 ns |   372.1521 ns |  1.10 |    0.01 |     19.2261 |           - |           - |            88.88 KB |
-                |       |              |              |               |       |         |             |             |             |                     |
-    AddOrUpdate |  1000 | 291,376.3 ns | 3,419.191 ns | 3,198.3136 ns |  1.00 |    0.00 |    111.8164 |     32.7148 |           - |           515.39 KB |
- AddOrUpdate_v2 |  1000 | 302,027.2 ns | 4,981.373 ns | 4,659.5798 ns |  1.04 |    0.02 |    130.8594 |      0.9766 |           - |           604.55 KB |
- AddOrUpdate_v1 |  1000 | 304,899.6 ns | 4,634.673 ns | 4,335.2763 ns |  1.05 |    0.02 |    120.6055 |      3.4180 |           - |           556.41 KB |
+AddOrUpdate_v2 |     5 |     404.8 ns |     2.504 ns |     2.0907 ns |  0.91 |    0.01 |      0.2170 |           - |           - |                1 KB |
+AddOrUpdate |     5 |     447.1 ns |     4.673 ns |     4.1429 ns |  1.00 |    0.00 |      0.2437 |           - |           - |             1.13 KB |
+AddOrUpdate_v1 |     5 |     481.5 ns |     1.112 ns |     0.9854 ns |  1.08 |    0.01 |      0.2737 |           - |           - |             1.27 KB |
+            |       |              |              |               |       |         |             |             |             |                     |
+AddOrUpdate |    40 |   4,563.0 ns |    91.302 ns |    89.6712 ns |  1.00 |    0.00 |      2.6779 |           - |           - |            12.38 KB |
+AddOrUpdate_v1 |    40 |   4,712.5 ns |    27.017 ns |    25.2716 ns |  1.03 |    0.02 |      2.9678 |           - |           - |            13.69 KB |
+AddOrUpdate_v2 |    40 |   4,943.3 ns |    22.715 ns |    21.2474 ns |  1.08 |    0.02 |      2.8458 |           - |           - |            13.14 KB |
+            |       |              |              |               |       |         |             |             |             |                     |
+AddOrUpdate |   200 |  33,629.4 ns |   647.198 ns |   635.6353 ns |  1.00 |    0.00 |     17.1509 |      0.0610 |           - |            79.08 KB |
+AddOrUpdate_v1 |   200 |  34,643.5 ns |   155.549 ns |   145.5005 ns |  1.03 |    0.02 |     18.7378 |      0.0610 |           - |            86.53 KB |
+AddOrUpdate_v2 |   200 |  36,726.4 ns |   419.812 ns |   372.1521 ns |  1.10 |    0.01 |     19.2261 |           - |           - |            88.88 KB |
+            |       |              |              |               |       |         |             |             |             |                     |
+AddOrUpdate |  1000 | 291,376.3 ns | 3,419.191 ns | 3,198.3136 ns |  1.00 |    0.00 |    111.8164 |     32.7148 |           - |           515.39 KB |
+AddOrUpdate_v2 |  1000 | 302,027.2 ns | 4,981.373 ns | 4,659.5798 ns |  1.04 |    0.02 |    130.8594 |      0.9766 |           - |           604.55 KB |
+AddOrUpdate_v1 |  1000 | 304,899.6 ns | 4,634.673 ns | 4,335.2763 ns |  1.05 |    0.02 |    120.6055 |      3.4180 |           - |           556.41 KB |
 
 ##  Some base line results
 
@@ -304,8 +304,8 @@ Frequency=2156249 Hz, Resolution=463.7683 ns, Timer=TSC
 BenchmarkDotNet=v0.12.0, OS=Windows 10.0.18362
 Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
 .NET Core SDK=3.1.100
-  [Host]     : .NET Core 3.1.0 (CoreCLR 4.700.19.56402, CoreFX 4.700.19.56404), X64 RyuJIT
-  DefaultJob : .NET Core 3.1.0 (CoreCLR 4.700.19.56402, CoreFX 4.700.19.56404), X64 RyuJIT
+[Host]     : .NET Core 3.1.0 (CoreCLR 4.700.19.56402, CoreFX 4.700.19.56404), X64 RyuJIT
+DefaultJob : .NET Core 3.1.0 (CoreCLR 4.700.19.56402, CoreFX 4.700.19.56404), X64 RyuJIT
 
 
 |                                    Method | Count |           Mean |       Error |      StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
@@ -363,8 +363,8 @@ Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical 
 BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19041.572 (2004/?/20H1)
 Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical cores
 .NET Core SDK=3.1.403
-  [Host]     : .NET Core 3.1.9 (CoreCLR 4.700.20.47201, CoreFX 4.700.20.47203), X64 RyuJIT
-  DefaultJob : .NET Core 3.1.9 (CoreCLR 4.700.20.47201, CoreFX 4.700.20.47203), X64 RyuJIT
+[Host]     : .NET Core 3.1.9 (CoreCLR 4.700.20.47201, CoreFX 4.700.20.47203), X64 RyuJIT
+DefaultJob : .NET Core 3.1.9 (CoreCLR 4.700.20.47201, CoreFX 4.700.20.47203), X64 RyuJIT
 
 |                             Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
 |----------------------------------- |------ |-------------:|------------:|------------:|------:|--------:|---------:|--------:|------:|----------:|
@@ -389,8 +389,8 @@ Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical 
 BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
 Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
 .NET Core SDK=5.0.201
-  [Host]     : .NET Core 5.0.4 (CoreCLR 5.0.421.11614, CoreFX 5.0.421.11614), X64 RyuJIT
-  DefaultJob : .NET Core 5.0.4 (CoreCLR 5.0.421.11614, CoreFX 5.0.421.11614), X64 RyuJIT
+[Host]     : .NET Core 5.0.4 (CoreCLR 5.0.421.11614, CoreFX 5.0.421.11614), X64 RyuJIT
+DefaultJob : .NET Core 5.0.4 (CoreCLR 5.0.421.11614, CoreFX 5.0.421.11614), X64 RyuJIT
 
 
 |                            Method | Count |         Mean |        Error |       StdDev |       Median | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
@@ -436,8 +436,8 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
 Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
 .NET Core SDK=5.0.201
-  [Host]     : .NET Core 5.0.4 (CoreCLR 5.0.421.11614, CoreFX 5.0.421.11614), X64 RyuJIT
-  DefaultJob : .NET Core 5.0.4 (CoreCLR 5.0.421.11614, CoreFX 5.0.421.11614), X64 RyuJIT
+[Host]     : .NET Core 5.0.4 (CoreCLR 5.0.421.11614, CoreFX 5.0.421.11614), X64 RyuJIT
+DefaultJob : .NET Core 5.0.4 (CoreCLR 5.0.421.11614, CoreFX 5.0.421.11614), X64 RyuJIT
 
 |                            Method | Count |     Mean |    Error |   StdDev | Ratio | RatioSD |  Gen 0 |  Gen 1 | Gen 2 | Allocated |
 |---------------------------------- |------ |---------:|---------:|---------:|------:|--------:|-------:|-------:|------:|----------:|
@@ -469,8 +469,8 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19043
 Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
 .NET Core SDK=6.0.202
-  [Host]     : .NET Core 6.0.4 (CoreCLR 6.0.422.16404, CoreFX 6.0.422.16404), X64 RyuJIT
-  DefaultJob : .NET Core 6.0.4 (CoreCLR 6.0.422.16404, CoreFX 6.0.422.16404), X64 RyuJIT
+[Host]     : .NET Core 6.0.4 (CoreCLR 6.0.422.16404, CoreFX 6.0.422.16404), X64 RyuJIT
+DefaultJob : .NET Core 6.0.4 (CoreCLR 6.0.422.16404, CoreFX 6.0.422.16404), X64 RyuJIT
 
 
 |                            Method | Count |          Mean |         Error |        StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
@@ -518,8 +518,8 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 
 Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
 .NET Core SDK=6.0.202
-  [Host]     : .NET Core 6.0.4 (CoreCLR 6.0.422.16404, CoreFX 6.0.422.16404), X64 RyuJIT
-  DefaultJob : .NET Core 6.0.4 (CoreCLR 6.0.422.16404, CoreFX 6.0.422.16404), X64 RyuJIT
+[Host]     : .NET Core 6.0.4 (CoreCLR 6.0.422.16404, CoreFX 6.0.422.16404), X64 RyuJIT
+DefaultJob : .NET Core 6.0.4 (CoreCLR 6.0.422.16404, CoreFX 6.0.422.16404), X64 RyuJIT
 
 |                            Method | Count |          Mean |        Error |       StdDev | Ratio | RatioSD |    Gen 0 |   Gen 1 | Gen 2 | Allocated |
 |---------------------------------- |------ |--------------:|-------------:|-------------:|------:|--------:|---------:|--------:|------:|----------:|
@@ -590,8 +590,8 @@ Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical
 BenchmarkDotNet=v0.13.5, OS=Windows 10 (10.0.19042.928/20H2/October2020Update)
 Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical cores
 .NET SDK=7.0.100
-  [Host]     : .NET 7.0.0 (7.0.22.51805), X64 RyuJIT AVX2
-  DefaultJob : .NET 7.0.0 (7.0.22.51805), X64 RyuJIT AVX2
+[Host]     : .NET 7.0.0 (7.0.22.51805), X64 RyuJIT AVX2
+DefaultJob : .NET 7.0.0 (7.0.22.51805), X64 RyuJIT AVX2
 
 
 |                   Method | Count |      Mean |     Error |    StdDev |    Median | Ratio | RatioSD |    Gen0 | Allocated | Alloc Ratio |
@@ -641,8 +641,8 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 BenchmarkDotNet=v0.13.5, OS=Windows 10 (10.0.19042.928/20H2/October2020Update)
 Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical cores
 .NET SDK=7.0.100
-  [Host]     : .NET 7.0.0 (7.0.22.51805), X64 RyuJIT AVX2
-  DefaultJob : .NET 7.0.0 (7.0.22.51805), X64 RyuJIT AVX2
+[Host]     : .NET 7.0.0 (7.0.22.51805), X64 RyuJIT AVX2
+DefaultJob : .NET 7.0.0 (7.0.22.51805), X64 RyuJIT AVX2
 ```
 
 |                      Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD |   Gen0 | Allocated | Alloc Ratio |
@@ -797,8 +797,8 @@ Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical c
 BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValley2)
 11th Gen Intel Core i7-1185G7 3.00GHz, 1 CPU, 8 logical and 4 physical cores
 .NET SDK=7.0.304
-  [Host]     : .NET 7.0.7 (7.0.723.27404), X64 RyuJIT AVX2
-  DefaultJob : .NET 7.0.7 (7.0.723.27404), X64 RyuJIT AVX2
+[Host]     : .NET 7.0.7 (7.0.723.27404), X64 RyuJIT AVX2
+DefaultJob : .NET 7.0.7 (7.0.723.27404), X64 RyuJIT AVX2
 
 |                 Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | BranchInstructions/Op | CacheMisses/Op | BranchMispredictions/Op |   Gen0 |   Gen1 | Allocated | Alloc Ratio |
 |----------------------- |------ |---------:|----------:|----------:|------:|--------:|----------------------:|---------------:|------------------------:|-------:|-------:|----------:|------------:|
@@ -982,2713 +982,2727 @@ BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValle
 | FHashMap91_GetOrAddValueRef |   100 | 2.399 us | 0.1387 us | 0.3630 us | 2.264 us |  0.72 |    0.16 | 0.8469 |                 4,366 |             26 |                       8 | 0.0076 |   5.22 KB |        0.71 |
 
 */
-            // [Params(1, 10, 100, 1000)]
-            [Params(10)]//, 1000)]
-            // [Params(1000)]
-            public int Count;
-
-            private Type[] _types;
-
-            [GlobalSetup]
-            public void Setup()
-            {
-                _types = _keys.Take(Count).ToArray();
-            }
-
-            // [Benchmark(Baseline = true)]
-            // [Benchmark]
-            public ImTools.ImHashMap<Type, string> V4_ImHashMap_AddOrUpdate()
-            {
-                var map = ImTools.ImHashMap<Type, string>.Empty;
-
-                foreach (var key in _types)
-                    map = map.AddOrUpdate(key.GetHashCode(), key, "a");
-
-                return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
-            }
-
-            // [Benchmark]
-            public ImTools.ImHashMap<Type, string> V4_ImMap_Add()
-            {
-                var map = ImTools.ImHashMap<Type, string>.Empty;
-
-                foreach (var key in _types)
-                    map = map.AddSureNotPresent(key.GetHashCode(), key, "a");
-
-                return map.AddSureNotPresent(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
-            }
-
-            // [Benchmark]
-            public ImTools.ImHashMap<int, KeyValuePair<Type, string>> V3_ImMap_AddOrUpdate()
-            {
-                var map = ImTools.ImHashMap<int, KeyValuePair<Type, string>>.Empty;
-
-                foreach (var key in _types)
-                    map = map.AddOrUpdate(key.GetHashCode(), new KeyValuePair<Type, string>(key, "a"));
-
-                return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), new KeyValuePair<Type, string>(typeof(ImHashMapBenchmarks), "!"));
-            }
-
-            // [Benchmark]
-            public ImTools.ImHashMap<Type, string>[] V4_PartitionedHashMap_AddOrUpdate()
-            {
-                var map = ImTools.PartitionedHashMap.CreateEmpty<Type, string>();
-
-                foreach (var key in _types)
-                    map.AddOrUpdate(key, "a");
-
-                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
-                return map;
-            }
-
-            // // [Benchmark]
-            // public ImToolsV3.ImHashMap<Type, string> V3_ImHashMap_AddOrUpdate()
-            // {
-            //     var map = ImToolsV3.ImHashMap<Type, string>.Empty;
-
-            //     foreach (var key in _types)
-            //         map = map.AddOrUpdate(key.GetHashCode(), key, "a");
-
-            //     return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
-            // }
-
-            // // [Benchmark]
-            // public ImToolsV3.ImHashMap<Type, string>[] V3_PartitionedHashMap_AddOrUpdate()
-            // {
-            //     var map = ImToolsV3.PartitionedHashMap.CreateEmpty<Type, string>();
-
-            //     foreach (var key in _types)
-            //         map.AddOrUpdate(key, "a");
-
-            //     map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
-            //     return map;
-            // }
-
-            // // [Benchmark]
-            // public ImTools.V2.ImHashMap<Type, string> V2_ImHashMap_AddOrUpdate()
-            // {
-            //     var map = ImTools.V2.ImHashMap<Type, string>.Empty;
-
-            //     foreach (var key in _types)
-            //         map = map.AddOrUpdate(key, "a");
-
-            //     return map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
-            // }
-
-            // // [Benchmark]
-            // public ImTools.V2.ImHashMap<Type, string>[] ImHashMapSlots32_AddOrUpdate()
-            // {
-            //     var map = ImTools.V2.ImHashMapSlots.CreateWithEmpty<Type, string>();
-
-            //     foreach (var key in _types)
-            //         map.AddOrUpdate(key, "a");
-
-            //     map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
-            //     return map;
-            // }
-
-            // // [Benchmark]
-            // public ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>> V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate()
-            // {
-            //     var map = ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>>.Empty;
-
-            //     foreach (var key in _types)
-            //         map = map.AddOrUpdate(key.GetHashCode(), key, "a");
-
-            //     return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
-            // }
-
-            // // [Benchmark]
-            // public ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>>[] Experimental_ImHashMapSlots32_AddOrUpdate()
-            // {
-            //     var map = ImTools.V2.Experimental.ImMapSlots.CreateWithEmpty<ImTools.V2.Experimental.ImMap.KValue<Type>>();
-
-            //     foreach (var key in _types)
-            //         map.AddOrUpdate(key.GetHashCode(), new ImTools.V2.Experimental.ImMap.KValue<Type>(key, "a"));
-
-            //     map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), new ImTools.V2.Experimental.ImMap.KValue<Type>(typeof(ImHashMapBenchmarks), "!"));
-            //     return map;
-            // }
-
-            // // [Benchmark]
-            // public ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>>[] Experimental_ImHashMapSlots64_AddOrUpdate()
-            // {
-            //     var map = ImTools.V2.Experimental.ImMapSlots.CreateWithEmpty<ImTools.V2.Experimental.ImMap.KValue<Type>>(64);
-
-            //     foreach (var key in _types)
-            //         map.AddOrUpdate(key.GetHashCode(), new ImTools.V2.Experimental.ImMap.KValue<Type>(key, "a"), 63);
-
-            //     map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), new ImTools.V2.Experimental.ImMap.KValue<Type>(typeof(ImHashMapBenchmarks), "!"), 63);
-            //     return map;
-            // }
-
-            // [Benchmark(Baseline = true)]
-            public ImTools.Experiments.RefEqHashMap<Type, string> RefEqHashMap_AddOrUpdate()
-            {
-                var map = new ImTools.Experiments.RefEqHashMap<Type, string>(5);
-
-                foreach (var key in _types)
-                    map.AddOrUpdate(key, "a");
-
-                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
-                return map;
-            }
-
-            // [Benchmark]
-            public ImTools.Experiments.HashMapLeapfrog<Type, string, ImTools.Experiments.RefEqComparer> HashMapLeapfrog_AddOrUpdate()
-            {
-                var map = new ImTools.Experiments.HashMapLeapfrog<Type, string, ImTools.Experiments.RefEqComparer>();
-
-                foreach (var key in _types)
-                    map.AddOrUpdate(key, "a");
-
-                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
-                return map;
-            }
-
-            [Benchmark(Baseline = true)]
-            public DictionarySlim<TypeVal, string> DictSlim_TryAdd()
-            {
-                var map = new DictionarySlim<TypeVal, string>();
-
-                foreach (var key in _types)
-                    map.GetOrAddValueRef(key) = "a";
-
-                map.GetOrAddValueRef(typeof(ImHashMapBenchmarks)) = "!";
-                return map;
-            }
-
-            // [Benchmark]
-            public ImTools.Experiments.FHashMap7<Type, string, ImTools.RefEq<Type>> FHashMap7_AddOrUpdate()
-            {
-                var map = new ImTools.Experiments.FHashMap7<Type, string, ImTools.RefEq<Type>>();
-
-                foreach (var key in _types)
-                    map.AddOrUpdate(key, "a");
-
-                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
-                return map;
-            }
-
-            // [Benchmark(Baseline = true)]
-            [Benchmark]
-            public FHashMap91TypeString FHashMap91_GetOrAddValueRef()
-            {
-                var map = new FHashMap91TypeString();
-
-                foreach (var key in _types)
-                    map.GetOrAddValueRef(key) = "a";
-
-                map.GetOrAddValueRef(typeof(ImHashMapBenchmarks)) = "!";
-                return map;
-            }
-
-            // [Benchmark]
-            public ImTools.Experiments.FHashMap8<Type, string, ImTools.RefEq<Type>> FHashMap8_AddOrUpdate()
-            {
-                var map = new ImTools.Experiments.FHashMap8<Type, string, ImTools.RefEq<Type>>();
-
-                foreach (var key in _types)
-                    map.AddOrUpdate(key, "a");
-
-                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
-                return map;
-            }
-
-            // [Benchmark]
-            public Dictionary<Type, string> Dict_TryAdd()
-            {
-                var map = new Dictionary<Type, string>();
-
-                foreach (var key in _types)
-                    map.TryAdd(key, "a");
-
-                map.TryAdd(typeof(ImHashMapBenchmarks), "!");
-                return map;
-            }
-
-            // [Benchmark]
-            public ConcurrentDictionary<Type, string> ConcurrentDictionary_TryAdd()
-            {
-                var map = new ConcurrentDictionary<Type, string>();
-
-                foreach (var key in _types)
-                    map.TryAdd(key, "a");
-
-                map.TryAdd(typeof(ImHashMapBenchmarks), "!");
-                return map;
-            }
-
-            // [Benchmark]
-            public ImmutableDictionary<Type, string> ImmutableDict_Builder_Add()
-            {
-                var builder = ImmutableDictionary.CreateBuilder<Type, string>();
-
-                foreach (var key in _types)
-                    builder.Add(key, "a");
-                builder.Add(typeof(ImHashMapBenchmarks), "!");
-                return builder.ToImmutable();
-            }
-
-            // [Benchmark]
-            public ImmutableDictionary<Type, string> ImmutableDict_Add()
-            {
-                var map = ImmutableDictionary<Type, string>.Empty;
-
-                foreach (var key in _types)
-                    map = map.Add(key, "a");
-
-                return map.Add(typeof(ImHashMapBenchmarks), "!");
-            }
-
-            // [Benchmark]
-            public TypeDictionary<string> TypeDictionary_Add()
-            {
-                var map = new TypeDictionary<string>();
-
-                map.Add<A1>("a");
-                map.Add<A2>("a");
-                map.Add<A3>("a");
-                map.Add<A4>("a");
-                map.Add<A5>("a");
-                // map.Add<A6>("a");
-                // map.Add<A7>("a");
-                // map.Add<A8>("a");
-                // map.Add<A9>("a");
-                // map.Add<A10>("a");
-                // map.Add<B1>("a");
-                // map.Add<B2>("a");
-                // map.Add<B3>("a");
-                // map.Add<B4>("a");
-                // map.Add<B5>("a");
-                // map.Add<B6>("a");
-                // map.Add<B7>("a");
-                // map.Add<B8>("a");
-                // map.Add<B9>("a");
-                // map.Add<B10>("a");
-
-                map.Add<ImHashMapBenchmarks>("!");
-
-                return map;
-            }
+        // [Params(1, 10, 100, 1000)]
+        [Params(10)]//, 1000)]
+        // [Params(1000)]
+        public int Count;
+
+        private Type[] _types;
+
+        [GlobalSetup]
+        public void Setup()
+        {
+            _types = _keys.Take(Count).ToArray();
         }
 
-        class A1 { }
-        class A2 { }
-        class A3 { }
-        class A4 { }
-        class A5 { }
-        class A6 { }
-        class A7 { }
-        class A8 { }
-        class A9 { }
-        class A10 { }
-        class B1 { }
-        class B2 { }
-        class B3 { }
-        class B4 { }
-        class B5 { }
-        class B6 { }
-        class B7 { }
-        class B8 { }
-        class B9 { }
-        class B10 { }
-
-        public class TypeDictionary<TValue>
+        // [Benchmark(Baseline = true)]
+        // [Benchmark]
+        public ImTools.ImHashMap<Type, string> V4_ImHashMap_AddOrUpdate()
         {
-            // ReSharper disable once StaticMemberInGenericType
-            private static int typeIndex;
-            private readonly object _lockObject = new object();
+            var map = ImTools.ImHashMap<Type, string>.Empty;
 
-            private TValue[] _values = new TValue[100];
+            foreach (var key in _types)
+                map = map.AddOrUpdate(key.GetHashCode(), key, "a");
 
-            public void Add<TKey>(TValue value)
-            {
-                lock (_lockObject)
-                {
-                    var id = TypeKey<TKey>.Id;
-                    if (id >= _values.Length)
-                        Array.Resize(ref _values, id * 2);
-                    _values[id] = value;
-                }
-            }
+            return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
+        }
 
-            public TValue Get<TKey>()
+        // [Benchmark]
+        public ImTools.ImHashMap<Type, string> V4_ImMap_Add()
+        {
+            var map = ImTools.ImHashMap<Type, string>.Empty;
+
+            foreach (var key in _types)
+                map = map.AddSureNotPresent(key.GetHashCode(), key, "a");
+
+            return map.AddSureNotPresent(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
+        }
+
+        // [Benchmark]
+        public ImTools.ImHashMap<int, KeyValuePair<Type, string>> V3_ImMap_AddOrUpdate()
+        {
+            var map = ImTools.ImHashMap<int, KeyValuePair<Type, string>>.Empty;
+
+            foreach (var key in _types)
+                map = map.AddOrUpdate(key.GetHashCode(), new KeyValuePair<Type, string>(key, "a"));
+
+            return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), new KeyValuePair<Type, string>(typeof(ImHashMapBenchmarks), "!"));
+        }
+
+        // [Benchmark]
+        public ImTools.ImHashMap<Type, string>[] V4_PartitionedHashMap_AddOrUpdate()
+        {
+            var map = ImTools.PartitionedHashMap.CreateEmpty<Type, string>();
+
+            foreach (var key in _types)
+                map.AddOrUpdate(key, "a");
+
+            map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+            return map;
+        }
+
+        // // [Benchmark]
+        // public ImToolsV3.ImHashMap<Type, string> V3_ImHashMap_AddOrUpdate()
+        // {
+        //     var map = ImToolsV3.ImHashMap<Type, string>.Empty;
+
+        //     foreach (var key in _types)
+        //         map = map.AddOrUpdate(key.GetHashCode(), key, "a");
+
+        //     return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
+        // }
+
+        // // [Benchmark]
+        // public ImToolsV3.ImHashMap<Type, string>[] V3_PartitionedHashMap_AddOrUpdate()
+        // {
+        //     var map = ImToolsV3.PartitionedHashMap.CreateEmpty<Type, string>();
+
+        //     foreach (var key in _types)
+        //         map.AddOrUpdate(key, "a");
+
+        //     map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+        //     return map;
+        // }
+
+        // // [Benchmark]
+        // public ImTools.V2.ImHashMap<Type, string> V2_ImHashMap_AddOrUpdate()
+        // {
+        //     var map = ImTools.V2.ImHashMap<Type, string>.Empty;
+
+        //     foreach (var key in _types)
+        //         map = map.AddOrUpdate(key, "a");
+
+        //     return map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+        // }
+
+        // // [Benchmark]
+        // public ImTools.V2.ImHashMap<Type, string>[] ImHashMapSlots32_AddOrUpdate()
+        // {
+        //     var map = ImTools.V2.ImHashMapSlots.CreateWithEmpty<Type, string>();
+
+        //     foreach (var key in _types)
+        //         map.AddOrUpdate(key, "a");
+
+        //     map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+        //     return map;
+        // }
+
+        // // [Benchmark]
+        // public ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>> V2_ImHashMap_AVLOptimizedForAdd_AddOrUpdate()
+        // {
+        //     var map = ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>>.Empty;
+
+        //     foreach (var key in _types)
+        //         map = map.AddOrUpdate(key.GetHashCode(), key, "a");
+
+        //     return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
+        // }
+
+        // // [Benchmark]
+        // public ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>>[] Experimental_ImHashMapSlots32_AddOrUpdate()
+        // {
+        //     var map = ImTools.V2.Experimental.ImMapSlots.CreateWithEmpty<ImTools.V2.Experimental.ImMap.KValue<Type>>();
+
+        //     foreach (var key in _types)
+        //         map.AddOrUpdate(key.GetHashCode(), new ImTools.V2.Experimental.ImMap.KValue<Type>(key, "a"));
+
+        //     map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), new ImTools.V2.Experimental.ImMap.KValue<Type>(typeof(ImHashMapBenchmarks), "!"));
+        //     return map;
+        // }
+
+        // // [Benchmark]
+        // public ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>>[] Experimental_ImHashMapSlots64_AddOrUpdate()
+        // {
+        //     var map = ImTools.V2.Experimental.ImMapSlots.CreateWithEmpty<ImTools.V2.Experimental.ImMap.KValue<Type>>(64);
+
+        //     foreach (var key in _types)
+        //         map.AddOrUpdate(key.GetHashCode(), new ImTools.V2.Experimental.ImMap.KValue<Type>(key, "a"), 63);
+
+        //     map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), new ImTools.V2.Experimental.ImMap.KValue<Type>(typeof(ImHashMapBenchmarks), "!"), 63);
+        //     return map;
+        // }
+
+        // [Benchmark(Baseline = true)]
+        public ImTools.Experiments.RefEqHashMap<Type, string> RefEqHashMap_AddOrUpdate()
+        {
+            var map = new ImTools.Experiments.RefEqHashMap<Type, string>(5);
+
+            foreach (var key in _types)
+                map.AddOrUpdate(key, "a");
+
+            map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+            return map;
+        }
+
+        // [Benchmark]
+        public ImTools.Experiments.HashMapLeapfrog<Type, string, ImTools.Experiments.RefEqComparer> HashMapLeapfrog_AddOrUpdate()
+        {
+            var map = new ImTools.Experiments.HashMapLeapfrog<Type, string, ImTools.Experiments.RefEqComparer>();
+
+            foreach (var key in _types)
+                map.AddOrUpdate(key, "a");
+
+            map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+            return map;
+        }
+
+        [Benchmark(Baseline = true)]
+        public DictionarySlim<TypeVal, string> DictSlim_TryAdd()
+        {
+            var map = new DictionarySlim<TypeVal, string>();
+
+            foreach (var key in _types)
+                map.GetOrAddValueRef(key) = "a";
+
+            map.GetOrAddValueRef(typeof(ImHashMapBenchmarks)) = "!";
+            return map;
+        }
+
+        // [Benchmark]
+        public ImTools.Experiments.FHashMap7<Type, string, ImTools.RefEq<Type>> FHashMap7_AddOrUpdate()
+        {
+            var map = new ImTools.Experiments.FHashMap7<Type, string, ImTools.RefEq<Type>>();
+
+            foreach (var key in _types)
+                map.AddOrUpdate(key, "a");
+
+            map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+            return map;
+        }
+
+        // [Benchmark(Baseline = true)]
+        [Benchmark]
+        public FHashMap91TypeString FHashMap91_GetOrAddValueRef()
+        {
+            var map = new FHashMap91TypeString();
+
+            foreach (var key in _types)
+                map.GetOrAddValueRef(key) = "a";
+
+            map.GetOrAddValueRef(typeof(ImHashMapBenchmarks)) = "!";
+            return map;
+        }
+
+        // [Benchmark]
+        public ImTools.Experiments.FHashMap8<Type, string, ImTools.RefEq<Type>> FHashMap8_AddOrUpdate()
+        {
+            var map = new ImTools.Experiments.FHashMap8<Type, string, ImTools.RefEq<Type>>();
+
+            foreach (var key in _types)
+                map.AddOrUpdate(key, "a");
+
+            map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+            return map;
+        }
+
+        // [Benchmark]
+        public Dictionary<Type, string> Dict_TryAdd()
+        {
+            var map = new Dictionary<Type, string>();
+
+            foreach (var key in _types)
+                map.TryAdd(key, "a");
+
+            map.TryAdd(typeof(ImHashMapBenchmarks), "!");
+            return map;
+        }
+
+        // [Benchmark]
+        public ConcurrentDictionary<Type, string> ConcurrentDictionary_TryAdd()
+        {
+            var map = new ConcurrentDictionary<Type, string>();
+
+            foreach (var key in _types)
+                map.TryAdd(key, "a");
+
+            map.TryAdd(typeof(ImHashMapBenchmarks), "!");
+            return map;
+        }
+
+        // [Benchmark]
+        public ImmutableDictionary<Type, string> ImmutableDict_Builder_Add()
+        {
+            var builder = ImmutableDictionary.CreateBuilder<Type, string>();
+
+            foreach (var key in _types)
+                builder.Add(key, "a");
+            builder.Add(typeof(ImHashMapBenchmarks), "!");
+            return builder.ToImmutable();
+        }
+
+        // [Benchmark]
+        public ImmutableDictionary<Type, string> ImmutableDict_Add()
+        {
+            var map = ImmutableDictionary<Type, string>.Empty;
+
+            foreach (var key in _types)
+                map = map.Add(key, "a");
+
+            return map.Add(typeof(ImHashMapBenchmarks), "!");
+        }
+
+        // [Benchmark]
+        public TypeDictionary<string> TypeDictionary_Add()
+        {
+            var map = new TypeDictionary<string>();
+
+            map.Add<A1>("a");
+            map.Add<A2>("a");
+            map.Add<A3>("a");
+            map.Add<A4>("a");
+            map.Add<A5>("a");
+            // map.Add<A6>("a");
+            // map.Add<A7>("a");
+            // map.Add<A8>("a");
+            // map.Add<A9>("a");
+            // map.Add<A10>("a");
+            // map.Add<B1>("a");
+            // map.Add<B2>("a");
+            // map.Add<B3>("a");
+            // map.Add<B4>("a");
+            // map.Add<B5>("a");
+            // map.Add<B6>("a");
+            // map.Add<B7>("a");
+            // map.Add<B8>("a");
+            // map.Add<B9>("a");
+            // map.Add<B10>("a");
+
+            map.Add<ImHashMapBenchmarks>("!");
+
+            return map;
+        }
+    }
+
+    class A1 { }
+    class A2 { }
+    class A3 { }
+    class A4 { }
+    class A5 { }
+    class A6 { }
+    class A7 { }
+    class A8 { }
+    class A9 { }
+    class A10 { }
+    class B1 { }
+    class B2 { }
+    class B3 { }
+    class B4 { }
+    class B5 { }
+    class B6 { }
+    class B7 { }
+    class B8 { }
+    class B9 { }
+    class B10 { }
+
+    public class TypeDictionary<TValue>
+    {
+        // ReSharper disable once StaticMemberInGenericType
+        private static int typeIndex;
+        private readonly object _lockObject = new object();
+
+        private TValue[] _values = new TValue[100];
+
+        public void Add<TKey>(TValue value)
+        {
+            lock (_lockObject)
             {
                 var id = TypeKey<TKey>.Id;
-                return id >= _values.Length ? default : _values[id];
-            }
-
-            // ReSharper disable once UnusedTypeParameter
-            private static class TypeKey<TKey>
-            {
-                // ReSharper disable once StaticMemberInGenericType
-                internal static readonly int Id = Interlocked.Increment(ref typeIndex);
+                if (id >= _values.Length)
+                    Array.Resize(ref _values, id * 2);
+                _values[id] = value;
             }
         }
 
-        [MemoryDiagnoser, RankColumn, Orderer(SummaryOrderPolicy.FastestToSlowest)]
-        // [HardwareCounters(HardwareCounter.CacheMisses, HardwareCounter.BranchMispredictions, HardwareCounter.BranchInstructions)]
-        public class Lookup
+        public TValue Get<TKey>()
         {
-            /*
-            ## 21.01.2019: All versions.
-
-                           Method |     Mean |     Error |    StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
-            --------------------- |---------:|----------:|----------:|------:|------------:|------------:|------------:|--------------------:|
-             GetValueOrDefault_v1 | 13.74 ns | 0.0686 ns | 0.0642 ns |  0.79 |           - |           - |           - |                   - |
-                GetValueOrDefault | 17.43 ns | 0.0924 ns | 0.0864 ns |  1.00 |           - |           - |           - |                   - |
-             GetValueOrDefault_v2 | 19.15 ns | 0.0786 ns | 0.0656 ns |  1.10 |           - |           - |           - |                   - |
-             GetValueOrDefault_v3 | 25.73 ns | 0.0711 ns | 0.0665 ns |  1.48 |           - |           - |           - |                   - |
-
-            ## For some reason dropping lookup speed with only changes to AddOrUpdate
-
-                           Method |     Mean |     Error |    StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
-            --------------------- |---------:|----------:|----------:|------:|------------:|------------:|------------:|--------------------:|
-             GetValueOrDefault_v1 | 13.89 ns | 0.0938 ns | 0.0877 ns |  0.80 |           - |           - |           - |                   - |
-                GetValueOrDefault | 17.40 ns | 0.0888 ns | 0.0831 ns |  1.00 |           - |           - |           - |                   - |
-             GetValueOrDefault_v2 | 19.04 ns | 0.0712 ns | 0.0666 ns |  1.09 |           - |           - |           - |                   - |
-             GetValueOrDefault_v3 | 25.93 ns | 0.0474 ns | 0.0420 ns |  1.49 |           - |           - |           - |                   - |
-
-            ## Got back some perf by moving GetValueOrDefault to static method and specializing for Type
-
-                           Method |     Mean |     Error |    StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
-            --------------------- |---------:|----------:|----------:|------:|------------:|------------:|------------:|--------------------:|
-             GetValueOrDefault_v1 | 13.87 ns | 0.0400 ns | 0.0355 ns |  0.85 |           - |           - |           - |                   - |
-                GetValueOrDefault | 16.34 ns | 0.0932 ns | 0.0826 ns |  1.00 |           - |           - |           - |                   - |
-             GetValueOrDefault_v2 | 19.18 ns | 0.0460 ns | 0.0430 ns |  1.17 |           - |           - |           - |                   - |
-             GetValueOrDefault_v3 | 25.96 ns | 0.0756 ns | 0.0707 ns |  1.59 |           - |           - |           - |                   - |
-
-            ## Benchmark against variety of inputs on par with Populate benchmark
-
-                           Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
-            --------------------- |------ |----------:|----------:|----------:|------:|--------:|------------:|------------:|------------:|--------------------:|
-             GetValueOrDefault_v1 |     5 |  6.155 ns | 0.0321 ns | 0.0301 ns |  0.98 |    0.01 |           - |           - |           - |                   - |
-                GetValueOrDefault |     5 |  6.267 ns | 0.0510 ns | 0.0452 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
-             GetValueOrDefault_v2 |     5 |  7.439 ns | 0.0763 ns | 0.0676 ns |  1.19 |    0.02 |           - |           - |           - |                   - |
-             GetValueOrDefault_v3 |     5 |  9.558 ns | 0.0409 ns | 0.0383 ns |  1.52 |    0.01 |           - |           - |           - |                   - |
-                                  |       |           |           |           |       |         |             |             |             |                     |
-             GetValueOrDefault_v1 |    40 | 10.897 ns | 0.0673 ns | 0.0629 ns |  0.95 |    0.01 |           - |           - |           - |                   - |
-                GetValueOrDefault |    40 | 11.467 ns | 0.0325 ns | 0.0304 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
-             GetValueOrDefault_v2 |    40 | 14.012 ns | 0.1092 ns | 0.1022 ns |  1.22 |    0.01 |           - |           - |           - |                   - |
-             GetValueOrDefault_v3 |    40 | 19.945 ns | 0.1032 ns | 0.0965 ns |  1.74 |    0.01 |           - |           - |           - |                   - |
-                                  |       |           |           |           |       |         |             |             |             |                     |
-             GetValueOrDefault_v1 |   200 | 13.664 ns | 0.0291 ns | 0.0258 ns |  0.97 |    0.00 |           - |           - |           - |                   - |
-                GetValueOrDefault |   200 | 14.051 ns | 0.0524 ns | 0.0491 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
-             GetValueOrDefault_v2 |   200 | 16.722 ns | 0.0568 ns | 0.0531 ns |  1.19 |    0.01 |           - |           - |           - |                   - |
-             GetValueOrDefault_v3 |   200 | 24.473 ns | 0.0792 ns | 0.0702 ns |  1.74 |    0.01 |           - |           - |           - |                   - |
-                                  |       |           |           |           |       |         |             |             |             |                     |
-             GetValueOrDefault_v1 |  1000 | 14.213 ns | 0.1528 ns | 0.1354 ns |  0.96 |    0.01 |           - |           - |           - |                   - |
-                GetValueOrDefault |  1000 | 14.805 ns | 0.0518 ns | 0.0485 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
-             GetValueOrDefault_v2 |  1000 | 16.645 ns | 0.0447 ns | 0.0419 ns |  1.12 |    0.01 |           - |           - |           - |                   - |
-             GetValueOrDefault_v3 |  1000 | 27.489 ns | 0.0890 ns | 0.0832 ns |  1.86 |    0.01 |           - |           - |           - |                   - |
-
-            ## Adding aggressive inlining to the Data { Hash, Key, Value } properties
-
-                           Method | Count |      Mean |     Error |    StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
-            --------------------- |------ |----------:|----------:|----------:|------:|------------:|------------:|------------:|--------------------:|
-                GetValueOrDefault |     5 |  5.853 ns | 0.0685 ns | 0.0607 ns |  1.00 |           - |           - |           - |                   - |
-             GetValueOrDefault_v1 |     5 |  5.913 ns | 0.0373 ns | 0.0349 ns |  1.01 |           - |           - |           - |                   - |
-                                  |       |           |           |           |       |             |             |             |                     |
-                GetValueOrDefault |    40 |  9.649 ns | 0.0235 ns | 0.0220 ns |  1.00 |           - |           - |           - |                   - |
-             GetValueOrDefault_v1 |    40 | 10.266 ns | 0.0236 ns | 0.0221 ns |  1.06 |           - |           - |           - |                   - |
-                                  |       |           |           |           |       |             |             |             |                     |
-                GetValueOrDefault |   200 | 11.613 ns | 0.0554 ns | 0.0491 ns |  1.00 |           - |           - |           - |                   - |
-             GetValueOrDefault_v1 |   200 | 12.052 ns | 0.0555 ns | 0.0520 ns |  1.04 |           - |           - |           - |                   - |
-
-            ## Using  `!= Empty` instead of `.Height != 0` drops some perf
-
-                           Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
-            --------------------- |------ |----------:|----------:|----------:|------:|--------:|------------:|------------:|------------:|--------------------:|
-             GetValueOrDefault_v1 |     5 |  5.933 ns | 0.0310 ns | 0.0290 ns |  0.93 |    0.03 |           - |           - |           - |                   - |
-                GetValueOrDefault |     5 |  6.386 ns | 0.1807 ns | 0.1602 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
-                                  |       |           |           |           |       |         |             |             |             |                     |
-                GetValueOrDefault |    40 |  9.820 ns | 0.0521 ns | 0.0488 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
-             GetValueOrDefault_v1 |    40 | 10.257 ns | 0.0300 ns | 0.0266 ns |  1.05 |    0.01 |           - |           - |           - |                   - |
-                                  |       |           |           |           |       |         |             |             |             |                     |
-                GetValueOrDefault |   200 | 11.717 ns | 0.0689 ns | 0.0644 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
-             GetValueOrDefault_v1 |   200 | 12.104 ns | 0.0548 ns | 0.0486 ns |  1.03 |    0.01 |           - |           - |           - |                   - |
-
-            ## Removing `.Height != 0` check completely did not change much, but let it stay cause less code is better
-
-                           Method | Count |      Mean |     Error |    StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
-            --------------------- |------ |----------:|----------:|----------:|------:|------------:|------------:|------------:|--------------------:|
-                GetValueOrDefault |     5 |  5.903 ns | 0.0612 ns | 0.0573 ns |  1.00 |           - |           - |           - |                   - |
-             GetValueOrDefault_v1 |     5 |  5.931 ns | 0.0503 ns | 0.0470 ns |  1.00 |           - |           - |           - |                   - |
-                                  |       |           |           |           |       |             |             |             |                     |
-                GetValueOrDefault |    40 |  9.636 ns | 0.0419 ns | 0.0392 ns |  1.00 |           - |           - |           - |                   - |
-             GetValueOrDefault_v1 |    40 | 10.231 ns | 0.0333 ns | 0.0312 ns |  1.06 |           - |           - |           - |                   - |
-                                  |       |           |           |           |       |             |             |             |                     |
-                GetValueOrDefault |   200 | 11.637 ns | 0.0721 ns | 0.0602 ns |  1.00 |           - |           - |           - |                   - |
-             GetValueOrDefault_v1 |   200 | 12.042 ns | 0.0607 ns | 0.0568 ns |  1.03 |           - |           - |           - |                   - |
-
-            ## TryFind
-
-                         Method | Count |      Mean |     Error |    StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
-                    ----------- |------ |----------:|----------:|----------:|------:|------------:|------------:|------------:|--------------------:|
-                     TryFind_v1 |     5 |  5.229 ns | 0.0307 ns | 0.0257 ns |  1.00 |           - |           - |           - |                   - |
-                        TryFind |     5 |  6.766 ns | 0.0695 ns | 0.0650 ns |  1.30 |           - |           - |           - |                   - |
-                                |       |           |           |           |       |             |             |             |                     |
-                     TryFind_v1 |    40 |  9.268 ns | 0.0116 ns | 0.0108 ns |  1.00 |           - |           - |           - |                   - |
-                        TryFind |    40 |  9.755 ns | 0.0219 ns | 0.0205 ns |  1.05 |           - |           - |           - |                   - |
-                                |       |           |           |           |       |             |             |             |                     |
-                     TryFind_v1 |   200 | 11.773 ns | 0.0558 ns | 0.0494 ns |  1.00 |           - |           - |           - |                   - |
-                        TryFind |   200 | 12.212 ns | 0.0456 ns | 0.0380 ns |  1.04 |           - |           - |           - |                   - |
-
-                 Method | Count |      Mean |     Error |    StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
-            ----------- |------ |----------:|----------:|----------:|------:|------------:|------------:|------------:|--------------------:|
-                TryFind |     5 |  5.906 ns | 0.0191 ns | 0.0178 ns |  0.97 |           - |           - |           - |                   - |
-             TryFind_v1 |     5 |  6.079 ns | 0.0947 ns | 0.0839 ns |  1.00 |           - |           - |           - |                   - |
-                        |       |           |           |           |       |             |             |             |                     |
-                TryFind |    40 |  9.211 ns | 0.0214 ns | 0.0200 ns |  0.87 |           - |           - |           - |                   - |
-             TryFind_v1 |    40 | 10.566 ns | 0.0149 ns | 0.0132 ns |  1.00 |           - |           - |           - |                   - |
-                        |       |           |           |           |       |             |             |             |                     |
-                TryFind |   200 | 11.400 ns | 0.1152 ns | 0.1078 ns |  0.88 |           - |           - |           - |                   - |
-             TryFind_v1 |   200 | 12.929 ns | 0.0712 ns | 0.0666 ns |  1.00 |           - |           - |           - |                   - |
-
-                ## GetOrDefault a bit optimized
-
-                           Method | Count |      Mean |     Error |    StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
-            --------------------- |------ |----------:|----------:|----------:|------:|------------:|------------:|------------:|--------------------:|
-                GetValueOrDefault |     5 |  6.782 ns | 0.0449 ns | 0.0398 ns |  0.96 |           - |           - |           - |                   - |
-             GetValueOrDefault_v1 |     5 |  7.042 ns | 0.0659 ns | 0.0616 ns |  1.00 |           - |           - |           - |                   - |
-                                  |       |           |           |           |       |             |             |             |                     |
-                GetValueOrDefault |    40 | 10.962 ns | 0.0866 ns | 0.0768 ns |  0.99 |           - |           - |           - |                   - |
-             GetValueOrDefault_v1 |    40 | 11.094 ns | 0.0973 ns | 0.0813 ns |  1.00 |           - |           - |           - |                   - |
-                                  |       |           |           |           |       |             |             |             |                     |
-                GetValueOrDefault |   200 | 13.329 ns | 0.0338 ns | 0.0299 ns |  0.97 |           - |           - |           - |                   - |
-             GetValueOrDefault_v1 |   200 | 13.722 ns | 0.0537 ns | 0.0448 ns |  1.00 |           - |           - |           - |                   - |
-
-                ## The whole result for the docs
-
-                            Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
-            ---------------------- |------ |----------:|----------:|----------:|------:|--------:|------------:|------------:|------------:|--------------------:|
-                        TryFind_v1 |    10 |  7.274 ns | 0.0410 ns | 0.0384 ns |  0.98 |    0.01 |           - |           - |           - |                   - |
-                           TryFind |    10 |  7.422 ns | 0.0237 ns | 0.0222 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
-             ConcurrentDict_TryGet |    10 | 21.664 ns | 0.0213 ns | 0.0189 ns |  2.92 |    0.01 |           - |           - |           - |                   - |
-              ImmutableDict_TryGet |    10 | 71.199 ns | 0.1312 ns | 0.1228 ns |  9.59 |    0.03 |           - |           - |           - |                   - |
-                                   |       |           |           |           |       |         |             |             |             |                     |
-                        TryFind_v1 |   100 |  8.426 ns | 0.0236 ns | 0.0221 ns |  0.91 |    0.00 |           - |           - |           - |                   - |
-                           TryFind |   100 |  9.304 ns | 0.0305 ns | 0.0270 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
-             ConcurrentDict_TryGet |   100 | 21.791 ns | 0.1072 ns | 0.0951 ns |  2.34 |    0.01 |           - |           - |           - |                   - |
-              ImmutableDict_TryGet |   100 | 74.985 ns | 0.1053 ns | 0.0879 ns |  8.06 |    0.03 |           - |           - |           - |                   - |
-                                   |       |           |           |           |       |         |             |             |             |                     |
-                           TryFind |  1000 | 13.837 ns | 0.0291 ns | 0.0272 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
-                        TryFind_v1 |  1000 | 16.108 ns | 0.0415 ns | 0.0367 ns |  1.16 |    0.00 |           - |           - |           - |                   - |
-             ConcurrentDict_TryGet |  1000 | 21.876 ns | 0.0325 ns | 0.0288 ns |  1.58 |    0.00 |           - |           - |           - |                   - |
-              ImmutableDict_TryGet |  1000 | 83.563 ns | 0.1046 ns | 0.0873 ns |  6.04 |    0.01 |           - |           - |           - |                   - |
-
-
-                ## 2019-03-28: Comparing vs `Dictionary<K, V>`:
-
-                                       Method | Count |      Mean |     Error |    StdDev |    Median | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
-            --------------------------------- |------ |----------:|----------:|----------:|----------:|------:|--------:|------------:|------------:|------------:|--------------------:|
-                                      TryFind |    10 |  7.722 ns | 0.0451 ns | 0.0422 ns |  7.718 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
-                       Dictionary_TryGetValue |    10 | 18.475 ns | 0.0502 ns | 0.0470 ns | 18.470 ns |  2.39 |    0.01 |           - |           - |           - |                   - |
-             ConcurrentDictionary_TryGetValue |    10 | 22.661 ns | 0.0463 ns | 0.0433 ns | 22.653 ns |  2.93 |    0.02 |           - |           - |           - |                   - |
-                         ImmutableDict_TryGet |    10 | 72.911 ns | 1.5234 ns | 2.1355 ns | 74.134 ns |  9.25 |    0.23 |           - |           - |           - |                   - |
-                                              |       |           |           |           |           |       |         |             |             |             |                     |
-                                      TryFind |   100 |  9.987 ns | 0.0543 ns | 0.0508 ns |  9.978 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
-                       Dictionary_TryGetValue |   100 | 18.110 ns | 0.0644 ns | 0.0602 ns | 18.088 ns |  1.81 |    0.01 |           - |           - |           - |                   - |
-             ConcurrentDictionary_TryGetValue |   100 | 24.402 ns | 0.0978 ns | 0.0915 ns | 24.435 ns |  2.44 |    0.02 |           - |           - |           - |                   - |
-                         ImmutableDict_TryGet |   100 | 76.689 ns | 0.3632 ns | 0.3397 ns | 76.704 ns |  7.68 |    0.04 |           - |           - |           - |                   - |
-                                              |       |           |           |           |           |       |         |             |             |             |                     |
-                                      TryFind |  1000 | 12.600 ns | 0.1506 ns | 0.1335 ns | 12.551 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
-                       Dictionary_TryGetValue |  1000 | 19.023 ns | 0.0575 ns | 0.0538 ns | 19.036 ns |  1.51 |    0.02 |           - |           - |           - |                   - |
-             ConcurrentDictionary_TryGetValue |  1000 | 22.651 ns | 0.1238 ns | 0.1097 ns | 22.613 ns |  1.80 |    0.02 |           - |           - |           - |                   - |
-                         ImmutableDict_TryGet |  1000 | 83.608 ns | 0.3105 ns | 0.2904 ns | 83.612 ns |  6.64 |    0.07 |           - |           - |           - |                   - |
-
-                ## 2019-03-29: Comparing vs `DictionarySlim<K, V>`:
-
-                                       Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
-            --------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------------:|------------:|------------:|--------------------:|
-                   DictionarySlim_TryGetValue |    10 |  8.228 ns | 0.0682 ns | 0.0604 ns |  1.00 |    0.01 |           - |           - |           - |                   - |
-                                      TryFind |    10 |  8.257 ns | 0.0796 ns | 0.0706 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
-                       Dictionary_TryGetValue |    10 | 19.615 ns | 0.0251 ns | 0.0209 ns |  2.38 |    0.02 |           - |           - |           - |                   - |
-             ConcurrentDictionary_TryGetValue |    10 | 22.339 ns | 0.0922 ns | 0.0863 ns |  2.71 |    0.03 |           - |           - |           - |                   - |
-                         ImmutableDict_TryGet |    10 | 69.872 ns | 0.2699 ns | 0.2524 ns |  8.46 |    0.07 |           - |           - |           - |                   - |
-                                              |       |           |           |           |       |         |             |             |             |                     |
-                   DictionarySlim_TryGetValue |   100 |  8.351 ns | 0.1613 ns | 0.1508 ns |  0.69 |    0.01 |           - |           - |           - |                   - |
-                                      TryFind |   100 | 12.144 ns | 0.0570 ns | 0.0533 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
-                       Dictionary_TryGetValue |   100 | 17.985 ns | 0.0880 ns | 0.0823 ns |  1.48 |    0.01 |           - |           - |           - |                   - |
-             ConcurrentDictionary_TryGetValue |   100 | 22.312 ns | 0.0564 ns | 0.0471 ns |  1.84 |    0.01 |           - |           - |           - |                   - |
-                         ImmutableDict_TryGet |   100 | 75.374 ns | 0.3042 ns | 0.2846 ns |  6.21 |    0.04 |           - |           - |           - |                   - |
-                                              |       |           |           |           |       |         |             |             |             |                     |
-                   DictionarySlim_TryGetValue |  1000 |  8.202 ns | 0.0713 ns | 0.0667 ns |  0.55 |    0.01 |           - |           - |           - |                   - |
-                                      TryFind |  1000 | 14.919 ns | 0.1101 ns | 0.0919 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
-                       Dictionary_TryGetValue |  1000 | 18.073 ns | 0.2415 ns | 0.2141 ns |  1.21 |    0.02 |           - |           - |           - |                   - |
-             ConcurrentDictionary_TryGetValue |  1000 | 22.406 ns | 0.1039 ns | 0.0921 ns |  1.50 |    0.01 |           - |           - |           - |                   - |
-                         ImmutableDict_TryGet |  1000 | 84.215 ns | 0.2835 ns | 0.2513 ns |  5.65 |    0.04 |           - |           - |           - |                   - |
-
-            ## 2019-04-08: Full test
-
-            |                           Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
-            |--------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------------:|------------:|------------:|--------------------:|
-            |                ImHashMap_TryFind |    10 |  9.072 ns | 0.0301 ns | 0.0282 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
-            |             ImHashMap_TryFind_V1 |    10 |  8.405 ns | 0.0124 ns | 0.0116 ns |  0.93 |    0.00 |           - |           - |           - |                   - |
-            |       DictionarySlim_TryGetValue |    10 |  8.199 ns | 0.0118 ns | 0.0105 ns |  0.90 |    0.00 |           - |           - |           - |                   - |
-            |           Dictionary_TryGetValue |    10 | 18.151 ns | 0.0724 ns | 0.0677 ns |  2.00 |    0.01 |           - |           - |           - |                   - |
-            | ConcurrentDictionary_TryGetValue |    10 | 22.281 ns | 0.1872 ns | 0.1462 ns |  2.45 |    0.02 |           - |           - |           - |                   - |
-            |             ImmutableDict_TryGet |    10 | 70.143 ns | 0.2833 ns | 0.2650 ns |  7.73 |    0.04 |           - |           - |           - |                   - |
-            |                                  |       |           |           |           |       |         |             |             |             |                     |
-            |                ImHashMap_TryFind |   100 | 12.698 ns | 0.0545 ns | 0.0510 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
-            |             ImHashMap_TryFind_V1 |   100 | 12.440 ns | 0.0145 ns | 0.0129 ns |  0.98 |    0.00 |           - |           - |           - |                   - |
-            |       DictionarySlim_TryGetValue |   100 |  8.197 ns | 0.0157 ns | 0.0139 ns |  0.65 |    0.00 |           - |           - |           - |                   - |
-            |           Dictionary_TryGetValue |   100 | 18.108 ns | 0.0263 ns | 0.0205 ns |  1.43 |    0.01 |           - |           - |           - |                   - |
-            | ConcurrentDictionary_TryGetValue |   100 | 22.834 ns | 0.0627 ns | 0.0524 ns |  1.80 |    0.01 |           - |           - |           - |                   - |
-            |             ImmutableDict_TryGet |   100 | 76.253 ns | 0.2767 ns | 0.2311 ns |  6.00 |    0.03 |           - |           - |           - |                   - |
-            |                                  |       |           |           |           |       |         |             |             |             |                     |
-            |                ImHashMap_TryFind |  1000 | 14.960 ns | 0.0457 ns | 0.0427 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
-            |             ImHashMap_TryFind_V1 |  1000 | 14.614 ns | 0.0508 ns | 0.0451 ns |  0.98 |    0.00 |           - |           - |           - |                   - |
-            |       DictionarySlim_TryGetValue |  1000 |  8.209 ns | 0.0534 ns | 0.0499 ns |  0.55 |    0.00 |           - |           - |           - |                   - |
-            |           Dictionary_TryGetValue |  1000 | 18.256 ns | 0.0383 ns | 0.0320 ns |  1.22 |    0.00 |           - |           - |           - |                   - |
-            | ConcurrentDictionary_TryGetValue |  1000 | 22.261 ns | 0.1509 ns | 0.1411 ns |  1.49 |    0.01 |           - |           - |           - |                   - |
-            |             ImmutableDict_TryGet |  1000 | 83.095 ns | 0.3395 ns | 0.3176 ns |  5.55 |    0.03 |           - |           - |           - |                   - |
-
-            ## 2019-04-08: Different variants tested
-
-            |                           Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
-            |--------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------------:|------------:|------------:|--------------------:|
-            |               ImHashMap_TryFind2 |    10 |  7.979 ns | 0.0446 ns | 0.0417 ns |  0.93 |    0.01 |           - |           - |           - |                   - |
-            |               ImHashMap_TryFind3 |    10 |  7.908 ns | 0.0295 ns | 0.0262 ns |  0.92 |    0.00 |           - |           - |           - |                   - |
-            |                ImHashMap_TryFind |    10 |  8.608 ns | 0.0186 ns | 0.0174 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
-            |             ImHashMap_TryFind_V1 |    10 |  8.248 ns | 0.0262 ns | 0.0232 ns |  0.96 |    0.00 |           - |           - |           - |                   - |
-            |       DictionarySlim_TryGetValue |    10 |  7.212 ns | 0.0194 ns | 0.0181 ns |  0.84 |    0.00 |           - |           - |           - |                   - |
-            |           Dictionary_TryGetValue |    10 | 17.707 ns | 0.0631 ns | 0.0590 ns |  2.06 |    0.01 |           - |           - |           - |                   - |
-            | ConcurrentDictionary_TryGetValue |    10 | 22.210 ns | 0.1074 ns | 0.1004 ns |  2.58 |    0.01 |           - |           - |           - |                   - |
-            |             ImmutableDict_TryGet |    10 | 72.093 ns | 0.4162 ns | 0.3893 ns |  8.37 |    0.05 |           - |           - |           - |                   - |
-            |                                  |       |           |           |           |       |         |             |             |             |                     |
-            |               ImHashMap_TryFind2 |   100 | 11.245 ns | 0.0174 ns | 0.0163 ns |  0.92 |    0.00 |           - |           - |           - |                   - |
-            |               ImHashMap_TryFind3 |   100 | 11.488 ns | 0.0801 ns | 0.0710 ns |  0.94 |    0.01 |           - |           - |           - |                   - |
-            |                ImHashMap_TryFind |   100 | 12.165 ns | 0.0141 ns | 0.0118 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
-            |             ImHashMap_TryFind_V1 |   100 | 12.272 ns | 0.0367 ns | 0.0343 ns |  1.01 |    0.00 |           - |           - |           - |                   - |
-            |       DictionarySlim_TryGetValue |   100 |  7.019 ns | 0.0516 ns | 0.0458 ns |  0.58 |    0.00 |           - |           - |           - |                   - |
-            |           Dictionary_TryGetValue |   100 | 17.825 ns | 0.1278 ns | 0.1196 ns |  1.47 |    0.01 |           - |           - |           - |                   - |
-            | ConcurrentDictionary_TryGetValue |   100 | 22.189 ns | 0.1034 ns | 0.0968 ns |  1.82 |    0.01 |           - |           - |           - |                   - |
-            |             ImmutableDict_TryGet |   100 | 75.564 ns | 0.3778 ns | 0.3534 ns |  6.21 |    0.03 |           - |           - |           - |                   - |
-            |                                  |       |           |           |           |       |         |             |             |             |                     |
-            |               ImHashMap_TryFind2 |  1000 | 15.909 ns | 0.0924 ns | 0.0864 ns |  1.07 |    0.01 |           - |           - |           - |                   - |
-            |               ImHashMap_TryFind3 |  1000 | 13.643 ns | 0.0715 ns | 0.0669 ns |  0.92 |    0.01 |           - |           - |           - |                   - |
-            |                ImHashMap_TryFind |  1000 | 14.819 ns | 0.0465 ns | 0.0412 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
-            |             ImHashMap_TryFind_V1 |  1000 | 14.541 ns | 0.0555 ns | 0.0520 ns |  0.98 |    0.01 |           - |           - |           - |                   - |
-            |       DictionarySlim_TryGetValue |  1000 |  7.678 ns | 0.0341 ns | 0.0302 ns |  0.52 |    0.00 |           - |           - |           - |                   - |
-            |           Dictionary_TryGetValue |  1000 | 17.664 ns | 0.0403 ns | 0.0377 ns |  1.19 |    0.00 |           - |           - |           - |                   - |
-            | ConcurrentDictionary_TryGetValue |  1000 | 22.010 ns | 0.0497 ns | 0.0465 ns |  1.48 |    0.00 |           - |           - |           - |                   - |
-            |             ImmutableDict_TryGet |  1000 | 83.661 ns | 0.4033 ns | 0.3772 ns |  5.65 |    0.03 |           - |           - |           - |                   - |
-
-            ## Selecting the 3rd variant:
-
-            |                           Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
-            |--------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------------:|------------:|------------:|--------------------:|
-            |                ImHashMap_TryFind |    10 |  8.078 ns | 0.0405 ns | 0.0379 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
-            |             ImHashMap_TryFind_V1 |    10 |  8.224 ns | 0.0114 ns | 0.0101 ns |  1.02 |    0.00 |           - |           - |           - |                   - |
-            |       DictionarySlim_TryGetValue |    10 |  7.387 ns | 0.0406 ns | 0.0380 ns |  0.91 |    0.00 |           - |           - |           - |                   - |
-            |           Dictionary_TryGetValue |    10 | 17.917 ns | 0.0429 ns | 0.0401 ns |  2.22 |    0.01 |           - |           - |           - |                   - |
-            | ConcurrentDictionary_TryGetValue |    10 | 22.256 ns | 0.0726 ns | 0.0643 ns |  2.75 |    0.01 |           - |           - |           - |                   - |
-            |             ImmutableDict_TryGet |    10 | 70.638 ns | 0.6266 ns | 0.5861 ns |  8.74 |    0.09 |           - |           - |           - |                   - |
-            |                                  |       |           |           |           |       |         |             |             |             |                     |
-            |                ImHashMap_TryFind |   100 | 11.577 ns | 0.0168 ns | 0.0141 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
-            |             ImHashMap_TryFind_V1 |   100 | 12.329 ns | 0.0295 ns | 0.0276 ns |  1.07 |    0.00 |           - |           - |           - |                   - |
-            |       DictionarySlim_TryGetValue |   100 |  7.410 ns | 0.0398 ns | 0.0353 ns |  0.64 |    0.00 |           - |           - |           - |                   - |
-            |           Dictionary_TryGetValue |   100 | 17.890 ns | 0.0425 ns | 0.0377 ns |  1.55 |    0.00 |           - |           - |           - |                   - |
-            | ConcurrentDictionary_TryGetValue |   100 | 22.240 ns | 0.0654 ns | 0.0580 ns |  1.92 |    0.01 |           - |           - |           - |                   - |
-            |             ImmutableDict_TryGet |   100 | 78.697 ns | 1.1242 ns | 1.0516 ns |  6.78 |    0.08 |           - |           - |           - |                   - |
-            |                                  |       |           |           |           |       |         |             |             |             |                     |
-            |                ImHashMap_TryFind |  1000 | 13.731 ns | 0.0292 ns | 0.0258 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
-            |             ImHashMap_TryFind_V1 |  1000 | 14.553 ns | 0.0370 ns | 0.0346 ns |  1.06 |    0.00 |           - |           - |           - |                   - |
-            |       DictionarySlim_TryGetValue |  1000 |  7.345 ns | 0.0208 ns | 0.0194 ns |  0.53 |    0.00 |           - |           - |           - |                   - |
-            |           Dictionary_TryGetValue |  1000 | 18.672 ns | 0.0483 ns | 0.0451 ns |  1.36 |    0.00 |           - |           - |           - |                   - |
-            | ConcurrentDictionary_TryGetValue |  1000 | 22.150 ns | 0.1141 ns | 0.1068 ns |  1.61 |    0.01 |           - |           - |           - |                   - |
-            |             ImmutableDict_TryGet |  1000 | 82.402 ns | 0.9798 ns | 0.9165 ns |  6.01 |    0.07 |           - |           - |           - |                   - |
-
-            ## V2:
-
-            BenchmarkDotNet=v0.12.0, OS=Windows 10.0.18362
-            Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
-            .NET Core SDK=3.1.100
-              [Host]     : .NET Core 3.1.0 (CoreCLR 4.700.19.56402, CoreFX 4.700.19.56404), X64 RyuJIT
-              DefaultJob : .NET Core 3.1.0 (CoreCLR 4.700.19.56402, CoreFX 4.700.19.56404), X64 RyuJIT
-
-
-            |                           Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
-            |--------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
-            |                ImHashMap_TryFind |     1 |  4.755 ns | 0.1690 ns | 0.1878 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            |             ImHashMap_TryFind_V1 |     1 |  3.657 ns | 0.0458 ns | 0.0406 ns |  0.78 |    0.04 |     - |     - |     - |         - |
-            |           ImHashMapSlots_TryFind |     1 |  2.518 ns | 0.0149 ns | 0.0132 ns |  0.53 |    0.02 |     - |     - |     - |         - |
-            |       DictionarySlim_TryGetValue |     1 |  6.804 ns | 0.0272 ns | 0.0254 ns |  1.44 |    0.07 |     - |     - |     - |         - |
-            |           Dictionary_TryGetValue |     1 | 16.495 ns | 0.3948 ns | 0.4993 ns |  3.49 |    0.16 |     - |     - |     - |         - |
-            | ConcurrentDictionary_TryGetValue |     1 | 15.812 ns | 0.1016 ns | 0.0951 ns |  3.35 |    0.15 |     - |     - |     - |         - |
-            |             ImmutableDict_TryGet |     1 | 24.346 ns | 0.1253 ns | 0.1172 ns |  5.16 |    0.23 |     - |     - |     - |         - |
-            |                                  |       |           |           |           |       |         |       |       |       |           |
-            |                ImHashMap_TryFind |    10 |  6.080 ns | 0.0235 ns | 0.0208 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            |             ImHashMap_TryFind_V1 |    10 |  6.091 ns | 0.0707 ns | 0.0590 ns |  1.00 |    0.01 |     - |     - |     - |         - |
-            |           ImHashMapSlots_TryFind |    10 |  2.517 ns | 0.0206 ns | 0.0193 ns |  0.41 |    0.00 |     - |     - |     - |         - |
-            |       DictionarySlim_TryGetValue |    10 |  6.670 ns | 0.0278 ns | 0.0260 ns |  1.10 |    0.01 |     - |     - |     - |         - |
-            |           Dictionary_TryGetValue |    10 | 16.202 ns | 0.0634 ns | 0.0562 ns |  2.66 |    0.01 |     - |     - |     - |         - |
-            | ConcurrentDictionary_TryGetValue |    10 | 15.764 ns | 0.0659 ns | 0.0617 ns |  2.59 |    0.01 |     - |     - |     - |         - |
-            |             ImmutableDict_TryGet |    10 | 26.282 ns | 0.2232 ns | 0.2088 ns |  4.32 |    0.03 |     - |     - |     - |         - |
-            |                                  |       |           |           |           |       |         |       |       |       |           |
-            |                ImHashMap_TryFind |   100 |  9.350 ns | 0.0315 ns | 0.0295 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            |             ImHashMap_TryFind_V1 |   100 | 10.752 ns | 0.0199 ns | 0.0166 ns |  1.15 |    0.00 |     - |     - |     - |         - |
-            |           ImHashMapSlots_TryFind |   100 |  5.664 ns | 0.0391 ns | 0.0366 ns |  0.61 |    0.01 |     - |     - |     - |         - |
-            |       DictionarySlim_TryGetValue |   100 |  6.665 ns | 0.0287 ns | 0.0254 ns |  0.71 |    0.00 |     - |     - |     - |         - |
-            |           Dictionary_TryGetValue |   100 | 17.007 ns | 0.0615 ns | 0.0576 ns |  1.82 |    0.01 |     - |     - |     - |         - |
-            | ConcurrentDictionary_TryGetValue |   100 | 16.024 ns | 0.3340 ns | 0.3124 ns |  1.71 |    0.03 |     - |     - |     - |         - |
-            |             ImmutableDict_TryGet |   100 | 30.667 ns | 0.1026 ns | 0.0960 ns |  3.28 |    0.02 |     - |     - |     - |         - |
-            |                                  |       |           |           |           |       |         |       |       |       |           |
-            |                ImHashMap_TryFind |  1000 | 12.729 ns | 0.0393 ns | 0.0368 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            |             ImHashMap_TryFind_V1 |  1000 | 13.352 ns | 0.0638 ns | 0.0597 ns |  1.05 |    0.00 |     - |     - |     - |         - |
-            |           ImHashMapSlots_TryFind |  1000 |  7.131 ns | 0.0246 ns | 0.0230 ns |  0.56 |    0.00 |     - |     - |     - |         - |
-            |       DictionarySlim_TryGetValue |  1000 |  6.686 ns | 0.0317 ns | 0.0297 ns |  0.53 |    0.00 |     - |     - |     - |         - |
-            |           Dictionary_TryGetValue |  1000 | 16.848 ns | 0.0593 ns | 0.0526 ns |  1.32 |    0.01 |     - |     - |     - |         - |
-            | ConcurrentDictionary_TryGetValue |  1000 | 15.684 ns | 0.0695 ns | 0.0650 ns |  1.23 |    0.01 |     - |     - |     - |         - |
-            |             ImmutableDict_TryGet |  1000 | 33.579 ns | 0.1077 ns | 0.0955 ns |  2.64 |    0.01 |     - |     - |     - |         - |
-
-
-            BenchmarkDotNet=v0.12.0, OS=Windows 10.0.18362
-            Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
-            .NET Core SDK=3.1.100
-              [Host]     : .NET Core 3.1.0 (CoreCLR 4.700.19.56402, CoreFX 4.700.19.56404), X64 RyuJIT
-              DefaultJob : .NET Core 3.1.0 (CoreCLR 4.700.19.56402, CoreFX 4.700.19.56404), X64 RyuJIT
-
-
-            |                                Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
-            |-------------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
-            |                     ImHashMap_TryFind |     1 |  4.365 ns | 0.0198 ns | 0.0185 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            |              ImHashMapSlots32_TryFind |     1 |  2.400 ns | 0.0229 ns | 0.0214 ns |  0.55 |    0.00 |     - |     - |     - |         - |
-            |                  ImHashMap_TryFind_V1 |     1 |  3.385 ns | 0.0071 ns | 0.0063 ns |  0.78 |    0.00 |     - |     - |     - |         - |
-            |        Experimental_ImHashMap_TryFind |     1 |  4.892 ns | 0.0134 ns | 0.0118 ns |  1.12 |    0.01 |     - |     - |     - |         - |
-            | Experimental_ImHashMapSlots32_TryFind |     1 |  6.268 ns | 0.0455 ns | 0.0425 ns |  1.44 |    0.01 |     - |     - |     - |         - |
-            | Experimental_ImHashMapSlots64_TryFind |     1 |  6.175 ns | 0.0335 ns | 0.0313 ns |  1.41 |    0.01 |     - |     - |     - |         - |
-            |            DictionarySlim_TryGetValue |     1 |  6.190 ns | 0.0524 ns | 0.0490 ns |  1.42 |    0.02 |     - |     - |     - |         - |
-            |                Dictionary_TryGetValue |     1 | 15.425 ns | 0.0636 ns | 0.0595 ns |  3.53 |    0.02 |     - |     - |     - |         - |
-            |      ConcurrentDictionary_TryGetValue |     1 | 14.754 ns | 0.0807 ns | 0.0716 ns |  3.38 |    0.02 |     - |     - |     - |         - |
-            |                  ImmutableDict_TryGet |     1 | 23.449 ns | 0.1027 ns | 0.0960 ns |  5.37 |    0.04 |     - |     - |     - |         - |
-            |                                       |       |           |           |           |       |         |       |       |       |           |
-            |                     ImHashMap_TryFind |    10 |  5.449 ns | 0.0216 ns | 0.0202 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            |              ImHashMapSlots32_TryFind |    10 |  2.911 ns | 0.0089 ns | 0.0083 ns |  0.53 |    0.00 |     - |     - |     - |         - |
-            |                  ImHashMap_TryFind_V1 |    10 |  6.019 ns | 0.0129 ns | 0.0115 ns |  1.10 |    0.00 |     - |     - |     - |         - |
-            |        Experimental_ImHashMap_TryFind |    10 |  8.060 ns | 0.0239 ns | 0.0224 ns |  1.48 |    0.01 |     - |     - |     - |         - |
-            | Experimental_ImHashMapSlots32_TryFind |    10 |  5.605 ns | 0.0261 ns | 0.0244 ns |  1.03 |    0.00 |     - |     - |     - |         - |
-            | Experimental_ImHashMapSlots64_TryFind |    10 |  5.504 ns | 0.0456 ns | 0.0404 ns |  1.01 |    0.01 |     - |     - |     - |         - |
-            |            DictionarySlim_TryGetValue |    10 |  5.216 ns | 0.0252 ns | 0.0236 ns |  0.96 |    0.01 |     - |     - |     - |         - |
-            |                Dictionary_TryGetValue |    10 | 15.346 ns | 0.0732 ns | 0.0685 ns |  2.82 |    0.02 |     - |     - |     - |         - |
-            |      ConcurrentDictionary_TryGetValue |    10 | 14.870 ns | 0.1094 ns | 0.1023 ns |  2.73 |    0.02 |     - |     - |     - |         - |
-            |                  ImmutableDict_TryGet |    10 | 24.888 ns | 0.0798 ns | 0.0746 ns |  4.57 |    0.02 |     - |     - |     - |         - |
-            |                                       |       |           |           |           |       |         |       |       |       |           |
-            |                     ImHashMap_TryFind |   100 |  7.665 ns | 0.0208 ns | 0.0184 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            |              ImHashMapSlots32_TryFind |   100 |  5.240 ns | 0.0238 ns | 0.0223 ns |  0.68 |    0.00 |     - |     - |     - |         - |
-            |                  ImHashMap_TryFind_V1 |   100 |  9.222 ns | 0.0223 ns | 0.0208 ns |  1.20 |    0.00 |     - |     - |     - |         - |
-            |        Experimental_ImHashMap_TryFind |   100 | 12.248 ns | 0.0584 ns | 0.0546 ns |  1.60 |    0.01 |     - |     - |     - |         - |
-            | Experimental_ImHashMapSlots32_TryFind |   100 |  7.546 ns | 0.0966 ns | 0.0903 ns |  0.98 |    0.01 |     - |     - |     - |         - |
-            | Experimental_ImHashMapSlots64_TryFind |   100 |  5.780 ns | 0.0250 ns | 0.0234 ns |  0.75 |    0.00 |     - |     - |     - |         - |
-            |            DictionarySlim_TryGetValue |   100 |  6.452 ns | 0.0538 ns | 0.0503 ns |  0.84 |    0.01 |     - |     - |     - |         - |
-            |                Dictionary_TryGetValue |   100 | 15.705 ns | 0.0586 ns | 0.0549 ns |  2.05 |    0.01 |     - |     - |     - |         - |
-            |      ConcurrentDictionary_TryGetValue |   100 | 15.321 ns | 0.0413 ns | 0.0386 ns |  2.00 |    0.01 |     - |     - |     - |         - |
-            |                  ImmutableDict_TryGet |   100 | 27.937 ns | 0.1050 ns | 0.0982 ns |  3.64 |    0.02 |     - |     - |     - |         - |
-            |                                       |       |           |           |           |       |         |       |       |       |           |
-            |                     ImHashMap_TryFind |  1000 | 11.459 ns | 0.0306 ns | 0.0286 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            |              ImHashMapSlots32_TryFind |  1000 |  8.633 ns | 0.0154 ns | 0.0144 ns |  0.75 |    0.00 |     - |     - |     - |         - |
-            |                  ImHashMap_TryFind_V1 |  1000 | 12.486 ns | 0.0527 ns | 0.0493 ns |  1.09 |    0.00 |     - |     - |     - |         - |
-            |        Experimental_ImHashMap_TryFind |  1000 | 16.002 ns | 0.0378 ns | 0.0353 ns |  1.40 |    0.00 |     - |     - |     - |         - |
-            | Experimental_ImHashMapSlots32_TryFind |  1000 | 11.673 ns | 0.0638 ns | 0.0597 ns |  1.02 |    0.00 |     - |     - |     - |         - |
-            | Experimental_ImHashMapSlots64_TryFind |  1000 |  9.817 ns | 0.0123 ns | 0.0115 ns |  0.86 |    0.00 |     - |     - |     - |         - |
-            |            DictionarySlim_TryGetValue |  1000 |  6.469 ns | 0.0428 ns | 0.0401 ns |  0.56 |    0.00 |     - |     - |     - |         - |
-            |                Dictionary_TryGetValue |  1000 | 19.170 ns | 0.0708 ns | 0.0628 ns |  1.67 |    0.01 |     - |     - |     - |         - |
-            |      ConcurrentDictionary_TryGetValue |  1000 | 16.273 ns | 0.4046 ns | 0.5116 ns |  1.43 |    0.05 |     - |     - |     - |         - |
-            |                  ImmutableDict_TryGet |  1000 | 29.662 ns | 0.1529 ns | 0.1355 ns |  2.59 |    0.01 |     - |     - |     - |         - |
-
-            ## V3 - baseline
-
-            BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19041.572 (2004/?/20H1)
-            Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical cores
-            .NET Core SDK=3.1.403
-              [Host]     : .NET Core 3.1.9 (CoreCLR 4.700.20.47201, CoreFX 4.700.20.47203), X64 RyuJIT
-              DefaultJob : .NET Core 3.1.9 (CoreCLR 4.700.20.47201, CoreFX 4.700.20.47203), X64 RyuJIT
-
-            ## v3 - baseline
-
-            |                         Method | Count |      Mean |     Error |    StdDev |    Median | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
-            |------------------------------- |------ |----------:|----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
-            |              ImHashMap_TryFind |     1 |  4.614 ns | 0.1073 ns | 0.0951 ns |  4.589 ns |  1.00 |    0.00 |     - |     - |     - |         - |    
-            | Experimental_ImHashMap_TryFind |     1 |  7.398 ns | 0.0926 ns | 0.0821 ns |  7.413 ns |  1.60 |    0.04 |     - |     - |     - |         - |
-            |           ImHashMap234_TryFind |     1 |  4.912 ns | 0.0595 ns | 0.0528 ns |  4.903 ns |  1.07 |    0.03 |     - |     - |     - |         - |
-            |                                |       |           |           |           |           |       |         |       |       |       |           |    
-            |              ImHashMap_TryFind |    10 |  8.205 ns | 0.0765 ns | 0.0639 ns |  8.186 ns |  1.00 |    0.00 |     - |     - |     - |         - |    
-            | Experimental_ImHashMap_TryFind |    10 | 10.689 ns | 0.2738 ns | 0.2561 ns | 10.684 ns |  1.31 |    0.03 |     - |     - |     - |         - |
-            |           ImHashMap234_TryFind |    10 |  6.418 ns | 0.0731 ns | 0.0611 ns |  6.412 ns |  0.78 |    0.01 |     - |     - |     - |         - |    
-            |                                |       |           |           |           |           |       |         |       |       |       |           |    
-            |              ImHashMap_TryFind |   100 | 10.398 ns | 0.0434 ns | 0.0385 ns | 10.391 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            | Experimental_ImHashMap_TryFind |   100 | 13.982 ns | 0.2432 ns | 0.2275 ns | 13.946 ns |  1.35 |    0.02 |     - |     - |     - |         - |
-            |           ImHashMap234_TryFind |   100 | 10.759 ns | 0.1757 ns | 0.1467 ns | 10.761 ns |  1.03 |    0.01 |     - |     - |     - |         - |    
-            |                                |       |           |           |           |           |       |         |       |       |       |           |    
-            |              ImHashMap_TryFind |  1000 | 14.397 ns | 0.2039 ns | 0.1907 ns | 14.369 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            | Experimental_ImHashMap_TryFind |  1000 | 30.810 ns | 1.0842 ns | 2.9681 ns | 29.878 ns |  2.25 |    0.38 |     - |     - |     - |         - |    
-            |           ImHashMap234_TryFind |  1000 | 19.953 ns | 0.4996 ns | 0.4429 ns | 19.772 ns |  1.39 |    0.03 |     - |     - |     - |         - |    
-
-            ### Leaf3Plus1
-
-            |                         Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
-            |------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
-            |              ImHashMap_TryFind |     1 |  5.611 ns | 0.1067 ns | 0.0998 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            | Experimental_ImHashMap_TryFind |     1 |  6.348 ns | 0.2010 ns | 0.2150 ns |  1.14 |    0.05 |     - |     - |     - |         - |
-            |           ImHashMap234_TryFind |     1 |  4.572 ns | 0.0966 ns | 0.0904 ns |  0.82 |    0.02 |     - |     - |     - |         - |
-            |                                |       |           |           |           |       |         |       |       |       |           |
-            |              ImHashMap_TryFind |    10 |  7.582 ns | 0.0703 ns | 0.0587 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            | Experimental_ImHashMap_TryFind |    10 | 10.133 ns | 0.1315 ns | 0.1098 ns |  1.34 |    0.02 |     - |     - |     - |         - |
-            |           ImHashMap234_TryFind |    10 |  5.763 ns | 0.0670 ns | 0.0594 ns |  0.76 |    0.01 |     - |     - |     - |         - |
-            |                                |       |           |           |           |       |         |       |       |       |           |
-            |              ImHashMap_TryFind |   100 | 10.642 ns | 0.2276 ns | 0.1901 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            | Experimental_ImHashMap_TryFind |   100 | 13.526 ns | 0.1563 ns | 0.1385 ns |  1.27 |    0.03 |     - |     - |     - |         - |
-            |           ImHashMap234_TryFind |   100 |  9.271 ns | 0.1695 ns | 0.1503 ns |  0.87 |    0.02 |     - |     - |     - |         - |
-            |                                |       |           |           |           |       |         |       |       |       |           |
-            |              ImHashMap_TryFind |  1000 | 14.909 ns | 0.2118 ns | 0.1981 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            | Experimental_ImHashMap_TryFind |  1000 | 37.315 ns | 1.4352 ns | 4.2316 ns |  2.76 |    0.21 |     - |     - |     - |         - |
-            |           ImHashMap234_TryFind |  1000 | 24.536 ns | 0.6190 ns | 0.7602 ns |  1.66 |    0.06 |     - |     - |     - |         - |
-
-            ### Leaf5Plus1 + Leaf3Plus1
-
-            |                         Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
-            |------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
-            |              ImHashMap_TryFind |     1 |  6.659 ns | 0.1975 ns | 0.1751 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            | Experimental_ImHashMap_TryFind |     1 |  8.220 ns | 0.1876 ns | 0.1842 ns |  1.23 |    0.05 |     - |     - |     - |         - |
-            |           ImHashMap234_TryFind |     1 |  5.644 ns | 0.1702 ns | 0.1592 ns |  0.85 |    0.03 |     - |     - |     - |         - |
-            |                                |       |           |           |           |       |         |       |       |       |           |
-            |              ImHashMap_TryFind |     5 |  7.223 ns | 0.2332 ns | 0.2068 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            | Experimental_ImHashMap_TryFind |     5 |  9.832 ns | 0.2499 ns | 0.2337 ns |  1.36 |    0.05 |     - |     - |     - |         - |
-            |           ImHashMap234_TryFind |     5 |  5.353 ns | 0.1591 ns | 0.1410 ns |  0.74 |    0.04 |     - |     - |     - |         - |
-            |                                |       |           |           |           |       |         |       |       |       |           |
-            |              ImHashMap_TryFind |    10 |  8.325 ns | 0.1680 ns | 0.1403 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            | Experimental_ImHashMap_TryFind |    10 | 12.221 ns | 0.3406 ns | 0.5098 ns |  1.50 |    0.08 |     - |     - |     - |         - |
-            |           ImHashMap234_TryFind |    10 |  7.012 ns | 0.2045 ns | 0.2273 ns |  0.85 |    0.03 |     - |     - |     - |         - |
-            |                                |       |           |           |           |       |         |       |       |       |           |
-            |              ImHashMap_TryFind |   100 | 12.118 ns | 0.3031 ns | 0.4629 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            | Experimental_ImHashMap_TryFind |   100 | 18.145 ns | 0.4551 ns | 0.8321 ns |  1.50 |    0.08 |     - |     - |     - |         - |
-            |           ImHashMap234_TryFind |   100 | 11.908 ns | 0.2829 ns | 0.3679 ns |  0.97 |    0.04 |     - |     - |     - |         - |
-            |                                |       |           |           |           |       |         |       |       |       |           |
-            |              ImHashMap_TryFind |  1000 | 17.113 ns | 0.3848 ns | 0.3411 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            | Experimental_ImHashMap_TryFind |  1000 | 26.034 ns | 0.6183 ns | 0.8255 ns |  1.52 |    0.07 |     - |     - |     - |         - |
-            |           ImHashMap234_TryFind |  1000 | 16.927 ns | 0.3743 ns | 0.5828 ns |  0.99 |    0.05 |     - |     - |     - |         - |
-
-            ### V3 candidate
-
-            |                                   Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
-            |----------------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
-            |                 V2_ImHashMap_AVL_TryFind |     1 |  6.084 ns | 0.1295 ns | 0.1082 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            |  V2_ImHashMap_AVLOptimizedForAdd_TryFind |     1 |  7.319 ns | 0.2009 ns | 0.1879 ns |  1.20 |    0.03 |     - |     - |     - |         - |
-            |             V3_ImHashMap_23Tree_TryFind |     1 |  5.372 ns | 0.1142 ns | 0.0954 ns |  0.88 |    0.02 |     - |     - |     - |         - |
-            |    V3_PartitionedHashMap_23Tree_TryFind |     1 |  6.578 ns | 0.1517 ns | 0.1345 ns |  1.08 |    0.03 |     - |     - |     - |         - |
-            |                                          |       |           |           |           |       |         |       |       |       |           |
-            |                 V2_ImHashMap_AVL_TryFind |     5 |  6.867 ns | 0.1035 ns | 0.0918 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            |  V2_ImHashMap_AVLOptimizedForAdd_TryFind |     5 |  9.599 ns | 0.1509 ns | 0.1411 ns |  1.40 |    0.03 |     - |     - |     - |         - |
-            |             V3_ImHashMap_23Tree_TryFind |     5 |  5.319 ns | 0.1028 ns | 0.1142 ns |  0.77 |    0.02 |     - |     - |     - |         - |
-            |    V3_PartitionedHashMap_23Tree_TryFind |     5 |  6.550 ns | 0.0856 ns | 0.0801 ns |  0.95 |    0.01 |     - |     - |     - |         - |
-            |                                          |       |           |           |           |       |         |       |       |       |           |
-            |                 V2_ImHashMap_AVL_TryFind |    10 |  7.646 ns | 0.0905 ns | 0.0802 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            |  V2_ImHashMap_AVLOptimizedForAdd_TryFind |    10 | 11.002 ns | 0.2011 ns | 0.1881 ns |  1.44 |    0.03 |     - |     - |     - |         - |
-            |             V3_ImHashMap_23Tree_TryFind |    10 |  6.986 ns | 0.2160 ns | 0.2122 ns |  0.91 |    0.03 |     - |     - |     - |         - |
-            |    V3_PartitionedHashMap_23Tree_TryFind |    10 |  6.714 ns | 0.2153 ns | 0.1798 ns |  0.88 |    0.03 |     - |     - |     - |         - |
-            |                                          |       |           |           |           |       |         |       |       |       |           |
-            |                 V2_ImHashMap_AVL_TryFind |   100 | 12.413 ns | 0.3100 ns | 0.2748 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            |  V2_ImHashMap_AVLOptimizedForAdd_TryFind |   100 | 15.134 ns | 0.2375 ns | 0.2917 ns |  1.23 |    0.04 |     - |     - |     - |         - |
-            |             V3_ImHashMap_23Tree_TryFind |   100 | 11.147 ns | 0.2990 ns | 0.3443 ns |  0.90 |    0.03 |     - |     - |     - |         - |
-            |    V3_PartitionedHashMap_23Tree_TryFind |   100 |  8.245 ns | 0.1473 ns | 0.1150 ns |  0.67 |    0.01 |     - |     - |     - |         - |
-            |                                          |       |           |           |           |       |         |       |       |       |           |
-            |                 V2_ImHashMap_AVL_TryFind |  1000 | 16.528 ns | 0.1799 ns | 0.1502 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            |  V2_ImHashMap_AVLOptimizedForAdd_TryFind |  1000 | 22.341 ns | 0.2584 ns | 0.2291 ns |  1.35 |    0.02 |     - |     - |     - |         - |
-            |             V3_ImHashMap_23Tree_TryFind |  1000 | 13.178 ns | 0.2153 ns | 0.2014 ns |  0.80 |    0.01 |     - |     - |     - |         - |
-            |    V3_PartitionedHashMap_23Tree_TryFind |  1000 | 11.198 ns | 0.2784 ns | 0.3094 ns |  0.68 |    0.02 |     - |     - |     - |         - |
-
-
-            |                           Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
-            |--------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
-            |     V3_ImHashMap_23Tree_TryFind |     1 |  4.467 ns | 0.0977 ns | 0.0816 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            | ConcurrentDictionary_TryGetValue |     1 | 19.103 ns | 0.2302 ns | 0.2040 ns |  4.28 |    0.08 |     - |     - |     - |         - |
-            |                                  |       |           |           |           |       |         |       |       |       |           |
-            |     V3_ImHashMap_23Tree_TryFind |     5 |  4.588 ns | 0.1057 ns | 0.0937 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            | ConcurrentDictionary_TryGetValue |     5 | 19.000 ns | 0.1738 ns | 0.1625 ns |  4.15 |    0.09 |     - |     - |     - |         - |
-            |                                  |       |           |           |           |       |         |       |       |       |           |
-            |     V3_ImHashMap_23Tree_TryFind |    10 |  5.948 ns | 0.1194 ns | 0.1116 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            | ConcurrentDictionary_TryGetValue |    10 | 19.598 ns | 0.4600 ns | 0.4303 ns |  3.30 |    0.11 |     - |     - |     - |         - |
-            |                                  |       |           |           |           |       |         |       |       |       |           |
-            |     V3_ImHashMap_23Tree_TryFind |   100 |  9.838 ns | 0.1607 ns | 0.1342 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            | ConcurrentDictionary_TryGetValue |   100 | 20.336 ns | 0.3591 ns | 0.2998 ns |  2.07 |    0.03 |     - |     - |     - |         - |
-            |                                  |       |           |           |           |       |         |       |       |       |           |
-            |     V3_ImHashMap_23Tree_TryFind |  1000 | 11.980 ns | 0.2353 ns | 0.2201 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            | ConcurrentDictionary_TryGetValue |  1000 | 19.939 ns | 0.4273 ns | 0.8824 ns |  1.73 |    0.10 |     - |     - |     - |         - |
-
-            |                       Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
-            |----------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
-            | V3_ImHashMap_23Tree_TryFind |     1 |  4.647 ns | 0.0516 ns | 0.0431 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            |         ImmutableDict_TryGet |     1 | 23.396 ns | 0.3703 ns | 0.3092 ns |  5.04 |    0.10 |     - |     - |     - |         - |
-            |                              |       |           |           |           |       |         |       |       |       |           |
-            | V3_ImHashMap_23Tree_TryFind |     5 |  5.242 ns | 0.1822 ns | 0.3143 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            |         ImmutableDict_TryGet |     5 | 23.739 ns | 0.1941 ns | 0.1816 ns |  4.42 |    0.32 |     - |     - |     - |         - |
-            |                              |       |           |           |           |       |         |       |       |       |           |
-            | V3_ImHashMap_23Tree_TryFind |    10 |  5.749 ns | 0.1206 ns | 0.1128 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            |         ImmutableDict_TryGet |    10 | 24.769 ns | 0.3152 ns | 0.2949 ns |  4.31 |    0.11 |     - |     - |     - |         - |
-            |                              |       |           |           |           |       |         |       |       |       |           |
-            | V3_ImHashMap_23Tree_TryFind |   100 |  8.252 ns | 0.1754 ns | 0.1465 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            |         ImmutableDict_TryGet |   100 | 27.288 ns | 0.6118 ns | 0.6009 ns |  3.31 |    0.10 |     - |     - |     - |         - |
-            |                              |       |           |           |           |       |         |       |       |       |           |
-            | V3_ImHashMap_23Tree_TryFind |  1000 | 12.053 ns | 0.1955 ns | 0.1829 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            |         ImmutableDict_TryGet |  1000 | 30.762 ns | 0.3980 ns | 0.3723 ns |  2.55 |    0.04 |     - |     - |     - |         - |
-
-            ### Branch3 as two Branch2 -- looks ok
-
-            |                       Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
-            |----------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
-            |     V2_ImHashMap_AVL_TryFind |     1 |  6.236 ns | 0.2150 ns | 0.3084 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            | V3_ImHashMap_23Tree_TryFind |     1 |  5.467 ns | 0.1410 ns | 0.1250 ns |  0.85 |    0.05 |     - |     - |     - |         - |
-            |                              |       |           |           |           |       |         |       |       |       |           |
-            |     V2_ImHashMap_AVL_TryFind |     5 |  7.390 ns | 0.2037 ns | 0.1701 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            | V3_ImHashMap_23Tree_TryFind |     5 |  5.552 ns | 0.1412 ns | 0.1252 ns |  0.75 |    0.02 |     - |     - |     - |         - |
-            |                              |       |           |           |           |       |         |       |       |       |           |
-            |     V2_ImHashMap_AVL_TryFind |    10 |  9.402 ns | 0.1381 ns | 0.1153 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            | V3_ImHashMap_23Tree_TryFind |    10 |  6.820 ns | 0.1766 ns | 0.1652 ns |  0.73 |    0.03 |     - |     - |     - |         - |
-            |                              |       |           |           |           |       |         |       |       |       |           |
-            |     V2_ImHashMap_AVL_TryFind |   100 | 11.085 ns | 0.2337 ns | 0.2186 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            | V3_ImHashMap_23Tree_TryFind |   100 | 10.257 ns | 0.2037 ns | 0.1905 ns |  0.93 |    0.02 |     - |     - |     - |         - |
-            |                              |       |           |           |           |       |         |       |       |       |           |
-            |     V2_ImHashMap_AVL_TryFind |  1000 | 16.883 ns | 0.2438 ns | 0.2280 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            | V3_ImHashMap_23Tree_TryFind |  1000 | 15.516 ns | 0.3248 ns | 0.4554 ns |  0.93 |    0.04 |     - |     - |     - |         - |
-
-            ### V3 RTM
-
-            BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
-            Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
-            .NET Core SDK=5.0.201
-              [Host]     : .NET Core 5.0.4 (CoreCLR 5.0.421.11614, CoreFX 5.0.421.11614), X64 RyuJIT
-              DefaultJob : .NET Core 5.0.4 (CoreCLR 5.0.421.11614, CoreFX 5.0.421.11614), X64 RyuJIT
-
-
-            |                           Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
-            |--------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
-            |         V2_ImHashMap_AVL_TryFind |     1 |  5.100 ns | 0.1212 ns | 0.1134 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            |      V3_ImHashMap_23Tree_TryFind |     1 |  5.539 ns | 0.1676 ns | 0.1568 ns |  1.09 |    0.03 |     - |     - |     - |         - |
-            |    V3_PartitionedHashMap_TryFind |     1 |  5.813 ns | 0.1844 ns | 0.1973 ns |  1.13 |    0.04 |     - |     - |     - |         - |
-            |       DictionarySlim_TryGetValue |     1 |  6.614 ns | 0.0839 ns | 0.0744 ns |  1.29 |    0.03 |     - |     - |     - |         - |
-            |           Dictionary_TryGetValue |     1 | 16.495 ns | 0.1270 ns | 0.1126 ns |  3.23 |    0.06 |     - |     - |     - |         - |
-            | ConcurrentDictionary_TryGetValue |     1 | 12.715 ns | 0.1584 ns | 0.1323 ns |  2.49 |    0.05 |     - |     - |     - |         - |
-            |             ImmutableDict_TryGet |     1 | 22.615 ns | 0.3097 ns | 0.2418 ns |  4.42 |    0.08 |     - |     - |     - |         - |
-            |                                  |       |           |           |           |       |         |       |       |       |           |
-            |         V2_ImHashMap_AVL_TryFind |    10 |  6.270 ns | 0.1421 ns | 0.1187 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            |      V3_ImHashMap_23Tree_TryFind |    10 |  6.597 ns | 0.1095 ns | 0.1024 ns |  1.06 |    0.02 |     - |     - |     - |         - |
-            |    V3_PartitionedHashMap_TryFind |    10 |  5.416 ns | 0.0908 ns | 0.0805 ns |  0.87 |    0.02 |     - |     - |     - |         - |
-            |       DictionarySlim_TryGetValue |    10 |  7.543 ns | 0.1274 ns | 0.1064 ns |  1.20 |    0.02 |     - |     - |     - |         - |
-            |           Dictionary_TryGetValue |    10 | 16.907 ns | 0.1892 ns | 0.1769 ns |  2.70 |    0.05 |     - |     - |     - |         - |
-            | ConcurrentDictionary_TryGetValue |    10 | 12.694 ns | 0.1740 ns | 0.1453 ns |  2.03 |    0.04 |     - |     - |     - |         - |
-            |             ImmutableDict_TryGet |    10 | 24.049 ns | 0.3034 ns | 0.2838 ns |  3.84 |    0.07 |     - |     - |     - |         - |
-            |                                  |       |           |           |           |       |         |       |       |       |           |
-            |         V2_ImHashMap_AVL_TryFind |   100 |  9.459 ns | 0.2667 ns | 0.2739 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            |      V3_ImHashMap_23Tree_TryFind |   100 |  9.526 ns | 0.1814 ns | 0.1697 ns |  1.01 |    0.03 |     - |     - |     - |         - |
-            |    V3_PartitionedHashMap_TryFind |   100 |  5.827 ns | 0.0867 ns | 0.0768 ns |  0.62 |    0.02 |     - |     - |     - |         - |
-            |       DictionarySlim_TryGetValue |   100 |  6.897 ns | 0.1033 ns | 0.0967 ns |  0.73 |    0.02 |     - |     - |     - |         - |
-            |           Dictionary_TryGetValue |   100 | 18.189 ns | 0.2100 ns | 0.1640 ns |  1.92 |    0.06 |     - |     - |     - |         - |
-            | ConcurrentDictionary_TryGetValue |   100 | 13.412 ns | 0.2041 ns | 0.1909 ns |  1.42 |    0.04 |     - |     - |     - |         - |
-            |             ImmutableDict_TryGet |   100 | 26.023 ns | 0.3854 ns | 0.3417 ns |  2.76 |    0.08 |     - |     - |     - |         - |
-            |                                  |       |           |           |           |       |         |       |       |       |           |
-            |         V2_ImHashMap_AVL_TryFind |  1000 | 15.172 ns | 0.2617 ns | 0.2320 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            |      V3_ImHashMap_23Tree_TryFind |  1000 | 14.473 ns | 0.2030 ns | 0.1799 ns |  0.95 |    0.01 |     - |     - |     - |         - |
-            |    V3_PartitionedHashMap_TryFind |  1000 |  8.182 ns | 0.0809 ns | 0.0756 ns |  0.54 |    0.01 |     - |     - |     - |         - |
-            |       DictionarySlim_TryGetValue |  1000 |  6.893 ns | 0.1590 ns | 0.1410 ns |  0.45 |    0.01 |     - |     - |     - |         - |
-            |           Dictionary_TryGetValue |  1000 | 18.230 ns | 0.2012 ns | 0.1882 ns |  1.20 |    0.02 |     - |     - |     - |         - |
-            | ConcurrentDictionary_TryGetValue |  1000 | 14.920 ns | 0.2296 ns | 0.2035 ns |  0.98 |    0.01 |     - |     - |     - |         - |
-            |             ImmutableDict_TryGet |  1000 | 29.555 ns | 0.5926 ns | 0.5543 ns |  1.95 |    0.04 |     - |     - |     - |         - |
-
-
-            ## Against static TypeDictionary by @rogeralsing (need to subtract the cost of enumerating the array when adding items to ImHashMap and PartitionedHashMap)
-
-            BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
-            Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
-            .NET Core SDK=5.0.201
-              [Host]     : .NET Core 5.0.4 (CoreCLR 5.0.421.11614, CoreFX 5.0.421.11614), X64 RyuJIT
-              DefaultJob : .NET Core 5.0.4 (CoreCLR 5.0.421.11614, CoreFX 5.0.421.11614), X64 RyuJIT
-
-            |                                  Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
-            |---------------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
-            |          V3_ImHashMap_GetValueOrDefault |     5 |  4.497 ns | 0.1607 ns | 0.1578 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            | V3_PartitionedHashMap_GetValueOrDefault |     5 |  4.763 ns | 0.1675 ns | 0.1484 ns |  1.06 |    0.05 |     - |     - |     - |         - |
-            |                        TypeDict_TryFind |     5 |  3.198 ns | 0.1221 ns | 0.1406 ns |  0.71 |    0.03 |     - |     - |     - |         - |
-            |                  Dictionary_TryGetValue |     5 | 16.248 ns | 0.3500 ns | 0.3102 ns |  3.61 |    0.12 |     - |     - |     - |         - |
-
-            |          V3_ImHashMap_GetValueOrDefault |    10 |  5.569 ns | 0.1801 ns | 0.2751 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            | V3_PartitionedHashMap_GetValueOrDefault |    10 |  5.016 ns | 0.1509 ns | 0.1178 ns |  0.89 |    0.05 |     - |     - |     - |         - |
-            |                        TypeDict_TryFind |    10 |  2.513 ns | 0.0824 ns | 0.0688 ns |  0.45 |    0.03 |     - |     - |     - |         - |
-            |                  Dictionary_TryGetValue |    10 | 15.954 ns | 0.3234 ns | 0.3025 ns |  2.85 |    0.17 |     - |     - |     - |         - |
-
-            |          V3_ImHashMap_GetValueOrDefault |    20 |  6.747 ns | 0.1964 ns | 0.2017 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            | V3_PartitionedHashMap_GetValueOrDefault |    20 |  3.985 ns | 0.1034 ns | 0.0863 ns |  0.59 |    0.02 |     - |     - |     - |         - |
-            |                        TypeDict_TryFind |    20 |  2.476 ns | 0.1174 ns | 0.1257 ns |  0.37 |    0.02 |     - |     - |     - |         - |
-            |                  Dictionary_TryGetValue |    20 | 17.766 ns | 0.4131 ns | 0.3865 ns |  2.64 |    0.11 |     - |     - |     - |         - |
-
-
-            ## V4
-
-            BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19043
-            Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
-            .NET Core SDK=6.0.202
-              [Host]     : .NET Core 6.0.4 (CoreCLR 6.0.422.16404, CoreFX 6.0.422.16404), X64 RyuJIT
-              DefaultJob : .NET Core 6.0.4 (CoreCLR 6.0.422.16404, CoreFX 6.0.422.16404), X64 RyuJIT
-
-            |                           Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
-            |--------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
-            |             V4_ImHashMap_TryFind |     1 |  8.915 ns | 0.1853 ns | 0.1733 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            |             V3_ImHashMap_TryFind |     1 |  7.834 ns | 0.1769 ns | 0.1568 ns |  0.88 |    0.02 |     - |     - |     - |         - |
-            |    V4_PartitionedHashMap_TryFind |     1 |  8.292 ns | 0.1082 ns | 0.0959 ns |  0.93 |    0.02 |     - |     - |     - |         - |
-            |    V3_PartitionedHashMap_TryFind |     1 |  7.681 ns | 0.1245 ns | 0.1039 ns |  0.86 |    0.02 |     - |     - |     - |         - |
-            |       DictionarySlim_TryGetValue |     1 |  8.861 ns | 0.1423 ns | 0.1188 ns |  0.99 |    0.02 |     - |     - |     - |         - |
-            |           Dictionary_TryGetValue |     1 | 17.914 ns | 0.3447 ns | 0.3055 ns |  2.01 |    0.05 |     - |     - |     - |         - |
-            | ConcurrentDictionary_TryGetValue |     1 | 13.381 ns | 0.2709 ns | 0.2401 ns |  1.50 |    0.04 |     - |     - |     - |         - |
-            |             ImmutableDict_TryGet |     1 | 19.040 ns | 0.3068 ns | 0.2870 ns |  2.14 |    0.06 |     - |     - |     - |         - |
-            |                                  |       |           |           |           |       |         |       |       |       |           |
-            |             V4_ImHashMap_TryFind |    10 |  9.462 ns | 0.2690 ns | 0.2246 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            |             V3_ImHashMap_TryFind |    10 |  9.038 ns | 0.1650 ns | 0.1463 ns |  0.96 |    0.02 |     - |     - |     - |         - |
-            |    V4_PartitionedHashMap_TryFind |    10 |  8.575 ns | 0.2031 ns | 0.1900 ns |  0.91 |    0.03 |     - |     - |     - |         - |
-            |    V3_PartitionedHashMap_TryFind |    10 |  5.869 ns | 0.1026 ns | 0.1743 ns |  0.63 |    0.02 |     - |     - |     - |         - |
-            |       DictionarySlim_TryGetValue |    10 |  7.384 ns | 0.1882 ns | 0.1668 ns |  0.78 |    0.03 |     - |     - |     - |         - |
-            |           Dictionary_TryGetValue |    10 | 14.082 ns | 0.2168 ns | 0.1921 ns |  1.49 |    0.04 |     - |     - |     - |         - |
-            | ConcurrentDictionary_TryGetValue |    10 | 11.436 ns | 0.1398 ns | 0.1239 ns |  1.21 |    0.03 |     - |     - |     - |         - |
-            |             ImmutableDict_TryGet |    10 | 17.927 ns | 0.4467 ns | 0.4780 ns |  1.90 |    0.09 |     - |     - |     - |         - |
-            |                                  |       |           |           |           |       |         |       |       |       |           |
-            |             V4_ImHashMap_TryFind |   100 | 12.147 ns | 0.1475 ns | 0.1308 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            |             V3_ImHashMap_TryFind |   100 | 11.357 ns | 0.1695 ns | 0.1323 ns |  0.94 |    0.01 |     - |     - |     - |         - |
-            |    V4_PartitionedHashMap_TryFind |   100 |  8.520 ns | 0.2142 ns | 0.1899 ns |  0.70 |    0.02 |     - |     - |     - |         - |
-            |    V3_PartitionedHashMap_TryFind |   100 |  7.785 ns | 0.1374 ns | 0.1147 ns |  0.64 |    0.01 |     - |     - |     - |         - |
-            |       DictionarySlim_TryGetValue |   100 |  6.918 ns | 0.1544 ns | 0.1289 ns |  0.57 |    0.01 |     - |     - |     - |         - |
-            |           Dictionary_TryGetValue |   100 | 13.804 ns | 0.3474 ns | 0.3717 ns |  1.14 |    0.04 |     - |     - |     - |         - |
-            | ConcurrentDictionary_TryGetValue |   100 | 11.432 ns | 0.2194 ns | 0.2052 ns |  0.94 |    0.02 |     - |     - |     - |         - |
-            |             ImmutableDict_TryGet |   100 | 21.593 ns | 0.4048 ns | 0.3786 ns |  1.78 |    0.03 |     - |     - |     - |         - |
-            |                                  |       |           |           |           |       |         |       |       |       |           |
-            |             V4_ImHashMap_TryFind |  1000 | 15.492 ns | 0.3859 ns | 0.4881 ns |  1.00 |    0.00 |     - |     - |     - |         - |
-            |             V3_ImHashMap_TryFind |  1000 | 14.339 ns | 0.2612 ns | 0.2444 ns |  0.92 |    0.03 |     - |     - |     - |         - |
-            |    V4_PartitionedHashMap_TryFind |  1000 | 11.508 ns | 0.1839 ns | 0.1630 ns |  0.74 |    0.03 |     - |     - |     - |         - |
-            |    V3_PartitionedHashMap_TryFind |  1000 |  9.508 ns | 0.2340 ns | 0.2074 ns |  0.61 |    0.02 |     - |     - |     - |         - |
-            |       DictionarySlim_TryGetValue |  1000 |  7.099 ns | 0.1984 ns | 0.2037 ns |  0.46 |    0.01 |     - |     - |     - |         - |
-            |           Dictionary_TryGetValue |  1000 | 13.696 ns | 0.1341 ns | 0.1120 ns |  0.88 |    0.03 |     - |     - |     - |         - |
-            | ConcurrentDictionary_TryGetValue |  1000 | 11.358 ns | 0.1464 ns | 0.1222 ns |  0.73 |    0.03 |     - |     - |     - |         - |
-            |             ImmutableDict_TryGet |  1000 | 25.875 ns | 0.3752 ns | 0.3510 ns |  1.67 |    0.06 |     - |     - |     - |         - |
-
-            ## Baseline FHashMap6 vs DictionarySlim vs Dictionary 
-
-            BenchmarkDotNet=v0.13.5, OS=Windows 10 (10.0.19042.928/20H2/October2020Update)
-            Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical cores
-            .NET SDK=7.0.100
-              [Host]     : .NET 7.0.0 (7.0.22.51805), X64 RyuJIT AVX2
-              DefaultJob : .NET 7.0.0 (7.0.22.51805), X64 RyuJIT AVX2
-
-            |                     Method | Count |      Mean |     Error |    StdDev |    Median | Ratio | RatioSD | Allocated | Alloc Ratio |
-            |--------------------------- |------ |----------:|----------:|----------:|----------:|------:|--------:|----------:|------------:|
-            |     Dictionary_TryGetValue |   100 | 15.234 ns | 0.3434 ns | 0.6779 ns | 14.971 ns |  1.00 |    0.00 |         - |          NA |
-            | DictionarySlim_TryGetValue |   100 |  9.790 ns | 0.5518 ns | 1.6271 ns |  8.944 ns |  0.70 |    0.11 |         - |          NA |
-            |       FHashMap_TryGetValue |   100 | 20.591 ns | 0.4773 ns | 0.4232 ns | 20.521 ns |  1.32 |    0.09 |         - |          NA |
-
-            ## Never happened?
-
-            |                     Method | Count |     Mean |    Error |   StdDev |   Median | Ratio | RatioSD | Allocated | Alloc Ratio |
-            |--------------------------- |------ |---------:|---------:|---------:|---------:|------:|--------:|----------:|------------:|
-            | DictionarySlim_TryGetValue |   100 | 11.14 ns | 0.613 ns | 1.749 ns | 10.75 ns |  1.00 |    0.00 |         - |          NA |
-            |       FHashMap_TryGetValue |   100 | 11.29 ns | 0.641 ns | 1.850 ns | 10.77 ns |  1.03 |    0.20 |         - |          NA |
-
-            ## Almost funny
-
-            |                     Method | Count |     Mean |     Error |    StdDev | Ratio | Allocated | Alloc Ratio |
-            |--------------------------- |------ |---------:|----------:|----------:|------:|----------:|------------:|
-            | DictionarySlim_TryGetValue |   100 | 8.703 ns | 0.0774 ns | 0.0686 ns |  1.00 |         - |          NA |
-            |       FHashMap_TryGetValue |   100 | 7.181 ns | 0.0442 ns | 0.0345 ns |  0.83 |         - |          NA |
-
-            ## Initial SIMD FHashMap7 vs DictionarySlim
-
-            |                     Method | Count |     Mean |     Error |    StdDev |   Median | Ratio | RatioSD | Allocated | Alloc Ratio |
-            |--------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|----------:|------------:|
-            | DictionarySlim_TryGetValue |   100 | 8.968 ns | 0.2581 ns | 0.4168 ns | 8.796 ns |  1.00 |    0.00 |         - |          NA |
-            |       FHashMap_TryGetValue |   100 | 8.866 ns | 0.4456 ns | 1.3069 ns | 9.244 ns |  0.86 |    0.09 |         - |          NA |
-
-            ## Round 2 and 3, SIMD FHashMap7 vs DictionarySlim
-
-            |                     Method | Count |     Mean |     Error |    StdDev | Ratio | Allocated | Alloc Ratio |
-            |--------------------------- |------ |---------:|----------:|----------:|------:|----------:|------------:|
-            | DictionarySlim_TryGetValue |   100 | 8.925 ns | 0.0383 ns | 0.0299 ns |  1.00 |         - |          NA |
-            |       FHashMap_TryGetValue |   100 | 6.376 ns | 0.1207 ns | 0.1129 ns |  0.72 |         - |          NA |
-
-            ## Funny 4, SIMD FHashMap7 vs DictionarySlim
-
-            |                     Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | Allocated | Alloc Ratio |
-            |--------------------------- |------ |---------:|----------:|----------:|------:|--------:|----------:|------------:|
-            | DictionarySlim_TryGetValue |   100 | 9.131 ns | 0.1991 ns | 0.1663 ns |  1.00 |    0.00 |         - |          NA |
-            |       FHashMap_TryGetValue |   100 | 6.020 ns | 0.1766 ns | 0.2644 ns |  0.65 |    0.04 |         - |          NA |
-
-            ## FHashMap7 vs DictionarySlim (multiple params)
-
-            |                     Method | Count |      Mean |     Error |    StdDev |    Median | Ratio | RatioSD | Allocated | Alloc Ratio |
-            |--------------------------- |------ |----------:|----------:|----------:|----------:|------:|--------:|----------:|------------:|
-            | DictionarySlim_TryGetValue |     1 | 10.945 ns | 0.3136 ns | 0.5574 ns | 10.770 ns |  1.00 |    0.00 |         - |          NA |
-            |       FHashMap_TryGetValue |     1 |  6.852 ns | 0.4387 ns | 1.2157 ns |  7.022 ns |  0.57 |    0.11 |         - |          NA |
-            |                            |       |           |           |           |           |       |         |           |             |
-            | DictionarySlim_TryGetValue |    10 | 12.432 ns | 0.7856 ns | 2.3042 ns | 12.383 ns |  1.00 |    0.00 |         - |          NA |
-            |       FHashMap_TryGetValue |    10 |  5.161 ns | 0.1755 ns | 0.2932 ns |  5.050 ns |  0.38 |    0.05 |         - |          NA |
-            |                            |       |           |           |           |           |       |         |           |             |
-            | DictionarySlim_TryGetValue |   100 | 16.811 ns | 0.7006 ns | 2.0657 ns | 15.940 ns |  1.00 |    0.00 |         - |          NA |
-            |       FHashMap_TryGetValue |   100 |  9.176 ns | 0.6841 ns | 1.9517 ns |  8.838 ns |  0.56 |    0.14 |         - |          NA |
-            |                            |       |           |           |           |           |       |         |           |             |
-            | DictionarySlim_TryGetValue |  1000 | 11.542 ns | 0.3251 ns | 0.7535 ns | 11.400 ns |  1.00 |    0.00 |         - |          NA |
-            |       FHashMap_TryGetValue |  1000 |  9.579 ns | 0.4608 ns | 1.2921 ns |  9.556 ns |  0.82 |    0.12 |         - |          NA |
-
-            ## No!!! SIMD FHashMap7 vs DictionarySlim (multiple params)
-
-            |                     Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | Allocated | Alloc Ratio |
-            |--------------------------- |------ |---------:|----------:|----------:|------:|--------:|----------:|------------:|
-            | DictionarySlim_TryGetValue |     1 | 9.134 ns | 0.2546 ns | 0.3569 ns |  1.00 |    0.00 |         - |          NA |
-            |       FHashMap_TryGetValue |     1 | 5.174 ns | 0.0317 ns | 0.0281 ns |  0.56 |    0.02 |         - |          NA |
-            |                            |       |          |           |           |       |         |           |             |
-            | DictionarySlim_TryGetValue |    10 | 8.908 ns | 0.0430 ns | 0.0359 ns |  1.00 |    0.00 |         - |          NA |
-            |       FHashMap_TryGetValue |    10 | 5.615 ns | 0.0722 ns | 0.0675 ns |  0.63 |    0.01 |         - |          NA |
-            |                            |       |          |           |           |       |         |           |             |
-            | DictionarySlim_TryGetValue |   100 | 8.964 ns | 0.1536 ns | 0.1282 ns |  1.00 |    0.00 |         - |          NA |
-            |       FHashMap_TryGetValue |   100 | 7.468 ns | 0.2187 ns | 0.2148 ns |  0.83 |    0.03 |         - |          NA |
-            |                            |       |          |           |           |       |         |           |             |
-            | DictionarySlim_TryGetValue |  1000 | 8.826 ns | 0.0929 ns | 0.0776 ns |  1.00 |    0.00 |         - |          NA |
-            |       FHashMap_TryGetValue |  1000 | 5.271 ns | 0.1362 ns | 0.1514 ns |  0.60 |    0.02 |         - |          NA |
-
-            ## Small opti No!!! SIMD FHashMap7 vs DictionarySlim (multiple params)
-
-            |                     Method | Count |     Mean |     Error |    StdDev |   Median | Ratio | RatioSD | Allocated | Alloc Ratio |
-            |--------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|----------:|------------:|
-            | DictionarySlim_TryGetValue |     1 | 8.965 ns | 0.3526 ns | 1.0285 ns | 8.416 ns |  1.00 |    0.00 |         - |          NA |
-            |       FHashMap_TryGetValue |     1 | 3.940 ns | 0.1476 ns | 0.2117 ns | 3.894 ns |  0.43 |    0.05 |         - |          NA |
-            |                            |       |          |           |           |          |       |         |           |             |
-            | DictionarySlim_TryGetValue |    10 | 9.154 ns | 0.2472 ns | 0.3036 ns | 9.041 ns |  1.00 |    0.00 |         - |          NA |
-            |       FHashMap_TryGetValue |    10 | 5.734 ns | 0.0922 ns | 0.0770 ns | 5.733 ns |  0.62 |    0.02 |         - |          NA |
-            |                            |       |          |           |           |          |       |         |           |             |
-            | DictionarySlim_TryGetValue |   100 | 8.638 ns | 0.1980 ns | 0.1654 ns | 8.599 ns |  1.00 |    0.00 |         - |          NA |
-            |       FHashMap_TryGetValue |   100 | 7.259 ns | 0.1361 ns | 0.1206 ns | 7.212 ns |  0.84 |    0.02 |         - |          NA |
-            |                            |       |          |           |           |          |       |         |           |             |
-            | DictionarySlim_TryGetValue |  1000 | 9.280 ns | 0.2481 ns | 0.4537 ns | 9.115 ns |  1.00 |    0.00 |         - |          NA |
-            |       FHashMap_TryGetValue |  1000 | 3.765 ns | 0.0650 ns | 0.0576 ns | 3.760 ns |  0.40 |    0.02 |         - |          NA |
-
-            ## Adding small SIMD to FHashMap7 vs DictionarySlim (multiple params) - winning the medium
-
-            |                     Method | Count |     Mean |     Error |    StdDev |   Median | Ratio | RatioSD | Allocated | Alloc Ratio |
-            |--------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|----------:|------------:|
-            | DictionarySlim_TryGetValue |     1 | 9.314 ns | 0.2492 ns | 0.4494 ns | 9.149 ns |  1.00 |    0.00 |         - |          NA |
-            |       FHashMap_TryGetValue |     1 | 4.819 ns | 0.1521 ns | 0.1423 ns | 4.775 ns |  0.51 |    0.03 |         - |          NA |
-            |                            |       |          |           |           |          |       |         |           |             |
-            | DictionarySlim_TryGetValue |    10 | 9.012 ns | 0.2230 ns | 0.4297 ns | 8.841 ns |  1.00 |    0.00 |         - |          NA |
-            |       FHashMap_TryGetValue |    10 | 6.407 ns | 0.1963 ns | 0.2182 ns | 6.375 ns |  0.70 |    0.05 |         - |          NA |
-            |                            |       |          |           |           |          |       |         |           |             |
-            | DictionarySlim_TryGetValue |   100 | 9.261 ns | 0.2620 ns | 0.6019 ns | 8.994 ns |  1.00 |    0.00 |         - |          NA |
-            |       FHashMap_TryGetValue |   100 | 7.136 ns | 0.1941 ns | 0.1515 ns | 7.104 ns |  0.74 |    0.06 |         - |          NA |
-            |                            |       |          |           |           |          |       |         |           |             |
-            | DictionarySlim_TryGetValue |  1000 | 9.066 ns | 0.1819 ns | 0.1612 ns | 9.013 ns |  1.00 |    0.00 |         - |          NA |
-            |       FHashMap_TryGetValue |  1000 | 4.935 ns | 0.1353 ns | 0.1661 ns | 4.891 ns |  0.55 |    0.02 |         - |          NA |
-
-            ## Lookup FHashMap8 vs DictionarySlim
-
-            |                     Method | Count |     Mean |     Error |    StdDev |   Median | Ratio | RatioSD | Allocated | Alloc Ratio |
-            |--------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|----------:|------------:|
-            | DictionarySlim_TryGetValue |     1 | 9.446 ns | 0.2718 ns | 0.5038 ns | 9.329 ns |  1.00 |    0.00 |         - |          NA |
-            |      FHashMap8_TryGetValue |     1 | 5.485 ns | 0.1832 ns | 0.3009 ns | 5.402 ns |  0.58 |    0.04 |         - |          NA |
-            |                            |       |          |           |           |          |       |         |           |             |
-            | DictionarySlim_TryGetValue |    10 | 9.659 ns | 0.2123 ns | 0.1882 ns | 9.654 ns |  1.00 |    0.00 |         - |          NA |
-            |      FHashMap8_TryGetValue |    10 | 7.044 ns | 0.1443 ns | 0.1205 ns | 7.003 ns |  0.73 |    0.01 |         - |          NA |
-            |                            |       |          |           |           |          |       |         |           |             |
-            | DictionarySlim_TryGetValue |   100 | 9.368 ns | 0.2697 ns | 0.3600 ns | 9.259 ns |  1.00 |    0.00 |         - |          NA |
-            |      FHashMap8_TryGetValue |   100 | 9.770 ns | 0.2736 ns | 0.3360 ns | 9.748 ns |  1.04 |    0.06 |         - |          NA |
-            |                            |       |          |           |           |          |       |         |           |             |
-            | DictionarySlim_TryGetValue |  1000 | 9.743 ns | 0.2676 ns | 0.4686 ns | 9.573 ns |  1.00 |    0.00 |         - |          NA |
-            |      FHashMap8_TryGetValue |  1000 | 6.043 ns | 0.1946 ns | 0.4146 ns | 5.883 ns |  0.62 |    0.05 |         - |          NA |
-
-            ## Lookup FHashMap8 vs DictionarySlim after simplifying
-
-            |                     Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | Allocated | Alloc Ratio |
-            |--------------------------- |------ |---------:|----------:|----------:|------:|--------:|----------:|------------:|
-            | DictionarySlim_TryGetValue |     1 | 8.649 ns | 0.0707 ns | 0.0662 ns |  1.00 |    0.00 |         - |          NA |
-            |      FHashMap8_TryGetValue |     1 | 5.447 ns | 0.0784 ns | 0.0654 ns |  0.63 |    0.01 |         - |          NA |
-            |                            |       |          |           |           |       |         |           |             |
-            | DictionarySlim_TryGetValue |    10 | 8.948 ns | 0.0405 ns | 0.0316 ns |  1.00 |    0.00 |         - |          NA |
-            |      FHashMap8_TryGetValue |    10 | 5.471 ns | 0.1656 ns | 0.2375 ns |  0.62 |    0.03 |         - |          NA |
-            |                            |       |          |           |           |       |         |           |             |
-            | DictionarySlim_TryGetValue |   100 | 9.081 ns | 0.2568 ns | 0.5583 ns |  1.00 |    0.00 |         - |          NA |
-            |      FHashMap8_TryGetValue |   100 | 6.294 ns | 0.1585 ns | 0.1886 ns |  0.69 |    0.05 |         - |          NA |
-            |                            |       |          |           |           |       |         |           |             |
-            | DictionarySlim_TryGetValue |  1000 | 8.990 ns | 0.2087 ns | 0.1850 ns |  1.00 |    0.00 |         - |          NA |
-            |      FHashMap8_TryGetValue |  1000 | 4.950 ns | 0.1508 ns | 0.2719 ns |  0.55 |    0.03 |         - |          NA |
-
-            ## Lookup FHashMap7 vs FHashMap8 vs DictionarySlim vs Dictionary
-
-            |                     Method | Count |      Mean |     Error |    StdDev |    Median | Ratio | RatioSD | Allocated | Alloc Ratio |
-            |--------------------------- |------ |----------:|----------:|----------:|----------:|------:|--------:|----------:|------------:|
-            | DictionarySlim_TryGetValue |     1 |  9.470 ns | 0.2655 ns | 0.7269 ns |  9.193 ns |  1.00 |    0.00 |         - |          NA |
-            |     Dictionary_TryGetValue |     1 | 12.842 ns | 0.3375 ns | 0.7192 ns | 12.628 ns |  1.36 |    0.12 |         - |          NA |
-            |      FHashMap8_TryGetValue |     1 |  5.212 ns | 0.1734 ns | 0.1448 ns |  5.202 ns |  0.52 |    0.05 |         - |          NA |
-            |      FHashMap7_TryGetValue |     1 |  4.365 ns | 0.1630 ns | 0.2981 ns |  4.269 ns |  0.45 |    0.05 |         - |          NA |
-            |                            |       |           |           |           |           |       |         |           |             |
-            | DictionarySlim_TryGetValue |    10 |  9.585 ns | 0.2755 ns | 0.7992 ns |  9.292 ns |  1.00 |    0.00 |         - |          NA |
-            |     Dictionary_TryGetValue |    10 | 10.675 ns | 0.2063 ns | 0.1723 ns | 10.674 ns |  1.13 |    0.10 |         - |          NA |
-            |      FHashMap8_TryGetValue |    10 |  5.584 ns | 0.1895 ns | 0.2028 ns |  5.546 ns |  0.57 |    0.07 |         - |          NA |
-            |      FHashMap7_TryGetValue |    10 |  5.676 ns | 0.0982 ns | 0.0964 ns |  5.680 ns |  0.58 |    0.06 |         - |          NA |
-            |                            |       |           |           |           |           |       |         |           |             |
-            | DictionarySlim_TryGetValue |   100 | 11.095 ns | 0.4470 ns | 1.2236 ns | 11.427 ns |  1.00 |    0.00 |         - |          NA |
-            |     Dictionary_TryGetValue |   100 | 10.694 ns | 0.2975 ns | 0.7013 ns | 10.484 ns |  0.94 |    0.11 |         - |          NA |
-            |      FHashMap8_TryGetValue |   100 |  7.313 ns | 0.2226 ns | 0.4071 ns |  7.107 ns |  0.65 |    0.07 |         - |          NA |
-            |      FHashMap7_TryGetValue |   100 |  7.119 ns | 0.2135 ns | 0.1997 ns |  7.095 ns |  0.67 |    0.11 |         - |          NA |
-            |                            |       |           |           |           |           |       |         |           |             |
-            | DictionarySlim_TryGetValue |  1000 |  9.049 ns | 0.2662 ns | 0.5953 ns |  8.826 ns |  1.00 |    0.00 |         - |          NA |
-            |     Dictionary_TryGetValue |  1000 | 13.465 ns | 0.3476 ns | 0.3251 ns | 13.483 ns |  1.50 |    0.12 |         - |          NA |
-            |      FHashMap8_TryGetValue |  1000 |  4.926 ns | 0.1781 ns | 0.3120 ns |  4.809 ns |  0.54 |    0.05 |         - |          NA |
-            |      FHashMap7_TryGetValue |  1000 |  4.314 ns | 0.1559 ns | 0.1601 ns |  4.290 ns |  0.48 |    0.04 |         - |          NA |
-
-            ## FHM9.1 vs Dict and DictSlim
-
-            BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValley2)
-            11th Gen Intel Core i7-1185G7 3.00GHz, 1 CPU, 8 logical and 4 physical cores
-            .NET SDK=7.0.304
-              [Host]     : .NET 7.0.7 (7.0.723.27404), X64 RyuJIT AVX2
-              DefaultJob : .NET 7.0.7 (7.0.723.27404), X64 RyuJIT AVX2
-
-            |                     Method | Count |      Mean |     Error |    StdDev |    Median | Ratio | RatioSD | BranchInstructions/Op | CacheMisses/Op | BranchMispredictions/Op | Allocated | Alloc Ratio |
-            |--------------------------- |------ |----------:|----------:|----------:|----------:|------:|--------:|----------------------:|---------------:|------------------------:|----------:|------------:|
-            | DictionarySlim_TryGetValue |     1 |  6.236 ns | 0.1823 ns | 0.1872 ns |  6.221 ns |  1.00 |    0.00 |                    20 |              0 |                       0 |         - |          NA |
-            |     Dictionary_TryGetValue |     1 | 10.070 ns | 0.2035 ns | 0.2090 ns | 10.038 ns |  1.62 |    0.05 |                    31 |              0 |                       0 |         - |          NA |
-            |     FHashMap91_TryGetValue |     1 |  5.084 ns | 0.2665 ns | 0.7773 ns |  5.267 ns |  0.67 |    0.08 |                    11 |              0 |                       0 |         - |          NA |
-            |                            |       |           |           |           |           |       |         |                       |                |                         |           |             |
-            | DictionarySlim_TryGetValue |    10 |  8.515 ns | 0.2330 ns | 0.3763 ns |  8.407 ns |  1.00 |    0.00 |                    20 |              0 |                       0 |         - |          NA |
-            |     Dictionary_TryGetValue |    10 | 10.296 ns | 0.4517 ns | 1.3247 ns | 10.439 ns |  1.30 |    0.10 |                    25 |              0 |                       0 |         - |          NA |
-            |     FHashMap91_TryGetValue |    10 |  3.857 ns | 0.1311 ns | 0.2904 ns |  3.777 ns |  0.46 |    0.04 |                    11 |              0 |                       0 |         - |          NA |
-            |                            |       |           |           |           |           |       |         |                       |                |                         |           |             |
-            | DictionarySlim_TryGetValue |   100 |  7.105 ns | 0.1931 ns | 0.5221 ns |  6.860 ns |  1.00 |    0.00 |                    20 |              0 |                       0 |         - |          NA |
-            |     Dictionary_TryGetValue |   100 |  8.443 ns | 0.2081 ns | 0.2397 ns |  8.402 ns |  1.14 |    0.11 |                    25 |              0 |                       0 |         - |          NA |
-            |     FHashMap91_TryGetValue |   100 |  4.037 ns | 0.1339 ns | 0.2201 ns |  3.994 ns |  0.56 |    0.06 |                    11 |              0 |                       0 |         - |          NA |
-            |                            |       |           |           |           |           |       |         |                       |                |                         |           |             |
-            | DictionarySlim_TryGetValue |  1000 |  6.325 ns | 0.1933 ns | 0.4632 ns |  6.124 ns |  1.00 |    0.00 |                    20 |              0 |                       0 |         - |          NA |
-            |     Dictionary_TryGetValue |  1000 |  9.146 ns | 0.2185 ns | 0.2044 ns |  9.176 ns |  1.42 |    0.10 |                    25 |              0 |                       0 |         - |          NA |
-            |     FHashMap91_TryGetValue |  1000 |  5.917 ns | 0.1505 ns | 0.1334 ns |  5.909 ns |  0.92 |    0.07 |                    13 |              0 |                       0 |         - |          NA |
-
-            ## FHM9.1 sparse entries
-
-            |                     Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | CacheMisses/Op | BranchInstructions/Op | BranchMispredictions/Op | Allocated | Alloc Ratio |
-            |--------------------------- |------ |---------:|----------:|----------:|------:|--------:|---------------:|----------------------:|------------------------:|----------:|------------:|
-            | DictionarySlim_TryGetValue |     1 | 7.813 ns | 0.2096 ns | 0.2243 ns |  1.00 |    0.00 |              0 |                    20 |                       0 |         - |          NA |
-            |     FHashMap91_TryGetValue |     1 | 4.608 ns | 0.1493 ns | 0.1888 ns |  0.59 |    0.03 |              0 |                    13 |                      -0 |         - |          NA |
-            |                            |       |          |           |           |       |         |                |                       |                         |           |             |
-            | DictionarySlim_TryGetValue |    10 | 7.677 ns | 0.1647 ns | 0.1375 ns |  1.00 |    0.00 |              0 |                    20 |                       0 |         - |          NA |
-            |     FHashMap91_TryGetValue |    10 | 4.488 ns | 0.1183 ns | 0.1049 ns |  0.59 |    0.02 |              0 |                    13 |                       0 |         - |          NA |
-            |                            |       |          |           |           |       |         |                |                       |                         |           |             |
-            | DictionarySlim_TryGetValue |   100 | 7.824 ns | 0.2102 ns | 0.2947 ns |  1.00 |    0.00 |              0 |                    20 |                       0 |         - |          NA |
-            |     FHashMap91_TryGetValue |   100 | 3.459 ns | 0.1538 ns | 0.3277 ns |  0.45 |    0.05 |             -0 |                    13 |                      -0 |         - |          NA |
-            |                            |       |          |           |           |       |         |                |                       |                         |           |             |
-            | DictionarySlim_TryGetValue |  1000 | 7.608 ns | 0.1997 ns | 0.1770 ns |  1.00 |    0.00 |              0 |                    20 |                       0 |         - |          NA |
-            |     FHashMap91_TryGetValue |  1000 | 6.384 ns | 0.1427 ns | 0.1114 ns |  0.84 |    0.03 |              0 |                    14 |                       0 |         - |          NA |
-
-            ## No more sparce anymore
-
-            |                        Method | Count |     Mean |     Error |    StdDev |   Median | Ratio | RatioSD | BranchInstructions/Op | CacheMisses/Op | BranchMispredictions/Op | Allocated | Alloc Ratio |
-            |------------------------------ |------ |---------:|----------:|----------:|---------:|------:|--------:|----------------------:|---------------:|------------------------:|----------:|------------:|
-            |    DictionarySlim_TryGetValue |     1 | 6.759 ns | 0.2002 ns | 0.2603 ns | 6.704 ns |  1.00 |    0.00 |                    20 |              0 |                      -0 |         - |          NA |
-            |        FHashMap91_TryGetValue |     1 | 4.512 ns | 0.1337 ns | 0.2271 ns | 4.432 ns |  0.67 |    0.05 |                    11 |              0 |                      -0 |         - |          NA |
-            | FHashMap91_TryGetValue_Golden |     1 | 4.187 ns | 0.1022 ns | 0.0906 ns | 4.167 ns |  0.62 |    0.03 |                    11 |             -0 |                      -0 |         - |          NA |
-            |                               |       |          |           |           |          |       |         |                       |                |                         |           |             |
-            |    DictionarySlim_TryGetValue |    10 | 8.225 ns | 0.4388 ns | 1.2938 ns | 7.602 ns |  1.00 |    0.00 |                    20 |              0 |                       0 |         - |          NA |
-            |        FHashMap91_TryGetValue |    10 | 4.434 ns | 0.1415 ns | 0.1453 ns | 4.434 ns |  0.58 |    0.06 |                    11 |              0 |                       0 |         - |          NA |
-            | FHashMap91_TryGetValue_Golden |    10 | 4.498 ns | 0.1236 ns | 0.1033 ns | 4.472 ns |  0.59 |    0.05 |                    11 |              0 |                       0 |         - |          NA |
-            |                               |       |          |           |           |          |       |         |                       |                |                         |           |             |
-            |    DictionarySlim_TryGetValue |   100 | 7.067 ns | 0.1470 ns | 0.1303 ns | 7.080 ns |  1.00 |    0.00 |                    20 |              0 |                       0 |         - |          NA |
-            |        FHashMap91_TryGetValue |   100 | 4.481 ns | 0.1484 ns | 0.2311 ns | 4.398 ns |  0.64 |    0.04 |                    11 |              0 |                      -0 |         - |          NA |
-            | FHashMap91_TryGetValue_Golden |   100 | 8.215 ns | 0.2181 ns | 0.2240 ns | 8.178 ns |  1.17 |    0.04 |                    17 |              0 |                       0 |         - |          NA |
-            |                               |       |          |           |           |          |       |         |                       |                |                         |           |             |
-            |    DictionarySlim_TryGetValue |  1000 | 8.744 ns | 0.6189 ns | 1.8151 ns | 7.838 ns |  1.00 |    0.00 |                    20 |              0 |                       0 |         - |          NA |
-            |        FHashMap91_TryGetValue |  1000 | 5.755 ns | 0.1660 ns | 0.1912 ns | 5.715 ns |  0.73 |    0.09 |                    14 |              0 |                       0 |         - |          NA |
-            | FHashMap91_TryGetValue_Golden |  1000 | 7.732 ns | 0.1953 ns | 0.2325 ns | 7.705 ns |  0.97 |    0.13 |                    17 |              0 |                       0 |         - |          NA |
-
-            ## Final load factor 87.5% and no golden results
-
-            |                     Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | BranchInstructions/Op | BranchMispredictions/Op | CacheMisses/Op | Allocated | Alloc Ratio |
-            |--------------------------- |------ |---------:|----------:|----------:|------:|--------:|----------------------:|------------------------:|---------------:|----------:|------------:|
-            | DictionarySlim_TryGetValue |     1 | 6.830 ns | 0.1073 ns | 0.1004 ns |  1.00 |    0.00 |                    20 |                       0 |              0 |         - |          NA |
-            |     FHashMap91_TryGetValue |     1 | 4.230 ns | 0.1149 ns | 0.1075 ns |  0.62 |    0.02 |                    11 |                       0 |              0 |         - |          NA |
-            |                            |       |          |           |           |       |         |                       |                         |                |           |             |
-            | DictionarySlim_TryGetValue |    10 | 6.980 ns | 0.0918 ns | 0.0717 ns |  1.00 |    0.00 |                    20 |                       0 |              0 |         - |          NA |
-            |     FHashMap91_TryGetValue |    10 | 4.259 ns | 0.0673 ns | 0.0562 ns |  0.61 |    0.01 |                    11 |                       0 |              0 |         - |          NA |
-            |                            |       |          |           |           |       |         |                       |                         |                |           |             |
-            | DictionarySlim_TryGetValue |   100 | 6.975 ns | 0.1016 ns | 0.0849 ns |  1.00 |    0.00 |                    20 |                       0 |              0 |         - |          NA |
-            |     FHashMap91_TryGetValue |   100 | 4.414 ns | 0.1426 ns | 0.2342 ns |  0.64 |    0.03 |                    11 |                       0 |              0 |         - |          NA |
-            |                            |       |          |           |           |       |         |                       |                         |                |           |             |
-            | DictionarySlim_TryGetValue |  1000 | 6.889 ns | 0.0773 ns | 0.0685 ns |  1.00 |    0.00 |                    20 |                       0 |              0 |         - |          NA |
-            |     FHashMap91_TryGetValue |  1000 | 5.633 ns | 0.1079 ns | 0.1243 ns |  0.82 |    0.02 |                    14 |                       0 |              0 |         - |          NA |
-
-            ## ArrayEntries
-
-            |                     Method | Count |     Mean |     Error |    StdDev |   Median | Ratio | RatioSD | CacheMisses/Op | BranchInstructions/Op | BranchMispredictions/Op | Allocated | Alloc Ratio |
-            |--------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|---------------:|----------------------:|------------------------:|----------:|------------:|
-            | DictionarySlim_TryGetValue |  1000 | 7.223 ns | 0.2535 ns | 0.7193 ns | 6.887 ns |  1.00 |    0.00 |              0 |                    20 |                       0 |         - |          NA |
-            |     FHashMap91_TryGetValue |  1000 | 5.108 ns | 0.1634 ns | 0.2819 ns | 4.996 ns |  0.69 |    0.09 |             -0 |                    14 |                       0 |         - |          NA |
-
-            ## ArrayArrayEntries
-
-            |                     Method | Count |     Mean |     Error |    StdDev |   Median | Ratio | RatioSD | BranchInstructions/Op | BranchMispredictions/Op | CacheMisses/Op | Allocated | Alloc Ratio |
-            |--------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|----------------------:|------------------------:|---------------:|----------:|------------:|
-            | DictionarySlim_TryGetValue |     1 | 7.053 ns | 0.1174 ns | 0.1041 ns | 7.021 ns |  1.00 |    0.00 |                    20 |                       0 |              0 |         - |          NA |
-            |     FHashMap91_TryGetValue |     1 | 4.948 ns | 0.1446 ns | 0.2119 ns | 4.845 ns |  0.70 |    0.04 |                    11 |                       0 |              0 |         - |          NA |
-            |                            |       |          |           |           |          |       |         |                       |                         |                |           |             |
-            | DictionarySlim_TryGetValue |    10 | 7.475 ns | 0.1732 ns | 0.2747 ns | 7.384 ns |  1.00 |    0.00 |                    20 |                       0 |              0 |         - |          NA |
-            |     FHashMap91_TryGetValue |    10 | 4.900 ns | 0.1541 ns | 0.1366 ns | 4.862 ns |  0.65 |    0.03 |                    11 |                       0 |              0 |         - |          NA |
-            |                            |       |          |           |           |          |       |         |                       |                         |                |           |             |
-            | DictionarySlim_TryGetValue |   100 | 8.120 ns | 0.4747 ns | 1.3995 ns | 7.386 ns |  1.00 |    0.00 |                    20 |                      -0 |              0 |         - |          NA |
-            |     FHashMap91_TryGetValue |   100 | 5.129 ns | 0.1593 ns | 0.4251 ns | 4.985 ns |  0.64 |    0.12 |                    11 |                       0 |              0 |         - |          NA |
-            |                            |       |          |           |           |          |       |         |                       |                         |                |           |             |
-            | DictionarySlim_TryGetValue |  1000 | 7.289 ns | 0.1912 ns | 0.3088 ns | 7.137 ns |  1.00 |    0.00 |                    20 |                       0 |              0 |         - |          NA |
-            |     FHashMap91_TryGetValue |  1000 | 6.262 ns | 0.1232 ns | 0.0962 ns | 6.277 ns |  0.86 |    0.04 |                    14 |                       0 |              0 |         - |          NA |
-
-            ## SmallMap + net8.0
-
-            BenchmarkDotNet v0.13.10, Windows 11 (10.0.22621.2428/22H2/2022Update/SunValley2)
-            11th Gen Intel Core i7-1185G7 3.00GHz, 1 CPU, 8 logical and 4 physical cores
-            .NET SDK 8.0.100-rc.2.23502.2
-            [Host]     : .NET 8.0.0 (8.0.23.47906), X64 RyuJIT AVX2
-            DefaultJob : .NET 8.0.0 (8.0.23.47906), X64 RyuJIT AVX2
-
-            | Method                     | Count | Mean     | Error     | StdDev    | Ratio | RatioSD | BranchInstructions/Op | BranchMispredictions/Op | CacheMisses/Op | Allocated | Alloc Ratio |
-            |--------------------------- |------ |---------:|----------:|----------:|------:|--------:|----------------------:|------------------------:|---------------:|----------:|------------:|
-            | Dictionary_TryGetValue     | 100   | 6.938 ns | 0.1719 ns | 0.2574 ns |  1.00 |    0.00 |                    21 |                       0 |              0 |         - |          NA |
-            | DictionarySlim_TryGetValue | 100   | 5.371 ns | 0.1277 ns | 0.1132 ns |  0.77 |    0.03 |                    15 |                       0 |              0 |         - |          NA |
-            | SmallMap_TryGetValue       | 100   | 3.718 ns | 0.1360 ns | 0.2453 ns |  0.54 |    0.04 |                     9 |                       0 |              0 |         - |          NA |
-
-
-            ## SmallMap + FEC_FHashMap + net6.0
-
-            | Method                     | Count | Mean     | Error     | StdDev    | Median   | Ratio | RatioSD | BranchInstructions/Op | CacheMisses/Op | BranchMispredictions/Op | Allocated | Alloc Ratio |
-            |--------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|----------------------:|---------------:|------------------------:|----------:|------------:|
-            | DictionarySlim_TryGetValue | 1     | 5.592 ns | 0.4244 ns | 1.2448 ns | 4.835 ns |  1.00 |    0.00 |                    15 |              0 |                       0 |         - |          NA |
-            | SmallMap_TryGetValue       | 1     | 2.958 ns | 0.1059 ns | 0.0990 ns | 2.970 ns |  0.44 |    0.03 |                     9 |             -0 |                      -0 |         - |          NA |
-            | FHashMap_TryGetValue       | 1     | 1.297 ns | 0.0757 ns | 0.0777 ns | 1.288 ns |  0.19 |    0.01 |                     6 |             -0 |                       0 |         - |          NA |
-            |                            |       |          |           |           |          |       |         |                       |                |                         |           |             |
-            | DictionarySlim_TryGetValue | 10    | 5.208 ns | 0.1485 ns | 0.1240 ns | 5.181 ns |  1.00 |    0.00 |                    15 |              0 |                       0 |         - |          NA |
-            | SmallMap_TryGetValue       | 10    | 3.709 ns | 0.1739 ns | 0.4551 ns | 3.548 ns |  0.69 |    0.07 |                     9 |              0 |                       0 |         - |          NA |
-            | FHashMap_TryGetValue       | 10    | 5.539 ns | 0.4004 ns | 1.1487 ns | 5.612 ns |  0.98 |    0.22 |                    10 |             -0 |                      -0 |         - |          NA |
-            |                            |       |          |           |           |          |       |         |                       |                |                         |           |             |
-            | DictionarySlim_TryGetValue | 100   | 5.296 ns | 0.1654 ns | 0.3898 ns | 5.176 ns |  1.00 |    0.00 |                    15 |              0 |                       0 |         - |          NA |
-            | SmallMap_TryGetValue       | 100   | 3.549 ns | 0.1293 ns | 0.2490 ns | 3.486 ns |  0.66 |    0.07 |                     9 |              0 |                       0 |         - |          NA |
-            | FHashMap_TryGetValue       | 100   | 4.265 ns | 0.1406 ns | 0.1098 ns | 4.268 ns |  0.80 |    0.08 |                    10 |              0 |                      -0 |         - |          NA |
-
-            ## SmallMap SIMD vs...   
-
-            BenchmarkDotNet v0.15.0, Windows 11 (10.0.26100.4202/24H2/2024Update/HudsonValley)
-            Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
-            .NET SDK 9.0.203
-            [Host]     : .NET 9.0.4 (9.0.425.16305), X64 RyuJIT AVX2
-            DefaultJob : .NET 9.0.4 (9.0.425.16305), X64 RyuJIT AVX2
-
-
-            | Method                     | Count | Mean     | Error     | StdDev    | Median   | Ratio | RatioSD | Rank | Allocated | Alloc Ratio |
-            |--------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|-----:|----------:|------------:|
-            | FHashMap_TryGetValue       | 1     | 1.580 ns | 0.0212 ns | 0.0199 ns | 1.587 ns |  0.35 |    0.03 |    1 |         - |          NA |
-            | DictionarySlim_TryGetValue | 1     | 4.592 ns | 0.1535 ns | 0.4202 ns | 4.452 ns |  1.01 |    0.13 |    2 |         - |          NA |
-            | SmallMap_TryGetValue       | 1     | 5.367 ns | 0.0884 ns | 0.0738 ns | 5.378 ns |  1.18 |    0.10 |    3 |         - |          NA |
-            |                            |       |          |           |           |          |       |         |      |           |             |
-            | DictionarySlim_TryGetValue | 10    | 4.165 ns | 0.0467 ns | 0.0414 ns | 4.156 ns |  1.00 |    0.01 |    1 |         - |          NA |
-            | FHashMap_TryGetValue       | 10    | 4.455 ns | 0.0285 ns | 0.0253 ns | 4.457 ns |  1.07 |    0.01 |    2 |         - |          NA |
-            | SmallMap_TryGetValue       | 10    | 5.302 ns | 0.1556 ns | 0.1852 ns | 5.369 ns |  1.27 |    0.05 |    3 |         - |          NA |
-            |                            |       |          |           |           |          |       |         |      |           |             |
-            | DictionarySlim_TryGetValue | 100   | 4.777 ns | 0.1559 ns | 0.4472 ns | 4.576 ns |  1.01 |    0.13 |    1 |         - |          NA |
-            | FHashMap_TryGetValue       | 100   | 6.020 ns | 0.1795 ns | 0.2335 ns | 6.017 ns |  1.27 |    0.13 |    2 |         - |          NA |
-            | SmallMap_TryGetValue       | 100   | 6.021 ns | 0.1808 ns | 0.4827 ns | 6.293 ns |  1.27 |    0.15 |    2 |         - |          NA |
-
-            ## SmallMap vs FHashMap11
-
-            | Method                     | Count | Mean     | Error     | StdDev    | Median   | Ratio | RatioSD | Rank | Allocated | Alloc Ratio |
-            |--------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|-----:|----------:|------------:|
-            | DictionarySlim_TryGetValue | 1000  | 2.225 us | 0.0445 us | 0.1313 us | 2.162 us |  1.00 |    0.08 |    1 |         - |          NA |
-            | SmallMap_TryGetValue       | 1000  | 2.364 us | 0.0387 us | 0.0302 us | 2.377 us |  1.07 |    0.06 |    1 |         - |          NA |
-            | FHashMap11_TryGetValue     | 1000  | 2.387 us | 0.0477 us | 0.1170 us | 2.434 us |  1.08 |    0.08 |    1 |         - |          NA |
-
-            ## APL FHashMap11
-
-            | Method                     | Count | Mean     | Error     | StdDev    | Ratio | RatioSD | Rank | Allocated | Alloc Ratio |
-            |--------------------------- |------ |---------:|----------:|----------:|------:|--------:|-----:|----------:|------------:|
-            | DictionarySlim_TryGetValue | 1000  | 2.195 us | 0.0437 us | 0.1217 us |  1.00 |    0.08 |    1 |         - |          NA |
-            | FHashMap11_TryGetValue     | 1000  | 2.333 us | 0.0465 us | 0.0929 us |  1.07 |    0.07 |    2 |         - |          NA |
-            | SmallMap_TryGetValue       | 1000  | 2.514 us | 0.0489 us | 0.0789 us |  1.15 |    0.07 |    3 |         - |          NA |
-
-            ## Reshuffle the lookup comparison
-
-            | Method                     | Count | Mean        | Error     | StdDev     | Ratio | RatioSD | Rank | Allocated | Alloc Ratio |
-            |--------------------------- |------ |------------:|----------:|-----------:|------:|--------:|-----:|----------:|------------:|
-            | SmallMap_TryGetValue       | 10    |    44.90 ns |  0.536 ns |   0.419 ns |  0.99 |    0.04 |    1 |         - |          NA |
-            | DictionarySlim_TryGetValue | 10    |    45.43 ns |  0.941 ns |   1.857 ns |  1.00 |    0.06 |    1 |         - |          NA |
-            |                            |       |             |           |            |       |         |      |           |             |
-            | DictionarySlim_TryGetValue | 100   |   385.36 ns |  4.621 ns |   4.097 ns |  1.00 |    0.01 |    1 |         - |          NA |
-            | SmallMap_TryGetValue       | 100   |   513.52 ns |  5.702 ns |   5.054 ns |  1.33 |    0.02 |    2 |         - |          NA |
-            |                            |       |             |           |            |       |         |      |           |             |
-            | SmallMap_TryGetValue       | 1000  | 4,255.63 ns | 82.286 ns | 130.514 ns |  0.89 |    0.04 |    1 |         - |          NA |
-            | DictionarySlim_TryGetValue | 1000  | 4,794.12 ns | 95.912 ns | 189.322 ns |  1.00 |    0.06 |    2 |         - |          NA |
-
-            ## Stack hybrid from the FEC is tested
-
-            | Method                                                   | Count | Mean     | Error   | StdDev   | Ratio | RatioSD | Rank | Gen0   | Allocated | Alloc Ratio |
-            |--------------------------------------------------------- |------ |---------:|--------:|---------:|------:|--------:|-----:|-------:|----------:|------------:|
-            | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 10    | 203.5 ns | 3.88 ns |  3.63 ns |  0.70 |    0.03 |    1 | 0.1147 |     720 B |        0.67 |
-            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 10    | 277.6 ns | 3.61 ns |  5.52 ns |  0.95 |    0.04 |    2 |      - |         - |        0.00 |
-            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 10    | 292.1 ns | 5.84 ns | 12.19 ns |  1.00 |    0.06 |    2 | 0.1707 |    1072 B |        1.00 |
-
-            ## After inlining in the FecHashMap
-
-            | Method                                                   | Count | Mean       | Error    | StdDev   | Median     | Ratio | RatioSD | Rank | Gen0   | Gen1   | Allocated | Alloc Ratio |
-            |--------------------------------------------------------- |------ |-----------:|---------:|---------:|-----------:|------:|--------:|-----:|-------:|-------:|----------:|------------:|
-            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 10    |   110.8 ns |  2.26 ns |  4.90 ns |   110.1 ns |  0.38 |    0.02 |    1 |      - |      - |         - |        0.00 |
-            | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 10    |   194.1 ns |  1.80 ns |  1.50 ns |   194.2 ns |  0.67 |    0.03 |    2 | 0.1147 |      - |     720 B |        0.67 |
-            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 10    |   288.7 ns |  5.82 ns | 14.04 ns |   280.1 ns |  1.00 |    0.07 |    3 | 0.1707 |      - |    1072 B |        1.00 |
-            |                                                          |       |            |          |          |            |       |         |      |        |        |           |             |
-            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 100   | 2,003.8 ns | 30.26 ns | 31.08 ns | 1,995.1 ns |  1.00 |    0.02 |    1 | 1.1902 | 0.0229 |    7488 B |        1.00 |
-            | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 100   | 2,306.8 ns | 18.67 ns | 15.59 ns | 2,307.0 ns |  1.15 |    0.02 |    2 | 0.8507 |      - |    5344 B |        0.71 |
-            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 100   | 3,473.7 ns | 15.97 ns | 13.34 ns | 3,470.3 ns |  1.73 |    0.03 |    3 | 0.7782 |      - |    4904 B |        0.65 |
-
-            ## Probes are separate from the packed hashes and indexes into their own array
-
-            | Method                                                   | Count | Mean     | Error     | StdDev    | Ratio | RatioSD | Rank | Gen0   | Gen1   | Allocated | Alloc Ratio |
-            |--------------------------------------------------------- |------ |---------:|----------:|----------:|------:|--------:|-----:|-------:|-------:|----------:|------------:|
-            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 100   | 2.118 us | 0.0421 us | 0.0679 us |  1.00 |    0.04 |    1 | 1.1902 | 0.0229 |   7.31 KB |        1.00 |
-            | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 100   | 2.346 us | 0.0404 us | 0.0378 us |  1.11 |    0.04 |    2 | 0.8507 |      - |   5.22 KB |        0.71 |
-            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 100   | 3.294 us | 0.0648 us | 0.0970 us |  1.56 |    0.07 |    3 | 0.8278 |      - |   5.08 KB |        0.69 |
-
-            ## GoldenRatio Hash adjustment
-
-            | Method                                                   | Count | Mean     | Error     | StdDev    | Median   | Ratio | RatioSD | Rank | Gen0   | Gen1   | Allocated | Alloc Ratio |
-            |--------------------------------------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|-----:|-------:|-------:|----------:|------------:|        
-            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 100   | 2.150 us | 0.0428 us | 0.0783 us | 2.115 us |  1.00 |    0.05 |    1 | 1.1902 | 0.0229 |   7.31 KB |        1.00 |        
-            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 100   | 3.092 us | 0.0608 us | 0.0871 us | 3.068 us |  1.44 |    0.06 |    2 | 0.8278 |      - |   5.08 KB |        0.69 |
-
-            ## After probes go to their own array + padding + wrapping
-
-            | Method                                                   | Count | Mean        | Error     | StdDev      | Median      | Ratio | RatioSD | Rank | Gen0   | Gen1   | Allocated | Alloc Ratio |
-            |--------------------------------------------------------- |------ |------------:|----------:|------------:|------------:|------:|--------:|-----:|-------:|-------:|----------:|------------:|
-            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 10    |    111.6 ns |   1.16 ns |     0.97 ns |    111.8 ns |  0.38 |    0.01 |    1 |      - |      - |         - |        0.00 |
-            | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 10    |    205.1 ns |   3.46 ns |     3.24 ns |    204.4 ns |  0.70 |    0.02 |    2 | 0.1147 |      - |     720 B |        0.67 |
-            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 10    |    292.2 ns |   5.53 ns |     5.68 ns |    291.4 ns |  1.00 |    0.03 |    3 | 0.1707 |      - |    1072 B |        1.00 |
-            |                                                          |       |             |           |             |             |       |         |      |        |        |           |             |
-            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 100   |  2,121.8 ns |  42.34 ns |    91.14 ns |  2,070.2 ns |  1.00 |    0.06 |    1 | 1.1902 | 0.0229 |    7488 B |        1.00 |
-            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 100   |  2,181.5 ns |  43.38 ns |    91.50 ns |  2,127.6 ns |  1.03 |    0.06 |    1 | 0.8659 | 0.0038 |    5440 B |        0.73 |
-            | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 100   |  2,347.8 ns |  14.31 ns |    12.69 ns |  2,343.7 ns |  1.11 |    0.05 |    2 | 0.8507 |      - |    5344 B |        0.71 |
-            |                                                          |       |             |           |             |             |       |         |      |        |        |           |             |
-            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 1000  | 23,640.4 ns | 280.02 ns |   248.23 ns | 23,620.0 ns |  1.00 |    0.01 |    1 | 9.1553 | 1.2817 |   57808 B |        1.00 |
-            | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 1000  | 45,226.9 ns | 293.55 ns |   245.13 ns | 45,221.9 ns |  1.91 |    0.02 |    2 | 7.8735 | 0.3052 |   49544 B |        0.86 |
-            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 1000  | 49,441.1 ns | 987.34 ns | 1,780.38 ns | 49,657.1 ns |  2.09 |    0.08 |    3 | 8.9111 | 0.0610 |   55976 B |        0.97 |
-
-            ## Initial SIMD for Lookup - Regression in @perf
-            
-            | Method                                                   | Count | Mean        | Error     | StdDev      | Median      | Ratio | RatioSD | Rank | Gen0   | Gen1   | Allocated | Alloc Ratio |
-            |--------------------------------------------------------- |------ |------------:|----------:|------------:|------------:|------:|--------:|-----:|-------:|-------:|----------:|------------:|
-            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 10    |    111.3 ns |   1.88 ns |     1.67 ns |    110.6 ns |  0.38 |    0.01 |    1 |      - |      - |         - |        0.00 |
-            | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 10    |    211.8 ns |   4.21 ns |     7.91 ns |    210.4 ns |  0.72 |    0.03 |    2 | 0.1147 |      - |     720 B |        0.67 |
-            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 10    |    293.1 ns |   5.18 ns |     4.33 ns |    293.5 ns |  1.00 |    0.02 |    3 | 0.1707 |      - |    1072 B |        1.00 |
-            |                                                          |       |             |           |             |             |       |         |      |        |        |           |             |
-            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 100   |  2,112.8 ns |  19.17 ns |    16.00 ns |  2,108.5 ns |  1.00 |    0.01 |    1 | 1.1902 | 0.0229 |    7488 B |        1.00 |
-            | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 100   |  2,433.3 ns |  47.99 ns |    95.84 ns |  2,383.6 ns |  1.15 |    0.05 |    2 | 0.8507 |      - |    5344 B |        0.71 |
-            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 100   |  2,548.7 ns |  50.70 ns |   106.95 ns |  2,491.5 ns |  1.21 |    0.05 |    2 | 0.8659 | 0.0038 |    5440 B |        0.73 |
-            |                                                          |       |             |           |             |             |       |         |      |        |        |           |             |
-            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 1000  | 23,127.6 ns | 233.36 ns |   182.20 ns | 23,143.0 ns |  1.00 |    0.01 |    1 | 9.1553 | 1.2817 |   57808 B |        1.00 |
-            | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 1000  | 45,630.3 ns | 912.10 ns | 1,735.36 ns | 44,696.8 ns |  1.97 |    0.08 |    2 | 7.8735 | 0.3052 |   49544 B |        0.86 |
-            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 1000  | 49,295.9 ns | 327.44 ns |   273.43 ns | 49,364.4 ns |  2.13 |    0.02 |    3 | 8.9111 | 0.0610 |   55976 B |        0.97 |
-
-            ## Using StableArrayEntries 
-
-            | Method                                                   | Count | Mean        | Error       | StdDev      | Median      | Ratio | RatioSD | Rank | Gen0   | Gen1   | Allocated | Alloc Ratio |
-            |--------------------------------------------------------- |------ |------------:|------------:|------------:|------------:|------:|--------:|-----:|-------:|-------:|----------:|------------:|
-            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 10    |    113.3 ns |     2.32 ns |     5.42 ns |    110.1 ns |  0.37 |    0.02 |    1 |      - |      - |         - |        0.00 |
-            | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 10    |    204.5 ns |     2.73 ns |     2.42 ns |    204.0 ns |  0.67 |    0.03 |    2 | 0.1147 |      - |     720 B |        0.67 |
-            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 10    |    305.6 ns |     6.11 ns |    14.40 ns |    299.0 ns |  1.00 |    0.06 |    3 | 0.1707 |      - |    1072 B |        1.00 |
-            |                                                          |       |             |             |             |             |       |         |      |        |        |           |             |
-            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 100   |  2,172.7 ns |    43.50 ns |   102.53 ns |  2,138.9 ns |  1.00 |    0.07 |    1 | 1.1902 | 0.0229 |    7488 B |        1.00 |
-            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 100   |  2,317.2 ns |    46.33 ns |   100.71 ns |  2,255.9 ns |  1.07 |    0.07 |    1 | 0.4921 |      - |    3088 B |        0.41 |
-            | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 100   |  2,452.2 ns |    49.04 ns |   109.69 ns |  2,512.7 ns |  1.13 |    0.07 |    2 | 0.8507 |      - |    5344 B |        0.71 |
-            |                                                          |       |             |             |             |             |       |         |      |        |        |           |             |
-            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 1000  | 29,665.4 ns |   588.68 ns | 1,581.45 ns | 29,786.1 ns |  1.00 |    0.08 |    1 | 9.1553 | 1.2817 |   57808 B |        1.00 |
-            | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 1000  | 55,723.9 ns | 1,098.60 ns | 1,078.97 ns | 55,599.6 ns |  1.88 |    0.12 |    2 | 7.8735 | 0.3052 |   49544 B |        0.86 |
-            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 1000  | 63,373.1 ns | 1,260.87 ns | 2,106.62 ns | 63,624.5 ns |  2.14 |    0.14 |    3 | 6.2256 | 0.2441 |   39288 B |        0.68 |
-
-            ## Packing indexes, hashes and probes together
-
-            | Method                                                   | Count | Mean     | Error    | StdDev   | Median   | Ratio | RatioSD | Rank | Gen0   | Gen1   | Allocated | Alloc Ratio |
-            |--------------------------------------------------------- |------ |---------:|---------:|---------:|---------:|------:|--------:|-----:|-------:|-------:|----------:|------------:|
-            | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 1000  | 24.17 us | 0.483 us | 1.176 us | 23.48 us |  1.00 |    0.07 |    1 | 9.1553 | 1.2817 |  56.45 KB |        1.00 |
-            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 1000  | 52.85 us | 1.053 us | 1.871 us | 52.14 us |  2.19 |    0.13 |    2 | 7.8125 | 0.2441 |  48.05 KB |        0.85 |
-
-            ## Packing indexes, hashes and probes together with Resize vs no Resize
-
-            | Method                                                        | Count | Mean     | Error    | StdDev   | Median   | Ratio | RatioSD | Rank | Gen0   | Gen1   | Allocated | Alloc Ratio |
-            |-------------------------------------------------------------- |------ |---------:|---------:|---------:|---------:|------:|--------:|-----:|-------:|-------:|----------:|------------:|
-            | FecHashMap_Init1000_PopulateThenLookup_HalfMissed_HalfPresent | 1000  | 36.08 us | 0.329 us | 0.275 us | 36.08 us |  0.66 |    0.03 |    1 | 7.9346 | 0.4883 |  48.73 KB |        1.01 |
-            | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent          | 1000  | 55.17 us | 0.985 us | 2.453 us | 54.41 us |  1.00 |    0.06 |    2 | 7.8125 | 0.2441 |  48.05 KB |        1.00 |
-
-            */
-            // [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
-            // [Params(10, 100, 1000)]
-            [Params(1000)]
-            public int Count;
-
-            private Type[] _presentKeys;
-            private Type[] _randomPresentKeys;
-
-            [GlobalSetup]
-            public void Populate()
+            var id = TypeKey<TKey>.Id;
+            return id >= _values.Length ? default : _values[id];
+        }
+
+        // ReSharper disable once UnusedTypeParameter
+        private static class TypeKey<TKey>
+        {
+            // ReSharper disable once StaticMemberInGenericType
+            internal static readonly int Id = Interlocked.Increment(ref typeIndex);
+        }
+    }
+
+    [MemoryDiagnoser, RankColumn, Orderer(SummaryOrderPolicy.FastestToSlowest)]
+    // [HardwareCounters(HardwareCounter.CacheMisses, HardwareCounter.BranchMispredictions, HardwareCounter.BranchInstructions)]
+    public class Lookup
+    {
+        /*
+        ## 21.01.2019: All versions.
+
+                       Method |     Mean |     Error |    StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+        --------------------- |---------:|----------:|----------:|------:|------------:|------------:|------------:|--------------------:|
+         GetValueOrDefault_v1 | 13.74 ns | 0.0686 ns | 0.0642 ns |  0.79 |           - |           - |           - |                   - |
+            GetValueOrDefault | 17.43 ns | 0.0924 ns | 0.0864 ns |  1.00 |           - |           - |           - |                   - |
+         GetValueOrDefault_v2 | 19.15 ns | 0.0786 ns | 0.0656 ns |  1.10 |           - |           - |           - |                   - |
+         GetValueOrDefault_v3 | 25.73 ns | 0.0711 ns | 0.0665 ns |  1.48 |           - |           - |           - |                   - |
+
+        ## For some reason dropping lookup speed with only changes to AddOrUpdate
+
+                       Method |     Mean |     Error |    StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+        --------------------- |---------:|----------:|----------:|------:|------------:|------------:|------------:|--------------------:|
+         GetValueOrDefault_v1 | 13.89 ns | 0.0938 ns | 0.0877 ns |  0.80 |           - |           - |           - |                   - |
+            GetValueOrDefault | 17.40 ns | 0.0888 ns | 0.0831 ns |  1.00 |           - |           - |           - |                   - |
+         GetValueOrDefault_v2 | 19.04 ns | 0.0712 ns | 0.0666 ns |  1.09 |           - |           - |           - |                   - |
+         GetValueOrDefault_v3 | 25.93 ns | 0.0474 ns | 0.0420 ns |  1.49 |           - |           - |           - |                   - |
+
+        ## Got back some perf by moving GetValueOrDefault to static method and specializing for Type
+
+                       Method |     Mean |     Error |    StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+        --------------------- |---------:|----------:|----------:|------:|------------:|------------:|------------:|--------------------:|
+         GetValueOrDefault_v1 | 13.87 ns | 0.0400 ns | 0.0355 ns |  0.85 |           - |           - |           - |                   - |
+            GetValueOrDefault | 16.34 ns | 0.0932 ns | 0.0826 ns |  1.00 |           - |           - |           - |                   - |
+         GetValueOrDefault_v2 | 19.18 ns | 0.0460 ns | 0.0430 ns |  1.17 |           - |           - |           - |                   - |
+         GetValueOrDefault_v3 | 25.96 ns | 0.0756 ns | 0.0707 ns |  1.59 |           - |           - |           - |                   - |
+
+        ## Benchmark against variety of inputs on par with Populate benchmark
+
+                       Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+        --------------------- |------ |----------:|----------:|----------:|------:|--------:|------------:|------------:|------------:|--------------------:|
+         GetValueOrDefault_v1 |     5 |  6.155 ns | 0.0321 ns | 0.0301 ns |  0.98 |    0.01 |           - |           - |           - |                   - |
+            GetValueOrDefault |     5 |  6.267 ns | 0.0510 ns | 0.0452 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+         GetValueOrDefault_v2 |     5 |  7.439 ns | 0.0763 ns | 0.0676 ns |  1.19 |    0.02 |           - |           - |           - |                   - |
+         GetValueOrDefault_v3 |     5 |  9.558 ns | 0.0409 ns | 0.0383 ns |  1.52 |    0.01 |           - |           - |           - |                   - |
+                              |       |           |           |           |       |         |             |             |             |                     |
+         GetValueOrDefault_v1 |    40 | 10.897 ns | 0.0673 ns | 0.0629 ns |  0.95 |    0.01 |           - |           - |           - |                   - |
+            GetValueOrDefault |    40 | 11.467 ns | 0.0325 ns | 0.0304 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+         GetValueOrDefault_v2 |    40 | 14.012 ns | 0.1092 ns | 0.1022 ns |  1.22 |    0.01 |           - |           - |           - |                   - |
+         GetValueOrDefault_v3 |    40 | 19.945 ns | 0.1032 ns | 0.0965 ns |  1.74 |    0.01 |           - |           - |           - |                   - |
+                              |       |           |           |           |       |         |             |             |             |                     |
+         GetValueOrDefault_v1 |   200 | 13.664 ns | 0.0291 ns | 0.0258 ns |  0.97 |    0.00 |           - |           - |           - |                   - |
+            GetValueOrDefault |   200 | 14.051 ns | 0.0524 ns | 0.0491 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+         GetValueOrDefault_v2 |   200 | 16.722 ns | 0.0568 ns | 0.0531 ns |  1.19 |    0.01 |           - |           - |           - |                   - |
+         GetValueOrDefault_v3 |   200 | 24.473 ns | 0.0792 ns | 0.0702 ns |  1.74 |    0.01 |           - |           - |           - |                   - |
+                              |       |           |           |           |       |         |             |             |             |                     |
+         GetValueOrDefault_v1 |  1000 | 14.213 ns | 0.1528 ns | 0.1354 ns |  0.96 |    0.01 |           - |           - |           - |                   - |
+            GetValueOrDefault |  1000 | 14.805 ns | 0.0518 ns | 0.0485 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+         GetValueOrDefault_v2 |  1000 | 16.645 ns | 0.0447 ns | 0.0419 ns |  1.12 |    0.01 |           - |           - |           - |                   - |
+         GetValueOrDefault_v3 |  1000 | 27.489 ns | 0.0890 ns | 0.0832 ns |  1.86 |    0.01 |           - |           - |           - |                   - |
+
+        ## Adding aggressive inlining to the Data { Hash, Key, Value } properties
+
+                       Method | Count |      Mean |     Error |    StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+        --------------------- |------ |----------:|----------:|----------:|------:|------------:|------------:|------------:|--------------------:|
+            GetValueOrDefault |     5 |  5.853 ns | 0.0685 ns | 0.0607 ns |  1.00 |           - |           - |           - |                   - |
+         GetValueOrDefault_v1 |     5 |  5.913 ns | 0.0373 ns | 0.0349 ns |  1.01 |           - |           - |           - |                   - |
+                              |       |           |           |           |       |             |             |             |                     |
+            GetValueOrDefault |    40 |  9.649 ns | 0.0235 ns | 0.0220 ns |  1.00 |           - |           - |           - |                   - |
+         GetValueOrDefault_v1 |    40 | 10.266 ns | 0.0236 ns | 0.0221 ns |  1.06 |           - |           - |           - |                   - |
+                              |       |           |           |           |       |             |             |             |                     |
+            GetValueOrDefault |   200 | 11.613 ns | 0.0554 ns | 0.0491 ns |  1.00 |           - |           - |           - |                   - |
+         GetValueOrDefault_v1 |   200 | 12.052 ns | 0.0555 ns | 0.0520 ns |  1.04 |           - |           - |           - |                   - |
+
+        ## Using  `!= Empty` instead of `.Height != 0` drops some perf
+
+                       Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+        --------------------- |------ |----------:|----------:|----------:|------:|--------:|------------:|------------:|------------:|--------------------:|
+         GetValueOrDefault_v1 |     5 |  5.933 ns | 0.0310 ns | 0.0290 ns |  0.93 |    0.03 |           - |           - |           - |                   - |
+            GetValueOrDefault |     5 |  6.386 ns | 0.1807 ns | 0.1602 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+                              |       |           |           |           |       |         |             |             |             |                     |
+            GetValueOrDefault |    40 |  9.820 ns | 0.0521 ns | 0.0488 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+         GetValueOrDefault_v1 |    40 | 10.257 ns | 0.0300 ns | 0.0266 ns |  1.05 |    0.01 |           - |           - |           - |                   - |
+                              |       |           |           |           |       |         |             |             |             |                     |
+            GetValueOrDefault |   200 | 11.717 ns | 0.0689 ns | 0.0644 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+         GetValueOrDefault_v1 |   200 | 12.104 ns | 0.0548 ns | 0.0486 ns |  1.03 |    0.01 |           - |           - |           - |                   - |
+
+        ## Removing `.Height != 0` check completely did not change much, but let it stay cause less code is better
+
+                       Method | Count |      Mean |     Error |    StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+        --------------------- |------ |----------:|----------:|----------:|------:|------------:|------------:|------------:|--------------------:|
+            GetValueOrDefault |     5 |  5.903 ns | 0.0612 ns | 0.0573 ns |  1.00 |           - |           - |           - |                   - |
+         GetValueOrDefault_v1 |     5 |  5.931 ns | 0.0503 ns | 0.0470 ns |  1.00 |           - |           - |           - |                   - |
+                              |       |           |           |           |       |             |             |             |                     |
+            GetValueOrDefault |    40 |  9.636 ns | 0.0419 ns | 0.0392 ns |  1.00 |           - |           - |           - |                   - |
+         GetValueOrDefault_v1 |    40 | 10.231 ns | 0.0333 ns | 0.0312 ns |  1.06 |           - |           - |           - |                   - |
+                              |       |           |           |           |       |             |             |             |                     |
+            GetValueOrDefault |   200 | 11.637 ns | 0.0721 ns | 0.0602 ns |  1.00 |           - |           - |           - |                   - |
+         GetValueOrDefault_v1 |   200 | 12.042 ns | 0.0607 ns | 0.0568 ns |  1.03 |           - |           - |           - |                   - |
+
+        ## TryFind
+
+                     Method | Count |      Mean |     Error |    StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+                ----------- |------ |----------:|----------:|----------:|------:|------------:|------------:|------------:|--------------------:|
+                 TryFind_v1 |     5 |  5.229 ns | 0.0307 ns | 0.0257 ns |  1.00 |           - |           - |           - |                   - |
+                    TryFind |     5 |  6.766 ns | 0.0695 ns | 0.0650 ns |  1.30 |           - |           - |           - |                   - |
+                            |       |           |           |           |       |             |             |             |                     |
+                 TryFind_v1 |    40 |  9.268 ns | 0.0116 ns | 0.0108 ns |  1.00 |           - |           - |           - |                   - |
+                    TryFind |    40 |  9.755 ns | 0.0219 ns | 0.0205 ns |  1.05 |           - |           - |           - |                   - |
+                            |       |           |           |           |       |             |             |             |                     |
+                 TryFind_v1 |   200 | 11.773 ns | 0.0558 ns | 0.0494 ns |  1.00 |           - |           - |           - |                   - |
+                    TryFind |   200 | 12.212 ns | 0.0456 ns | 0.0380 ns |  1.04 |           - |           - |           - |                   - |
+
+             Method | Count |      Mean |     Error |    StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+        ----------- |------ |----------:|----------:|----------:|------:|------------:|------------:|------------:|--------------------:|
+            TryFind |     5 |  5.906 ns | 0.0191 ns | 0.0178 ns |  0.97 |           - |           - |           - |                   - |
+         TryFind_v1 |     5 |  6.079 ns | 0.0947 ns | 0.0839 ns |  1.00 |           - |           - |           - |                   - |
+                    |       |           |           |           |       |             |             |             |                     |
+            TryFind |    40 |  9.211 ns | 0.0214 ns | 0.0200 ns |  0.87 |           - |           - |           - |                   - |
+         TryFind_v1 |    40 | 10.566 ns | 0.0149 ns | 0.0132 ns |  1.00 |           - |           - |           - |                   - |
+                    |       |           |           |           |       |             |             |             |                     |
+            TryFind |   200 | 11.400 ns | 0.1152 ns | 0.1078 ns |  0.88 |           - |           - |           - |                   - |
+         TryFind_v1 |   200 | 12.929 ns | 0.0712 ns | 0.0666 ns |  1.00 |           - |           - |           - |                   - |
+
+            ## GetOrDefault a bit optimized
+
+                       Method | Count |      Mean |     Error |    StdDev | Ratio | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+        --------------------- |------ |----------:|----------:|----------:|------:|------------:|------------:|------------:|--------------------:|
+            GetValueOrDefault |     5 |  6.782 ns | 0.0449 ns | 0.0398 ns |  0.96 |           - |           - |           - |                   - |
+         GetValueOrDefault_v1 |     5 |  7.042 ns | 0.0659 ns | 0.0616 ns |  1.00 |           - |           - |           - |                   - |
+                              |       |           |           |           |       |             |             |             |                     |
+            GetValueOrDefault |    40 | 10.962 ns | 0.0866 ns | 0.0768 ns |  0.99 |           - |           - |           - |                   - |
+         GetValueOrDefault_v1 |    40 | 11.094 ns | 0.0973 ns | 0.0813 ns |  1.00 |           - |           - |           - |                   - |
+                              |       |           |           |           |       |             |             |             |                     |
+            GetValueOrDefault |   200 | 13.329 ns | 0.0338 ns | 0.0299 ns |  0.97 |           - |           - |           - |                   - |
+         GetValueOrDefault_v1 |   200 | 13.722 ns | 0.0537 ns | 0.0448 ns |  1.00 |           - |           - |           - |                   - |
+
+            ## The whole result for the docs
+
+                        Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+        ---------------------- |------ |----------:|----------:|----------:|------:|--------:|------------:|------------:|------------:|--------------------:|
+                    TryFind_v1 |    10 |  7.274 ns | 0.0410 ns | 0.0384 ns |  0.98 |    0.01 |           - |           - |           - |                   - |
+                       TryFind |    10 |  7.422 ns | 0.0237 ns | 0.0222 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+         ConcurrentDict_TryGet |    10 | 21.664 ns | 0.0213 ns | 0.0189 ns |  2.92 |    0.01 |           - |           - |           - |                   - |
+          ImmutableDict_TryGet |    10 | 71.199 ns | 0.1312 ns | 0.1228 ns |  9.59 |    0.03 |           - |           - |           - |                   - |
+                               |       |           |           |           |       |         |             |             |             |                     |
+                    TryFind_v1 |   100 |  8.426 ns | 0.0236 ns | 0.0221 ns |  0.91 |    0.00 |           - |           - |           - |                   - |
+                       TryFind |   100 |  9.304 ns | 0.0305 ns | 0.0270 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+         ConcurrentDict_TryGet |   100 | 21.791 ns | 0.1072 ns | 0.0951 ns |  2.34 |    0.01 |           - |           - |           - |                   - |
+          ImmutableDict_TryGet |   100 | 74.985 ns | 0.1053 ns | 0.0879 ns |  8.06 |    0.03 |           - |           - |           - |                   - |
+                               |       |           |           |           |       |         |             |             |             |                     |
+                       TryFind |  1000 | 13.837 ns | 0.0291 ns | 0.0272 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+                    TryFind_v1 |  1000 | 16.108 ns | 0.0415 ns | 0.0367 ns |  1.16 |    0.00 |           - |           - |           - |                   - |
+         ConcurrentDict_TryGet |  1000 | 21.876 ns | 0.0325 ns | 0.0288 ns |  1.58 |    0.00 |           - |           - |           - |                   - |
+          ImmutableDict_TryGet |  1000 | 83.563 ns | 0.1046 ns | 0.0873 ns |  6.04 |    0.01 |           - |           - |           - |                   - |
+
+
+            ## 2019-03-28: Comparing vs `Dictionary<K, V>`:
+
+                                   Method | Count |      Mean |     Error |    StdDev |    Median | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+        --------------------------------- |------ |----------:|----------:|----------:|----------:|------:|--------:|------------:|------------:|------------:|--------------------:|
+                                  TryFind |    10 |  7.722 ns | 0.0451 ns | 0.0422 ns |  7.718 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+                   Dictionary_TryGetValue |    10 | 18.475 ns | 0.0502 ns | 0.0470 ns | 18.470 ns |  2.39 |    0.01 |           - |           - |           - |                   - |
+         ConcurrentDictionary_TryGetValue |    10 | 22.661 ns | 0.0463 ns | 0.0433 ns | 22.653 ns |  2.93 |    0.02 |           - |           - |           - |                   - |
+                     ImmutableDict_TryGet |    10 | 72.911 ns | 1.5234 ns | 2.1355 ns | 74.134 ns |  9.25 |    0.23 |           - |           - |           - |                   - |
+                                          |       |           |           |           |           |       |         |             |             |             |                     |
+                                  TryFind |   100 |  9.987 ns | 0.0543 ns | 0.0508 ns |  9.978 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+                   Dictionary_TryGetValue |   100 | 18.110 ns | 0.0644 ns | 0.0602 ns | 18.088 ns |  1.81 |    0.01 |           - |           - |           - |                   - |
+         ConcurrentDictionary_TryGetValue |   100 | 24.402 ns | 0.0978 ns | 0.0915 ns | 24.435 ns |  2.44 |    0.02 |           - |           - |           - |                   - |
+                     ImmutableDict_TryGet |   100 | 76.689 ns | 0.3632 ns | 0.3397 ns | 76.704 ns |  7.68 |    0.04 |           - |           - |           - |                   - |
+                                          |       |           |           |           |           |       |         |             |             |             |                     |
+                                  TryFind |  1000 | 12.600 ns | 0.1506 ns | 0.1335 ns | 12.551 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+                   Dictionary_TryGetValue |  1000 | 19.023 ns | 0.0575 ns | 0.0538 ns | 19.036 ns |  1.51 |    0.02 |           - |           - |           - |                   - |
+         ConcurrentDictionary_TryGetValue |  1000 | 22.651 ns | 0.1238 ns | 0.1097 ns | 22.613 ns |  1.80 |    0.02 |           - |           - |           - |                   - |
+                     ImmutableDict_TryGet |  1000 | 83.608 ns | 0.3105 ns | 0.2904 ns | 83.612 ns |  6.64 |    0.07 |           - |           - |           - |                   - |
+
+            ## 2019-03-29: Comparing vs `DictionarySlim<K, V>`:
+
+                                   Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+        --------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------------:|------------:|------------:|--------------------:|
+               DictionarySlim_TryGetValue |    10 |  8.228 ns | 0.0682 ns | 0.0604 ns |  1.00 |    0.01 |           - |           - |           - |                   - |
+                                  TryFind |    10 |  8.257 ns | 0.0796 ns | 0.0706 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+                   Dictionary_TryGetValue |    10 | 19.615 ns | 0.0251 ns | 0.0209 ns |  2.38 |    0.02 |           - |           - |           - |                   - |
+         ConcurrentDictionary_TryGetValue |    10 | 22.339 ns | 0.0922 ns | 0.0863 ns |  2.71 |    0.03 |           - |           - |           - |                   - |
+                     ImmutableDict_TryGet |    10 | 69.872 ns | 0.2699 ns | 0.2524 ns |  8.46 |    0.07 |           - |           - |           - |                   - |
+                                          |       |           |           |           |       |         |             |             |             |                     |
+               DictionarySlim_TryGetValue |   100 |  8.351 ns | 0.1613 ns | 0.1508 ns |  0.69 |    0.01 |           - |           - |           - |                   - |
+                                  TryFind |   100 | 12.144 ns | 0.0570 ns | 0.0533 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+                   Dictionary_TryGetValue |   100 | 17.985 ns | 0.0880 ns | 0.0823 ns |  1.48 |    0.01 |           - |           - |           - |                   - |
+         ConcurrentDictionary_TryGetValue |   100 | 22.312 ns | 0.0564 ns | 0.0471 ns |  1.84 |    0.01 |           - |           - |           - |                   - |
+                     ImmutableDict_TryGet |   100 | 75.374 ns | 0.3042 ns | 0.2846 ns |  6.21 |    0.04 |           - |           - |           - |                   - |
+                                          |       |           |           |           |       |         |             |             |             |                     |
+               DictionarySlim_TryGetValue |  1000 |  8.202 ns | 0.0713 ns | 0.0667 ns |  0.55 |    0.01 |           - |           - |           - |                   - |
+                                  TryFind |  1000 | 14.919 ns | 0.1101 ns | 0.0919 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+                   Dictionary_TryGetValue |  1000 | 18.073 ns | 0.2415 ns | 0.2141 ns |  1.21 |    0.02 |           - |           - |           - |                   - |
+         ConcurrentDictionary_TryGetValue |  1000 | 22.406 ns | 0.1039 ns | 0.0921 ns |  1.50 |    0.01 |           - |           - |           - |                   - |
+                     ImmutableDict_TryGet |  1000 | 84.215 ns | 0.2835 ns | 0.2513 ns |  5.65 |    0.04 |           - |           - |           - |                   - |
+
+        ## 2019-04-08: Full test
+
+        |                           Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+        |--------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------------:|------------:|------------:|--------------------:|
+        |                ImHashMap_TryFind |    10 |  9.072 ns | 0.0301 ns | 0.0282 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+        |             ImHashMap_TryFind_V1 |    10 |  8.405 ns | 0.0124 ns | 0.0116 ns |  0.93 |    0.00 |           - |           - |           - |                   - |
+        |       DictionarySlim_TryGetValue |    10 |  8.199 ns | 0.0118 ns | 0.0105 ns |  0.90 |    0.00 |           - |           - |           - |                   - |
+        |           Dictionary_TryGetValue |    10 | 18.151 ns | 0.0724 ns | 0.0677 ns |  2.00 |    0.01 |           - |           - |           - |                   - |
+        | ConcurrentDictionary_TryGetValue |    10 | 22.281 ns | 0.1872 ns | 0.1462 ns |  2.45 |    0.02 |           - |           - |           - |                   - |
+        |             ImmutableDict_TryGet |    10 | 70.143 ns | 0.2833 ns | 0.2650 ns |  7.73 |    0.04 |           - |           - |           - |                   - |
+        |                                  |       |           |           |           |       |         |             |             |             |                     |
+        |                ImHashMap_TryFind |   100 | 12.698 ns | 0.0545 ns | 0.0510 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+        |             ImHashMap_TryFind_V1 |   100 | 12.440 ns | 0.0145 ns | 0.0129 ns |  0.98 |    0.00 |           - |           - |           - |                   - |
+        |       DictionarySlim_TryGetValue |   100 |  8.197 ns | 0.0157 ns | 0.0139 ns |  0.65 |    0.00 |           - |           - |           - |                   - |
+        |           Dictionary_TryGetValue |   100 | 18.108 ns | 0.0263 ns | 0.0205 ns |  1.43 |    0.01 |           - |           - |           - |                   - |
+        | ConcurrentDictionary_TryGetValue |   100 | 22.834 ns | 0.0627 ns | 0.0524 ns |  1.80 |    0.01 |           - |           - |           - |                   - |
+        |             ImmutableDict_TryGet |   100 | 76.253 ns | 0.2767 ns | 0.2311 ns |  6.00 |    0.03 |           - |           - |           - |                   - |
+        |                                  |       |           |           |           |       |         |             |             |             |                     |
+        |                ImHashMap_TryFind |  1000 | 14.960 ns | 0.0457 ns | 0.0427 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+        |             ImHashMap_TryFind_V1 |  1000 | 14.614 ns | 0.0508 ns | 0.0451 ns |  0.98 |    0.00 |           - |           - |           - |                   - |
+        |       DictionarySlim_TryGetValue |  1000 |  8.209 ns | 0.0534 ns | 0.0499 ns |  0.55 |    0.00 |           - |           - |           - |                   - |
+        |           Dictionary_TryGetValue |  1000 | 18.256 ns | 0.0383 ns | 0.0320 ns |  1.22 |    0.00 |           - |           - |           - |                   - |
+        | ConcurrentDictionary_TryGetValue |  1000 | 22.261 ns | 0.1509 ns | 0.1411 ns |  1.49 |    0.01 |           - |           - |           - |                   - |
+        |             ImmutableDict_TryGet |  1000 | 83.095 ns | 0.3395 ns | 0.3176 ns |  5.55 |    0.03 |           - |           - |           - |                   - |
+
+        ## 2019-04-08: Different variants tested
+
+        |                           Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+        |--------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------------:|------------:|------------:|--------------------:|
+        |               ImHashMap_TryFind2 |    10 |  7.979 ns | 0.0446 ns | 0.0417 ns |  0.93 |    0.01 |           - |           - |           - |                   - |
+        |               ImHashMap_TryFind3 |    10 |  7.908 ns | 0.0295 ns | 0.0262 ns |  0.92 |    0.00 |           - |           - |           - |                   - |
+        |                ImHashMap_TryFind |    10 |  8.608 ns | 0.0186 ns | 0.0174 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+        |             ImHashMap_TryFind_V1 |    10 |  8.248 ns | 0.0262 ns | 0.0232 ns |  0.96 |    0.00 |           - |           - |           - |                   - |
+        |       DictionarySlim_TryGetValue |    10 |  7.212 ns | 0.0194 ns | 0.0181 ns |  0.84 |    0.00 |           - |           - |           - |                   - |
+        |           Dictionary_TryGetValue |    10 | 17.707 ns | 0.0631 ns | 0.0590 ns |  2.06 |    0.01 |           - |           - |           - |                   - |
+        | ConcurrentDictionary_TryGetValue |    10 | 22.210 ns | 0.1074 ns | 0.1004 ns |  2.58 |    0.01 |           - |           - |           - |                   - |
+        |             ImmutableDict_TryGet |    10 | 72.093 ns | 0.4162 ns | 0.3893 ns |  8.37 |    0.05 |           - |           - |           - |                   - |
+        |                                  |       |           |           |           |       |         |             |             |             |                     |
+        |               ImHashMap_TryFind2 |   100 | 11.245 ns | 0.0174 ns | 0.0163 ns |  0.92 |    0.00 |           - |           - |           - |                   - |
+        |               ImHashMap_TryFind3 |   100 | 11.488 ns | 0.0801 ns | 0.0710 ns |  0.94 |    0.01 |           - |           - |           - |                   - |
+        |                ImHashMap_TryFind |   100 | 12.165 ns | 0.0141 ns | 0.0118 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+        |             ImHashMap_TryFind_V1 |   100 | 12.272 ns | 0.0367 ns | 0.0343 ns |  1.01 |    0.00 |           - |           - |           - |                   - |
+        |       DictionarySlim_TryGetValue |   100 |  7.019 ns | 0.0516 ns | 0.0458 ns |  0.58 |    0.00 |           - |           - |           - |                   - |
+        |           Dictionary_TryGetValue |   100 | 17.825 ns | 0.1278 ns | 0.1196 ns |  1.47 |    0.01 |           - |           - |           - |                   - |
+        | ConcurrentDictionary_TryGetValue |   100 | 22.189 ns | 0.1034 ns | 0.0968 ns |  1.82 |    0.01 |           - |           - |           - |                   - |
+        |             ImmutableDict_TryGet |   100 | 75.564 ns | 0.3778 ns | 0.3534 ns |  6.21 |    0.03 |           - |           - |           - |                   - |
+        |                                  |       |           |           |           |       |         |             |             |             |                     |
+        |               ImHashMap_TryFind2 |  1000 | 15.909 ns | 0.0924 ns | 0.0864 ns |  1.07 |    0.01 |           - |           - |           - |                   - |
+        |               ImHashMap_TryFind3 |  1000 | 13.643 ns | 0.0715 ns | 0.0669 ns |  0.92 |    0.01 |           - |           - |           - |                   - |
+        |                ImHashMap_TryFind |  1000 | 14.819 ns | 0.0465 ns | 0.0412 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+        |             ImHashMap_TryFind_V1 |  1000 | 14.541 ns | 0.0555 ns | 0.0520 ns |  0.98 |    0.01 |           - |           - |           - |                   - |
+        |       DictionarySlim_TryGetValue |  1000 |  7.678 ns | 0.0341 ns | 0.0302 ns |  0.52 |    0.00 |           - |           - |           - |                   - |
+        |           Dictionary_TryGetValue |  1000 | 17.664 ns | 0.0403 ns | 0.0377 ns |  1.19 |    0.00 |           - |           - |           - |                   - |
+        | ConcurrentDictionary_TryGetValue |  1000 | 22.010 ns | 0.0497 ns | 0.0465 ns |  1.48 |    0.00 |           - |           - |           - |                   - |
+        |             ImmutableDict_TryGet |  1000 | 83.661 ns | 0.4033 ns | 0.3772 ns |  5.65 |    0.03 |           - |           - |           - |                   - |
+
+        ## Selecting the 3rd variant:
+
+        |                           Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0/1k Op | Gen 1/1k Op | Gen 2/1k Op | Allocated Memory/Op |
+        |--------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------------:|------------:|------------:|--------------------:|
+        |                ImHashMap_TryFind |    10 |  8.078 ns | 0.0405 ns | 0.0379 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+        |             ImHashMap_TryFind_V1 |    10 |  8.224 ns | 0.0114 ns | 0.0101 ns |  1.02 |    0.00 |           - |           - |           - |                   - |
+        |       DictionarySlim_TryGetValue |    10 |  7.387 ns | 0.0406 ns | 0.0380 ns |  0.91 |    0.00 |           - |           - |           - |                   - |
+        |           Dictionary_TryGetValue |    10 | 17.917 ns | 0.0429 ns | 0.0401 ns |  2.22 |    0.01 |           - |           - |           - |                   - |
+        | ConcurrentDictionary_TryGetValue |    10 | 22.256 ns | 0.0726 ns | 0.0643 ns |  2.75 |    0.01 |           - |           - |           - |                   - |
+        |             ImmutableDict_TryGet |    10 | 70.638 ns | 0.6266 ns | 0.5861 ns |  8.74 |    0.09 |           - |           - |           - |                   - |
+        |                                  |       |           |           |           |       |         |             |             |             |                     |
+        |                ImHashMap_TryFind |   100 | 11.577 ns | 0.0168 ns | 0.0141 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+        |             ImHashMap_TryFind_V1 |   100 | 12.329 ns | 0.0295 ns | 0.0276 ns |  1.07 |    0.00 |           - |           - |           - |                   - |
+        |       DictionarySlim_TryGetValue |   100 |  7.410 ns | 0.0398 ns | 0.0353 ns |  0.64 |    0.00 |           - |           - |           - |                   - |
+        |           Dictionary_TryGetValue |   100 | 17.890 ns | 0.0425 ns | 0.0377 ns |  1.55 |    0.00 |           - |           - |           - |                   - |
+        | ConcurrentDictionary_TryGetValue |   100 | 22.240 ns | 0.0654 ns | 0.0580 ns |  1.92 |    0.01 |           - |           - |           - |                   - |
+        |             ImmutableDict_TryGet |   100 | 78.697 ns | 1.1242 ns | 1.0516 ns |  6.78 |    0.08 |           - |           - |           - |                   - |
+        |                                  |       |           |           |           |       |         |             |             |             |                     |
+        |                ImHashMap_TryFind |  1000 | 13.731 ns | 0.0292 ns | 0.0258 ns |  1.00 |    0.00 |           - |           - |           - |                   - |
+        |             ImHashMap_TryFind_V1 |  1000 | 14.553 ns | 0.0370 ns | 0.0346 ns |  1.06 |    0.00 |           - |           - |           - |                   - |
+        |       DictionarySlim_TryGetValue |  1000 |  7.345 ns | 0.0208 ns | 0.0194 ns |  0.53 |    0.00 |           - |           - |           - |                   - |
+        |           Dictionary_TryGetValue |  1000 | 18.672 ns | 0.0483 ns | 0.0451 ns |  1.36 |    0.00 |           - |           - |           - |                   - |
+        | ConcurrentDictionary_TryGetValue |  1000 | 22.150 ns | 0.1141 ns | 0.1068 ns |  1.61 |    0.01 |           - |           - |           - |                   - |
+        |             ImmutableDict_TryGet |  1000 | 82.402 ns | 0.9798 ns | 0.9165 ns |  6.01 |    0.07 |           - |           - |           - |                   - |
+
+        ## V2:
+
+        BenchmarkDotNet=v0.12.0, OS=Windows 10.0.18362
+        Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+        .NET Core SDK=3.1.100
+          [Host]     : .NET Core 3.1.0 (CoreCLR 4.700.19.56402, CoreFX 4.700.19.56404), X64 RyuJIT
+          DefaultJob : .NET Core 3.1.0 (CoreCLR 4.700.19.56402, CoreFX 4.700.19.56404), X64 RyuJIT
+
+
+        |                           Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+        |--------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+        |                ImHashMap_TryFind |     1 |  4.755 ns | 0.1690 ns | 0.1878 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        |             ImHashMap_TryFind_V1 |     1 |  3.657 ns | 0.0458 ns | 0.0406 ns |  0.78 |    0.04 |     - |     - |     - |         - |
+        |           ImHashMapSlots_TryFind |     1 |  2.518 ns | 0.0149 ns | 0.0132 ns |  0.53 |    0.02 |     - |     - |     - |         - |
+        |       DictionarySlim_TryGetValue |     1 |  6.804 ns | 0.0272 ns | 0.0254 ns |  1.44 |    0.07 |     - |     - |     - |         - |
+        |           Dictionary_TryGetValue |     1 | 16.495 ns | 0.3948 ns | 0.4993 ns |  3.49 |    0.16 |     - |     - |     - |         - |
+        | ConcurrentDictionary_TryGetValue |     1 | 15.812 ns | 0.1016 ns | 0.0951 ns |  3.35 |    0.15 |     - |     - |     - |         - |
+        |             ImmutableDict_TryGet |     1 | 24.346 ns | 0.1253 ns | 0.1172 ns |  5.16 |    0.23 |     - |     - |     - |         - |
+        |                                  |       |           |           |           |       |         |       |       |       |           |
+        |                ImHashMap_TryFind |    10 |  6.080 ns | 0.0235 ns | 0.0208 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        |             ImHashMap_TryFind_V1 |    10 |  6.091 ns | 0.0707 ns | 0.0590 ns |  1.00 |    0.01 |     - |     - |     - |         - |
+        |           ImHashMapSlots_TryFind |    10 |  2.517 ns | 0.0206 ns | 0.0193 ns |  0.41 |    0.00 |     - |     - |     - |         - |
+        |       DictionarySlim_TryGetValue |    10 |  6.670 ns | 0.0278 ns | 0.0260 ns |  1.10 |    0.01 |     - |     - |     - |         - |
+        |           Dictionary_TryGetValue |    10 | 16.202 ns | 0.0634 ns | 0.0562 ns |  2.66 |    0.01 |     - |     - |     - |         - |
+        | ConcurrentDictionary_TryGetValue |    10 | 15.764 ns | 0.0659 ns | 0.0617 ns |  2.59 |    0.01 |     - |     - |     - |         - |
+        |             ImmutableDict_TryGet |    10 | 26.282 ns | 0.2232 ns | 0.2088 ns |  4.32 |    0.03 |     - |     - |     - |         - |
+        |                                  |       |           |           |           |       |         |       |       |       |           |
+        |                ImHashMap_TryFind |   100 |  9.350 ns | 0.0315 ns | 0.0295 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        |             ImHashMap_TryFind_V1 |   100 | 10.752 ns | 0.0199 ns | 0.0166 ns |  1.15 |    0.00 |     - |     - |     - |         - |
+        |           ImHashMapSlots_TryFind |   100 |  5.664 ns | 0.0391 ns | 0.0366 ns |  0.61 |    0.01 |     - |     - |     - |         - |
+        |       DictionarySlim_TryGetValue |   100 |  6.665 ns | 0.0287 ns | 0.0254 ns |  0.71 |    0.00 |     - |     - |     - |         - |
+        |           Dictionary_TryGetValue |   100 | 17.007 ns | 0.0615 ns | 0.0576 ns |  1.82 |    0.01 |     - |     - |     - |         - |
+        | ConcurrentDictionary_TryGetValue |   100 | 16.024 ns | 0.3340 ns | 0.3124 ns |  1.71 |    0.03 |     - |     - |     - |         - |
+        |             ImmutableDict_TryGet |   100 | 30.667 ns | 0.1026 ns | 0.0960 ns |  3.28 |    0.02 |     - |     - |     - |         - |
+        |                                  |       |           |           |           |       |         |       |       |       |           |
+        |                ImHashMap_TryFind |  1000 | 12.729 ns | 0.0393 ns | 0.0368 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        |             ImHashMap_TryFind_V1 |  1000 | 13.352 ns | 0.0638 ns | 0.0597 ns |  1.05 |    0.00 |     - |     - |     - |         - |
+        |           ImHashMapSlots_TryFind |  1000 |  7.131 ns | 0.0246 ns | 0.0230 ns |  0.56 |    0.00 |     - |     - |     - |         - |
+        |       DictionarySlim_TryGetValue |  1000 |  6.686 ns | 0.0317 ns | 0.0297 ns |  0.53 |    0.00 |     - |     - |     - |         - |
+        |           Dictionary_TryGetValue |  1000 | 16.848 ns | 0.0593 ns | 0.0526 ns |  1.32 |    0.01 |     - |     - |     - |         - |
+        | ConcurrentDictionary_TryGetValue |  1000 | 15.684 ns | 0.0695 ns | 0.0650 ns |  1.23 |    0.01 |     - |     - |     - |         - |
+        |             ImmutableDict_TryGet |  1000 | 33.579 ns | 0.1077 ns | 0.0955 ns |  2.64 |    0.01 |     - |     - |     - |         - |
+
+
+        BenchmarkDotNet=v0.12.0, OS=Windows 10.0.18362
+        Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+        .NET Core SDK=3.1.100
+          [Host]     : .NET Core 3.1.0 (CoreCLR 4.700.19.56402, CoreFX 4.700.19.56404), X64 RyuJIT
+          DefaultJob : .NET Core 3.1.0 (CoreCLR 4.700.19.56402, CoreFX 4.700.19.56404), X64 RyuJIT
+
+
+        |                                Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+        |-------------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+        |                     ImHashMap_TryFind |     1 |  4.365 ns | 0.0198 ns | 0.0185 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        |              ImHashMapSlots32_TryFind |     1 |  2.400 ns | 0.0229 ns | 0.0214 ns |  0.55 |    0.00 |     - |     - |     - |         - |
+        |                  ImHashMap_TryFind_V1 |     1 |  3.385 ns | 0.0071 ns | 0.0063 ns |  0.78 |    0.00 |     - |     - |     - |         - |
+        |        Experimental_ImHashMap_TryFind |     1 |  4.892 ns | 0.0134 ns | 0.0118 ns |  1.12 |    0.01 |     - |     - |     - |         - |
+        | Experimental_ImHashMapSlots32_TryFind |     1 |  6.268 ns | 0.0455 ns | 0.0425 ns |  1.44 |    0.01 |     - |     - |     - |         - |
+        | Experimental_ImHashMapSlots64_TryFind |     1 |  6.175 ns | 0.0335 ns | 0.0313 ns |  1.41 |    0.01 |     - |     - |     - |         - |
+        |            DictionarySlim_TryGetValue |     1 |  6.190 ns | 0.0524 ns | 0.0490 ns |  1.42 |    0.02 |     - |     - |     - |         - |
+        |                Dictionary_TryGetValue |     1 | 15.425 ns | 0.0636 ns | 0.0595 ns |  3.53 |    0.02 |     - |     - |     - |         - |
+        |      ConcurrentDictionary_TryGetValue |     1 | 14.754 ns | 0.0807 ns | 0.0716 ns |  3.38 |    0.02 |     - |     - |     - |         - |
+        |                  ImmutableDict_TryGet |     1 | 23.449 ns | 0.1027 ns | 0.0960 ns |  5.37 |    0.04 |     - |     - |     - |         - |
+        |                                       |       |           |           |           |       |         |       |       |       |           |
+        |                     ImHashMap_TryFind |    10 |  5.449 ns | 0.0216 ns | 0.0202 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        |              ImHashMapSlots32_TryFind |    10 |  2.911 ns | 0.0089 ns | 0.0083 ns |  0.53 |    0.00 |     - |     - |     - |         - |
+        |                  ImHashMap_TryFind_V1 |    10 |  6.019 ns | 0.0129 ns | 0.0115 ns |  1.10 |    0.00 |     - |     - |     - |         - |
+        |        Experimental_ImHashMap_TryFind |    10 |  8.060 ns | 0.0239 ns | 0.0224 ns |  1.48 |    0.01 |     - |     - |     - |         - |
+        | Experimental_ImHashMapSlots32_TryFind |    10 |  5.605 ns | 0.0261 ns | 0.0244 ns |  1.03 |    0.00 |     - |     - |     - |         - |
+        | Experimental_ImHashMapSlots64_TryFind |    10 |  5.504 ns | 0.0456 ns | 0.0404 ns |  1.01 |    0.01 |     - |     - |     - |         - |
+        |            DictionarySlim_TryGetValue |    10 |  5.216 ns | 0.0252 ns | 0.0236 ns |  0.96 |    0.01 |     - |     - |     - |         - |
+        |                Dictionary_TryGetValue |    10 | 15.346 ns | 0.0732 ns | 0.0685 ns |  2.82 |    0.02 |     - |     - |     - |         - |
+        |      ConcurrentDictionary_TryGetValue |    10 | 14.870 ns | 0.1094 ns | 0.1023 ns |  2.73 |    0.02 |     - |     - |     - |         - |
+        |                  ImmutableDict_TryGet |    10 | 24.888 ns | 0.0798 ns | 0.0746 ns |  4.57 |    0.02 |     - |     - |     - |         - |
+        |                                       |       |           |           |           |       |         |       |       |       |           |
+        |                     ImHashMap_TryFind |   100 |  7.665 ns | 0.0208 ns | 0.0184 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        |              ImHashMapSlots32_TryFind |   100 |  5.240 ns | 0.0238 ns | 0.0223 ns |  0.68 |    0.00 |     - |     - |     - |         - |
+        |                  ImHashMap_TryFind_V1 |   100 |  9.222 ns | 0.0223 ns | 0.0208 ns |  1.20 |    0.00 |     - |     - |     - |         - |
+        |        Experimental_ImHashMap_TryFind |   100 | 12.248 ns | 0.0584 ns | 0.0546 ns |  1.60 |    0.01 |     - |     - |     - |         - |
+        | Experimental_ImHashMapSlots32_TryFind |   100 |  7.546 ns | 0.0966 ns | 0.0903 ns |  0.98 |    0.01 |     - |     - |     - |         - |
+        | Experimental_ImHashMapSlots64_TryFind |   100 |  5.780 ns | 0.0250 ns | 0.0234 ns |  0.75 |    0.00 |     - |     - |     - |         - |
+        |            DictionarySlim_TryGetValue |   100 |  6.452 ns | 0.0538 ns | 0.0503 ns |  0.84 |    0.01 |     - |     - |     - |         - |
+        |                Dictionary_TryGetValue |   100 | 15.705 ns | 0.0586 ns | 0.0549 ns |  2.05 |    0.01 |     - |     - |     - |         - |
+        |      ConcurrentDictionary_TryGetValue |   100 | 15.321 ns | 0.0413 ns | 0.0386 ns |  2.00 |    0.01 |     - |     - |     - |         - |
+        |                  ImmutableDict_TryGet |   100 | 27.937 ns | 0.1050 ns | 0.0982 ns |  3.64 |    0.02 |     - |     - |     - |         - |
+        |                                       |       |           |           |           |       |         |       |       |       |           |
+        |                     ImHashMap_TryFind |  1000 | 11.459 ns | 0.0306 ns | 0.0286 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        |              ImHashMapSlots32_TryFind |  1000 |  8.633 ns | 0.0154 ns | 0.0144 ns |  0.75 |    0.00 |     - |     - |     - |         - |
+        |                  ImHashMap_TryFind_V1 |  1000 | 12.486 ns | 0.0527 ns | 0.0493 ns |  1.09 |    0.00 |     - |     - |     - |         - |
+        |        Experimental_ImHashMap_TryFind |  1000 | 16.002 ns | 0.0378 ns | 0.0353 ns |  1.40 |    0.00 |     - |     - |     - |         - |
+        | Experimental_ImHashMapSlots32_TryFind |  1000 | 11.673 ns | 0.0638 ns | 0.0597 ns |  1.02 |    0.00 |     - |     - |     - |         - |
+        | Experimental_ImHashMapSlots64_TryFind |  1000 |  9.817 ns | 0.0123 ns | 0.0115 ns |  0.86 |    0.00 |     - |     - |     - |         - |
+        |            DictionarySlim_TryGetValue |  1000 |  6.469 ns | 0.0428 ns | 0.0401 ns |  0.56 |    0.00 |     - |     - |     - |         - |
+        |                Dictionary_TryGetValue |  1000 | 19.170 ns | 0.0708 ns | 0.0628 ns |  1.67 |    0.01 |     - |     - |     - |         - |
+        |      ConcurrentDictionary_TryGetValue |  1000 | 16.273 ns | 0.4046 ns | 0.5116 ns |  1.43 |    0.05 |     - |     - |     - |         - |
+        |                  ImmutableDict_TryGet |  1000 | 29.662 ns | 0.1529 ns | 0.1355 ns |  2.59 |    0.01 |     - |     - |     - |         - |
+
+        ## V3 - baseline
+
+        BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19041.572 (2004/?/20H1)
+        Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical cores
+        .NET Core SDK=3.1.403
+          [Host]     : .NET Core 3.1.9 (CoreCLR 4.700.20.47201, CoreFX 4.700.20.47203), X64 RyuJIT
+          DefaultJob : .NET Core 3.1.9 (CoreCLR 4.700.20.47201, CoreFX 4.700.20.47203), X64 RyuJIT
+
+        ## v3 - baseline
+
+        |                         Method | Count |      Mean |     Error |    StdDev |    Median | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+        |------------------------------- |------ |----------:|----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+        |              ImHashMap_TryFind |     1 |  4.614 ns | 0.1073 ns | 0.0951 ns |  4.589 ns |  1.00 |    0.00 |     - |     - |     - |         - |    
+        | Experimental_ImHashMap_TryFind |     1 |  7.398 ns | 0.0926 ns | 0.0821 ns |  7.413 ns |  1.60 |    0.04 |     - |     - |     - |         - |
+        |           ImHashMap234_TryFind |     1 |  4.912 ns | 0.0595 ns | 0.0528 ns |  4.903 ns |  1.07 |    0.03 |     - |     - |     - |         - |
+        |                                |       |           |           |           |           |       |         |       |       |       |           |    
+        |              ImHashMap_TryFind |    10 |  8.205 ns | 0.0765 ns | 0.0639 ns |  8.186 ns |  1.00 |    0.00 |     - |     - |     - |         - |    
+        | Experimental_ImHashMap_TryFind |    10 | 10.689 ns | 0.2738 ns | 0.2561 ns | 10.684 ns |  1.31 |    0.03 |     - |     - |     - |         - |
+        |           ImHashMap234_TryFind |    10 |  6.418 ns | 0.0731 ns | 0.0611 ns |  6.412 ns |  0.78 |    0.01 |     - |     - |     - |         - |    
+        |                                |       |           |           |           |           |       |         |       |       |       |           |    
+        |              ImHashMap_TryFind |   100 | 10.398 ns | 0.0434 ns | 0.0385 ns | 10.391 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        | Experimental_ImHashMap_TryFind |   100 | 13.982 ns | 0.2432 ns | 0.2275 ns | 13.946 ns |  1.35 |    0.02 |     - |     - |     - |         - |
+        |           ImHashMap234_TryFind |   100 | 10.759 ns | 0.1757 ns | 0.1467 ns | 10.761 ns |  1.03 |    0.01 |     - |     - |     - |         - |    
+        |                                |       |           |           |           |           |       |         |       |       |       |           |    
+        |              ImHashMap_TryFind |  1000 | 14.397 ns | 0.2039 ns | 0.1907 ns | 14.369 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        | Experimental_ImHashMap_TryFind |  1000 | 30.810 ns | 1.0842 ns | 2.9681 ns | 29.878 ns |  2.25 |    0.38 |     - |     - |     - |         - |    
+        |           ImHashMap234_TryFind |  1000 | 19.953 ns | 0.4996 ns | 0.4429 ns | 19.772 ns |  1.39 |    0.03 |     - |     - |     - |         - |    
+
+        ### Leaf3Plus1
+
+        |                         Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+        |------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+        |              ImHashMap_TryFind |     1 |  5.611 ns | 0.1067 ns | 0.0998 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        | Experimental_ImHashMap_TryFind |     1 |  6.348 ns | 0.2010 ns | 0.2150 ns |  1.14 |    0.05 |     - |     - |     - |         - |
+        |           ImHashMap234_TryFind |     1 |  4.572 ns | 0.0966 ns | 0.0904 ns |  0.82 |    0.02 |     - |     - |     - |         - |
+        |                                |       |           |           |           |       |         |       |       |       |           |
+        |              ImHashMap_TryFind |    10 |  7.582 ns | 0.0703 ns | 0.0587 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        | Experimental_ImHashMap_TryFind |    10 | 10.133 ns | 0.1315 ns | 0.1098 ns |  1.34 |    0.02 |     - |     - |     - |         - |
+        |           ImHashMap234_TryFind |    10 |  5.763 ns | 0.0670 ns | 0.0594 ns |  0.76 |    0.01 |     - |     - |     - |         - |
+        |                                |       |           |           |           |       |         |       |       |       |           |
+        |              ImHashMap_TryFind |   100 | 10.642 ns | 0.2276 ns | 0.1901 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        | Experimental_ImHashMap_TryFind |   100 | 13.526 ns | 0.1563 ns | 0.1385 ns |  1.27 |    0.03 |     - |     - |     - |         - |
+        |           ImHashMap234_TryFind |   100 |  9.271 ns | 0.1695 ns | 0.1503 ns |  0.87 |    0.02 |     - |     - |     - |         - |
+        |                                |       |           |           |           |       |         |       |       |       |           |
+        |              ImHashMap_TryFind |  1000 | 14.909 ns | 0.2118 ns | 0.1981 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        | Experimental_ImHashMap_TryFind |  1000 | 37.315 ns | 1.4352 ns | 4.2316 ns |  2.76 |    0.21 |     - |     - |     - |         - |
+        |           ImHashMap234_TryFind |  1000 | 24.536 ns | 0.6190 ns | 0.7602 ns |  1.66 |    0.06 |     - |     - |     - |         - |
+
+        ### Leaf5Plus1 + Leaf3Plus1
+
+        |                         Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+        |------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+        |              ImHashMap_TryFind |     1 |  6.659 ns | 0.1975 ns | 0.1751 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        | Experimental_ImHashMap_TryFind |     1 |  8.220 ns | 0.1876 ns | 0.1842 ns |  1.23 |    0.05 |     - |     - |     - |         - |
+        |           ImHashMap234_TryFind |     1 |  5.644 ns | 0.1702 ns | 0.1592 ns |  0.85 |    0.03 |     - |     - |     - |         - |
+        |                                |       |           |           |           |       |         |       |       |       |           |
+        |              ImHashMap_TryFind |     5 |  7.223 ns | 0.2332 ns | 0.2068 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        | Experimental_ImHashMap_TryFind |     5 |  9.832 ns | 0.2499 ns | 0.2337 ns |  1.36 |    0.05 |     - |     - |     - |         - |
+        |           ImHashMap234_TryFind |     5 |  5.353 ns | 0.1591 ns | 0.1410 ns |  0.74 |    0.04 |     - |     - |     - |         - |
+        |                                |       |           |           |           |       |         |       |       |       |           |
+        |              ImHashMap_TryFind |    10 |  8.325 ns | 0.1680 ns | 0.1403 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        | Experimental_ImHashMap_TryFind |    10 | 12.221 ns | 0.3406 ns | 0.5098 ns |  1.50 |    0.08 |     - |     - |     - |         - |
+        |           ImHashMap234_TryFind |    10 |  7.012 ns | 0.2045 ns | 0.2273 ns |  0.85 |    0.03 |     - |     - |     - |         - |
+        |                                |       |           |           |           |       |         |       |       |       |           |
+        |              ImHashMap_TryFind |   100 | 12.118 ns | 0.3031 ns | 0.4629 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        | Experimental_ImHashMap_TryFind |   100 | 18.145 ns | 0.4551 ns | 0.8321 ns |  1.50 |    0.08 |     - |     - |     - |         - |
+        |           ImHashMap234_TryFind |   100 | 11.908 ns | 0.2829 ns | 0.3679 ns |  0.97 |    0.04 |     - |     - |     - |         - |
+        |                                |       |           |           |           |       |         |       |       |       |           |
+        |              ImHashMap_TryFind |  1000 | 17.113 ns | 0.3848 ns | 0.3411 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        | Experimental_ImHashMap_TryFind |  1000 | 26.034 ns | 0.6183 ns | 0.8255 ns |  1.52 |    0.07 |     - |     - |     - |         - |
+        |           ImHashMap234_TryFind |  1000 | 16.927 ns | 0.3743 ns | 0.5828 ns |  0.99 |    0.05 |     - |     - |     - |         - |
+
+        ### V3 candidate
+
+        |                                   Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+        |----------------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+        |                 V2_ImHashMap_AVL_TryFind |     1 |  6.084 ns | 0.1295 ns | 0.1082 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        |  V2_ImHashMap_AVLOptimizedForAdd_TryFind |     1 |  7.319 ns | 0.2009 ns | 0.1879 ns |  1.20 |    0.03 |     - |     - |     - |         - |
+        |             V3_ImHashMap_23Tree_TryFind |     1 |  5.372 ns | 0.1142 ns | 0.0954 ns |  0.88 |    0.02 |     - |     - |     - |         - |
+        |    V3_PartitionedHashMap_23Tree_TryFind |     1 |  6.578 ns | 0.1517 ns | 0.1345 ns |  1.08 |    0.03 |     - |     - |     - |         - |
+        |                                          |       |           |           |           |       |         |       |       |       |           |
+        |                 V2_ImHashMap_AVL_TryFind |     5 |  6.867 ns | 0.1035 ns | 0.0918 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        |  V2_ImHashMap_AVLOptimizedForAdd_TryFind |     5 |  9.599 ns | 0.1509 ns | 0.1411 ns |  1.40 |    0.03 |     - |     - |     - |         - |
+        |             V3_ImHashMap_23Tree_TryFind |     5 |  5.319 ns | 0.1028 ns | 0.1142 ns |  0.77 |    0.02 |     - |     - |     - |         - |
+        |    V3_PartitionedHashMap_23Tree_TryFind |     5 |  6.550 ns | 0.0856 ns | 0.0801 ns |  0.95 |    0.01 |     - |     - |     - |         - |
+        |                                          |       |           |           |           |       |         |       |       |       |           |
+        |                 V2_ImHashMap_AVL_TryFind |    10 |  7.646 ns | 0.0905 ns | 0.0802 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        |  V2_ImHashMap_AVLOptimizedForAdd_TryFind |    10 | 11.002 ns | 0.2011 ns | 0.1881 ns |  1.44 |    0.03 |     - |     - |     - |         - |
+        |             V3_ImHashMap_23Tree_TryFind |    10 |  6.986 ns | 0.2160 ns | 0.2122 ns |  0.91 |    0.03 |     - |     - |     - |         - |
+        |    V3_PartitionedHashMap_23Tree_TryFind |    10 |  6.714 ns | 0.2153 ns | 0.1798 ns |  0.88 |    0.03 |     - |     - |     - |         - |
+        |                                          |       |           |           |           |       |         |       |       |       |           |
+        |                 V2_ImHashMap_AVL_TryFind |   100 | 12.413 ns | 0.3100 ns | 0.2748 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        |  V2_ImHashMap_AVLOptimizedForAdd_TryFind |   100 | 15.134 ns | 0.2375 ns | 0.2917 ns |  1.23 |    0.04 |     - |     - |     - |         - |
+        |             V3_ImHashMap_23Tree_TryFind |   100 | 11.147 ns | 0.2990 ns | 0.3443 ns |  0.90 |    0.03 |     - |     - |     - |         - |
+        |    V3_PartitionedHashMap_23Tree_TryFind |   100 |  8.245 ns | 0.1473 ns | 0.1150 ns |  0.67 |    0.01 |     - |     - |     - |         - |
+        |                                          |       |           |           |           |       |         |       |       |       |           |
+        |                 V2_ImHashMap_AVL_TryFind |  1000 | 16.528 ns | 0.1799 ns | 0.1502 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        |  V2_ImHashMap_AVLOptimizedForAdd_TryFind |  1000 | 22.341 ns | 0.2584 ns | 0.2291 ns |  1.35 |    0.02 |     - |     - |     - |         - |
+        |             V3_ImHashMap_23Tree_TryFind |  1000 | 13.178 ns | 0.2153 ns | 0.2014 ns |  0.80 |    0.01 |     - |     - |     - |         - |
+        |    V3_PartitionedHashMap_23Tree_TryFind |  1000 | 11.198 ns | 0.2784 ns | 0.3094 ns |  0.68 |    0.02 |     - |     - |     - |         - |
+
+
+        |                           Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+        |--------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+        |     V3_ImHashMap_23Tree_TryFind |     1 |  4.467 ns | 0.0977 ns | 0.0816 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        | ConcurrentDictionary_TryGetValue |     1 | 19.103 ns | 0.2302 ns | 0.2040 ns |  4.28 |    0.08 |     - |     - |     - |         - |
+        |                                  |       |           |           |           |       |         |       |       |       |           |
+        |     V3_ImHashMap_23Tree_TryFind |     5 |  4.588 ns | 0.1057 ns | 0.0937 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        | ConcurrentDictionary_TryGetValue |     5 | 19.000 ns | 0.1738 ns | 0.1625 ns |  4.15 |    0.09 |     - |     - |     - |         - |
+        |                                  |       |           |           |           |       |         |       |       |       |           |
+        |     V3_ImHashMap_23Tree_TryFind |    10 |  5.948 ns | 0.1194 ns | 0.1116 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        | ConcurrentDictionary_TryGetValue |    10 | 19.598 ns | 0.4600 ns | 0.4303 ns |  3.30 |    0.11 |     - |     - |     - |         - |
+        |                                  |       |           |           |           |       |         |       |       |       |           |
+        |     V3_ImHashMap_23Tree_TryFind |   100 |  9.838 ns | 0.1607 ns | 0.1342 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        | ConcurrentDictionary_TryGetValue |   100 | 20.336 ns | 0.3591 ns | 0.2998 ns |  2.07 |    0.03 |     - |     - |     - |         - |
+        |                                  |       |           |           |           |       |         |       |       |       |           |
+        |     V3_ImHashMap_23Tree_TryFind |  1000 | 11.980 ns | 0.2353 ns | 0.2201 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        | ConcurrentDictionary_TryGetValue |  1000 | 19.939 ns | 0.4273 ns | 0.8824 ns |  1.73 |    0.10 |     - |     - |     - |         - |
+
+        |                       Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+        |----------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+        | V3_ImHashMap_23Tree_TryFind |     1 |  4.647 ns | 0.0516 ns | 0.0431 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        |         ImmutableDict_TryGet |     1 | 23.396 ns | 0.3703 ns | 0.3092 ns |  5.04 |    0.10 |     - |     - |     - |         - |
+        |                              |       |           |           |           |       |         |       |       |       |           |
+        | V3_ImHashMap_23Tree_TryFind |     5 |  5.242 ns | 0.1822 ns | 0.3143 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        |         ImmutableDict_TryGet |     5 | 23.739 ns | 0.1941 ns | 0.1816 ns |  4.42 |    0.32 |     - |     - |     - |         - |
+        |                              |       |           |           |           |       |         |       |       |       |           |
+        | V3_ImHashMap_23Tree_TryFind |    10 |  5.749 ns | 0.1206 ns | 0.1128 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        |         ImmutableDict_TryGet |    10 | 24.769 ns | 0.3152 ns | 0.2949 ns |  4.31 |    0.11 |     - |     - |     - |         - |
+        |                              |       |           |           |           |       |         |       |       |       |           |
+        | V3_ImHashMap_23Tree_TryFind |   100 |  8.252 ns | 0.1754 ns | 0.1465 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        |         ImmutableDict_TryGet |   100 | 27.288 ns | 0.6118 ns | 0.6009 ns |  3.31 |    0.10 |     - |     - |     - |         - |
+        |                              |       |           |           |           |       |         |       |       |       |           |
+        | V3_ImHashMap_23Tree_TryFind |  1000 | 12.053 ns | 0.1955 ns | 0.1829 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        |         ImmutableDict_TryGet |  1000 | 30.762 ns | 0.3980 ns | 0.3723 ns |  2.55 |    0.04 |     - |     - |     - |         - |
+
+        ### Branch3 as two Branch2 -- looks ok
+
+        |                       Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+        |----------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+        |     V2_ImHashMap_AVL_TryFind |     1 |  6.236 ns | 0.2150 ns | 0.3084 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        | V3_ImHashMap_23Tree_TryFind |     1 |  5.467 ns | 0.1410 ns | 0.1250 ns |  0.85 |    0.05 |     - |     - |     - |         - |
+        |                              |       |           |           |           |       |         |       |       |       |           |
+        |     V2_ImHashMap_AVL_TryFind |     5 |  7.390 ns | 0.2037 ns | 0.1701 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        | V3_ImHashMap_23Tree_TryFind |     5 |  5.552 ns | 0.1412 ns | 0.1252 ns |  0.75 |    0.02 |     - |     - |     - |         - |
+        |                              |       |           |           |           |       |         |       |       |       |           |
+        |     V2_ImHashMap_AVL_TryFind |    10 |  9.402 ns | 0.1381 ns | 0.1153 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        | V3_ImHashMap_23Tree_TryFind |    10 |  6.820 ns | 0.1766 ns | 0.1652 ns |  0.73 |    0.03 |     - |     - |     - |         - |
+        |                              |       |           |           |           |       |         |       |       |       |           |
+        |     V2_ImHashMap_AVL_TryFind |   100 | 11.085 ns | 0.2337 ns | 0.2186 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        | V3_ImHashMap_23Tree_TryFind |   100 | 10.257 ns | 0.2037 ns | 0.1905 ns |  0.93 |    0.02 |     - |     - |     - |         - |
+        |                              |       |           |           |           |       |         |       |       |       |           |
+        |     V2_ImHashMap_AVL_TryFind |  1000 | 16.883 ns | 0.2438 ns | 0.2280 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        | V3_ImHashMap_23Tree_TryFind |  1000 | 15.516 ns | 0.3248 ns | 0.4554 ns |  0.93 |    0.04 |     - |     - |     - |         - |
+
+        ### V3 RTM
+
+        BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
+        Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+        .NET Core SDK=5.0.201
+          [Host]     : .NET Core 5.0.4 (CoreCLR 5.0.421.11614, CoreFX 5.0.421.11614), X64 RyuJIT
+          DefaultJob : .NET Core 5.0.4 (CoreCLR 5.0.421.11614, CoreFX 5.0.421.11614), X64 RyuJIT
+
+
+        |                           Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+        |--------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+        |         V2_ImHashMap_AVL_TryFind |     1 |  5.100 ns | 0.1212 ns | 0.1134 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        |      V3_ImHashMap_23Tree_TryFind |     1 |  5.539 ns | 0.1676 ns | 0.1568 ns |  1.09 |    0.03 |     - |     - |     - |         - |
+        |    V3_PartitionedHashMap_TryFind |     1 |  5.813 ns | 0.1844 ns | 0.1973 ns |  1.13 |    0.04 |     - |     - |     - |         - |
+        |       DictionarySlim_TryGetValue |     1 |  6.614 ns | 0.0839 ns | 0.0744 ns |  1.29 |    0.03 |     - |     - |     - |         - |
+        |           Dictionary_TryGetValue |     1 | 16.495 ns | 0.1270 ns | 0.1126 ns |  3.23 |    0.06 |     - |     - |     - |         - |
+        | ConcurrentDictionary_TryGetValue |     1 | 12.715 ns | 0.1584 ns | 0.1323 ns |  2.49 |    0.05 |     - |     - |     - |         - |
+        |             ImmutableDict_TryGet |     1 | 22.615 ns | 0.3097 ns | 0.2418 ns |  4.42 |    0.08 |     - |     - |     - |         - |
+        |                                  |       |           |           |           |       |         |       |       |       |           |
+        |         V2_ImHashMap_AVL_TryFind |    10 |  6.270 ns | 0.1421 ns | 0.1187 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        |      V3_ImHashMap_23Tree_TryFind |    10 |  6.597 ns | 0.1095 ns | 0.1024 ns |  1.06 |    0.02 |     - |     - |     - |         - |
+        |    V3_PartitionedHashMap_TryFind |    10 |  5.416 ns | 0.0908 ns | 0.0805 ns |  0.87 |    0.02 |     - |     - |     - |         - |
+        |       DictionarySlim_TryGetValue |    10 |  7.543 ns | 0.1274 ns | 0.1064 ns |  1.20 |    0.02 |     - |     - |     - |         - |
+        |           Dictionary_TryGetValue |    10 | 16.907 ns | 0.1892 ns | 0.1769 ns |  2.70 |    0.05 |     - |     - |     - |         - |
+        | ConcurrentDictionary_TryGetValue |    10 | 12.694 ns | 0.1740 ns | 0.1453 ns |  2.03 |    0.04 |     - |     - |     - |         - |
+        |             ImmutableDict_TryGet |    10 | 24.049 ns | 0.3034 ns | 0.2838 ns |  3.84 |    0.07 |     - |     - |     - |         - |
+        |                                  |       |           |           |           |       |         |       |       |       |           |
+        |         V2_ImHashMap_AVL_TryFind |   100 |  9.459 ns | 0.2667 ns | 0.2739 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        |      V3_ImHashMap_23Tree_TryFind |   100 |  9.526 ns | 0.1814 ns | 0.1697 ns |  1.01 |    0.03 |     - |     - |     - |         - |
+        |    V3_PartitionedHashMap_TryFind |   100 |  5.827 ns | 0.0867 ns | 0.0768 ns |  0.62 |    0.02 |     - |     - |     - |         - |
+        |       DictionarySlim_TryGetValue |   100 |  6.897 ns | 0.1033 ns | 0.0967 ns |  0.73 |    0.02 |     - |     - |     - |         - |
+        |           Dictionary_TryGetValue |   100 | 18.189 ns | 0.2100 ns | 0.1640 ns |  1.92 |    0.06 |     - |     - |     - |         - |
+        | ConcurrentDictionary_TryGetValue |   100 | 13.412 ns | 0.2041 ns | 0.1909 ns |  1.42 |    0.04 |     - |     - |     - |         - |
+        |             ImmutableDict_TryGet |   100 | 26.023 ns | 0.3854 ns | 0.3417 ns |  2.76 |    0.08 |     - |     - |     - |         - |
+        |                                  |       |           |           |           |       |         |       |       |       |           |
+        |         V2_ImHashMap_AVL_TryFind |  1000 | 15.172 ns | 0.2617 ns | 0.2320 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        |      V3_ImHashMap_23Tree_TryFind |  1000 | 14.473 ns | 0.2030 ns | 0.1799 ns |  0.95 |    0.01 |     - |     - |     - |         - |
+        |    V3_PartitionedHashMap_TryFind |  1000 |  8.182 ns | 0.0809 ns | 0.0756 ns |  0.54 |    0.01 |     - |     - |     - |         - |
+        |       DictionarySlim_TryGetValue |  1000 |  6.893 ns | 0.1590 ns | 0.1410 ns |  0.45 |    0.01 |     - |     - |     - |         - |
+        |           Dictionary_TryGetValue |  1000 | 18.230 ns | 0.2012 ns | 0.1882 ns |  1.20 |    0.02 |     - |     - |     - |         - |
+        | ConcurrentDictionary_TryGetValue |  1000 | 14.920 ns | 0.2296 ns | 0.2035 ns |  0.98 |    0.01 |     - |     - |     - |         - |
+        |             ImmutableDict_TryGet |  1000 | 29.555 ns | 0.5926 ns | 0.5543 ns |  1.95 |    0.04 |     - |     - |     - |         - |
+
+
+        ## Against static TypeDictionary by @rogeralsing (need to subtract the cost of enumerating the array when adding items to ImHashMap and PartitionedHashMap)
+
+        BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
+        Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+        .NET Core SDK=5.0.201
+          [Host]     : .NET Core 5.0.4 (CoreCLR 5.0.421.11614, CoreFX 5.0.421.11614), X64 RyuJIT
+          DefaultJob : .NET Core 5.0.4 (CoreCLR 5.0.421.11614, CoreFX 5.0.421.11614), X64 RyuJIT
+
+        |                                  Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+        |---------------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+        |          V3_ImHashMap_GetValueOrDefault |     5 |  4.497 ns | 0.1607 ns | 0.1578 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        | V3_PartitionedHashMap_GetValueOrDefault |     5 |  4.763 ns | 0.1675 ns | 0.1484 ns |  1.06 |    0.05 |     - |     - |     - |         - |
+        |                        TypeDict_TryFind |     5 |  3.198 ns | 0.1221 ns | 0.1406 ns |  0.71 |    0.03 |     - |     - |     - |         - |
+        |                  Dictionary_TryGetValue |     5 | 16.248 ns | 0.3500 ns | 0.3102 ns |  3.61 |    0.12 |     - |     - |     - |         - |
+
+        |          V3_ImHashMap_GetValueOrDefault |    10 |  5.569 ns | 0.1801 ns | 0.2751 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        | V3_PartitionedHashMap_GetValueOrDefault |    10 |  5.016 ns | 0.1509 ns | 0.1178 ns |  0.89 |    0.05 |     - |     - |     - |         - |
+        |                        TypeDict_TryFind |    10 |  2.513 ns | 0.0824 ns | 0.0688 ns |  0.45 |    0.03 |     - |     - |     - |         - |
+        |                  Dictionary_TryGetValue |    10 | 15.954 ns | 0.3234 ns | 0.3025 ns |  2.85 |    0.17 |     - |     - |     - |         - |
+
+        |          V3_ImHashMap_GetValueOrDefault |    20 |  6.747 ns | 0.1964 ns | 0.2017 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        | V3_PartitionedHashMap_GetValueOrDefault |    20 |  3.985 ns | 0.1034 ns | 0.0863 ns |  0.59 |    0.02 |     - |     - |     - |         - |
+        |                        TypeDict_TryFind |    20 |  2.476 ns | 0.1174 ns | 0.1257 ns |  0.37 |    0.02 |     - |     - |     - |         - |
+        |                  Dictionary_TryGetValue |    20 | 17.766 ns | 0.4131 ns | 0.3865 ns |  2.64 |    0.11 |     - |     - |     - |         - |
+
+
+        ## V4
+
+        BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19043
+        Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+        .NET Core SDK=6.0.202
+          [Host]     : .NET Core 6.0.4 (CoreCLR 6.0.422.16404, CoreFX 6.0.422.16404), X64 RyuJIT
+          DefaultJob : .NET Core 6.0.4 (CoreCLR 6.0.422.16404, CoreFX 6.0.422.16404), X64 RyuJIT
+
+        |                           Method | Count |      Mean |     Error |    StdDev | Ratio | RatioSD | Gen 0 | Gen 1 | Gen 2 | Allocated |
+        |--------------------------------- |------ |----------:|----------:|----------:|------:|--------:|------:|------:|------:|----------:|
+        |             V4_ImHashMap_TryFind |     1 |  8.915 ns | 0.1853 ns | 0.1733 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        |             V3_ImHashMap_TryFind |     1 |  7.834 ns | 0.1769 ns | 0.1568 ns |  0.88 |    0.02 |     - |     - |     - |         - |
+        |    V4_PartitionedHashMap_TryFind |     1 |  8.292 ns | 0.1082 ns | 0.0959 ns |  0.93 |    0.02 |     - |     - |     - |         - |
+        |    V3_PartitionedHashMap_TryFind |     1 |  7.681 ns | 0.1245 ns | 0.1039 ns |  0.86 |    0.02 |     - |     - |     - |         - |
+        |       DictionarySlim_TryGetValue |     1 |  8.861 ns | 0.1423 ns | 0.1188 ns |  0.99 |    0.02 |     - |     - |     - |         - |
+        |           Dictionary_TryGetValue |     1 | 17.914 ns | 0.3447 ns | 0.3055 ns |  2.01 |    0.05 |     - |     - |     - |         - |
+        | ConcurrentDictionary_TryGetValue |     1 | 13.381 ns | 0.2709 ns | 0.2401 ns |  1.50 |    0.04 |     - |     - |     - |         - |
+        |             ImmutableDict_TryGet |     1 | 19.040 ns | 0.3068 ns | 0.2870 ns |  2.14 |    0.06 |     - |     - |     - |         - |
+        |                                  |       |           |           |           |       |         |       |       |       |           |
+        |             V4_ImHashMap_TryFind |    10 |  9.462 ns | 0.2690 ns | 0.2246 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        |             V3_ImHashMap_TryFind |    10 |  9.038 ns | 0.1650 ns | 0.1463 ns |  0.96 |    0.02 |     - |     - |     - |         - |
+        |    V4_PartitionedHashMap_TryFind |    10 |  8.575 ns | 0.2031 ns | 0.1900 ns |  0.91 |    0.03 |     - |     - |     - |         - |
+        |    V3_PartitionedHashMap_TryFind |    10 |  5.869 ns | 0.1026 ns | 0.1743 ns |  0.63 |    0.02 |     - |     - |     - |         - |
+        |       DictionarySlim_TryGetValue |    10 |  7.384 ns | 0.1882 ns | 0.1668 ns |  0.78 |    0.03 |     - |     - |     - |         - |
+        |           Dictionary_TryGetValue |    10 | 14.082 ns | 0.2168 ns | 0.1921 ns |  1.49 |    0.04 |     - |     - |     - |         - |
+        | ConcurrentDictionary_TryGetValue |    10 | 11.436 ns | 0.1398 ns | 0.1239 ns |  1.21 |    0.03 |     - |     - |     - |         - |
+        |             ImmutableDict_TryGet |    10 | 17.927 ns | 0.4467 ns | 0.4780 ns |  1.90 |    0.09 |     - |     - |     - |         - |
+        |                                  |       |           |           |           |       |         |       |       |       |           |
+        |             V4_ImHashMap_TryFind |   100 | 12.147 ns | 0.1475 ns | 0.1308 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        |             V3_ImHashMap_TryFind |   100 | 11.357 ns | 0.1695 ns | 0.1323 ns |  0.94 |    0.01 |     - |     - |     - |         - |
+        |    V4_PartitionedHashMap_TryFind |   100 |  8.520 ns | 0.2142 ns | 0.1899 ns |  0.70 |    0.02 |     - |     - |     - |         - |
+        |    V3_PartitionedHashMap_TryFind |   100 |  7.785 ns | 0.1374 ns | 0.1147 ns |  0.64 |    0.01 |     - |     - |     - |         - |
+        |       DictionarySlim_TryGetValue |   100 |  6.918 ns | 0.1544 ns | 0.1289 ns |  0.57 |    0.01 |     - |     - |     - |         - |
+        |           Dictionary_TryGetValue |   100 | 13.804 ns | 0.3474 ns | 0.3717 ns |  1.14 |    0.04 |     - |     - |     - |         - |
+        | ConcurrentDictionary_TryGetValue |   100 | 11.432 ns | 0.2194 ns | 0.2052 ns |  0.94 |    0.02 |     - |     - |     - |         - |
+        |             ImmutableDict_TryGet |   100 | 21.593 ns | 0.4048 ns | 0.3786 ns |  1.78 |    0.03 |     - |     - |     - |         - |
+        |                                  |       |           |           |           |       |         |       |       |       |           |
+        |             V4_ImHashMap_TryFind |  1000 | 15.492 ns | 0.3859 ns | 0.4881 ns |  1.00 |    0.00 |     - |     - |     - |         - |
+        |             V3_ImHashMap_TryFind |  1000 | 14.339 ns | 0.2612 ns | 0.2444 ns |  0.92 |    0.03 |     - |     - |     - |         - |
+        |    V4_PartitionedHashMap_TryFind |  1000 | 11.508 ns | 0.1839 ns | 0.1630 ns |  0.74 |    0.03 |     - |     - |     - |         - |
+        |    V3_PartitionedHashMap_TryFind |  1000 |  9.508 ns | 0.2340 ns | 0.2074 ns |  0.61 |    0.02 |     - |     - |     - |         - |
+        |       DictionarySlim_TryGetValue |  1000 |  7.099 ns | 0.1984 ns | 0.2037 ns |  0.46 |    0.01 |     - |     - |     - |         - |
+        |           Dictionary_TryGetValue |  1000 | 13.696 ns | 0.1341 ns | 0.1120 ns |  0.88 |    0.03 |     - |     - |     - |         - |
+        | ConcurrentDictionary_TryGetValue |  1000 | 11.358 ns | 0.1464 ns | 0.1222 ns |  0.73 |    0.03 |     - |     - |     - |         - |
+        |             ImmutableDict_TryGet |  1000 | 25.875 ns | 0.3752 ns | 0.3510 ns |  1.67 |    0.06 |     - |     - |     - |         - |
+
+        ## Baseline FHashMap6 vs DictionarySlim vs Dictionary 
+
+        BenchmarkDotNet=v0.13.5, OS=Windows 10 (10.0.19042.928/20H2/October2020Update)
+        Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical cores
+        .NET SDK=7.0.100
+          [Host]     : .NET 7.0.0 (7.0.22.51805), X64 RyuJIT AVX2
+          DefaultJob : .NET 7.0.0 (7.0.22.51805), X64 RyuJIT AVX2
+
+        |                     Method | Count |      Mean |     Error |    StdDev |    Median | Ratio | RatioSD | Allocated | Alloc Ratio |
+        |--------------------------- |------ |----------:|----------:|----------:|----------:|------:|--------:|----------:|------------:|
+        |     Dictionary_TryGetValue |   100 | 15.234 ns | 0.3434 ns | 0.6779 ns | 14.971 ns |  1.00 |    0.00 |         - |          NA |
+        | DictionarySlim_TryGetValue |   100 |  9.790 ns | 0.5518 ns | 1.6271 ns |  8.944 ns |  0.70 |    0.11 |         - |          NA |
+        |       FHashMap_TryGetValue |   100 | 20.591 ns | 0.4773 ns | 0.4232 ns | 20.521 ns |  1.32 |    0.09 |         - |          NA |
+
+        ## Never happened?
+
+        |                     Method | Count |     Mean |    Error |   StdDev |   Median | Ratio | RatioSD | Allocated | Alloc Ratio |
+        |--------------------------- |------ |---------:|---------:|---------:|---------:|------:|--------:|----------:|------------:|
+        | DictionarySlim_TryGetValue |   100 | 11.14 ns | 0.613 ns | 1.749 ns | 10.75 ns |  1.00 |    0.00 |         - |          NA |
+        |       FHashMap_TryGetValue |   100 | 11.29 ns | 0.641 ns | 1.850 ns | 10.77 ns |  1.03 |    0.20 |         - |          NA |
+
+        ## Almost funny
+
+        |                     Method | Count |     Mean |     Error |    StdDev | Ratio | Allocated | Alloc Ratio |
+        |--------------------------- |------ |---------:|----------:|----------:|------:|----------:|------------:|
+        | DictionarySlim_TryGetValue |   100 | 8.703 ns | 0.0774 ns | 0.0686 ns |  1.00 |         - |          NA |
+        |       FHashMap_TryGetValue |   100 | 7.181 ns | 0.0442 ns | 0.0345 ns |  0.83 |         - |          NA |
+
+        ## Initial SIMD FHashMap7 vs DictionarySlim
+
+        |                     Method | Count |     Mean |     Error |    StdDev |   Median | Ratio | RatioSD | Allocated | Alloc Ratio |
+        |--------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|----------:|------------:|
+        | DictionarySlim_TryGetValue |   100 | 8.968 ns | 0.2581 ns | 0.4168 ns | 8.796 ns |  1.00 |    0.00 |         - |          NA |
+        |       FHashMap_TryGetValue |   100 | 8.866 ns | 0.4456 ns | 1.3069 ns | 9.244 ns |  0.86 |    0.09 |         - |          NA |
+
+        ## Round 2 and 3, SIMD FHashMap7 vs DictionarySlim
+
+        |                     Method | Count |     Mean |     Error |    StdDev | Ratio | Allocated | Alloc Ratio |
+        |--------------------------- |------ |---------:|----------:|----------:|------:|----------:|------------:|
+        | DictionarySlim_TryGetValue |   100 | 8.925 ns | 0.0383 ns | 0.0299 ns |  1.00 |         - |          NA |
+        |       FHashMap_TryGetValue |   100 | 6.376 ns | 0.1207 ns | 0.1129 ns |  0.72 |         - |          NA |
+
+        ## Funny 4, SIMD FHashMap7 vs DictionarySlim
+
+        |                     Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | Allocated | Alloc Ratio |
+        |--------------------------- |------ |---------:|----------:|----------:|------:|--------:|----------:|------------:|
+        | DictionarySlim_TryGetValue |   100 | 9.131 ns | 0.1991 ns | 0.1663 ns |  1.00 |    0.00 |         - |          NA |
+        |       FHashMap_TryGetValue |   100 | 6.020 ns | 0.1766 ns | 0.2644 ns |  0.65 |    0.04 |         - |          NA |
+
+        ## FHashMap7 vs DictionarySlim (multiple params)
+
+        |                     Method | Count |      Mean |     Error |    StdDev |    Median | Ratio | RatioSD | Allocated | Alloc Ratio |
+        |--------------------------- |------ |----------:|----------:|----------:|----------:|------:|--------:|----------:|------------:|
+        | DictionarySlim_TryGetValue |     1 | 10.945 ns | 0.3136 ns | 0.5574 ns | 10.770 ns |  1.00 |    0.00 |         - |          NA |
+        |       FHashMap_TryGetValue |     1 |  6.852 ns | 0.4387 ns | 1.2157 ns |  7.022 ns |  0.57 |    0.11 |         - |          NA |
+        |                            |       |           |           |           |           |       |         |           |             |
+        | DictionarySlim_TryGetValue |    10 | 12.432 ns | 0.7856 ns | 2.3042 ns | 12.383 ns |  1.00 |    0.00 |         - |          NA |
+        |       FHashMap_TryGetValue |    10 |  5.161 ns | 0.1755 ns | 0.2932 ns |  5.050 ns |  0.38 |    0.05 |         - |          NA |
+        |                            |       |           |           |           |           |       |         |           |             |
+        | DictionarySlim_TryGetValue |   100 | 16.811 ns | 0.7006 ns | 2.0657 ns | 15.940 ns |  1.00 |    0.00 |         - |          NA |
+        |       FHashMap_TryGetValue |   100 |  9.176 ns | 0.6841 ns | 1.9517 ns |  8.838 ns |  0.56 |    0.14 |         - |          NA |
+        |                            |       |           |           |           |           |       |         |           |             |
+        | DictionarySlim_TryGetValue |  1000 | 11.542 ns | 0.3251 ns | 0.7535 ns | 11.400 ns |  1.00 |    0.00 |         - |          NA |
+        |       FHashMap_TryGetValue |  1000 |  9.579 ns | 0.4608 ns | 1.2921 ns |  9.556 ns |  0.82 |    0.12 |         - |          NA |
+
+        ## No!!! SIMD FHashMap7 vs DictionarySlim (multiple params)
+
+        |                     Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | Allocated | Alloc Ratio |
+        |--------------------------- |------ |---------:|----------:|----------:|------:|--------:|----------:|------------:|
+        | DictionarySlim_TryGetValue |     1 | 9.134 ns | 0.2546 ns | 0.3569 ns |  1.00 |    0.00 |         - |          NA |
+        |       FHashMap_TryGetValue |     1 | 5.174 ns | 0.0317 ns | 0.0281 ns |  0.56 |    0.02 |         - |          NA |
+        |                            |       |          |           |           |       |         |           |             |
+        | DictionarySlim_TryGetValue |    10 | 8.908 ns | 0.0430 ns | 0.0359 ns |  1.00 |    0.00 |         - |          NA |
+        |       FHashMap_TryGetValue |    10 | 5.615 ns | 0.0722 ns | 0.0675 ns |  0.63 |    0.01 |         - |          NA |
+        |                            |       |          |           |           |       |         |           |             |
+        | DictionarySlim_TryGetValue |   100 | 8.964 ns | 0.1536 ns | 0.1282 ns |  1.00 |    0.00 |         - |          NA |
+        |       FHashMap_TryGetValue |   100 | 7.468 ns | 0.2187 ns | 0.2148 ns |  0.83 |    0.03 |         - |          NA |
+        |                            |       |          |           |           |       |         |           |             |
+        | DictionarySlim_TryGetValue |  1000 | 8.826 ns | 0.0929 ns | 0.0776 ns |  1.00 |    0.00 |         - |          NA |
+        |       FHashMap_TryGetValue |  1000 | 5.271 ns | 0.1362 ns | 0.1514 ns |  0.60 |    0.02 |         - |          NA |
+
+        ## Small opti No!!! SIMD FHashMap7 vs DictionarySlim (multiple params)
+
+        |                     Method | Count |     Mean |     Error |    StdDev |   Median | Ratio | RatioSD | Allocated | Alloc Ratio |
+        |--------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|----------:|------------:|
+        | DictionarySlim_TryGetValue |     1 | 8.965 ns | 0.3526 ns | 1.0285 ns | 8.416 ns |  1.00 |    0.00 |         - |          NA |
+        |       FHashMap_TryGetValue |     1 | 3.940 ns | 0.1476 ns | 0.2117 ns | 3.894 ns |  0.43 |    0.05 |         - |          NA |
+        |                            |       |          |           |           |          |       |         |           |             |
+        | DictionarySlim_TryGetValue |    10 | 9.154 ns | 0.2472 ns | 0.3036 ns | 9.041 ns |  1.00 |    0.00 |         - |          NA |
+        |       FHashMap_TryGetValue |    10 | 5.734 ns | 0.0922 ns | 0.0770 ns | 5.733 ns |  0.62 |    0.02 |         - |          NA |
+        |                            |       |          |           |           |          |       |         |           |             |
+        | DictionarySlim_TryGetValue |   100 | 8.638 ns | 0.1980 ns | 0.1654 ns | 8.599 ns |  1.00 |    0.00 |         - |          NA |
+        |       FHashMap_TryGetValue |   100 | 7.259 ns | 0.1361 ns | 0.1206 ns | 7.212 ns |  0.84 |    0.02 |         - |          NA |
+        |                            |       |          |           |           |          |       |         |           |             |
+        | DictionarySlim_TryGetValue |  1000 | 9.280 ns | 0.2481 ns | 0.4537 ns | 9.115 ns |  1.00 |    0.00 |         - |          NA |
+        |       FHashMap_TryGetValue |  1000 | 3.765 ns | 0.0650 ns | 0.0576 ns | 3.760 ns |  0.40 |    0.02 |         - |          NA |
+
+        ## Adding small SIMD to FHashMap7 vs DictionarySlim (multiple params) - winning the medium
+
+        |                     Method | Count |     Mean |     Error |    StdDev |   Median | Ratio | RatioSD | Allocated | Alloc Ratio |
+        |--------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|----------:|------------:|
+        | DictionarySlim_TryGetValue |     1 | 9.314 ns | 0.2492 ns | 0.4494 ns | 9.149 ns |  1.00 |    0.00 |         - |          NA |
+        |       FHashMap_TryGetValue |     1 | 4.819 ns | 0.1521 ns | 0.1423 ns | 4.775 ns |  0.51 |    0.03 |         - |          NA |
+        |                            |       |          |           |           |          |       |         |           |             |
+        | DictionarySlim_TryGetValue |    10 | 9.012 ns | 0.2230 ns | 0.4297 ns | 8.841 ns |  1.00 |    0.00 |         - |          NA |
+        |       FHashMap_TryGetValue |    10 | 6.407 ns | 0.1963 ns | 0.2182 ns | 6.375 ns |  0.70 |    0.05 |         - |          NA |
+        |                            |       |          |           |           |          |       |         |           |             |
+        | DictionarySlim_TryGetValue |   100 | 9.261 ns | 0.2620 ns | 0.6019 ns | 8.994 ns |  1.00 |    0.00 |         - |          NA |
+        |       FHashMap_TryGetValue |   100 | 7.136 ns | 0.1941 ns | 0.1515 ns | 7.104 ns |  0.74 |    0.06 |         - |          NA |
+        |                            |       |          |           |           |          |       |         |           |             |
+        | DictionarySlim_TryGetValue |  1000 | 9.066 ns | 0.1819 ns | 0.1612 ns | 9.013 ns |  1.00 |    0.00 |         - |          NA |
+        |       FHashMap_TryGetValue |  1000 | 4.935 ns | 0.1353 ns | 0.1661 ns | 4.891 ns |  0.55 |    0.02 |         - |          NA |
+
+        ## Lookup FHashMap8 vs DictionarySlim
+
+        |                     Method | Count |     Mean |     Error |    StdDev |   Median | Ratio | RatioSD | Allocated | Alloc Ratio |
+        |--------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|----------:|------------:|
+        | DictionarySlim_TryGetValue |     1 | 9.446 ns | 0.2718 ns | 0.5038 ns | 9.329 ns |  1.00 |    0.00 |         - |          NA |
+        |      FHashMap8_TryGetValue |     1 | 5.485 ns | 0.1832 ns | 0.3009 ns | 5.402 ns |  0.58 |    0.04 |         - |          NA |
+        |                            |       |          |           |           |          |       |         |           |             |
+        | DictionarySlim_TryGetValue |    10 | 9.659 ns | 0.2123 ns | 0.1882 ns | 9.654 ns |  1.00 |    0.00 |         - |          NA |
+        |      FHashMap8_TryGetValue |    10 | 7.044 ns | 0.1443 ns | 0.1205 ns | 7.003 ns |  0.73 |    0.01 |         - |          NA |
+        |                            |       |          |           |           |          |       |         |           |             |
+        | DictionarySlim_TryGetValue |   100 | 9.368 ns | 0.2697 ns | 0.3600 ns | 9.259 ns |  1.00 |    0.00 |         - |          NA |
+        |      FHashMap8_TryGetValue |   100 | 9.770 ns | 0.2736 ns | 0.3360 ns | 9.748 ns |  1.04 |    0.06 |         - |          NA |
+        |                            |       |          |           |           |          |       |         |           |             |
+        | DictionarySlim_TryGetValue |  1000 | 9.743 ns | 0.2676 ns | 0.4686 ns | 9.573 ns |  1.00 |    0.00 |         - |          NA |
+        |      FHashMap8_TryGetValue |  1000 | 6.043 ns | 0.1946 ns | 0.4146 ns | 5.883 ns |  0.62 |    0.05 |         - |          NA |
+
+        ## Lookup FHashMap8 vs DictionarySlim after simplifying
+
+        |                     Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | Allocated | Alloc Ratio |
+        |--------------------------- |------ |---------:|----------:|----------:|------:|--------:|----------:|------------:|
+        | DictionarySlim_TryGetValue |     1 | 8.649 ns | 0.0707 ns | 0.0662 ns |  1.00 |    0.00 |         - |          NA |
+        |      FHashMap8_TryGetValue |     1 | 5.447 ns | 0.0784 ns | 0.0654 ns |  0.63 |    0.01 |         - |          NA |
+        |                            |       |          |           |           |       |         |           |             |
+        | DictionarySlim_TryGetValue |    10 | 8.948 ns | 0.0405 ns | 0.0316 ns |  1.00 |    0.00 |         - |          NA |
+        |      FHashMap8_TryGetValue |    10 | 5.471 ns | 0.1656 ns | 0.2375 ns |  0.62 |    0.03 |         - |          NA |
+        |                            |       |          |           |           |       |         |           |             |
+        | DictionarySlim_TryGetValue |   100 | 9.081 ns | 0.2568 ns | 0.5583 ns |  1.00 |    0.00 |         - |          NA |
+        |      FHashMap8_TryGetValue |   100 | 6.294 ns | 0.1585 ns | 0.1886 ns |  0.69 |    0.05 |         - |          NA |
+        |                            |       |          |           |           |       |         |           |             |
+        | DictionarySlim_TryGetValue |  1000 | 8.990 ns | 0.2087 ns | 0.1850 ns |  1.00 |    0.00 |         - |          NA |
+        |      FHashMap8_TryGetValue |  1000 | 4.950 ns | 0.1508 ns | 0.2719 ns |  0.55 |    0.03 |         - |          NA |
+
+        ## Lookup FHashMap7 vs FHashMap8 vs DictionarySlim vs Dictionary
+
+        |                     Method | Count |      Mean |     Error |    StdDev |    Median | Ratio | RatioSD | Allocated | Alloc Ratio |
+        |--------------------------- |------ |----------:|----------:|----------:|----------:|------:|--------:|----------:|------------:|
+        | DictionarySlim_TryGetValue |     1 |  9.470 ns | 0.2655 ns | 0.7269 ns |  9.193 ns |  1.00 |    0.00 |         - |          NA |
+        |     Dictionary_TryGetValue |     1 | 12.842 ns | 0.3375 ns | 0.7192 ns | 12.628 ns |  1.36 |    0.12 |         - |          NA |
+        |      FHashMap8_TryGetValue |     1 |  5.212 ns | 0.1734 ns | 0.1448 ns |  5.202 ns |  0.52 |    0.05 |         - |          NA |
+        |      FHashMap7_TryGetValue |     1 |  4.365 ns | 0.1630 ns | 0.2981 ns |  4.269 ns |  0.45 |    0.05 |         - |          NA |
+        |                            |       |           |           |           |           |       |         |           |             |
+        | DictionarySlim_TryGetValue |    10 |  9.585 ns | 0.2755 ns | 0.7992 ns |  9.292 ns |  1.00 |    0.00 |         - |          NA |
+        |     Dictionary_TryGetValue |    10 | 10.675 ns | 0.2063 ns | 0.1723 ns | 10.674 ns |  1.13 |    0.10 |         - |          NA |
+        |      FHashMap8_TryGetValue |    10 |  5.584 ns | 0.1895 ns | 0.2028 ns |  5.546 ns |  0.57 |    0.07 |         - |          NA |
+        |      FHashMap7_TryGetValue |    10 |  5.676 ns | 0.0982 ns | 0.0964 ns |  5.680 ns |  0.58 |    0.06 |         - |          NA |
+        |                            |       |           |           |           |           |       |         |           |             |
+        | DictionarySlim_TryGetValue |   100 | 11.095 ns | 0.4470 ns | 1.2236 ns | 11.427 ns |  1.00 |    0.00 |         - |          NA |
+        |     Dictionary_TryGetValue |   100 | 10.694 ns | 0.2975 ns | 0.7013 ns | 10.484 ns |  0.94 |    0.11 |         - |          NA |
+        |      FHashMap8_TryGetValue |   100 |  7.313 ns | 0.2226 ns | 0.4071 ns |  7.107 ns |  0.65 |    0.07 |         - |          NA |
+        |      FHashMap7_TryGetValue |   100 |  7.119 ns | 0.2135 ns | 0.1997 ns |  7.095 ns |  0.67 |    0.11 |         - |          NA |
+        |                            |       |           |           |           |           |       |         |           |             |
+        | DictionarySlim_TryGetValue |  1000 |  9.049 ns | 0.2662 ns | 0.5953 ns |  8.826 ns |  1.00 |    0.00 |         - |          NA |
+        |     Dictionary_TryGetValue |  1000 | 13.465 ns | 0.3476 ns | 0.3251 ns | 13.483 ns |  1.50 |    0.12 |         - |          NA |
+        |      FHashMap8_TryGetValue |  1000 |  4.926 ns | 0.1781 ns | 0.3120 ns |  4.809 ns |  0.54 |    0.05 |         - |          NA |
+        |      FHashMap7_TryGetValue |  1000 |  4.314 ns | 0.1559 ns | 0.1601 ns |  4.290 ns |  0.48 |    0.04 |         - |          NA |
+
+        ## FHM9.1 vs Dict and DictSlim
+
+        BenchmarkDotNet=v0.13.5, OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValley2)
+        11th Gen Intel Core i7-1185G7 3.00GHz, 1 CPU, 8 logical and 4 physical cores
+        .NET SDK=7.0.304
+          [Host]     : .NET 7.0.7 (7.0.723.27404), X64 RyuJIT AVX2
+          DefaultJob : .NET 7.0.7 (7.0.723.27404), X64 RyuJIT AVX2
+
+        |                     Method | Count |      Mean |     Error |    StdDev |    Median | Ratio | RatioSD | BranchInstructions/Op | CacheMisses/Op | BranchMispredictions/Op | Allocated | Alloc Ratio |
+        |--------------------------- |------ |----------:|----------:|----------:|----------:|------:|--------:|----------------------:|---------------:|------------------------:|----------:|------------:|
+        | DictionarySlim_TryGetValue |     1 |  6.236 ns | 0.1823 ns | 0.1872 ns |  6.221 ns |  1.00 |    0.00 |                    20 |              0 |                       0 |         - |          NA |
+        |     Dictionary_TryGetValue |     1 | 10.070 ns | 0.2035 ns | 0.2090 ns | 10.038 ns |  1.62 |    0.05 |                    31 |              0 |                       0 |         - |          NA |
+        |     FHashMap91_TryGetValue |     1 |  5.084 ns | 0.2665 ns | 0.7773 ns |  5.267 ns |  0.67 |    0.08 |                    11 |              0 |                       0 |         - |          NA |
+        |                            |       |           |           |           |           |       |         |                       |                |                         |           |             |
+        | DictionarySlim_TryGetValue |    10 |  8.515 ns | 0.2330 ns | 0.3763 ns |  8.407 ns |  1.00 |    0.00 |                    20 |              0 |                       0 |         - |          NA |
+        |     Dictionary_TryGetValue |    10 | 10.296 ns | 0.4517 ns | 1.3247 ns | 10.439 ns |  1.30 |    0.10 |                    25 |              0 |                       0 |         - |          NA |
+        |     FHashMap91_TryGetValue |    10 |  3.857 ns | 0.1311 ns | 0.2904 ns |  3.777 ns |  0.46 |    0.04 |                    11 |              0 |                       0 |         - |          NA |
+        |                            |       |           |           |           |           |       |         |                       |                |                         |           |             |
+        | DictionarySlim_TryGetValue |   100 |  7.105 ns | 0.1931 ns | 0.5221 ns |  6.860 ns |  1.00 |    0.00 |                    20 |              0 |                       0 |         - |          NA |
+        |     Dictionary_TryGetValue |   100 |  8.443 ns | 0.2081 ns | 0.2397 ns |  8.402 ns |  1.14 |    0.11 |                    25 |              0 |                       0 |         - |          NA |
+        |     FHashMap91_TryGetValue |   100 |  4.037 ns | 0.1339 ns | 0.2201 ns |  3.994 ns |  0.56 |    0.06 |                    11 |              0 |                       0 |         - |          NA |
+        |                            |       |           |           |           |           |       |         |                       |                |                         |           |             |
+        | DictionarySlim_TryGetValue |  1000 |  6.325 ns | 0.1933 ns | 0.4632 ns |  6.124 ns |  1.00 |    0.00 |                    20 |              0 |                       0 |         - |          NA |
+        |     Dictionary_TryGetValue |  1000 |  9.146 ns | 0.2185 ns | 0.2044 ns |  9.176 ns |  1.42 |    0.10 |                    25 |              0 |                       0 |         - |          NA |
+        |     FHashMap91_TryGetValue |  1000 |  5.917 ns | 0.1505 ns | 0.1334 ns |  5.909 ns |  0.92 |    0.07 |                    13 |              0 |                       0 |         - |          NA |
+
+        ## FHM9.1 sparse entries
+
+        |                     Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | CacheMisses/Op | BranchInstructions/Op | BranchMispredictions/Op | Allocated | Alloc Ratio |
+        |--------------------------- |------ |---------:|----------:|----------:|------:|--------:|---------------:|----------------------:|------------------------:|----------:|------------:|
+        | DictionarySlim_TryGetValue |     1 | 7.813 ns | 0.2096 ns | 0.2243 ns |  1.00 |    0.00 |              0 |                    20 |                       0 |         - |          NA |
+        |     FHashMap91_TryGetValue |     1 | 4.608 ns | 0.1493 ns | 0.1888 ns |  0.59 |    0.03 |              0 |                    13 |                      -0 |         - |          NA |
+        |                            |       |          |           |           |       |         |                |                       |                         |           |             |
+        | DictionarySlim_TryGetValue |    10 | 7.677 ns | 0.1647 ns | 0.1375 ns |  1.00 |    0.00 |              0 |                    20 |                       0 |         - |          NA |
+        |     FHashMap91_TryGetValue |    10 | 4.488 ns | 0.1183 ns | 0.1049 ns |  0.59 |    0.02 |              0 |                    13 |                       0 |         - |          NA |
+        |                            |       |          |           |           |       |         |                |                       |                         |           |             |
+        | DictionarySlim_TryGetValue |   100 | 7.824 ns | 0.2102 ns | 0.2947 ns |  1.00 |    0.00 |              0 |                    20 |                       0 |         - |          NA |
+        |     FHashMap91_TryGetValue |   100 | 3.459 ns | 0.1538 ns | 0.3277 ns |  0.45 |    0.05 |             -0 |                    13 |                      -0 |         - |          NA |
+        |                            |       |          |           |           |       |         |                |                       |                         |           |             |
+        | DictionarySlim_TryGetValue |  1000 | 7.608 ns | 0.1997 ns | 0.1770 ns |  1.00 |    0.00 |              0 |                    20 |                       0 |         - |          NA |
+        |     FHashMap91_TryGetValue |  1000 | 6.384 ns | 0.1427 ns | 0.1114 ns |  0.84 |    0.03 |              0 |                    14 |                       0 |         - |          NA |
+
+        ## No more sparce anymore
+
+        |                        Method | Count |     Mean |     Error |    StdDev |   Median | Ratio | RatioSD | BranchInstructions/Op | CacheMisses/Op | BranchMispredictions/Op | Allocated | Alloc Ratio |
+        |------------------------------ |------ |---------:|----------:|----------:|---------:|------:|--------:|----------------------:|---------------:|------------------------:|----------:|------------:|
+        |    DictionarySlim_TryGetValue |     1 | 6.759 ns | 0.2002 ns | 0.2603 ns | 6.704 ns |  1.00 |    0.00 |                    20 |              0 |                      -0 |         - |          NA |
+        |        FHashMap91_TryGetValue |     1 | 4.512 ns | 0.1337 ns | 0.2271 ns | 4.432 ns |  0.67 |    0.05 |                    11 |              0 |                      -0 |         - |          NA |
+        | FHashMap91_TryGetValue_Golden |     1 | 4.187 ns | 0.1022 ns | 0.0906 ns | 4.167 ns |  0.62 |    0.03 |                    11 |             -0 |                      -0 |         - |          NA |
+        |                               |       |          |           |           |          |       |         |                       |                |                         |           |             |
+        |    DictionarySlim_TryGetValue |    10 | 8.225 ns | 0.4388 ns | 1.2938 ns | 7.602 ns |  1.00 |    0.00 |                    20 |              0 |                       0 |         - |          NA |
+        |        FHashMap91_TryGetValue |    10 | 4.434 ns | 0.1415 ns | 0.1453 ns | 4.434 ns |  0.58 |    0.06 |                    11 |              0 |                       0 |         - |          NA |
+        | FHashMap91_TryGetValue_Golden |    10 | 4.498 ns | 0.1236 ns | 0.1033 ns | 4.472 ns |  0.59 |    0.05 |                    11 |              0 |                       0 |         - |          NA |
+        |                               |       |          |           |           |          |       |         |                       |                |                         |           |             |
+        |    DictionarySlim_TryGetValue |   100 | 7.067 ns | 0.1470 ns | 0.1303 ns | 7.080 ns |  1.00 |    0.00 |                    20 |              0 |                       0 |         - |          NA |
+        |        FHashMap91_TryGetValue |   100 | 4.481 ns | 0.1484 ns | 0.2311 ns | 4.398 ns |  0.64 |    0.04 |                    11 |              0 |                      -0 |         - |          NA |
+        | FHashMap91_TryGetValue_Golden |   100 | 8.215 ns | 0.2181 ns | 0.2240 ns | 8.178 ns |  1.17 |    0.04 |                    17 |              0 |                       0 |         - |          NA |
+        |                               |       |          |           |           |          |       |         |                       |                |                         |           |             |
+        |    DictionarySlim_TryGetValue |  1000 | 8.744 ns | 0.6189 ns | 1.8151 ns | 7.838 ns |  1.00 |    0.00 |                    20 |              0 |                       0 |         - |          NA |
+        |        FHashMap91_TryGetValue |  1000 | 5.755 ns | 0.1660 ns | 0.1912 ns | 5.715 ns |  0.73 |    0.09 |                    14 |              0 |                       0 |         - |          NA |
+        | FHashMap91_TryGetValue_Golden |  1000 | 7.732 ns | 0.1953 ns | 0.2325 ns | 7.705 ns |  0.97 |    0.13 |                    17 |              0 |                       0 |         - |          NA |
+
+        ## Final load factor 87.5% and no golden results
+
+        |                     Method | Count |     Mean |     Error |    StdDev | Ratio | RatioSD | BranchInstructions/Op | BranchMispredictions/Op | CacheMisses/Op | Allocated | Alloc Ratio |
+        |--------------------------- |------ |---------:|----------:|----------:|------:|--------:|----------------------:|------------------------:|---------------:|----------:|------------:|
+        | DictionarySlim_TryGetValue |     1 | 6.830 ns | 0.1073 ns | 0.1004 ns |  1.00 |    0.00 |                    20 |                       0 |              0 |         - |          NA |
+        |     FHashMap91_TryGetValue |     1 | 4.230 ns | 0.1149 ns | 0.1075 ns |  0.62 |    0.02 |                    11 |                       0 |              0 |         - |          NA |
+        |                            |       |          |           |           |       |         |                       |                         |                |           |             |
+        | DictionarySlim_TryGetValue |    10 | 6.980 ns | 0.0918 ns | 0.0717 ns |  1.00 |    0.00 |                    20 |                       0 |              0 |         - |          NA |
+        |     FHashMap91_TryGetValue |    10 | 4.259 ns | 0.0673 ns | 0.0562 ns |  0.61 |    0.01 |                    11 |                       0 |              0 |         - |          NA |
+        |                            |       |          |           |           |       |         |                       |                         |                |           |             |
+        | DictionarySlim_TryGetValue |   100 | 6.975 ns | 0.1016 ns | 0.0849 ns |  1.00 |    0.00 |                    20 |                       0 |              0 |         - |          NA |
+        |     FHashMap91_TryGetValue |   100 | 4.414 ns | 0.1426 ns | 0.2342 ns |  0.64 |    0.03 |                    11 |                       0 |              0 |         - |          NA |
+        |                            |       |          |           |           |       |         |                       |                         |                |           |             |
+        | DictionarySlim_TryGetValue |  1000 | 6.889 ns | 0.0773 ns | 0.0685 ns |  1.00 |    0.00 |                    20 |                       0 |              0 |         - |          NA |
+        |     FHashMap91_TryGetValue |  1000 | 5.633 ns | 0.1079 ns | 0.1243 ns |  0.82 |    0.02 |                    14 |                       0 |              0 |         - |          NA |
+
+        ## ArrayEntries
+
+        |                     Method | Count |     Mean |     Error |    StdDev |   Median | Ratio | RatioSD | CacheMisses/Op | BranchInstructions/Op | BranchMispredictions/Op | Allocated | Alloc Ratio |
+        |--------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|---------------:|----------------------:|------------------------:|----------:|------------:|
+        | DictionarySlim_TryGetValue |  1000 | 7.223 ns | 0.2535 ns | 0.7193 ns | 6.887 ns |  1.00 |    0.00 |              0 |                    20 |                       0 |         - |          NA |
+        |     FHashMap91_TryGetValue |  1000 | 5.108 ns | 0.1634 ns | 0.2819 ns | 4.996 ns |  0.69 |    0.09 |             -0 |                    14 |                       0 |         - |          NA |
+
+        ## ArrayArrayEntries
+
+        |                     Method | Count |     Mean |     Error |    StdDev |   Median | Ratio | RatioSD | BranchInstructions/Op | BranchMispredictions/Op | CacheMisses/Op | Allocated | Alloc Ratio |
+        |--------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|----------------------:|------------------------:|---------------:|----------:|------------:|
+        | DictionarySlim_TryGetValue |     1 | 7.053 ns | 0.1174 ns | 0.1041 ns | 7.021 ns |  1.00 |    0.00 |                    20 |                       0 |              0 |         - |          NA |
+        |     FHashMap91_TryGetValue |     1 | 4.948 ns | 0.1446 ns | 0.2119 ns | 4.845 ns |  0.70 |    0.04 |                    11 |                       0 |              0 |         - |          NA |
+        |                            |       |          |           |           |          |       |         |                       |                         |                |           |             |
+        | DictionarySlim_TryGetValue |    10 | 7.475 ns | 0.1732 ns | 0.2747 ns | 7.384 ns |  1.00 |    0.00 |                    20 |                       0 |              0 |         - |          NA |
+        |     FHashMap91_TryGetValue |    10 | 4.900 ns | 0.1541 ns | 0.1366 ns | 4.862 ns |  0.65 |    0.03 |                    11 |                       0 |              0 |         - |          NA |
+        |                            |       |          |           |           |          |       |         |                       |                         |                |           |             |
+        | DictionarySlim_TryGetValue |   100 | 8.120 ns | 0.4747 ns | 1.3995 ns | 7.386 ns |  1.00 |    0.00 |                    20 |                      -0 |              0 |         - |          NA |
+        |     FHashMap91_TryGetValue |   100 | 5.129 ns | 0.1593 ns | 0.4251 ns | 4.985 ns |  0.64 |    0.12 |                    11 |                       0 |              0 |         - |          NA |
+        |                            |       |          |           |           |          |       |         |                       |                         |                |           |             |
+        | DictionarySlim_TryGetValue |  1000 | 7.289 ns | 0.1912 ns | 0.3088 ns | 7.137 ns |  1.00 |    0.00 |                    20 |                       0 |              0 |         - |          NA |
+        |     FHashMap91_TryGetValue |  1000 | 6.262 ns | 0.1232 ns | 0.0962 ns | 6.277 ns |  0.86 |    0.04 |                    14 |                       0 |              0 |         - |          NA |
+
+        ## SmallMap + net8.0
+
+        BenchmarkDotNet v0.13.10, Windows 11 (10.0.22621.2428/22H2/2022Update/SunValley2)
+        11th Gen Intel Core i7-1185G7 3.00GHz, 1 CPU, 8 logical and 4 physical cores
+        .NET SDK 8.0.100-rc.2.23502.2
+        [Host]     : .NET 8.0.0 (8.0.23.47906), X64 RyuJIT AVX2
+        DefaultJob : .NET 8.0.0 (8.0.23.47906), X64 RyuJIT AVX2
+
+        | Method                     | Count | Mean     | Error     | StdDev    | Ratio | RatioSD | BranchInstructions/Op | BranchMispredictions/Op | CacheMisses/Op | Allocated | Alloc Ratio |
+        |--------------------------- |------ |---------:|----------:|----------:|------:|--------:|----------------------:|------------------------:|---------------:|----------:|------------:|
+        | Dictionary_TryGetValue     | 100   | 6.938 ns | 0.1719 ns | 0.2574 ns |  1.00 |    0.00 |                    21 |                       0 |              0 |         - |          NA |
+        | DictionarySlim_TryGetValue | 100   | 5.371 ns | 0.1277 ns | 0.1132 ns |  0.77 |    0.03 |                    15 |                       0 |              0 |         - |          NA |
+        | SmallMap_TryGetValue       | 100   | 3.718 ns | 0.1360 ns | 0.2453 ns |  0.54 |    0.04 |                     9 |                       0 |              0 |         - |          NA |
+
+
+        ## SmallMap + FEC_FHashMap + net6.0
+
+        | Method                     | Count | Mean     | Error     | StdDev    | Median   | Ratio | RatioSD | BranchInstructions/Op | CacheMisses/Op | BranchMispredictions/Op | Allocated | Alloc Ratio |
+        |--------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|----------------------:|---------------:|------------------------:|----------:|------------:|
+        | DictionarySlim_TryGetValue | 1     | 5.592 ns | 0.4244 ns | 1.2448 ns | 4.835 ns |  1.00 |    0.00 |                    15 |              0 |                       0 |         - |          NA |
+        | SmallMap_TryGetValue       | 1     | 2.958 ns | 0.1059 ns | 0.0990 ns | 2.970 ns |  0.44 |    0.03 |                     9 |             -0 |                      -0 |         - |          NA |
+        | FHashMap_TryGetValue       | 1     | 1.297 ns | 0.0757 ns | 0.0777 ns | 1.288 ns |  0.19 |    0.01 |                     6 |             -0 |                       0 |         - |          NA |
+        |                            |       |          |           |           |          |       |         |                       |                |                         |           |             |
+        | DictionarySlim_TryGetValue | 10    | 5.208 ns | 0.1485 ns | 0.1240 ns | 5.181 ns |  1.00 |    0.00 |                    15 |              0 |                       0 |         - |          NA |
+        | SmallMap_TryGetValue       | 10    | 3.709 ns | 0.1739 ns | 0.4551 ns | 3.548 ns |  0.69 |    0.07 |                     9 |              0 |                       0 |         - |          NA |
+        | FHashMap_TryGetValue       | 10    | 5.539 ns | 0.4004 ns | 1.1487 ns | 5.612 ns |  0.98 |    0.22 |                    10 |             -0 |                      -0 |         - |          NA |
+        |                            |       |          |           |           |          |       |         |                       |                |                         |           |             |
+        | DictionarySlim_TryGetValue | 100   | 5.296 ns | 0.1654 ns | 0.3898 ns | 5.176 ns |  1.00 |    0.00 |                    15 |              0 |                       0 |         - |          NA |
+        | SmallMap_TryGetValue       | 100   | 3.549 ns | 0.1293 ns | 0.2490 ns | 3.486 ns |  0.66 |    0.07 |                     9 |              0 |                       0 |         - |          NA |
+        | FHashMap_TryGetValue       | 100   | 4.265 ns | 0.1406 ns | 0.1098 ns | 4.268 ns |  0.80 |    0.08 |                    10 |              0 |                      -0 |         - |          NA |
+
+        ## SmallMap SIMD vs...   
+
+        BenchmarkDotNet v0.15.0, Windows 11 (10.0.26100.4202/24H2/2024Update/HudsonValley)
+        Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+        .NET SDK 9.0.203
+        [Host]     : .NET 9.0.4 (9.0.425.16305), X64 RyuJIT AVX2
+        DefaultJob : .NET 9.0.4 (9.0.425.16305), X64 RyuJIT AVX2
+
+
+        | Method                     | Count | Mean     | Error     | StdDev    | Median   | Ratio | RatioSD | Rank | Allocated | Alloc Ratio |
+        |--------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|-----:|----------:|------------:|
+        | FHashMap_TryGetValue       | 1     | 1.580 ns | 0.0212 ns | 0.0199 ns | 1.587 ns |  0.35 |    0.03 |    1 |         - |          NA |
+        | DictionarySlim_TryGetValue | 1     | 4.592 ns | 0.1535 ns | 0.4202 ns | 4.452 ns |  1.01 |    0.13 |    2 |         - |          NA |
+        | SmallMap_TryGetValue       | 1     | 5.367 ns | 0.0884 ns | 0.0738 ns | 5.378 ns |  1.18 |    0.10 |    3 |         - |          NA |
+        |                            |       |          |           |           |          |       |         |      |           |             |
+        | DictionarySlim_TryGetValue | 10    | 4.165 ns | 0.0467 ns | 0.0414 ns | 4.156 ns |  1.00 |    0.01 |    1 |         - |          NA |
+        | FHashMap_TryGetValue       | 10    | 4.455 ns | 0.0285 ns | 0.0253 ns | 4.457 ns |  1.07 |    0.01 |    2 |         - |          NA |
+        | SmallMap_TryGetValue       | 10    | 5.302 ns | 0.1556 ns | 0.1852 ns | 5.369 ns |  1.27 |    0.05 |    3 |         - |          NA |
+        |                            |       |          |           |           |          |       |         |      |           |             |
+        | DictionarySlim_TryGetValue | 100   | 4.777 ns | 0.1559 ns | 0.4472 ns | 4.576 ns |  1.01 |    0.13 |    1 |         - |          NA |
+        | FHashMap_TryGetValue       | 100   | 6.020 ns | 0.1795 ns | 0.2335 ns | 6.017 ns |  1.27 |    0.13 |    2 |         - |          NA |
+        | SmallMap_TryGetValue       | 100   | 6.021 ns | 0.1808 ns | 0.4827 ns | 6.293 ns |  1.27 |    0.15 |    2 |         - |          NA |
+
+        ## SmallMap vs FHashMap11
+
+        | Method                     | Count | Mean     | Error     | StdDev    | Median   | Ratio | RatioSD | Rank | Allocated | Alloc Ratio |
+        |--------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|-----:|----------:|------------:|
+        | DictionarySlim_TryGetValue | 1000  | 2.225 us | 0.0445 us | 0.1313 us | 2.162 us |  1.00 |    0.08 |    1 |         - |          NA |
+        | SmallMap_TryGetValue       | 1000  | 2.364 us | 0.0387 us | 0.0302 us | 2.377 us |  1.07 |    0.06 |    1 |         - |          NA |
+        | FHashMap11_TryGetValue     | 1000  | 2.387 us | 0.0477 us | 0.1170 us | 2.434 us |  1.08 |    0.08 |    1 |         - |          NA |
+
+        ## APL FHashMap11
+
+        | Method                     | Count | Mean     | Error     | StdDev    | Ratio | RatioSD | Rank | Allocated | Alloc Ratio |
+        |--------------------------- |------ |---------:|----------:|----------:|------:|--------:|-----:|----------:|------------:|
+        | DictionarySlim_TryGetValue | 1000  | 2.195 us | 0.0437 us | 0.1217 us |  1.00 |    0.08 |    1 |         - |          NA |
+        | FHashMap11_TryGetValue     | 1000  | 2.333 us | 0.0465 us | 0.0929 us |  1.07 |    0.07 |    2 |         - |          NA |
+        | SmallMap_TryGetValue       | 1000  | 2.514 us | 0.0489 us | 0.0789 us |  1.15 |    0.07 |    3 |         - |          NA |
+
+        ## Reshuffle the lookup comparison
+
+        | Method                     | Count | Mean        | Error     | StdDev     | Ratio | RatioSD | Rank | Allocated | Alloc Ratio |
+        |--------------------------- |------ |------------:|----------:|-----------:|------:|--------:|-----:|----------:|------------:|
+        | SmallMap_TryGetValue       | 10    |    44.90 ns |  0.536 ns |   0.419 ns |  0.99 |    0.04 |    1 |         - |          NA |
+        | DictionarySlim_TryGetValue | 10    |    45.43 ns |  0.941 ns |   1.857 ns |  1.00 |    0.06 |    1 |         - |          NA |
+        |                            |       |             |           |            |       |         |      |           |             |
+        | DictionarySlim_TryGetValue | 100   |   385.36 ns |  4.621 ns |   4.097 ns |  1.00 |    0.01 |    1 |         - |          NA |
+        | SmallMap_TryGetValue       | 100   |   513.52 ns |  5.702 ns |   5.054 ns |  1.33 |    0.02 |    2 |         - |          NA |
+        |                            |       |             |           |            |       |         |      |           |             |
+        | SmallMap_TryGetValue       | 1000  | 4,255.63 ns | 82.286 ns | 130.514 ns |  0.89 |    0.04 |    1 |         - |          NA |
+        | DictionarySlim_TryGetValue | 1000  | 4,794.12 ns | 95.912 ns | 189.322 ns |  1.00 |    0.06 |    2 |         - |          NA |
+
+        ## Stack hybrid from the FEC is tested
+
+        | Method                                                   | Count | Mean     | Error   | StdDev   | Ratio | RatioSD | Rank | Gen0   | Allocated | Alloc Ratio |
+        |--------------------------------------------------------- |------ |---------:|--------:|---------:|------:|--------:|-----:|-------:|----------:|------------:|
+        | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 10    | 203.5 ns | 3.88 ns |  3.63 ns |  0.70 |    0.03 |    1 | 0.1147 |     720 B |        0.67 |
+        | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 10    | 277.6 ns | 3.61 ns |  5.52 ns |  0.95 |    0.04 |    2 |      - |         - |        0.00 |
+        | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 10    | 292.1 ns | 5.84 ns | 12.19 ns |  1.00 |    0.06 |    2 | 0.1707 |    1072 B |        1.00 |
+
+        ## After inlining in the FecHashMap
+
+        | Method                                                   | Count | Mean       | Error    | StdDev   | Median     | Ratio | RatioSD | Rank | Gen0   | Gen1   | Allocated | Alloc Ratio |
+        |--------------------------------------------------------- |------ |-----------:|---------:|---------:|-----------:|------:|--------:|-----:|-------:|-------:|----------:|------------:|
+        | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 10    |   110.8 ns |  2.26 ns |  4.90 ns |   110.1 ns |  0.38 |    0.02 |    1 |      - |      - |         - |        0.00 |
+        | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 10    |   194.1 ns |  1.80 ns |  1.50 ns |   194.2 ns |  0.67 |    0.03 |    2 | 0.1147 |      - |     720 B |        0.67 |
+        | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 10    |   288.7 ns |  5.82 ns | 14.04 ns |   280.1 ns |  1.00 |    0.07 |    3 | 0.1707 |      - |    1072 B |        1.00 |
+        |                                                          |       |            |          |          |            |       |         |      |        |        |           |             |
+        | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 100   | 2,003.8 ns | 30.26 ns | 31.08 ns | 1,995.1 ns |  1.00 |    0.02 |    1 | 1.1902 | 0.0229 |    7488 B |        1.00 |
+        | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 100   | 2,306.8 ns | 18.67 ns | 15.59 ns | 2,307.0 ns |  1.15 |    0.02 |    2 | 0.8507 |      - |    5344 B |        0.71 |
+        | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 100   | 3,473.7 ns | 15.97 ns | 13.34 ns | 3,470.3 ns |  1.73 |    0.03 |    3 | 0.7782 |      - |    4904 B |        0.65 |
+
+        ## Probes are separate from the packed hashes and indexes into their own array
+
+        | Method                                                   | Count | Mean     | Error     | StdDev    | Ratio | RatioSD | Rank | Gen0   | Gen1   | Allocated | Alloc Ratio |
+        |--------------------------------------------------------- |------ |---------:|----------:|----------:|------:|--------:|-----:|-------:|-------:|----------:|------------:|
+        | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 100   | 2.118 us | 0.0421 us | 0.0679 us |  1.00 |    0.04 |    1 | 1.1902 | 0.0229 |   7.31 KB |        1.00 |
+        | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 100   | 2.346 us | 0.0404 us | 0.0378 us |  1.11 |    0.04 |    2 | 0.8507 |      - |   5.22 KB |        0.71 |
+        | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 100   | 3.294 us | 0.0648 us | 0.0970 us |  1.56 |    0.07 |    3 | 0.8278 |      - |   5.08 KB |        0.69 |
+
+        ## GoldenRatio Hash adjustment
+
+        | Method                                                   | Count | Mean     | Error     | StdDev    | Median   | Ratio | RatioSD | Rank | Gen0   | Gen1   | Allocated | Alloc Ratio |
+        |--------------------------------------------------------- |------ |---------:|----------:|----------:|---------:|------:|--------:|-----:|-------:|-------:|----------:|------------:|        
+        | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 100   | 2.150 us | 0.0428 us | 0.0783 us | 2.115 us |  1.00 |    0.05 |    1 | 1.1902 | 0.0229 |   7.31 KB |        1.00 |        
+        | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 100   | 3.092 us | 0.0608 us | 0.0871 us | 3.068 us |  1.44 |    0.06 |    2 | 0.8278 |      - |   5.08 KB |        0.69 |
+
+        ## After probes go to their own array + padding + wrapping
+
+        | Method                                                   | Count | Mean        | Error     | StdDev      | Median      | Ratio | RatioSD | Rank | Gen0   | Gen1   | Allocated | Alloc Ratio |
+        |--------------------------------------------------------- |------ |------------:|----------:|------------:|------------:|------:|--------:|-----:|-------:|-------:|----------:|------------:|
+        | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 10    |    111.6 ns |   1.16 ns |     0.97 ns |    111.8 ns |  0.38 |    0.01 |    1 |      - |      - |         - |        0.00 |
+        | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 10    |    205.1 ns |   3.46 ns |     3.24 ns |    204.4 ns |  0.70 |    0.02 |    2 | 0.1147 |      - |     720 B |        0.67 |
+        | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 10    |    292.2 ns |   5.53 ns |     5.68 ns |    291.4 ns |  1.00 |    0.03 |    3 | 0.1707 |      - |    1072 B |        1.00 |
+        |                                                          |       |             |           |             |             |       |         |      |        |        |           |             |
+        | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 100   |  2,121.8 ns |  42.34 ns |    91.14 ns |  2,070.2 ns |  1.00 |    0.06 |    1 | 1.1902 | 0.0229 |    7488 B |        1.00 |
+        | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 100   |  2,181.5 ns |  43.38 ns |    91.50 ns |  2,127.6 ns |  1.03 |    0.06 |    1 | 0.8659 | 0.0038 |    5440 B |        0.73 |
+        | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 100   |  2,347.8 ns |  14.31 ns |    12.69 ns |  2,343.7 ns |  1.11 |    0.05 |    2 | 0.8507 |      - |    5344 B |        0.71 |
+        |                                                          |       |             |           |             |             |       |         |      |        |        |           |             |
+        | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 1000  | 23,640.4 ns | 280.02 ns |   248.23 ns | 23,620.0 ns |  1.00 |    0.01 |    1 | 9.1553 | 1.2817 |   57808 B |        1.00 |
+        | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 1000  | 45,226.9 ns | 293.55 ns |   245.13 ns | 45,221.9 ns |  1.91 |    0.02 |    2 | 7.8735 | 0.3052 |   49544 B |        0.86 |
+        | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 1000  | 49,441.1 ns | 987.34 ns | 1,780.38 ns | 49,657.1 ns |  2.09 |    0.08 |    3 | 8.9111 | 0.0610 |   55976 B |        0.97 |
+
+        ## Initial SIMD for Lookup - Regression in @perf
+        
+        | Method                                                   | Count | Mean        | Error     | StdDev      | Median      | Ratio | RatioSD | Rank | Gen0   | Gen1   | Allocated | Alloc Ratio |
+        |--------------------------------------------------------- |------ |------------:|----------:|------------:|------------:|------:|--------:|-----:|-------:|-------:|----------:|------------:|
+        | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 10    |    111.3 ns |   1.88 ns |     1.67 ns |    110.6 ns |  0.38 |    0.01 |    1 |      - |      - |         - |        0.00 |
+        | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 10    |    211.8 ns |   4.21 ns |     7.91 ns |    210.4 ns |  0.72 |    0.03 |    2 | 0.1147 |      - |     720 B |        0.67 |
+        | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 10    |    293.1 ns |   5.18 ns |     4.33 ns |    293.5 ns |  1.00 |    0.02 |    3 | 0.1707 |      - |    1072 B |        1.00 |
+        |                                                          |       |             |           |             |             |       |         |      |        |        |           |             |
+        | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 100   |  2,112.8 ns |  19.17 ns |    16.00 ns |  2,108.5 ns |  1.00 |    0.01 |    1 | 1.1902 | 0.0229 |    7488 B |        1.00 |
+        | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 100   |  2,433.3 ns |  47.99 ns |    95.84 ns |  2,383.6 ns |  1.15 |    0.05 |    2 | 0.8507 |      - |    5344 B |        0.71 |
+        | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 100   |  2,548.7 ns |  50.70 ns |   106.95 ns |  2,491.5 ns |  1.21 |    0.05 |    2 | 0.8659 | 0.0038 |    5440 B |        0.73 |
+        |                                                          |       |             |           |             |             |       |         |      |        |        |           |             |
+        | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 1000  | 23,127.6 ns | 233.36 ns |   182.20 ns | 23,143.0 ns |  1.00 |    0.01 |    1 | 9.1553 | 1.2817 |   57808 B |        1.00 |
+        | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 1000  | 45,630.3 ns | 912.10 ns | 1,735.36 ns | 44,696.8 ns |  1.97 |    0.08 |    2 | 7.8735 | 0.3052 |   49544 B |        0.86 |
+        | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 1000  | 49,295.9 ns | 327.44 ns |   273.43 ns | 49,364.4 ns |  2.13 |    0.02 |    3 | 8.9111 | 0.0610 |   55976 B |        0.97 |
+
+        ## Using StableArrayEntries 
+
+        | Method                                                   | Count | Mean        | Error       | StdDev      | Median      | Ratio | RatioSD | Rank | Gen0   | Gen1   | Allocated | Alloc Ratio |
+        |--------------------------------------------------------- |------ |------------:|------------:|------------:|------------:|------:|--------:|-----:|-------:|-------:|----------:|------------:|
+        | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 10    |    113.3 ns |     2.32 ns |     5.42 ns |    110.1 ns |  0.37 |    0.02 |    1 |      - |      - |         - |        0.00 |
+        | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 10    |    204.5 ns |     2.73 ns |     2.42 ns |    204.0 ns |  0.67 |    0.03 |    2 | 0.1147 |      - |     720 B |        0.67 |
+        | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 10    |    305.6 ns |     6.11 ns |    14.40 ns |    299.0 ns |  1.00 |    0.06 |    3 | 0.1707 |      - |    1072 B |        1.00 |
+        |                                                          |       |             |             |             |             |       |         |      |        |        |           |             |
+        | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 100   |  2,172.7 ns |    43.50 ns |   102.53 ns |  2,138.9 ns |  1.00 |    0.07 |    1 | 1.1902 | 0.0229 |    7488 B |        1.00 |
+        | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 100   |  2,317.2 ns |    46.33 ns |   100.71 ns |  2,255.9 ns |  1.07 |    0.07 |    1 | 0.4921 |      - |    3088 B |        0.41 |
+        | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 100   |  2,452.2 ns |    49.04 ns |   109.69 ns |  2,512.7 ns |  1.13 |    0.07 |    2 | 0.8507 |      - |    5344 B |        0.71 |
+        |                                                          |       |             |             |             |             |       |         |      |        |        |           |             |
+        | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 1000  | 29,665.4 ns |   588.68 ns | 1,581.45 ns | 29,786.1 ns |  1.00 |    0.08 |    1 | 9.1553 | 1.2817 |   57808 B |        1.00 |
+        | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 1000  | 55,723.9 ns | 1,098.60 ns | 1,078.97 ns | 55,599.6 ns |  1.88 |    0.12 |    2 | 7.8735 | 0.3052 |   49544 B |        0.86 |
+        | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 1000  | 63,373.1 ns | 1,260.87 ns | 2,106.62 ns | 63,624.5 ns |  2.14 |    0.14 |    3 | 6.2256 | 0.2441 |   39288 B |        0.68 |
+
+        ## Packing indexes, hashes and probes together
+
+        | Method                                                   | Count | Mean     | Error    | StdDev   | Median   | Ratio | RatioSD | Rank | Gen0   | Gen1   | Allocated | Alloc Ratio |
+        |--------------------------------------------------------- |------ |---------:|---------:|---------:|---------:|------:|--------:|-----:|-------:|-------:|----------:|------------:|
+        | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 1000  | 24.17 us | 0.483 us | 1.176 us | 23.48 us |  1.00 |    0.07 |    1 | 9.1553 | 1.2817 |  56.45 KB |        1.00 |
+        | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 1000  | 52.85 us | 1.053 us | 1.871 us | 52.14 us |  2.19 |    0.13 |    2 | 7.8125 | 0.2441 |  48.05 KB |        0.85 |
+
+        ## Packing indexes, hashes and probes together with Resize vs no Resize
+
+        | Method                                                        | Count | Mean     | Error    | StdDev   | Median   | Ratio | RatioSD | Rank | Gen0   | Gen1   | Allocated | Alloc Ratio |
+        |-------------------------------------------------------------- |------ |---------:|---------:|---------:|---------:|------:|--------:|-----:|-------:|-------:|----------:|------------:|
+        | FecHashMap_Init1000_PopulateThenLookup_HalfMissed_HalfPresent | 1000  | 36.08 us | 0.329 us | 0.275 us | 36.08 us |  0.66 |    0.03 |    1 | 7.9346 | 0.4883 |  48.73 KB |        1.01 |
+        | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent          | 1000  | 55.17 us | 0.985 us | 2.453 us | 54.41 us |  1.00 |    0.06 |    2 | 7.8125 | 0.2441 |  48.05 KB |        1.00 |
+
+        ## SmallMap is meta longs SingleArrayEntries with index|hash-higher-bits|probe 
+
+        BenchmarkDotNet v0.15.2, Windows 11 (10.0.26200.9457)
+        Unknown processor
+        .NET SDK 11.0.100-rc.1.26425.128
+        [Host]     : .NET 10.0.11 (10.0.1126.37416), X64 RyuJIT AVX2
+        DefaultJob : .NET 10.0.11 (10.0.1126.37416), X64 RyuJIT AVX2
+
+
+        | Method                                                   | Count | Mean     | Error    | StdDev   | Median   | Ratio | RatioSD | Rank | Gen0   | Gen1   | Allocated | Alloc Ratio |
+        |--------------------------------------------------------- |------ |---------:|---------:|---------:|---------:|------:|--------:|-----:|-------:|-------:|----------:|------------:|
+        | DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent | 1000  | 23.41 us | 0.468 us | 1.066 us | 23.33 us |  1.00 |    0.06 |    1 | 9.1553 | 1.2817 |  56.45 KB |        1.00 |
+        | SmallMap_PopulateThenLookup_HalfMissed_HalfPresent       | 1000  | 36.28 us | 0.718 us | 1.331 us | 37.02 us |  1.55 |    0.09 |    2 | 7.8735 | 0.3052 |  48.38 KB |        0.86 |
+        | FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent     | 1000  | 43.45 us | 0.868 us | 1.652 us | 44.48 us |  1.86 |    0.11 |    3 | 7.8735 |      - |  48.23 KB |        0.85 |
+
+        */
+        // [Params(1, 10, 100, 1000)]// the 1000 does not add anything as the LookupKey stored higher in the tree, 1000)]
+        // [Params(10, 100, 1000)]
+        [Params(1000)]
+        public int Count;
+
+        private Type[] _presentKeys;
+        private Type[] _randomPresentKeys;
+
+        [GlobalSetup]
+        public void Populate()
+        {
+            _presentKeys = _keys.Take(Count).ToArray();
+            _randomPresentKeys = _presentKeys.OrderBy(_ => _seed.Next()).ToArray();
+
+            // _mapV4 = V4_ImHashMap_AddOrUpdate();
+            // _mapV3 = V3_ImHashMap_AddOrUpdate();
+            // _mapV2 = V2_AddOrUpdate();
+            // _partMapV4 = V4_PartitionedHashMap_AddOrUpdate();
+            // _partMapV3 = V3_PartitionedHashMap_AddOrUpdate();
+            // _typeDict = TypeDictionary_Add();
+            // _dict = Dict();
+            // _dictSlim = DictSlim();
+            // _fHashMap7 = FillFHashMap7();
+            // _fHashMap9 = FillFHashMap9();
+            // _fHashMap91 = FillFHashMap91();
+            // _smallMap = FillSmallMap();
+            // _fHashMap11 = FillFHashMap11();
+
+            // _fecSmallMap = new FecSmallMapTypeString();
+            // FillFecHashMap(ref _fecSmallMap);
+
+            // _concurrentDict = ConcurrentDict();
+            // _immutableDict = ImmutableDict();
+        }
+
+        #region Population
+
+        private ImTools.V2.ImHashMap<Type, string> _mapV2;
+        public ImTools.V2.ImHashMap<Type, string> V2_AddOrUpdate()
+        {
+            var map = ImTools.V2.ImHashMap<Type, string>.Empty;
+
+            foreach (var key in _keys.Take(Count))
+                map = map.AddOrUpdate(key, "a");
+
+            map = map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+            return map;
+        }
+
+        private ImTools.V2.ImHashMap<Type, string>[] _mapSlots;
+        public ImTools.V2.ImHashMap<Type, string>[] ImHashMapSlots_AddOrUpdate()
+        {
+            var map = ImHashMapSlots.CreateWithEmpty<Type, string>();
+
+            foreach (var key in _keys.Take(Count))
+                map.AddOrUpdate(key, "a");
+
+            map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+            return map;
+        }
+
+        private ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>> _mapExp;
+        public ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>> Experimental_ImHashMap_AddOrUpdate()
+        {
+            var map = ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>>.Empty;
+
+            foreach (var key in _keys.Take(Count))
+                map = map.AddOrUpdate(key.GetHashCode(), key, "a");
+
+            return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
+        }
+
+        private ImTools.Experiments.RefEqHashMap<Type, string> _refEqHashMap;
+        public ImTools.Experiments.RefEqHashMap<Type, string> RefEqHashMap_AddOrUpdate()
+        {
+            var map = new ImTools.Experiments.RefEqHashMap<Type, string>(5);
+
+            foreach (var key in _keys.Take(Count))
+                map.AddOrUpdate(key, "a");
+
+            map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
+            return map;
+        }
+
+        private ImTools.ImHashMap<Type, string> _mapV4;
+        public ImTools.ImHashMap<Type, string> V4_ImHashMap_AddOrUpdate()
+        {
+            var map = ImTools.ImHashMap<Type, string>.Empty;
+
+            foreach (var key in _keys.Take(Count))
+                map = map.AddOrUpdate(key.GetHashCode(), key, "a");
+
+            return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
+        }
+
+        private ImToolsV3.ImHashMap<Type, string> _mapV3;
+        public ImToolsV3.ImHashMap<Type, string> V3_ImHashMap_AddOrUpdate()
+        {
+            var map = ImToolsV3.ImHashMap<Type, string>.Empty;
+
+            foreach (var key in _keys.Take(Count))
+                map = map.AddOrUpdate(key.GetHashCode(), key, "a");
+
+            return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
+        }
+
+        private ImTools.ImHashMap<Type, string>[] _partMapV4;
+        public ImTools.ImHashMap<Type, string>[] V4_PartitionedHashMap_AddOrUpdate()
+        {
+            var map = ImTools.PartitionedHashMap.CreateEmpty<Type, string>();
+
+            foreach (var key in _keys.Take(Count))
+                map.AddOrUpdate(key.GetHashCode(), key, "a");
+
+            map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
+            return map;
+        }
+
+        private ImToolsV3.ImHashMap<Type, string>[] _partMapV3;
+        public ImToolsV3.ImHashMap<Type, string>[] V3_PartitionedHashMap_AddOrUpdate()
+        {
+            var map = ImToolsV3.PartitionedHashMap.CreateEmpty<Type, string>();
+
+            foreach (var key in _keys.Take(Count))
+                map.AddOrUpdate(key.GetHashCode(), key, "a");
+
+            map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
+            return map;
+        }
+
+        private ImToolsV3.ImHashMap<Type, string>[] _partMap23_32;
+        public ImToolsV3.ImHashMap<Type, string>[] V3_PartitionedHashMap32_AddOrUpdate()
+        {
+            var maps = ImToolsV3.PartitionedHashMap.CreateEmpty<Type, string>(32);
+
+            foreach (var key in _keys.Take(Count))
+                maps.AddOrUpdate(key.GetHashCode(), key, "a", 31);
+
+            maps.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!", 31);
+            return maps;
+        }
+
+        public ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>>[] Experimental_ImHashMapSlots32_AddOrUpdate()
+        {
+            var map = ImTools.V2.Experimental.ImMapSlots.CreateWithEmpty<ImTools.V2.Experimental.ImMap.KValue<Type>>(32);
+
+            foreach (var key in _keys.Take(Count))
+                map.AddOrUpdate(key.GetHashCode(), new ImTools.V2.Experimental.ImMap.KValue<Type>(key, "a"), 31);
+
+            map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), new ImTools.V2.Experimental.ImMap.KValue<Type>(typeof(ImHashMapBenchmarks), "!"), 31);
+            return map;
+        }
+
+        private ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>>[] _mapSlotsExp32;
+
+        public ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>>[] Experimental_ImHashMapSlots64_AddOrUpdate()
+        {
+            var map = ImTools.V2.Experimental.ImMapSlots.CreateWithEmpty<ImTools.V2.Experimental.ImMap.KValue<Type>>(64);
+
+            foreach (var key in _keys.Take(Count))
+                map.AddOrUpdate(key.GetHashCode(), new ImTools.V2.Experimental.ImMap.KValue<Type>(key, "a"), 63);
+
+            map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), new ImTools.V2.Experimental.ImMap.KValue<Type>(typeof(ImHashMapBenchmarks), "!"), 63);
+            return map;
+        }
+
+        private ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>>[] _mapSlotsExp64;
+
+        public Dictionary<Type, string> Dict()
+        {
+            var map = new Dictionary<Type, string>();
+
+            foreach (var key in _keys.Take(Count))
+                map.TryAdd(key, "a");
+
+            map.TryAdd(typeof(ImHashMapBenchmarks), "!");
+
+            return map;
+        }
+
+        private Dictionary<Type, string> _dict;
+
+        public DictionarySlim<TypeVal, string> DictSlim()
+        {
+            var dict = new DictionarySlim<TypeVal, string>();
+
+            foreach (var key in _keys.Take(Count))
+                dict.GetOrAddValueRef(key) = "a";
+
+            dict.GetOrAddValueRef(LookupKey) = "!";
+            return dict;
+        }
+
+        private DictionarySlim<TypeVal, string> _dictSlim;
+
+        public ImTools.Experiments.FHashMap7<Type, string, ImTools.RefEq<Type>> FillFHashMap7()
+        {
+            var map = new ImTools.Experiments.FHashMap7<Type, string, ImTools.RefEq<Type>>();
+
+            foreach (var key in _keys.Take(Count))
+                map.AddOrUpdate(key, "a");
+
+            map.AddOrUpdate(LookupKey, "!");
+            return map;
+        }
+
+        private ImTools.Experiments.FHashMap7<Type, string, ImTools.RefEq<Type>> _fHashMap7;
+
+        public ImTools.Experiments.FHashMap9<Type, string, ImTools.RefEq<Type>> FillFHashMap9()
+        {
+            var map = new ImTools.Experiments.FHashMap9<Type, string, ImTools.RefEq<Type>>();
+
+            foreach (var key in _keys.Take(Count))
+                map.AddOrUpdate(key, "a");
+
+            map.AddOrUpdate(LookupKey, "!");
+            return map;
+        }
+
+        private ImTools.Experiments.FHashMap9<Type, string, ImTools.RefEq<Type>> _fHashMap9;
+
+        public FHashMap91TypeString FillFHashMap91()
+        {
+            var map = new FHashMap91TypeString();
+
+            foreach (var key in _keys.Take(Count))
+                map.GetOrAddValueRef(key) = "a";
+
+            map.GetOrAddValueRef(LookupKey) = "!";
+            return map;
+        }
+
+        private FHashMap91TypeString _fHashMap91;
+
+        public SmallMapTypeString FillSmallMap()
+        {
+            var map = new SmallMapTypeString();
+
+            foreach (var key in _keys.Take(Count))
+                map.GetOrAddValueRef(key) = "a";
+
+            map.GetOrAddValueRef(LookupKey) = "!";
+            return map;
+        }
+
+        private SmallMapTypeString _smallMap;
+
+        public FHashMap11<Type, string, ImTools.RefEq<Type>> FillFHashMap11()
+        {
+            var map = new FHashMap11<Type, string, ImTools.RefEq<Type>>();
+
+            foreach (var key in _keys.Take(Count))
+                map.GetOrAddValueRef(key) = "a";
+
+            map.GetOrAddValueRef(LookupKey) = "!";
+            return map;
+        }
+
+        private FHashMap11<Type, string, ImTools.RefEq<Type>> _fHashMap11;
+
+        public void FillFecHashMap(ref FecSmallMapTypeString map)
+        {
+            foreach (var key in _keys.Take(Count))
+                map.Map.AddOrUpdate(key, "a");
+
+            map.Map.AddOrUpdate(LookupKey, "!");
+        }
+
+        private FecSmallMapTypeString _fecSmallMap;
+
+        public ConcurrentDictionary<Type, string> ConcurrentDict()
+        {
+            var map = new ConcurrentDictionary<Type, string>();
+
+            foreach (var key in _keys.Take(Count))
+                map.TryAdd(key, "a");
+
+            map.TryAdd(typeof(ImHashMapBenchmarks), "!");
+            return map;
+        }
+
+        private ConcurrentDictionary<Type, string> _concurrentDict;
+
+        public ImmutableDictionary<Type, string> ImmutableDict()
+        {
+            var builder = ImmutableDictionary.CreateBuilder<Type, string>();
+
+            foreach (var key in _keys.Take(Count))
+                builder.Add(key, "a");
+            builder.Add(typeof(ImHashMapBenchmarks), "!");
+            return builder.ToImmutable();
+        }
+
+        private ImmutableDictionary<Type, string> _immutableDict;
+
+        public TypeDictionary<string> TypeDictionary_Add()
+        {
+            var map = new TypeDictionary<string>();
+
+            map.Add<A1>("a");
+            map.Add<A2>("a");
+            map.Add<A3>("a");
+            map.Add<A4>("a");
+            map.Add<A5>("a");
+            // map.Add<A6>("a");
+            // map.Add<A7>("a");
+            // map.Add<A8>("a");
+            // map.Add<A9>("a");
+            // map.Add<A10>("a");
+            // map.Add<B1>("a");
+            // map.Add<B2>("a");
+            // map.Add<B3>("a");
+            // map.Add<B4>("a");
+            // map.Add<B5>("a");
+            // map.Add<B6>("a");
+            // map.Add<B7>("a");
+            // map.Add<B8>("a");
+            // map.Add<B9>("a");
+            // map.Add<B10>("a");
+
+            map.Add<ImHashMapBenchmarks>("!");
+
+            return map;
+        }
+
+        private TypeDictionary<string> _typeDict;
+
+        #endregion
+
+        public static Type LookupKey = typeof(Console);
+
+        // [Benchmark(Baseline = true)]
+        public string V2_ImHashMap_AVL_TryFind()
+        {
+            _mapV2.TryFind(LookupKey, out var result);
+            return result;
+        }
+
+        // [Benchmark]
+        public string ImHashMapSlots32_TryFind()
+        {
+            var hash = LookupKey.GetHashCode();
+            _mapSlots[hash & ImHashMapSlots.HASH_MASK_TO_FIND_SLOT].TryFind(hash, LookupKey, out var result);
+            return result;
+        }
+
+        // [Benchmark]
+        public string V2_ImHashMap_AVLOptimizedForAdd_TryFind()
+        {
+            _mapExp.TryFind(LookupKey.GetHashCode(), LookupKey, out var result);
+            return (string)result;
+        }
+
+        // [Benchmark(Baseline = true)]
+        public string V4_ImHashMap_TryFind()
+        {
+            _mapV4.TryFind(LookupKey.GetHashCode(), LookupKey, out var result);
+            return result;
+        }
+
+        // [Benchmark]
+        public string V3_ImHashMap_TryFind()
+        {
+            _mapV3.TryFind(LookupKey.GetHashCode(), LookupKey, out var result);
+            return result;
+        }
+
+        // [Benchmark]
+        public string V4_ImMap_GetValueOrDefault() =>
+            _mapV4.GetValueOrDefaultByReferenceEquals(LookupKey.GetHashCode(), LookupKey);
+
+        // [Benchmark]
+        public string V3_ImHashMap_GetValueOrDefault() =>
+            _mapV3.GetValueOrDefaultByReferenceEquals(LookupKey.GetHashCode(), LookupKey);
+
+        // [Benchmark]
+        public string V3_PartitionedHashMap_GetValueOrDefault() =>
+            _partMapV3.GetValueOrDefaultByReferenceEquals(LookupKey);
+
+        // [Benchmark]
+        public string V3_PartitionedHashMap32_GetValueOrDefault() =>
+            _partMap23_32.GetValueOrDefaultByReferenceEquals(LookupKey, 31);
+
+        // [Benchmark]
+        public string TypeDict_TryFind() =>
+            _typeDict.Get<ImHashMapBenchmarks>();
+
+        // [Benchmark]
+        // public string V3_ImHashMap_23Tree_TryFind_SIMPLIFIED()
+        // {
+        //     var entry = _map234.GetEntryOrDefault(LookupKey.GetHashCode());
+        //     if (entry == null)
+        //         return null;
+        //     return ((ImTools.Experimental.ImHashMap234<Type, string>.KeyValueEntry)entry).Value;
+        // }
+
+        // [Benchmark]
+        public string V4_PartitionedHashMap_TryFind()
+        {
+            var hash = LookupKey.GetHashCode();
+            _partMapV4[hash & ImToolsV3.PartitionedHashMap.PARTITION_HASH_MASK].TryFind(hash, LookupKey, out var result);
+            return result;
+        }
+
+        // [Benchmark]
+        public string V3_PartitionedHashMap_TryFind()
+        {
+            var hash = LookupKey.GetHashCode();
+            _partMapV3[hash & ImToolsV3.PartitionedHashMap.PARTITION_HASH_MASK].TryFind(hash, LookupKey, out var result);
+            return result;
+        }
+
+        // [Benchmark]
+        public string Experimental_ImHashMapSlots32_TryFind()
+        {
+            var hash = LookupKey.GetHashCode();
+            _mapSlotsExp32[hash & ImHashMapSlots.HASH_MASK_TO_FIND_SLOT].TryFind(hash, LookupKey, out var result);
+            return (string)result;
+        }
+
+        // [Benchmark]
+        public string Experimental_ImHashMapSlots64_TryFind()
+        {
+            var hash = LookupKey.GetHashCode();
+            _mapSlotsExp64[hash & 63].TryFind(hash, LookupKey, out var result);
+            return (string)result;
+        }
+
+        // [Benchmark]
+        // [Benchmark(Baseline = true)]
+        public string Dictionary_TryGetValue()
+        {
+            _dict.TryGetValue(LookupKey, out var result);
+            return result;
+        }
+
+        // [Benchmark]
+        [Benchmark(Baseline = true)]
+        public int DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent()
+        {
+            var dict = new DictionarySlim<TypeVal, string>();
+
+            foreach (var key in _presentKeys)
+                dict.GetOrAddValueRef(key) = "a";
+
+            var count = 0;
+            var iters = Count / 2;
+            for (var i = 0; i < iters; ++i)
             {
-                _presentKeys = _keys.Take(Count).ToArray();
-                _randomPresentKeys = _presentKeys.OrderBy(_ => _seed.Next()).ToArray();
-
-                // _mapV4 = V4_ImHashMap_AddOrUpdate();
-                // _mapV3 = V3_ImHashMap_AddOrUpdate();
-                // _mapV2 = V2_AddOrUpdate();
-                // _partMapV4 = V4_PartitionedHashMap_AddOrUpdate();
-                // _partMapV3 = V3_PartitionedHashMap_AddOrUpdate();
-                // _typeDict = TypeDictionary_Add();
-                // _dict = Dict();
-                // _dictSlim = DictSlim();
-                // _fHashMap7 = FillFHashMap7();
-                // _fHashMap9 = FillFHashMap9();
-                // _fHashMap91 = FillFHashMap91();
-                // _smallMap = FillSmallMap();
-                // _fHashMap11 = FillFHashMap11();
-
-                // _fecSmallMap = new FecSmallMapTypeString();
-                // FillFecHashMap(ref _fecSmallMap);
-
-                // _concurrentDict = ConcurrentDict();
-                // _immutableDict = ImmutableDict();
-            }
-
-            #region Population
-
-            private ImTools.V2.ImHashMap<Type, string> _mapV2;
-            public ImTools.V2.ImHashMap<Type, string> V2_AddOrUpdate()
-            {
-                var map = ImTools.V2.ImHashMap<Type, string>.Empty;
-
-                foreach (var key in _keys.Take(Count))
-                    map = map.AddOrUpdate(key, "a");
-
-                map = map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
-                return map;
-            }
-
-            private ImTools.V2.ImHashMap<Type, string>[] _mapSlots;
-            public ImTools.V2.ImHashMap<Type, string>[] ImHashMapSlots_AddOrUpdate()
-            {
-                var map = ImHashMapSlots.CreateWithEmpty<Type, string>();
-
-                foreach (var key in _keys.Take(Count))
-                    map.AddOrUpdate(key, "a");
-
-                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
-                return map;
-            }
-
-            private ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>> _mapExp;
-            public ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>> Experimental_ImHashMap_AddOrUpdate()
-            {
-                var map = ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>>.Empty;
-
-                foreach (var key in _keys.Take(Count))
-                    map = map.AddOrUpdate(key.GetHashCode(), key, "a");
-
-                return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
-            }
-
-            private ImTools.Experiments.RefEqHashMap<Type, string> _refEqHashMap;
-            public ImTools.Experiments.RefEqHashMap<Type, string> RefEqHashMap_AddOrUpdate()
-            {
-                var map = new ImTools.Experiments.RefEqHashMap<Type, string>(5);
-
-                foreach (var key in _keys.Take(Count))
-                    map.AddOrUpdate(key, "a");
-
-                map.AddOrUpdate(typeof(ImHashMapBenchmarks), "!");
-                return map;
-            }
-
-            private ImTools.ImHashMap<Type, string> _mapV4;
-            public ImTools.ImHashMap<Type, string> V4_ImHashMap_AddOrUpdate()
-            {
-                var map = ImTools.ImHashMap<Type, string>.Empty;
-
-                foreach (var key in _keys.Take(Count))
-                    map = map.AddOrUpdate(key.GetHashCode(), key, "a");
-
-                return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
-            }
-
-            private ImToolsV3.ImHashMap<Type, string> _mapV3;
-            public ImToolsV3.ImHashMap<Type, string> V3_ImHashMap_AddOrUpdate()
-            {
-                var map = ImToolsV3.ImHashMap<Type, string>.Empty;
-
-                foreach (var key in _keys.Take(Count))
-                    map = map.AddOrUpdate(key.GetHashCode(), key, "a");
-
-                return map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
-            }
-
-            private ImTools.ImHashMap<Type, string>[] _partMapV4;
-            public ImTools.ImHashMap<Type, string>[] V4_PartitionedHashMap_AddOrUpdate()
-            {
-                var map = ImTools.PartitionedHashMap.CreateEmpty<Type, string>();
-
-                foreach (var key in _keys.Take(Count))
-                    map.AddOrUpdate(key.GetHashCode(), key, "a");
-
-                map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
-                return map;
-            }
-
-            private ImToolsV3.ImHashMap<Type, string>[] _partMapV3;
-            public ImToolsV3.ImHashMap<Type, string>[] V3_PartitionedHashMap_AddOrUpdate()
-            {
-                var map = ImToolsV3.PartitionedHashMap.CreateEmpty<Type, string>();
-
-                foreach (var key in _keys.Take(Count))
-                    map.AddOrUpdate(key.GetHashCode(), key, "a");
-
-                map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!");
-                return map;
-            }
-
-            private ImToolsV3.ImHashMap<Type, string>[] _partMap23_32;
-            public ImToolsV3.ImHashMap<Type, string>[] V3_PartitionedHashMap32_AddOrUpdate()
-            {
-                var maps = ImToolsV3.PartitionedHashMap.CreateEmpty<Type, string>(32);
-
-                foreach (var key in _keys.Take(Count))
-                    maps.AddOrUpdate(key.GetHashCode(), key, "a", 31);
-
-                maps.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), typeof(ImHashMapBenchmarks), "!", 31);
-                return maps;
-            }
-
-            public ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>>[] Experimental_ImHashMapSlots32_AddOrUpdate()
-            {
-                var map = ImTools.V2.Experimental.ImMapSlots.CreateWithEmpty<ImTools.V2.Experimental.ImMap.KValue<Type>>(32);
-
-                foreach (var key in _keys.Take(Count))
-                    map.AddOrUpdate(key.GetHashCode(), new ImTools.V2.Experimental.ImMap.KValue<Type>(key, "a"), 31);
-
-                map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), new ImTools.V2.Experimental.ImMap.KValue<Type>(typeof(ImHashMapBenchmarks), "!"), 31);
-                return map;
-            }
-
-            private ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>>[] _mapSlotsExp32;
-
-            public ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>>[] Experimental_ImHashMapSlots64_AddOrUpdate()
-            {
-                var map = ImTools.V2.Experimental.ImMapSlots.CreateWithEmpty<ImTools.V2.Experimental.ImMap.KValue<Type>>(64);
-
-                foreach (var key in _keys.Take(Count))
-                    map.AddOrUpdate(key.GetHashCode(), new ImTools.V2.Experimental.ImMap.KValue<Type>(key, "a"), 63);
-
-                map.AddOrUpdate(typeof(ImHashMapBenchmarks).GetHashCode(), new ImTools.V2.Experimental.ImMap.KValue<Type>(typeof(ImHashMapBenchmarks), "!"), 63);
-                return map;
-            }
-
-            private ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>>[] _mapSlotsExp64;
-
-            public Dictionary<Type, string> Dict()
-            {
-                var map = new Dictionary<Type, string>();
-
-                foreach (var key in _keys.Take(Count))
-                    map.TryAdd(key, "a");
-
-                map.TryAdd(typeof(ImHashMapBenchmarks), "!");
-
-                return map;
-            }
-
-            private Dictionary<Type, string> _dict;
-
-            public DictionarySlim<TypeVal, string> DictSlim()
-            {
-                var dict = new DictionarySlim<TypeVal, string>();
-
-                foreach (var key in _keys.Take(Count))
-                    dict.GetOrAddValueRef(key) = "a";
-
-                dict.GetOrAddValueRef(LookupKey) = "!";
-                return dict;
-            }
-
-            private DictionarySlim<TypeVal, string> _dictSlim;
-
-            public ImTools.Experiments.FHashMap7<Type, string, ImTools.RefEq<Type>> FillFHashMap7()
-            {
-                var map = new ImTools.Experiments.FHashMap7<Type, string, ImTools.RefEq<Type>>();
-
-                foreach (var key in _keys.Take(Count))
-                    map.AddOrUpdate(key, "a");
-
-                map.AddOrUpdate(LookupKey, "!");
-                return map;
-            }
-
-            private ImTools.Experiments.FHashMap7<Type, string, ImTools.RefEq<Type>> _fHashMap7;
-
-            public ImTools.Experiments.FHashMap9<Type, string, ImTools.RefEq<Type>> FillFHashMap9()
-            {
-                var map = new ImTools.Experiments.FHashMap9<Type, string, ImTools.RefEq<Type>>();
-
-                foreach (var key in _keys.Take(Count))
-                    map.AddOrUpdate(key, "a");
-
-                map.AddOrUpdate(LookupKey, "!");
-                return map;
-            }
-
-            private ImTools.Experiments.FHashMap9<Type, string, ImTools.RefEq<Type>> _fHashMap9;
-
-            public FHashMap91TypeString FillFHashMap91()
-            {
-                var map = new FHashMap91TypeString();
-
-                foreach (var key in _keys.Take(Count))
-                    map.GetOrAddValueRef(key) = "a";
-
-                map.GetOrAddValueRef(LookupKey) = "!";
-                return map;
-            }
-
-            private FHashMap91TypeString _fHashMap91;
-
-            public SmallMapTypeString FillSmallMap()
-            {
-                var map = new SmallMapTypeString();
-
-                foreach (var key in _keys.Take(Count))
-                    map.GetOrAddValueRef(key) = "a";
-
-                map.GetOrAddValueRef(LookupKey) = "!";
-                return map;
-            }
-
-            private SmallMapTypeString _smallMap;
-
-            public FHashMap11<Type, string, ImTools.RefEq<Type>> FillFHashMap11()
-            {
-                var map = new FHashMap11<Type, string, ImTools.RefEq<Type>>();
-
-                foreach (var key in _keys.Take(Count))
-                    map.GetOrAddValueRef(key) = "a";
-
-                map.GetOrAddValueRef(LookupKey) = "!";
-                return map;
-            }
-
-            private FHashMap11<Type, string, ImTools.RefEq<Type>> _fHashMap11;
-
-            public void FillFecHashMap(ref FecSmallMapTypeString map)
-            {
-                foreach (var key in _keys.Take(Count))
-                    map.Map.AddOrUpdate(key, "a");
-
-                map.Map.AddOrUpdate(LookupKey, "!");
-            }
-
-            private FecSmallMapTypeString _fecSmallMap;
-
-            public ConcurrentDictionary<Type, string> ConcurrentDict()
-            {
-                var map = new ConcurrentDictionary<Type, string>();
-
-                foreach (var key in _keys.Take(Count))
-                    map.TryAdd(key, "a");
-
-                map.TryAdd(typeof(ImHashMapBenchmarks), "!");
-                return map;
-            }
-
-            private ConcurrentDictionary<Type, string> _concurrentDict;
-
-            public ImmutableDictionary<Type, string> ImmutableDict()
-            {
-                var builder = ImmutableDictionary.CreateBuilder<Type, string>();
-
-                foreach (var key in _keys.Take(Count))
-                    builder.Add(key, "a");
-                builder.Add(typeof(ImHashMapBenchmarks), "!");
-                return builder.ToImmutable();
-            }
-
-            private ImmutableDictionary<Type, string> _immutableDict;
-
-            public TypeDictionary<string> TypeDictionary_Add()
-            {
-                var map = new TypeDictionary<string>();
-
-                map.Add<A1>("a");
-                map.Add<A2>("a");
-                map.Add<A3>("a");
-                map.Add<A4>("a");
-                map.Add<A5>("a");
-                // map.Add<A6>("a");
-                // map.Add<A7>("a");
-                // map.Add<A8>("a");
-                // map.Add<A9>("a");
-                // map.Add<A10>("a");
-                // map.Add<B1>("a");
-                // map.Add<B2>("a");
-                // map.Add<B3>("a");
-                // map.Add<B4>("a");
-                // map.Add<B5>("a");
-                // map.Add<B6>("a");
-                // map.Add<B7>("a");
-                // map.Add<B8>("a");
-                // map.Add<B9>("a");
-                // map.Add<B10>("a");
-
-                map.Add<ImHashMapBenchmarks>("!");
-
-                return map;
-            }
-
-            private TypeDictionary<string> _typeDict;
-
-            #endregion
-
-            public static Type LookupKey = typeof(Console);
-
-            // [Benchmark(Baseline = true)]
-            public string V2_ImHashMap_AVL_TryFind()
-            {
-                _mapV2.TryFind(LookupKey, out var result);
-                return result;
-            }
-
-            // [Benchmark]
-            public string ImHashMapSlots32_TryFind()
-            {
-                var hash = LookupKey.GetHashCode();
-                _mapSlots[hash & ImHashMapSlots.HASH_MASK_TO_FIND_SLOT].TryFind(hash, LookupKey, out var result);
-                return result;
-            }
-
-            // [Benchmark]
-            public string V2_ImHashMap_AVLOptimizedForAdd_TryFind()
-            {
-                _mapExp.TryFind(LookupKey.GetHashCode(), LookupKey, out var result);
-                return (string)result;
-            }
-
-            // [Benchmark(Baseline = true)]
-            public string V4_ImHashMap_TryFind()
-            {
-                _mapV4.TryFind(LookupKey.GetHashCode(), LookupKey, out var result);
-                return result;
-            }
-
-            // [Benchmark]
-            public string V3_ImHashMap_TryFind()
-            {
-                _mapV3.TryFind(LookupKey.GetHashCode(), LookupKey, out var result);
-                return result;
-            }
-
-            // [Benchmark]
-            public string V4_ImMap_GetValueOrDefault() =>
-                _mapV4.GetValueOrDefaultByReferenceEquals(LookupKey.GetHashCode(), LookupKey);
-
-            // [Benchmark]
-            public string V3_ImHashMap_GetValueOrDefault() =>
-                _mapV3.GetValueOrDefaultByReferenceEquals(LookupKey.GetHashCode(), LookupKey);
-
-            // [Benchmark]
-            public string V3_PartitionedHashMap_GetValueOrDefault() =>
-                _partMapV3.GetValueOrDefaultByReferenceEquals(LookupKey);
-
-            // [Benchmark]
-            public string V3_PartitionedHashMap32_GetValueOrDefault() =>
-                _partMap23_32.GetValueOrDefaultByReferenceEquals(LookupKey, 31);
-
-            // [Benchmark]
-            public string TypeDict_TryFind() =>
-                _typeDict.Get<ImHashMapBenchmarks>();
-
-            // [Benchmark]
-            // public string V3_ImHashMap_23Tree_TryFind_SIMPLIFIED()
-            // {
-            //     var entry = _map234.GetEntryOrDefault(LookupKey.GetHashCode());
-            //     if (entry == null)
-            //         return null;
-            //     return ((ImTools.Experimental.ImHashMap234<Type, string>.KeyValueEntry)entry).Value;
-            // }
-
-            // [Benchmark]
-            public string V4_PartitionedHashMap_TryFind()
-            {
-                var hash = LookupKey.GetHashCode();
-                _partMapV4[hash & ImToolsV3.PartitionedHashMap.PARTITION_HASH_MASK].TryFind(hash, LookupKey, out var result);
-                return result;
-            }
-
-            // [Benchmark]
-            public string V3_PartitionedHashMap_TryFind()
-            {
-                var hash = LookupKey.GetHashCode();
-                _partMapV3[hash & ImToolsV3.PartitionedHashMap.PARTITION_HASH_MASK].TryFind(hash, LookupKey, out var result);
-                return result;
-            }
-
-            // [Benchmark]
-            public string Experimental_ImHashMapSlots32_TryFind()
-            {
-                var hash = LookupKey.GetHashCode();
-                _mapSlotsExp32[hash & ImHashMapSlots.HASH_MASK_TO_FIND_SLOT].TryFind(hash, LookupKey, out var result);
-                return (string)result;
-            }
-
-            // [Benchmark]
-            public string Experimental_ImHashMapSlots64_TryFind()
-            {
-                var hash = LookupKey.GetHashCode();
-                _mapSlotsExp64[hash & 63].TryFind(hash, LookupKey, out var result);
-                return (string)result;
-            }
-
-            // [Benchmark]
-            // [Benchmark(Baseline = true)]
-            public string Dictionary_TryGetValue()
-            {
-                _dict.TryGetValue(LookupKey, out var result);
-                return result;
-            }
-
-            // [Benchmark]
-            [Benchmark(Baseline = true)]
-            public int DictionarySlim_PopulateThenLookup_HalfMissed_HalfPresent()
-            {
-                var dict = new DictionarySlim<TypeVal, string>();
-
-                foreach (var key in _presentKeys)
-                    dict.GetOrAddValueRef(key) = "a";
-
-                var count = 0;
-                var iters = Count / 2;
-                for (var i = 0; i < iters; ++i)
-                {
-                    if (dict.TryGetValue(_randomPresentKeys[i], out var result))
-                        count += result.Length;
-                    if (!dict.TryGetValue(_missingKeys[i], out var _))
-                        --count;
-                }
-                return count;
-            }
-
-            // [Benchmark]
-            public int SmallMap_PopulateThenLookup_HalfMissed_HalfPresent()
-            {
-                var map = new SmallMapTypeString();
-
-                foreach (var key in _presentKeys)
-                    map.GetOrAddValueRef(key) = "a";
-
-                var count = 0;
-                var iters = Count / 2;
-                for (var i = 0; i < iters; ++i)
-                {
-                    if (map.TryGetValue(_randomPresentKeys[i], out var result))
-                        count += result.Length;
-                    if (!map.TryGetValue(_missingKeys[i], out var _))
-                        --count;
-                }
-                return count;
-            }
-
-            // [Benchmark(Baseline = true)]
-            [Benchmark]
-            public int FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent()
-            {
-                var m = new FecSmallMapTypeString();
-                ref var map = ref m.Map;
-
-                foreach (var key in _presentKeys)
-                    map.AddOrUpdate(key, "a");
-
-                var count = 0;
-                var iters = Count / 2;
-                for (var i = 0; i < iters; ++i)
-                {
-                    ref var result = ref map.TryGetEntryRef(_randomPresentKeys[i], out var found);
-                    if (found)
-                        count += result.Value.Length;
-                    _ = ref map.TryGetEntryRef(_missingKeys[i], out found);
-                    if (!found)
-                        --count;
-                }
-                return count;
-            }
-
-            // [Benchmark]
-            public int FecHashMap_Init1000_PopulateThenLookup_HalfMissed_HalfPresent()
-            {
-                var m = new FecSmallMapTypeString(1024);
-                ref var map = ref m.Map;
-
-                foreach (var key in _presentKeys)
-                    map.AddOrUpdate(key, "a");
-
-                var count = 0;
-                var iters = Count / 2;
-                for (var i = 0; i < iters; ++i)
-                {
-                    ref var result = ref map.TryGetEntryRef(_randomPresentKeys[i], out var found);
-                    if (found)
-                        count += result.Value.Length;
-                    _ = ref map.TryGetEntryRef(_missingKeys[i], out found);
-                    if (!found)
-                        --count;
-                }
-                return count;
-            }
-
-            // [Benchmark]
-            public int FecHashMap_SingleArrEntries_PopulateThenLookup_HalfMissed_HalfPresent()
-            {
-                var m = new FecSmallMapTypeString_SingleArrEntries();
-                ref var map = ref m.Map;
-
-                foreach (var key in _presentKeys)
-                    map.AddOrUpdate(key, "a");
-
-                var count = 0;
-                var iters = Count / 2;
-                for (var i = 0; i < iters; ++i)
-                {
-                    ref var result = ref map.TryGetEntryRef(_randomPresentKeys[i], out var found);
-                    if (found)
-                        count += result.Value.Length;
-                    _ = ref map.TryGetEntryRef(_missingKeys[i], out found);
-                    if (!found)
-                        --count;
-                }
-                return count;
-            }
-
-            // [Benchmark]
-            public int FHashMap11_TryGetValue()
-            {
-                var count = 0;
-                foreach (var k in _randomPresentKeys)
-                {
-                    _fHashMap11.TryGetValue(k, out var result);
+                if (dict.TryGetValue(_randomPresentKeys[i], out var result))
                     count += result.Length;
-                }
-
-                return count;
+                if (!dict.TryGetValue(_missingKeys[i], out var _))
+                    --count;
             }
-
-            // [Benchmark(Baseline = true)]
-            // [Benchmark]
-            public string FHashMap7_TryGetValue()
-            {
-                _fHashMap7.TryGetValue(LookupKey, out var result);
-                return result;
-            }
-
-            // [Benchmark]
-            public string FHashMap9_TryGetValue()
-            {
-                _fHashMap9.TryGetValue(LookupKey, out var result);
-                return result;
-            }
-
-            // [Benchmark]
-            public string FHashMap91_TryGetValue()
-            {
-                _fHashMap91.TryGetValue(LookupKey, out var result);
-                return result;
-            }
-
-            // [Benchmark]
-            public string ConcurrentDictionary_TryGetValue()
-            {
-                _concurrentDict.TryGetValue(LookupKey, out var result);
-                return result;
-            }
-
-            // [Benchmark]
-            public string ImmutableDict_TryGet()
-            {
-                _immutableDict.TryGetValue(LookupKey, out var result);
-                return result;
-            }
+            return count;
         }
 
-        [MemoryDiagnoser]
-        public class Enumerate
+        [Benchmark]
+        public int SmallMap_PopulateThenLookup_HalfMissed_HalfPresent()
         {
-            /*
-            ## V2:
+            var map = new SmallMapTypeString();
 
-            BenchmarkDotNet=v0.12.0, OS=Windows 10.0.18362
-            Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
-            .NET Core SDK=3.0.100
-              [Host]     : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
-              DefaultJob : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
+            foreach (var key in _presentKeys)
+                map.GetOrAddValueRef(key) = "a";
 
-    |                        Method | Count |          Mean |      Error |     StdDev | Ratio | RatioSD |   Gen 0 |  Gen 1 | Gen 2 | Allocated |
-    |------------------------------ |------ |--------------:|-----------:|-----------:|------:|--------:|--------:|-------:|------:|----------:|
-    |    ImHashMap_EnumerateToArray |     1 |     147.31 ns |   0.567 ns |   0.531 ns |  1.00 |    0.00 |  0.0441 |      - |     - |     208 B |
-    | ImHashMap_V1_EnumerateToArray |     1 |     160.45 ns |   0.856 ns |   0.801 ns |  1.09 |    0.01 |  0.0560 |      - |     - |     264 B |
-    |         ImHashMap_FoldToArray |     1 |      55.05 ns |   0.436 ns |   0.387 ns |  0.37 |    0.00 |  0.0356 |      - |     - |     168 B |
-    |    ImHashMapSlots_FoldToArray |     1 |      89.21 ns |   1.473 ns |   1.378 ns |  0.61 |    0.01 |  0.0271 |      - |     - |     128 B |
-    |        DictionarySlim_ToArray |     1 |     150.88 ns |   1.424 ns |   1.189 ns |  1.02 |    0.01 |  0.0408 |      - |     - |     192 B |
-    |            Dictionary_ToArray |     1 |      40.47 ns |   0.864 ns |   1.093 ns |  0.28 |    0.01 |  0.0119 |      - |     - |      56 B |
-    |  ConcurrentDictionary_ToArray |     1 |     232.31 ns |   1.981 ns |   1.654 ns |  1.58 |    0.01 |  0.0114 |      - |     - |      56 B |
-    |         ImmutableDict_ToArray |     1 |     618.68 ns |  11.308 ns |  10.578 ns |  4.20 |    0.07 |  0.0114 |      - |     - |      56 B |
-    |                               |       |               |            |            |       |         |         |        |       |           |
-    |    ImHashMap_EnumerateToArray |    10 |     423.85 ns |   8.425 ns |   9.364 ns |  1.00 |    0.00 |  0.1001 |      - |     - |     472 B |
-    | ImHashMap_V1_EnumerateToArray |    10 |     492.81 ns |   4.461 ns |   4.173 ns |  1.16 |    0.03 |  0.1726 |      - |     - |     816 B |
-    |         ImHashMap_FoldToArray |    10 |     213.14 ns |   4.054 ns |   3.981 ns |  0.50 |    0.02 |  0.1054 |      - |     - |     496 B |
-    |    ImHashMapSlots_FoldToArray |    10 |     255.16 ns |   1.863 ns |   1.743 ns |  0.60 |    0.01 |  0.1016 |      - |     - |     480 B |
-    |        DictionarySlim_ToArray |    10 |     450.09 ns |   8.918 ns |  10.616 ns |  1.06 |    0.04 |  0.1354 |      - |     - |     640 B |
-    |            Dictionary_ToArray |    10 |      87.40 ns |   1.696 ns |   1.586 ns |  0.21 |    0.01 |  0.0424 |      - |     - |     200 B |
-    |  ConcurrentDictionary_ToArray |    10 |     499.22 ns |   4.804 ns |   4.494 ns |  1.17 |    0.03 |  0.0420 |      - |     - |     200 B |
-    |         ImmutableDict_ToArray |    10 |   1,954.98 ns |  10.732 ns |  10.038 ns |  4.60 |    0.11 |  0.0381 |      - |     - |     200 B |
-    |                               |       |               |            |            |       |         |         |        |       |           |
-    |    ImHashMap_EnumerateToArray |   100 |   2,735.61 ns |  34.407 ns |  32.185 ns |  1.00 |    0.00 |  0.4768 |      - |     - |    2248 B |
-    | ImHashMap_V1_EnumerateToArray |   100 |   3,368.76 ns |   6.822 ns |   6.048 ns |  1.23 |    0.02 |  1.1597 | 0.0267 |     - |    5472 B |
-    |         ImHashMap_FoldToArray |   100 |   1,433.97 ns |  14.981 ns |  14.013 ns |  0.52 |    0.01 |  0.6599 | 0.0038 |     - |    3112 B |
-    |    ImHashMapSlots_FoldToArray |   100 |   1,541.62 ns |   8.594 ns |   8.039 ns |  0.56 |    0.01 |  0.6714 | 0.0038 |     - |    3168 B |
-    |        DictionarySlim_ToArray |   100 |   2,505.97 ns |  44.927 ns |  37.516 ns |  0.92 |    0.02 |  0.8469 | 0.0076 |     - |    4000 B |
-    |            Dictionary_ToArray |   100 |     549.34 ns |   6.559 ns |   6.136 ns |  0.20 |    0.00 |  0.3481 | 0.0019 |     - |    1640 B |
-    |  ConcurrentDictionary_ToArray |   100 |   2,236.03 ns |  10.044 ns |   9.395 ns |  0.82 |    0.01 |  0.3471 |      - |     - |    1640 B |
-    |         ImmutableDict_ToArray |   100 |  15,683.87 ns |  68.105 ns |  60.373 ns |  5.74 |    0.08 |  0.3357 |      - |     - |    1640 B |
-    |                               |       |               |            |            |       |         |         |        |       |           |
-    |    ImHashMap_EnumerateToArray |  1000 |  25,723.37 ns | 504.158 ns | 560.370 ns |  1.00 |    0.00 |  3.5706 | 0.1526 |     - |   16808 B |
-    | ImHashMap_V1_EnumerateToArray |  1000 |  34,316.66 ns | 583.573 ns | 545.874 ns |  1.34 |    0.04 | 10.3149 | 1.8921 |     - |   48833 B |
-    |         ImHashMap_FoldToArray |  1000 |  16,277.05 ns |  38.330 ns |  33.979 ns |  0.64 |    0.02 |  5.2490 | 0.3052 |     - |   24752 B |
-    |    ImHashMapSlots_FoldToArray |  1000 |  15,167.14 ns | 261.927 ns | 218.721 ns |  0.59 |    0.02 |  5.2490 | 0.2899 |     - |   24784 B |
-    |        DictionarySlim_ToArray |  1000 |  22,273.30 ns | 384.716 ns | 359.864 ns |  0.87 |    0.01 |  6.9885 | 0.6714 |     - |   32896 B |
-    |            Dictionary_ToArray |  1000 |   4,997.89 ns |  20.869 ns |  18.500 ns |  0.20 |    0.00 |  3.3951 | 0.1831 |     - |   16040 B |
-    |  ConcurrentDictionary_ToArray |  1000 |  36,859.40 ns | 193.536 ns | 181.034 ns |  1.44 |    0.04 |  3.3569 | 0.1831 |     - |   16040 B |
-    |         ImmutableDict_ToArray |  1000 | 155,798.41 ns | 484.101 ns | 452.828 ns |  6.08 |    0.14 |  3.1738 |      - |     - |   16040 B |
-
-    |                             Method | Count |         Mean |      Error |     StdDev | Ratio |  Gen 0 |  Gen 1 | Gen 2 | Allocated |
-    |----------------------------------- |------ |-------------:|-----------:|-----------:|------:|-------:|-------:|------:|----------:|
-    |         ImHashMap_EnumerateToArray |     1 |    153.03 ns |   0.774 ns |   0.686 ns |  1.00 | 0.0441 |      - |     - |     208 B |
-    | Experimental_ImHashMap_FoldToArray |     1 |     62.26 ns |   0.180 ns |   0.159 ns |  0.41 | 0.0271 |      - |     - |     128 B |
-    |                                    |       |              |            |            |       |        |        |       |           |
-    |         ImHashMap_EnumerateToArray |    10 |    417.19 ns |   4.075 ns |   3.403 ns |  1.00 | 0.1001 |      - |     - |     472 B |
-    | Experimental_ImHashMap_FoldToArray |    10 |    237.62 ns |   1.079 ns |   1.009 ns |  0.57 | 0.1016 |      - |     - |     480 B |
-    |                                    |       |              |            |            |       |        |        |       |           |
-    |         ImHashMap_EnumerateToArray |   100 |  2,693.86 ns |   7.426 ns |   6.946 ns |  1.00 | 0.4768 |      - |     - |    2248 B |
-    | Experimental_ImHashMap_FoldToArray |   100 |  1,517.72 ns |   6.061 ns |   5.669 ns |  0.56 | 0.6561 | 0.0038 |     - |    3096 B |
-    |                                    |       |              |            |            |       |        |        |       |           |
-    |         ImHashMap_EnumerateToArray |  1000 | 26,018.52 ns | 175.262 ns | 146.352 ns |  1.00 | 3.5706 | 0.1831 |     - |   16808 B |
-    | Experimental_ImHashMap_FoldToArray |  1000 | 15,321.95 ns |  69.421 ns |  64.937 ns |  0.59 | 5.2490 | 0.2747 |     - |   24736 B |
-
-    ## V3 baseline
-
-    |                                   Method | Count |         Mean |     Error |    StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-    |----------------------------------------- |------ |-------------:|----------:|----------:|------:|--------:|-------:|------:|------:|----------:|
-    |     V2_ImHashMap_AVL_EnumerateAndToArray |     1 |     198.4 ns |   3.64 ns |   3.04 ns |  1.00 |    0.00 | 0.0496 |     - |     - |     208 B |
-    | V3_ImHashMap_23Tree_EnumerateAndToArray |     1 |     158.0 ns |   3.23 ns |   3.17 ns |  0.80 |    0.02 | 0.0362 |     - |     - |     152 B |
-    |                                          |       |              |           |           |       |         |        |       |       |           |
-    |     V2_ImHashMap_AVL_EnumerateAndToArray |    10 |     535.6 ns |   7.97 ns |   8.86 ns |  1.00 |    0.00 | 0.1125 |     - |     - |     472 B |
-    | V3_ImHashMap_23Tree_EnumerateAndToArray |    10 |     558.9 ns |   5.35 ns |   5.25 ns |  1.04 |    0.02 | 0.1354 |     - |     - |     568 B |
-    |                                          |       |              |           |           |       |         |        |       |       |           |
-    |     V2_ImHashMap_AVL_EnumerateAndToArray |   100 |   3,601.3 ns |  54.44 ns |  50.92 ns |  1.00 |    0.00 | 0.5341 |     - |     - |    2248 B |
-    | V3_ImHashMap_23Tree_EnumerateAndToArray |   100 |   9,800.0 ns | 110.20 ns |  97.69 ns |  2.72 |    0.04 | 1.0529 |     - |     - |    4424 B |
-    |                                          |       |              |           |           |       |         |        |       |       |           |
-    |     V2_ImHashMap_AVL_EnumerateAndToArray |  1000 |  34,261.7 ns | 371.47 ns | 310.20 ns |  1.00 |    0.00 | 3.9673 |     - |     - |   16808 B |
-    | V3_ImHashMap_23Tree_EnumerateAndToArray |  1000 | 128,626.8 ns | 988.46 ns | 924.61 ns |  3.76 |    0.04 | 9.2773 |     - |     - |   38912 B |
-
-    ### Static Enumerate - incomplete
-
-    |                                   Method | Count |        Mean |     Error |    StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-    |----------------------------------------- |------ |------------:|----------:|----------:|------:|--------:|-------:|------:|------:|----------:|
-    |     V2_ImHashMap_AVL_EnumerateAndToArray |     1 |    164.7 ns |   2.23 ns |   1.98 ns |  1.00 |    0.00 | 0.0496 |     - |     - |     208 B |
-    | V3_ImHashMap_23Tree_EnumerateAndToArray |     1 |    245.0 ns |   4.92 ns |   5.66 ns |  1.49 |    0.04 | 0.0567 |     - |     - |     240 B |
-    |                                          |       |             |           |           |       |         |        |       |       |           |
-    |     V2_ImHashMap_AVL_EnumerateAndToArray |     5 |    295.6 ns |   5.87 ns |   5.77 ns |  1.00 |    0.00 | 0.0801 |     - |     - |     336 B |
-    | V3_ImHashMap_23Tree_EnumerateAndToArray |     5 |    497.5 ns |   5.77 ns |   5.12 ns |  1.68 |    0.04 | 0.0849 |     - |     - |     360 B |
-    |                                          |       |             |           |           |       |         |        |       |       |           |
-    |     V2_ImHashMap_AVL_EnumerateAndToArray |    10 |    459.0 ns |   4.86 ns |   4.55 ns |  1.00 |    0.00 | 0.1116 |     - |     - |     472 B |
-    | V3_ImHashMap_23Tree_EnumerateAndToArray |    10 |    683.6 ns |   9.36 ns |   8.30 ns |  1.49 |    0.02 | 0.1335 |     - |     - |     560 B |
-    |                                          |       |             |           |           |       |         |        |       |       |           |
-    |     V2_ImHashMap_AVL_EnumerateAndToArray |   100 |  3,219.3 ns |  36.20 ns |  30.23 ns |  1.00 |    0.00 | 0.5341 |     - |     - |    2248 B |
-    | V3_ImHashMap_23Tree_EnumerateAndToArray |   100 |  5,009.4 ns |  57.55 ns |  51.02 ns |  1.56 |    0.02 | 0.5264 |     - |     - |    2208 B |
-    |                                          |       |             |           |           |       |         |        |       |       |           |
-    |     V2_ImHashMap_AVL_EnumerateAndToArray |  1000 | 29,919.7 ns | 363.29 ns | 322.05 ns |  1.00 |    0.00 | 3.9673 |     - |     - |   16808 B |
-    | V3_ImHashMap_23Tree_EnumerateAndToArray |  1000 | 21,530.8 ns | 292.37 ns | 259.18 ns |  0.72 |    0.01 | 1.8921 |     - |     - |    8016 B |
-
-    ### Struct enumerator for leafs
-
-    BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19041.630 (2004/?/20H1)
-    Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical cores
-    .NET Core SDK=5.0.100
-    [Host]     : .NET Core 5.0.0 (CoreCLR 5.0.20.51904, CoreFX 5.0.20.51904), X64 RyuJIT
-    DefaultJob : .NET Core 5.0.0 (CoreCLR 5.0.20.51904, CoreFX 5.0.20.51904), X64 RyuJIT
-
-
-    |                                   Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-    |----------------------------------------- |------ |-------------:|------------:|------------:|------:|--------:|-------:|------:|------:|----------:|
-    |     V2_ImHashMap_AVL_EnumerateAndToArray |     1 |     131.8 ns |     2.43 ns |     2.27 ns |  1.00 |    0.00 | 0.0458 |     - |     - |     192 B |
-    | V3_ImHashMap_23Tree_EnumerateAndToArray |     1 |     107.7 ns |     0.56 ns |     0.44 ns |  0.82 |    0.01 | 0.0305 |     - |     - |     128 B |
-    |                                          |       |              |             |             |       |         |        |       |       |           |
-    |     V2_ImHashMap_AVL_EnumerateAndToArray |     5 |     251.5 ns |     3.12 ns |     2.77 ns |  1.00 |    0.00 | 0.0782 |     - |     - |     328 B |
-    | V3_ImHashMap_23Tree_EnumerateAndToArray |     5 |     214.5 ns |     4.37 ns |     4.86 ns |  0.86 |    0.02 | 0.0591 |     - |     - |     248 B |
-    |                                          |       |              |             |             |       |         |        |       |       |           |
-    |     V2_ImHashMap_AVL_EnumerateAndToArray |    10 |     402.3 ns |     2.40 ns |     2.00 ns |  1.00 |    0.00 | 0.1106 |     - |     - |     464 B |
-    | V3_ImHashMap_23Tree_EnumerateAndToArray |    10 |     469.7 ns |     8.19 ns |    14.13 ns |  1.19 |    0.04 | 0.1144 |     - |     - |     480 B |
-    |                                          |       |              |             |             |       |         |        |       |       |           |
-    |     V2_ImHashMap_AVL_EnumerateAndToArray |   100 |   2,987.6 ns |    34.44 ns |    28.76 ns |  1.00 |    0.00 | 0.5341 |     - |     - |    2240 B |
-    | V3_ImHashMap_23Tree_EnumerateAndToArray |   100 |   8,085.2 ns |    54.39 ns |    50.88 ns |  2.71 |    0.03 | 0.9308 |     - |     - |    3904 B |
-    |                                          |       |              |             |             |       |         |        |       |       |           |
-    |     V2_ImHashMap_AVL_EnumerateAndToArray |  1000 |  29,107.9 ns |   372.54 ns |   330.25 ns |  1.00 |    0.00 | 3.9978 |     - |     - |   16800 B |
-    | V3_ImHashMap_23Tree_EnumerateAndToArray |  1000 | 117,098.5 ns | 1,388.31 ns | 1,298.62 ns |  4.02 |    0.07 | 8.0566 |     - |     - |   33992 B |
-
-
-    ### Static iterative enumerator with List as a stack
-
-    |                                   Method | Count |        Mean |     Error |    StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-    |----------------------------------------- |------ |------------:|----------:|----------:|------:|--------:|-------:|------:|------:|----------:|
-    |     V2_ImHashMap_AVL_EnumerateAndToArray |     1 |    130.0 ns |   1.58 ns |   1.76 ns |  1.00 |    0.00 | 0.0458 |     - |     - |     192 B |
-    | V3_ImHashMap_23Tree_EnumerateAndToArray |     1 |    129.1 ns |   1.55 ns |   1.45 ns |  0.99 |    0.02 | 0.0610 |     - |     - |     256 B |
-    |                                          |       |             |           |           |       |         |        |       |       |           |
-    |     V2_ImHashMap_AVL_EnumerateAndToArray |     5 |    251.6 ns |   3.58 ns |   3.35 ns |  1.00 |    0.00 | 0.0782 |     - |     - |     328 B |
-    | V3_ImHashMap_23Tree_EnumerateAndToArray |     5 |    241.4 ns |   2.97 ns |   2.78 ns |  0.96 |    0.01 | 0.0896 |     - |     - |     376 B |
-    |                                          |       |             |           |           |       |         |        |       |       |           |
-    |     V2_ImHashMap_AVL_EnumerateAndToArray |    10 |    414.8 ns |   8.12 ns |  10.84 ns |  1.00 |    0.00 | 0.1106 |     - |     - |     464 B |
-    | V3_ImHashMap_23Tree_EnumerateAndToArray |    10 |    403.7 ns |   6.25 ns |   5.84 ns |  0.98 |    0.03 | 0.1373 |     - |     - |     576 B |
-    |                                          |       |             |           |           |       |         |        |       |       |           |
-    |     V2_ImHashMap_AVL_EnumerateAndToArray |   100 |  2,947.2 ns |  23.48 ns |  20.81 ns |  1.00 |    0.00 | 0.5341 |     - |     - |    2240 B |
-    | V3_ImHashMap_23Tree_EnumerateAndToArray |   100 |  2,822.2 ns |  16.96 ns |  15.87 ns |  0.96 |    0.01 | 0.5646 |     - |     - |    2376 B |
-    |                                          |       |             |           |           |       |         |        |       |       |           |
-    |     V2_ImHashMap_AVL_EnumerateAndToArray |  1000 | 28,594.2 ns | 307.61 ns | 287.73 ns |  1.00 |    0.00 | 3.9673 |     - |     - |   16800 B |
-    | V3_ImHashMap_23Tree_EnumerateAndToArray |  1000 | 27,555.7 ns | 318.08 ns | 281.97 ns |  0.96 |    0.01 | 4.0588 |     - |     - |   16992 B |
-
-    ### Branch3 is a Branch2
-
-    |                                   Method | Count |       Mean |    Error |   StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-    |----------------------------------------- |------ |-----------:|---------:|---------:|------:|--------:|-------:|------:|------:|----------:|
-    |     V2_ImHashMap_AVL_EnumerateAndToArray |     5 |   329.7 ns |  6.40 ns |  5.99 ns |  1.00 |    0.00 | 0.0782 |     - |     - |     328 B |
-    | V3_ImHashMap_23Tree_EnumerateAndToArray |     5 |   313.1 ns |  5.69 ns |  5.59 ns |  0.95 |    0.02 | 0.0877 |     - |     - |     368 B |
-    |                                          |       |            |          |          |       |         |        |       |       |           |
-    |     V2_ImHashMap_AVL_EnumerateAndToArray |    10 |   513.4 ns |  4.55 ns |  4.26 ns |  1.00 |    0.00 | 0.1106 |     - |     - |     464 B |
-    | V3_ImHashMap_23Tree_EnumerateAndToArray |    10 |   525.6 ns |  7.40 ns |  6.92 ns |  1.02 |    0.02 | 0.1354 |     - |     - |     568 B |
-    |                                          |       |            |          |          |       |         |        |       |       |           |
-    |     V2_ImHashMap_AVL_EnumerateAndToArray |   100 | 3,658.7 ns | 53.67 ns | 47.58 ns |  1.00 |    0.00 | 0.5341 |     - |     - |    2240 B |
-    | V3_ImHashMap_23Tree_EnumerateAndToArray |   100 | 3,388.2 ns | 67.71 ns | 63.34 ns |  0.93 |    0.02 | 0.5646 |     - |     - |    2368 B |
-
-    ### V3 RTM
-
-    |                        Method | Count |         Mean |        Error |       StdDev |       Median | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-    |------------------------------ |------ |-------------:|-------------:|-------------:|-------------:|------:|--------:|-------:|------:|------:|----------:|
-    |          V2_ImHashMap_foreach |     1 |     53.16 ns |     1.107 ns |     1.317 ns |     53.11 ns |  1.00 |    0.00 | 0.0166 |     - |     - |     104 B |
-    |          V3_ImHashMap_foreach |     1 |     62.12 ns |     1.327 ns |     1.986 ns |     61.59 ns |  1.16 |    0.05 | 0.0267 |     - |     - |     168 B |
-    | V3_PartitionedHashMap_foreach |     1 |    238.62 ns |     4.811 ns |     6.084 ns |    235.92 ns |  4.50 |    0.13 | 0.0534 |     - |     - |     336 B |
-    |        DictionarySlim_foreach |     1 |     12.90 ns |     0.167 ns |     0.156 ns |     12.90 ns |  0.24 |    0.01 |      - |     - |     - |         - |
-    |            Dictionary_foreach |     1 |     14.19 ns |     0.217 ns |     0.181 ns |     14.14 ns |  0.27 |    0.01 |      - |     - |     - |         - |
-    |  ConcurrentDictionary_foreach |     1 |    153.40 ns |     2.768 ns |     4.142 ns |    151.56 ns |  2.89 |    0.11 | 0.0100 |     - |     - |      64 B |
-    |         ImmutableDict_foreach |     1 |    268.98 ns |     5.361 ns |     9.528 ns |    268.86 ns |  5.01 |    0.26 |      - |     - |     - |         - |
-    |                               |       |              |              |              |              |       |         |        |       |       |           |
-    |          V2_ImHashMap_foreach |    10 |    233.42 ns |     4.541 ns |     4.859 ns |    232.71 ns |  1.00 |    0.00 | 0.0200 |     - |     - |     128 B |
-    |          V3_ImHashMap_foreach |    10 |    249.12 ns |     4.915 ns |     5.852 ns |    246.87 ns |  1.07 |    0.03 | 0.0391 |     - |     - |     248 B |
-    | V3_PartitionedHashMap_foreach |    10 |    746.26 ns |    14.990 ns |    18.409 ns |    748.53 ns |  3.20 |    0.13 | 0.1602 |     - |     - |    1008 B |
-    |        DictionarySlim_foreach |    10 |     72.54 ns |     0.970 ns |     0.907 ns |     72.42 ns |  0.31 |    0.01 |      - |     - |     - |         - |
-    |            Dictionary_foreach |    10 |     58.52 ns |     0.938 ns |     0.733 ns |     58.58 ns |  0.25 |    0.01 |      - |     - |     - |         - |
-    |  ConcurrentDictionary_foreach |    10 |    468.65 ns |     9.252 ns |    12.351 ns |    464.12 ns |  2.01 |    0.06 | 0.0095 |     - |     - |      64 B |
-    |         ImmutableDict_foreach |    10 |  1,127.30 ns |    15.601 ns |    14.593 ns |  1,123.20 ns |  4.82 |    0.10 |      - |     - |     - |         - |
-    |                               |       |              |              |              |              |       |         |        |       |       |           |
-    |          V2_ImHashMap_foreach |   100 |  2,355.54 ns |    46.224 ns |    63.271 ns |  2,337.40 ns |  1.00 |    0.00 | 0.0229 |     - |     - |     160 B |
-    |          V3_ImHashMap_foreach |   100 |  2,423.13 ns |    31.652 ns |    46.395 ns |  2,412.92 ns |  1.03 |    0.04 | 0.0496 |     - |     - |     320 B |
-    | V3_PartitionedHashMap_foreach |   100 |  4,268.51 ns |    25.429 ns |    22.542 ns |  4,266.90 ns |  1.81 |    0.05 | 0.4501 |     - |     - |    2856 B |
-    |        DictionarySlim_foreach |   100 |    570.39 ns |     5.827 ns |     4.866 ns |    570.93 ns |  0.24 |    0.01 |      - |     - |     - |         - |
-    |            Dictionary_foreach |   100 |    548.46 ns |     8.579 ns |     7.605 ns |    547.90 ns |  0.23 |    0.01 |      - |     - |     - |         - |
-    |  ConcurrentDictionary_foreach |   100 |  2,967.70 ns |    45.435 ns |    44.623 ns |  2,958.11 ns |  1.26 |    0.04 | 0.0076 |     - |     - |      64 B |
-    |         ImmutableDict_foreach |   100 |  9,988.48 ns |   198.973 ns |   297.813 ns |  9,821.03 ns |  4.24 |    0.14 |      - |     - |     - |         - |
-    |                               |       |              |              |              |              |       |         |        |       |       |           |
-    |          V2_ImHashMap_foreach |  1000 | 23,828.30 ns |   433.708 ns |   362.166 ns | 23,743.77 ns |  1.00 |    0.00 | 0.0305 |     - |     - |     192 B |
-    |          V3_ImHashMap_foreach |  1000 | 26,014.69 ns |   294.125 ns |   245.608 ns | 25,965.82 ns |  1.09 |    0.02 | 0.0610 |     - |     - |     552 B |
-    | V3_PartitionedHashMap_foreach |  1000 | 36,582.53 ns |   709.641 ns |   897.469 ns | 36,594.84 ns |  1.54 |    0.04 | 0.4883 |     - |     - |    3240 B |
-    |        DictionarySlim_foreach |  1000 |  5,591.13 ns |    43.627 ns |    40.809 ns |  5,602.25 ns |  0.23 |    0.00 |      - |     - |     - |         - |
-    |            Dictionary_foreach |  1000 |  5,319.86 ns |    51.684 ns |    45.817 ns |  5,308.36 ns |  0.22 |    0.00 |      - |     - |     - |         - |
-    |  ConcurrentDictionary_foreach |  1000 | 38,718.40 ns |   466.979 ns |   389.949 ns | 38,728.64 ns |  1.63 |    0.03 |      - |     - |     - |      64 B |
-    |         ImmutableDict_foreach |  1000 | 99,156.35 ns | 1,962.968 ns | 2,181.834 ns | 98,166.03 ns |  4.17 |    0.11 |      - |     - |     - |         - |
-
-    ## V3.2
-
-    |               Method | Count |         Mean |      Error |     StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-    |--------------------- |------ |-------------:|-----------:|-----------:|------:|--------:|-------:|------:|------:|----------:|
-    | V3_ImHashMap_foreach |     1 |     49.59 ns |   0.758 ns |   0.633 ns |  1.00 |    0.00 | 0.0255 |     - |     - |     160 B |
-    | V2_ImHashMap_foreach |     1 |     45.96 ns |   0.273 ns |   0.242 ns |  0.93 |    0.01 | 0.0166 |     - |     - |     104 B |
-    |                      |       |              |            |            |       |         |        |       |       |           |
-    | V3_ImHashMap_foreach |    10 |    214.40 ns |   3.915 ns |   3.662 ns |  1.00 |    0.00 | 0.0381 |     - |     - |     240 B |
-    | V2_ImHashMap_foreach |    10 |    204.50 ns |   0.963 ns |   0.854 ns |  0.95 |    0.02 | 0.0203 |     - |     - |     128 B |
-    |                      |       |              |            |            |       |         |        |       |       |           |
-    | V3_ImHashMap_foreach |   100 |  2,072.90 ns |  40.826 ns |  41.926 ns |  1.00 |    0.00 | 0.0496 |     - |     - |     328 B |
-    | V2_ImHashMap_foreach |   100 |  2,206.31 ns |  29.262 ns |  25.940 ns |  1.07 |    0.03 | 0.0229 |     - |     - |     160 B |
-    |                      |       |              |            |            |       |         |        |       |       |           |
-    | V3_ImHashMap_foreach |  1000 | 21,043.39 ns | 298.240 ns | 232.846 ns |  1.00 |    0.00 | 0.0305 |     - |     - |     328 B |
-    | V2_ImHashMap_foreach |  1000 | 21,484.35 ns | 168.389 ns | 149.272 ns |  1.02 |    0.01 | 0.0305 |     - |     - |     192 B |
-
-    ## V4.0 - baseline
-
-    BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
-    Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical cores
-    .NET Core SDK=6.0.102
-    [Host]     : .NET Core 6.0.2 (CoreCLR 6.0.222.6406, CoreFX 6.0.222.6406), X64 RyuJIT
-    DefaultJob : .NET Core 6.0.2 (CoreCLR 6.0.222.6406, CoreFX 6.0.222.6406), X64 RyuJIT
-
-
-    |                 Method | Count |         Mean |        Error |       StdDev |       Median | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-    |----------------------- |------ |-------------:|-------------:|-------------:|-------------:|------:|--------:|-------:|------:|------:|----------:|
-    | V3_ImHashMap_Enumerate |     1 |     78.29 ns |     3.211 ns |     9.417 ns |     74.97 ns |  1.00 |    0.00 | 0.0509 |     - |     - |     160 B |
-    |   Dictionary_Enumerate |     1 |     23.15 ns |     0.712 ns |     2.008 ns |     22.54 ns |  0.30 |    0.04 |      - |     - |     - |         - |
-    |                        |       |              |              |              |              |       |         |        |       |       |           |
-    | V3_ImHashMap_Enumerate |    10 |    351.19 ns |     7.127 ns |    20.791 ns |    344.93 ns |  1.00 |    0.00 | 0.0763 |     - |     - |     240 B |
-    |   Dictionary_Enumerate |    10 |     92.85 ns |     1.957 ns |     4.128 ns |     91.81 ns |  0.27 |    0.02 |      - |     - |     - |         - |
-    |                        |       |              |              |              |              |       |         |        |       |       |           |
-    | V3_ImHashMap_Enumerate |   100 |  3,049.03 ns |    64.798 ns |   186.958 ns |  2,987.63 ns |  1.00 |    0.00 | 0.0763 |     - |     - |     240 B |
-    |   Dictionary_Enumerate |   100 |    844.11 ns |    16.992 ns |    38.698 ns |    837.12 ns |  0.28 |    0.02 |      - |     - |     - |         - |
-    |                        |       |              |              |              |              |       |         |        |       |       |           |
-    | V3_ImHashMap_Enumerate |  1000 | 34,113.03 ns | 1,105.023 ns | 3,116.738 ns | 33,509.27 ns |  1.00 |    0.00 | 0.1221 |     - |     - |     480 B |
-    |   Dictionary_Enumerate |  1000 | 14,166.55 ns |   237.173 ns |   221.852 ns | 14,124.19 ns |  0.43 |    0.03 |      - |     - |     - |         - |
-
-    ## V4 baseline
-
-    BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19043
-    Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
-    .NET Core SDK=6.0.202
-    [Host]     : .NET Core 6.0.4 (CoreCLR 6.0.422.16404, CoreFX 6.0.422.16404), X64 RyuJIT
-    DefaultJob : .NET Core 6.0.4 (CoreCLR 6.0.422.16404, CoreFX 6.0.422.16404), X64 RyuJIT
-
-    |                          Method | Count |         Mean |      Error |     StdDev |       Median | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-    |-------------------------------- |------ |-------------:|-----------:|-----------:|-------------:|------:|--------:|-------:|------:|------:|----------:|
-    |          V4_ImHashMap_Enumerate |     1 |     39.51 ns |   0.865 ns |   0.996 ns |     39.43 ns |  1.00 |    0.00 |      - |     - |     - |         - |
-    |          V3_ImHashMap_Enumerate |     1 |     44.11 ns |   0.879 ns |   0.822 ns |     44.28 ns |  1.12 |    0.04 | 0.0255 |     - |     - |     160 B |
-    | V4_PartitionedHashMap_Enumerate |     1 |    118.94 ns |   1.644 ns |   1.538 ns |    118.91 ns |  3.01 |    0.09 |      - |     - |     - |         - |
-    | V3_PartitionedHashMap_Enumerate |     1 |    180.82 ns |   3.462 ns |   3.238 ns |    181.09 ns |  4.57 |    0.14 | 0.0522 |     - |     - |     328 B |
-    |        DictionarySlim_Enumerate |     1 |     12.77 ns |   0.254 ns |   0.238 ns |     12.76 ns |  0.32 |    0.01 |      - |     - |     - |         - |
-    |            Dictionary_Enumerate |     1 |     15.24 ns |   0.652 ns |   1.817 ns |     14.36 ns |  0.46 |    0.05 |      - |     - |     - |         - |
-    |    ConcurrentDictionary_foreach |     1 |    177.04 ns |   2.073 ns |   1.939 ns |    176.68 ns |  4.47 |    0.12 | 0.0100 |     - |     - |      64 B |
-    |         ImmutableDict_Enumerate |     1 |    161.96 ns |   0.760 ns |   0.635 ns |    161.98 ns |  4.08 |    0.12 |      - |     - |     - |         - |
-    |                                 |       |              |            |            |              |       |         |        |       |       |           |
-    |          V4_ImHashMap_Enumerate |    10 |    191.91 ns |   3.010 ns |   2.668 ns |    192.57 ns |  1.00 |    0.00 |      - |     - |     - |         - |
-    |          V3_ImHashMap_Enumerate |    10 |    223.10 ns |   1.885 ns |   1.574 ns |    223.12 ns |  1.16 |    0.02 | 0.0381 |     - |     - |     240 B |
-    | V4_PartitionedHashMap_Enumerate |    10 |    379.75 ns |   4.543 ns |   4.027 ns |    379.74 ns |  1.98 |    0.03 |      - |     - |     - |         - |
-    | V3_PartitionedHashMap_Enumerate |    10 |    604.47 ns |   4.257 ns |   3.774 ns |    603.87 ns |  3.15 |    0.05 | 0.1793 |     - |     - |    1128 B |
-    |        DictionarySlim_Enumerate |    10 |     73.15 ns |   1.438 ns |   1.345 ns |     72.82 ns |  0.38 |    0.01 |      - |     - |     - |         - |
-    |            Dictionary_Enumerate |    10 |     57.95 ns |   0.749 ns |   0.701 ns |     57.86 ns |  0.30 |    0.01 |      - |     - |     - |         - |
-    |    ConcurrentDictionary_foreach |    10 |    505.36 ns |   7.959 ns |   7.445 ns |    504.00 ns |  2.64 |    0.05 | 0.0095 |     - |     - |      64 B |
-    |         ImmutableDict_Enumerate |    10 |    556.35 ns |  10.730 ns |   9.512 ns |    558.53 ns |  2.90 |    0.06 |      - |     - |     - |         - |
-    |                                 |       |              |            |            |              |       |         |        |       |       |           |
-    |          V4_ImHashMap_Enumerate |   100 |  2,023.65 ns |  33.506 ns |  29.702 ns |  2,031.78 ns |  1.00 |    0.00 |      - |     - |     - |         - |
-    |          V3_ImHashMap_Enumerate |   100 |  1,992.46 ns |  23.400 ns |  20.744 ns |  1,992.05 ns |  0.98 |    0.02 | 0.0381 |     - |     - |     240 B |
-    | V4_PartitionedHashMap_Enumerate |   100 |  2,626.85 ns |  42.089 ns |  37.311 ns |  2,616.34 ns |  1.30 |    0.02 |      - |     - |     - |         - |
-    | V3_PartitionedHashMap_Enumerate |   100 |  3,469.16 ns |  30.415 ns |  26.962 ns |  3,469.32 ns |  1.71 |    0.03 | 0.4349 |     - |     - |    2728 B |
-    |        DictionarySlim_Enumerate |   100 |    615.29 ns |  10.217 ns |   9.057 ns |    617.89 ns |  0.30 |    0.01 |      - |     - |     - |         - |
-    |            Dictionary_Enumerate |   100 |    578.30 ns |   3.310 ns |   2.764 ns |    578.14 ns |  0.29 |    0.00 |      - |     - |     - |         - |
-    |    ConcurrentDictionary_foreach |   100 |  3,444.60 ns |  55.779 ns |  52.176 ns |  3,425.75 ns |  1.70 |    0.03 | 0.0076 |     - |     - |      64 B |
-    |         ImmutableDict_Enumerate |   100 |  4,557.81 ns |  71.187 ns |  63.105 ns |  4,552.69 ns |  2.25 |    0.03 |      - |     - |     - |         - |
-    |                                 |       |              |            |            |              |       |         |        |       |       |           |
-    |          V4_ImHashMap_Enumerate |  1000 | 22,259.46 ns | 204.173 ns | 180.994 ns | 22,241.67 ns |  1.00 |    0.00 |      - |     - |     - |         - |
-    |          V3_ImHashMap_Enumerate |  1000 | 21,710.99 ns | 288.512 ns | 240.921 ns | 21,770.78 ns |  0.98 |    0.02 | 0.0610 |     - |     - |     480 B |
-    | V4_PartitionedHashMap_Enumerate |  1000 | 28,097.70 ns | 392.513 ns | 306.449 ns | 28,134.91 ns |  1.26 |    0.02 |      - |     - |     - |         - |
-    | V3_PartitionedHashMap_Enumerate |  1000 | 31,132.68 ns | 473.705 ns | 443.104 ns | 31,208.71 ns |  1.40 |    0.01 | 0.4272 |     - |     - |    2728 B |
-    |        DictionarySlim_Enumerate |  1000 |  6,472.19 ns |  53.546 ns |  47.467 ns |  6,482.73 ns |  0.29 |    0.00 |      - |     - |     - |         - |
-    |            Dictionary_Enumerate |  1000 |  5,700.68 ns |  65.696 ns |  61.452 ns |  5,698.15 ns |  0.26 |    0.00 |      - |     - |     - |         - |
-    |    ConcurrentDictionary_foreach |  1000 | 43,550.74 ns | 848.746 ns | 752.391 ns | 43,765.79 ns |  1.96 |    0.04 |      - |     - |     - |      64 B |
-    |         ImmutableDict_Enumerate |  1000 | 46,089.57 ns | 524.157 ns | 464.651 ns | 46,183.41 ns |  2.07 |    0.03 |      - |     - |     - |         - |
-
-    ## Interesting first result
-
-    BenchmarkDotNet v0.13.6, Windows 11 (10.0.22621.1992/22H2/2022Update/SunValley2)
-    11th Gen Intel Core i7-1185G7 3.00GHz, 1 CPU, 8 logical and 4 physical cores
-    .NET SDK 7.0.306
-    [Host]     : .NET 7.0.9 (7.0.923.32018), X64 RyuJIT AVX2
-    DefaultJob : .NET 7.0.9 (7.0.923.32018), X64 RyuJIT AVX2
-
-    |                   Method | Count |     Mean |    Error |   StdDev | Ratio | RatioSD | Allocated | Alloc Ratio |
-    |------------------------- |------ |---------:|---------:|---------:|------:|--------:|----------:|------------:|
-    | DictionarySlim_Enumerate |   100 | 513.2 ns | 10.32 ns | 17.23 ns |  1.00 |    0.00 |         - |          NA |
-    |     Dictionary_Enumerate |   100 | 331.4 ns |  6.69 ns | 13.21 ns |  0.65 |    0.04 |         - |          NA |
-    |     FHashMap91_Enumerate |   100 | 979.7 ns | 18.99 ns | 22.61 ns |  1.91 |    0.09 |         - |          NA |
-
-    ## ... now inlining :)
-
-    |                   Method | Count |     Mean |   Error |  StdDev | Ratio | RatioSD | Allocated | Alloc Ratio |
-    |------------------------- |------ |---------:|--------:|--------:|------:|--------:|----------:|------------:|
-    | DictionarySlim_Enumerate |   100 | 454.0 ns | 7.96 ns | 7.45 ns |  1.00 |    0.00 |         - |          NA |
-    |     Dictionary_Enumerate |   100 | 308.2 ns | 6.17 ns | 6.60 ns |  0.68 |    0.02 |         - |          NA |
-    |     FHashMap91_Enumerate |   100 | 110.0 ns | 2.09 ns | 1.96 ns |  0.24 |    0.01 |         - |          NA |
-
-    */
-
-            // [Params(1, 10, 100, 1_000)]
-            [Params(10, 100, 1000)]
-            public int Count;
-
-            [GlobalSetup]
-            public void Populate()
+            var count = 0;
+            var iters = Count / 2;
+            for (var i = 0; i < iters; ++i)
             {
-                _mapV2 = V2_AddOrUpdate();
-                // _mapExp = Experimental_ImHashMap_AddOrUpdate();
-                _mapV4 = V4_ImMap_AddOrUpdate();
-                _mapV3 = V3_ImHashMap_AddOrUpdate();
-                _mapPartV4 = V4_PartionedHashMap_AddOrUpdate();
-                _mapPartV3 = V3_PartionedHashMap_AddOrUpdate();
-                _dict = Dict();
-                _dictSlim = DictSlim_GetOrAddValueRef();
-                _fHashMap = FHashMap_AddOrUpdate();
-                _concurrentDict = ConcurrentDict();
-                _immutableDict = ImmutableDict();
+                if (map.TryGetValue(_randomPresentKeys[i], out var result))
+                    count += result.Length;
+                if (!map.TryGetValue(_missingKeys[i], out var _))
+                    --count;
             }
-
-            #region Population
-
-            public ImTools.V2.ImHashMap<Type, string> V2_AddOrUpdate()
-            {
-                var map = ImTools.V2.ImHashMap<Type, string>.Empty;
-
-                foreach (var key in _keys.Take(Count))
-                    map = map.AddOrUpdate(key, "a");
-
-                return map;
-            }
-
-            private ImTools.V2.ImHashMap<Type, string> _mapV2;
-
-            private ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>> _mapExp;
-
-            public ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>> Experimental_ImHashMap_AddOrUpdate()
-            {
-                var map = ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>>.Empty;
-
-                foreach (var key in _keys.Take(Count))
-                    map = map.AddOrUpdate(key.GetHashCode(), key, "a");
-
-                return map;
-            }
-
-            private ImToolsV3.ImHashMap<Type, string> _mapV3;
-            public ImToolsV3.ImHashMap<Type, string> V3_ImHashMap_AddOrUpdate()
-            {
-                var map = ImToolsV3.ImHashMap<Type, string>.Empty;
-
-                foreach (var key in _keys.Take(Count))
-                    map = map.AddOrUpdate(key.GetHashCode(), key, "a");
-
-                return map;
-            }
-
-            private ImTools.ImHashMap<Type, string> _mapV4;
-
-            public ImTools.ImHashMap<Type, string> V4_ImMap_AddOrUpdate()
-            {
-                var map = ImTools.ImHashMap<Type, string>.Empty;
-
-                foreach (var key in _keys.Take(Count))
-                    map = map.AddOrUpdate(key.GetHashCode(), key, "a");
-
-                return map;
-            }
-
-            private ImTools.ImHashMap<Type, string>[] _mapPartV4;
-            public ImTools.ImHashMap<Type, string>[] V4_PartionedHashMap_AddOrUpdate()
-            {
-                var map = ImTools.PartitionedHashMap.CreateEmpty<Type, string>();
-
-                foreach (var key in _keys.Take(Count))
-                    map.AddOrUpdate(key, "a");
-
-                return map;
-            }
-
-            private ImToolsV3.ImHashMap<Type, string>[] _mapPartV3;
-            public ImToolsV3.ImHashMap<Type, string>[] V3_PartionedHashMap_AddOrUpdate()
-            {
-                var map = ImToolsV3.PartitionedHashMap.CreateEmpty<Type, string>();
-
-                foreach (var key in _keys.Take(Count))
-                    map.AddOrUpdate(key, "a");
-
-                return map;
-            }
-
-
-            public Dictionary<Type, string> Dict()
-            {
-                var map = new Dictionary<Type, string>();
-
-                foreach (var key in _keys.Take(Count))
-                    map.TryAdd(key, "a");
-
-                return map;
-            }
-
-            private Dictionary<Type, string> _dict;
-
-            public DictionarySlim<TypeVal, string> DictSlim_GetOrAddValueRef()
-            {
-                var dict = new DictionarySlim<TypeVal, string>();
-
-                foreach (var key in _keys.Take(Count))
-                    dict.GetOrAddValueRef(key) = "a";
-
-                return dict;
-            }
-
-            private FHashMap91TypeString _fHashMap;
-
-            public FHashMap91TypeString FHashMap_AddOrUpdate()
-            {
-                var map = new FHashMap91TypeString();
-
-                foreach (var key in _keys.Take(Count))
-                    map.GetOrAddValueRef(key) = "a";
-
-                return map;
-            }
-
-            private DictionarySlim<TypeVal, string> _dictSlim;
-
-            public ConcurrentDictionary<Type, string> ConcurrentDict()
-            {
-                var map = new ConcurrentDictionary<Type, string>();
-
-                foreach (var key in _keys.Take(Count))
-                    map.TryAdd(key, "a");
-
-                return map;
-            }
-
-            private ConcurrentDictionary<Type, string> _concurrentDict;
-
-            public ImmutableDictionary<Type, string> ImmutableDict()
-            {
-                var builder = ImmutableDictionary.CreateBuilder<Type, string>();
-
-                foreach (var key in _keys.Take(Count))
-                    builder.Add(key, "a");
-
-                return builder.ToImmutable();
-            }
-
-            private ImmutableDictionary<Type, string> _immutableDict;
-
-            #endregion
-
-            // [Benchmark(Baseline = true)]
-            public object V4_ImHashMap_Enumerate()
-            {
-                var s = "";
-                foreach (var x in _mapV4.Enumerate())
-                    s = x.Value;
-                return s;
-            }
-
-            // [Benchmark]
-            public object V3_ImHashMap_Enumerate()
-            {
-                var s = "";
-                foreach (var x in _mapV3.Enumerate())
-                    s = x.Value;
-                return s;
-            }
-
-            // [Benchmark]
-            public object V4_PartitionedHashMap_Enumerate()
-            {
-                var s = "";
-                foreach (var x in _mapPartV4.Enumerate())
-                    s = x.Value;
-                return s;
-            }
-
-            // [Benchmark]
-            public object V3_PartitionedHashMap_Enumerate()
-            {
-                var s = "";
-                foreach (var x in _mapPartV3.Enumerate())
-                    s = x.Value;
-                return s;
-            }
-
-            // [Benchmark]
-            public object V2_ImHashMap_Enumerate()
-            {
-                var s = "";
-                foreach (var x in _mapV2.Enumerate())
-                    s = x.Value;
-                return s;
-            }
-
-            [Benchmark(Baseline = true)]
-            public object DictionarySlim_Enumerate()
-            {
-                var s = "";
-                foreach (var x in _dictSlim)
-                    s = x.Value;
-                return s;
-            }
-
-            [Benchmark]
-            public object Dictionary_Enumerate()
-            {
-                var s = "";
-                foreach (var x in _dict)
-                    s = x.Value;
-                return s;
-            }
-
-            [Benchmark]
-            public object FHashMap91_Enumerate()
-            {
-                var s = "";
-                foreach (var x in _fHashMap)
-                    s = x.Value;
-                return s;
-            }
-
-            // [Benchmark]
-            public object ConcurrentDictionary_foreach()
-            {
-                var s = "";
-                foreach (var x in _concurrentDict)
-                    s = x.Value;
-                return s;
-            }
-
-            // [Benchmark]
-            public object ImmutableDict_Enumerate()
-            {
-                var s = "";
-                foreach (var x in _immutableDict)
-                    s = x.Value;
-                return s;
-            }
+            return count;
         }
 
-        [MemoryDiagnoser]
-        public class ToArray
+        // [Benchmark(Baseline = true)]
+        [Benchmark]
+        public int FecHashMap_PopulateThenLookup_HalfMissed_HalfPresent()
         {
-            /*
-            BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
-            Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
-            .NET Core SDK=5.0.202
-            [Host]     : .NET Core 5.0.5 (CoreCLR 5.0.521.16609, CoreFX 5.0.521.16609), X64 RyuJIT
-            DefaultJob : .NET Core 5.0.5 (CoreCLR 5.0.521.16609, CoreFX 5.0.521.16609), X64 RyuJIT
+            var m = new FecSmallMapTypeString();
+            ref var map = ref m.Map;
 
+            foreach (var key in _presentKeys)
+                map.AddOrUpdate(key, "a");
 
-            |                Method | Count |      Mean |    Error |    StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-            |---------------------- |------ |----------:|---------:|----------:|------:|--------:|-------:|------:|------:|----------:|
-            |           UsingLambda |     1 |  29.07 ns | 0.672 ns |  1.722 ns |  1.00 |    0.00 | 0.0051 |     - |     - |      32 B |
-            |    UsingGenericStruct |     1 |  27.87 ns | 0.657 ns |  1.660 ns |  0.96 |    0.08 | 0.0051 |     - |     - |      32 B |
-            | UsingNonGenericStruct |     1 |  15.11 ns | 0.391 ns |  0.930 ns |  0.52 |    0.05 | 0.0051 |     - |     - |      32 B |
-            |                       |       |           |          |           |       |         |        |       |       |           |
-            |           UsingLambda |    10 | 159.52 ns | 3.168 ns |  5.379 ns |  1.00 |    0.00 | 0.0293 |     - |     - |     184 B |
-            |    UsingGenericStruct |    10 | 195.96 ns | 4.683 ns | 13.435 ns |  1.28 |    0.09 | 0.0293 |     - |     - |     184 B |
-            | UsingNonGenericStruct |    10 | 134.08 ns | 2.785 ns |  7.578 ns |  0.85 |    0.06 | 0.0293 |     - |     - |     184 B |
-            */
-            [Params(1, 10)]//, 100, 1_000)]
-            public int Count;
-
-            [GlobalSetup]
-            public void Populate()
+            var count = 0;
+            var iters = Count / 2;
+            for (var i = 0; i < iters; ++i)
             {
-                _mapV3 = V3_ImHashMap_AddOrUpdate();
+                ref var result = ref map.TryGetEntryRef(_randomPresentKeys[i], out var found);
+                if (found)
+                    count += result.Value.Length;
+                _ = ref map.TryGetEntryRef(_missingKeys[i], out found);
+                if (!found)
+                    --count;
             }
-
-            [Benchmark(Baseline = true)]
-            public object UsingLambda() => _mapV3.ToArray();
-
-            private ImToolsV3.ImHashMap<Type, string> _mapV3;
-            public ImToolsV3.ImHashMap<Type, string> V3_ImHashMap_AddOrUpdate()
-            {
-                var map = ImToolsV3.ImHashMap<Type, string>.Empty;
-
-                foreach (var key in _keys.Take(Count))
-                    map = map.AddOrUpdate(key.GetHashCode(), key, "a");
-
-                return map;
-            }
+            return count;
         }
 
-        [MemoryDiagnoser]
-        public class GetAndUpdate_vs_AddOrGetAndReplace
+        // [Benchmark]
+        public int FecHashMap_Init1000_PopulateThenLookup_HalfMissed_HalfPresent()
         {
-            /*
-            BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
-            Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
-            .NET Core SDK=5.0.202
-              [Host]     : .NET Core 5.0.5 (CoreCLR 5.0.521.16609, CoreFX 5.0.521.16609), X64 RyuJIT
-              DefaultJob : .NET Core 5.0.5 (CoreCLR 5.0.521.16609, CoreFX 5.0.521.16609), X64 RyuJIT
+            var m = new FecSmallMapTypeString(1024);
+            ref var map = ref m.Map;
 
-            ## Initial results
+            foreach (var key in _presentKeys)
+                map.AddOrUpdate(key, "a");
 
-            |                                            Method | Count |     Mean |    Error |   StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
-            |-------------------------------------------------- |------ |---------:|---------:|---------:|------:|--------:|-------:|------:|------:|----------:|
-            |                              Get_then_AddOrUpdate |     1 | 29.34 ns | 0.397 ns | 0.371 ns |  1.00 |    0.00 | 0.0114 |     - |     - |      72 B |
-            |                             AddOrGet_then_Replace |     1 | 25.17 ns | 0.568 ns | 0.504 ns |  0.86 |    0.02 | 0.0114 |     - |     - |      72 B |
-            | AddOrGet_then_Replace_inlined_without_lambda_cost |     1 | 24.05 ns | 0.316 ns | 0.296 ns |  0.82 |    0.01 | 0.0115 |     - |     - |      72 B |
-            |                                                   |       |          |          |          |       |         |        |       |       |           |
-            |                              Get_then_AddOrUpdate |     5 | 32.54 ns | 0.725 ns | 0.917 ns |  1.00 |    0.00 | 0.0114 |     - |     - |      72 B |
-            |                             AddOrGet_then_Replace |     5 | 26.16 ns | 0.584 ns | 0.546 ns |  0.80 |    0.03 | 0.0114 |     - |     - |      72 B |
-            | AddOrGet_then_Replace_inlined_without_lambda_cost |     5 | 25.00 ns | 0.266 ns | 0.236 ns |  0.76 |    0.02 | 0.0114 |     - |     - |      72 B |
-            |                                                   |       |          |          |          |       |         |        |       |       |           |
-            |                              Get_then_AddOrUpdate |    10 | 51.65 ns | 1.085 ns | 0.962 ns |  1.00 |    0.00 | 0.0178 |     - |     - |     112 B |
-            |                             AddOrGet_then_Replace |    10 | 48.35 ns | 0.521 ns | 0.487 ns |  0.94 |    0.02 | 0.0178 |     - |     - |     112 B |
-            | AddOrGet_then_Replace_inlined_without_lambda_cost |    10 | 38.43 ns | 0.861 ns | 2.144 ns |  0.79 |    0.05 | 0.0178 |     - |     - |     112 B |
-            |                                                   |       |          |          |          |       |         |        |       |       |           |
-            |                              Get_then_AddOrUpdate |    50 | 91.46 ns | 1.870 ns | 2.079 ns |  1.00 |    0.00 | 0.0370 |     - |     - |     232 B |
-            |                             AddOrGet_then_Replace |    50 | 85.13 ns | 1.755 ns | 2.573 ns |  0.94 |    0.03 | 0.0370 |     - |     - |     232 B |
-            | AddOrGet_then_Replace_inlined_without_lambda_cost |    50 | 85.02 ns | 1.775 ns | 1.823 ns |  0.93 |    0.03 | 0.0370 |     - |     - |     232 B |
-
-            */
-            [Params(1, 5, 10)]//, 50, 100, 1_000)]
-            public int Count;
-
-            [GlobalSetup]
-            public void Populate()
+            var count = 0;
+            var iters = Count / 2;
+            for (var i = 0; i < iters; ++i)
             {
-                _map = V3_ImHashMap_AddOrUpdate();
+                ref var result = ref map.TryGetEntryRef(_randomPresentKeys[i], out var found);
+                if (found)
+                    count += result.Value.Length;
+                _ = ref map.TryGetEntryRef(_missingKeys[i], out found);
+                if (!found)
+                    --count;
+            }
+            return count;
+        }
+
+        // [Benchmark]
+        public int FecHashMap_SingleArrEntries_PopulateThenLookup_HalfMissed_HalfPresent()
+        {
+            var m = new FecSmallMapTypeString_SingleArrEntries();
+            ref var map = ref m.Map;
+
+            foreach (var key in _presentKeys)
+                map.AddOrUpdate(key, "a");
+
+            var count = 0;
+            var iters = Count / 2;
+            for (var i = 0; i < iters; ++i)
+            {
+                ref var result = ref map.TryGetEntryRef(_randomPresentKeys[i], out var found);
+                if (found)
+                    count += result.Value.Length;
+                _ = ref map.TryGetEntryRef(_missingKeys[i], out found);
+                if (!found)
+                    --count;
+            }
+            return count;
+        }
+
+        // [Benchmark]
+        public int FHashMap11_TryGetValue()
+        {
+            var count = 0;
+            foreach (var k in _randomPresentKeys)
+            {
+                _fHashMap11.TryGetValue(k, out var result);
+                count += result.Length;
             }
 
-            [Benchmark(Baseline = true)]
-            public object Get_then_AddOrUpdate()
-            {
-                var key = typeof(GlobalSetupAttribute);
-                var hash = key.GetHashCode();
-                var val = "!";
-                var m = _map;
-                var s = m.GetValueOrDefault(hash, key);
-                if (s != null)
-                    s = Handle(s, val);
-                else
-                    s = val;
+            return count;
+        }
 
-                return m.AddOrUpdate(hash, key, s);
-            }
+        // [Benchmark(Baseline = true)]
+        // [Benchmark]
+        public string FHashMap7_TryGetValue()
+        {
+            _fHashMap7.TryGetValue(LookupKey, out var result);
+            return result;
+        }
 
-            [Benchmark]
-            public object AddOrGet_then_Replace()
-            {
-                var key = typeof(GlobalSetupAttribute);
-                var hash = key.GetHashCode();
-                var val = "!";
+        // [Benchmark]
+        public string FHashMap9_TryGetValue()
+        {
+            _fHashMap9.TryGetValue(LookupKey, out var result);
+            return result;
+        }
 
-                return _map.AddOrUpdate(hash, key, val, (_, o, n) => Handle(o, n));
-            }
+        // [Benchmark]
+        public string FHashMap91_TryGetValue()
+        {
+            _fHashMap91.TryGetValue(LookupKey, out var result);
+            return result;
+        }
 
-            [MethodImpl(MethodImplOptions.NoInlining)]
-            static string Handle(string a, string b) => a + b;
+        // [Benchmark]
+        public string ConcurrentDictionary_TryGetValue()
+        {
+            _concurrentDict.TryGetValue(LookupKey, out var result);
+            return result;
+        }
 
-            private ImToolsV3.ImHashMap<Type, string> _map;
-            public ImToolsV3.ImHashMap<Type, string> V3_ImHashMap_AddOrUpdate()
-            {
-                var map = ImToolsV3.ImHashMap<Type, string>.Empty;
+        // [Benchmark]
+        public string ImmutableDict_TryGet()
+        {
+            _immutableDict.TryGetValue(LookupKey, out var result);
+            return result;
+        }
+    }
 
-                foreach (var key in _keys.Take(Count))
-                    map = map.AddOrUpdate(key.GetHashCode(), key, "a");
+    [MemoryDiagnoser]
+    public class Enumerate
+    {
+        /*
+        ## V2:
 
-                return map;
-            }
+        BenchmarkDotNet=v0.12.0, OS=Windows 10.0.18362
+        Intel Core i7-8750H CPU 2.20GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+        .NET Core SDK=3.0.100
+          [Host]     : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
+          DefaultJob : .NET Core 3.0.0 (CoreCLR 4.700.19.46205, CoreFX 4.700.19.46214), X64 RyuJIT
+
+|                        Method | Count |          Mean |      Error |     StdDev | Ratio | RatioSD |   Gen 0 |  Gen 1 | Gen 2 | Allocated |
+|------------------------------ |------ |--------------:|-----------:|-----------:|------:|--------:|--------:|-------:|------:|----------:|
+|    ImHashMap_EnumerateToArray |     1 |     147.31 ns |   0.567 ns |   0.531 ns |  1.00 |    0.00 |  0.0441 |      - |     - |     208 B |
+| ImHashMap_V1_EnumerateToArray |     1 |     160.45 ns |   0.856 ns |   0.801 ns |  1.09 |    0.01 |  0.0560 |      - |     - |     264 B |
+|         ImHashMap_FoldToArray |     1 |      55.05 ns |   0.436 ns |   0.387 ns |  0.37 |    0.00 |  0.0356 |      - |     - |     168 B |
+|    ImHashMapSlots_FoldToArray |     1 |      89.21 ns |   1.473 ns |   1.378 ns |  0.61 |    0.01 |  0.0271 |      - |     - |     128 B |
+|        DictionarySlim_ToArray |     1 |     150.88 ns |   1.424 ns |   1.189 ns |  1.02 |    0.01 |  0.0408 |      - |     - |     192 B |
+|            Dictionary_ToArray |     1 |      40.47 ns |   0.864 ns |   1.093 ns |  0.28 |    0.01 |  0.0119 |      - |     - |      56 B |
+|  ConcurrentDictionary_ToArray |     1 |     232.31 ns |   1.981 ns |   1.654 ns |  1.58 |    0.01 |  0.0114 |      - |     - |      56 B |
+|         ImmutableDict_ToArray |     1 |     618.68 ns |  11.308 ns |  10.578 ns |  4.20 |    0.07 |  0.0114 |      - |     - |      56 B |
+|                               |       |               |            |            |       |         |         |        |       |           |
+|    ImHashMap_EnumerateToArray |    10 |     423.85 ns |   8.425 ns |   9.364 ns |  1.00 |    0.00 |  0.1001 |      - |     - |     472 B |
+| ImHashMap_V1_EnumerateToArray |    10 |     492.81 ns |   4.461 ns |   4.173 ns |  1.16 |    0.03 |  0.1726 |      - |     - |     816 B |
+|         ImHashMap_FoldToArray |    10 |     213.14 ns |   4.054 ns |   3.981 ns |  0.50 |    0.02 |  0.1054 |      - |     - |     496 B |
+|    ImHashMapSlots_FoldToArray |    10 |     255.16 ns |   1.863 ns |   1.743 ns |  0.60 |    0.01 |  0.1016 |      - |     - |     480 B |
+|        DictionarySlim_ToArray |    10 |     450.09 ns |   8.918 ns |  10.616 ns |  1.06 |    0.04 |  0.1354 |      - |     - |     640 B |
+|            Dictionary_ToArray |    10 |      87.40 ns |   1.696 ns |   1.586 ns |  0.21 |    0.01 |  0.0424 |      - |     - |     200 B |
+|  ConcurrentDictionary_ToArray |    10 |     499.22 ns |   4.804 ns |   4.494 ns |  1.17 |    0.03 |  0.0420 |      - |     - |     200 B |
+|         ImmutableDict_ToArray |    10 |   1,954.98 ns |  10.732 ns |  10.038 ns |  4.60 |    0.11 |  0.0381 |      - |     - |     200 B |
+|                               |       |               |            |            |       |         |         |        |       |           |
+|    ImHashMap_EnumerateToArray |   100 |   2,735.61 ns |  34.407 ns |  32.185 ns |  1.00 |    0.00 |  0.4768 |      - |     - |    2248 B |
+| ImHashMap_V1_EnumerateToArray |   100 |   3,368.76 ns |   6.822 ns |   6.048 ns |  1.23 |    0.02 |  1.1597 | 0.0267 |     - |    5472 B |
+|         ImHashMap_FoldToArray |   100 |   1,433.97 ns |  14.981 ns |  14.013 ns |  0.52 |    0.01 |  0.6599 | 0.0038 |     - |    3112 B |
+|    ImHashMapSlots_FoldToArray |   100 |   1,541.62 ns |   8.594 ns |   8.039 ns |  0.56 |    0.01 |  0.6714 | 0.0038 |     - |    3168 B |
+|        DictionarySlim_ToArray |   100 |   2,505.97 ns |  44.927 ns |  37.516 ns |  0.92 |    0.02 |  0.8469 | 0.0076 |     - |    4000 B |
+|            Dictionary_ToArray |   100 |     549.34 ns |   6.559 ns |   6.136 ns |  0.20 |    0.00 |  0.3481 | 0.0019 |     - |    1640 B |
+|  ConcurrentDictionary_ToArray |   100 |   2,236.03 ns |  10.044 ns |   9.395 ns |  0.82 |    0.01 |  0.3471 |      - |     - |    1640 B |
+|         ImmutableDict_ToArray |   100 |  15,683.87 ns |  68.105 ns |  60.373 ns |  5.74 |    0.08 |  0.3357 |      - |     - |    1640 B |
+|                               |       |               |            |            |       |         |         |        |       |           |
+|    ImHashMap_EnumerateToArray |  1000 |  25,723.37 ns | 504.158 ns | 560.370 ns |  1.00 |    0.00 |  3.5706 | 0.1526 |     - |   16808 B |
+| ImHashMap_V1_EnumerateToArray |  1000 |  34,316.66 ns | 583.573 ns | 545.874 ns |  1.34 |    0.04 | 10.3149 | 1.8921 |     - |   48833 B |
+|         ImHashMap_FoldToArray |  1000 |  16,277.05 ns |  38.330 ns |  33.979 ns |  0.64 |    0.02 |  5.2490 | 0.3052 |     - |   24752 B |
+|    ImHashMapSlots_FoldToArray |  1000 |  15,167.14 ns | 261.927 ns | 218.721 ns |  0.59 |    0.02 |  5.2490 | 0.2899 |     - |   24784 B |
+|        DictionarySlim_ToArray |  1000 |  22,273.30 ns | 384.716 ns | 359.864 ns |  0.87 |    0.01 |  6.9885 | 0.6714 |     - |   32896 B |
+|            Dictionary_ToArray |  1000 |   4,997.89 ns |  20.869 ns |  18.500 ns |  0.20 |    0.00 |  3.3951 | 0.1831 |     - |   16040 B |
+|  ConcurrentDictionary_ToArray |  1000 |  36,859.40 ns | 193.536 ns | 181.034 ns |  1.44 |    0.04 |  3.3569 | 0.1831 |     - |   16040 B |
+|         ImmutableDict_ToArray |  1000 | 155,798.41 ns | 484.101 ns | 452.828 ns |  6.08 |    0.14 |  3.1738 |      - |     - |   16040 B |
+
+|                             Method | Count |         Mean |      Error |     StdDev | Ratio |  Gen 0 |  Gen 1 | Gen 2 | Allocated |
+|----------------------------------- |------ |-------------:|-----------:|-----------:|------:|-------:|-------:|------:|----------:|
+|         ImHashMap_EnumerateToArray |     1 |    153.03 ns |   0.774 ns |   0.686 ns |  1.00 | 0.0441 |      - |     - |     208 B |
+| Experimental_ImHashMap_FoldToArray |     1 |     62.26 ns |   0.180 ns |   0.159 ns |  0.41 | 0.0271 |      - |     - |     128 B |
+|                                    |       |              |            |            |       |        |        |       |           |
+|         ImHashMap_EnumerateToArray |    10 |    417.19 ns |   4.075 ns |   3.403 ns |  1.00 | 0.1001 |      - |     - |     472 B |
+| Experimental_ImHashMap_FoldToArray |    10 |    237.62 ns |   1.079 ns |   1.009 ns |  0.57 | 0.1016 |      - |     - |     480 B |
+|                                    |       |              |            |            |       |        |        |       |           |
+|         ImHashMap_EnumerateToArray |   100 |  2,693.86 ns |   7.426 ns |   6.946 ns |  1.00 | 0.4768 |      - |     - |    2248 B |
+| Experimental_ImHashMap_FoldToArray |   100 |  1,517.72 ns |   6.061 ns |   5.669 ns |  0.56 | 0.6561 | 0.0038 |     - |    3096 B |
+|                                    |       |              |            |            |       |        |        |       |           |
+|         ImHashMap_EnumerateToArray |  1000 | 26,018.52 ns | 175.262 ns | 146.352 ns |  1.00 | 3.5706 | 0.1831 |     - |   16808 B |
+| Experimental_ImHashMap_FoldToArray |  1000 | 15,321.95 ns |  69.421 ns |  64.937 ns |  0.59 | 5.2490 | 0.2747 |     - |   24736 B |
+
+## V3 baseline
+
+|                                   Method | Count |         Mean |     Error |    StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|----------------------------------------- |------ |-------------:|----------:|----------:|------:|--------:|-------:|------:|------:|----------:|
+|     V2_ImHashMap_AVL_EnumerateAndToArray |     1 |     198.4 ns |   3.64 ns |   3.04 ns |  1.00 |    0.00 | 0.0496 |     - |     - |     208 B |
+| V3_ImHashMap_23Tree_EnumerateAndToArray |     1 |     158.0 ns |   3.23 ns |   3.17 ns |  0.80 |    0.02 | 0.0362 |     - |     - |     152 B |
+|                                          |       |              |           |           |       |         |        |       |       |           |
+|     V2_ImHashMap_AVL_EnumerateAndToArray |    10 |     535.6 ns |   7.97 ns |   8.86 ns |  1.00 |    0.00 | 0.1125 |     - |     - |     472 B |
+| V3_ImHashMap_23Tree_EnumerateAndToArray |    10 |     558.9 ns |   5.35 ns |   5.25 ns |  1.04 |    0.02 | 0.1354 |     - |     - |     568 B |
+|                                          |       |              |           |           |       |         |        |       |       |           |
+|     V2_ImHashMap_AVL_EnumerateAndToArray |   100 |   3,601.3 ns |  54.44 ns |  50.92 ns |  1.00 |    0.00 | 0.5341 |     - |     - |    2248 B |
+| V3_ImHashMap_23Tree_EnumerateAndToArray |   100 |   9,800.0 ns | 110.20 ns |  97.69 ns |  2.72 |    0.04 | 1.0529 |     - |     - |    4424 B |
+|                                          |       |              |           |           |       |         |        |       |       |           |
+|     V2_ImHashMap_AVL_EnumerateAndToArray |  1000 |  34,261.7 ns | 371.47 ns | 310.20 ns |  1.00 |    0.00 | 3.9673 |     - |     - |   16808 B |
+| V3_ImHashMap_23Tree_EnumerateAndToArray |  1000 | 128,626.8 ns | 988.46 ns | 924.61 ns |  3.76 |    0.04 | 9.2773 |     - |     - |   38912 B |
+
+### Static Enumerate - incomplete
+
+|                                   Method | Count |        Mean |     Error |    StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|----------------------------------------- |------ |------------:|----------:|----------:|------:|--------:|-------:|------:|------:|----------:|
+|     V2_ImHashMap_AVL_EnumerateAndToArray |     1 |    164.7 ns |   2.23 ns |   1.98 ns |  1.00 |    0.00 | 0.0496 |     - |     - |     208 B |
+| V3_ImHashMap_23Tree_EnumerateAndToArray |     1 |    245.0 ns |   4.92 ns |   5.66 ns |  1.49 |    0.04 | 0.0567 |     - |     - |     240 B |
+|                                          |       |             |           |           |       |         |        |       |       |           |
+|     V2_ImHashMap_AVL_EnumerateAndToArray |     5 |    295.6 ns |   5.87 ns |   5.77 ns |  1.00 |    0.00 | 0.0801 |     - |     - |     336 B |
+| V3_ImHashMap_23Tree_EnumerateAndToArray |     5 |    497.5 ns |   5.77 ns |   5.12 ns |  1.68 |    0.04 | 0.0849 |     - |     - |     360 B |
+|                                          |       |             |           |           |       |         |        |       |       |           |
+|     V2_ImHashMap_AVL_EnumerateAndToArray |    10 |    459.0 ns |   4.86 ns |   4.55 ns |  1.00 |    0.00 | 0.1116 |     - |     - |     472 B |
+| V3_ImHashMap_23Tree_EnumerateAndToArray |    10 |    683.6 ns |   9.36 ns |   8.30 ns |  1.49 |    0.02 | 0.1335 |     - |     - |     560 B |
+|                                          |       |             |           |           |       |         |        |       |       |           |
+|     V2_ImHashMap_AVL_EnumerateAndToArray |   100 |  3,219.3 ns |  36.20 ns |  30.23 ns |  1.00 |    0.00 | 0.5341 |     - |     - |    2248 B |
+| V3_ImHashMap_23Tree_EnumerateAndToArray |   100 |  5,009.4 ns |  57.55 ns |  51.02 ns |  1.56 |    0.02 | 0.5264 |     - |     - |    2208 B |
+|                                          |       |             |           |           |       |         |        |       |       |           |
+|     V2_ImHashMap_AVL_EnumerateAndToArray |  1000 | 29,919.7 ns | 363.29 ns | 322.05 ns |  1.00 |    0.00 | 3.9673 |     - |     - |   16808 B |
+| V3_ImHashMap_23Tree_EnumerateAndToArray |  1000 | 21,530.8 ns | 292.37 ns | 259.18 ns |  0.72 |    0.01 | 1.8921 |     - |     - |    8016 B |
+
+### Struct enumerator for leafs
+
+BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19041.630 (2004/?/20H1)
+Intel Core i7-8565U CPU 1.80GHz (Whiskey Lake), 1 CPU, 8 logical and 4 physical cores
+.NET Core SDK=5.0.100
+[Host]     : .NET Core 5.0.0 (CoreCLR 5.0.20.51904, CoreFX 5.0.20.51904), X64 RyuJIT
+DefaultJob : .NET Core 5.0.0 (CoreCLR 5.0.20.51904, CoreFX 5.0.20.51904), X64 RyuJIT
+
+
+|                                   Method | Count |         Mean |       Error |      StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|----------------------------------------- |------ |-------------:|------------:|------------:|------:|--------:|-------:|------:|------:|----------:|
+|     V2_ImHashMap_AVL_EnumerateAndToArray |     1 |     131.8 ns |     2.43 ns |     2.27 ns |  1.00 |    0.00 | 0.0458 |     - |     - |     192 B |
+| V3_ImHashMap_23Tree_EnumerateAndToArray |     1 |     107.7 ns |     0.56 ns |     0.44 ns |  0.82 |    0.01 | 0.0305 |     - |     - |     128 B |
+|                                          |       |              |             |             |       |         |        |       |       |           |
+|     V2_ImHashMap_AVL_EnumerateAndToArray |     5 |     251.5 ns |     3.12 ns |     2.77 ns |  1.00 |    0.00 | 0.0782 |     - |     - |     328 B |
+| V3_ImHashMap_23Tree_EnumerateAndToArray |     5 |     214.5 ns |     4.37 ns |     4.86 ns |  0.86 |    0.02 | 0.0591 |     - |     - |     248 B |
+|                                          |       |              |             |             |       |         |        |       |       |           |
+|     V2_ImHashMap_AVL_EnumerateAndToArray |    10 |     402.3 ns |     2.40 ns |     2.00 ns |  1.00 |    0.00 | 0.1106 |     - |     - |     464 B |
+| V3_ImHashMap_23Tree_EnumerateAndToArray |    10 |     469.7 ns |     8.19 ns |    14.13 ns |  1.19 |    0.04 | 0.1144 |     - |     - |     480 B |
+|                                          |       |              |             |             |       |         |        |       |       |           |
+|     V2_ImHashMap_AVL_EnumerateAndToArray |   100 |   2,987.6 ns |    34.44 ns |    28.76 ns |  1.00 |    0.00 | 0.5341 |     - |     - |    2240 B |
+| V3_ImHashMap_23Tree_EnumerateAndToArray |   100 |   8,085.2 ns |    54.39 ns |    50.88 ns |  2.71 |    0.03 | 0.9308 |     - |     - |    3904 B |
+|                                          |       |              |             |             |       |         |        |       |       |           |
+|     V2_ImHashMap_AVL_EnumerateAndToArray |  1000 |  29,107.9 ns |   372.54 ns |   330.25 ns |  1.00 |    0.00 | 3.9978 |     - |     - |   16800 B |
+| V3_ImHashMap_23Tree_EnumerateAndToArray |  1000 | 117,098.5 ns | 1,388.31 ns | 1,298.62 ns |  4.02 |    0.07 | 8.0566 |     - |     - |   33992 B |
+
+
+### Static iterative enumerator with List as a stack
+
+|                                   Method | Count |        Mean |     Error |    StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|----------------------------------------- |------ |------------:|----------:|----------:|------:|--------:|-------:|------:|------:|----------:|
+|     V2_ImHashMap_AVL_EnumerateAndToArray |     1 |    130.0 ns |   1.58 ns |   1.76 ns |  1.00 |    0.00 | 0.0458 |     - |     - |     192 B |
+| V3_ImHashMap_23Tree_EnumerateAndToArray |     1 |    129.1 ns |   1.55 ns |   1.45 ns |  0.99 |    0.02 | 0.0610 |     - |     - |     256 B |
+|                                          |       |             |           |           |       |         |        |       |       |           |
+|     V2_ImHashMap_AVL_EnumerateAndToArray |     5 |    251.6 ns |   3.58 ns |   3.35 ns |  1.00 |    0.00 | 0.0782 |     - |     - |     328 B |
+| V3_ImHashMap_23Tree_EnumerateAndToArray |     5 |    241.4 ns |   2.97 ns |   2.78 ns |  0.96 |    0.01 | 0.0896 |     - |     - |     376 B |
+|                                          |       |             |           |           |       |         |        |       |       |           |
+|     V2_ImHashMap_AVL_EnumerateAndToArray |    10 |    414.8 ns |   8.12 ns |  10.84 ns |  1.00 |    0.00 | 0.1106 |     - |     - |     464 B |
+| V3_ImHashMap_23Tree_EnumerateAndToArray |    10 |    403.7 ns |   6.25 ns |   5.84 ns |  0.98 |    0.03 | 0.1373 |     - |     - |     576 B |
+|                                          |       |             |           |           |       |         |        |       |       |           |
+|     V2_ImHashMap_AVL_EnumerateAndToArray |   100 |  2,947.2 ns |  23.48 ns |  20.81 ns |  1.00 |    0.00 | 0.5341 |     - |     - |    2240 B |
+| V3_ImHashMap_23Tree_EnumerateAndToArray |   100 |  2,822.2 ns |  16.96 ns |  15.87 ns |  0.96 |    0.01 | 0.5646 |     - |     - |    2376 B |
+|                                          |       |             |           |           |       |         |        |       |       |           |
+|     V2_ImHashMap_AVL_EnumerateAndToArray |  1000 | 28,594.2 ns | 307.61 ns | 287.73 ns |  1.00 |    0.00 | 3.9673 |     - |     - |   16800 B |
+| V3_ImHashMap_23Tree_EnumerateAndToArray |  1000 | 27,555.7 ns | 318.08 ns | 281.97 ns |  0.96 |    0.01 | 4.0588 |     - |     - |   16992 B |
+
+### Branch3 is a Branch2
+
+|                                   Method | Count |       Mean |    Error |   StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|----------------------------------------- |------ |-----------:|---------:|---------:|------:|--------:|-------:|------:|------:|----------:|
+|     V2_ImHashMap_AVL_EnumerateAndToArray |     5 |   329.7 ns |  6.40 ns |  5.99 ns |  1.00 |    0.00 | 0.0782 |     - |     - |     328 B |
+| V3_ImHashMap_23Tree_EnumerateAndToArray |     5 |   313.1 ns |  5.69 ns |  5.59 ns |  0.95 |    0.02 | 0.0877 |     - |     - |     368 B |
+|                                          |       |            |          |          |       |         |        |       |       |           |
+|     V2_ImHashMap_AVL_EnumerateAndToArray |    10 |   513.4 ns |  4.55 ns |  4.26 ns |  1.00 |    0.00 | 0.1106 |     - |     - |     464 B |
+| V3_ImHashMap_23Tree_EnumerateAndToArray |    10 |   525.6 ns |  7.40 ns |  6.92 ns |  1.02 |    0.02 | 0.1354 |     - |     - |     568 B |
+|                                          |       |            |          |          |       |         |        |       |       |           |
+|     V2_ImHashMap_AVL_EnumerateAndToArray |   100 | 3,658.7 ns | 53.67 ns | 47.58 ns |  1.00 |    0.00 | 0.5341 |     - |     - |    2240 B |
+| V3_ImHashMap_23Tree_EnumerateAndToArray |   100 | 3,388.2 ns | 67.71 ns | 63.34 ns |  0.93 |    0.02 | 0.5646 |     - |     - |    2368 B |
+
+### V3 RTM
+
+|                        Method | Count |         Mean |        Error |       StdDev |       Median | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|------------------------------ |------ |-------------:|-------------:|-------------:|-------------:|------:|--------:|-------:|------:|------:|----------:|
+|          V2_ImHashMap_foreach |     1 |     53.16 ns |     1.107 ns |     1.317 ns |     53.11 ns |  1.00 |    0.00 | 0.0166 |     - |     - |     104 B |
+|          V3_ImHashMap_foreach |     1 |     62.12 ns |     1.327 ns |     1.986 ns |     61.59 ns |  1.16 |    0.05 | 0.0267 |     - |     - |     168 B |
+| V3_PartitionedHashMap_foreach |     1 |    238.62 ns |     4.811 ns |     6.084 ns |    235.92 ns |  4.50 |    0.13 | 0.0534 |     - |     - |     336 B |
+|        DictionarySlim_foreach |     1 |     12.90 ns |     0.167 ns |     0.156 ns |     12.90 ns |  0.24 |    0.01 |      - |     - |     - |         - |
+|            Dictionary_foreach |     1 |     14.19 ns |     0.217 ns |     0.181 ns |     14.14 ns |  0.27 |    0.01 |      - |     - |     - |         - |
+|  ConcurrentDictionary_foreach |     1 |    153.40 ns |     2.768 ns |     4.142 ns |    151.56 ns |  2.89 |    0.11 | 0.0100 |     - |     - |      64 B |
+|         ImmutableDict_foreach |     1 |    268.98 ns |     5.361 ns |     9.528 ns |    268.86 ns |  5.01 |    0.26 |      - |     - |     - |         - |
+|                               |       |              |              |              |              |       |         |        |       |       |           |
+|          V2_ImHashMap_foreach |    10 |    233.42 ns |     4.541 ns |     4.859 ns |    232.71 ns |  1.00 |    0.00 | 0.0200 |     - |     - |     128 B |
+|          V3_ImHashMap_foreach |    10 |    249.12 ns |     4.915 ns |     5.852 ns |    246.87 ns |  1.07 |    0.03 | 0.0391 |     - |     - |     248 B |
+| V3_PartitionedHashMap_foreach |    10 |    746.26 ns |    14.990 ns |    18.409 ns |    748.53 ns |  3.20 |    0.13 | 0.1602 |     - |     - |    1008 B |
+|        DictionarySlim_foreach |    10 |     72.54 ns |     0.970 ns |     0.907 ns |     72.42 ns |  0.31 |    0.01 |      - |     - |     - |         - |
+|            Dictionary_foreach |    10 |     58.52 ns |     0.938 ns |     0.733 ns |     58.58 ns |  0.25 |    0.01 |      - |     - |     - |         - |
+|  ConcurrentDictionary_foreach |    10 |    468.65 ns |     9.252 ns |    12.351 ns |    464.12 ns |  2.01 |    0.06 | 0.0095 |     - |     - |      64 B |
+|         ImmutableDict_foreach |    10 |  1,127.30 ns |    15.601 ns |    14.593 ns |  1,123.20 ns |  4.82 |    0.10 |      - |     - |     - |         - |
+|                               |       |              |              |              |              |       |         |        |       |       |           |
+|          V2_ImHashMap_foreach |   100 |  2,355.54 ns |    46.224 ns |    63.271 ns |  2,337.40 ns |  1.00 |    0.00 | 0.0229 |     - |     - |     160 B |
+|          V3_ImHashMap_foreach |   100 |  2,423.13 ns |    31.652 ns |    46.395 ns |  2,412.92 ns |  1.03 |    0.04 | 0.0496 |     - |     - |     320 B |
+| V3_PartitionedHashMap_foreach |   100 |  4,268.51 ns |    25.429 ns |    22.542 ns |  4,266.90 ns |  1.81 |    0.05 | 0.4501 |     - |     - |    2856 B |
+|        DictionarySlim_foreach |   100 |    570.39 ns |     5.827 ns |     4.866 ns |    570.93 ns |  0.24 |    0.01 |      - |     - |     - |         - |
+|            Dictionary_foreach |   100 |    548.46 ns |     8.579 ns |     7.605 ns |    547.90 ns |  0.23 |    0.01 |      - |     - |     - |         - |
+|  ConcurrentDictionary_foreach |   100 |  2,967.70 ns |    45.435 ns |    44.623 ns |  2,958.11 ns |  1.26 |    0.04 | 0.0076 |     - |     - |      64 B |
+|         ImmutableDict_foreach |   100 |  9,988.48 ns |   198.973 ns |   297.813 ns |  9,821.03 ns |  4.24 |    0.14 |      - |     - |     - |         - |
+|                               |       |              |              |              |              |       |         |        |       |       |           |
+|          V2_ImHashMap_foreach |  1000 | 23,828.30 ns |   433.708 ns |   362.166 ns | 23,743.77 ns |  1.00 |    0.00 | 0.0305 |     - |     - |     192 B |
+|          V3_ImHashMap_foreach |  1000 | 26,014.69 ns |   294.125 ns |   245.608 ns | 25,965.82 ns |  1.09 |    0.02 | 0.0610 |     - |     - |     552 B |
+| V3_PartitionedHashMap_foreach |  1000 | 36,582.53 ns |   709.641 ns |   897.469 ns | 36,594.84 ns |  1.54 |    0.04 | 0.4883 |     - |     - |    3240 B |
+|        DictionarySlim_foreach |  1000 |  5,591.13 ns |    43.627 ns |    40.809 ns |  5,602.25 ns |  0.23 |    0.00 |      - |     - |     - |         - |
+|            Dictionary_foreach |  1000 |  5,319.86 ns |    51.684 ns |    45.817 ns |  5,308.36 ns |  0.22 |    0.00 |      - |     - |     - |         - |
+|  ConcurrentDictionary_foreach |  1000 | 38,718.40 ns |   466.979 ns |   389.949 ns | 38,728.64 ns |  1.63 |    0.03 |      - |     - |     - |      64 B |
+|         ImmutableDict_foreach |  1000 | 99,156.35 ns | 1,962.968 ns | 2,181.834 ns | 98,166.03 ns |  4.17 |    0.11 |      - |     - |     - |         - |
+
+## V3.2
+
+|               Method | Count |         Mean |      Error |     StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|--------------------- |------ |-------------:|-----------:|-----------:|------:|--------:|-------:|------:|------:|----------:|
+| V3_ImHashMap_foreach |     1 |     49.59 ns |   0.758 ns |   0.633 ns |  1.00 |    0.00 | 0.0255 |     - |     - |     160 B |
+| V2_ImHashMap_foreach |     1 |     45.96 ns |   0.273 ns |   0.242 ns |  0.93 |    0.01 | 0.0166 |     - |     - |     104 B |
+|                      |       |              |            |            |       |         |        |       |       |           |
+| V3_ImHashMap_foreach |    10 |    214.40 ns |   3.915 ns |   3.662 ns |  1.00 |    0.00 | 0.0381 |     - |     - |     240 B |
+| V2_ImHashMap_foreach |    10 |    204.50 ns |   0.963 ns |   0.854 ns |  0.95 |    0.02 | 0.0203 |     - |     - |     128 B |
+|                      |       |              |            |            |       |         |        |       |       |           |
+| V3_ImHashMap_foreach |   100 |  2,072.90 ns |  40.826 ns |  41.926 ns |  1.00 |    0.00 | 0.0496 |     - |     - |     328 B |
+| V2_ImHashMap_foreach |   100 |  2,206.31 ns |  29.262 ns |  25.940 ns |  1.07 |    0.03 | 0.0229 |     - |     - |     160 B |
+|                      |       |              |            |            |       |         |        |       |       |           |
+| V3_ImHashMap_foreach |  1000 | 21,043.39 ns | 298.240 ns | 232.846 ns |  1.00 |    0.00 | 0.0305 |     - |     - |     328 B |
+| V2_ImHashMap_foreach |  1000 | 21,484.35 ns | 168.389 ns | 149.272 ns |  1.02 |    0.01 | 0.0305 |     - |     - |     192 B |
+
+## V4.0 - baseline
+
+BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
+Intel Core i5-8350U CPU 1.70GHz (Kaby Lake R), 1 CPU, 8 logical and 4 physical cores
+.NET Core SDK=6.0.102
+[Host]     : .NET Core 6.0.2 (CoreCLR 6.0.222.6406, CoreFX 6.0.222.6406), X64 RyuJIT
+DefaultJob : .NET Core 6.0.2 (CoreCLR 6.0.222.6406, CoreFX 6.0.222.6406), X64 RyuJIT
+
+
+|                 Method | Count |         Mean |        Error |       StdDev |       Median | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|----------------------- |------ |-------------:|-------------:|-------------:|-------------:|------:|--------:|-------:|------:|------:|----------:|
+| V3_ImHashMap_Enumerate |     1 |     78.29 ns |     3.211 ns |     9.417 ns |     74.97 ns |  1.00 |    0.00 | 0.0509 |     - |     - |     160 B |
+|   Dictionary_Enumerate |     1 |     23.15 ns |     0.712 ns |     2.008 ns |     22.54 ns |  0.30 |    0.04 |      - |     - |     - |         - |
+|                        |       |              |              |              |              |       |         |        |       |       |           |
+| V3_ImHashMap_Enumerate |    10 |    351.19 ns |     7.127 ns |    20.791 ns |    344.93 ns |  1.00 |    0.00 | 0.0763 |     - |     - |     240 B |
+|   Dictionary_Enumerate |    10 |     92.85 ns |     1.957 ns |     4.128 ns |     91.81 ns |  0.27 |    0.02 |      - |     - |     - |         - |
+|                        |       |              |              |              |              |       |         |        |       |       |           |
+| V3_ImHashMap_Enumerate |   100 |  3,049.03 ns |    64.798 ns |   186.958 ns |  2,987.63 ns |  1.00 |    0.00 | 0.0763 |     - |     - |     240 B |
+|   Dictionary_Enumerate |   100 |    844.11 ns |    16.992 ns |    38.698 ns |    837.12 ns |  0.28 |    0.02 |      - |     - |     - |         - |
+|                        |       |              |              |              |              |       |         |        |       |       |           |
+| V3_ImHashMap_Enumerate |  1000 | 34,113.03 ns | 1,105.023 ns | 3,116.738 ns | 33,509.27 ns |  1.00 |    0.00 | 0.1221 |     - |     - |     480 B |
+|   Dictionary_Enumerate |  1000 | 14,166.55 ns |   237.173 ns |   221.852 ns | 14,124.19 ns |  0.43 |    0.03 |      - |     - |     - |         - |
+
+## V4 baseline
+
+BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19043
+Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+.NET Core SDK=6.0.202
+[Host]     : .NET Core 6.0.4 (CoreCLR 6.0.422.16404, CoreFX 6.0.422.16404), X64 RyuJIT
+DefaultJob : .NET Core 6.0.4 (CoreCLR 6.0.422.16404, CoreFX 6.0.422.16404), X64 RyuJIT
+
+|                          Method | Count |         Mean |      Error |     StdDev |       Median | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+|-------------------------------- |------ |-------------:|-----------:|-----------:|-------------:|------:|--------:|-------:|------:|------:|----------:|
+|          V4_ImHashMap_Enumerate |     1 |     39.51 ns |   0.865 ns |   0.996 ns |     39.43 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+|          V3_ImHashMap_Enumerate |     1 |     44.11 ns |   0.879 ns |   0.822 ns |     44.28 ns |  1.12 |    0.04 | 0.0255 |     - |     - |     160 B |
+| V4_PartitionedHashMap_Enumerate |     1 |    118.94 ns |   1.644 ns |   1.538 ns |    118.91 ns |  3.01 |    0.09 |      - |     - |     - |         - |
+| V3_PartitionedHashMap_Enumerate |     1 |    180.82 ns |   3.462 ns |   3.238 ns |    181.09 ns |  4.57 |    0.14 | 0.0522 |     - |     - |     328 B |
+|        DictionarySlim_Enumerate |     1 |     12.77 ns |   0.254 ns |   0.238 ns |     12.76 ns |  0.32 |    0.01 |      - |     - |     - |         - |
+|            Dictionary_Enumerate |     1 |     15.24 ns |   0.652 ns |   1.817 ns |     14.36 ns |  0.46 |    0.05 |      - |     - |     - |         - |
+|    ConcurrentDictionary_foreach |     1 |    177.04 ns |   2.073 ns |   1.939 ns |    176.68 ns |  4.47 |    0.12 | 0.0100 |     - |     - |      64 B |
+|         ImmutableDict_Enumerate |     1 |    161.96 ns |   0.760 ns |   0.635 ns |    161.98 ns |  4.08 |    0.12 |      - |     - |     - |         - |
+|                                 |       |              |            |            |              |       |         |        |       |       |           |
+|          V4_ImHashMap_Enumerate |    10 |    191.91 ns |   3.010 ns |   2.668 ns |    192.57 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+|          V3_ImHashMap_Enumerate |    10 |    223.10 ns |   1.885 ns |   1.574 ns |    223.12 ns |  1.16 |    0.02 | 0.0381 |     - |     - |     240 B |
+| V4_PartitionedHashMap_Enumerate |    10 |    379.75 ns |   4.543 ns |   4.027 ns |    379.74 ns |  1.98 |    0.03 |      - |     - |     - |         - |
+| V3_PartitionedHashMap_Enumerate |    10 |    604.47 ns |   4.257 ns |   3.774 ns |    603.87 ns |  3.15 |    0.05 | 0.1793 |     - |     - |    1128 B |
+|        DictionarySlim_Enumerate |    10 |     73.15 ns |   1.438 ns |   1.345 ns |     72.82 ns |  0.38 |    0.01 |      - |     - |     - |         - |
+|            Dictionary_Enumerate |    10 |     57.95 ns |   0.749 ns |   0.701 ns |     57.86 ns |  0.30 |    0.01 |      - |     - |     - |         - |
+|    ConcurrentDictionary_foreach |    10 |    505.36 ns |   7.959 ns |   7.445 ns |    504.00 ns |  2.64 |    0.05 | 0.0095 |     - |     - |      64 B |
+|         ImmutableDict_Enumerate |    10 |    556.35 ns |  10.730 ns |   9.512 ns |    558.53 ns |  2.90 |    0.06 |      - |     - |     - |         - |
+|                                 |       |              |            |            |              |       |         |        |       |       |           |
+|          V4_ImHashMap_Enumerate |   100 |  2,023.65 ns |  33.506 ns |  29.702 ns |  2,031.78 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+|          V3_ImHashMap_Enumerate |   100 |  1,992.46 ns |  23.400 ns |  20.744 ns |  1,992.05 ns |  0.98 |    0.02 | 0.0381 |     - |     - |     240 B |
+| V4_PartitionedHashMap_Enumerate |   100 |  2,626.85 ns |  42.089 ns |  37.311 ns |  2,616.34 ns |  1.30 |    0.02 |      - |     - |     - |         - |
+| V3_PartitionedHashMap_Enumerate |   100 |  3,469.16 ns |  30.415 ns |  26.962 ns |  3,469.32 ns |  1.71 |    0.03 | 0.4349 |     - |     - |    2728 B |
+|        DictionarySlim_Enumerate |   100 |    615.29 ns |  10.217 ns |   9.057 ns |    617.89 ns |  0.30 |    0.01 |      - |     - |     - |         - |
+|            Dictionary_Enumerate |   100 |    578.30 ns |   3.310 ns |   2.764 ns |    578.14 ns |  0.29 |    0.00 |      - |     - |     - |         - |
+|    ConcurrentDictionary_foreach |   100 |  3,444.60 ns |  55.779 ns |  52.176 ns |  3,425.75 ns |  1.70 |    0.03 | 0.0076 |     - |     - |      64 B |
+|         ImmutableDict_Enumerate |   100 |  4,557.81 ns |  71.187 ns |  63.105 ns |  4,552.69 ns |  2.25 |    0.03 |      - |     - |     - |         - |
+|                                 |       |              |            |            |              |       |         |        |       |       |           |
+|          V4_ImHashMap_Enumerate |  1000 | 22,259.46 ns | 204.173 ns | 180.994 ns | 22,241.67 ns |  1.00 |    0.00 |      - |     - |     - |         - |
+|          V3_ImHashMap_Enumerate |  1000 | 21,710.99 ns | 288.512 ns | 240.921 ns | 21,770.78 ns |  0.98 |    0.02 | 0.0610 |     - |     - |     480 B |
+| V4_PartitionedHashMap_Enumerate |  1000 | 28,097.70 ns | 392.513 ns | 306.449 ns | 28,134.91 ns |  1.26 |    0.02 |      - |     - |     - |         - |
+| V3_PartitionedHashMap_Enumerate |  1000 | 31,132.68 ns | 473.705 ns | 443.104 ns | 31,208.71 ns |  1.40 |    0.01 | 0.4272 |     - |     - |    2728 B |
+|        DictionarySlim_Enumerate |  1000 |  6,472.19 ns |  53.546 ns |  47.467 ns |  6,482.73 ns |  0.29 |    0.00 |      - |     - |     - |         - |
+|            Dictionary_Enumerate |  1000 |  5,700.68 ns |  65.696 ns |  61.452 ns |  5,698.15 ns |  0.26 |    0.00 |      - |     - |     - |         - |
+|    ConcurrentDictionary_foreach |  1000 | 43,550.74 ns | 848.746 ns | 752.391 ns | 43,765.79 ns |  1.96 |    0.04 |      - |     - |     - |      64 B |
+|         ImmutableDict_Enumerate |  1000 | 46,089.57 ns | 524.157 ns | 464.651 ns | 46,183.41 ns |  2.07 |    0.03 |      - |     - |     - |         - |
+
+## Interesting first result
+
+BenchmarkDotNet v0.13.6, Windows 11 (10.0.22621.1992/22H2/2022Update/SunValley2)
+11th Gen Intel Core i7-1185G7 3.00GHz, 1 CPU, 8 logical and 4 physical cores
+.NET SDK 7.0.306
+[Host]     : .NET 7.0.9 (7.0.923.32018), X64 RyuJIT AVX2
+DefaultJob : .NET 7.0.9 (7.0.923.32018), X64 RyuJIT AVX2
+
+|                   Method | Count |     Mean |    Error |   StdDev | Ratio | RatioSD | Allocated | Alloc Ratio |
+|------------------------- |------ |---------:|---------:|---------:|------:|--------:|----------:|------------:|
+| DictionarySlim_Enumerate |   100 | 513.2 ns | 10.32 ns | 17.23 ns |  1.00 |    0.00 |         - |          NA |
+|     Dictionary_Enumerate |   100 | 331.4 ns |  6.69 ns | 13.21 ns |  0.65 |    0.04 |         - |          NA |
+|     FHashMap91_Enumerate |   100 | 979.7 ns | 18.99 ns | 22.61 ns |  1.91 |    0.09 |         - |          NA |
+
+## ... now inlining :)
+
+|                   Method | Count |     Mean |   Error |  StdDev | Ratio | RatioSD | Allocated | Alloc Ratio |
+|------------------------- |------ |---------:|--------:|--------:|------:|--------:|----------:|------------:|
+| DictionarySlim_Enumerate |   100 | 454.0 ns | 7.96 ns | 7.45 ns |  1.00 |    0.00 |         - |          NA |
+|     Dictionary_Enumerate |   100 | 308.2 ns | 6.17 ns | 6.60 ns |  0.68 |    0.02 |         - |          NA |
+|     FHashMap91_Enumerate |   100 | 110.0 ns | 2.09 ns | 1.96 ns |  0.24 |    0.01 |         - |          NA |
+
+*/
+
+        // [Params(1, 10, 100, 1_000)]
+        [Params(10, 100, 1000)]
+        public int Count;
+
+        [GlobalSetup]
+        public void Populate()
+        {
+            _mapV2 = V2_AddOrUpdate();
+            // _mapExp = Experimental_ImHashMap_AddOrUpdate();
+            _mapV4 = V4_ImMap_AddOrUpdate();
+            _mapV3 = V3_ImHashMap_AddOrUpdate();
+            _mapPartV4 = V4_PartionedHashMap_AddOrUpdate();
+            _mapPartV3 = V3_PartionedHashMap_AddOrUpdate();
+            _dict = Dict();
+            _dictSlim = DictSlim_GetOrAddValueRef();
+            _fHashMap = FHashMap_AddOrUpdate();
+            _concurrentDict = ConcurrentDict();
+            _immutableDict = ImmutableDict();
+        }
+
+        #region Population
+
+        public ImTools.V2.ImHashMap<Type, string> V2_AddOrUpdate()
+        {
+            var map = ImTools.V2.ImHashMap<Type, string>.Empty;
+
+            foreach (var key in _keys.Take(Count))
+                map = map.AddOrUpdate(key, "a");
+
+            return map;
+        }
+
+        private ImTools.V2.ImHashMap<Type, string> _mapV2;
+
+        private ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>> _mapExp;
+
+        public ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>> Experimental_ImHashMap_AddOrUpdate()
+        {
+            var map = ImTools.V2.Experimental.ImMap<ImTools.V2.Experimental.ImMap.KValue<Type>>.Empty;
+
+            foreach (var key in _keys.Take(Count))
+                map = map.AddOrUpdate(key.GetHashCode(), key, "a");
+
+            return map;
+        }
+
+        private ImToolsV3.ImHashMap<Type, string> _mapV3;
+        public ImToolsV3.ImHashMap<Type, string> V3_ImHashMap_AddOrUpdate()
+        {
+            var map = ImToolsV3.ImHashMap<Type, string>.Empty;
+
+            foreach (var key in _keys.Take(Count))
+                map = map.AddOrUpdate(key.GetHashCode(), key, "a");
+
+            return map;
+        }
+
+        private ImTools.ImHashMap<Type, string> _mapV4;
+
+        public ImTools.ImHashMap<Type, string> V4_ImMap_AddOrUpdate()
+        {
+            var map = ImTools.ImHashMap<Type, string>.Empty;
+
+            foreach (var key in _keys.Take(Count))
+                map = map.AddOrUpdate(key.GetHashCode(), key, "a");
+
+            return map;
+        }
+
+        private ImTools.ImHashMap<Type, string>[] _mapPartV4;
+        public ImTools.ImHashMap<Type, string>[] V4_PartionedHashMap_AddOrUpdate()
+        {
+            var map = ImTools.PartitionedHashMap.CreateEmpty<Type, string>();
+
+            foreach (var key in _keys.Take(Count))
+                map.AddOrUpdate(key, "a");
+
+            return map;
+        }
+
+        private ImToolsV3.ImHashMap<Type, string>[] _mapPartV3;
+        public ImToolsV3.ImHashMap<Type, string>[] V3_PartionedHashMap_AddOrUpdate()
+        {
+            var map = ImToolsV3.PartitionedHashMap.CreateEmpty<Type, string>();
+
+            foreach (var key in _keys.Take(Count))
+                map.AddOrUpdate(key, "a");
+
+            return map;
+        }
+
+
+        public Dictionary<Type, string> Dict()
+        {
+            var map = new Dictionary<Type, string>();
+
+            foreach (var key in _keys.Take(Count))
+                map.TryAdd(key, "a");
+
+            return map;
+        }
+
+        private Dictionary<Type, string> _dict;
+
+        public DictionarySlim<TypeVal, string> DictSlim_GetOrAddValueRef()
+        {
+            var dict = new DictionarySlim<TypeVal, string>();
+
+            foreach (var key in _keys.Take(Count))
+                dict.GetOrAddValueRef(key) = "a";
+
+            return dict;
+        }
+
+        private FHashMap91TypeString _fHashMap;
+
+        public FHashMap91TypeString FHashMap_AddOrUpdate()
+        {
+            var map = new FHashMap91TypeString();
+
+            foreach (var key in _keys.Take(Count))
+                map.GetOrAddValueRef(key) = "a";
+
+            return map;
+        }
+
+        private DictionarySlim<TypeVal, string> _dictSlim;
+
+        public ConcurrentDictionary<Type, string> ConcurrentDict()
+        {
+            var map = new ConcurrentDictionary<Type, string>();
+
+            foreach (var key in _keys.Take(Count))
+                map.TryAdd(key, "a");
+
+            return map;
+        }
+
+        private ConcurrentDictionary<Type, string> _concurrentDict;
+
+        public ImmutableDictionary<Type, string> ImmutableDict()
+        {
+            var builder = ImmutableDictionary.CreateBuilder<Type, string>();
+
+            foreach (var key in _keys.Take(Count))
+                builder.Add(key, "a");
+
+            return builder.ToImmutable();
+        }
+
+        private ImmutableDictionary<Type, string> _immutableDict;
+
+        #endregion
+
+        // [Benchmark(Baseline = true)]
+        public object V4_ImHashMap_Enumerate()
+        {
+            var s = "";
+            foreach (var x in _mapV4.Enumerate())
+                s = x.Value;
+            return s;
+        }
+
+        // [Benchmark]
+        public object V3_ImHashMap_Enumerate()
+        {
+            var s = "";
+            foreach (var x in _mapV3.Enumerate())
+                s = x.Value;
+            return s;
+        }
+
+        // [Benchmark]
+        public object V4_PartitionedHashMap_Enumerate()
+        {
+            var s = "";
+            foreach (var x in _mapPartV4.Enumerate())
+                s = x.Value;
+            return s;
+        }
+
+        // [Benchmark]
+        public object V3_PartitionedHashMap_Enumerate()
+        {
+            var s = "";
+            foreach (var x in _mapPartV3.Enumerate())
+                s = x.Value;
+            return s;
+        }
+
+        // [Benchmark]
+        public object V2_ImHashMap_Enumerate()
+        {
+            var s = "";
+            foreach (var x in _mapV2.Enumerate())
+                s = x.Value;
+            return s;
+        }
+
+        [Benchmark(Baseline = true)]
+        public object DictionarySlim_Enumerate()
+        {
+            var s = "";
+            foreach (var x in _dictSlim)
+                s = x.Value;
+            return s;
+        }
+
+        [Benchmark]
+        public object Dictionary_Enumerate()
+        {
+            var s = "";
+            foreach (var x in _dict)
+                s = x.Value;
+            return s;
+        }
+
+        [Benchmark]
+        public object FHashMap91_Enumerate()
+        {
+            var s = "";
+            foreach (var x in _fHashMap)
+                s = x.Value;
+            return s;
+        }
+
+        // [Benchmark]
+        public object ConcurrentDictionary_foreach()
+        {
+            var s = "";
+            foreach (var x in _concurrentDict)
+                s = x.Value;
+            return s;
+        }
+
+        // [Benchmark]
+        public object ImmutableDict_Enumerate()
+        {
+            var s = "";
+            foreach (var x in _immutableDict)
+                s = x.Value;
+            return s;
+        }
+    }
+
+    [MemoryDiagnoser]
+    public class ToArray
+    {
+        /*
+        BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
+        Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+        .NET Core SDK=5.0.202
+        [Host]     : .NET Core 5.0.5 (CoreCLR 5.0.521.16609, CoreFX 5.0.521.16609), X64 RyuJIT
+        DefaultJob : .NET Core 5.0.5 (CoreCLR 5.0.521.16609, CoreFX 5.0.521.16609), X64 RyuJIT
+
+
+        |                Method | Count |      Mean |    Error |    StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+        |---------------------- |------ |----------:|---------:|----------:|------:|--------:|-------:|------:|------:|----------:|
+        |           UsingLambda |     1 |  29.07 ns | 0.672 ns |  1.722 ns |  1.00 |    0.00 | 0.0051 |     - |     - |      32 B |
+        |    UsingGenericStruct |     1 |  27.87 ns | 0.657 ns |  1.660 ns |  0.96 |    0.08 | 0.0051 |     - |     - |      32 B |
+        | UsingNonGenericStruct |     1 |  15.11 ns | 0.391 ns |  0.930 ns |  0.52 |    0.05 | 0.0051 |     - |     - |      32 B |
+        |                       |       |           |          |           |       |         |        |       |       |           |
+        |           UsingLambda |    10 | 159.52 ns | 3.168 ns |  5.379 ns |  1.00 |    0.00 | 0.0293 |     - |     - |     184 B |
+        |    UsingGenericStruct |    10 | 195.96 ns | 4.683 ns | 13.435 ns |  1.28 |    0.09 | 0.0293 |     - |     - |     184 B |
+        | UsingNonGenericStruct |    10 | 134.08 ns | 2.785 ns |  7.578 ns |  0.85 |    0.06 | 0.0293 |     - |     - |     184 B |
+        */
+        [Params(1, 10)]//, 100, 1_000)]
+        public int Count;
+
+        [GlobalSetup]
+        public void Populate()
+        {
+            _mapV3 = V3_ImHashMap_AddOrUpdate();
+        }
+
+        [Benchmark(Baseline = true)]
+        public object UsingLambda() => _mapV3.ToArray();
+
+        private ImToolsV3.ImHashMap<Type, string> _mapV3;
+        public ImToolsV3.ImHashMap<Type, string> V3_ImHashMap_AddOrUpdate()
+        {
+            var map = ImToolsV3.ImHashMap<Type, string>.Empty;
+
+            foreach (var key in _keys.Take(Count))
+                map = map.AddOrUpdate(key.GetHashCode(), key, "a");
+
+            return map;
+        }
+    }
+
+    [MemoryDiagnoser]
+    public class GetAndUpdate_vs_AddOrGetAndReplace
+    {
+        /*
+        BenchmarkDotNet=v0.12.1, OS=Windows 10.0.19042
+        Intel Core i9-8950HK CPU 2.90GHz (Coffee Lake), 1 CPU, 12 logical and 6 physical cores
+        .NET Core SDK=5.0.202
+          [Host]     : .NET Core 5.0.5 (CoreCLR 5.0.521.16609, CoreFX 5.0.521.16609), X64 RyuJIT
+          DefaultJob : .NET Core 5.0.5 (CoreCLR 5.0.521.16609, CoreFX 5.0.521.16609), X64 RyuJIT
+
+        ## Initial results
+
+        |                                            Method | Count |     Mean |    Error |   StdDev | Ratio | RatioSD |  Gen 0 | Gen 1 | Gen 2 | Allocated |
+        |-------------------------------------------------- |------ |---------:|---------:|---------:|------:|--------:|-------:|------:|------:|----------:|
+        |                              Get_then_AddOrUpdate |     1 | 29.34 ns | 0.397 ns | 0.371 ns |  1.00 |    0.00 | 0.0114 |     - |     - |      72 B |
+        |                             AddOrGet_then_Replace |     1 | 25.17 ns | 0.568 ns | 0.504 ns |  0.86 |    0.02 | 0.0114 |     - |     - |      72 B |
+        | AddOrGet_then_Replace_inlined_without_lambda_cost |     1 | 24.05 ns | 0.316 ns | 0.296 ns |  0.82 |    0.01 | 0.0115 |     - |     - |      72 B |
+        |                                                   |       |          |          |          |       |         |        |       |       |           |
+        |                              Get_then_AddOrUpdate |     5 | 32.54 ns | 0.725 ns | 0.917 ns |  1.00 |    0.00 | 0.0114 |     - |     - |      72 B |
+        |                             AddOrGet_then_Replace |     5 | 26.16 ns | 0.584 ns | 0.546 ns |  0.80 |    0.03 | 0.0114 |     - |     - |      72 B |
+        | AddOrGet_then_Replace_inlined_without_lambda_cost |     5 | 25.00 ns | 0.266 ns | 0.236 ns |  0.76 |    0.02 | 0.0114 |     - |     - |      72 B |
+        |                                                   |       |          |          |          |       |         |        |       |       |           |
+        |                              Get_then_AddOrUpdate |    10 | 51.65 ns | 1.085 ns | 0.962 ns |  1.00 |    0.00 | 0.0178 |     - |     - |     112 B |
+        |                             AddOrGet_then_Replace |    10 | 48.35 ns | 0.521 ns | 0.487 ns |  0.94 |    0.02 | 0.0178 |     - |     - |     112 B |
+        | AddOrGet_then_Replace_inlined_without_lambda_cost |    10 | 38.43 ns | 0.861 ns | 2.144 ns |  0.79 |    0.05 | 0.0178 |     - |     - |     112 B |
+        |                                                   |       |          |          |          |       |         |        |       |       |           |
+        |                              Get_then_AddOrUpdate |    50 | 91.46 ns | 1.870 ns | 2.079 ns |  1.00 |    0.00 | 0.0370 |     - |     - |     232 B |
+        |                             AddOrGet_then_Replace |    50 | 85.13 ns | 1.755 ns | 2.573 ns |  0.94 |    0.03 | 0.0370 |     - |     - |     232 B |
+        | AddOrGet_then_Replace_inlined_without_lambda_cost |    50 | 85.02 ns | 1.775 ns | 1.823 ns |  0.93 |    0.03 | 0.0370 |     - |     - |     232 B |
+
+        */
+        [Params(1, 5, 10)]//, 50, 100, 1_000)]
+        public int Count;
+
+        [GlobalSetup]
+        public void Populate()
+        {
+            _map = V3_ImHashMap_AddOrUpdate();
+        }
+
+        [Benchmark(Baseline = true)]
+        public object Get_then_AddOrUpdate()
+        {
+            var key = typeof(GlobalSetupAttribute);
+            var hash = key.GetHashCode();
+            var val = "!";
+            var m = _map;
+            var s = m.GetValueOrDefault(hash, key);
+            if (s != null)
+                s = Handle(s, val);
+            else
+                s = val;
+
+            return m.AddOrUpdate(hash, key, s);
+        }
+
+        [Benchmark]
+        public object AddOrGet_then_Replace()
+        {
+            var key = typeof(GlobalSetupAttribute);
+            var hash = key.GetHashCode();
+            var val = "!";
+
+            return _map.AddOrUpdate(hash, key, val, (_, o, n) => Handle(o, n));
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static string Handle(string a, string b) => a + b;
+
+        private ImToolsV3.ImHashMap<Type, string> _map;
+        public ImToolsV3.ImHashMap<Type, string> V3_ImHashMap_AddOrUpdate()
+        {
+            var map = ImToolsV3.ImHashMap<Type, string>.Empty;
+
+            foreach (var key in _keys.Take(Count))
+                map = map.AddOrUpdate(key.GetHashCode(), key, "a");
+
+            return map;
         }
     }
 }

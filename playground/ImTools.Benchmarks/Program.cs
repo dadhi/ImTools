@@ -9,11 +9,11 @@ class Program
         // With args: full BenchmarkSwitcher (filters, jobs, etc.)
         //   dotnet run -c Release -f net10.0 -- --filter *SmallGrrVsSmallList*
         // Without args: default baseline benchmark for the hybrid list work.
-        if (args is { Length: > 0 })
-        {
-            BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
-            return;
-        }
+        // if (args is { Length: > 0 })
+        // {
+        //     BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
+        //     return;
+        // }
 
         // BenchmarkRunner.Run<MemoryOwnerVsHashMap>();
         // BenchmarkRunner.Run<ImHashMapEnumerateBM>();
@@ -31,11 +31,12 @@ class Program
         // BenchmarkRunner.Run<ImMapBenchmarks.LookupMissing>();
         // BenchmarkRunner.Run<ImMapBenchmarks.Enumerate>();
 
-        // BenchmarkRunner.Run<ImHashMapBenchmarks.Populate>();
+        // BenchmarkRunner.Run<SmallGrrVsSmallListBenchmarks>();
 
-        BenchmarkRunner.Run<SmallGrrVsSmallListBenchmarks>();
+        // BenchmarkRunner.Run<Playground.ImHashMapBenchmarks.Populate>();
+        BenchmarkRunner.Run<Playground.ImHashMapBenchmarks.Lookup>();
 
-        // BenchmarkRunner.Run<Playground.ImHashMapBenchmarks.Lookup>();
+
         // var bm = new Playground.ImHashMapBenchmarks.Lookup();
         // bm.Count = 1000;
         // bm.Populate();
