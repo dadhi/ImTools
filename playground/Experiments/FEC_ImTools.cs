@@ -839,8 +839,8 @@ public struct Grr<T, TStack> : IGrowingArray<T>, IEnumerable<T>
     internal int _totalCapacityPowerOfTwo;
     /// <summary>Cached first segment length (power of two). Avoids recomputing 1 &lt;&lt; bitIndex on the hot path.</summary>
     internal int _firstSegmentCapacity;
-    /// <summary>log2(_firstSegmentCapacity). Used for segment index math after the first segment.</summary>
-    internal byte _firstSegmentCapacityBitIndex;
+    /// <summary>helps to calculate the segment index by subtracting the leading zero count of the global index from this value.</summary>
+    internal byte _firstSegmentCapacityLeadingZerosPlusOne;
     internal SmallList<T[], TStack> _segments;
 
     /// <summary>The number of segments.</summary>
@@ -857,8 +857,12 @@ public struct Grr<T, TStack> : IGrowingArray<T>, IEnumerable<T>
     {
         Debug.Assert(index >= (uint)_firstSegmentCapacity,
             $"Index {index} should be >= firstSegmentCapacity:{_firstSegmentCapacity}");
-        // index >= F = 2^firstBit => LZC(index) <= 31 - firstBit => segmentIndex >= 1
-        return 32 - _firstSegmentCapacityBitIndex - BitOps.LeadingZeroCount(index);
+
+        // Example A: input index = 17, first segment capacity = 16
+        // 28(_firstSegmentCapacityLeadingZerosPlusOne) - 27(LeadingZeroCount(17)) == 1
+        // Example B: input index = 33, first segment capacity = 16
+        // 28(_firstSegmentCapacityLeadingZerosPlusOne) - 26(LeadingZeroCount(31)) == 2
+        return _firstSegmentCapacityLeadingZerosPlusOne - BitOps.LeadingZeroCount(index);
     }
 
     /// <summary>Creates the first segment with capacity rounded up to the next power-of-two (min 16).
@@ -871,7 +875,7 @@ public struct Grr<T, TStack> : IGrowingArray<T>, IEnumerable<T>
             : (int)BitOps.NextPowerOfTwo(capacity);
         _totalCapacityPowerOfTwo = firstSegmentCap;
         _firstSegmentCapacity = firstSegmentCap;
-        _firstSegmentCapacityBitIndex = (byte)(31 - BitOps.LeadingZeroCount((uint)firstSegmentCap));
+        _firstSegmentCapacityLeadingZerosPlusOne = (byte)(1 + BitOps.LeadingZeroCount((uint)firstSegmentCap));
         // Reset so re-Init works (SmallList.InitCount asserts Count == 0)
         _segments = default;
         _segments.InitCount(1);
@@ -882,9 +886,9 @@ public struct Grr<T, TStack> : IGrowingArray<T>, IEnumerable<T>
     [MethodImpl((MethodImplOptions)256)]
     public void InitDoNotCheckCapacity(uint capacityPowerOfTwo)
     {
-        _totalCapacityPowerOfTwo = (int)capacityPowerOfTwo;
+        _totalCapacityPowerOfTwo = (int)capacityPowerOfTwo; // default is 16 == 0x0...010000
         _firstSegmentCapacity = (int)capacityPowerOfTwo;
-        _firstSegmentCapacityBitIndex = (byte)(31 - BitOps.LeadingZeroCount(capacityPowerOfTwo));
+        _firstSegmentCapacityLeadingZerosPlusOne = (byte)(1 + BitOps.LeadingZeroCount(capacityPowerOfTwo)); // 1 + (32 - 5) == 28 for capacityPowerOfTwo == 16
 
         // Reset so re-Init works
         _segments = default;
