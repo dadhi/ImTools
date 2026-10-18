@@ -849,22 +849,6 @@ public struct Grr<T, TStack> : IGrowingArray<T>, IEnumerable<T>
     /// <inheritdoc/>
     public int Capacity => _totalCapacityPowerOfTwo;
 
-    /// <summary>Maps a global index that is already known to be past the first segment into a segment index.
-    /// Layout: [0 .. F) seg0, [F .. 2F) seg1, [2F .. 4F) seg2, ... so segment = log2(index) - log2(F) + 1 for index &gt;= F.
-    /// Equivalently: segmentIndex = (32 - firstBit) - LZC(index).</summary>
-    [MethodImpl((MethodImplOptions)256)]
-    private int GetSegmentIndexPastFirst(uint index)
-    {
-        Debug.Assert(index >= (uint)_firstSegmentCapacity,
-            $"Index {index} should be >= firstSegmentCapacity:{_firstSegmentCapacity}");
-
-        // Example A: input index = 17, first segment capacity = 16
-        // 28(_firstSegmentCapacityLeadingZerosPlusOne) - 27(LeadingZeroCount(17)) == 1
-        // Example B: input index = 33, first segment capacity = 16
-        // 28(_firstSegmentCapacityLeadingZerosPlusOne) - 26(LeadingZeroCount(31)) == 2
-        return _firstSegmentCapacityLeadingZerosPlusOne - BitOps.LeadingZeroCount(index);
-    }
-
     /// <summary>Creates the first segment with capacity rounded up to the next power-of-two (min 16).
     /// Safe to call again to re-initialize (discards previous segments).</summary>
     [MethodImpl((MethodImplOptions)256)]
@@ -930,17 +914,20 @@ public struct Grr<T, TStack> : IGrowingArray<T>, IEnumerable<T>
         Debug.Assert(index >= 0 && index < _totalCapacityPowerOfTwo,
             $"Index {index} should be in the range of 0 to capacity:{_totalCapacityPowerOfTwo}");
 
-        var firstCap = _firstSegmentCapacity;
-        // Hot path: first segment (often the only one for small maps)
-        if (index < firstCap)
+        if (index < _firstSegmentCapacity)
             return ref _segments.GetSurePresentRef(0).GetSurePresentRef(index);
 
-        var segmentIndex = GetSegmentIndexPastFirst((uint)index);
+        // Example A: input index = 17, first segment capacity = 16
+        // 28(_firstSegmentCapacityLeadingZerosPlusOne) - 27(LeadingZeroCount(17)) == 1
+        // Example B: input index = 33, first segment capacity = 16
+        // 28(_firstSegmentCapacityLeadingZerosPlusOne) - 26(LeadingZeroCount(31)) == 2
+        var segmentIndex = _firstSegmentCapacityLeadingZerosPlusOne - BitOps.LeadingZeroCount((uint)index);
+
         Debug.Assert(segmentIndex >= 1 && segmentIndex < _segments.Count,
             $"segmentIndex {segmentIndex} out of range for index:{index}, segmentCount:{_segments.Count}");
 
         // Prefix capacity before segment S (S >= 1) is firstCap << (S - 1) == total capacity of segments 0..S-1
-        var insideIndex = index - (firstCap << (segmentIndex - 1));
+        var insideIndex = index - (_firstSegmentCapacity << (segmentIndex - 1));
         return ref _segments.GetSurePresentRef(segmentIndex).GetSurePresentRef(insideIndex);
     }
 
