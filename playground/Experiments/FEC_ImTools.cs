@@ -243,7 +243,7 @@ public interface IStack<T, TSize, TStack> : IStack<T, TStack>
 {
 }
 
-// todo: @wip possibly separate intoduce IStackCap interface for the StackCap, because nothing in this interface requires the stack. 
+// todo: @wip possibly separate introduce IStackCap interface for the StackCap, because nothing in this interface requires the stack. 
 /// <summary>Abstracts over collection of the items on stack of the fixed Capacity,
 /// to be used as a part of the hybrid data structures which grow from stack to heap</summary>
 public interface IStack<T, TStack>
@@ -761,6 +761,9 @@ public interface IGrowingArray<T> : ICapIndex<T>
     /// <summary>Initializes the entries storage to the specified capacity</summary>
     void Init(uint capacity);
 
+    /// <summary>Initializes the entries storage to the specified capacity without checking the capacity.</summary>
+    void InitDoNotCheckCapacity(uint capacityPowerOfTwo);
+
     /// <summary>Doubles the current capacity of the array preserving the existing elements and count.</summary>
     void DoubleCapacity();
 
@@ -783,6 +786,14 @@ public struct SingleBackingArray<T> : IGrowingArray<T>
     {
         _capacityPowerOfTwo = capacity == 0 ? 1 : (int)BitOps.NextPowerOfTwo(capacity);
         _entries = new T[_capacityPowerOfTwo];
+    }
+
+    /// <inheritdoc/>
+    [MethodImpl((MethodImplOptions)256)]
+    public void InitDoNotCheckCapacity(uint capacityPowerOfTwo)
+    {
+        _capacityPowerOfTwo = (int)capacityPowerOfTwo;
+        _entries = new T[capacityPowerOfTwo];
     }
 
     /// <inheritdoc/>
@@ -865,6 +876,20 @@ public struct Grr<T, TStack> : IGrowingArray<T>, IEnumerable<T>
         _segments = default;
         _segments.InitCount(1);
         _segments.GetSurePresentRef(0) = new T[firstSegmentCap];
+    }
+
+    /// <inheritdoc/>
+    [MethodImpl((MethodImplOptions)256)]
+    public void InitDoNotCheckCapacity(uint capacityPowerOfTwo)
+    {
+        _totalCapacityPowerOfTwo = (int)capacityPowerOfTwo;
+        _firstSegmentCapacity = (int)capacityPowerOfTwo;
+        _firstSegmentCapacityBitIndex = (byte)(31 - BitOps.LeadingZeroCount(capacityPowerOfTwo));
+
+        // Reset so re-Init works
+        _segments = default;
+        _segments.Count = 1;
+        _segments.GetSurePresentRef(0) = new T[capacityPowerOfTwo];
     }
 
     /// <inheritdoc/>
@@ -1743,8 +1768,10 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
             : BitOps.NextPowerOfTwo(capacityPowerOfTwoPlease);
 
         _capacityPowerOfTwo = (int)capacityPowerOfTwo;
-        _packedEntryIndexesHashesProbes.Init(capacityPowerOfTwo);
-        _heapEntries.Init(capacityPowerOfTwo);
+
+        // capacity was checked above
+        _packedEntryIndexesHashesProbes.InitDoNotCheckCapacity(capacityPowerOfTwo);
+        _heapEntries.InitDoNotCheckCapacity(capacityPowerOfTwo);
     }
 
     /// <inheritdoc />
