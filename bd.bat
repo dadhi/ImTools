@@ -5,7 +5,7 @@ echo:## Starting: RESTORE and BUILD...
 echo: 
 
 dotnet clean -v:m
-dotnet build -c:Release -v:m
+dotnet build ImTools.slnx -c:Release -v:m -p:DevMode=true
 if %ERRORLEVEL% neq 0 goto :error
 
 echo:
@@ -15,7 +15,7 @@ echo:
 echo:## Starting: TESTS...
 echo: 
 
-dotnet test --no-build -c Release test/ImTools.UnitTests/ImTools.UnitTests.csproj
+dotnet test --no-build -c Release -p:DevMode=true test/ImTools.UnitTests/ImTools.UnitTests.csproj
 if %ERRORLEVEL% neq 0 goto :error
 
 echo:

@@ -1,0 +1,32 @@
+<Solution>
+  <Folder Name="/BuildScripts/">
+    <File Path="BuildScripts/NuGetPack.bat" />
+    <File Path="BuildScripts/NuGetPublish.bat" />
+  </Folder>
+  <Folder Name="/nuspecs/">
+    <File Path="nuspecs/ImTools.nuspec" />
+  </Folder>
+  <Folder Name="/playground/">
+    <File Path="playground/Directory.Build.props" />
+    <Project Path="playground/Experiments/Experiments.csproj" />
+    <Project Path="playground/ImTools.Benchmarks/ImTools.Benchmarks.csproj" />
+    <Project Path="playground/ImTools.SimpleDIPlayground/ImTools.SimpleDIPlayground.csproj" />
+    <Project Path="playground/ImTools.UnionCsVsFsBenchmarks/ImTools.UnionCsVsFsBenchmarks.fsproj" />
+    <Project Path="playground/ImTools.UnionPlayground/ImTools.UnionPlayground.csproj" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path="build.bat" />
+    <File Path=".github/workflows/ci.yml" />
+    <File Path="Directory.Build.props" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/src/">
+    <File Path="src/Directory.Build.props" />
+    <Project Path="src/ImTools/ImTools.csproj" />
+  </Folder>
+  <Folder Name="/test/">
+    <File Path="test/Directory.Build.props" />
+    <Project Path="test/ImTools.UnitTests/ImTools.UnitTests.csproj" />
+  </Folder>
+</Solution>

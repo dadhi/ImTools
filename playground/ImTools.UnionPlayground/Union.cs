@@ -162,10 +162,10 @@ public abstract class Box<TBox, T> : I<T>, IEquatable<Box<TBox, T>>
     public override string ToString() => UnionTools.ToString<TBox, T>(Value, "box(");
 }
 
-/// Unnamed discriminated union (with Empty name), shorter name for simplified inline usage
+/// Unnamed discriminated un (with Empty name), shorter name for simplified inline usage
 public class U<T1, T2> : Union<Unit, T1, T2> { }
 
-/// Discriminated union
+/// Discriminated un
 public abstract class Union<TUnion, T1, T2>
 {
     /// To tag the cases with enum value for efficient pattern matching of required -
@@ -182,23 +182,23 @@ public abstract class Union<TUnion, T1, T2>
     /// The naming is selected to start from the lower letter, cause we need to use the nested type.
     /// It is an unusual case, that's why using the __union__ will be fine to highlight this.
     // ReSharper disable once InconsistentNaming
-    public interface union
+    public interface un
     {
         /// The tag
         Tag Tag { get; }
 
-        /// Matches the union cases to the R value
+        /// Matches the un cases to the R value
         R Match<R>(Func<T1, R> map1, Func<T2, R> map2);
     }
 
     /// Creates the respective case
-    public static union Of(T1 x) => new case1(x);
+    public static un Of(T1 x) => new case1(x);
 
     /// Creates the respective case
-    public static union Of(T2 x) => new case2(x);
+    public static un Of(T2 x) => new case2(x);
 
     /// Wraps the respective case
-    public readonly struct case1 : union, IEquatable<case1>, I<T1>
+    public readonly struct case1 : un, IEquatable<case1>, I<T1>
     {
         /// Implicit conversion
         public static implicit operator case1(T1 x) => new case1(x);
@@ -232,7 +232,7 @@ public abstract class Union<TUnion, T1, T2>
     }
 
     /// Wraps the respective case
-    public readonly struct case2 : union, IEquatable<case2>, I<T2>
+    public readonly struct case2 : un, IEquatable<case2>, I<T2>
     {
         /// Conversion
         public static implicit operator case2(T2 x) => new case2(x);
@@ -273,17 +273,17 @@ public abstract class Union<TUnion, T1, T2, T3>
 {
     public enum Tag : byte { Case1, Case2, Case3 }
 
-    public interface union
+    public interface un
     {
         Tag Tag { get; }
         R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3);
     }
 
-    public static union Of(T1 x) => new case1(x);
-    public static union Of(T2 x) => new case2(x);
-    public static union Of(T3 x) => new case3(x);
+    public static un Of(T1 x) => new case1(x);
+    public static un Of(T2 x) => new case2(x);
+    public static un Of(T3 x) => new case3(x);
 
-    public struct case1 : union, IEquatable<case1>, I<T1>
+    public struct case1 : un, IEquatable<case1>, I<T1>
     {
         public static implicit operator case1(T1 x) => new case1(x);
 
@@ -303,7 +303,7 @@ public abstract class Union<TUnion, T1, T2, T3>
         public override string ToString() => UnionTools.ToString<TUnion, T1>(Case);
     }
 
-    public struct case2 : union, IEquatable<case2>, I<T2>
+    public struct case2 : un, IEquatable<case2>, I<T2>
     {
         public static implicit operator case2(T2 x) => new case2(x);
 
@@ -321,7 +321,7 @@ public abstract class Union<TUnion, T1, T2, T3>
         public override string ToString() => UnionTools.ToString<TUnion, T2>(Case);
     }
 
-    public struct case3 : union, IEquatable<case3>, I<T3>
+    public struct case3 : un, IEquatable<case3>, I<T3>
     {
         public static implicit operator case3(T3 x) => new case3(x);
 
@@ -345,18 +345,18 @@ public abstract class Union<TUnion, T1, T2, T3, T4>
 {
     public enum Tag : byte { Case1, Case2, Case3, Case4 }
 
-    public interface union
+    public interface un
     {
         Tag Tag { get; }
         R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4);
     }
 
-    public static union Of(T1 x) => new case1(x);
-    public static union Of(T2 x) => new case2(x);
-    public static union Of(T3 x) => new case3(x);
-    public static union Of(T4 x) => new case4(x);
+    public static un Of(T1 x) => new case1(x);
+    public static un Of(T2 x) => new case2(x);
+    public static un Of(T3 x) => new case3(x);
+    public static un Of(T4 x) => new case4(x);
 
-    public struct case1 : union, IEquatable<case1>, I<T1>
+    public struct case1 : un, IEquatable<case1>, I<T1>
     {
         public static implicit operator case1(T1 x) => new case1(x);
 
@@ -376,7 +376,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4>
         public override string ToString() => UnionTools.ToString<TUnion, T1>(Case);
     }
 
-    public struct case2 : union, IEquatable<case2>, I<T2>
+    public struct case2 : un, IEquatable<case2>, I<T2>
     {
         public static implicit operator case2(T2 x) => new case2(x);
 
@@ -394,7 +394,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4>
         public override string ToString() => UnionTools.ToString<TUnion, T2>(Case);
     }
 
-    public struct case3 : union, IEquatable<case3>, I<T3>
+    public struct case3 : un, IEquatable<case3>, I<T3>
     {
         public static implicit operator case3(T3 x) => new case3(x);
 
@@ -412,7 +412,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4>
         public override string ToString() => UnionTools.ToString<TUnion, T3>(Case);
     }
 
-    public struct case4 : union, IEquatable<case4>, I<T4>
+    public struct case4 : un, IEquatable<case4>, I<T4>
     {
         public static implicit operator case4(T4 x) => new case4(x);
 
@@ -436,19 +436,19 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5>
 {
     public enum Tag : byte { Case1, Case2, Case3, Case4, Case5 }
 
-    public interface union
+    public interface un
     {
         Tag Tag { get; }
         R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5);
     }
 
-    public static union Of(T1 x) => new case1(x);
-    public static union Of(T2 x) => new case2(x);
-    public static union Of(T3 x) => new case3(x);
-    public static union Of(T4 x) => new case4(x);
-    public static union Of(T5 x) => new case5(x);
+    public static un Of(T1 x) => new case1(x);
+    public static un Of(T2 x) => new case2(x);
+    public static un Of(T3 x) => new case3(x);
+    public static un Of(T4 x) => new case4(x);
+    public static un Of(T5 x) => new case5(x);
 
-    public struct case1 : union, IEquatable<case1>, I<T1>
+    public struct case1 : un, IEquatable<case1>, I<T1>
     {
         public static implicit operator case1(T1 x) => new case1(x);
 
@@ -468,7 +468,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5>
         public override string ToString() => UnionTools.ToString<TUnion, T1>(Case);
     }
 
-    public struct case2 : union, IEquatable<case2>, I<T2>
+    public struct case2 : un, IEquatable<case2>, I<T2>
     {
         public static implicit operator case2(T2 x) => new case2(x);
 
@@ -486,7 +486,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5>
         public override string ToString() => UnionTools.ToString<TUnion, T2>(Case);
     }
 
-    public struct case3 : union, IEquatable<case3>, I<T3>
+    public struct case3 : un, IEquatable<case3>, I<T3>
     {
         public static implicit operator case3(T3 x) => new case3(x);
 
@@ -504,7 +504,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5>
         public override string ToString() => UnionTools.ToString<TUnion, T3>(Case);
     }
 
-    public struct case4 : union, IEquatable<case4>, I<T4>
+    public struct case4 : un, IEquatable<case4>, I<T4>
     {
         public static implicit operator case4(T4 x) => new case4(x);
 
@@ -522,7 +522,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5>
         public override string ToString() => UnionTools.ToString<TUnion, T4>(Case);
     }
 
-    public struct case5 : union, IEquatable<case5>, I<T5>
+    public struct case5 : un, IEquatable<case5>, I<T5>
     {
         public static implicit operator case5(T5 x) => new case5(x);
 
@@ -546,20 +546,20 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6>
 {
     public enum Tag : byte { Case1, Case2, Case3, Case4, Case5, Case6 }
 
-    public interface union
+    public interface un
     {
         Tag Tag { get; }
         R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, Func<T6, R> map6);
     }
 
-    public static union Of(T1 x) => new case1(x);
-    public static union Of(T2 x) => new case2(x);
-    public static union Of(T3 x) => new case3(x);
-    public static union Of(T4 x) => new case4(x);
-    public static union Of(T5 x) => new case5(x);
-    public static union Of(T6 x) => new case6(x);
+    public static un Of(T1 x) => new case1(x);
+    public static un Of(T2 x) => new case2(x);
+    public static un Of(T3 x) => new case3(x);
+    public static un Of(T4 x) => new case4(x);
+    public static un Of(T5 x) => new case5(x);
+    public static un Of(T6 x) => new case6(x);
 
-    public struct case1 : union, IEquatable<case1>, I<T1>
+    public struct case1 : un, IEquatable<case1>, I<T1>
     {
         public static implicit operator case1(T1 x) => new case1(x);
 
@@ -579,7 +579,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6>
         public override string ToString() => UnionTools.ToString<TUnion, T1>(Case);
     }
 
-    public struct case2 : union, IEquatable<case2>, I<T2>
+    public struct case2 : un, IEquatable<case2>, I<T2>
     {
         public static implicit operator case2(T2 x) => new case2(x);
 
@@ -597,7 +597,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6>
         public override string ToString() => UnionTools.ToString<TUnion, T2>(Case);
     }
 
-    public struct case3 : union, IEquatable<case3>, I<T3>
+    public struct case3 : un, IEquatable<case3>, I<T3>
     {
         public static implicit operator case3(T3 x) => new case3(x);
 
@@ -615,7 +615,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6>
         public override string ToString() => UnionTools.ToString<TUnion, T3>(Case);
     }
 
-    public struct case4 : union, IEquatable<case4>, I<T4>
+    public struct case4 : un, IEquatable<case4>, I<T4>
     {
         public static implicit operator case4(T4 x) => new case4(x);
 
@@ -633,7 +633,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6>
         public override string ToString() => UnionTools.ToString<TUnion, T4>(Case);
     }
 
-    public struct case5 : union, IEquatable<case5>, I<T5>
+    public struct case5 : un, IEquatable<case5>, I<T5>
     {
         public static implicit operator case5(T5 x) => new case5(x);
 
@@ -651,7 +651,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6>
         public override string ToString() => UnionTools.ToString<TUnion, T5>(Case);
     }
 
-    public struct case6 : union, IEquatable<case6>, I<T6>
+    public struct case6 : un, IEquatable<case6>, I<T6>
     {
         public static implicit operator case6(T6 x) => new case6(x);
 
@@ -675,21 +675,21 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7>
 {
     public enum Tag : byte { Case1, Case2, Case3, Case4, Case5, Case6, Case7 }
 
-    public interface union
+    public interface un
     {
         Tag Tag { get; }
         R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, Func<T6, R> map6, Func<T7, R> map7);
     }
 
-    public static union Of(T1 x) => new case1(x);
-    public static union Of(T2 x) => new case2(x);
-    public static union Of(T3 x) => new case3(x);
-    public static union Of(T4 x) => new case4(x);
-    public static union Of(T5 x) => new case5(x);
-    public static union Of(T6 x) => new case6(x);
-    public static union Of(T7 x) => new case7(x);
+    public static un Of(T1 x) => new case1(x);
+    public static un Of(T2 x) => new case2(x);
+    public static un Of(T3 x) => new case3(x);
+    public static un Of(T4 x) => new case4(x);
+    public static un Of(T5 x) => new case5(x);
+    public static un Of(T6 x) => new case6(x);
+    public static un Of(T7 x) => new case7(x);
 
-    public struct case1 : union, IEquatable<case1>, I<T1>
+    public struct case1 : un, IEquatable<case1>, I<T1>
     {
         public static implicit operator case1(T1 x) => new case1(x);
 
@@ -709,7 +709,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7>
         public override string ToString() => UnionTools.ToString<TUnion, T1>(Case);
     }
 
-    public struct case2 : union, IEquatable<case2>, I<T2>
+    public struct case2 : un, IEquatable<case2>, I<T2>
     {
         public static implicit operator case2(T2 x) => new case2(x);
 
@@ -727,7 +727,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7>
         public override string ToString() => UnionTools.ToString<TUnion, T2>(Case);
     }
 
-    public struct case3 : union, IEquatable<case3>, I<T3>
+    public struct case3 : un, IEquatable<case3>, I<T3>
     {
         public static implicit operator case3(T3 x) => new case3(x);
 
@@ -745,7 +745,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7>
         public override string ToString() => UnionTools.ToString<TUnion, T3>(Case);
     }
 
-    public struct case4 : union, IEquatable<case4>, I<T4>
+    public struct case4 : un, IEquatable<case4>, I<T4>
     {
         public static implicit operator case4(T4 x) => new case4(x);
 
@@ -763,7 +763,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7>
         public override string ToString() => UnionTools.ToString<TUnion, T4>(Case);
     }
 
-    public struct case5 : union, IEquatable<case5>, I<T5>
+    public struct case5 : un, IEquatable<case5>, I<T5>
     {
         public static implicit operator case5(T5 x) => new case5(x);
 
@@ -781,7 +781,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7>
         public override string ToString() => UnionTools.ToString<TUnion, T5>(Case);
     }
 
-    public struct case6 : union, IEquatable<case6>, I<T6>
+    public struct case6 : un, IEquatable<case6>, I<T6>
     {
         public static implicit operator case6(T6 x) => new case6(x);
 
@@ -799,7 +799,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7>
         public override string ToString() => UnionTools.ToString<TUnion, T6>(Case);
     }
 
-    public struct case7 : union, IEquatable<case7>, I<T7>
+    public struct case7 : un, IEquatable<case7>, I<T7>
     {
         public static implicit operator case7(T7 x) => new case7(x);
 
@@ -822,22 +822,22 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7, T8>
 {
     public enum Tag : byte { Case1, Case2, Case3, Case4, Case5, Case6, Case7, Case8 }
 
-    public interface union
+    public interface un
     {
         Tag Tag { get; }
         R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5, Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8);
     }
 
-    public static union Of(T1 x) => new case1(x);
-    public static union Of(T2 x) => new case2(x);
-    public static union Of(T3 x) => new case3(x);
-    public static union Of(T4 x) => new case4(x);
-    public static union Of(T5 x) => new case5(x);
-    public static union Of(T6 x) => new case6(x);
-    public static union Of(T7 x) => new case7(x);
-    public static union Of(T8 x) => new case8(x);
+    public static un Of(T1 x) => new case1(x);
+    public static un Of(T2 x) => new case2(x);
+    public static un Of(T3 x) => new case3(x);
+    public static un Of(T4 x) => new case4(x);
+    public static un Of(T5 x) => new case5(x);
+    public static un Of(T6 x) => new case6(x);
+    public static un Of(T7 x) => new case7(x);
+    public static un Of(T8 x) => new case8(x);
 
-    public struct case1 : union, IEquatable<case1>, I<T1>
+    public struct case1 : un, IEquatable<case1>, I<T1>
     {
         public static implicit operator case1(T1 x) => new case1(x);
 
@@ -857,7 +857,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7, T8>
         public override string ToString() => UnionTools.ToString<TUnion, T1>(Case);
     }
 
-    public struct case2 : union, IEquatable<case2>, I<T2>
+    public struct case2 : un, IEquatable<case2>, I<T2>
     {
         public static implicit operator case2(T2 x) => new case2(x);
 
@@ -875,7 +875,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7, T8>
         public override string ToString() => UnionTools.ToString<TUnion, T2>(Case);
     }
 
-    public struct case3 : union, IEquatable<case3>, I<T3>
+    public struct case3 : un, IEquatable<case3>, I<T3>
     {
         public static implicit operator case3(T3 x) => new case3(x);
 
@@ -893,7 +893,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7, T8>
         public override string ToString() => UnionTools.ToString<TUnion, T3>(Case);
     }
 
-    public struct case4 : union, IEquatable<case4>, I<T4>
+    public struct case4 : un, IEquatable<case4>, I<T4>
     {
         public static implicit operator case4(T4 x) => new case4(x);
 
@@ -911,7 +911,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7, T8>
         public override string ToString() => UnionTools.ToString<TUnion, T4>(Case);
     }
 
-    public struct case5 : union, IEquatable<case5>, I<T5>
+    public struct case5 : un, IEquatable<case5>, I<T5>
     {
         public static implicit operator case5(T5 x) => new case5(x);
 
@@ -929,7 +929,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7, T8>
         public override string ToString() => UnionTools.ToString<TUnion, T5>(Case);
     }
 
-    public struct case6 : union, IEquatable<case6>, I<T6>
+    public struct case6 : un, IEquatable<case6>, I<T6>
     {
         public static implicit operator case6(T6 x) => new case6(x);
 
@@ -947,7 +947,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7, T8>
         public override string ToString() => UnionTools.ToString<TUnion, T6>(Case);
     }
 
-    public struct case7 : union, IEquatable<case7>, I<T7>
+    public struct case7 : un, IEquatable<case7>, I<T7>
     {
         public static implicit operator case7(T7 x) => new case7(x);
 
@@ -965,7 +965,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7, T8>
         public override string ToString() => UnionTools.ToString<TUnion, T7>(Case);
     }
 
-    public struct case8 : union, IEquatable<case8>, I<T8>
+    public struct case8 : un, IEquatable<case8>, I<T8>
     {
         public static implicit operator case8(T8 x) => new case8(x);
 
@@ -988,24 +988,24 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7, T8, T9>
 {
     public enum Tag : byte { Case1, Case2, Case3, Case4, Case5, Case6, Case7, Case8, Case9 }
 
-    public interface union
+    public interface un
     {
         Tag Tag { get; }
         R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
             Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9);
     }
 
-    public static union Of(T1 x) => new case1(x);
-    public static union Of(T2 x) => new case2(x);
-    public static union Of(T3 x) => new case3(x);
-    public static union Of(T4 x) => new case4(x);
-    public static union Of(T5 x) => new case5(x);
-    public static union Of(T6 x) => new case6(x);
-    public static union Of(T7 x) => new case7(x);
-    public static union Of(T8 x) => new case8(x);
-    public static union Of(T9 x) => new case9(x);
+    public static un Of(T1 x) => new case1(x);
+    public static un Of(T2 x) => new case2(x);
+    public static un Of(T3 x) => new case3(x);
+    public static un Of(T4 x) => new case4(x);
+    public static un Of(T5 x) => new case5(x);
+    public static un Of(T6 x) => new case6(x);
+    public static un Of(T7 x) => new case7(x);
+    public static un Of(T8 x) => new case8(x);
+    public static un Of(T9 x) => new case9(x);
 
-    public struct case1 : union, IEquatable<case1>, I<T1>
+    public struct case1 : un, IEquatable<case1>, I<T1>
     {
         public static implicit operator case1(T1 x) => new case1(x);
 
@@ -1026,7 +1026,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7, T8, T9>
         public override string ToString() => UnionTools.ToString<TUnion, T1>(Case);
     }
 
-    public struct case2 : union, IEquatable<case2>, I<T2>
+    public struct case2 : un, IEquatable<case2>, I<T2>
     {
         public static implicit operator case2(T2 x) => new case2(x);
 
@@ -1045,7 +1045,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7, T8, T9>
         public override string ToString() => UnionTools.ToString<TUnion, T2>(Case);
     }
 
-    public struct case3 : union, IEquatable<case3>, I<T3>
+    public struct case3 : un, IEquatable<case3>, I<T3>
     {
         public static implicit operator case3(T3 x) => new case3(x);
 
@@ -1064,7 +1064,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7, T8, T9>
         public override string ToString() => UnionTools.ToString<TUnion, T3>(Case);
     }
 
-    public struct case4 : union, IEquatable<case4>, I<T4>
+    public struct case4 : un, IEquatable<case4>, I<T4>
     {
         public static implicit operator case4(T4 x) => new case4(x);
 
@@ -1083,7 +1083,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7, T8, T9>
         public override string ToString() => UnionTools.ToString<TUnion, T4>(Case);
     }
 
-    public struct case5 : union, IEquatable<case5>, I<T5>
+    public struct case5 : un, IEquatable<case5>, I<T5>
     {
         public static implicit operator case5(T5 x) => new case5(x);
 
@@ -1102,7 +1102,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7, T8, T9>
         public override string ToString() => UnionTools.ToString<TUnion, T5>(Case);
     }
 
-    public struct case6 : union, IEquatable<case6>, I<T6>
+    public struct case6 : un, IEquatable<case6>, I<T6>
     {
         public static implicit operator case6(T6 x) => new case6(x);
 
@@ -1121,7 +1121,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7, T8, T9>
         public override string ToString() => UnionTools.ToString<TUnion, T6>(Case);
     }
 
-    public struct case7 : union, IEquatable<case7>, I<T7>
+    public struct case7 : un, IEquatable<case7>, I<T7>
     {
         public static implicit operator case7(T7 x) => new case7(x);
 
@@ -1140,7 +1140,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7, T8, T9>
         public override string ToString() => UnionTools.ToString<TUnion, T7>(Case);
     }
 
-    public struct case8 : union, IEquatable<case8>, I<T8>
+    public struct case8 : un, IEquatable<case8>, I<T8>
     {
         public static implicit operator case8(T8 x) => new case8(x);
 
@@ -1159,7 +1159,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7, T8, T9>
         public override string ToString() => UnionTools.ToString<TUnion, T8>(Case);
     }
 
-    public struct case9 : union, IEquatable<case9>, I<T9>
+    public struct case9 : un, IEquatable<case9>, I<T9>
     {
         public static implicit operator case9(T9 x) => new case9(x);
 
@@ -1183,25 +1183,25 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>
 {
     public enum Tag : byte { Case1, Case2, Case3, Case4, Case5, Case6, Case7, Case8, Case9, Case10 }
 
-    public interface union
+    public interface un
     {
         Tag Tag { get; }
         R Match<R>(Func<T1, R> map1, Func<T2, R> map2, Func<T3, R> map3, Func<T4, R> map4, Func<T5, R> map5,
             Func<T6, R> map6, Func<T7, R> map7, Func<T8, R> map8, Func<T9, R> map9, Func<T10, R> map10);
     }
 
-    public static union Of(T1 x) => new case1(x);
-    public static union Of(T2 x) => new case2(x);
-    public static union Of(T3 x) => new case3(x);
-    public static union Of(T4 x) => new case4(x);
-    public static union Of(T5 x) => new case5(x);
-    public static union Of(T6 x) => new case6(x);
-    public static union Of(T7 x) => new case7(x);
-    public static union Of(T8 x) => new case8(x);
-    public static union Of(T9 x) => new case9(x);
-    public static union Of(T10 x) => new case10(x);
+    public static un Of(T1 x) => new case1(x);
+    public static un Of(T2 x) => new case2(x);
+    public static un Of(T3 x) => new case3(x);
+    public static un Of(T4 x) => new case4(x);
+    public static un Of(T5 x) => new case5(x);
+    public static un Of(T6 x) => new case6(x);
+    public static un Of(T7 x) => new case7(x);
+    public static un Of(T8 x) => new case8(x);
+    public static un Of(T9 x) => new case9(x);
+    public static un Of(T10 x) => new case10(x);
 
-    public struct case1 : union, IEquatable<case1>, I<T1>
+    public struct case1 : un, IEquatable<case1>, I<T1>
     {
         public static implicit operator case1(T1 x) => new case1(x);
 
@@ -1222,7 +1222,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>
         public override string ToString() => UnionTools.ToString<TUnion, T1>(Case);
     }
 
-    public struct case2 : union, IEquatable<case2>, I<T2>
+    public struct case2 : un, IEquatable<case2>, I<T2>
     {
         public static implicit operator case2(T2 x) => new case2(x);
 
@@ -1241,7 +1241,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>
         public override string ToString() => UnionTools.ToString<TUnion, T2>(Case);
     }
 
-    public struct case3 : union, IEquatable<case3>, I<T3>
+    public struct case3 : un, IEquatable<case3>, I<T3>
     {
         public static implicit operator case3(T3 x) => new case3(x);
 
@@ -1260,7 +1260,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>
         public override string ToString() => UnionTools.ToString<TUnion, T3>(Case);
     }
 
-    public struct case4 : union, IEquatable<case4>, I<T4>
+    public struct case4 : un, IEquatable<case4>, I<T4>
     {
         public static implicit operator case4(T4 x) => new case4(x);
 
@@ -1279,7 +1279,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>
         public override string ToString() => UnionTools.ToString<TUnion, T4>(Case);
     }
 
-    public struct case5 : union, IEquatable<case5>, I<T5>
+    public struct case5 : un, IEquatable<case5>, I<T5>
     {
         public static implicit operator case5(T5 x) => new case5(x);
 
@@ -1298,7 +1298,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>
         public override string ToString() => UnionTools.ToString<TUnion, T5>(Case);
     }
 
-    public struct case6 : union, IEquatable<case6>, I<T6>
+    public struct case6 : un, IEquatable<case6>, I<T6>
     {
         public static implicit operator case6(T6 x) => new case6(x);
 
@@ -1317,7 +1317,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>
         public override string ToString() => UnionTools.ToString<TUnion, T6>(Case);
     }
 
-    public struct case7 : union, IEquatable<case7>, I<T7>
+    public struct case7 : un, IEquatable<case7>, I<T7>
     {
         public static implicit operator case7(T7 x) => new case7(x);
 
@@ -1336,7 +1336,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>
         public override string ToString() => UnionTools.ToString<TUnion, T7>(Case);
     }
 
-    public struct case8 : union, IEquatable<case8>, I<T8>
+    public struct case8 : un, IEquatable<case8>, I<T8>
     {
         public static implicit operator case8(T8 x) => new case8(x);
 
@@ -1355,7 +1355,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>
         public override string ToString() => UnionTools.ToString<TUnion, T8>(Case);
     }
 
-    public struct case9 : union, IEquatable<case9>, I<T9>
+    public struct case9 : un, IEquatable<case9>, I<T9>
     {
         public static implicit operator case9(T9 x) => new case9(x);
 
@@ -1374,7 +1374,7 @@ public abstract class Union<TUnion, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>
         public override string ToString() => UnionTools.ToString<TUnion, T9>(Case);
     }
 
-    public struct case10 : union, IEquatable<case10>, I<T10>
+    public struct case10 : un, IEquatable<case10>, I<T10>
     {
         public static implicit operator case10(T10 x) => new case10(x);
 

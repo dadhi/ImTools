@@ -5,7 +5,7 @@ echo:## Starting: RESTORE and BUILD...
 echo: 
 
 dotnet clean -v:m
-dotnet build -c:Release -v:m -p:DevMode=false
+dotnet build ImTools.slnx -c:Release -v:m -p:DevMode=false
 if %ERRORLEVEL% neq 0 goto :error
 
 echo:

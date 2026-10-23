@@ -10,31 +10,17 @@ using NUnit.Framework;
 
 namespace ImTools.Experiments.UnitTests;
 
-using static SmallMap;
+using static HSmallMap;
 
 [TestFixture]
 public class SmallMapTests
 {
-#if NET7_0_OR_GREATER
-    [Test]
-    public void Test_stackalloc_for_entries()
-    {
-        Span<int> arr = stackalloc int[8];
-
-        Foo(in arr);
-
-        Assert.AreEqual(42, arr[2]);
-    }
-
-    static void Foo(in Span<int> arr) => arr[2] = 42;
-#endif
-
     [Test]
     public void Real_world_test_AddOrUpdate()
     {
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(100).ToArray();
 
-        var map = SmallMap.New<Type, string, RefEq<Type>>();
+        var map = HSmallMap.New<Type, string, RefEq<Type>>();
 
         foreach (var key in types)
             map.AddOrUpdate(key, "a");
@@ -52,7 +38,7 @@ public class SmallMapTests
     {
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(100).ToArray();
 
-        var map = SmallMap.New<Type, string, RefEq<Type>>(8);
+        var map = HSmallMap.New<Type, string, RefEq<Type>>(8);
 
         foreach (var key in types)
             map.AddOrUpdate(key, "a");
@@ -69,7 +55,7 @@ public class SmallMapTests
     {
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(1000).ToArray();
 
-        var map = SmallMap.New<Type, string, RefEq<Type>>();
+        var map = HSmallMap.New<Type, string, RefEq<Type>>();
 
         foreach (var key in types)
             map.AddOrUpdate(key, "a");
@@ -88,7 +74,7 @@ public class SmallMapTests
     {
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(1000).ToArray();
 
-        var map = SmallMap.NewChunked<Type, string, RefEq<Type>>();
+        var map = HSmallMap.NewChunked<Type, string, RefEq<Type>>();
 
         foreach (var key in types)
             map.AddOrUpdate(key, "a");
@@ -109,7 +95,7 @@ public class SmallMapTests
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(count).ToList();
         Assert.AreEqual(count, types.Count);
 
-        var map = SmallMap.New<Type, string, RefEq<Type>>();
+        var map = HSmallMap.New<Type, string, RefEq<Type>>();
 
         foreach (var key in types)
             map.AddOrUpdate(key, "a");
@@ -144,7 +130,7 @@ public class SmallMapTests
         var types = typeof(Dictionary<,>).Assembly.GetTypes().Take(count).ToList();
         Assert.AreEqual(count, types.Count);
 
-        var map = SmallMap.NewChunked<Type, string, RefEq<Type>>();
+        var map = HSmallMap.NewChunked<Type, string, RefEq<Type>>();
 
         foreach (var key in types)
             map.AddOrUpdate(key, "a");
@@ -175,7 +161,7 @@ public class SmallMapTests
     [Test]
     public void Simplified_test_with_equal_hashes_RefEq()
     {
-        var map = SmallMap.New<Type, string, RefEq<Type>>();
+        var map = HSmallMap.New<Type, string, RefEq<Type>>();
 
         var keys = new[] { typeof(Tuple<>), typeof(Tuple<,>), typeof(Tuple<,,>) };
         var i = 1;
@@ -193,7 +179,7 @@ public class SmallMapTests
     [Test]
     public void Can_store_and_retrieve_value_from_map()
     {
-        var map = SmallMap.New<int, string, IntEq>(2);
+        var map = HSmallMap.New<int, string, IntEq>(2);
 
         map.AddOrUpdate(42, "1");
         map.AddOrUpdate(42 + 32, "2");
@@ -280,7 +266,7 @@ public class SmallMapTests
     [Test]
     public void Can_store_and_retrieve_value_from_map_Golden()
     {
-        var map = SmallMap.New<int, string, IntEq>(2);
+        var map = HSmallMap.New<int, string, IntEq>(2);
         // var map = SmallMap.New<int, string, GoldenIntEq>(2);
 
         map.AddOrUpdate(42, "1");
@@ -332,7 +318,7 @@ public class SmallMapTests
     [Test]
     public void Can_lookup_the_default_map_without_error()
     {
-        SmallMap<int, string, IntEq, SingleArrayEntries<int, string, IntEq>> map = default;
+        HSmallMap<int, string, IntEq, SingleArrayEntries<int, string, IntEq>> map = default;
 
         Assert.IsFalse(map.TryGetValue(42, out _));
     }
@@ -340,7 +326,7 @@ public class SmallMapTests
     [Test]
     public void Can_store_and_retrieve_value_from_map_with_Expand_in_the_middle()
     {
-        var map = SmallMap.New<int, string, IntEq>(1);
+        var map = HSmallMap.New<int, string, IntEq>(1);
 
         Assert.IsFalse(map.TryGetValue(42, out _));
 
@@ -378,7 +364,7 @@ public class SmallMapTests
     [Test]
     public void Can_resize_without_moving()
     {
-        var map = SmallMap.New<int, string, IntEq>(2);
+        var map = HSmallMap.New<int, string, IntEq>(2);
 
         map.AddOrUpdate(0, "0");
         map.AddOrUpdate(1, "1");
@@ -395,7 +381,7 @@ public class SmallMapTests
     [Test]
     public void Can_store_and_get_stored_item_count()
     {
-        var map = SmallMap.New<int, string, IntEq>();
+        var map = HSmallMap.New<int, string, IntEq>();
 
         map.AddOrUpdate(42, "1");
         map.AddOrUpdate(42 + 32 + 32, "3");
@@ -407,7 +393,7 @@ public class SmallMapTests
     [Test]
     public void Can_update_a_stored_item_with_new_value()
     {
-        var map = SmallMap.New<int, string, IntEq>();
+        var map = HSmallMap.New<int, string, IntEq>();
 
         map.AddOrUpdate(42, "1");
         map.AddOrUpdate(42, "3");
@@ -420,7 +406,7 @@ public class SmallMapTests
     [Test]
     public void Can_add_key_with_0_hash_code()
     {
-        var map = SmallMap.New<int, string, IntEq>();
+        var map = HSmallMap.New<int, string, IntEq>();
 
         map.AddOrUpdate(0, "aaa");
         map.AddOrUpdate(0 + 32, "2");
@@ -436,7 +422,7 @@ public class SmallMapTests
     [Test]
     public void Can_quickly_find_the_scattered_items_with_the_same_cache()
     {
-        var map = SmallMap.New<int, string, IntEq>();
+        var map = HSmallMap.New<int, string, IntEq>();
 
         map.AddOrUpdate(42, "1");
         map.AddOrUpdate(43, "a");
@@ -457,7 +443,7 @@ public class SmallMapTests
     [Test]
     public void Can_remove_the_stored_item()
     {
-        var map = SmallMap.New<int, string, IntEq>(2);
+        var map = HSmallMap.New<int, string, IntEq>(2);
 
         map.AddOrUpdate(42, "1");
         map.AddOrUpdate(42 + 32, "2");
@@ -480,7 +466,7 @@ public class SmallMapTests
         const int upperBound = 100000;
         Gen.Int[0, upperBound].Array.Sample(items =>
         {
-            var m = SmallMap.New<string, int, DefaultEq<string>>();
+            var m = HSmallMap.New<string, int, DefaultEq<string>>();
             foreach (var n in items)
             {
                 var k = "" + n;
@@ -505,7 +491,7 @@ public class SmallMapTests
     // }
 
     static Gen<(
-        SmallMap<string, string, DefaultEq<string>, SmallMap.SingleArrayEntries<string, string, DefaultEq<string>>>,
+        HSmallMap<string, string, DefaultEq<string>, HSmallMap.SingleArrayEntries<string, string, DefaultEq<string>>>,
         string[])>
         GenImMap(int upperBound) =>
             Gen.Int[0, upperBound].ArrayUnique.SelectMany(keys =>
@@ -514,7 +500,7 @@ public class SmallMapTests
                     var keyArray = keys.Select(x => x.ToString()).ToArray();
                     var valArray = values.Select(x => x.ToString()).ToArray();
 
-                    var m = SmallMap.New<string, string, DefaultEq<string>>();
+                    var m = HSmallMap.New<string, string, DefaultEq<string>>();
                     for (var i = 0; i < keyArray.Length; i++)
                         m.AddOrUpdate(keyArray[i], valArray[i]);
                     return (map: m, keys: keyArray);
@@ -533,8 +519,8 @@ public class SmallMapTests
 
                 // todo: @wip add the Copy method
                 // copy things to the new maps
-                var m1 = SmallMap.New<string, string, DefaultEq<string>>();
-                var m2 = SmallMap.New<string, string, DefaultEq<string>>();
+                var m1 = HSmallMap.New<string, string, DefaultEq<string>>();
+                var m2 = HSmallMap.New<string, string, DefaultEq<string>>();
                 foreach (var (k, v) in m.Select(x => (x.Key, x.Value)))
                 {
                     m1.AddOrUpdate(k, v);
@@ -588,8 +574,8 @@ public class SmallMapTests
                 var ((m, _), k1, v1, k2, v2) = t;
                 var (sk1, sv1, sk2, sv2) = ("" + k1, "" + v1, "" + k2, "" + v2);
 
-                var m1 = SmallMap.New<string, string, DefaultEq<string>>();
-                var m2 = SmallMap.New<string, string, DefaultEq<string>>();
+                var m1 = HSmallMap.New<string, string, DefaultEq<string>>();
+                var m2 = HSmallMap.New<string, string, DefaultEq<string>>();
                 foreach (var (k, v) in m.Select(x => (x.Key, x.Value)))
                 {
                     m1.AddOrUpdate(k, v);
@@ -646,7 +632,7 @@ public class SmallMapTests
 
 public static class SmallMapTestTools
 {
-    internal static void Verify<K, V, TEq, TEntries>(this SmallMap<K, V, TEq, TEntries> map, IEnumerable<K> expectedKeys = null)
+    internal static void Verify<K, V, TEq, TEntries>(this HSmallMap<K, V, TEq, TEntries> map, IEnumerable<K> expectedKeys = null)
         where TEq : struct, IEq<K>
         where TEntries : struct, IEntries<K, V, TEq>
     {
@@ -658,7 +644,7 @@ public static class SmallMapTestTools
     }
 
     /// <summary>Verifies that the hashes correspond to the keys stored in the entries. May be called from the tests.</summary>
-    public static void VerifyHashesAndKeysEq<K, V, TEq, TEntries>(this SmallMap<K, V, TEq, TEntries> map)
+    public static void VerifyHashesAndKeysEq<K, V, TEq, TEntries>(this HSmallMap<K, V, TEq, TEntries> map)
         where TEq : struct, IEq<K>
         where TEntries : struct, IEntries<K, V, TEq>
     {
@@ -669,7 +655,7 @@ public static class SmallMapTestTools
     }
 
     /// <summary>Verifies that there is no duplicate keys stored in hashes -> entries. May be called from the tests.</summary>
-    public static void VerifyNoDuplicateKeys<K, V, TEq, TEntries>(this SmallMap<K, V, TEq, TEntries> map)
+    public static void VerifyNoDuplicateKeys<K, V, TEq, TEntries>(this HSmallMap<K, V, TEq, TEntries> map)
         where TEq : struct, IEq<K>
         where TEntries : struct, IEntries<K, V, TEq>
     {
@@ -678,7 +664,7 @@ public static class SmallMapTestTools
         var hashes = map.PackedHashesAndIndexes;
         var capacity = map.Capacity;
         var indexMask = capacity - 1;
-        for (var i = 0; i < hashes.Length; i++)
+        for (var i = 0; i < hashes.Length - 8; i++)
         {
             var h = hashes[i];
             if (h == 0)
@@ -692,7 +678,7 @@ public static class SmallMapTestTools
     }
 
     /// <summary>Verifies that the probes are consistently increasing</summary>
-    public static void VerifyProbesAreFitRobinHood<K, V, TEq, TEntries>(this SmallMap<K, V, TEq, TEntries> map)
+    public static void VerifyProbesAreFitRobinHood<K, V, TEq, TEntries>(this HSmallMap<K, V, TEq, TEntries> map)
         where TEq : struct, IEq<K>
         where TEntries : struct, IEntries<K, V, TEq>
     {
@@ -701,7 +687,7 @@ public static class SmallMapTestTools
         var indexMask = capacity - 1;
         var prevProbes = -1;
         const int ProbeCountShift = 32 - MaxProbeBits;
-        for (var i = 0; i < hashes.Length; i++)
+        for (var i = 0; i < hashes.Length - 8; i++)
         {
             var h = hashes[i];
             var probes = h >>> ProbeCountShift;
@@ -712,7 +698,7 @@ public static class SmallMapTestTools
     }
 
     /// <summary>Verifies that the map contains all passed keys. May be called from the tests.</summary>
-    public static void VerifyContainAllKeys<K, V, TEq, TEntries>(this SmallMap<K, V, TEq, TEntries> map, IEnumerable<K> expectedKeys)
+    public static void VerifyContainAllKeys<K, V, TEq, TEntries>(this HSmallMap<K, V, TEq, TEntries> map, IEnumerable<K> expectedKeys)
         where TEq : struct, IEq<K>
         where TEntries : struct, IEntries<K, V, TEq>
     {

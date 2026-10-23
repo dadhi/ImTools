@@ -1,6 +1,9 @@
 {
     "cSpell.words": [
+        "Aval",
+        "Bval",
         "cref",
+        "Cval",
         "Hasher",
         "langword",
         "mentries",
@@ -11,5 +14,6 @@
     ],
     "files.watcherExclude": {
         "**/target": true
-    }
+    },
+    "dotnet.defaultSolution": "ImTools.slnx"
 }

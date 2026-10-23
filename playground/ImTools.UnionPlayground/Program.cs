@@ -10,18 +10,18 @@ namespace ImTools.UnionPlayground
     {
         static void Main()
         {
-            // Unnamed (anonymous) union is fast to declare and use
+            // Unnamed (anonymous) un is fast to declare and use
             var i = U<int, string>.Of(42);
             var s = U<int, string>.Of("hey");
 
             WriteLine(i);
             WriteLine(s);
 
-            // You may create the union case directly via constructor, helpful for the cases like `U<A, A>` or `U<string, string>`
+            // You may create the un case directly via constructor, helpful for the cases like `U<A, A>` or `U<string, string>`
             var s2 = new U<string, string>.case1("hsss");
             WriteLine(s2);
 
-            // Typed union (check the definition below) is different from the unnamed `U<int, string>`, e.g. `s = name;` won't compile
+            // Typed un (check the definition below) is different from the unnamed `U<int, string>`, e.g. `s = name;` won't compile
             var name = BoolOrString.Of("Bob");
             var flag = BoolOrString.Of(false);
 
@@ -29,7 +29,7 @@ namespace ImTools.UnionPlayground
             WriteLine(SwitchOnCases(flag));
             WriteLine(name.Match(f => "" + f, n => n));
 
-            // Typed union with the Typed cases so you can pattern match on `case I<Name> name` or `I<Flag> flag`
+            // Typed un with the Typed cases so you can pattern match on `case I<Name> name` or `I<Flag> flag`
             var name2 = FlagOrName.Of(Name.Of("Alice"));
             var flag2 = FlagOrName.Of(Flag.Of(true));
 
@@ -48,13 +48,13 @@ namespace ImTools.UnionPlayground
         }
     }
 
-    // One-liner named union definition
+    // One-liner named un definition
     public sealed class BoolOrString : Union<BoolOrString, bool, string> { }
 
     // A different type from the NamedBoolOrString
     public sealed class OtherBoolOrString : Union<OtherBoolOrString, bool, string> { }
 
-    // Typed union with the typed cases - now you can pattern match via `I<Flag>` and `I<Name>`
+    // Typed un with the typed cases - now you can pattern match via `I<Flag>` and `I<Name>`
     public sealed class FlagOrName : Union<FlagOrName, Flag.item, Name.item> { }
     public sealed class Flag : Item<Flag, bool>   { }
     public sealed class Name : Item<Name, string> { }
@@ -62,7 +62,7 @@ namespace ImTools.UnionPlayground
     public static class Usage
     {
         // note: Using T with constraint instead of FlagOrName.I interface improves the performance by avoiding boxing.
-        public static string SwitchOnCases<T>(T x) where T : BoolOrString.union
+        public static string SwitchOnCases<T>(T x) where T : BoolOrString.un
         {
             switch (x)
             {
@@ -72,7 +72,7 @@ namespace ImTools.UnionPlayground
             }
         }
 
-        public static string SwitchOnTypedItems(FlagOrName.union x)
+        public static string SwitchOnTypedItems(FlagOrName.un x)
         {
             // Refactoring friendly Named cases, with some performance price due the boxing - likely is not important for your case, 
             // except you are designing a performance oriented data structure or being used in performance sensitive spot context.
@@ -125,34 +125,34 @@ namespace ImTools.UnionPlayground
     public sealed class MyList<T> : Union<MyList<T>, Unit, MyList<T>.NonEmptyList>
     {
         public static readonly case1 Empty = new case1(Unit.unit);
-        public static case2 NonEmpty(T head, union tail) => new case2(new NonEmptyList(head, tail));
+        public static case2 NonEmpty(T head, un tail) => new case2(new NonEmptyList(head, tail));
 
         public readonly struct NonEmptyList
         {
             public readonly T Head;
-            public readonly union Tail;
-            public NonEmptyList(T head, union tail) => (Head, Tail) = (head, tail);
+            public readonly un Tail;
+            public NonEmptyList(T head, un tail) => (Head, Tail) = (head, tail);
             public override string ToString() => Head + "::" + Tail;
         }
     }
 
     public static class MyList
     {
-        public static MyList<T>.case2 Push<T>(this MyList<T>.union list, T head) => MyList<T>.NonEmpty(head, list);
+        public static MyList<T>.case2 Push<T>(this MyList<T>.un list, T head) => MyList<T>.NonEmpty(head, list);
     }
 
     // Less efficient, but less boilerplate recursive type - requires one heap reference per recursive type usage.
     public sealed class MyTree<T> : Union<MyTree<T>, Unit, MyTree<T>.NonEmptyTree>
     {
-        public sealed class NonEmptyTree : Box<NonEmptyTree, (union Left, T Leaf, union Right)> { }
+        public sealed class NonEmptyTree : Box<NonEmptyTree, (un Left, T Leaf, un Right)> { }
         public static readonly case1 Empty = new case1(Unit.unit);
     }
 
     public static class MyTree
     {
-        public static MyTree<T>.union Of<T>(MyTree<T>.union left, T leaf, MyTree<T>.union right) =>
+        public static MyTree<T>.un Of<T>(MyTree<T>.un left, T leaf, MyTree<T>.un right) =>
             MyTree<T>.Of(MyTree<T>.NonEmptyTree.Of((left, leaf, right)));
 
-        public static MyTree<T>.union Leaf<T>(T leaf) => Of(MyTree<T>.Empty, leaf, MyTree<T>.Empty);
+        public static MyTree<T>.un Leaf<T>(T leaf) => Of(MyTree<T>.Empty, leaf, MyTree<T>.Empty);
     }
 }
