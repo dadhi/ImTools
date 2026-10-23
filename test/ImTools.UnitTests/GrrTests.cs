@@ -13,9 +13,9 @@ namespace ImTools.Experiments.UnitTests;
 [TestFixture]
 public class GrrTests
 {
-    private static Grr<int, Stack8<int[]>> NewGrr(uint capacity = 0)
+    private static GrrPowerOf2<int, Stack8<int[]>> NewGrr(uint capacity = 0)
     {
-        var g = default(Grr<int, Stack8<int[]>>);
+        var g = default(GrrPowerOf2<int, Stack8<int[]>>);
         g.Init(capacity);
         return g;
     }
@@ -145,7 +145,7 @@ public class GrrTests
 [TestFixture]
 public class SmallGrrTests
 {
-    private static SmallGrr<int, Stack8<int>, Stack8<int[]>> New() => default;
+    private static SmallGrrPowerOf2<int, Stack8<int>, Stack8<int[]>> New() => default;
 
     [Test]
     public void Add_stays_on_stack_until_capacity()

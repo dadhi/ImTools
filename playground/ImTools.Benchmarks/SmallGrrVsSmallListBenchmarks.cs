@@ -20,7 +20,7 @@ public class SmallGrrVsSmallListBenchmarks
 
     private int[] _indices = null!;
     private SmallList<int, Stack8<int>> _smallList;
-    private SmallGrr<int, Stack8<int>, Stack8<int[]>> _smallGrr;
+    private SmallGrrPowerOf2<int, Stack8<int>, Stack8<int[]>> _smallGrr;
 
     [GlobalSetup]
     public void Setup()

@@ -46,6 +46,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Diagnostics.CodeAnalysis;
@@ -56,7 +57,6 @@ using System.Numerics;
 #endif
 
 using static SmallMap;
-using System.Linq;
 
 /// <summary>Helpers and polyfills for the missing things in the old .NET versions</summary>
 public static class RefTools<T>
@@ -724,13 +724,13 @@ internal static class BitOps
 #endif
     }
 
-    /// <summary>Counts the number of leading zero bits in the specified value. 
+    /// <summary>Counts the number of leading zero bits in the specified value.
     /// Useful to get Log2(value) and the number of bits needed to represent the value.</summary>
     [MethodImpl((MethodImplOptions)256)]
-    public static int LeadingZeroCount(uint value)
+    public static byte LeadingZeroCount(uint value)
     {
 #if NET8_0_OR_GREATER
-        return BitOperations.LeadingZeroCount(value);
+        return (byte)BitOperations.LeadingZeroCount(value);
 #else
         if (value == 0) return 32;
         var count = 0;
@@ -739,7 +739,7 @@ internal static class BitOps
         if (value <= 0x0FFFFFFF) { count += 4;  value <<= 4; }
         if (value <= 0x3FFFFFFF) { count += 2;  value <<= 2; }
         if (value <= 0x7FFFFFFF) { count += 1; }
-        return count;
+        return (byte)count;
 #endif
     }
 }
@@ -826,13 +826,14 @@ public struct SingleBackingArray<T> : IGrowingArray<T>
     }
 }
 
+// todo: @perf do we actually need the power of 2 size? For example, it is not used for the SmallMap meta/hashes anyway because it is slow
 /// <summary>A growing array that grows by appending a new segment doubling the total capacity.
 /// Existing segments are never resized/copied, so item references stay valid (stable).
 /// Random access is still O(1) via power-of-two segment sizes.
-/// Segment sizes starting from first segment F: F, F, 2F, 4F, 8F, ... (first two equal so total doubles each add).
+/// Segment sizes starting from first segment F: 0:F, 1:F, 2:2F, 3:4F, 4:8F, ... (first two equal so total doubles each add).
 /// </summary>
-public struct Grr<T, TStack> : IGrowingArray<T>, IEnumerable<T>
-    where TStack : struct, IStack<T[], TStack>
+public struct GrrPowerOf2<T, TSegmentsStack> : IGrowingArray<T>, IEnumerable<T>
+    where TSegmentsStack : struct, IStack<T[], TSegmentsStack>
 {
     public const int MinCapacityAndFirstSegmentSize = 16;
 
@@ -841,7 +842,8 @@ public struct Grr<T, TStack> : IGrowingArray<T>, IEnumerable<T>
     internal int _firstSegmentCapacity;
     /// <summary>helps to calculate the segment index by subtracting the leading zero count of the global index from this value.</summary>
     internal byte _firstSegmentCapacityLeadingZerosPlusOne;
-    internal SmallList<T[], TStack> _segments;
+
+    internal SmallList<T[], TSegmentsStack> _segments;
 
     /// <summary>The number of segments.</summary>
     public int SegmentCount => _segments.Count;
@@ -933,13 +935,14 @@ public struct Grr<T, TStack> : IGrowingArray<T>, IEnumerable<T>
 
     /// <summary>Returns an enumerator over all allocated slots (Capacity items, not a separate Count).</summary>
     [MethodImpl((MethodImplOptions)256)]
-    public GrrEnumerator<T, TStack> GetEnumerator() => new GrrEnumerator<T, TStack>(_segments);
+    public GrrPowerOf2Enumerator<T, TSegmentsStack> GetEnumerator() => new GrrPowerOf2Enumerator<T, TSegmentsStack>(_segments);
     IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }
 
+
 /// <summary>Enumerator over Grr segment slots (full segment arrays, including unused capacity tails).</summary>
-public struct GrrEnumerator<T, TStack> : IEnumerator<T>, IEnumerator
+public struct GrrPowerOf2Enumerator<T, TStack> : IEnumerator<T>, IEnumerator
     where TStack : struct, IStack<T[], TStack>
 {
     private T _current;
@@ -948,7 +951,7 @@ public struct GrrEnumerator<T, TStack> : IEnumerator<T>, IEnumerator
     private int _insideIndex;
     private SmallList<T[], TStack> _segments;
 
-    internal GrrEnumerator(SmallList<T[], TStack> segments)
+    internal GrrPowerOf2Enumerator(SmallList<T[], TStack> segments)
     {
         _current = default;
         _segmentIndex = 0;
@@ -1001,10 +1004,10 @@ public struct GrrEnumerator<T, TStack> : IEnumerator<T>, IEnumerator
 
 /// <summary>
 /// Hybrid growable list: first items live on a fixed <typeparamref name="TStack"/>,
-/// overflow lives in a stable segmented <see cref="Grr{T,TSegStack}"/> (no resize/copy of old heap items).
+/// overflow lives in a stable segmented <see cref="GrrPowerOf2{T,TSegStack}"/> (no resize/copy of old heap items).
 /// API mirrors <see cref="SmallList{T,TStack}"/> but heap growth keeps references into already-added heap items stable.
 /// </summary>
-public struct SmallGrr<T, TStack, TSegStack> : IEnumerable<T>
+public struct SmallGrrPowerOf2<T, TStack, TSegStack> : IEnumerable<T>
     where TStack : struct, IStack<T, TStack>
     where TSegStack : struct, IStack<T[], TSegStack>
 {
@@ -1017,7 +1020,7 @@ public struct SmallGrr<T, TStack, TSegStack> : IEnumerable<T>
 #pragma warning restore CS0649
 
     /// <summary>Heap overflow stored as stable segments. Valid indexes are <c>0 .. Count - Stack.Capacity - 1</c>.</summary>
-    public Grr<T, TSegStack> Rest;
+    public GrrPowerOf2<T, TSegStack> Rest;
 
     /// <summary>Indexer with bounds checks.</summary>
     [UnscopedRef]
@@ -1153,16 +1156,16 @@ public struct SmallGrr<T, TStack, TSegStack> : IEnumerable<T>
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }
 
-/// <summary>Enumerator for <see cref="SmallGrr{T,TStack,TSegStack}"/> over used items.</summary>
+/// <summary>Enumerator for <see cref="SmallGrrPowerOf2{T,TStack,TSegStack}"/> over used items.</summary>
 public struct SmallGrrEnumerator<T, TStack, TSegStack> : IEnumerator<T>, IEnumerator
     where TStack : struct, IStack<T, TStack>
     where TSegStack : struct, IStack<T[], TSegStack>
 {
-    private SmallGrr<T, TStack, TSegStack> _list;
+    private SmallGrrPowerOf2<T, TStack, TSegStack> _list;
     private int _index;
     private T _current;
 
-    internal SmallGrrEnumerator(SmallGrr<T, TStack, TSegStack> list)
+    internal SmallGrrEnumerator(SmallGrrPowerOf2<T, TStack, TSegStack> list)
     {
         _list = list;
         _index = -1;
@@ -1681,7 +1684,7 @@ public readonly struct DebugMetaUnpacked
 /// - Metadata (packed entry-index | hash | probe) is stored in a single array (nothing references it, so no need for stable segments) and grows independently
 /// - Robin-Hood open addressing on the metadata table
 /// - Entry indexes preserve insertion order (stable enumeration by index 0..Count-1)
-/// - Prefer <see cref="Grr{T,TStack}"/> for heap entries when you need stable refs across growth;
+/// - Prefer <see cref="GrrPowerOf2{T,TStack}"/> for heap entries when you need stable refs across growth;
 ///   use <see cref="SingleBackingArray{T}"/> when raw random-access speed matters more than ref stability
 ///
 /// Not implemented yet: removal / tombstones (<see cref="IEq{K}.GetTombstone"/> is reserved for that).
@@ -1711,8 +1714,8 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     // Packing entry index in the high bits saves on the array load and possible cache eviction plus simplifies the resize, because the index part can be copied as-is
     // If the whole long is 0 then the slot is free.
     // 0..01|00010000...110|00010
-    //     |    |             |- The probe, occupies indexMask of bits always starting with 1, so the occupied item should have non 0 value
-    //     |    |- The remaining part of the hash without the indexMask bits used for the item index.
+    //     |    |             |- The probe, occupies index mask of bits always starting with 1, so the occupied item should have non 0 value
+    //     |    |- The remaining part of the hash without the index ask bits used for the item index.
     //     |- The entry index stored in the high bits
     internal SingleBackingArray<long> _packedEntryIndexesHashesProbes;
 
@@ -2192,29 +2195,29 @@ public struct SmallMap<K, TEntry, TEq, TStackCap, TStackHashes, TStackEntries, T
     }
 }
 
-/// <summary>Map with 4 stack entries; heap overflow in stable <see cref="Grr{T,TStack}"/>.</summary>
+/// <summary>Map with 4 stack entries; heap overflow in stable <see cref="GrrPowerOf2{T,TStack}"/>.</summary>
 public struct SmallMap4<K, V, TEq> where TEq : struct, IEq<K>
 {
     public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size4, Stack4<int>, Stack4<SmallMap.Entry<K, V>>,
-        Grr<SmallMap.Entry<K, V>, Stack8<SmallMap.Entry<K, V>[]>>> Map;
+        GrrPowerOf2<SmallMap.Entry<K, V>, Stack8<SmallMap.Entry<K, V>[]>>> Map;
     public SmallMap4() => Map = new(MinCapacity);
     public SmallMap4(uint capacityPowerOfTwo) => Map = new(capacityPowerOfTwo);
 }
 
-/// <summary>Map with 8 stack entries; heap overflow in stable <see cref="Grr{T,TStack}"/>.</summary>
+/// <summary>Map with 8 stack entries; heap overflow in stable <see cref="GrrPowerOf2{T,TStack}"/>.</summary>
 public struct SmallMap8<K, V, TEq> where TEq : struct, IEq<K>
 {
     public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size8, Stack8<int>, Stack8<SmallMap.Entry<K, V>>,
-        Grr<SmallMap.Entry<K, V>, Stack8<SmallMap.Entry<K, V>[]>>> Map;
+        GrrPowerOf2<SmallMap.Entry<K, V>, Stack8<SmallMap.Entry<K, V>[]>>> Map;
     public SmallMap8() => Map = new(MinCapacity);
     public SmallMap8(uint capacityPowerOfTwo) => Map = new(capacityPowerOfTwo);
 }
 
-/// <summary>Map with 16 stack entries; heap overflow in stable <see cref="Grr{T,TStack}"/> (refs stay valid across growth).</summary>
+/// <summary>Map with 16 stack entries; heap overflow in stable <see cref="GrrPowerOf2{T,TStack}"/> (refs stay valid across growth).</summary>
 public struct SmallMap16<K, V, TEq> where TEq : struct, IEq<K>
 {
     public SmallMap<K, SmallMap.Entry<K, V>, TEq, Size16, Stack16<int>, Stack16<SmallMap.Entry<K, V>>,
-        Grr<SmallMap.Entry<K, V>, Stack8<SmallMap.Entry<K, V>[]>>> Map;
+        GrrPowerOf2<SmallMap.Entry<K, V>, Stack8<SmallMap.Entry<K, V>[]>>> Map;
     public SmallMap16() => Map = new(MinCapacity);
     public SmallMap16(uint capacityPowerOfTwo) => Map = new(capacityPowerOfTwo);
 }
@@ -2228,29 +2231,29 @@ public struct SmallMap16_SingleArrEntries<K, V, TEq> where TEq : struct, IEq<K>
     public SmallMap16_SingleArrEntries(uint capacityPowerOfTwo) => Map = new(capacityPowerOfTwo);
 }
 
-/// <summary>Set with 4 stack keys; heap overflow in stable <see cref="Grr{T,TStack}"/>.</summary>
+/// <summary>Set with 4 stack keys; heap overflow in stable <see cref="GrrPowerOf2{T,TStack}"/>.</summary>
 public struct SmallSet4<K, TEq> where TEq : struct, IEq<K>
 {
     public SmallMap<K, SmallMap.Entry<K>, TEq, Size4, Stack4<int>, Stack4<SmallMap.Entry<K>>,
-        Grr<SmallMap.Entry<K>, Stack8<SmallMap.Entry<K>[]>>> Set;
+        GrrPowerOf2<SmallMap.Entry<K>, Stack8<SmallMap.Entry<K>[]>>> Set;
     public SmallSet4() => Set = new(MinCapacity);
     public SmallSet4(uint capacityPowerOfTwo) => Set = new(capacityPowerOfTwo);
 }
 
-/// <summary>Set with 8 stack keys; heap overflow in stable <see cref="Grr{T,TStack}"/>.</summary>
+/// <summary>Set with 8 stack keys; heap overflow in stable <see cref="GrrPowerOf2{T,TStack}"/>.</summary>
 public struct SmallSet8<K, TEq> where TEq : struct, IEq<K>
 {
     public SmallMap<K, SmallMap.Entry<K>, TEq, Size8, Stack8<int>, Stack8<SmallMap.Entry<K>>,
-        Grr<SmallMap.Entry<K>, Stack8<SmallMap.Entry<K>[]>>> Set;
+        GrrPowerOf2<SmallMap.Entry<K>, Stack8<SmallMap.Entry<K>[]>>> Set;
     public SmallSet8() => Set = new(MinCapacity);
     public SmallSet8(uint capacityPowerOfTwo) => Set = new(capacityPowerOfTwo);
 }
 
-/// <summary>Set with 16 stack keys; heap overflow in stable <see cref="Grr{T,TStack}"/>.</summary>
+/// <summary>Set with 16 stack keys; heap overflow in stable <see cref="GrrPowerOf2{T,TStack}"/>.</summary>
 public struct SmallSet16<K, TEq> where TEq : struct, IEq<K>
 {
     public SmallMap<K, SmallMap.Entry<K>, TEq, Size16, Stack16<int>, Stack16<SmallMap.Entry<K>>,
-        Grr<SmallMap.Entry<K>, Stack8<SmallMap.Entry<K>[]>>> Set;
+        GrrPowerOf2<SmallMap.Entry<K>, Stack8<SmallMap.Entry<K>[]>>> Set;
     public SmallSet16() => Set = new(MinCapacity);
     public SmallSet16(uint capacityPowerOfTwo) => Set = new(capacityPowerOfTwo);
 }

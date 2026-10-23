@@ -7653,9 +7653,9 @@ public struct HSmallMap<K, V, TEq, TEntries> : IReadOnlyCollection<HSmallMap.Ent
             _indexMask = (1 << HSmallMap.MinCapacityBits) - 1;
             _packedHashesAndIndexes = new int[1 << HSmallMap.MinCapacityBits];
 #if DEBUG
-            Debug.WriteLine($"[ResizeHashes] new empty hashes {1} -> {_packedHashesAndIndexes.Length}");
+            Debug.WriteLine($"[ResizeHashes] new empty hashes {_indexMask + 1} -> {_packedHashesAndIndexes.Length}");
 #endif
-            return (1 << HSmallMap.MinCapacityBits) - 1;
+            return _indexMask;
         }
 
         var oldCapacity = indexMask + 1;
